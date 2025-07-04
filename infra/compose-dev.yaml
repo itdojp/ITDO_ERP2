@@ -1,0 +1,89 @@
+version: '3.8'
+
+services:
+  # データ層（compose-data.yamlと同じ）
+  postgres:
+    image: postgres:15-alpine
+    container_name: itdo-postgres-dev
+    environment:
+      POSTGRES_DB: itdo_erp
+      POSTGRES_USER: itdo_user
+      POSTGRES_PASSWORD: itdo_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - itdo-network-dev
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: itdo-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data_dev:/data
+    networks:
+      - itdo-network-dev
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: itdo-keycloak-dev
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak_db
+      KC_DB_USERNAME: keycloak_user
+      KC_DB_PASSWORD: keycloak_password
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    networks:
+      - itdo-network-dev
+    restart: unless-stopped
+    command: start-dev
+
+  # 開発環境用ワークスペース
+  workspace:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.dev
+    container_name: itdo-workspace-dev
+    volumes:
+      - ../:/workspace
+      - node_modules:/workspace/frontend/node_modules
+      - python_cache:/workspace/backend/.venv
+    working_dir: /workspace
+    ports:
+      - "3000:3000"  # React dev server
+      - "8000:8000"  # FastAPI
+      - "8001:8001"  # FastAPI docs
+    depends_on:
+      - postgres
+      - redis
+      - keycloak
+    networks:
+      - itdo-network-dev
+    environment:
+      - DATABASE_URL=postgresql://itdo_user:itdo_password@postgres:5432/itdo_erp
+      - REDIS_URL=redis://redis:6379
+      - KEYCLOAK_URL=http://keycloak:8080
+    stdin_open: true
+    tty: true
+    command: sleep infinity
+
+volumes:
+  postgres_data_dev:
+  redis_data_dev:
+  node_modules:
+  python_cache:
+
+networks:
+  itdo-network-dev:
+    driver: bridge

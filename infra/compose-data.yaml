@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: docker.io/postgres:15-alpine
+    container_name: itdo-postgres
+    environment:
+      POSTGRES_DB: itdo_erp
+      POSTGRES_USER: itdo_user
+      POSTGRES_PASSWORD: itdo_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - itdo-network
+    restart: unless-stopped
+
+  redis:
+    image: docker.io/redis:7-alpine
+    container_name: itdo-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - itdo-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: itdo-keycloak
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak_db
+      KC_DB_USERNAME: keycloak_user
+      KC_DB_PASSWORD: keycloak_password
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    networks:
+      - itdo-network
+    restart: unless-stopped
+    command: start-dev
+
+  pgadmin:
+    image: docker.io/dpage/pgadmin4:latest
+    container_name: itdo-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: erpdevelop@itdo.jp
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "8081:80"
+    depends_on:
+      - postgres
+    networks:
+      - itdo-network
+    restart: unless-stopped
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+
+volumes:
+  postgres_data:
+  redis_data:
+  pgadmin_data:
+
+networks:
+  itdo-network:
+    driver: bridge
