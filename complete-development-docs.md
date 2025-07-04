@@ -1,5 +1,87 @@
 # 統合開発ドキュメント - Claude Code & GitHub協調開発
 
+## はじめに
+
+このプロジェクトは**ハイブリッド開発環境**を採用しています。
+- データ層（PostgreSQL, Redis, Keycloak）は常にコンテナで実行
+- 開発層（FastAPI, React）はローカル/コンテナを選択可能
+- 開発速度とセキュリティのバランスを最適化
+- Pythonパッケージ管理には**uv**を使用します（pip/activateは使用しません）
+
+## クイックスタート
+
+### データ層の起動（コンテナ）
+```bash
+# 1. リポジトリクローン（ローカル）
+git clone https://github.com/yourorg/yourproject.git
+cd yourproject
+
+# 2. 開発環境初期化（ローカル）
+./scripts/init-project.sh
+
+# 3. データ層コンテナ起動（ローカル）
+podman-compose -f infra/compose-data.yaml up -d
+```
+
+### 開発方式の選択
+
+#### オプションA: ローカル開発（推奨・高速）
+```bash
+# 4. Python環境セットアップ（ローカル）
+cd backend
+uv venv
+uv pip sync requirements-dev.txt
+
+# 5. Node.js環境セットアップ（ローカル）
+cd ../frontend
+npm install
+
+# 6. 開発サーバー起動（ローカル）
+# Terminal 1: Backend
+cd backend && uv run uvicorn app.main:app --reload
+
+# Terminal 2: Frontend
+cd frontend && npm run dev
+```
+
+#### オプションB: フルコンテナ開発（一貫性重視）
+```bash
+# 4. 開発コンテナ起動（ローカル）
+./scripts/dev-env.sh start
+
+# 5. コンテナに接続（ローカル）
+./scripts/dev-env.sh shell
+
+# 6. 開発サーバー起動（コンテナ内）
+make dev
+```
+
+## 重要な注意事項
+
+### ハイブリッド開発環境の構成
+- **データ層（常時コンテナ）**: PostgreSQL, Redis, Keycloak
+- **開発層（選択可能）**: FastAPI, React - ローカル実行推奨（開発速度優先）
+- **フルコンテナオプション**: 環境の完全な一貫性が必要な場合に使用
+
+### 実行場所の区別
+- **ローカルマシン**: Git操作、開発サーバー実行（高速開発時）、パッケージ管理
+- **データコンテナ**: PostgreSQL, Redis, Keycloak（常時）
+- **開発コンテナ**: 完全な環境一貫性が必要な場合のみ
+
+### Python開発（uv使用）
+```bash
+# ローカル開発時（推奨）
+cd backend
+uv venv
+uv pip install package
+uv run python script.py
+uv run pytest
+uv run mypy --strict .
+
+# コンテナ開発時
+# コンテナ内で上記と同じコマンドを実行
+```
+
 ## 目次
 
 1. [システム開発設計書](#1-システム開発設計書)
@@ -14,6 +96,10 @@
 10. [非機能要件](#10-非機能要件)
 11. [開発環境セットアップ](#11-開発環境セットアップ)
 12. [自動化スクリプト](#12-自動化スクリプト)
+13. [AI駆動開発（AIDD）](#13-ai駆動開発aidd)
+14. [段階的移行戦略](#14-段階的移行戦略)
+15. [AI時代のセキュリティ](#15-ai時代のセキュリティ)
+16. [チーム開発ワークフロー](#16-チーム開発ワークフロー)
 
 ---
 
@@ -57,11 +143,11 @@ project/
 │   ├── docs/                  # API仕様書
 │   │   ├── api-spec.md
 │   │   └── test-spec.md
-│   ├── .venv/                 # Python仮想環境
+│   ├── .venv/                 # Python仮想環境（uvが管理）
 │   ├── Dockerfile
 │   ├── pyproject.toml
-│   ├── requirements.txt       # 本番用
-│   └── requirements-dev.txt   # 開発用
+│   ├── requirements.txt       # 本番用（uv pip compileで生成）
+│   └── requirements-dev.txt   # 開発用（uv pip compileで生成）
 ├── frontend/                   # Reactフロントエンド
 │   ├── src/
 │   │   ├── components/        # UIコンポーネント
@@ -83,19 +169,23 @@ project/
 │   ├── fixtures/
 │   └── playwright.config.ts
 ├── infra/                     # インフラ設定
-│   ├── compose.yaml
+│   ├── compose.yaml           # 本番用Docker Compose
+│   ├── compose-dev.yaml       # 開発用Docker Compose（Podman対応）
+│   ├── Dockerfile.dev         # 開発用コンテナ定義
+│   ├── docker-entrypoint-dev.sh
 │   └── init-scripts/
-├── scripts/                   # 自動化スクリプト
-│   ├── init-project.sh
-│   ├── setup-dev.sh
-│   ├── test.sh
-│   ├── start-feature.sh
-│   └── claude-sync.sh
+├── scripts/                   # 自動化スクリプト（一部ローカル実行）
+│   ├── init-project.sh        # ローカル実行
+│   ├── setup-dev.sh           # 廃止（コンテナ内でmake install）
+│   ├── test.sh               # ローカル実行（コンテナ経由）
+│   ├── start-feature.sh      # ローカル実行（一部コンテナ経由）
+│   ├── dev-env.sh           # ローカル実行（コンテナ管理）
+│   └── claude-sync.sh       # 廃止
 ├── docs/                      # プロジェクトドキュメント
 │   ├── architecture.md
 │   ├── development-guide.md
 │   └── test-strategy.md
-├── .github/                   # GitHub設定
+├── .github/                   # GitHub設定（ローカルリポジトリ）
 │   ├── workflows/
 │   ├── ISSUE_TEMPLATE/
 │   └── pull_request_template.md
@@ -104,8 +194,9 @@ project/
 │   ├── DATA_MODELS.yaml
 │   ├── ERROR_CATALOG.md
 │   └── META_PROMPT.md
-├── Makefile
-├── .pre-commit-config.yaml
+├── Makefile                   # コンテナ内実行用
+├── .pre-commit-config.yaml   # ローカル実行（コンテナ経由）
+├── .env                      # 開発用環境変数（.gitignore対象）
 └── README.md
 ```
 
@@ -118,7 +209,8 @@ project/
 - **全ての作業はIssueから始める**
 - **Issueごとに必ず対応するPRを作成する**
 - **PRは必ずDraftで作成し、WIP（作業中）はラベルやタイトルで明示する**
-- **レビューはAI（Copilot Agent）→人間/AIの順で実施**
+- **レビューはAI（Copilot Agent）→人間の順で実施（自動化済み）**
+- **PR作成時に自動でレビュワーが割り当てられる（GitHub Actions）**
 - **作業の重複を避けるため、WIP状態や担当者を明確にする**
 
 ## 2.2 開発フロー
@@ -137,10 +229,29 @@ graph TD
     I --> J[PRマージ & Issueクローズ]
 ```
 
+### PR作成時の自動化
+
+Draft PR作成時には、GitHub Actionsにより以下が自動実行されます：
+
+1. **自動レビュワー追加**
+   - GitHub Copilot（AI事前レビュー）が自動追加
+   - チームメンバー（作成者以外）から1人を自動指名
+
+2. **自動ラベル付与**
+   - WIPラベルの自動付与
+   - ファイル変更パターンに基づくラベル付与
+
+これにより、レビュー依頼の手間を省き、確実にAIと人間両方のレビューを受けられます。
+
 ## 2.3 Claude Code開発プロンプト
 
 ```
 私はこれから Issue #[番号] の [機能名] の実装を行います。以下の手順で進めてください：
+
+前提条件の確認:
+- ハイブリッド開発環境を使用します
+- データ層（PostgreSQL, Redis, Keycloak）は `podman-compose -f infra/compose-data.yaml up -d` で起動済み
+- 開発はローカル環境で実行（高速開発）またはコンテナ内（環境再現時）を選択
 
 0. **Issue確認フェーズ**
    - Issue #[番号] の内容を確認し、要件を理解してください
@@ -148,7 +259,7 @@ graph TD
    - 関連するIssueやPRがないか確認してください
 
 1. **Draft PR作成フェーズ**
-   - feature/#[Issue番号]-[簡潔な説明] ブランチを作成
+   - ローカルで feature/#[Issue番号]-[簡潔な説明] ブランチを作成
    - Draft PRを作成: `[WIP] feat: [機能名] (Closes #[Issue番号])`
    - PRに実装計画をコメントとして記載
 
@@ -172,14 +283,17 @@ graph TD
 
 4. **テストコード実装フェーズ**
    - テスト仕様に基づいて、テストコードを先に実装してください
-   - Pythonの場合: pytest を使用
-   - TypeScriptの場合: vitest を使用
+   - Pythonの場合: pytest を使用（`cd backend && uv run pytest` で実行）
+   - TypeScriptの場合: vitest を使用（`cd frontend && npm test` で実行）
    - E2Eの場合: Playwright を使用
    - テストコードをコミット・プッシュ
 
 5. **実装フェーズ**
    - テストが失敗することを確認してから、実装を開始してください
    - 実装は小さなステップで進め、各ステップでテストを実行してください
+   - ローカル開発の場合:
+     * Backend: `cd backend && uv run uvicorn app.main:app --reload`
+     * Frontend: `cd frontend && npm run dev`
    - すべてのテストが通ることを確認してください
    - 定期的にコミット・プッシュしてPRを更新
 
@@ -193,6 +307,8 @@ graph TD
    - Draft状態を解除してReady for reviewに変更
 
 重要な制約事項：
+- データ層は必ずコンテナで実行（PostgreSQL, Redis, Keycloak）
+- 開発層はローカル実行を推奨（高速な反復開発）
 - 必ずIssueを起点とし、Draft PRを早期に作成すること
 - テストコードを書かずに実装を進めることは禁止です
 - テストが通らないコードをコミットすることは禁止です
@@ -202,6 +318,19 @@ graph TD
   - any型の使用は原則禁止
 - エラーハンドリングは必須です
 - WIP状態を明確にし、作業の重複を防ぐこと
+
+開発コマンド例:
+【ローカル開発（推奨）】
+- データ層起動: `podman-compose -f infra/compose-data.yaml up -d`
+- Backend開発: `cd backend && uv run uvicorn app.main:app --reload`
+- Frontend開発: `cd frontend && npm run dev`
+- テスト実行: `cd backend && uv run pytest`
+- 型チェック: `cd backend && uv run mypy --strict .`
+
+【フルコンテナ開発（環境再現時）】
+- 全環境起動: `podman-compose -f infra/compose-dev.yaml up -d`
+- コンテナ接続: `podman exec -it myapp-dev-workspace bash`
+- 開発サーバー: `make dev` (コンテナ内)
 ```
 
 ## 2.4 GitHub テンプレート
@@ -288,6 +417,17 @@ Closes #<!-- Issue番号 -->
 ```markdown
 # .claude/PROJECT_CONTEXT.md
 
+## 開発環境
+
+### 重要: ハイブリッド開発環境
+- **データ層は常にコンテナで実行**（PostgreSQL, Redis, Keycloak）
+- **開発層はローカル実行を推奨**（FastAPI, React）- 開発速度優先
+- **フルコンテナオプション利用可能** - 環境再現が必要な場合
+
+### 開発構成の選択
+- ローカル開発: 日常的な開発作業（高速、推奨）
+- フルコンテナ: 環境依存の問題調査、本番環境の再現
+
 ## ビジネスドメイン
 - 主要エンティティ: User, Organization, Project, Task
 - 主要ユースケース: [具体的な業務フロー]
@@ -309,11 +449,32 @@ Closes #<!-- Issue番号 -->
 あなたはこのプロジェクトの開発を支援するAIアシスタントです。
 以下の原則に従って開発を進めてください：
 
-1. **安全第一**: テストなしでコードを書かない
-2. **文書化**: 実装前に仕様を文書化
-3. **一貫性**: 既存のパターンに従う
-4. **効率性**: テンプレートを活用
-5. **品質**: コードレビューの観点を持つ
+1. **ハイブリッド開発**: データ層はコンテナ、開発層は状況に応じて選択
+2. **安全第一**: テストなしでコードを書かない
+3. **文書化**: 実装前に仕様を文書化
+4. **一貫性**: 既存のパターンに従う
+5. **効率性**: テンプレートを活用
+6. **品質**: コードレビューの観点を持つ
+
+開発環境コマンド例:
+
+ローカル開発（推奨）:
+- データ層起動: `podman-compose -f infra/compose-data.yaml up -d`
+- Backend起動: `cd backend && uv run uvicorn app.main:app --reload`
+- Frontend起動: `cd frontend && npm run dev`
+- テスト実行: `cd backend && uv run pytest`
+
+フルコンテナ開発（オプション）:
+- コンテナ起動: `podman-compose -f infra/compose-dev.yaml up -d`
+- コンテナ接続: `podman exec -it myapp-dev-workspace bash`
+- 開発サーバー: `make dev` (コンテナ内で実行)
+
+Python開発の注意事項（uvを使用）:
+- 仮想環境作成: `uv venv`
+- パッケージインストール: `uv pip install package-name`
+- スクリプト実行: `uv run python script.py`
+- テスト実行: `uv run pytest`
+- **activateは使用しません** - すべて`uv run`で実行
 
 利用可能なリソース：
 - PROJECT_CONTEXT.md: ビジネスドメイン知識
@@ -323,11 +484,12 @@ Closes #<!-- Issue番号 -->
 - SECURITY_CHECKLIST.md: セキュリティ要件
 
 開発時は必ず以下の順序で進めること：
-1. 関連ドキュメントの参照
-2. テスト仕様の作成
-3. テストコードの実装
-4. プロダクションコードの実装
-5. ドキュメントの更新
+1. データ層の起動確認
+2. 関連ドキュメントの参照
+3. テスト仕様の作成
+4. テストコードの実装
+5. プロダクションコードの実装
+6. ドキュメントの更新
 ```
 
 ---
@@ -614,6 +776,9 @@ class Test{Resource}Service:
         # Assert
         assert success is True
         assert await service.get_by_id({resource}.id) is None
+
+# テスト実行コマンド（コンテナ内で実行）:
+# cd /workspace/backend && uv run pytest tests/unit/test_{resource}_service.py -v
 ```
 
 ## 4.2 Frontend Templates
@@ -1635,117 +1800,621 @@ security_updates:
 
 ---
 
-# 11. 開発環境セットアップ
+# 11. 開発環境セットアップ（Podmanコンテナベース）
 
-## 11.1 初回セットアップ
+## 11.1 開発方針
+
+### 11.1.1 ハイブリッド開発環境アーキテクチャ
+
+**3層ハイブリッド構成の採用**
+
+```yaml
+開発環境の構成:
+  常時コンテナ層:
+    - PostgreSQL（データ永続性）
+    - Redis（キャッシュ・Pub/Sub）
+    - Keycloak（認証）
+    理由: データの一貫性とセキュリティ
+    
+  ハイブリッド層:
+    - FastAPI（ローカル開発推奨 / コンテナ切替可能）
+    - バックグラウンドワーカー
+    理由: 開発速度とデバッグの効率性
+    
+  ローカル優先層:
+    - React/TypeScript（高速HMR必須）
+    - 開発ツール（Storybook等）
+    理由: フロントエンド開発の即時反映
+```
+
+**メリット:**
+- 開発速度: 最大5倍向上（フロントエンド）
+- Claude Code/Copilot: シームレスな連携
+- セキュリティ: データ層は隔離維持
+- 柔軟性: 必要に応じてフルコンテナに切替可能
+
+**開発モードの選択基準:**
+- **ローカル開発**: 日常的な開発作業（推奨）
+- **フルコンテナ**: 環境依存の問題調査、本番環境の再現
+
+## 11.2 前提条件
+
+ローカルマシンに必要なもの：
+- Podman 4.0以上
+- Podman Compose
+- Git
+- VS Code または任意のエディタ（Remote Containers拡張推奨）
+
+## 11.3 開発用コンテナ構成
+
+### 開発用 Docker Compose
+
+#### データ層用（常時使用）
+```yaml
+# infra/compose-data.yaml
+version: '3.8'
+services:
+  postgres:
+    image: postgres:15
+    container_name: myapp-postgres
+    environment:
+      POSTGRES_PASSWORD: devpass
+      POSTGRES_DB: myapp
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    networks:
+      - myapp-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: myapp-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - myapp-network
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:22.0
+    container_name: myapp-keycloak
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    command: start-dev
+    ports:
+      - "8080:8080"
+    networks:
+      - myapp-network
+
+volumes:
+  pgdata:
+
+networks:
+  myapp-network:
+    driver: bridge
+```
+
+#### フル開発環境用（オプション）
+```yaml
+# infra/compose-dev.yaml
+version: '3.8'
+services:
+  # データ層は compose-data.yaml を使用
+  
+  # 開発用統合コンテナ（必要時のみ）
+  dev-workspace:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.dev
+    image: myapp-dev:latest
+    container_name: myapp-dev-workspace
+    volumes:
+      - ..:/workspace:cached
+      - ~/.ssh:/home/developer/.ssh:ro
+      - ~/.gitconfig:/home/developer/.gitconfig:ro
+    environment:
+      - PYTHONPATH=/workspace/backend
+      - DATABASE_URL=postgresql://postgres:devpass@localhost:5432/myapp
+      - REDIS_URL=redis://localhost:6379
+      - OIDC_ISSUER=http://localhost:8080/realms/myapp
+    env_file:
+      - ../.env
+    network_mode: "host"  # ローカルのデータ層に接続
+    command: /bin/bash -c "tail -f /dev/null"
+```
+
+### 開発用 Dockerfile
+
+```dockerfile
+# infra/Dockerfile.dev
+FROM ubuntu:22.04
+
+# 基本パッケージインストール
+RUN apt-get update && apt-get install -y \
+    curl \
+    git \
+    vim \
+    sudo \
+    build-essential \
+    pkg-config \
+    libssl-dev \
+    && apt-get clean
+
+# 開発用ユーザー作成
+RUN useradd -m -s /bin/bash developer && \
+    echo "developer ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+USER developer
+WORKDIR /home/developer
+
+# Python (uv) セットアップ
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/home/developer/.cargo/bin:${PATH}"
+
+# Node.js (Volta) セットアップ
+RUN curl https://get.volta.sh | bash
+ENV VOLTA_HOME="/home/developer/.volta"
+ENV PATH="${VOLTA_HOME}/bin:${PATH}"
+RUN volta install node@20 npm@10
+
+# 作業ディレクトリ設定
+WORKDIR /workspace
+
+# エントリーポイント
+COPY infra/docker-entrypoint-dev.sh /usr/local/bin/
+RUN sudo chmod +x /usr/local/bin/docker-entrypoint-dev.sh
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint-dev.sh"]
+```
+
+### 開発用エントリーポイント
 
 ```bash
-# 1. リポジトリクローン
+#!/bin/bash
+# infra/docker-entrypoint-dev.sh
+
+echo "🚀 開発環境を初期化しています..."
+
+# Backend セットアップ
+if [ -f "/workspace/backend/pyproject.toml" ]; then
+    echo "📦 Python依存関係をインストール中..."
+    cd /workspace/backend
+    uv venv
+    uv pip sync requirements-dev.txt || echo "⚠️  requirements-dev.txt が見つかりません"
+fi
+
+# Frontend セットアップ
+if [ -f "/workspace/frontend/package.json" ]; then
+    echo "📦 Node.js依存関係をインストール中..."
+    cd /workspace/frontend
+    npm install
+fi
+
+echo "✅ 開発環境の準備が完了しました！"
+echo "💡 ヒント: 'make dev' で開発サーバーを起動できます"
+echo "💡 Python実行: cd backend && uv run python ..."
+echo "💡 テスト実行: cd backend && uv run pytest"
+
+# bashシェルを起動
+exec /bin/bash
+```
+
+## 11.4 初回セットアップ手順
+
+### 共通セットアップ
+```bash
+# 1. リポジトリクローン（ローカルマシンで実行）
 git clone https://github.com/yourorg/yourproject.git
 cd yourproject
 
-# 2. 開発環境初期化
-./scripts/init-project.sh
+# 2. データ層コンテナの起動（ローカルマシンで実行）
+podman-compose -f infra/compose-data.yaml up -d
 
-# 3. 依存関係インストール
-make install
-
-# 4. データベース初期化
-make migrate
-
-# 5. 開発サーバー起動
-make dev
-
-# 6. GitHub CLI設定（PR作成用）
-gh auth login
+# 3. データベース初期化（ローカルマシンで実行）
+podman exec myapp-postgres psql -U postgres -d myapp -c "CREATE EXTENSION IF NOT EXISTS uuid-ossp;"
 ```
 
-## 11.2 日常的な開発フロー
-
+### ローカル開発環境（推奨）
 ```bash
-# 1. Issueを確認・アサイン
-# GitHubでIssueを確認し、自分にアサイン
+# 4. Python環境セットアップ（ローカルマシンで実行）
+cd backend
+uv venv
+uv pip sync requirements-dev.txt
 
-# 2. 最新の変更を取得
+# 5. データベースマイグレーション（ローカルマシンで実行）
+uv run alembic upgrade head
+
+# 6. Node.js環境セットアップ（ローカルマシンで実行）
+cd ../frontend
+npm install
+
+# 7. 開発サーバー起動（ローカルマシンで実行）
+# Terminal 1: Backend
+cd backend && uv run uvicorn app.main:app --reload
+
+# Terminal 2: Frontend  
+cd frontend && npm run dev
+```
+
+### フルコンテナ開発環境（オプション）
+```bash
+# 4. 開発用コンテナイメージのビルド（ローカルマシンで実行）
+podman-compose -f infra/compose-dev.yaml build
+
+# 5. 開発コンテナ起動（ローカルマシンで実行）
+podman-compose -f infra/compose-dev.yaml up -d
+
+# 6. 開発用コンテナに接続（ローカルマシンで実行）
+podman exec -it myapp-dev-workspace bash
+
+# ===== 以降はコンテナ内で実行 =====
+
+# 7. 依存関係の確認とインストール（コンテナ内）
+cd /workspace/backend
+uv pip sync requirements-dev.txt  # 通常は自動実行済み
+
+# 8. データベース初期化（コンテナ内）
+cd /workspace/backend
+uv run alembic upgrade head
+
+# 9. 開発サーバー起動（コンテナ内）
+cd /workspace
+make dev
+```
+
+## 11.5 日常的な開発フロー
+
+### ローカル開発フロー（推奨）
+```bash
+# 1. データ層起動（ローカルマシンで実行）
+cd yourproject
+podman-compose -f infra/compose-data.yaml up -d
+
+# 2. 最新の変更を取得（ローカルマシンで実行）
 git pull origin develop
 
-# 3. Issue用のブランチ作成・Draft PR作成
-./scripts/start-feature.sh 123 user-authentication
+# 3. Issue用のブランチ作成（ローカルマシンで実行）
+git checkout -b feature/#123-user-authentication
 
-# 4. 開発サーバー起動
-make dev
+# 4. 開発サーバー起動（ローカルマシンで実行）
+# Terminal 1: Backend
+cd backend && uv run uvicorn app.main:app --reload
 
-# 5. 実装・テスト（定期的にコミット・プッシュ）
+# Terminal 2: Frontend
+cd frontend && npm run dev
+
+# 5. 実装・テスト（ローカルマシンで実行）
+# VS Code/Claude Codeで直接編集
+# ホットリロードで即座に反映
+
+# 6. テスト実行（ローカルマシンで実行）
+cd backend && uv run pytest
+cd frontend && npm test
+
+# 7. 型チェック実行（ローカルマシンで実行）
+cd backend && uv run mypy --strict .
+cd frontend && npm run type-check
+
+# 8. コミット・プッシュ（ローカルマシンで実行）
 git add .
-git commit -m "feat: add user model"
-git push
+git commit -m "feat: add user authentication"
+git push -u origin feature/#123-user-authentication
 
-# 6. テスト実行
-make test
-
-# 7. Copilot Agentレビュー待ち
-# 自動レビューコメントを確認・対応
-
-# 8. Draft解除
-# GitHubでReady for reviewに変更
-
-# 9. マージ
-# 承認後、PRをマージ（Issueは自動クローズ）
+# 9. Draft PR作成（ローカルマシンで実行）
+gh pr create --draft --title "[WIP] feat: user authentication (Closes #123)"
 ```
 
-## 11.3 Makefile
+### フルコンテナ開発フロー（環境依存問題の調査時）
+```bash
+# 1. 開発環境起動
+cd yourproject
+podman-compose -f infra/compose-data.yaml up -d
+podman-compose -f infra/compose-dev.yaml up -d
+
+# 2. 開発コンテナに接続
+podman exec -it myapp-dev-workspace bash
+
+# ===== 以降はコンテナ内での作業 =====
+
+# 3. 最新の変更を取得
+cd /workspace
+git pull origin develop
+
+# 4. Issue用のブランチ作成
+git checkout -b feature/#123-user-authentication
+
+# 5. 開発サーバー起動（別ターミナル、コンテナ内で）
+cd /workspace
+make dev
+
+# 6-9. 実装からPR作成まで（上記と同様）
+```
+
+## 11.6 VS Code Remote Containers設定
+
+```json
+// .devcontainer/devcontainer.json
+{
+    "name": "MyApp Development",
+    "dockerComposeFile": "../infra/compose-dev.yaml",
+    "service": "dev-workspace",
+    "workspaceFolder": "/workspace",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python",
+                "ms-python.vscode-pylance",
+                "charliermarsh.ruff",
+                "ms-python.mypy-type-checker",
+                "dbaeumer.vscode-eslint",
+                "esbenp.prettier-vscode",
+                "bradlc.vscode-tailwindcss"
+            ],
+            "settings": {
+                // uvは.venv内のPythonを使用
+                "python.defaultInterpreterPath": "/workspace/backend/.venv/bin/python",
+                "python.linting.enabled": true,
+                "python.linting.ruffEnabled": true,
+                "python.formatting.provider": "ruff",
+                // ターミナルでのPython実行はuv runを推奨
+                "python.terminal.activateEnvironment": false,
+                "[python]": {
+                    "editor.formatOnSave": true
+                },
+                "[typescript]": {
+                    "editor.formatOnSave": true,
+                    "editor.defaultFormatter": "esbenp.prettier-vscode"
+                },
+                // uvコマンドのヒント
+                "terminal.integrated.env.linux": {
+                    "PYTHONPATH": "/workspace/backend"
+                }
+            }
+        }
+    },
+    // 開発コンテナ起動時のコマンド
+    "postCreateCommand": "cd backend && uv venv && uv pip sync requirements-dev.txt"
+}
+```
+
+## 11.7 Makefile（ハイブリッド開発対応）
 
 ```makefile
-.PHONY: dev test build deploy install
+# Makefile - ローカル実行とコンテナ実行の両方に対応
+# 環境変数 DEV_MODE で切り替え（local または container）
 
-# 環境変数
-export UV_SYSTEM_PYTHON=false
-export VOLTA_HOME=$(HOME)/.volta
-export PATH := $(VOLTA_HOME)/bin:$(PATH)
+DEV_MODE ?= local
+
+.PHONY: dev test build install typecheck help
+
+# デフォルトターゲット
+help:
+	@echo "📚 利用可能なコマンド:"
+	@echo "  make dev        - 開発サーバーを起動"
+	@echo "  make test       - すべてのテストを実行"
+	@echo "  make typecheck  - 型チェックを実行"
+	@echo "  make install    - 依存関係をインストール"
+	@echo "  make db-up      - データ層を起動"
+	@echo "  make db-down    - データ層を停止"
+	@echo ""
+	@echo "🔧 開発モード: $(DEV_MODE) (DEV_MODE=container で変更可能)"
+
+# データ層管理
+db-up:
+	@echo "🚀 データ層を起動します..."
+	podman-compose -f infra/compose-data.yaml up -d
+
+db-down:
+	@echo "🛑 データ層を停止します..."
+	podman-compose -f infra/compose-data.yaml down
+
+# 開発サーバー起動
+dev: db-up
+ifeq ($(DEV_MODE),local)
+	@echo "🚀 ローカル開発サーバーを起動します..."
+	@echo "Backend: http://localhost:8000"
+	@echo "Frontend: http://localhost:3000"
+	# Backend（バックグラウンド）
+	cd backend && uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 &
+	# Frontend（フォアグラウンド）
+	cd frontend && npm run dev
+else
+	@echo "🚀 コンテナ内開発サーバーを起動します..."
+	podman exec -it myapp-dev-workspace bash -c "cd /workspace && make dev-internal"
+endif
+
+# コンテナ内部用（直接呼ばない）
+dev-internal:
+	cd backend && source .venv/bin/activate && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 &
+	cd frontend && npm run dev -- --host 0.0.0.0 &
+	wait
 
 # 依存関係インストール
 install:
-	cd backend && uv venv && uv pip sync requirements.txt
+ifeq ($(DEV_MODE),local)
+	@echo "📦 ローカル環境に依存関係をインストールします..."
+	cd backend && uv venv && uv pip sync requirements-dev.txt
 	cd frontend && npm ci
+else
+	@echo "📦 コンテナ内に依存関係をインストールします..."
+	podman exec myapp-dev-workspace bash -c "cd /workspace && make install-internal"
+endif
 
-# 開発環境起動
-dev:
-	podman-compose -f infra/compose.yaml up -d
-	cd backend && source .venv/bin/activate && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 &
-	cd frontend && npm run dev &
+install-internal:
+	cd backend && uv venv && uv pip sync requirements-dev.txt
+	cd frontend && npm ci
 
 # テスト実行
 test:
+ifeq ($(DEV_MODE),local)
+	@echo "🧪 ローカル環境でテストを実行します..."
+	cd backend && uv run pytest
+	cd frontend && npm test
+else
+	@echo "🧪 コンテナ内でテストを実行します..."
+	podman exec -t myapp-dev-workspace bash -c "cd /workspace && make test-internal"
+endif
+
+test-internal:
 	cd backend && source .venv/bin/activate && pytest
 	cd frontend && npm test
 	cd e2e && npx playwright test
 
-# ビルド
-build:
-	podman build -t myapp-backend ./backend
-	podman build -t myapp-frontend ./frontend
+# 型チェック
+typecheck:
+ifeq ($(DEV_MODE),local)
+	@echo "📋 ローカル環境で型チェックを実行します..."
+	cd backend && uv run mypy --strict .
+	cd frontend && npm run type-check
+else
+	@echo "📋 コンテナ内で型チェックを実行します..."
+	podman exec -t myapp-dev-workspace bash -c "cd /workspace && make typecheck-internal"
+endif
 
-# DB マイグレーション
+typecheck-internal:
+	cd backend && source .venv/bin/activate && mypy --strict .
+	cd frontend && npm run type-check
+
+# データベースマイグレーション
 migrate:
-	cd backend && alembic upgrade head
-
-# 依存関係更新
-update-deps:
-	cd backend && uv pip compile pyproject.toml -o requirements.txt
-	cd frontend && npm update && npm audit fix
-
-# Python依存関係の高速インストール
-sync-backend:
-	cd backend && uv pip sync requirements.txt
+ifeq ($(DEV_MODE),local)
+	@echo "🗄️  データベースマイグレーションを実行します..."
+	cd backend && uv run alembic upgrade head
+else
+	podman exec -t myapp-dev-workspace bash -c "cd /workspace/backend && source .venv/bin/activate && alembic upgrade head"
+endif
 
 # 環境クリーンアップ
 clean:
-	cd backend && rm -rf .venv
-	cd frontend && rm -rf node_modules
-	podman-compose -f infra/compose.yaml down -v
+	@echo "🧹 一時ファイルを削除します..."
+	cd backend && rm -rf .venv __pycache__ .pytest_cache .mypy_cache htmlcov .coverage
+	cd frontend && rm -rf node_modules dist coverage
+	find . -type d -name "__pycache__" -exec rm -rf {} + || true
+	find . -type f -name "*.pyc" -delete || true
 ```
 
-## 11.4 Docker設定
+## 11.8 開発環境のベストプラクティス
+
+### ハイブリッド開発の推奨事項
+
+1. **開発モードの使い分け**
+   - **ローカル開発**: 日常的な機能開発、デバッグ作業
+   - **フルコンテナ**: 環境依存の問題調査、CI/CD環境の再現
+
+2. **データ層の管理**
+   - データ層は常にコンテナで実行（一貫性保証）
+   - `make db-up` で起動、`make db-down` で停止
+   - データは名前付きボリュームで永続化
+
+3. **パフォーマンス最適化**
+   - フロントエンド開発はローカル実行でHMR活用
+   - バックエンドもローカル実行で高速な反復開発
+   - 必要時のみフルコンテナ環境を使用
+
+4. **環境変数の管理**
+   - 開発用の環境変数は `.env` ファイルで管理
+   - データベース接続はローカルホスト経由
+   - 秘密情報は `.gitignore` に追加
+
+5. **定期的なメンテナンス**
+   ```bash
+   # データ層のイメージ更新（週次）
+   podman-compose -f infra/compose-data.yaml pull
+   podman-compose -f infra/compose-data.yaml up -d
+   
+   # 不要なイメージの削除
+   podman image prune -a
+   ```
+
+### ローカル開発の利点
+- **開発速度**: 5倍高速（特にフロントエンド）
+- **デバッグ**: IDE/エディタとの完全な統合
+- **リソース効率**: 最小限のリソース使用
+
+### フルコンテナの使用場面
+- 本番環境の問題再現
+- 複雑な依存関係の検証
+- チーム間の環境統一が必要な場合
+
+## 11.9 コンテナベース開発のFAQ
+
+### Q: なぜハイブリッド構成を採用するのか？
+A: 以下の理由から最適なバランスを実現します：
+- データ層の一貫性とセキュリティ（コンテナ）
+- 開発速度の最大化（ローカル実行）
+- 必要に応じた完全な環境再現（フルコンテナオプション）
+- Claude Code/GitHub Copilotとの最適な連携
+
+### Q: どちらの開発モードを使うべきか？
+A: 用途に応じて選択してください：
+- **ローカル開発（推奨）**: 
+  - 日常的な開発作業
+  - 高速な反復開発が必要な場合
+  - フロントエンドの開発
+- **フルコンテナ開発**:
+  - 環境依存の問題調査
+  - 本番環境の再現が必要な場合
+  - CI/CD環境での動作確認
+
+### Q: なぜuvを使うのか？
+A: uvには以下の利点があります：
+- 高速なパッケージインストール（pipより10倍以上速い）
+- 仮想環境の自動管理
+- activateが不要（`uv run` で直接実行）
+- 依存関係の厳密な管理
+- Rustベースで高性能
+
+### Q: VS Codeでの開発方法は？
+A: 2つの方法があります：
+1. **ローカル開発（推奨）**: 通常通りVS Codeを使用
+2. **Remote Containers**: フルコンテナ開発時に使用
+   - 拡張機能「Remote - Containers」をインストール
+   - 「Reopen in Container」を選択
+
+### Q: パフォーマンスが遅い場合は？
+A: 開発モードを確認してください：
+- ローカル開発に切り替える（`make dev`）
+- データ層のみコンテナで実行
+- 不要なコンテナを停止（`podman ps` で確認）
+
+### Q: デバッグ方法は？
+A: 開発モードに応じて：
+- **ローカル開発**: VS CodeやPyCharmで直接デバッグ
+- **コンテナ開発**: 
+  - Python: `uv run python -m pdb`
+  - Node.js: Chrome DevToolsをポート経由で接続
+
+### Q: データベースへの接続方法は？
+A: 環境に応じて：
+- **ローカル開発**: `postgresql://postgres:devpass@localhost:5432/myapp`
+- **コンテナ開発**: `postgresql://postgres:devpass@postgres:5432/myapp`
+- pgAdminなどのツールは `localhost:5432` で接続
+
+### Q: uvコマンドの基本的な使い方は？
+A: よく使うuvコマンド：
+```bash
+# 仮想環境作成
+uv venv
+
+# パッケージインストール
+uv pip install package-name
+
+# requirements.txtから一括インストール
+uv pip sync requirements.txt
+
+# パッケージ一覧表示
+uv pip list
+
+# Pythonスクリプト実行
+uv run python script.py
+
+# pytest実行
+uv run pytest
+
+# 任意のコマンドを仮想環境内で実行
+uv run command-name
+```
 
 ### Backend Dockerfile
 
@@ -1759,15 +2428,20 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 WORKDIR /app
 COPY pyproject.toml requirements.txt ./
 RUN uv venv && \
-    . .venv/bin/activate && \
     uv pip sync requirements.txt
 
 FROM python:3.11-slim
 WORKDIR /app
+
+# uvを本番イメージにもコピー（必要に応じて）
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+# 仮想環境をコピー
 COPY --from=builder /app/.venv /app/.venv
 COPY . .
-ENV PATH="/app/.venv/bin:$PATH"
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+# uvを使って実行
+CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
 ### Frontend Dockerfile
@@ -1882,6 +2556,11 @@ dev = [
     "httpx>=0.26.0",
 ]
 
+# uvでの依存関係管理
+# requirements.txt生成: uv pip compile pyproject.toml -o requirements.txt
+# requirements-dev.txt生成: uv pip compile pyproject.toml --extra dev -o requirements-dev.txt
+# インストール: uv pip sync requirements.txt (または requirements-dev.txt)
+
 [tool.ruff]
 line-length = 100
 target-version = "py311"
@@ -1991,55 +2670,87 @@ volumes:
 #!/bin/bash
 # scripts/init-project.sh
 
-# Volta設定
-curl https://get.volta.sh | bash
-export VOLTA_HOME="$HOME/.volta"
-export PATH="$VOLTA_HOME/bin:$PATH"
+echo "🚀 ハイブリッド開発環境を初期化します..."
 
-# Node.js/npmバージョン固定
-volta install node@20
-volta install npm@10
+# Podmanがインストールされているか確認
+if ! command -v podman &> /dev/null; then
+    echo "❌ Podmanがインストールされていません"
+    echo "インストール方法: https://podman.io/getting-started/installation"
+    exit 1
+fi
 
-# uv設定
-curl -LsSf https://astral.sh/uv/install.sh | sh
-export PATH="$HOME/.cargo/bin:$PATH"
+# Podman Composeがインストールされているか確認
+if ! command -v podman-compose &> /dev/null; then
+    echo "❌ Podman Composeがインストールされていません"
+    echo "インストール: pip install podman-compose"
+    exit 1
+fi
 
-# Python環境構築
-cd backend
-uv venv
-source .venv/bin/activate
-uv pip install -r pyproject.toml
+# uvがインストールされているか確認（ローカル開発用）
+if ! command -v uv &> /dev/null; then
+    echo "📦 uvをインストールします..."
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    echo "✅ uvがインストールされました"
+fi
 
-# Frontend環境構築
-cd ../frontend
-volta pin node@20
-volta pin npm@10
-npm install
+# データ層コンテナイメージのpull
+echo "🔨 データ層コンテナイメージを取得しています..."
+podman-compose -f infra/compose-data.yaml pull
 
-# プロジェクトルートに設定ファイル作成
-cd ..
-cat > .python-version << 'EOF'
-3.11
+# 開発用コンテナイメージのビルド（オプション用）
+echo "🔨 開発用コンテナイメージをビルドしています（オプション）..."
+podman-compose -f infra/compose-dev.yaml build
+
+# 環境変数ファイルの作成
+if [ ! -f .env ]; then
+    echo "📝 環境変数ファイルを作成しています..."
+    cat > .env << 'EOF'
+# Development Environment Variables
+DATABASE_URL=postgresql://postgres:devpass@localhost:5432/myapp
+REDIS_URL=redis://localhost:6379
+OIDC_ISSUER=http://localhost:8080/realms/myapp
+SECRET_KEY=dev-secret-key-change-in-production
 EOF
+fi
 
-cat > package.json << 'EOF'
-{
-  "volta": {
-    "node": "20.11.0",
-    "npm": "10.4.0"
-  }
-}
-EOF
-
-# Git hooks設定
+# Git hooks設定（ローカルで実行）
+echo "🔗 Git hooksを設定しています..."
 cat > .git/hooks/pre-commit << 'EOF'
 #!/bin/bash
-cd backend && source .venv/bin/activate && ruff check . && mypy .
-cd ../frontend && npm run lint && npm run type-check
+# pre-commitはローカルまたはコンテナで型チェックを実行
+echo "🔍 Pre-commit checks..."
+
+# ローカル開発環境がセットアップされているか確認
+if [ -d "backend/.venv" ]; then
+    # ローカルで実行
+    cd backend && uv run mypy --strict . || exit 1
+    cd ../frontend && npm run type-check || exit 1
+elif podman ps | grep -q myapp-dev-workspace; then
+    # コンテナで実行
+    podman exec myapp-dev-workspace bash -c "cd /workspace/backend && uv run mypy --strict ." || exit 1
+    podman exec myapp-dev-workspace bash -c "cd /workspace/frontend && npm run type-check" || exit 1
+else
+    echo "⚠️  開発環境が見つかりません。型チェックをスキップします。"
+fi
+
+echo "✅ Pre-commit checks passed!"
 EOF
 chmod +x .git/hooks/pre-commit
 
-echo "✅ Development environment initialized!"
+echo "✅ ハイブリッド開発環境の初期化が完了しました！"
+echo ""
+echo "次のステップ:"
+echo ""
+echo "【推奨: ローカル開発】"
+echo "1. podman-compose -f infra/compose-data.yaml up -d  # データ層起動"
+echo "2. cd backend && uv venv && uv pip sync requirements-dev.txt"
+echo "3. cd frontend && npm install"
+echo "4. 開発開始！"
+echo ""
+echo "【オプション: フルコンテナ開発】"
+echo "1. podman-compose -f infra/compose-dev.yaml up -d"
+echo "2. podman exec -it myapp-dev-workspace bash"
+echo "3. コンテナ内で make dev を実行"
 ```
 
 ## 12.2 機能開発開始スクリプト
@@ -2047,6 +2758,7 @@ echo "✅ Development environment initialized!"
 ```bash
 #!/bin/bash
 # scripts/start-feature.sh
+# このスクリプトはローカルマシンで実行します
 
 # Usage: ./scripts/start-feature.sh <issue-number> <feature-name>
 
@@ -2058,26 +2770,46 @@ if [ -z "$ISSUE_NUMBER" ] || [ -z "$FEATURE_NAME" ]; then
     exit 1
 fi
 
-# ブランチ作成
-BRANCH_NAME="feature/#${ISSUE_NUMBER}-${FEATURE_NAME}"
-git checkout -b $BRANCH_NAME
+# 開発コンテナが起動しているか確認
+if ! podman ps | grep -q myapp-dev-workspace; then
+    echo "❌ 開発コンテナが起動していません"
+    echo "実行: podman-compose -f infra/compose-dev.yaml up -d"
+    exit 1
+fi
 
-# 初期コミット
-touch .gitkeep
-git add .gitkeep
-git commit -m "feat: start work on #${ISSUE_NUMBER}"
-git push -u origin $BRANCH_NAME
+echo "🚀 Issue #${ISSUE_NUMBER} の作業を開始します..."
 
-# Draft PR作成
-gh pr create \
-  --draft \
-  --title "[WIP] feat: ${FEATURE_NAME} (Closes #${ISSUE_NUMBER})" \
-  --body "## 概要\nIssue #${ISSUE_NUMBER} の実装\n\n## 作業計画\n- [ ] 仕様書作成\n- [ ] テスト作成\n- [ ] 実装\n- [ ] ドキュメント更新" \
-  --assignee @me
+# ブランチ作成とPR作成はコンテナ内で実行
+podman exec -it myapp-dev-workspace bash -c "
+    cd /workspace
+    
+    # 最新の変更を取得
+    git pull origin develop
+    
+    # ブランチ作成
+    BRANCH_NAME='feature/#${ISSUE_NUMBER}-${FEATURE_NAME}'
+    git checkout -b \$BRANCH_NAME
+    
+    # 初期コミット
+    touch .gitkeep
+    git add .gitkeep
+    git commit -m 'feat: start work on #${ISSUE_NUMBER}'
+    git push -u origin \$BRANCH_NAME
+"
 
-echo "✅ Branch created: $BRANCH_NAME"
-echo "✅ Draft PR created"
-echo "📝 Next: Start implementation following the development guide"
+# GitHub CLIはローカルで実行（認証情報の関係）
+if command -v gh &> /dev/null; then
+    gh pr create \
+      --draft \
+      --title "[WIP] feat: ${FEATURE_NAME} (Closes #${ISSUE_NUMBER})" \
+      --body "## 概要\nIssue #${ISSUE_NUMBER} の実装\n\n## 作業計画\n- [ ] 仕様書作成\n- [ ] テスト作成\n- [ ] 実装\n- [ ] ドキュメント更新" \
+      --assignee @me
+else
+    echo "⚠️  GitHub CLIがインストールされていません。手動でDraft PRを作成してください。"
+fi
+
+echo "✅ Branch created: feature/#${ISSUE_NUMBER}-${FEATURE_NAME}"
+echo "📝 Next: podman exec -it myapp-dev-workspace bash で開発を開始"
 ```
 
 ## 12.3 テスト実行スクリプト
@@ -2085,59 +2817,224 @@ echo "📝 Next: Start implementation following the development guide"
 ```bash
 #!/bin/bash
 # scripts/test.sh
+# このスクリプトはローカルマシンで実行し、適切な環境でテストを実行します
 
 set -e
 
-echo "🧪 Running Backend Tests..."
-cd backend
-source .venv/bin/activate
+echo "🧪 テストを実行します..."
 
-# 型チェック
-echo "  📋 Type checking with mypy..."
-mypy --strict --show-error-codes .
+# 実行環境の判定
+if [ -d "backend/.venv" ] && [ -d "frontend/node_modules" ]; then
+    echo "📍 ローカル環境でテストを実行します..."
+    
+    # ローカル環境でのテスト実行
+    echo "🧪 Running Backend Tests..."
+    cd backend
+    
+    # 型チェック
+    echo "  📋 Type checking with mypy..."
+    uv run mypy --strict --show-error-codes .
+    
+    # リンターチェック
+    echo "  🔍 Linting with ruff..."
+    uv run ruff check .
+    
+    # テスト実行
+    echo "  🧪 Running pytest..."
+    uv run pytest --cov=app --cov-report=term-missing --cov-report=html
+    
+    echo "✅ Backend checks passed!"
+    
+    echo ""
+    echo "🧪 Running Frontend Tests..."
+    cd ../frontend
+    
+    # 型チェック
+    echo "  📋 Type checking with tsc..."
+    npm run type-check
+    
+    # リンターチェック
+    echo "  🔍 Linting with ESLint..."
+    npm run lint
+    
+    # テスト実行
+    echo "  🧪 Running vitest..."
+    npm run test:ci
+    
+    echo "✅ Frontend checks passed!"
+    
+elif podman ps | grep -q myapp-dev-workspace; then
+    echo "📍 コンテナ環境でテストを実行します..."
+    
+    # コンテナ内でのテスト実行
+    podman exec -t myapp-dev-workspace bash -c '
+        set -e
+        
+        echo "🧪 Running Backend Tests..."
+        cd /workspace/backend
+        
+        # 型チェック
+        echo "  📋 Type checking with mypy..."
+        uv run mypy --strict --show-error-codes .
+        
+        # リンターチェック
+        echo "  🔍 Linting with ruff..."
+        uv run ruff check .
+        
+        # テスト実行
+        echo "  🧪 Running pytest..."
+        uv run pytest --cov=app --cov-report=term-missing --cov-report=html
+        
+        echo "✅ Backend checks passed!"
+        
+        echo ""
+        echo "🧪 Running Frontend Tests..."
+        cd /workspace/frontend
+        
+        # 型チェック
+        echo "  📋 Type checking with tsc..."
+        npm run type-check
+        
+        # リンターチェック
+        echo "  🔍 Linting with ESLint..."
+        npm run lint
+        
+        # テスト実行
+        echo "  🧪 Running vitest..."
+        npm run test:ci
+        
+        echo "✅ Frontend checks passed!"
+        
+        echo ""
+        echo "🧪 Running E2E Tests..."
+        cd /workspace/e2e
+        npx playwright test --reporter=list
+        
+        echo "✅ All tests passed!"
+    '
+else
+    echo "❌ 開発環境が見つかりません"
+    echo "以下のいずれかを実行してください："
+    echo "1. ローカル開発: cd backend && uv venv && uv pip sync requirements-dev.txt"
+    echo "2. コンテナ開発: ./scripts/dev-env.sh start-full"
+    exit 1
+fi
 
-# リンターチェック
-echo "  🔍 Linting with ruff..."
-ruff check .
-
-# テスト実行
-echo "  🧪 Running pytest..."
-pytest --cov=app --cov-report=term-missing --cov-report=html
-
-echo "✅ Backend checks passed!"
-
+# テスト結果の確認
 echo ""
-echo "🧪 Running Frontend Tests..."
-cd ../frontend
+echo "📊 テスト結果:"
+echo "- Backend カバレッジ: backend/htmlcov/index.html"
+echo "- Frontend カバレッジ: frontend/coverage/index.html"
+if [ -d "e2e/playwright-report" ]; then
+    echo "- E2E レポート: e2e/playwright-report/index.html"
+fi
+```
 
-# 型チェック
-echo "  📋 Type checking with tsc..."
-npm run type-check
+## 12.4 開発環境管理スクリプト
 
-# 未使用エクスポートチェック
-echo "  🔍 Checking unused exports..."
-npx ts-unused-exports tsconfig.json --excludePathsFromReport=src/index.tsx || true
+```bash
+#!/bin/bash
+# scripts/dev-env.sh
+# このスクリプトはローカルマシンで実行し、開発環境を管理します
 
-# リンターチェック
-echo "  🔍 Linting with ESLint..."
-npm run lint
-
-# フォーマットチェック
-echo "  📐 Checking code format..."
-npm run format:check
-
-# テスト実行
-echo "  🧪 Running vitest..."
-npm run test:ci
-
-echo "✅ Frontend checks passed!"
-
-echo ""
-echo "🧪 Running E2E Tests..."
-cd ../e2e
-npx playwright test
-
-echo "✅ All tests passed!"
+case "$1" in
+    "start")
+        echo "🚀 開発環境を起動します..."
+        echo "データ層（PostgreSQL, Redis, Keycloak）を起動中..."
+        podman-compose -f infra/compose-data.yaml up -d
+        echo "✅ データ層が起動しました"
+        echo ""
+        echo "📝 次のステップ:"
+        echo "【ローカル開発（推奨）】"
+        echo "  cd backend && uv run uvicorn app.main:app --reload"
+        echo "  cd frontend && npm run dev"
+        echo ""
+        echo "【フルコンテナ開発】"
+        echo "  ./scripts/dev-env.sh start-full"
+        ;;
+    
+    "start-full")
+        echo "🚀 フルコンテナ開発環境を起動します..."
+        podman-compose -f infra/compose-data.yaml up -d
+        podman-compose -f infra/compose-dev.yaml up -d
+        echo "✅ フル開発環境が起動しました"
+        echo "接続: podman exec -it myapp-dev-workspace bash"
+        ;;
+    
+    "stop")
+        echo "🛑 開発環境を停止します..."
+        podman-compose -f infra/compose-data.yaml stop
+        podman-compose -f infra/compose-dev.yaml stop 2>/dev/null
+        echo "✅ 開発環境が停止しました"
+        ;;
+    
+    "restart")
+        echo "🔄 開発環境を再起動します..."
+        podman-compose -f infra/compose-data.yaml restart
+        echo "✅ データ層が再起動しました"
+        ;;
+    
+    "clean")
+        echo "🧹 開発環境をクリーンアップします..."
+        podman-compose -f infra/compose-data.yaml down -v
+        podman-compose -f infra/compose-dev.yaml down -v 2>/dev/null
+        echo "✅ 開発環境がクリーンアップされました"
+        ;;
+    
+    "logs")
+        echo "📜 開発環境のログを表示します..."
+        podman-compose -f infra/compose-data.yaml logs -f
+        ;;
+    
+    "shell")
+        echo "🐚 開発コンテナに接続します..."
+        if ! podman ps | grep -q myapp-dev-workspace; then
+            echo "⚠️  開発コンテナが起動していません"
+            echo "実行: ./scripts/dev-env.sh start-full"
+            exit 1
+        fi
+        echo "💡 Pythonコマンドは 'uv run python' を使用してください"
+        echo "💡 テストは 'uv run pytest' を使用してください"
+        echo "💡 型チェックは 'uv run mypy' を使用してください"
+        podman exec -it myapp-dev-workspace bash
+        ;;
+    
+    "status")
+        echo "📊 開発環境のステータス:"
+        echo ""
+        echo "【データ層】"
+        podman-compose -f infra/compose-data.yaml ps
+        echo ""
+        echo "【開発コンテナ（オプション）】"
+        podman-compose -f infra/compose-dev.yaml ps 2>/dev/null || echo "開発コンテナは未起動"
+        ;;
+    
+    "rebuild")
+        echo "🔨 開発環境を再ビルドします..."
+        podman-compose -f infra/compose-data.yaml build --no-cache
+        podman-compose -f infra/compose-dev.yaml build --no-cache
+        echo "✅ 開発環境が再ビルドされました"
+        ;;
+    
+    *)
+        echo "使用方法: $0 {start|start-full|stop|restart|clean|logs|shell|status|rebuild}"
+        echo ""
+        echo "コマンド:"
+        echo "  start      - データ層のみ起動（ローカル開発用）"
+        echo "  start-full - フルコンテナ環境を起動"
+        echo "  stop       - 開発環境を停止"
+        echo "  restart    - データ層を再起動"
+        echo "  clean      - 開発環境を完全削除"
+        echo "  logs       - ログを表示"
+        echo "  shell      - 開発コンテナに接続"
+        echo "  status     - ステータス確認"
+        echo "  rebuild    - イメージを再ビルド"
+        echo ""
+        echo "推奨: 日常開発は 'start' + ローカル実行"
+        echo "      環境問題調査は 'start-full'"
+        exit 1
+        ;;
+esac
 ```
 
 ## 12.4 GitHub Actions
@@ -2186,13 +3083,11 @@ jobs:
         run: |
           cd backend
           uv venv
-          source .venv/bin/activate
           uv pip sync requirements-dev.txt
       - name: Run mypy strict check
         run: |
           cd backend
-          source .venv/bin/activate
-          mypy --strict .
+          uv run mypy --strict .
 
   backend-test:
     needs: [python-typecheck]
@@ -2205,15 +3100,13 @@ jobs:
         run: |
           cd backend
           uv venv
-          source .venv/bin/activate
           uv pip sync requirements-dev.txt
       - name: Run tests and checks
         run: |
           cd backend
-          source .venv/bin/activate
-          pytest --cov=app --cov-report=xml
-          ruff check .
-          mypy --strict .  # 型チェックも含める
+          uv run pytest --cov=app --cov-report=xml
+          uv run ruff check .
+          uv run mypy --strict .  # 型チェックも含める
       - name: Upload coverage
         uses: codecov/codecov-action@v3
 
@@ -2289,9 +3182,8 @@ jobs:
         run: |
           cd backend
           uv venv
-          source .venv/bin/activate
           uv pip sync requirements-dev.txt
-          mypy --strict --show-error-codes --pretty .
+          uv run mypy --strict --show-error-codes --pretty .
 
   typescript-types:
     name: TypeScript Type Check
@@ -2355,6 +3247,103 @@ jobs:
               });
             }
 ```
+
+### 自動レビュー依頼ワークフロー
+
+```yaml
+# .github/workflows/auto-review-request.yml
+name: Auto Review Request
+
+on:
+  pull_request:
+    types: [opened]
+
+# チーム構成に応じて環境変数を設定
+env:
+  AI_REVIEWERS: 'github-copilot[bot]'
+  ALL_DEVS: 'dev-1,dev-2,dev-3,tech-lead'  # チームメンバーを記載
+
+jobs:
+  add-reviewers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            // PR作成者を取得
+            const creator = context.payload.pull_request.user.login;
+            const reviewers = [];
+            
+            // 1. Copilotが自動でレビュー
+            reviewers.push(process.env.AI_REVIEWERS);
+            
+            // 2. 作成者以外のメンバーから1人を自動指名
+            const allDevs = process.env.ALL_DEVS.split(',').map(s => s.trim());
+            const availableReviewers = allDevs.filter(dev => dev !== creator);
+            
+            if (availableReviewers.length > 0) {
+              // ランダムに1人選択（または最初の1人）
+              reviewers.push(availableReviewers[0]);
+            }
+            
+            // レビュワーを追加
+            try {
+              await github.rest.pulls.requestReviewers({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.payload.pull_request.number,
+                reviewers: reviewers
+              });
+              
+              // 成功メッセージをPRにコメント
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body: '✅ 自動レビュー依頼を送信しました\n\n' +
+                      `- AIレビュー: ${process.env.AI_REVIEWERS}\n` +
+                      `- 人間レビュワー: ${reviewers[1] || 'なし'}`
+              });
+            } catch (error) {
+              console.error('レビュワー追加エラー:', error);
+              // エラー時は手動対応を促す
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body: '⚠️ 自動レビュワー追加に失敗しました。手動でレビュワーを追加してください。'
+              });
+            }
+```
+
+#### 設定のカスタマイズ
+
+**小規模チーム（5人以下）の設定例：**
+```yaml
+env:
+  AI_REVIEWERS: 'github-copilot[bot]'
+  ALL_DEVS: 'dev-1,dev-2,dev-3,tech-lead'
+```
+
+**中規模チーム（10-20人）の設定例：**
+```yaml
+env:
+  AI_REVIEWERS: 'github-copilot[bot]'
+  FRONTEND_TEAM: 'fe-lead,fe-dev-1,fe-dev-2'
+  BACKEND_TEAM: 'be-lead,be-dev-1,be-dev-2'
+  # ラベルに応じて適切なチームを選択する処理を追加
+```
+
+#### 動作の仕組み
+
+PRを作成すると：
+1. Copilotが自動でレビュー
+2. 作成者以外のメンバーから1人を自動指名
+
+これにより：
+- レビュワー指名の手間が省ける
+- レビュー漏れを防げる
+- AIと人間の両方のレビューを確実に受けられる
 
 ## 12.5 Pre-commit設定
 
@@ -2422,7 +3411,618 @@ repos:
         name: TypeScript Type Check
         entry: bash -c 'cd frontend && npm run type-check'
         language: system
-        files: '\.(ts|tsx)
+        files: '\.(ts|tsx)'
+        pass_filenames: false
+```
+
+## 12.7 Claude Code専用ヘルパースクリプト
+
+Claude Codeからの効率的な開発を支援するため、以下のヘルパースクリプトを提供します。
+
+### 基本ヘルパースクリプト
+
+```bash
+#!/bin/bash
+# scripts/cc.sh (Claude Code Helper)
+# Claude Codeから簡単にコマンドを実行するためのラッパー
+# ローカル環境とコンテナ環境を自動判別
+
+# 実行環境の判定
+if [ -d "backend/.venv" ]; then
+    ENV_MODE="local"
+elif podman ps | grep -q myapp-dev-workspace; then
+    ENV_MODE="container"
+else
+    ENV_MODE="none"
+fi
+
+case "$1" in
+    "run")
+        # Pythonスクリプト実行
+        shift
+        if [ "$ENV_MODE" = "local" ]; then
+            cd backend && uv run python $*
+        elif [ "$ENV_MODE" = "container" ]; then
+            podman exec -t myapp-dev-workspace bash -c "cd /workspace && uv run python $*"
+        else
+            echo "❌ 開発環境が見つかりません。セットアップを実行してください。"
+            exit 1
+        fi
+        ;;
+    
+    "test")
+        # テスト実行
+        shift
+        if [ "$ENV_MODE" = "local" ]; then
+            if [ -z "$1" ]; then
+                cd backend && uv run pytest
+            else
+                uv run pytest $*
+            fi
+        elif [ "$ENV_MODE" = "container" ]; then
+            if [ -z "$1" ]; then
+                podman exec -t myapp-dev-workspace bash -c "cd /workspace/backend && uv run pytest"
+            else
+                podman exec -t myapp-dev-workspace bash -c "cd /workspace && uv run pytest $*"
+            fi
+        else
+            echo "❌ 開発環境が見つかりません。"
+            exit 1
+        fi
+        ;;
+    
+    "mypy")
+        # 型チェック
+        shift
+        if [ "$ENV_MODE" = "local" ]; then
+            if [ -z "$1" ]; then
+                cd backend && uv run mypy --strict .
+            else
+                uv run mypy --strict $*
+            fi
+        elif [ "$ENV_MODE" = "container" ]; then
+            if [ -z "$1" ]; then
+                podman exec -t myapp-dev-workspace bash -c "cd /workspace/backend && uv run mypy --strict ."
+            else
+                podman exec -t myapp-dev-workspace bash -c "cd /workspace && uv run mypy --strict $*"
+            fi
+        else
+            echo "❌ 開発環境が見つかりません。"
+            exit 1
+        fi
+        ;;
+    
+    "install")
+        # パッケージインストール
+        shift
+        if [ "$ENV_MODE" = "local" ]; then
+            cd backend && uv pip install $*
+        elif [ "$ENV_MODE" = "container" ]; then
+            podman exec -t myapp-dev-workspace bash -c "cd /workspace/backend && uv pip install $*"
+        else
+            echo "❌ 開発環境が見つかりません。"
+            exit 1
+        fi
+        ;;
+    
+    "frontend")
+        # Frontend コマンド実行
+        shift
+        if [ "$ENV_MODE" = "local" ]; then
+            cd frontend && $*
+        elif [ "$ENV_MODE" = "container" ]; then
+            podman exec -t myapp-dev-workspace bash -c "cd /workspace/frontend && $*"
+        else
+            echo "❌ 開発環境が見つかりません。"
+            exit 1
+        fi
+        ;;
+    
+    "format")
+        # コードフォーマット
+        if [ "$ENV_MODE" = "local" ]; then
+            cd backend && uv run ruff format .
+            cd ../frontend && npm run format
+        elif [ "$ENV_MODE" = "container" ]; then
+            podman exec -t myapp-dev-workspace bash -c "cd /workspace/backend && uv run ruff format ."
+            podman exec -t myapp-dev-workspace bash -c "cd /workspace/frontend && npm run format"
+        else
+            echo "❌ 開発環境が見つかりません。"
+            exit 1
+        fi
+        ;;
+    
+    "check")
+        # 全体チェック（型、リント、テスト）
+        echo "🔍 Running all checks..."
+        ./scripts/test.sh
+        ;;
+    
+    "env")
+        # 環境情報表示
+        echo "🔍 現在の開発環境: $ENV_MODE"
+        if [ "$ENV_MODE" = "local" ]; then
+            echo "📍 ローカル開発環境を使用中"
+            echo "   Backend: $(cd backend && uv run python --version)"
+            echo "   Frontend: Node $(cd frontend && node --version)"
+        elif [ "$ENV_MODE" = "container" ]; then
+            echo "📍 コンテナ開発環境を使用中"
+            podman exec myapp-dev-workspace bash -c "python --version && node --version"
+        else
+            echo "⚠️  開発環境が見つかりません"
+            echo ""
+            echo "セットアップ方法:"
+            echo "【ローカル開発】"
+            echo "  1. ./scripts/dev-env.sh start"
+            echo "  2. cd backend && uv venv && uv pip sync requirements-dev.txt"
+            echo "  3. cd frontend && npm install"
+            echo ""
+            echo "【コンテナ開発】"
+            echo "  1. ./scripts/dev-env.sh start-full"
+        fi
+        ;;
+    
+    *)
+        echo "Claude Code Helper - 開発環境自動判別"
+        echo ""
+        echo "使用方法: $0 {run|test|mypy|install|frontend|format|check|env}"
+        echo ""
+        echo "例:"
+        echo "  $0 run backend/app/main.py          # Pythonスクリプト実行"
+        echo "  $0 test                              # 全テスト実行"
+        echo "  $0 test backend/tests/test_user.py   # 特定テスト実行"
+        echo "  $0 mypy backend/app/models.py        # 型チェック"
+        echo "  $0 install requests fastapi          # パッケージインストール"
+        echo "  $0 frontend 'npm run build'          # Frontendコマンド"
+        echo "  $0 format                            # コードフォーマット"
+        echo "  $0 check                             # 全チェック実行"
+        echo "  $0 env                               # 環境情報表示"
+        echo ""
+        echo "現在の環境: $ENV_MODE"
+        exit 1
+        ;;
+esac
+```
+
+### VSCode タスク設定（Claude Code対応）
+
+```json
+// .vscode/tasks.json
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Run Python Script",
+            "type": "shell",
+            "command": "./scripts/cc.sh",
+            "args": ["run", "${file}"],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "always"
+            },
+            "problemMatcher": "$python"
+        },
+        {
+            "label": "Run Tests",
+            "type": "shell",
+            "command": "./scripts/cc.sh",
+            "args": ["test", "${file}"],
+            "group": "test",
+            "presentation": {
+                "reveal": "always"
+            }
+        },
+        {
+            "label": "Type Check",
+            "type": "shell",
+            "command": "./scripts/cc.sh",
+            "args": ["mypy", "${file}"],
+            "group": "test",
+            "presentation": {
+                "reveal": "always"
+            }
+        },
+        {
+            "label": "Format Code",
+            "type": "shell",
+            "command": "./scripts/cc.sh",
+            "args": ["format"],
+            "group": "test"
+        }
+    ]
+}
+```
+
+### Claude Code用の.bashrc設定（オプション）
+
+```bash
+# ~/.bashrc に追加（ローカルマシン）
+# Claude Code用のエイリアス
+
+# プロジェクトディレクトリでのみ有効化
+if [ -f "./scripts/cc.sh" ]; then
+    alias ccrun="./scripts/cc.sh run"
+    alias cctest="./scripts/cc.sh test"
+    alias ccmypy="./scripts/cc.sh mypy"
+    alias ccinstall="./scripts/cc.sh install"
+    alias ccexec="./scripts/cc.sh exec"
+    
+    echo "🤖 Claude Code helpers loaded!"
+    echo "   ccrun <file>     - Run Python script"
+    echo "   cctest [file]    - Run tests"
+    echo "   ccmypy [file]    - Type check"
+    echo "   ccinstall <pkg>  - Install package"
+    echo "   ccexec <cmd>     - Execute command"
+fi
+```
+
+## 12.8 Claude Code向け開発ガイド
+
+### 効率的な開発フロー
+
+1. **初期セットアップ（一度だけ）**
+```bash
+# 開発環境起動
+./scripts/dev-env.sh start
+
+# エイリアス設定（オプション）
+echo 'alias cc="./scripts/cc.sh"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+2. **日常的な使用**
+```bash
+# スクリプト実行
+./scripts/cc.sh run backend/app/main.py
+
+# または（エイリアス設定済みの場合）
+cc run backend/app/main.py
+
+# テスト実行
+cc test
+
+# 型チェック
+cc mypy backend/app/
+
+# パッケージ追加
+cc install pandas numpy
+```
+
+3. **VSCode/Claude Code統合**
+- Cmd/Ctrl + Shift + B: 現在のファイルを実行
+- タスクランナーから各種コマンドを選択
+
+### トラブルシューティング
+
+**Q: コンテナが起動していないエラー**
+```bash
+# 解決策
+./scripts/dev-env.sh start
+```
+
+**Q: パーミッションエラー**
+```bash
+# scripts/cc.sh に実行権限を付与
+chmod +x scripts/cc.sh
+```
+
+**Q: 実行が遅い**
+```bash
+# コンテナ内でインタラクティブに作業
+./scripts/dev-env.sh shell
+# その後、コンテナ内で直接コマンド実行
+```
+
+---
+
+# 13. AI駆動開発（AIDD）
+
+## 13.1 AI-Driven Development パターン
+
+**開発フローの革新:**
+
+```python
+# 従来のTDD
+1. テスト作成 → 2. 実装 → 3. リファクタリング
+
+# AI駆動開発（AIDD）
+1. 仕様プロンプト作成 → 2. AI生成+レビュー → 3. テスト自動生成 → 4. 人間による検証
+```
+
+## 13.2 具体的なAI活用パターン
+
+### 1. コード生成フェーズ
+- **ボイラープレート**: 90%自動化
+- **ビジネスロジック**: 60-70%自動化
+- **テストコード**: 80%自動化
+
+### 2. セキュリティ強化フェーズ
+- **脆弱性検出**: AIによる継続的スキャン
+- **ペンテスト自動化**: 攻撃シナリオ生成
+- **修正提案**: 即座の対策コード生成
+
+### 3. ドキュメント生成
+- **API仕様**: OpenAPI自動生成
+- **アーキテクチャ図**: コードから逆生成
+- **運用手順書**: 実装から自動作成
+
+## 13.3 AI活用による工数削減効果
+
+**工数削減効果（AI活用時）:**
+
+| タスク | 従来手法 | AI活用 | 削減率 |
+|--------|----------|---------|--------|
+| API実装 | 40時間 | 10時間 | 75% |
+| テスト作成 | 20時間 | 5時間 | 75% |
+| ドキュメント | 16時間 | 2時間 | 87.5% |
+| セキュリティ | 24時間 | 8時間 | 66.7% |
+| **合計** | **100時間** | **25時間** | **75%** |
+
+## 13.4 AI駆動開発のベストプラクティス
+
+### プロンプトエンジニアリング
+
+```markdown
+# 効果的なプロンプトの例
+
+## 背景
+FastAPIを使用したREST APIの開発
+
+## 要件
+- User エンティティのCRUD操作
+- 認証付きエンドポイント
+- ページネーション対応
+- 型安全性（Pydantic使用）
+- 非同期処理
+
+## 制約
+- Python 3.11
+- SQLAlchemy 2.0
+- 既存のプロジェクト構造に従う
+
+## 期待する出力
+1. APIエンドポイント実装
+2. サービスクラス
+3. 単体テスト
+4. 統合テスト
+```
+
+### AI生成コードのレビューチェックリスト
+
+- [ ] セキュリティ脆弱性の確認
+- [ ] 型定義の正確性
+- [ ] エラーハンドリングの適切性
+- [ ] パフォーマンスの考慮
+- [ ] 既存パターンとの一貫性
+- [ ] テストカバレッジの確認
+
+---
+
+# 14. 段階的移行戦略
+
+## 14.1 Phase 1: Quick Start（Week 1-2）
+
+```yaml
+構成:
+  - DB/Redis/Keycloak: コンテナ（データ層）
+  - API: ローカル開発（AIで高速実装）
+  - Frontend: ローカル開発（即時反映）
+目的: 動くものを最速で作る
+
+タスク:
+  - 開発環境構築: 2時間（ハイブリッド構成で簡略化）
+  - 基本CRUD実装: 8時間（AI活用）
+  - 認証実装: 8時間（AI活用）
+  - 基本UI実装: 16時間
+```
+
+## 14.2 Phase 2: Core Implementation（Week 3-8）
+
+```yaml
+実装:
+  - 認証システム: AI支援で独自実装
+  - 基本CRUD: FastAPIで構築
+  - リアルタイム: 必要最小限から開始
+重点: ビジネスロジックの実装
+
+主要タスク:
+  - ビジネスロジック実装: 80時間
+  - データモデル設計: 16時間
+  - API設計・実装: 40時間
+  - UI/UX実装: 60時間
+  - テスト作成: 40時間（AI活用で75%削減）
+```
+
+## 14.3 Phase 3: Production Preparation（Week 9-12）
+
+```yaml
+強化:
+  - 完全コンテナ化オプション追加
+  - セキュリティ監査（AI活用）
+  - パフォーマンス最適化
+  - 監視・ログ基盤
+
+タスク:
+  - セキュリティ強化: 24時間
+  - パフォーマンス最適化: 16時間
+  - 監視基盤構築: 24時間
+  - ドキュメント整備: 8時間（AI活用）
+  - 本番環境構築: 16時間
+```
+
+## 14.4 コスト効率の再定義
+
+**TCO（Total Cost of Ownership）比較:**
+
+```yaml
+Supabase利用:
+  初期コスト: 低（$25/月〜）
+  開発工数: 最小
+  カスタマイズコスト: 高（制限多い）
+  長期運用: ベンダーロックイン
+
+AI支援独自実装:
+  初期コスト: 中（AI利用料 + 開発時間）
+  開発工数: 中（AIで75%削減）
+  カスタマイズコスト: 低（完全制御）
+  長期運用: 自由度高い
+  
+ROI分岐点: 約4-6ヶ月
+```
+
+---
+
+# 15. AI時代のセキュリティ
+
+## 15.1 多層防御アプローチ
+
+```python
+# レイヤー1: AIによる静的解析
+- コミット時の自動スキャン
+- 脆弱性パターンマッチング
+
+# レイヤー2: 実行時保護
+- 自動生成されたバリデーション
+- レート制限とWAF相当機能
+
+# レイヤー3: 継続的監視
+- AIによる異常検知
+- 自動インシデント対応
+```
+
+## 15.2 セキュリティ実装パターン
+
+### 入力検証の自動生成
+
+```python
+from pydantic import BaseModel, validator, Field
+from typing import Optional
+import re
+
+class UserCreate(BaseModel):
+    email: str = Field(..., regex=r'^[\w\.-]+@[\w\.-]+\.\w+)
+    username: str = Field(..., min_length=3, max_length=30)
+    password: str = Field(..., min_length=8)
+    
+    @validator('password')
+    def validate_password_strength(cls, v):
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('パスワードは大文字を含む必要があります')
+        if not re.search(r'[a-z]', v):
+            raise ValueError('パスワードは小文字を含む必要があります')
+        if not re.search(r'[0-9]', v):
+            raise ValueError('パスワードは数字を含む必要があります')
+        if not re.search(r'[!@#$%^&*(),.?":{}|<>]', v):
+            raise ValueError('パスワードは特殊文字を含む必要があります')
+        return v
+```
+
+### AIによるセキュリティレビュー自動化
+
+```yaml
+# .github/workflows/security-scan.yml
+name: AI Security Scan
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  security-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: AI Security Analysis
+        run: |
+          # OWASP Top 10 チェック
+          # SQLインジェクション検出
+          # XSS脆弱性検出
+          # 認証・認可の問題検出
+          
+      - name: Dependency Vulnerability Scan
+        run: |
+          # 依存関係の脆弱性スキャン
+          # CVEデータベースとの照合
+          # 自動修正提案
+```
+
+---
+
+# 16. チーム開発ワークフロー
+
+## 16.1 AI-Augmented Team Development
+
+```yaml
+Developer + AI ペアプログラミング:
+  朝会:
+    - AIに前日の進捗サマリー生成依頼
+    - 技術的課題の解決策提案を取得
+    
+  実装:
+    - リアルタイムコードレビュー
+    - ベストプラクティス提案
+    
+  レビュー:
+    - AI事前レビュー → 人間の最終確認
+    - セキュリティ・性能の自動チェック
+```
+
+## 16.2 実装の優先順位（AI効果を考慮）
+
+**MoSCoW with AI Impact:**
+
+```yaml
+Must Have + AI効果大:
+  - 認証基盤（テンプレート豊富）
+  - CRUD API（自動生成可能）
+  - 基本的なテスト（AI生成容易）
+
+Should Have + AI効果中:
+  - リアルタイム機能
+  - 高度な検索
+  - 監視ダッシュボード
+
+Could Have + AI効果小:
+  - 特殊なビジネスロジック
+  - レガシー連携
+  - カスタムUI/UX
+```
+
+## 16.3 リスク管理の新アプローチ
+
+**AI時代のリスクマトリクス:**
+
+| リスク | 従来の影響 | AI活用時の影響 | 対策 |
+|--------|-----------|----------------|------|
+| スキル不足 | 高 | 低 | AIがカバー |
+| セキュリティ脆弱性 | 高 | 中 | AI監査 |
+| 技術的負債 | 高 | 低 | 継続的リファクタリング |
+| スケーラビリティ | 中 | 低 | AI最適化提案 |
+
+## 16.4 将来への準備
+
+**技術進化への対応:**
+
+```python
+# アーキテクチャの柔軟性確保
+class FutureProofArchitecture:
+    core_principles = {
+        "modular": "マイクロサービス対応可能な設計",
+        "api_first": "フロントエンド技術の変更に対応",
+        "ai_native": "AI機能の統合を前提",
+        "observable": "監視・分析の自動化",
+    }
+    
+    migration_ready = {
+        "database": "ORMで抽象化",
+        "auth": "プロバイダー交換可能",
+        "storage": "S3互換API使用",
+    }
+```
 
 ---
 
@@ -2468,10 +4068,9 @@ podman-compose -f infra/compose.yaml up -d
 #### Python (mypy)
 ```bash
 # mypy エラー: モジュールが見つからない
-# 解決策1: 型スタブをインストール
+# 解決策1: 型スタブをインストール（uvを使用）
 cd backend
-source .venv/bin/activate
-pip install types-{package-name}
+uv pip install types-{package-name}
 
 # 解決策2: ignore設定を追加
 # mypy.ini に以下を追加
@@ -2479,8 +4078,18 @@ pip install types-{package-name}
 ignore_missing_imports = True
 
 # キャッシュの問題
-mypy --no-incremental .
+uv run mypy --no-incremental .
 rm -rf .mypy_cache
+
+# uvコマンドが見つからない
+# 解決策: uvを再インストール
+curl -LsSf https://astral.sh/uv/install.sh | sh
+source ~/.bashrc
+
+# 仮想環境のactivateエラー
+# 解決策: uvではactivateは不要
+# 誤: source .venv/bin/activate && python script.py
+# 正: uv run python script.py
 ```
 
 #### TypeScript
@@ -2564,7 +4173,7 @@ declare module 'my-module' {
 - 最大行長: 100文字
 - import順序: 標準ライブラリ → サードパーティ → ローカル
 
-#### Python型ヒントの例
+#### Python型定義の例
 ```python
 from typing import List, Optional, Dict, Any
 from datetime import datetime
@@ -2589,6 +4198,9 @@ def process_user_data(
         timestamp = datetime.now()
     # 処理実装
     return processed_data
+
+# 実行方法（コンテナ内）:
+# cd /workspace/backend && uv run python -m module_name
 ```
 
 ### TypeScript (Frontend)
@@ -2683,6 +4295,9 @@ import { expectType } from 'tsd';
 // 型が正しく推論されているかテスト
 const result = processUserData(1, userData);
 expectType<Promise<UserData | null>>(result);
+
+// テスト実行（コンテナ内）:
+// cd /workspace/frontend && npm run type-check
 ```
 
 ```python
@@ -2692,6 +4307,9 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     # 型チェック時のみ実行されるコード
     reveal_type(process_user_data)  # mypy で型を確認
+
+# テスト実行（コンテナ内）:
+# cd /workspace/backend && uv run mypy --strict module_name.py
 ```
 
 ## CI/CD での型チェック
@@ -2741,219 +4359,4 @@ if TYPE_CHECKING:
 ---
 
 最終更新日: 2024-01-XX
-バージョン: 1.2.0
-        pass_filenames: false
-```
-
----
-
-# 付録A: トラブルシューティング
-
-## よくある問題と解決方法
-
-### Python環境の問題
-```bash
-# uvが見つからない
-curl -LsSf https://astral.sh/uv/install.sh | sh
-source ~/.bashrc
-
-# 依存関係の競合
-cd backend
-rm -rf .venv
-uv venv
-uv pip sync requirements.txt
-```
-
-### Node.js環境の問題
-```bash
-# voltaが見つからない
-curl https://get.volta.sh | bash
-source ~/.bashrc
-
-# node_modulesの問題
-cd frontend
-rm -rf node_modules package-lock.json
-npm install
-```
-
-### Podmanの問題
-```bash
-# コンテナが起動しない
-podman system prune -a
-podman-compose -f infra/compose.yaml build --no-cache
-podman-compose -f infra/compose.yaml up -d
-```
-
-### Copilot Agentレビューが動かない
-- GitHub Actionsの権限設定を確認
-- Settings > Actions > General > Workflow permissions
-- "Read and write permissions" を選択
-
----
-
-# 付録B: ベストプラクティス
-
-## コーディング規約
-
-### Python (Backend)
-- **型ヒント必須**
-  - すべての関数に引数と戻り値の型を明記
-  - 変数の型も可能な限り明示
-  - `Optional`, `Union`, `List`, `Dict` など適切に使用
-- docstring必須（Google Style）
-- 最大行長: 100文字
-- import順序: 標準ライブラリ → サードパーティ → ローカル
-
-#### Python型ヒントの例
-```python
-from typing import List, Optional, Dict, Any
-from datetime import datetime
-
-def process_user_data(
-    user_id: int,
-    data: Dict[str, Any],
-    timestamp: Optional[datetime] = None
-) -> Optional[Dict[str, Any]]:
-    """
-    ユーザーデータを処理する
-    
-    Args:
-        user_id: ユーザーID
-        data: 処理対象のデータ
-        timestamp: タイムスタンプ（省略時は現在時刻）
-        
-    Returns:
-        処理結果。エラー時はNone
-    """
-    if timestamp is None:
-        timestamp = datetime.now()
-    # 処理実装
-    return processed_data
-```
-
-### TypeScript (Frontend)
-- **strict mode必須**
-  - `tsconfig.json` で `"strict": true`
-  - `noImplicitAny`, `strictNullChecks` 等すべて有効
-- 型推論に頼りすぎない（明示的な型定義推奨）
-- `any` 型の使用禁止（どうしても必要な場合は `unknown` を使用）
-- 関数コンポーネント使用
-- カスタムフックでロジック分離
-- 絶対パスインポート使用
-
-#### TypeScript型定義の例
-```typescript
-// 明示的な型定義
-interface UserData {
-  id: number;
-  name: string;
-  email: string;
-  roles: readonly string[];  // 読み取り専用配列
-  metadata?: Record<string, unknown>;  // オプショナルなメタデータ
-}
-
-// 厳格な関数型定義
-type ProcessUserData = (
-  userId: number,
-  data: UserData,
-  options?: { timestamp?: Date }
-) => Promise<UserData | null>;
-
-// ジェネリクスの活用
-function processArray<T extends { id: number }>(
-  items: readonly T[],
-  predicate: (item: T) => boolean
-): T[] {
-  return items.filter(predicate);
-}
-
-// Union型とType Guardの使用
-type ApiResponse<T> = 
-  | { success: true; data: T }
-  | { success: false; error: string };
-
-function isSuccessResponse<T>(
-  response: ApiResponse<T>
-): response is { success: true; data: T } {
-  return response.success === true;
-}
-```
-
-## 型安全性のベストプラクティス
-
-### 1. 境界での検証
-- API レスポンスは必ず型ガードで検証
-- ユーザー入力は Zod や Yup でスキーマ検証
-- 外部ライブラリの戻り値も型チェック
-
-### 2. Null安全性
-- Optional Chaining (`?.`) と Nullish Coalescing (`??`) を活用
-- 早期リターンで null/undefined を処理
-- デフォルト値を明示的に設定
-
-### 3. 型の再利用
-- 共通の型定義は types/ ディレクトリに集約
-- ユーティリティ型（Partial, Pick, Omit等）を活用
-- バックエンドとフロントエンドで型定義を共有（OpenAPI等）
-
-### 4. エラーハンドリング
-- カスタムエラークラスで型安全なエラー処理
-- Result型パターンの採用検討
-- Never型で網羅性チェック
-
-## Git コミット
-- 1コミット1目的
-- コミットメッセージは英語
-- 動詞から始める（Add, Fix, Update等）
-- 50文字以内（タイトル）
-- 型定義の変更は別コミット
-
-## テスト
-- テストカバレッジ90%以上
-- 型のテストも記述（型レベルテスト）
-- E2Eテストは主要フローのみ
-- モックは最小限に
-- テストデータはFactoryパターン
-
-### 型レベルテストの例
-```typescript
-// TypeScript
-import { expectType } from 'tsd';
-
-// 型が正しく推論されているかテスト
-const result = processUserData(1, userData);
-expectType<Promise<UserData | null>>(result);
-```
-
-```python
-# Python
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    # 型チェック時のみ実行されるコード
-    reveal_type(process_user_data)  # mypy で型を確認
-```
-
-## CI/CD での型チェック
-- PR時に必ず型チェックを実行
-- 型エラーがあればマージ不可
-- 定期的に型カバレッジを計測
-- 段階的な型付けの強化
-
----
-
-# 付録C: 継続的改善
-
-このドキュメントは生きたドキュメントです。以下の場合は更新してください：
-
-1. 新しいツールやライブラリの導入
-2. 開発プロセスの改善
-3. よくある問題の解決方法発見
-4. ベストプラクティスの発見
-
-更新時は必ずPRを作成し、チームレビューを受けてください。
-
----
-
-最終更新日: 2024-01-XX
-バージョン: 1.0.0
+バージョン: 2.0.0
