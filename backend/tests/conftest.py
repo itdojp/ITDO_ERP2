@@ -1,17 +1,20 @@
 """Pytest configuration and fixtures."""
 
+from typing import Any, Generator
+
 import pytest
-from typing import Generator, Any
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app.main import app
 from app.core.database import Base, get_db
-from app.models.user import User
 from app.core.security import create_access_token
-
+from app.main import app
+from app.models.department import Department
+from app.models.organization import Organization
+from app.models.role import Role, UserRole
+from app.models.user import User
 
 # Use in-memory SQLite for tests
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
@@ -29,10 +32,10 @@ def db_session() -> Generator[Session, None, None]:
     """Create a clean database session for each test."""
     # Create tables
     Base.metadata.create_all(bind=engine)
-    
+
     # Create session
     session = TestingSessionLocal()
-    
+
     try:
         yield session
     finally:
@@ -44,17 +47,18 @@ def db_session() -> Generator[Session, None, None]:
 @pytest.fixture
 def client(db_session: Session) -> Generator[TestClient, None, None]:
     """Create a test client with overridden database dependency."""
+
     def override_get_db() -> Generator[Session, None, None]:
         try:
             yield db_session
         finally:
             pass
-    
+
     app.dependency_overrides[get_db] = override_get_db
-    
+
     with TestClient(app) as test_client:
         yield test_client
-    
+
     # Clear overrides
     app.dependency_overrides.clear()
 
@@ -66,7 +70,7 @@ def test_user(db_session: Session) -> User:
         db_session,
         email="testuser@example.com",
         password="TestPassword123!",
-        full_name="Test User"
+        full_name="Test User",
     )
     db_session.commit()
     return user
@@ -80,7 +84,7 @@ def test_admin(db_session: Session) -> User:
         email="admin@example.com",
         password="AdminPassword123!",
         full_name="Admin User",
-        is_superuser=True
+        is_superuser=True,
     )
     db_session.commit()
     return admin
@@ -90,11 +94,7 @@ def test_admin(db_session: Session) -> User:
 def user_token(test_user: User) -> str:
     """Create an access token for test user."""
     return create_access_token(
-        data={
-            "sub": str(test_user.id),
-            "email": test_user.email,
-            "is_superuser": False
-        }
+        data={"sub": str(test_user.id), "email": test_user.email, "is_superuser": False}
     )
 
 
@@ -105,7 +105,7 @@ def admin_token(test_admin: User) -> str:
         data={
             "sub": str(test_admin.id),
             "email": test_admin.email,
-            "is_superuser": True
+            "is_superuser": True,
         }
     )
 

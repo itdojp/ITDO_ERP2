@@ -1,16 +1,17 @@
 """Unit tests for security utilities."""
 
-import pytest
 from datetime import timedelta
 
+import pytest
+
+from app.core.exceptions import ExpiredTokenError, InvalidTokenError
 from app.core.security import (
-    hash_password,
-    verify_password,
     create_access_token,
     create_refresh_token,
+    hash_password,
+    verify_password,
     verify_token,
 )
-from app.core.exceptions import ExpiredTokenError, InvalidTokenError
 
 
 class TestPasswordHashing:
@@ -20,10 +21,10 @@ class TestPasswordHashing:
         """Test that passwords are correctly hashed."""
         # Given: A plain text password
         password = "SecurePassword123!"
-        
+
         # When: Hashing the password
         hashed = hash_password(password)
-        
+
         # Then: Hash should be generated and different from original
         assert hashed is not None
         assert hashed != password
@@ -34,10 +35,10 @@ class TestPasswordHashing:
         # Given: A password and its hash
         password = "SecurePassword123!"
         hashed = hash_password(password)
-        
+
         # When: Verifying the password
         result = verify_password(password, hashed)
-        
+
         # Then: Verification should succeed
         assert result is True
 
@@ -47,10 +48,10 @@ class TestPasswordHashing:
         password = "SecurePassword123!"
         wrong_password = "WrongPassword123!"
         hashed = hash_password(password)
-        
+
         # When: Verifying with wrong password
         result = verify_password(wrong_password, hashed)
-        
+
         # Then: Verification should fail
         assert result is False
 
@@ -58,11 +59,11 @@ class TestPasswordHashing:
         """Test that same password generates different hashes."""
         # Given: Same password
         password = "SecurePassword123!"
-        
+
         # When: Hashing twice
         hash1 = hash_password(password)
         hash2 = hash_password(password)
-        
+
         # Then: Hashes should be different (due to salt)
         assert hash1 != hash2
 
@@ -74,10 +75,10 @@ class TestJWTTokens:
         """Test access token creation."""
         # Given: User data
         data = {"sub": "123", "email": "test@example.com"}
-        
+
         # When: Creating access token
         token = create_access_token(data)
-        
+
         # Then: Token should be created
         assert token is not None
         assert isinstance(token, str)
@@ -88,10 +89,10 @@ class TestJWTTokens:
         # Given: User data and custom expiry
         data = {"sub": "123"}
         expires_delta = timedelta(hours=2)
-        
+
         # When: Creating token with custom expiry
         token = create_access_token(data, expires_delta)
-        
+
         # Then: Token should be created
         assert token is not None
 
@@ -100,10 +101,10 @@ class TestJWTTokens:
         # Given: A valid token
         data = {"sub": "123", "email": "test@example.com"}
         token = create_access_token(data)
-        
+
         # When: Verifying the token
         payload = verify_token(token)
-        
+
         # Then: Payload should be returned with correct data
         assert payload is not None
         assert payload["sub"] == "123"
@@ -117,7 +118,7 @@ class TestJWTTokens:
         # Given: An expired token (negative expiry)
         data = {"sub": "123"}
         token = create_access_token(data, expires_delta=timedelta(hours=-1))
-        
+
         # When/Then: Verification should raise ExpiredTokenError
         with pytest.raises(ExpiredTokenError):
             verify_token(token)
@@ -126,7 +127,7 @@ class TestJWTTokens:
         """Test that invalid tokens are rejected."""
         # Given: An invalid token
         invalid_token = "invalid.token.here"
-        
+
         # When/Then: Verification should raise InvalidTokenError
         with pytest.raises(InvalidTokenError):
             verify_token(invalid_token)
@@ -135,10 +136,10 @@ class TestJWTTokens:
         """Test refresh token creation."""
         # Given: User data
         data = {"sub": "123", "email": "test@example.com"}
-        
+
         # When: Creating refresh token
         token = create_refresh_token(data)
-        
+
         # Then: Token should be created
         assert token is not None
         assert isinstance(token, str)
@@ -148,9 +149,9 @@ class TestJWTTokens:
         # Given: User data
         data = {"sub": "123"}
         token = create_refresh_token(data)
-        
+
         # When: Verifying the token
         payload = verify_token(token)
-        
+
         # Then: Token type should be refresh
         assert payload["type"] == "refresh"

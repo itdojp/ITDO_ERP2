@@ -1,9 +1,10 @@
 """Integration tests for authentication API."""
 
+import time
+from datetime import timedelta
+
 import pytest
 from fastapi.testclient import TestClient
-from datetime import timedelta
-import time
 
 from app.core.security import create_access_token, create_refresh_token
 from app.models.user import User
@@ -17,12 +18,9 @@ class TestAuthAPI:
         # When: Logging in with correct credentials
         response = client.post(
             "/api/v1/auth/login",
-            json={
-                "email": test_user.email,
-                "password": "TestPassword123!"
-            }
+            json={"email": test_user.email, "password": "TestPassword123!"},
         )
-        
+
         # Then: Should return tokens
         assert response.status_code == 200
         data = response.json()
@@ -36,12 +34,9 @@ class TestAuthAPI:
         # When: Logging in with wrong password
         response = client.post(
             "/api/v1/auth/login",
-            json={
-                "email": test_user.email,
-                "password": "WrongPassword123!"
-            }
+            json={"email": test_user.email, "password": "WrongPassword123!"},
         )
-        
+
         # Then: Should return 401
         assert response.status_code == 401
         assert response.json()["code"] == "AUTH001"
@@ -51,12 +46,9 @@ class TestAuthAPI:
         # When: Logging in with non-existent email
         response = client.post(
             "/api/v1/auth/login",
-            json={
-                "email": "nonexistent@example.com",
-                "password": "Password123!"
-            }
+            json={"email": "nonexistent@example.com", "password": "Password123!"},
         )
-        
+
         # Then: Should return 401
         assert response.status_code == 401
         assert response.json()["code"] == "AUTH001"
@@ -69,19 +61,16 @@ class TestAuthAPI:
             email="inactive@example.com",
             password="InactivePass123!",
             full_name="Inactive User",
-            is_active=False
+            is_active=False,
         )
         db_session.commit()
-        
+
         # When: Trying to login
         response = client.post(
             "/api/v1/auth/login",
-            json={
-                "email": "inactive@example.com",
-                "password": "InactivePass123!"
-            }
+            json={"email": "inactive@example.com", "password": "InactivePass123!"},
         )
-        
+
         # Then: Should return 401
         assert response.status_code == 401
         assert response.json()["code"] == "AUTH001"
@@ -90,13 +79,12 @@ class TestAuthAPI:
         """Test successful token refresh."""
         # Given: Valid refresh token
         refresh_token = create_refresh_token({"sub": str(test_user.id)})
-        
+
         # When: Refreshing token
         response = client.post(
-            "/api/v1/auth/refresh",
-            json={"refresh_token": refresh_token}
+            "/api/v1/auth/refresh", json={"refresh_token": refresh_token}
         )
-        
+
         # Then: Should return new tokens
         assert response.status_code == 200
         data = response.json()
@@ -107,10 +95,9 @@ class TestAuthAPI:
         """Test refresh with invalid token."""
         # When: Using invalid refresh token
         response = client.post(
-            "/api/v1/auth/refresh",
-            json={"refresh_token": "invalid.token.here"}
+            "/api/v1/auth/refresh", json={"refresh_token": "invalid.token.here"}
         )
-        
+
         # Then: Should return 401
         assert response.status_code == 401
         assert response.json()["code"] == "AUTH003"
@@ -119,16 +106,14 @@ class TestAuthAPI:
         """Test refresh with expired token."""
         # Given: Expired refresh token
         expired_token = create_refresh_token(
-            {"sub": str(test_user.id)},
-            expires_delta=timedelta(seconds=-1)
+            {"sub": str(test_user.id)}, expires_delta=timedelta(seconds=-1)
         )
-        
+
         # When: Using expired token
         response = client.post(
-            "/api/v1/auth/refresh",
-            json={"refresh_token": expired_token}
+            "/api/v1/auth/refresh", json={"refresh_token": expired_token}
         )
-        
+
         # Then: Should return 401
         assert response.status_code == 401
         assert response.json()["code"] == "AUTH002"
@@ -138,23 +123,17 @@ class TestAuthAPI:
         # When: Using invalid email format
         response = client.post(
             "/api/v1/auth/login",
-            json={
-                "email": "invalid-email",
-                "password": "Password123!"
-            }
+            json={"email": "invalid-email", "password": "Password123!"},
         )
-        
+
         # Then: Should return 422
         assert response.status_code == 422
 
     def test_login_missing_fields(self, client: TestClient) -> None:
         """Test login with missing fields."""
         # When: Missing password
-        response = client.post(
-            "/api/v1/auth/login",
-            json={"email": "test@example.com"}
-        )
-        
+        response = client.post("/api/v1/auth/login", json={"email": "test@example.com"})
+
         # Then: Should return 422
         assert response.status_code == 422
 
@@ -162,17 +141,14 @@ class TestAuthAPI:
         """Test login API response time."""
         # When: Measuring login response time
         start_time = time.time()
-        
+
         response = client.post(
             "/api/v1/auth/login",
-            json={
-                "email": test_user.email,
-                "password": "TestPassword123!"
-            }
+            json={"email": test_user.email, "password": "TestPassword123!"},
         )
-        
+
         response_time = (time.time() - start_time) * 1000
-        
+
         # Then: Should respond within 200ms
         assert response.status_code == 200
         assert response_time < 200
