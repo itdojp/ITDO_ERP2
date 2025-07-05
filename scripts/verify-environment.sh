@@ -3,7 +3,8 @@
 # ITDO ERP System - Environment Verification Script
 # This script performs automated checks to verify the development environment
 
-set -e
+# Don't exit on error - we want to run all checks
+set +e
 
 # Color codes for output
 RED='\033[0;31m'
@@ -41,6 +42,11 @@ print_warning() {
 print_error() {
     echo -e "${RED}❌ $1${NC}"
     ((FAILED_CHECKS++))
+}
+
+# Setup environment variables
+setup_environment() {
+    export PATH="$HOME/.local/bin:$PATH"
 }
 
 # Check if command exists
@@ -233,7 +239,7 @@ check_python_env() {
         print_success "Python virtual environment exists"
     else
         print_warning "Python virtual environment not found. Creating..."
-        if uv venv; then
+        if PATH="$HOME/.local/bin:$PATH" uv venv; then
             print_success "Virtual environment created"
         else
             print_error "Failed to create virtual environment"
@@ -288,14 +294,14 @@ check_github_actions() {
         print_check "Checking workflow: $workflow"
         if [ -f "$workflow" ]; then
             # Basic YAML validation
-            if command_exists python3; then
-                if python3 -c "import yaml; yaml.safe_load(open('$workflow'))" 2>/dev/null; then
+            if command_exists uv && [ -d "backend/.venv" ]; then
+                if cd backend && PATH="$HOME/.local/bin:$PATH" uv run python -c "import yaml; yaml.safe_load(open('../$workflow'))" 2>/dev/null && cd ..; then
                     print_success "$workflow is valid YAML"
                 else
                     print_error "$workflow has invalid YAML syntax"
                 fi
             else
-                print_success "$workflow exists (YAML validation skipped)"
+                print_success "$workflow exists (YAML validation skipped - uv not available)"
             fi
         else
             print_error "$workflow is missing"
@@ -420,6 +426,9 @@ generate_report() {
 main() {
     echo -e "${BLUE}ITDO ERP System - Environment Verification${NC}"
     echo -e "${BLUE}===========================================${NC}"
+    
+    # Setup environment
+    setup_environment
     
     # Run all checks
     check_basic_tools

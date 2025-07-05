@@ -1,0 +1,7 @@
+Environment Verification Report
+Generated: Sat Jul  5 05:00:47 PM JST 2025
+================================
+Total Checks: 47
+Passed: 35
+Failed: 4
+Success Rate: 74%
