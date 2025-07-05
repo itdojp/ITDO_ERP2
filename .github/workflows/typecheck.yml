@@ -1,0 +1,216 @@
+name: Type Check
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  # 厳格な型チェック専用ジョブ
+  strict-typecheck:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    # Python 厳格型チェック
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: "latest"
+        enable-cache: true
+    
+    - name: Set up Python
+      run: uv python install 3.11
+    
+    - name: Install Python dependencies
+      run: |
+        cd backend
+        uv venv
+        uv pip sync requirements-dev.txt
+    
+    - name: Run mypy strict type checking
+      run: |
+        cd backend
+        uv run mypy --strict --show-error-codes --show-column-numbers app/
+    
+    - name: Check for any type usage
+      run: |
+        cd backend
+        # any型の使用をチェック
+        if grep -r "Any\|any" app/ --include="*.py" | grep -v "# type: ignore" | grep -v "__future__" | grep -v "from typing import"; then
+          echo "❌ any型の使用が検出されました。型を明示的に指定してください。"
+          exit 1
+        else
+          echo "✅ any型の使用は検出されませんでした。"
+        fi
+    
+    # TypeScript 厳格型チェック
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+    
+    - name: Install Node.js dependencies
+      run: |
+        cd frontend
+        npm ci
+    
+    - name: Run TypeScript strict type checking
+      run: |
+        cd frontend
+        npx tsc --noEmit --strict
+    
+    - name: Check for any type usage in TypeScript
+      run: |
+        cd frontend
+        # any型の使用をチェック
+        if grep -r ": any\|<any>" src/ --include="*.ts" --include="*.tsx" | grep -v "// @ts-ignore" | grep -v "// eslint-disable"; then
+          echo "❌ any型の使用が検出されました。型を明示的に指定してください。"
+          exit 1
+        else
+          echo "✅ any型の使用は検出されませんでした。"
+        fi
+    
+    - name: Check for unused exports (TypeScript)
+      run: |
+        cd frontend
+        npx ts-unused-exports tsconfig.json --maxIssues=0
+    
+    - name: Advanced TypeScript checks
+      run: |
+        cd frontend
+        # strictNullChecksの確認
+        npx tsc --noEmit --strictNullChecks
+        
+        # noImplicitReturnsの確認
+        npx tsc --noEmit --noImplicitReturns
+        
+        # noImplicitAnyの確認
+        npx tsc --noEmit --noImplicitAny
+
+  # 型カバレッジレポート
+  type-coverage:
+    runs-on: ubuntu-latest
+    needs: strict-typecheck
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    # Python型カバレッジ
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: "latest"
+        enable-cache: true
+    
+    - name: Set up Python
+      run: uv python install 3.11
+    
+    - name: Install Python dependencies
+      run: |
+        cd backend
+        uv venv
+        uv pip sync requirements-dev.txt
+        uv pip install type-coverage
+    
+    - name: Generate Python type coverage report
+      run: |
+        cd backend
+        uv run python -m type_coverage.main app/ --json > type-coverage-python.json
+        uv run python -m type_coverage.main app/ > type-coverage-python.txt
+    
+    # TypeScript型カバレッジ
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+    
+    - name: Install Node.js dependencies
+      run: |
+        cd frontend
+        npm ci
+        npm install -g typescript-coverage-report
+    
+    - name: Generate TypeScript type coverage report
+      run: |
+        cd frontend
+        typescript-coverage-report --threshold 95 --outputDir type-coverage-report
+    
+    - name: Upload type coverage reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: type-coverage-reports
+        path: |
+          backend/type-coverage-python.json
+          backend/type-coverage-python.txt
+          frontend/type-coverage-report/
+    
+    - name: Comment type coverage on PR
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const fs = require('fs');
+          const prNumber = context.payload.pull_request.number;
+          
+          let comment = `📊 **型チェック結果**\n\n`;
+          
+          try {
+            // Python型カバレッジの読み込み
+            const pythonCoverage = fs.readFileSync('backend/type-coverage-python.txt', 'utf8');
+            const pythonMatch = pythonCoverage.match(/Type coverage: ([\d.]+)%/);
+            const pythonPercent = pythonMatch ? pythonMatch[1] : 'N/A';
+            
+            comment += `| 項目 | 結果 | ステータス |\n`;
+            comment += `|------|------|----------|\n`;
+            comment += `| Python 型カバレッジ | ${pythonPercent}% | ${parseFloat(pythonPercent) >= 95 ? '✅' : '⚠️'} |\n`;
+            comment += `| TypeScript 厳格チェック | 完了 | ✅ |\n`;
+            comment += `| any型使用チェック | 完了 | ✅ |\n`;
+            comment += `| 未使用エクスポート | 完了 | ✅ |\n\n`;
+            
+            if (parseFloat(pythonPercent) < 95) {
+              comment += `⚠️ **注意**: Python型カバレッジが95%を下回っています。型注釈を追加してください。\n\n`;
+            }
+            
+          } catch (error) {
+            comment += `❌ 型カバレッジレポートの読み込みに失敗しました: ${error.message}\n\n`;
+          }
+          
+          comment += `詳細なレポートは Artifacts からダウンロードできます。\n`;
+          comment += `\n---\n`;
+          comment += `*このコメントは GitHub Actions により自動生成されました*`;
+          
+          await github.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: prNumber,
+            body: comment
+          });
+
+  # 型チェック品質ゲート
+  typecheck-quality-gate:
+    runs-on: ubuntu-latest
+    needs: [strict-typecheck, type-coverage]
+    if: always()
+    
+    steps:
+    - name: Check type check results
+      run: |
+        if [[ "${{ needs.strict-typecheck.result }}" != "success" ]]; then
+          echo "❌ 厳格型チェックが失敗しました"
+          exit 1
+        fi
+        
+        if [[ "${{ needs.type-coverage.result }}" != "success" ]]; then
+          echo "⚠️ 型カバレッジチェックで問題が発生しました"
+          # 型カバレッジは警告のみで止めない
+        fi
+        
+        echo "✅ 型チェック品質ゲートをパスしました"

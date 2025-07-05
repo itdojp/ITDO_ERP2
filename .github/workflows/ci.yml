@@ -1,0 +1,266 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  # Python型チェックジョブ
+  python-typecheck:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: "latest"
+        enable-cache: true
+    
+    - name: Set up Python
+      run: uv python install 3.11
+    
+    - name: Install dependencies
+      run: |
+        uv venv
+        uv pip sync requirements-dev.txt
+    
+    - name: Run mypy type checking
+      run: uv run mypy --strict .
+
+  # TypeScript型チェックジョブ  
+  typescript-typecheck:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+        
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: TypeScript type checking
+      run: npm run typecheck
+    
+    - name: Check for unused exports
+      run: npx ts-unused-exports tsconfig.json
+
+  # Backend テストジョブ
+  backend-test:
+    runs-on: ubuntu-latest
+    needs: python-typecheck
+    defaults:
+      run:
+        working-directory: ./backend
+    
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_PASSWORD: itdo_password
+          POSTGRES_USER: itdo_user
+          POSTGRES_DB: itdo_erp_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: "latest"
+        enable-cache: true
+    
+    - name: Set up Python
+      run: uv python install 3.11
+    
+    - name: Install dependencies
+      run: |
+        uv venv
+        uv pip sync requirements-dev.txt
+    
+    - name: Run ruff linting
+      run: uv run ruff check .
+    
+    - name: Run ruff formatting check
+      run: uv run ruff format --check .
+    
+    - name: Run tests with coverage
+      env:
+        DATABASE_URL: postgresql://itdo_user:itdo_password@localhost:5432/itdo_erp_test
+        REDIS_URL: redis://localhost:6379
+        SECRET_KEY: test-secret-key
+      run: uv run pytest --cov=app --cov-report=xml --cov-report=term-missing
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./backend/coverage.xml
+        flags: backend
+        name: backend-coverage
+
+  # Frontend テストジョブ
+  frontend-test:
+    runs-on: ubuntu-latest
+    needs: typescript-typecheck
+    defaults:
+      run:
+        working-directory: ./frontend
+        
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run ESLint
+      run: npm run lint
+    
+    - name: Run tests with coverage
+      run: npm run coverage
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./frontend/coverage/coverage-final.json
+        flags: frontend
+        name: frontend-coverage
+
+  # E2E テストジョブ
+  e2e-test:
+    runs-on: ubuntu-latest
+    needs: [backend-test, frontend-test]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: e2e/package-lock.json
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: "latest"
+        enable-cache: true
+    
+    - name: Set up Python
+      run: uv python install 3.11
+    
+    - name: Start services with Docker Compose
+      run: |
+        docker compose -f infra/compose-data.yaml up -d
+        sleep 30  # サービス起動待機
+    
+    - name: Start backend
+      run: |
+        cd backend
+        uv venv
+        uv pip sync requirements-dev.txt
+        uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+        sleep 10
+    
+    - name: Start frontend
+      run: |
+        cd frontend
+        npm ci
+        npm run build
+        npm run preview &
+        sleep 10
+    
+    - name: Install Playwright
+      run: |
+        cd e2e
+        npm ci
+        npx playwright install --with-deps
+    
+    - name: Run E2E tests
+      run: |
+        cd e2e
+        npx playwright test
+    
+    - name: Upload E2E test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: e2e-test-results
+        path: e2e/test-results/
+    
+    - name: Stop services
+      if: always()
+      run: docker compose -f infra/compose-data.yaml down
+
+  # コンテナビルドジョブ（mainブランチのみ）
+  build-containers:
+    runs-on: ubuntu-latest
+    needs: [e2e-test]
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Build and push backend image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./backend
+        push: true
+        tags: |
+          ghcr.io/${{ github.repository_owner }}/itdo-erp-backend:latest
+          ghcr.io/${{ github.repository_owner }}/itdo-erp-backend:${{ github.sha }}
+    
+    - name: Build and push frontend image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./frontend
+        push: true
+        tags: |
+          ghcr.io/${{ github.repository_owner }}/itdo-erp-frontend:latest
+          ghcr.io/${{ github.repository_owner }}/itdo-erp-frontend:${{ github.sha }}

@@ -1,0 +1,131 @@
+name: Auto Review Request
+
+on:
+  pull_request:
+    types: [opened, ready_for_review]
+
+jobs:
+  auto-assign-reviewers:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    
+    steps:
+    - name: Add reviewers and labels
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const { owner, repo } = context.repo;
+          const prNumber = context.payload.pull_request.number;
+          const prAuthor = context.payload.pull_request.user.login;
+          
+          // チームメンバーリスト（作成者以外）
+          const teamMembers = [
+            // ここにチームメンバーのGitHubユーザー名を追加
+            // 'member1', 'member2', 'member3'
+          ];
+          
+          // 作成者以外のメンバーを取得
+          const availableReviewers = teamMembers.filter(member => member !== prAuthor);
+          
+          // ランダムに1人選択（メンバーがいる場合）
+          let selectedReviewer = null;
+          if (availableReviewers.length > 0) {
+            selectedReviewer = availableReviewers[Math.floor(Math.random() * availableReviewers.length)];
+          }
+          
+          try {
+            // レビュワーを追加
+            const reviewers = [];
+            if (selectedReviewer) {
+              reviewers.push(selectedReviewer);
+            }
+            
+            if (reviewers.length > 0) {
+              await github.rest.pulls.requestReviewers({
+                owner,
+                repo,
+                pull_number: prNumber,
+                reviewers: reviewers
+              });
+              
+              console.log(`Added reviewers: ${reviewers.join(', ')}`);
+            }
+            
+            // 変更ファイルに基づいてラベルを追加
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner,
+              repo,
+              pull_number: prNumber
+            });
+            
+            const labels = [];
+            const hasBackendChanges = files.some(file => file.filename.startsWith('backend/'));
+            const hasFrontendChanges = files.some(file => file.filename.startsWith('frontend/'));
+            const hasInfraChanges = files.some(file => file.filename.startsWith('infra/') || file.filename.includes('docker') || file.filename.includes('compose'));
+            const hasDocsChanges = files.some(file => file.filename.startsWith('docs/') || file.filename.endsWith('.md'));
+            const hasTestChanges = files.some(file => file.filename.includes('test') || file.filename.startsWith('e2e/'));
+            
+            if (hasBackendChanges) labels.push('backend');
+            if (hasFrontendChanges) labels.push('frontend');
+            if (hasInfraChanges) labels.push('infrastructure');
+            if (hasDocsChanges) labels.push('documentation');
+            if (hasTestChanges) labels.push('testing');
+            
+            // PRタイトルにWIPが含まれている場合
+            if (context.payload.pull_request.title.toLowerCase().includes('wip')) {
+              labels.push('work-in-progress');
+            }
+            
+            if (labels.length > 0) {
+              await github.rest.issues.addLabels({
+                owner,
+                repo,
+                issue_number: prNumber,
+                labels: labels
+              });
+              
+              console.log(`Added labels: ${labels.join(', ')}`);
+            }
+            
+            // 成功コメントを追加
+            const comment = `🤖 **自動レビュー設定完了**
+            
+${selectedReviewer ? `✅ レビュワー追加: @${selectedReviewer}` : '⚠️ 利用可能なレビュワーがいません'}
+${labels.length > 0 ? `✅ ラベル追加: ${labels.join(', ')}` : ''}
+
+**次のステップ:**
+1. Copilot Agentによる自動レビューをお待ちください
+2. レビュー指摘事項があれば修正してください
+3. 全てのチェックが通ったらマージ可能です
+
+---
+*このコメントは GitHub Actions により自動生成されました*`;
+            
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: prNumber,
+              body: comment
+            });
+            
+          } catch (error) {
+            console.error('Error in auto-review-request:', error);
+            
+            // エラーコメントを追加
+            const errorComment = `❌ **自動レビュー設定でエラーが発生しました**
+            
+エラー内容: ${error.message}
+
+手動でレビュワーを追加してください。
+
+---
+*このコメントは GitHub Actions により自動生成されました*`;
+            
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: prNumber,
+              body: errorComment
+            });
+          }

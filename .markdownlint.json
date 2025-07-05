@@ -1,0 +1,17 @@
+{
+  "default": true,
+  "line-length": {
+    "line_length": 120,
+    "heading_line_length": 80,
+    "code_block_line_length": 120
+  },
+  "no-duplicate-heading": {
+    "siblings_only": true
+  },
+  "no-inline-html": {
+    "allowed_elements": ["br", "img", "a", "kbd", "sub", "sup"]
+  },
+  "whitespace": {
+    "br_spaces": 2
+  }
+}
