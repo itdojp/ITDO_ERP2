@@ -41,6 +41,10 @@ def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
+    # Extract roles from token and attach to user object
+    from app.core.rbac import extract_roles_from_token
+    user._token_roles = extract_roles_from_token(token)
+    
     return user
 
 

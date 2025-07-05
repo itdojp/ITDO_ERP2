@@ -43,10 +43,11 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379"
 
     # Keycloak設定
-    KEYCLOAK_URL: str = "http://localhost:8080"
+    KEYCLOAK_SERVER_URL: str = "http://localhost:8080"
     KEYCLOAK_REALM: str = "itdo-erp"
-    KEYCLOAK_CLIENT_ID: str = "itdo-erp-client"
+    KEYCLOAK_CLIENT_ID: str = "itdo-erp-backend"
     KEYCLOAK_CLIENT_SECRET: str = ""
+    KEYCLOAK_CALLBACK_URL: str = "http://localhost:8000/api/v1/auth/keycloak/callback"
 
     # セキュリティ設定
     SECRET_KEY: str = "your-secret-key-change-this-in-production"
@@ -58,6 +59,7 @@ class Settings(BaseSettings):
 
     # 開発環境フラグ
     DEBUG: bool = False
+    ENVIRONMENT: str = "development"
 
     class Config:
         env_file = ".env"
@@ -65,3 +67,8 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+def get_settings() -> Settings:
+    """Get application settings instance."""
+    return settings
