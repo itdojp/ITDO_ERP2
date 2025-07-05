@@ -10,6 +10,7 @@ FastAPI based backend for ITDO ERP System.
 - **PostgreSQL** - Database
 - **Redis** - Cache/Session storage
 - **JWT** - Authentication
+- **Keycloak** - OAuth2/OIDC provider (optional)
 - **uv** - Package management
 
 ## Setup
@@ -45,20 +46,34 @@ When the server is running, you can access:
 
 ## Authentication
 
-The API uses JWT (JSON Web Tokens) for authentication.
+The API supports two authentication methods:
 
-### Login
+### 1. Local JWT Authentication
+
 ```bash
+# Login
 curl -X POST http://localhost:8000/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email": "user@example.com", "password": "password"}'
-```
 
-### Using the token
-```bash
+# Use token
 curl -X GET http://localhost:8000/api/v1/users/me \
   -H "Authorization: Bearer <your-access-token>"
 ```
+
+### 2. Keycloak OAuth2/OIDC
+
+```bash
+# Initiate OAuth2 flow
+curl -i http://localhost:8000/api/v1/auth/keycloak/login
+
+# Exchange code for token (after Keycloak redirect)
+curl -X POST http://localhost:8000/api/v1/auth/keycloak/callback \
+  -H "Content-Type: application/json" \
+  -d '{"code": "auth_code", "state": "state_param"}'
+```
+
+See [Keycloak API Documentation](docs/keycloak-api-docs.md) for detailed information.
 
 ## Testing
 
@@ -106,8 +121,12 @@ backend/
 
 ## Security
 
-- Passwords are hashed using bcrypt
+- Passwords are hashed using bcrypt (local auth)
 - JWT tokens expire after 24 hours
+- OAuth2/OIDC support via Keycloak
+- PKCE (Proof Key for Code Exchange) for OAuth2 flows
+- CSRF protection with state parameter
+- Role-Based Access Control (RBAC)
 - All endpoints require authentication except login
 - Input validation on all requests
 - SQL injection protection via SQLAlchemy ORM
