@@ -3,7 +3,7 @@
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, func, or_
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, func, or_
 from sqlalchemy.orm import Session, relationship
 
 from app.core.database import Base

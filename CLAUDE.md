@@ -43,6 +43,10 @@ ITDO ERP System v2 - Modern ERP system with hybrid development environment.
 ## Essential Commands
 
 ```bash
+# Environment Setup (First time)
+source ~/.local/bin/env  # Ensure uv is in PATH
+uv --version  # Verify uv is working
+
 # Data Layer (Always containers)
 podman-compose -f infra/compose-data.yaml up -d
 

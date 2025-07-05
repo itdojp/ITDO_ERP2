@@ -14,7 +14,22 @@ FastAPI based backend for ITDO ERP System.
 
 ## Setup
 
+### Quick Setup
 ```bash
+# Automated setup (recommended)
+./setup-env.sh
+```
+
+### Manual Setup
+```bash
+# Ensure uv is available in PATH
+source ~/.local/bin/env
+# or
+export PATH="$HOME/.local/bin:$PATH"
+
+# Verify uv is working
+uv --version
+
 # Install dependencies
 uv venv
 uv pip sync requirements-dev.txt
