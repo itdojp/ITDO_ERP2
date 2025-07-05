@@ -1,0 +1,253 @@
+openapi: 3.0.3
+info:
+  title: ITDO ERP Authentication API
+  description: 認証・認可機能のAPI仕様書
+  version: 1.0.0
+  contact:
+    name: ITDO Development Team
+    email: dev@itdo.jp
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: 開発環境
+  - url: https://api.itdo-erp.jp/api/v1
+    description: 本番環境
+
+security:
+  - BearerAuth: []
+
+paths:
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: ユーザーログイン
+      description: メールアドレスとパスワードでログインし、JWTトークンを取得する
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: ログイン成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '400':
+          description: リクエスト不正
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 認証失敗
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: トークンリフレッシュ
+      description: 有効なトークンを使用して新しいトークンを取得する
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: リフレッシュ成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          description: トークン無効
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users:
+    post:
+      tags:
+        - Users
+      summary: ユーザー作成
+      description: 新規ユーザーを作成する（管理者権限必須）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreateRequest'
+      responses:
+        '201':
+          description: ユーザー作成成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: リクエスト不正
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: 権限不足
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: ユーザー既存
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/me:
+    get:
+      tags:
+        - Users
+      summary: 現在のユーザー情報取得
+      description: ログイン中のユーザー情報を取得する
+      responses:
+        '200':
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: 認証エラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: メールアドレス
+          example: user@example.com
+        password:
+          type: string
+          format: password
+          description: パスワード
+          minLength: 8
+          example: SecurePassword123!
+
+    RefreshRequest:
+      type: object
+      required:
+        - refresh_token
+      properties:
+        refresh_token:
+          type: string
+          description: リフレッシュトークン
+
+    TokenResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+          description: アクセストークン
+        token_type:
+          type: string
+          description: トークンタイプ
+          default: bearer
+        expires_in:
+          type: integer
+          description: 有効期限（秒）
+          default: 86400
+        refresh_token:
+          type: string
+          description: リフレッシュトークン
+
+    UserCreateRequest:
+      type: object
+      required:
+        - email
+        - password
+        - full_name
+      properties:
+        email:
+          type: string
+          format: email
+          description: メールアドレス
+        password:
+          type: string
+          format: password
+          description: パスワード
+          minLength: 8
+        full_name:
+          type: string
+          description: フルネーム
+          minLength: 1
+          maxLength: 100
+        is_active:
+          type: boolean
+          description: アクティブ状態
+          default: true
+
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ユーザーID
+        email:
+          type: string
+          format: email
+          description: メールアドレス
+        full_name:
+          type: string
+          description: フルネーム
+        is_active:
+          type: boolean
+          description: アクティブ状態
+        created_at:
+          type: string
+          format: date-time
+          description: 作成日時
+        updated_at:
+          type: string
+          format: date-time
+          description: 更新日時
+
+    ErrorResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+          description: エラー詳細
+        code:
+          type: string
+          description: エラーコード
+        timestamp:
+          type: string
+          format: date-time
+          description: エラー発生時刻

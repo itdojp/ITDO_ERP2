@@ -10,7 +10,7 @@
 
 ## 技術スタック
 
-- **Backend**: Python 3.11 + FastAPI + uv
+- **Backend**: Python 3.13 + FastAPI + uv
 - **Frontend**: React 18 + TypeScript 5 + Vite
 - **Database**: PostgreSQL 15 + Redis 7
 - **Authentication**: Keycloak
@@ -27,7 +27,7 @@
 # Node.js (18以上)
 node --version
 
-# Python (3.11以上) 
+# Python (3.13以上) 
 python3 --version
 
 # Git
@@ -177,7 +177,7 @@ cat > README.md << 'EOF'
 
 ## Technology Stack
 
-- **Backend**: Python 3.11 + FastAPI
+- **Backend**: Python 3.13 + FastAPI
 - **Frontend**: React 18 + TypeScript 5
 - **Database**: PostgreSQL 15
 - **Cache**: Redis
@@ -268,7 +268,7 @@ dependencies = [
     "celery>=5.3.4",
     "python-keycloak>=3.7.0",
 ]
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 readme = "README.md"
 license = {text = "MIT"}
 
@@ -306,7 +306,7 @@ force_grid_wrap = 0
 line_length = 88
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.13"
 strict = true
 
 [tool.pytest.ini_options]
@@ -1156,7 +1156,7 @@ EOF
 
 ```bash
 cat > infra/Dockerfile.dev << 'EOF'
-FROM python:3.11-slim
+FROM python:3.13-slim
 
 # システムパッケージの更新とNode.js 18のインストール
 RUN apt-get update && apt-get install -y \
