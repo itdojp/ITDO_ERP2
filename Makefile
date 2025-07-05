@@ -1,4 +1,4 @@
-.PHONY: help dev test test-full lint typecheck clean setup-dev start-data stop-data status build security-scan pre-commit
+.PHONY: help dev test test-full lint typecheck clean setup-dev start-data stop-data status build security-scan pre-commit verify
 
 help:
 	@echo "利用可能なコマンド:"
@@ -14,6 +14,7 @@ help:
 	@echo "  make status        - サービス状態を確認"
 	@echo "  make build         - コンテナイメージをビルド"
 	@echo "  make pre-commit    - pre-commitフックをセットアップ"
+	@echo "  make verify        - 開発環境の動作確認"
 	@echo "  make clean         - 一時ファイルを削除"
 
 dev:
@@ -78,6 +79,10 @@ pre-commit:
 	@cd backend && export PATH="$$HOME/.local/bin:$$PATH" && uv pip install pre-commit
 	@export PATH="$$HOME/.local/bin:$$PATH" && pre-commit install
 	@export PATH="$$HOME/.local/bin:$$PATH" && pre-commit run --all-files
+
+verify:
+	@echo "開発環境の動作確認を実行中..."
+	@./scripts/verify-environment.sh
 
 clean:
 	@echo "一時ファイルを削除中..."
