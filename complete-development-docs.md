@@ -1764,7 +1764,7 @@ components:
 # .claude/DEPENDENCY_MAP.yaml
 backend:
   runtime:
-    python: "3.11"
+    python: "3.13"
     critical:
       - fastapi: "^0.109.0"  # セキュリティ更新に注意
       - sqlalchemy: "^2.0.25"  # 2.0系でAPI変更あり
@@ -2420,7 +2420,7 @@ uv run command-name
 
 ```dockerfile
 # backend/Dockerfile
-FROM python:3.11-slim as builder
+FROM python:3.13-slim as builder
 
 # uvインストール
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
@@ -2430,7 +2430,7 @@ COPY pyproject.toml requirements.txt ./
 RUN uv venv && \
     uv pip sync requirements.txt
 
-FROM python:3.11-slim
+FROM python:3.13-slim
 WORKDIR /app
 
 # uvを本番イメージにもコピー（必要に応じて）
@@ -2530,7 +2530,7 @@ COPY nginx.conf /etc/nginx/nginx.conf
 name = "myapp-backend"
 version = "0.1.0"
 description = "FastAPI backend"
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 dependencies = [
     "fastapi>=0.109.0",
     "uvicorn[standard]>=0.27.0",
@@ -2566,7 +2566,7 @@ line-length = 100
 target-version = "py311"
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.13"
 strict = true
 exclude = ["alembic/", "tests/"]
 plugins = ["pydantic.mypy"]
@@ -2596,7 +2596,7 @@ ignore_missing_imports = true
 ```ini
 # backend/mypy.ini
 [mypy]
-python_version = 3.11
+python_version = 3.13
 strict = True
 exclude = tests/|alembic/
 
@@ -3779,7 +3779,7 @@ FastAPIを使用したREST APIの開発
 - 非同期処理
 
 ## 制約
-- Python 3.11
+- Python 3.13
 - SQLAlchemy 2.0
 - 既存のプロジェクト構造に従う
 
