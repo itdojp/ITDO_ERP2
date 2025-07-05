@@ -2,10 +2,10 @@ import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/services/api'
 
 export function HomePage() {
-  const { data, isLoading, error } = useQuery(
-    'health-check',
-    () => apiClient.get('/health')
-  )
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['health-check'],
+    queryFn: () => apiClient.get('/health')
+  })
 
   if (isLoading) return <div>Loading...</div>
   if (error) return <div>Error connecting to backend</div>

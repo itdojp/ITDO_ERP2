@@ -131,7 +131,7 @@ run_backend_tests() {
     print_status "Running security checks..."
     uv pip install bandit[toml] safety
     
-    if uv run bandit -r app/ -f text; then
+    if uv run bandit -r app/ -f txt; then
         print_success "Security check passed"
     else
         print_warning "Security issues found. Please review."

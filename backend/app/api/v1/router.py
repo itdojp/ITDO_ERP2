@@ -16,6 +16,6 @@ async def ping() -> dict[str, str]:
 async def db_test(db: Session = Depends(get_db)) -> dict[str, str]:
     try:
         result = db.execute(text("SELECT 1 as test")).fetchone()
-        return {"status": "success", "result": result[0] if result else None}
+        return {"status": "success", "result": str(result[0]) if result else "None"}
     except Exception as e:
         return {"status": "error", "error": str(e)}
