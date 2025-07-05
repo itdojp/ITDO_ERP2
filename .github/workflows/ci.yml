@@ -24,7 +24,7 @@ jobs:
         enable-cache: true
     
     - name: Set up Python
-      run: uv python install 3.11
+      run: uv python install 3.13
     
     - name: Install dependencies
       run: |
@@ -103,7 +103,7 @@ jobs:
         enable-cache: true
     
     - name: Set up Python
-      run: uv python install 3.11
+      run: uv python install 3.13
     
     - name: Install dependencies
       run: |
@@ -186,7 +186,7 @@ jobs:
         enable-cache: true
     
     - name: Set up Python
-      run: uv python install 3.11
+      run: uv python install 3.13
     
     - name: Start services with Docker Compose
       run: |

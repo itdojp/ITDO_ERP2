@@ -1,4 +1,4 @@
-FROM python:3.11-slim as builder
+FROM python:3.13-slim as builder
 
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
@@ -15,7 +15,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 RUN uv pip install -r requirements.txt
 
 # Production stage
-FROM python:3.11-slim as production
+FROM python:3.13-slim as production
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \

@@ -108,7 +108,7 @@ uv run mypy --strict .
 ## 1.1 プロジェクト概要
 
 ### 技術スタック
-- **バックエンド**: Python 3.11 + FastAPI
+- **バックエンド**: Python 3.13 + FastAPI
 - **フロントエンド**: React 18 + TypeScript 5
 - **データベース**: PostgreSQL 15
 - **認証**: OAuth2 / OpenID Connect (Keycloak)

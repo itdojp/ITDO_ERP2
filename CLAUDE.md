@@ -14,7 +14,7 @@ Before starting any development work, Claude Code must read and understand the f
 ITDO ERP System v2 - Modern ERP system with hybrid development environment.
 
 **Technology Stack:**
-- Backend: Python 3.11 + FastAPI + uv
+- Backend: Python 3.13 + FastAPI + uv
 - Frontend: React 18 + TypeScript 5 + Vite  
 - Database: PostgreSQL 15 + Redis 7
 - Auth: Keycloak (OAuth2/OpenID Connect)

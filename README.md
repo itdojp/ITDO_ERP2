@@ -6,7 +6,7 @@
 
 ## Technology Stack
 
-- **Backend**: Python 3.11 + FastAPI
+- **Backend**: Python 3.13 + FastAPI
 - **Frontend**: React 18 + TypeScript 5
 - **Database**: PostgreSQL 15
 - **Cache**: Redis

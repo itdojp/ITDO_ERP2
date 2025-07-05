@@ -21,7 +21,7 @@ dependencies = [
     "celery>=5.3.4",
     "python-keycloak>=3.7.0",
 ]
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 readme = "README.md"
 license = {text = "MIT"}
 
@@ -110,4 +110,9 @@ exclude_lines = [
     "if __name__ == .__main__.:",
     "class .*\\bProtocol\\):",
     "@(abc\\.)?abstractmethod",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.16.1",
 ]
