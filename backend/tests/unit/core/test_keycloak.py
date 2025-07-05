@@ -11,7 +11,6 @@ import hashlib
 import base64
 import secrets
 
-from app.core.config import Settings
 from app.core.keycloak import (
     KeycloakClient,
     generate_pkce_pair,
@@ -20,6 +19,7 @@ from app.core.keycloak import (
     InvalidTokenError,
     AuthenticationError,
 )
+from tests.utils.settings import create_test_settings
 
 
 class TestKeycloakClient:
@@ -28,7 +28,7 @@ class TestKeycloakClient:
     def test_keycloak_client_initialization(self) -> None:
         """TEST-KC-001: Keycloakクライアントが正しく初期化されることを確認."""
         # Given: Keycloak設定
-        settings = Settings(
+        settings = create_test_settings(
             KEYCLOAK_SERVER_URL="http://localhost:8080",
             KEYCLOAK_REALM="test-realm",
             KEYCLOAK_CLIENT_ID="test-client",
@@ -47,7 +47,7 @@ class TestKeycloakClient:
     def test_generate_auth_url(self) -> None:
         """TEST-KC-002: 認証URLが正しく生成されることを確認."""
         # Given: Keycloakクライアント
-        settings = Settings(
+        settings = create_test_settings(
             KEYCLOAK_SERVER_URL="http://localhost:8080",
             KEYCLOAK_REALM="test-realm",
             KEYCLOAK_CLIENT_ID="test-client",
@@ -71,7 +71,7 @@ class TestKeycloakClient:
     def test_generate_auth_url_with_pkce(self) -> None:
         """認証URLにPKCEパラメータが含まれることを確認."""
         # Given: Keycloakクライアント
-        settings = Settings(
+        settings = create_test_settings(
             KEYCLOAK_SERVER_URL="http://localhost:8080",
             KEYCLOAK_REALM="test-realm",
             KEYCLOAK_CLIENT_ID="test-client",
@@ -104,7 +104,7 @@ class TestKeycloakClient:
         }
         mock_keycloak_class.return_value = mock_keycloak
 
-        settings = Settings(
+        settings = create_test_settings(
             KEYCLOAK_SERVER_URL="http://localhost:8080",
             KEYCLOAK_REALM="test-realm",
             KEYCLOAK_CLIENT_ID="test-client",
@@ -149,7 +149,7 @@ class TestKeycloakClient:
         }
         mock_keycloak_class.return_value = mock_keycloak
 
-        settings = Settings(
+        settings = create_test_settings(
             KEYCLOAK_SERVER_URL="http://localhost:8080",
             KEYCLOAK_REALM="test-realm",
             KEYCLOAK_CLIENT_ID="test-client",
@@ -173,7 +173,7 @@ class TestKeycloakClient:
         mock_keycloak.introspect.return_value = {"active": False}
         mock_keycloak_class.return_value = mock_keycloak
 
-        settings = Settings(
+        settings = create_test_settings(
             KEYCLOAK_SERVER_URL="http://localhost:8080",
             KEYCLOAK_REALM="test-realm",
             KEYCLOAK_CLIENT_ID="test-client",
@@ -201,7 +201,7 @@ class TestKeycloakClient:
         }
         mock_keycloak_class.return_value = mock_keycloak
 
-        settings = Settings(
+        settings = create_test_settings(
             KEYCLOAK_SERVER_URL="http://localhost:8080",
             KEYCLOAK_REALM="test-realm",
             KEYCLOAK_CLIENT_ID="test-client",
@@ -231,7 +231,7 @@ class TestKeycloakClient:
         }
         mock_keycloak_class.return_value = mock_keycloak
 
-        settings = Settings(
+        settings = create_test_settings(
             KEYCLOAK_SERVER_URL="http://localhost:8080",
             KEYCLOAK_REALM="test-realm",
             KEYCLOAK_CLIENT_ID="test-client",
@@ -254,7 +254,7 @@ class TestKeycloakClient:
         mock_keycloak.logout.return_value = None
         mock_keycloak_class.return_value = mock_keycloak
 
-        settings = Settings(
+        settings = create_test_settings(
             KEYCLOAK_SERVER_URL="http://localhost:8080",
             KEYCLOAK_REALM="test-realm",
             KEYCLOAK_CLIENT_ID="test-client",

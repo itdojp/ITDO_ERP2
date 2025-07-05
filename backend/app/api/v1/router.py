@@ -3,13 +3,16 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 
 from app.core.database import get_db
-from app.api.v1 import auth, users
+from app.api.v1 import auth, users, auth_keycloak, admin, manager
 
 api_router = APIRouter()
 
 # Include routers
 api_router.include_router(auth.router)
+api_router.include_router(auth_keycloak.router, prefix="/auth/keycloak", tags=["keycloak"])
 api_router.include_router(users.router)
+api_router.include_router(admin.router)
+api_router.include_router(manager.router)
 
 
 @api_router.get("/ping")
