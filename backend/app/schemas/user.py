@@ -76,3 +76,16 @@ class UserUpdate(BaseModel):
 
 
 # UserSearchParams is defined in user_extended.py
+
+
+class UserBasic(BaseModel):
+    """Basic user information."""
+    
+    id: int = Field(..., description="User ID")
+    email: EmailStr = Field(..., description="User email address")
+    full_name: str = Field(..., description="User full name")
+    is_active: bool = Field(..., description="Whether user is active")
+    
+    class Config:
+        """Pydantic configuration."""
+        from_attributes = True
