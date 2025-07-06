@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, func, or_, desc
 from sqlalchemy.orm import Session, relationship, Mapped, mapped_column
 
-from app.core.database import Base
+from app.models.base import SoftDeletableModel
 from app.core.security import hash_password, verify_password
 from app.core.exceptions import BusinessLogicError, PermissionDenied
 
@@ -23,12 +23,12 @@ from app.models.password_history import PasswordHistory
 __all__ = ["User", "PasswordHistory"]
 
 
-class User(Base):
-    """User model."""
+class User(SoftDeletableModel):
+    """User model with enhanced security and audit features."""
     
     __tablename__ = "users"
     
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    # Basic fields
     email: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
     hashed_password: Mapped[str] = mapped_column(String, nullable=False)
     full_name: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -43,13 +43,6 @@ class User(Base):
     failed_login_attempts: Mapped[int] = mapped_column(Integer, default=0)
     locked_until: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     password_must_change: Mapped[bool] = mapped_column(Boolean, default=False)
-    
-    # Audit fields
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-    deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
-    deleted_by: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id"))
-    created_by: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id"))
     
     # Relationships
     user_roles: Mapped[List["UserRole"]] = relationship("UserRole", back_populates="user", foreign_keys="UserRole.user_id")
@@ -382,19 +375,17 @@ class User(Base):
         
         return bool(user_orgs & target_orgs)
     
-    def soft_delete(self, db: Session, deleted_by: int) -> None:
-        """Soft delete user."""
+    def soft_delete(self, deleted_by: Optional[int] = None) -> None:
+        """Soft delete user with session invalidation."""
+        # Call parent soft_delete
+        super().soft_delete(deleted_by)
+        
+        # Also deactivate the user
         self.is_active = False
-        self.deleted_at = datetime.utcnow()
-        self.deleted_by = deleted_by
         
         # Invalidate all sessions
         for session in self.sessions:
             session.invalidate()
-            db.add(session)
-        
-        db.add(self)
-        db.flush()
     
     def log_activity(
         self,

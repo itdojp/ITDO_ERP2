@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.core.exceptions import BusinessLogicError, NotFound, PermissionDenied
 from app.models.role import UserRole
 from app.models.user import User
+from app.repositories.user import UserRepository
 from app.schemas.user_extended import (
     BulkImportRequest,
     BulkImportResponse,
@@ -26,7 +27,13 @@ from app.services.audit import AuditLogger
 
 
 class UserService:
-    """User management service class."""
+    """User management service class with type-safe operations."""
+    
+    def __init__(self, db: Session):
+        """Initialize service with database session."""
+        self.db = db
+        self.repository = UserRepository(db)
+        self.audit_logger = AuditLogger(db)
 
     def create_user(
         self, data: UserCreateExtended, creator: User, db: Session
