@@ -1,6 +1,6 @@
 """Task management models for ITDO ERP System v2."""
 
-from typing import Optional, List
+from typing import Optional, List, TYPE_CHECKING
 from datetime import datetime
 from enum import Enum
 from sqlalchemy import String, Text, Integer, Float, Boolean, ForeignKey, DateTime, JSON
@@ -8,6 +8,10 @@ from sqlalchemy.dialects.postgresql import ENUM as SQLEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import SoftDeletableModel, BaseModel
+
+if TYPE_CHECKING:
+    from app.models.organization import Organization, Project
+    from app.models.user import User
 
 
 class TaskStatus(str, Enum):

@@ -22,8 +22,8 @@ def run_tests(test_path, description):
 def main():
     """Run all test categories for task management v2."""
     test_categories = [
-        ("tests/unit/test_task_management_v2/", "Unit Tests"),
-        ("tests/integration/test_task_management_v2/", "Integration Tests"),
+        ("tests/unit/task_management_v2/", "Unit Tests"),
+        ("tests/integration/task_management_v2/", "Integration Tests"),
         ("tests/security/test_task_security.py", "Security Tests"),
     ]
     
