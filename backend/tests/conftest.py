@@ -120,3 +120,48 @@ def setup_test_environment(monkeypatch: Any) -> None:
     monkeypatch.setenv("REFRESH_TOKEN_EXPIRE_DAYS", "7")
     monkeypatch.setenv("BCRYPT_ROUNDS", "4")  # Lower rounds for faster tests
     monkeypatch.setenv("DATABASE_URL", SQLALCHEMY_DATABASE_URL)
+
+
+# Helper functions for tests
+def get_test_db() -> Generator[Session, None, None]:
+    """Get test database session."""
+    Base.metadata.create_all(bind=engine)
+    session = TestingSessionLocal()
+    try:
+        yield session
+    finally:
+        session.close()
+        Base.metadata.drop_all(bind=engine)
+
+
+def create_test_user(
+    email: str = "test@example.com",
+    password: str = "TestPassword123!",
+    full_name: str = "Test User",
+    is_superuser: bool = False,
+    is_active: bool = True,
+    organization_id: int = 1,
+    role: str = "member"
+) -> Any:
+    """Create a mock test user for unit tests."""
+    from unittest.mock import MagicMock
+    user = MagicMock()
+    user.id = 1
+    user.email = email
+    user.full_name = full_name
+    user.is_superuser = is_superuser
+    user.is_active = is_active
+    user.organization_id = organization_id
+    user.role = role
+    return user
+
+
+def create_test_jwt_token(user: Any) -> str:
+    """Create a test JWT token for the given user."""
+    return create_access_token(
+        data={
+            "sub": str(user.id),
+            "email": user.email,
+            "is_superuser": getattr(user, "is_superuser", False)
+        }
+    )
