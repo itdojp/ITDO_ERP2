@@ -72,17 +72,7 @@ class UserUpdate(BaseModel):
     is_active: Optional[bool] = None
 
 
-class UserCreateExtended(UserCreate):
-    """Extended user creation schema."""
-    
-    phone: Optional[str] = Field(None, max_length=20)
-    is_superuser: bool = Field(default=False)
+# UserCreateExtended is defined in user_extended.py
 
 
-class UserSearchParams(BaseModel):
-    """User search parameters."""
-    
-    query: Optional[str] = None
-    is_active: Optional[bool] = None
-    skip: int = Field(default=0, ge=0)
-    limit: int = Field(default=100, ge=1, le=100)
+# UserSearchParams is defined in user_extended.py

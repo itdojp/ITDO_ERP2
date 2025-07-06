@@ -513,19 +513,19 @@ class UserService:
                 
                 role_info = UserRoleInfo(
                     role=RoleBasic(
-                        id=int(role.id),  # type: ignore[arg-type]
-                        code=str(role.code),  # type: ignore[arg-type]
-                        name=str(role.name)  # type: ignore[arg-type]
+                        id=int(role.id),
+                        code=str(role.code),
+                        name=str(role.name)
                     ),
                     organization=OrganizationBasic(
-                        id=int(org.id),  # type: ignore[arg-type]
-                        code=str(org.code),  # type: ignore[arg-type]
-                        name=str(org.name)  # type: ignore[arg-type]
+                        id=int(org.id),
+                        code=str(org.code),
+                        name=str(org.name)
                     ),
                     department=DepartmentBasic(
-                        id=int(dept.id),  # type: ignore[arg-type]
-                        code=str(dept.code),  # type: ignore[arg-type]
-                        name=str(dept.name)  # type: ignore[arg-type]
+                        id=int(dept.id),
+                        code=str(dept.code),
+                        name=str(dept.name)
                     ) if dept else None,
                     assigned_at=ur.assigned_at,
                     expires_at=ur.expires_at,
@@ -538,9 +538,9 @@ class UserService:
             if ur.organization:
                 org = ur.organization
                 organizations_set.add((
-                    int(org.id),  # type: ignore[arg-type]
-                    str(org.code),  # type: ignore[arg-type]
-                    str(org.name)  # type: ignore[arg-type]
+                    int(org.id),
+                    str(org.code),
+                    str(org.name)
                 ))
         
         organizations = [
@@ -554,9 +554,9 @@ class UserService:
             if ur.department:
                 dept = ur.department
                 departments_set.add((
-                    int(dept.id),  # type: ignore[arg-type]
-                    str(dept.code),  # type: ignore[arg-type]
-                    str(dept.name)  # type: ignore[arg-type]
+                    int(dept.id),
+                    str(dept.code),
+                    str(dept.name)
                 ))
         
         departments = [
