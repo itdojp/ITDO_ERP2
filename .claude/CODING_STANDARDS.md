@@ -91,6 +91,80 @@ async def test_get_user_not_found(client: AsyncClient):
     assert "not found" in response.json()["detail"].lower()
 ```
 
+### 型チェック（mypy）設定
+
+#### 基本方針
+- **新規プロジェクト**: `strict = true`を推奨
+- **既存プロジェクト**: 段階的に厳格度を上げる
+- **テストファイル**: 型エラーを無視する設定を許可
+
+#### pyproject.toml設定例
+```toml
+[tool.mypy]
+python_version = "3.13"
+strict = true
+
+# テストファイルの型エラーを無視
+[[tool.mypy.overrides]]
+module = "tests.*"
+ignore_errors = true
+```
+
+### type: ignoreコメントの使用ガイドライン
+
+#### 使用可能なケース
+1. **外部ライブラリの型定義問題**
+   ```python
+   # FastAPIの型定義の問題
+   app.add_exception_handler(ValidationError, handler)  # type: ignore[arg-type]
+   ```
+
+2. **テストコードの型アノテーション**
+   ```python
+   def test_something(db_session) -> None:  # type: ignore[no-untyped-def]
+       pass
+   ```
+
+3. **一時的な回避策**（必ずTODOコメントを付ける）
+   ```python
+   # TODO: FastAPI 0.105.0で修正予定
+   app.add_exception_handler(ValidationError, handler)  # type: ignore[arg-type]
+   ```
+
+### 型チェックエラーの管理
+
+#### エラー分類ドキュメント
+大量の型エラーが発生した場合は`.mypy-ignore.md`を作成し、以下の形式で管理：
+
+1. **🔴 高優先度（早急に修正必要）**
+   - 実行時エラーの可能性があるもの
+   - None型の属性アクセス
+   - 不正な戻り値型
+
+2. **🟡 中優先度（将来的に修正推奨）**
+   - 型安全性は損なわれるが動作するもの
+   - スキーマ型の非互換性
+
+3. **🟢 低優先度（安全に無視可能）**
+   - テスト関数の型アノテーション
+   - 外部ライブラリの型定義問題
+
+### CI/CDパイプラインでの型チェック
+
+#### 段階的な型安全性向上
+1. **Phase 1**: 高優先度エラーのみをビルド失敗条件とする
+2. **Phase 2**: 中優先度エラーを警告として扱う
+3. **Phase 3**: エラー数の推移を追跡し、段階的に削減
+
+#### 設定例
+```yaml
+# .github/workflows/ci.yml
+- name: Type Check
+  run: |
+    uv run mypy . --strict
+  continue-on-error: true  # 一時的にエラーを許容
+```
+
 ## TypeScript（Frontend）規約
 
 ### 基本設定
