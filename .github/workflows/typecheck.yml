@@ -22,13 +22,12 @@ jobs:
         enable-cache: true
     
     - name: Set up Python
-      run: uv python install 3.11
+      run: uv python install 3.13
     
     - name: Install Python dependencies
       run: |
         cd backend
-        uv venv
-        uv pip sync requirements-dev.txt
+        uv sync --dev
     
     - name: Run mypy strict type checking
       run: |
@@ -108,14 +107,13 @@ jobs:
         enable-cache: true
     
     - name: Set up Python
-      run: uv python install 3.11
+      run: uv python install 3.13
     
     - name: Install Python dependencies
       run: |
         cd backend
-        uv venv
-        uv pip sync requirements-dev.txt
-        uv pip install type-coverage
+        uv sync --dev
+        uv add --dev type-coverage
     
     - name: Generate Python type coverage report
       run: |
@@ -143,7 +141,7 @@ jobs:
         typescript-coverage-report --threshold 95 --outputDir type-coverage-report
     
     - name: Upload type coverage reports
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: type-coverage-reports
         path: |
