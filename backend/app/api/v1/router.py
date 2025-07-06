@@ -3,13 +3,15 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 
 from app.core.database import get_db
-from app.api.v1 import auth, users
+from app.api.v1 import auth, users, projects, tasks
 
 api_router = APIRouter()
 
 # Include routers
 api_router.include_router(auth.router)
 api_router.include_router(users.router)
+api_router.include_router(projects.router)
+api_router.include_router(tasks.router)
 
 
 @api_router.get("/ping")
