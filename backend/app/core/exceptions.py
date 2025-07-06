@@ -19,3 +19,23 @@ class InvalidTokenError(AuthenticationError):
 class AuthorizationError(Exception):
     """Raised when user lacks required permissions."""
     pass
+
+
+class BusinessLogicError(Exception):
+    """Base business logic error."""
+    pass
+
+
+class NotFound(Exception):
+    """Raised when a resource is not found."""
+    pass
+
+
+class PermissionDenied(Exception):
+    """Raised when access is denied due to insufficient permissions."""
+    pass
+
+
+class ValidationError(Exception):
+    """Raised when input validation fails."""
+    pass

@@ -120,3 +120,57 @@ def setup_test_environment(monkeypatch: Any) -> None:
     monkeypatch.setenv("REFRESH_TOKEN_EXPIRE_DAYS", "7")
     monkeypatch.setenv("BCRYPT_ROUNDS", "4")  # Lower rounds for faster tests
     monkeypatch.setenv("DATABASE_URL", SQLALCHEMY_DATABASE_URL)
+
+
+def get_test_db() -> Generator[Session, None, None]:
+    """Get test database session."""
+    # Create tables
+    Base.metadata.create_all(bind=engine)
+    
+    # Create session
+    session = TestingSessionLocal()
+    
+    try:
+        yield session
+    finally:
+        session.close()
+        # Drop all tables after test
+        Base.metadata.drop_all(bind=engine)
+
+
+def create_test_user(
+    email: str = "test@example.com",
+    password: str = "TestPassword123!",
+    full_name: str = "Test User",
+    is_superuser: bool = False,
+    organization_id: int = 1
+) -> User:
+    """Create a test user."""
+    # Create a simple user object for testing
+    user = User(
+        id=1,
+        email=email,
+        full_name=full_name,
+        is_active=True,
+        is_superuser=is_superuser
+    )
+    return user
+
+
+def create_test_jwt_token(user: User, expired: bool = False) -> str:
+    """Create a test JWT token."""
+    from datetime import timedelta
+    
+    token_data = {
+        "sub": str(user.id),
+        "email": user.email,
+        "is_superuser": user.is_superuser
+    }
+    
+    if expired:
+        # Create expired token
+        expires_delta = timedelta(minutes=-30)
+    else:
+        expires_delta = timedelta(minutes=30)
+    
+    return create_access_token(data=token_data, expires_delta=expires_delta)
