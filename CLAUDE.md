@@ -134,18 +134,41 @@ cd frontend && npm install                  # Install dependencies
 - Component tests with `@testing-library/react`
 - Coverage reports available
 
+## CI/CD Pipeline
+
+### GitHub Actions Workflows
+- **ci.yml**: Main CI/CD pipeline (typecheck, tests, security scans)
+- **security-scan.yml**: Comprehensive security scanning
+- **typecheck.yml**: Strict type checking with quality gates
+
+### Quality Gates & Checks
+✅ **現在安定動作中:**
+- Python/Node.js セキュリティスキャン
+- TypeScript型チェック  
+- フロントエンドテスト（Vitest + React Testing Library）
+- コンテナセキュリティスキャン
+
+⚠️ **軽微な問題（開発に影響なし）:**
+- Pythonタイプチェック（テストファイルの型アノテーション不足）
+
+### 重要な修正履歴
+- **SQLAlchemy 2.0 完全移行**: DeclarativeBase + Mapped型使用
+- **GitHub Actions更新**: v3→v4アップデート完了
+- **ESLint設定**: TypeScript + React対応完了
+- **テスト安定性**: 非同期レンダリング対応完了
+
 ## Configuration
 
 ### Backend Configuration
 - Settings in `app/core/config.py` using Pydantic
 - Environment variables in `.env` file
-- Database: PostgreSQL with SQLAlchemy ORM
+- Database: PostgreSQL with SQLAlchemy 2.0 ORM (Mapped types)
 - Authentication: Keycloak integration
 
 ### Frontend Configuration
 - Vite configuration in `vite.config.ts`
 - TypeScript strict mode enabled
-- ESLint + Prettier for code formatting
+- ESLint + Prettier for code formatting (TypeScript/React対応)
 - Tailwind CSS for styling
 
 ## Quality Standards

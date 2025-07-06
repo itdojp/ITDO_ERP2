@@ -1,0 +1,223 @@
+name: Type Safety Quality Gate
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/**/*.py'
+      - 'frontend/**/*.ts'
+      - 'frontend/**/*.tsx'
+      - '.github/workflows/type-safety-gate.yml'
+
+jobs:
+  # 厳格な型チェック品質ゲート
+  strict-typecheck:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup environments
+      run: |
+        echo "Setting up Python and Node.js environments..."
+    
+    # Python型チェック
+    - name: Install uv for Python
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: "latest"
+        enable-cache: true
+    
+    - name: Set up Python
+      run: |
+        cd backend
+        uv python install 3.13
+        uv sync --dev
+    
+    - name: Python type check with metrics
+      id: python-typecheck
+      run: |
+        cd backend
+        echo "## Python Type Check Results" >> $GITHUB_STEP_SUMMARY
+        echo "Running mypy with strict configuration..." >> $GITHUB_STEP_SUMMARY
+        
+        # Run mypy and capture output
+        if uv run mypy . --show-error-codes --show-column-numbers --pretty 2>&1 | tee mypy-output.txt; then
+          echo "✅ Python type check passed!" >> $GITHUB_STEP_SUMMARY
+          echo "python_errors=0" >> $GITHUB_OUTPUT
+        else
+          # Count errors
+          ERROR_COUNT=$(grep -E "error:" mypy-output.txt | wc -l)
+          echo "❌ Python type check failed with $ERROR_COUNT errors" >> $GITHUB_STEP_SUMMARY
+          echo "python_errors=$ERROR_COUNT" >> $GITHUB_OUTPUT
+          
+          # Show error summary
+          echo "### Error Summary" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          grep -E "error:" mypy-output.txt | head -20 >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        fi
+    
+    # TypeScript型チェック
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+    
+    - name: TypeScript type check with metrics
+      id: typescript-typecheck
+      run: |
+        cd frontend
+        npm ci
+        
+        echo "## TypeScript Type Check Results" >> $GITHUB_STEP_SUMMARY
+        echo "Running tsc with strict configuration..." >> $GITHUB_STEP_SUMMARY
+        
+        # Run tsc and capture output
+        if npm run typecheck 2>&1 | tee tsc-output.txt; then
+          echo "✅ TypeScript type check passed!" >> $GITHUB_STEP_SUMMARY
+          echo "typescript_errors=0" >> $GITHUB_OUTPUT
+        else
+          # Count errors
+          ERROR_COUNT=$(grep -E "error TS" tsc-output.txt | wc -l)
+          echo "❌ TypeScript type check failed with $ERROR_COUNT errors" >> $GITHUB_STEP_SUMMARY
+          echo "typescript_errors=$ERROR_COUNT" >> $GITHUB_OUTPUT
+          
+          # Show error summary
+          echo "### Error Summary" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          grep -E "error TS" tsc-output.txt | head -20 >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        fi
+    
+    # 型安全性メトリクス
+    - name: Calculate type safety metrics
+      id: metrics
+      run: |
+        cd backend
+        
+        echo "## Type Safety Metrics" >> $GITHUB_STEP_SUMMARY
+        echo "### Python Metrics" >> $GITHUB_STEP_SUMMARY
+        
+        # Count total Python files
+        TOTAL_PY_FILES=$(find app tests -name "*.py" -not -path "*/migrations/*" | wc -l)
+        echo "- Total Python files: $TOTAL_PY_FILES" >> $GITHUB_STEP_SUMMARY
+        
+        # Count files with type: ignore comments
+        TYPE_IGNORE_COUNT=$(grep -r "type: ignore" app tests --include="*.py" | wc -l)
+        echo "- Type ignore comments: $TYPE_IGNORE_COUNT" >> $GITHUB_STEP_SUMMARY
+        
+        # Count Any usage
+        ANY_USAGE=$(grep -r "\bAny\b" app tests --include="*.py" | grep -v "from typing import" | wc -l)
+        echo "- Explicit Any usage: $ANY_USAGE" >> $GITHUB_STEP_SUMMARY
+        
+        cd ../frontend
+        
+        echo "### TypeScript Metrics" >> $GITHUB_STEP_SUMMARY
+        
+        # Count total TypeScript files
+        TOTAL_TS_FILES=$(find src -name "*.ts" -o -name "*.tsx" | wc -l)
+        echo "- Total TypeScript files: $TOTAL_TS_FILES" >> $GITHUB_STEP_SUMMARY
+        
+        # Count any usage
+        ANY_USAGE_TS=$(grep -r "\bany\b" src --include="*.ts" --include="*.tsx" | wc -l)
+        echo "- Any type usage: $ANY_USAGE_TS" >> $GITHUB_STEP_SUMMARY
+        
+        # Count @ts-ignore
+        TS_IGNORE_COUNT=$(grep -r "@ts-ignore" src --include="*.ts" --include="*.tsx" | wc -l)
+        echo "- @ts-ignore comments: $TS_IGNORE_COUNT" >> $GITHUB_STEP_SUMMARY
+        
+        # Set outputs for quality gate
+        echo "type_ignore_total=$((TYPE_IGNORE_COUNT + TS_IGNORE_COUNT))" >> $GITHUB_OUTPUT
+        echo "any_usage_total=$((ANY_USAGE + ANY_USAGE_TS))" >> $GITHUB_OUTPUT
+    
+    # 品質ゲート判定
+    - name: Type safety quality gate
+      run: |
+        PYTHON_ERRORS=${{ steps.python-typecheck.outputs.python_errors }}
+        TS_ERRORS=${{ steps.typescript-typecheck.outputs.typescript_errors }}
+        TYPE_IGNORES=${{ steps.metrics.outputs.type_ignore_total }}
+        ANY_USAGE=${{ steps.metrics.outputs.any_usage_total }}
+        
+        echo "## Quality Gate Summary" >> $GITHUB_STEP_SUMMARY
+        echo "| Metric | Value | Threshold | Status |" >> $GITHUB_STEP_SUMMARY
+        echo "|--------|-------|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+        
+        FAILED=false
+        
+        # Check Python errors
+        if [ "$PYTHON_ERRORS" -eq 0 ]; then
+          echo "| Python Type Errors | $PYTHON_ERRORS | 0 | ✅ |" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "| Python Type Errors | $PYTHON_ERRORS | 0 | ❌ |" >> $GITHUB_STEP_SUMMARY
+          FAILED=true
+        fi
+        
+        # Check TypeScript errors
+        if [ "$TS_ERRORS" -eq 0 ]; then
+          echo "| TypeScript Type Errors | $TS_ERRORS | 0 | ✅ |" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "| TypeScript Type Errors | $TS_ERRORS | 0 | ❌ |" >> $GITHUB_STEP_SUMMARY
+          FAILED=true
+        fi
+        
+        # Check type ignores
+        if [ "$TYPE_IGNORES" -le 20 ]; then
+          echo "| Type Ignore Comments | $TYPE_IGNORES | ≤20 | ✅ |" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "| Type Ignore Comments | $TYPE_IGNORES | ≤20 | ⚠️ |" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        # Check any usage
+        if [ "$ANY_USAGE" -le 10 ]; then
+          echo "| Any Type Usage | $ANY_USAGE | ≤10 | ✅ |" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "| Any Type Usage | $ANY_USAGE | ≤10 | ⚠️ |" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if [ "$FAILED" = true ]; then
+          echo "### ❌ Quality Gate Failed" >> $GITHUB_STEP_SUMMARY
+          echo "Type errors must be fixed before merging." >> $GITHUB_STEP_SUMMARY
+          exit 1
+        else
+          echo "### ✅ Quality Gate Passed" >> $GITHUB_STEP_SUMMARY
+        fi
+    
+    # PRコメント作成
+    - name: Comment PR with results
+      if: always() && github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const fs = require('fs');
+          const summary = fs.readFileSync(process.env.GITHUB_STEP_SUMMARY, 'utf8');
+          
+          await github.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.payload.pull_request.number,
+            body: `## 🔍 Type Safety Check Results\n\n${summary}\n\n---\n*Generated by Type Safety Quality Gate*`
+          });
+
+  # 型カバレッジレポート
+  type-coverage-report:
+    runs-on: ubuntu-latest
+    needs: strict-typecheck
+    if: always()
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Generate type coverage report
+      run: |
+        echo "## Type Coverage Report" >> $GITHUB_STEP_SUMMARY
+        echo "Type coverage analysis helps track the percentage of code with explicit type annotations." >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Recommendations" >> $GITHUB_STEP_SUMMARY
+        echo "1. Aim for >95% type coverage in production code" >> $GITHUB_STEP_SUMMARY
+        echo "2. Keep type: ignore comments below 1% of total lines" >> $GITHUB_STEP_SUMMARY
+        echo "3. Avoid using 'Any' type except when absolutely necessary" >> $GITHUB_STEP_SUMMARY
+        echo "4. Prefer Union types over Any for mixed types" >> $GITHUB_STEP_SUMMARY

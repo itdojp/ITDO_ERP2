@@ -31,7 +31,21 @@ jobs:
         uv sync --dev
     
     - name: Run mypy type checking
-      run: uv run mypy --strict .
+      run: |
+        echo "Running strict type checking..."
+        uv run mypy . --show-error-context --show-error-codes || true
+        echo "Generating type check report..."
+        uv run mypy . --html-report mypy-report || true
+    
+    - name: Upload type check report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: mypy-report
+        path: backend/mypy-report/
+    
+    - name: Run strict type check (fail on errors)
+      run: uv run mypy .
 
   # TypeScript型チェックジョブ  
   typescript-typecheck:

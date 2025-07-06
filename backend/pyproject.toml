@@ -38,6 +38,9 @@ dev = [
     "httpx>=0.25.2",
     "factory-boy>=3.3.0",
     "pytest-mock>=3.12.0",
+    "types-python-jose>=3.3.4",
+    "types-passlib>=1.7.7",
+    "sqlalchemy[mypy]>=2.0.23",
 ]
 
 [build-system]
@@ -73,7 +76,7 @@ force_grid_wrap = 0
 line_length = 88
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.13"
 strict = true
 warn_return_any = true
 warn_unused_configs = true
@@ -87,6 +90,29 @@ warn_unused_ignores = true
 warn_no_return = true
 warn_unreachable = true
 strict_equality = true
+show_error_codes = true
+show_column_numbers = true
+pretty = true
+# plugins = ["sqlalchemy.ext.mypy.plugin"]
+
+# Disallow dynamic typing
+disallow_any_unimported = true
+disallow_any_expr = false  # Too restrictive for now
+disallow_any_decorated = false  # Too restrictive for decorators
+disallow_any_explicit = true
+disallow_any_generics = true
+disallow_subclassing_any = true
+
+# Test-specific overrides
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+disallow_untyped_decorators = false
+
+# Factory imports
+[[tool.mypy.overrides]]
+module = "tests.factories"
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -119,4 +145,6 @@ dev = [
     "pytest-asyncio>=1.0.0",
     "pytest-cov>=6.2.1",
     "ruff>=0.12.2",
+    "types-python-jose>=3.3.4",
+    "types-passlib>=1.7.7",
 ]

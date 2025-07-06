@@ -2,7 +2,7 @@
 
 import re
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
@@ -61,3 +61,18 @@ class UserInDB(UserResponse):
     
     hashed_password: str = Field(..., description="Hashed password")
     is_superuser: bool = Field(default=False, description="Whether user is superuser")
+
+
+# Additional schemas for backwards compatibility
+class UserUpdate(BaseModel):
+    """User update schema."""
+    
+    full_name: Optional[str] = Field(None, min_length=1, max_length=100)
+    phone: Optional[str] = Field(None, max_length=20)
+    is_active: Optional[bool] = None
+
+
+# UserCreateExtended is defined in user_extended.py
+
+
+# UserSearchParams is defined in user_extended.py
