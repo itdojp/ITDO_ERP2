@@ -498,19 +498,71 @@ class UserService:
     def _user_to_extended_response(self, user: User, db: Session) -> UserResponseExtended:
         """Convert user to extended response."""
         from app.schemas.user_extended import UserRoleInfo
+        from app.schemas.role_basic import RoleBasic
+        from app.schemas.organization_basic import OrganizationBasic
+        from app.schemas.department_basic import DepartmentBasic
 
         # Get user roles with organizations/departments
         role_infos = []
         for ur in user.user_roles:
             if not ur.is_expired():
+                # Type assertions for SQLAlchemy 1.x style models
+                role = ur.role
+                org = ur.organization
+                dept = ur.department
+                
                 role_info = UserRoleInfo(
-                    role=ur.role,
-                    organization=ur.organization,
-                    department=ur.department,
+                    role=RoleBasic(
+                        id=int(role.id),  # type: ignore[arg-type]
+                        code=str(role.code),  # type: ignore[arg-type]
+                        name=str(role.name)  # type: ignore[arg-type]
+                    ),
+                    organization=OrganizationBasic(
+                        id=int(org.id),  # type: ignore[arg-type]
+                        code=str(org.code),  # type: ignore[arg-type]
+                        name=str(org.name)  # type: ignore[arg-type]
+                    ),
+                    department=DepartmentBasic(
+                        id=int(dept.id),  # type: ignore[arg-type]
+                        code=str(dept.code),  # type: ignore[arg-type]
+                        name=str(dept.name)  # type: ignore[arg-type]
+                    ) if dept else None,
                     assigned_at=ur.assigned_at,
                     expires_at=ur.expires_at,
                 )
                 role_infos.append(role_info)
+
+        # Convert organizations to OrganizationBasic
+        organizations_set = set()
+        for ur in user.user_roles:
+            if ur.organization:
+                org = ur.organization
+                organizations_set.add((
+                    int(org.id),  # type: ignore[arg-type]
+                    str(org.code),  # type: ignore[arg-type]
+                    str(org.name)  # type: ignore[arg-type]
+                ))
+        
+        organizations = [
+            OrganizationBasic(id=org[0], code=org[1], name=org[2])
+            for org in organizations_set
+        ]
+
+        # Convert departments to DepartmentBasic
+        departments_set = set()
+        for ur in user.user_roles:
+            if ur.department:
+                dept = ur.department
+                departments_set.add((
+                    int(dept.id),  # type: ignore[arg-type]
+                    str(dept.code),  # type: ignore[arg-type]
+                    str(dept.name)  # type: ignore[arg-type]
+                ))
+        
+        departments = [
+            DepartmentBasic(id=dept[0], code=dept[1], name=dept[2])
+            for dept in departments_set
+        ]
 
         return UserResponseExtended(
             id=user.id,
@@ -522,8 +574,8 @@ class UserService:
             created_at=user.created_at,
             updated_at=user.updated_at,
             last_login_at=user.last_login_at,
-            organizations=list(set(ur.organization for ur in user.user_roles if ur.organization)),
-            departments=list(set(ur.department for ur in user.user_roles if ur.department)),
+            organizations=organizations,
+            departments=departments,
             roles=role_infos,
         )
 
