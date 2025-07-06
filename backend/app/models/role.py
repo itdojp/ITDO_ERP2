@@ -1,10 +1,15 @@
 """Role and UserRole models stub."""
 
 from datetime import datetime
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, func
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, Mapped, mapped_column
 from app.core.database import Base
+
+if TYPE_CHECKING:
+    from app.models.user import User
+    from app.models.organization import Organization
+    from app.models.department import Department
 
 
 class Role(Base):
@@ -36,10 +41,10 @@ class UserRole(Base):
     expires_at = Column(DateTime(timezone=True))
     
     # Relationships
-    user = relationship("User", foreign_keys=[user_id], back_populates="user_roles")
-    role = relationship("Role")
-    organization = relationship("Organization")
-    department = relationship("Department")
+    user: Mapped["User"] = relationship("User", foreign_keys=[user_id], back_populates="user_roles")
+    role: Mapped["Role"] = relationship("Role")
+    organization: Mapped["Organization"] = relationship("Organization")
+    department: Mapped[Optional["Department"]] = relationship("Department")
     
     def is_expired(self) -> bool:
         """Check if role assignment is expired."""

@@ -4,19 +4,19 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, func, or_
-from sqlalchemy.orm import Session, relationship
+from sqlalchemy.orm import Session, relationship, Mapped, mapped_column
 
 from app.core.database import Base
 from app.core.security import hash_password, verify_password
 from app.core.exceptions import BusinessLogicError, PermissionDenied
 
 if TYPE_CHECKING:
-    from app.models.organization import Organization  # type: ignore
-    from app.models.department import Department  # type: ignore
-    from app.models.role import Role, UserRole  # type: ignore
-    from app.models.password_history import PasswordHistory  # type: ignore
-    from app.models.user_session import UserSession  # type: ignore
-    from app.models.user_activity_log import UserActivityLog  # type: ignore
+    from app.models.organization import Organization
+    from app.models.department import Department
+    from app.models.role import Role, UserRole
+    from app.models.password_history import PasswordHistory
+    from app.models.user_session import UserSession
+    from app.models.user_activity_log import UserActivityLog
 
 
 class User(Base):
@@ -24,34 +24,34 @@ class User(Base):
     
     __tablename__ = "users"
     
-    id: int = Column(Integer, primary_key=True, index=True)
-    email: str = Column(String, unique=True, index=True, nullable=False)
-    hashed_password: str = Column(String, nullable=False)
-    full_name: str = Column(String(100), nullable=False)
-    phone: Optional[str] = Column(String(20))
-    profile_image_url: Optional[str] = Column(String(500))
-    is_active: bool = Column(Boolean, default=True)
-    is_superuser: bool = Column(Boolean, default=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    email: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
+    hashed_password: Mapped[str] = mapped_column(String, nullable=False)
+    full_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    phone: Mapped[Optional[str]] = mapped_column(String(20))
+    profile_image_url: Mapped[Optional[str]] = mapped_column(String(500))
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
     
     # Security fields
-    last_login_at: Optional[datetime] = Column(DateTime(timezone=True))
-    password_changed_at: datetime = Column(DateTime(timezone=True), server_default=func.now())
-    failed_login_attempts: int = Column(Integer, default=0)
-    locked_until: Optional[datetime] = Column(DateTime(timezone=True))
-    password_must_change: bool = Column(Boolean, default=False)
+    last_login_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    password_changed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    failed_login_attempts: Mapped[int] = mapped_column(Integer, default=0)
+    locked_until: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    password_must_change: Mapped[bool] = mapped_column(Boolean, default=False)
     
     # Audit fields
-    created_at: datetime = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at: datetime = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-    deleted_at: Optional[datetime] = Column(DateTime(timezone=True))
-    deleted_by: Optional[int] = Column(Integer, ForeignKey("users.id"))
-    created_by: Optional[int] = Column(Integer, ForeignKey("users.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    deleted_by: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id"))
+    created_by: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id"))
     
     # Relationships
-    user_roles = relationship("UserRole", back_populates="user", foreign_keys="UserRole.user_id")
-    password_history = relationship("PasswordHistory", back_populates="user", cascade="all, delete-orphan")
-    sessions = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
-    activity_logs = relationship("UserActivityLog", back_populates="user", cascade="all, delete-orphan")
+    user_roles: Mapped[List["UserRole"]] = relationship("UserRole", back_populates="user", foreign_keys="UserRole.user_id")
+    password_history: Mapped[List["PasswordHistory"]] = relationship("PasswordHistory", back_populates="user", cascade="all, delete-orphan")
+    sessions: Mapped[List["UserSession"]] = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
+    activity_logs: Mapped[List["UserActivityLog"]] = relationship("UserActivityLog", back_populates="user", cascade="all, delete-orphan")
     
     @classmethod
     def create(
@@ -233,6 +233,7 @@ class User(Base):
     
     def validate_session(
         self,
+        db: Session,
         session_token: str,
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None
