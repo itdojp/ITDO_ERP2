@@ -3,6 +3,7 @@
 import time
 import logging
 import json
+import asyncio
 from typing import Dict, Any, Optional, Callable
 from functools import wraps
 from contextlib import contextmanager
@@ -239,7 +240,6 @@ def trace_function(operation_name: Optional[str] = None):
                     raise
         
         # Return appropriate wrapper based on function type
-        import asyncio
         if asyncio.iscoroutinefunction(func):
             return async_wrapper
         else:
@@ -478,7 +478,6 @@ def monitor_performance(metric_name: Optional[str] = None):
                 
                 raise
         
-        import asyncio
         if asyncio.iscoroutinefunction(func):
             return async_wrapper
         else:
