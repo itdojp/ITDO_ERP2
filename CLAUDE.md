@@ -62,7 +62,7 @@ make dev
 ```bash
 # Start development servers
 make dev                    # Both backend and frontend
-cd backend && uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+export PATH="/root/.local/bin:$PATH" && uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 cd frontend && npm run dev
 
 # Data layer management
@@ -77,11 +77,11 @@ make status               # Check container status
 make test                 # Basic tests (no E2E)
 make test-full           # Full test suite including E2E
 
-# Backend specific
-cd backend && uv run pytest                    # All tests
-cd backend && uv run pytest tests/unit/        # Unit tests only
-cd backend && uv run pytest tests/integration/ # Integration tests only
-cd backend && uv run pytest -v --cov=app      # With coverage
+# Backend specific - ALWAYS include PATH export
+export PATH="/root/.local/bin:$PATH" && uv run pytest                    # All tests
+export PATH="/root/.local/bin:$PATH" && uv run pytest tests/unit/        # Unit tests only
+export PATH="/root/.local/bin:$PATH" && uv run pytest tests/integration/ # Integration tests only
+export PATH="/root/.local/bin:$PATH" && uv run pytest -v --cov=app      # With coverage
 
 # Frontend specific
 cd frontend && npm test                        # Vitest tests
@@ -91,14 +91,14 @@ cd frontend && npm run coverage                # Coverage report
 
 ### Code Quality
 ```bash
-# Lint and format
+# Lint and format - ALWAYS include PATH export
 make lint                 # Both backend and frontend
-cd backend && uv run ruff check . && uv run ruff format .
+export PATH="/root/.local/bin:$PATH" && uv run ruff check . && uv run ruff format .
 cd frontend && npm run lint
 
-# Type checking
+# Type checking - ALWAYS include PATH export
 make typecheck           # Both backend and frontend
-cd backend && uv run mypy --strict app/
+export PATH="/root/.local/bin:$PATH" && uv run mypy --strict app/
 cd frontend && npm run typecheck
 
 # Security scanning
@@ -107,11 +107,11 @@ make security-scan       # Full security audit
 
 ### Package Management
 ```bash
-# Backend (Python with uv)
-cd backend && uv add <package>              # Add dependency
-cd backend && uv add --dev <package>        # Add dev dependency
-cd backend && uv sync                       # Sync dependencies
-cd backend && uv run <command>              # Run command in environment
+# Backend (Python with uv) - ALWAYS include PATH export
+export PATH="/root/.local/bin:$PATH" && uv add <package>              # Add dependency
+export PATH="/root/.local/bin:$PATH" && uv add --dev <package>        # Add dev dependency
+export PATH="/root/.local/bin:$PATH" && uv sync                       # Sync dependencies
+export PATH="/root/.local/bin:$PATH" && uv run <command>              # Run command in environment
 
 # Frontend (Node.js with npm)
 cd frontend && npm install <package>        # Add dependency
@@ -157,10 +157,22 @@ cd frontend && npm install                  # Install dependencies
 
 ## Key Development Notes
 
-### Python Environment
-- Always use `uv run` prefix for Python commands
-- Never use `pip` or virtual environment activation
-- Python 3.13 required
+### Python Environment - CRITICAL RULES
+1. **MANDATORY PATH Setup**: EVERY uv command MUST start with `export PATH="/root/.local/bin:$PATH" &&`
+2. **Always use `uv run` prefix** for Python commands
+3. **Never use `pip`** or virtual environment activation
+4. **Python 3.13 required**
+
+### uv Command Pattern
+```bash
+# ALWAYS use this pattern:
+export PATH="/root/.local/bin:$PATH" && uv run <command>
+
+# Examples:
+export PATH="/root/.local/bin:$PATH" && uv run pytest tests/
+export PATH="/root/.local/bin:$PATH" && uv run uvicorn app.main:app --reload
+export PATH="/root/.local/bin:$PATH" && uv add fastapi
+```
 
 ### Container Management
 - Use `podman-compose` not `docker-compose`
@@ -178,13 +190,34 @@ cd frontend && npm install                  # Install dependencies
 - Keycloak: http://localhost:8080
 - pgAdmin: http://localhost:8081
 
-## Common Issues
+## Essential Environment Setup
 
-### Environment Path
-Scripts may need PATH adjustment for uv:
+### Critical: uv PATH Configuration
+**MANDATORY**: Before executing ANY Python commands, ALWAYS set PATH for uv:
+
 ```bash
-export PATH="$HOME/.local/bin:$PATH"
+export PATH="/root/.local/bin:$PATH"
 ```
+
+**Root Cause**: uv is installed in `/root/.local/bin/` but not in default PATH.
+
+**Solution**: ALL bash commands MUST include PATH setup:
+```bash
+# CORRECT - Every uv command must start like this:
+export PATH="/root/.local/bin:$PATH" && uv run pytest tests/
+
+# WRONG - Never run uv commands without PATH:
+uv run pytest tests/
+```
+
+### Automated PATH Setup
+Add to shell profile for persistent setup:
+```bash
+echo 'export PATH="/root/.local/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+## Common Issues
 
 ### Container Issues
 If containers fail to start:
