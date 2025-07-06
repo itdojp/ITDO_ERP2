@@ -359,6 +359,15 @@ def assign_role(
         from app.models.role import Role
         role = db.query(Role).filter(Role.id == assignment.role_id).first()
         
+        if not role:
+            return JSONResponse(
+                status_code=status.HTTP_404_NOT_FOUND,
+                content=ErrorResponse(
+                    detail="Role not found",
+                    code="ROLE_NOT_FOUND"
+                ).model_dump()
+            )
+        
         response = {
             "role": {
                 "id": role.id,
@@ -605,7 +614,7 @@ def export_users(
             )
         
         # For other formats, return the data structure
-        return export_data
+        return JSONResponse(content=export_data)
         
     except PermissionDenied:
         raise HTTPException(
