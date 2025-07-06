@@ -14,9 +14,11 @@ if TYPE_CHECKING:
     from app.models.organization import Organization
     from app.models.department import Department
     from app.models.role import Role, UserRole
-    from app.models.password_history import PasswordHistory
     from app.models.user_session import UserSession
     from app.models.user_activity_log import UserActivityLog
+
+# Re-export for backwards compatibility
+from app.models.password_history import PasswordHistory
 
 
 class User(Base):
