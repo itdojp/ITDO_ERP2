@@ -1,7 +1,7 @@
 """Extended user schemas."""
 
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
