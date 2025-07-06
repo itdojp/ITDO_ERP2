@@ -8,17 +8,17 @@ Issue #24 (Type-safe Task Management Implementation) のPhase 4 (TDD Red) が完
 ## 実装されたテストファイル
 
 ### Unit Tests (単体テスト)
-- `tests/unit/test_task_management_v2/test_task_model.py` - Taskモデルのテスト (8テストケース)
-- `tests/unit/test_task_management_v2/test_task_assignment_model.py` - TaskAssignmentモデルのテスト (4テストケース)
-- `tests/unit/test_task_management_v2/test_task_dependency_model.py` - TaskDependencyモデルのテスト (4テストケース)
-- `tests/unit/test_task_management_v2/test_task_repository.py` - TaskRepositoryのテスト (10テストケース)
-- `tests/unit/test_task_management_v2/test_task_service.py` - TaskServiceのテスト (12テストケース)
+- `tests/unit/task_mgmt_v2_unit/test_task_model.py` - Taskモデルのテスト (8テストケース)
+- `tests/unit/task_mgmt_v2_unit/test_task_assignment_model.py` - TaskAssignmentモデルのテスト (4テストケース)
+- `tests/unit/task_mgmt_v2_unit/test_task_dependency_model.py` - TaskDependencyモデルのテスト (4テストケース)
+- `tests/unit/task_mgmt_v2_unit/test_task_repository.py` - TaskRepositoryのテスト (10テストケース)
+- `tests/unit/task_mgmt_v2_unit/test_task_service.py` - TaskServiceのテスト (12テストケース)
 
 ### Integration Tests (統合テスト)
-- `tests/integration/test_task_management_v2/test_task_api.py` - Task APIのテスト (10テストケース)
-- `tests/integration/test_task_management_v2/test_assignment_api.py` - 割り当てAPIのテスト (3テストケース)
-- `tests/integration/test_task_management_v2/test_dependency_api.py` - 依存関係APIのテスト (4テストケース)
-- `tests/integration/test_task_management_v2/test_websocket.py` - WebSocketのテスト (4テストケース)
+- `tests/integration/task_mgmt_v2_integration/test_task_api.py` - Task APIのテスト (10テストケース)
+- `tests/integration/task_mgmt_v2_integration/test_assignment_api.py` - 割り当てAPIのテスト (3テストケース)
+- `tests/integration/task_mgmt_v2_integration/test_dependency_api.py` - 依存関係APIのテスト (4テストケース)
+- `tests/integration/task_mgmt_v2_integration/test_websocket.py` - WebSocketのテスト (4テストケース)
 
 ### Performance Tests (パフォーマンステスト)
 - `tests/performance/test_task_performance.py` - Locustベースのパフォーマンステスト (6テストケース)
@@ -32,7 +32,7 @@ Issue #24 (Type-safe Task Management Implementation) のPhase 4 (TDD Red) が完
 - `tests/factories/task.py` - TaskFactory, TaskAssignmentFactory, TaskDependencyFactory
 
 ### Test Fixtures
-- `tests/unit/test_task_management_v2/conftest.py` - テストフィクスチャ (組織、プロジェクト、ユーザー、テストデータ)
+- `tests/unit/task_mgmt_v2_unit/conftest.py` - テストフィクスチャ (組織、プロジェクト、ユーザー、テストデータ)
 
 ### Test Runner
 - `run_task_v2_tests.py` - TDD Red phase検証用テストランナー
