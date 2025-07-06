@@ -18,11 +18,19 @@ ITDO ERP System v2 - Modern ERP system with hybrid development environment.
 ### Backend Structure
 - `app/main.py` - FastAPI application entry point
 - `app/api/v1/` - API endpoints (versioned)
+  - `auth.py` - Authentication endpoints
+  - `users.py` - User management
+  - `dashboard.py` - Dashboard statistics
+  - `progress.py` - Progress management
 - `app/core/` - Core utilities (config, database, security)
 - `app/models/` - SQLAlchemy models
 - `app/schemas/` - Pydantic schemas for API
+  - `dashboard.py` - Dashboard response schemas
 - `app/services/` - Business logic layer
+  - `dashboard.py` - Dashboard statistics service
+  - `progress.py` - Progress calculations service
 - `tests/` - Test files (unit, integration, security)
+  - `test_dashboard_progress/` - Dashboard and progress tests
 
 ### Frontend Structure
 - `src/components/` - React components

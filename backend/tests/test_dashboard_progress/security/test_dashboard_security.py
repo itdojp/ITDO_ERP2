@@ -275,7 +275,7 @@ class TestDashboardInputValidation:
     def test_invalid_period_parameter(self):
         """Test VAL-002: 不正期間パラメータ."""
         # Arrange
-        invalid_periods = ["invalid", "123", "year", ""; DROP TABLE projects; --"]
+        invalid_periods = ["invalid", "123", "year", "'; DROP TABLE projects; --"]
         
         # Act & Assert
         for invalid_period in invalid_periods:
