@@ -577,7 +577,7 @@ def export_users(
     format: str = Query("csv", pattern="^(csv|xlsx|json)$"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-):
+) -> Union[StreamingResponse, JSONResponse]:
     """Export user list."""
     service = UserService()
     

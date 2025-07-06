@@ -17,6 +17,8 @@ if TYPE_CHECKING:
 # Re-export for backwards compatibility
 from app.models.user_activity_log import UserActivityLog
 
+__all__ = ["AuditLog", "UserActivityLog"]
+
 
 class AuditLog(Base):
     """Audit log for tracking all system changes."""

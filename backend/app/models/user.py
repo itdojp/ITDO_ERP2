@@ -20,6 +20,8 @@ if TYPE_CHECKING:
 # Re-export for backwards compatibility
 from app.models.password_history import PasswordHistory
 
+__all__ = ["User", "PasswordHistory"]
+
 
 class User(Base):
     """User model."""
