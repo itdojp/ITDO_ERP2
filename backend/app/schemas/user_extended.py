@@ -162,7 +162,7 @@ class BulkImportResponse(BaseModel):
     success_count: int
     error_count: int
     created_users: List[UserResponseExtended]
-    errors: List[dict] = []
+    errors: List[Dict[str, Any]] = []
 
 
 class UserExportFormat(BaseModel):
@@ -177,7 +177,7 @@ class UserActivity(BaseModel):
     """User activity log entry."""
     
     action: str
-    details: dict
+    details: Dict[str, Any]
     ip_address: Optional[str]
     created_at: datetime
     

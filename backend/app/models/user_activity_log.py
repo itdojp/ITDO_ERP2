@@ -9,7 +9,7 @@ from sqlalchemy.orm import relationship
 from app.core.database import Base
 
 if TYPE_CHECKING:
-    from app.models.user import User  # type: ignore
+    from app.models.user import User
 
 
 class UserActivityLog(Base):

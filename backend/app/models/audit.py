@@ -11,7 +11,7 @@ import json
 from app.core.database import Base
 
 if TYPE_CHECKING:
-    from app.models.user import User  # type: ignore
+    from app.models.user import User
 
 
 class AuditLog(Base):
