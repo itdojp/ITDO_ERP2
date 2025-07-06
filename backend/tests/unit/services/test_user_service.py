@@ -7,9 +7,11 @@ Following TDD approach - Red phase: Writing tests before implementation.
 import pytest
 from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
+from sqlalchemy.orm import Session
 
 from app.core.exceptions import NotFound, PermissionDenied, BusinessLogicError
-from app.schemas.user import UserCreateExtended, UserUpdate, UserSearchParams
+from app.schemas.user import UserUpdate
+from app.schemas.user_extended import UserCreateExtended, UserSearchParams
 from app.services.user import UserService
 from tests.factories import (
     create_test_user,
@@ -24,11 +26,11 @@ class TestUserService:
     """Test cases for UserService."""
 
     @pytest.fixture
-    def service(self):
+    def service(self) -> UserService:
         """Create service instance."""
         return UserService()
 
-    def test_create_user_system_admin(self, service, db_session) -> None:
+    def test_create_user_system_admin(self, service, db_session: Session) -> None:
         """TEST-USER-SERVICE-001: システム管理者によるユーザー作成をテスト."""
         # Given: システム管理者と組織
         admin = create_test_user(is_superuser=True)
@@ -55,7 +57,7 @@ class TestUserService:
         assert len(user.user_roles) == 1
         assert user.user_roles[0].organization_id == org.id
 
-    def test_org_admin_create_user_in_org(self, service, db_session) -> None:
+    def test_org_admin_create_user_in_org(self, service, db_session: Session) -> None:
         """TEST-USER-SERVICE-002: 組織管理者による自組織ユーザー作成をテスト."""
         # Given: 組織管理者
         org = create_test_organization()
@@ -80,7 +82,7 @@ class TestUserService:
         assert user.email == "orguser@example.com"
         assert user.get_organizations()[0].id == org.id
 
-    def test_org_admin_cannot_create_cross_tenant(self, service, db_session) -> None:
+    def test_org_admin_cannot_create_cross_tenant(self, service, db_session: Session) -> None:
         """TEST-USER-SERVICE-003: 組織管理者が他組織ユーザーを作成できないことをテスト."""
         # Given: 組織1の管理者と組織2
         org1 = create_test_organization(code="ORG1")
@@ -103,7 +105,7 @@ class TestUserService:
                 db=db_session,
             )
 
-    def test_search_users_multi_tenant_isolation(self, service, db_session) -> None:
+    def test_search_users_multi_tenant_isolation(self, service, db_session: Session) -> None:
         """TEST-USER-SERVICE-004: マルチテナント環境でのユーザー検索分離をテスト."""
         # Given: 2つの組織とユーザー
         org1 = create_test_organization(code="ORG1")
@@ -133,7 +135,7 @@ class TestUserService:
         assert "user1@org1.com" in user_emails
         assert "user2@org2.com" not in user_emails
 
-    def test_update_user_self(self, service, db_session) -> None:
+    def test_update_user_self(self, service, db_session: Session) -> None:
         """TEST-USER-SERVICE-005: ユーザーが自分の情報を更新できることをテスト."""
         # Given: ユーザー
         user = create_test_user(full_name="旧名前", phone="090-0000-0000")
@@ -150,7 +152,7 @@ class TestUserService:
         assert updated.full_name == "新名前"
         assert updated.phone == "090-1111-1111"
 
-    def test_update_user_permission_denied(self, service, db_session) -> None:
+    def test_update_user_permission_denied(self, service, db_session: Session) -> None:
         """TEST-USER-SERVICE-006: 権限のないユーザー更新が拒否されることをテスト."""
         # Given: 2人のユーザー（関係なし）
         user1 = create_test_user(email="user1@example.com")
@@ -167,7 +169,7 @@ class TestUserService:
                 db=db_session,
             )
 
-    def test_change_password_self(self, service, db_session) -> None:
+    def test_change_password_self(self, service, db_session: Session) -> None:
         """TEST-USER-SERVICE-007: ユーザーが自分のパスワードを変更できることをテスト."""
         # Given: ユーザー
         user = create_test_user()
@@ -189,7 +191,7 @@ class TestUserService:
         assert user.hashed_password != old_hash
         assert user.password_changed_at > user.created_at
 
-    def test_change_password_wrong_current(self, service, db_session) -> None:
+    def test_change_password_wrong_current(self, service, db_session: Session) -> None:
         """TEST-USER-SERVICE-008: 現在のパスワードが間違っている場合をテスト."""
         # Given: ユーザー
         user = create_test_user()
@@ -206,7 +208,7 @@ class TestUserService:
                 db=db_session,
             )
 
-    def test_admin_reset_password(self, service, db_session) -> None:
+    def test_admin_reset_password(self, service, db_session: Session) -> None:
         """TEST-USER-SERVICE-009: 管理者によるパスワードリセットをテスト."""
         # Given: ユーザーと組織管理者
         org = create_test_organization()
@@ -227,7 +229,7 @@ class TestUserService:
         assert len(temp_password) >= 12
         assert user.password_must_change is True
 
-    def test_assign_role_to_user(self, service, db_session) -> None:
+    def test_assign_role_to_user(self, service, db_session: Session) -> None:
         """TEST-USER-SERVICE-010: ユーザーへのロール割り当てをテスト."""
         # Given: ユーザー、組織、ロール
         org = create_test_organization()
@@ -252,7 +254,7 @@ class TestUserService:
         assert user_role.role_id == new_role.id
         assert user_role.assigned_by == admin.id
 
-    def test_assign_role_with_expiry(self, service, db_session) -> None:
+    def test_assign_role_with_expiry(self, service, db_session: Session) -> None:
         """TEST-USER-SERVICE-011: 期限付きロール割り当てをテスト."""
         # Given: セットアップ
         org = create_test_organization()
@@ -277,7 +279,7 @@ class TestUserService:
         assert user_role.expires_at is not None
         assert user_role.expires_at.date() == expires_at.date()
 
-    def test_remove_role_from_user(self, service, db_session) -> None:
+    def test_remove_role_from_user(self, service, db_session: Session) -> None:
         """TEST-USER-SERVICE-012: ユーザーからのロール削除をテスト."""
         # Given: ロールを持つユーザー
         org = create_test_organization()
@@ -300,7 +302,7 @@ class TestUserService:
         remaining_roles = user.get_roles_in_organization(org.id)
         assert len(remaining_roles) == 0
 
-    def test_soft_delete_user(self, service, db_session) -> None:
+    def test_soft_delete_user(self, service, db_session: Session) -> None:
         """TEST-USER-SERVICE-013: ユーザーの論理削除をテスト."""
         # Given: ユーザーとシステム管理者
         user = create_test_user(is_active=True)
@@ -317,7 +319,7 @@ class TestUserService:
         assert user.deleted_at is not None
         assert user.deleted_by == admin.id
 
-    def test_cannot_delete_self(self, service, db_session) -> None:
+    def test_cannot_delete_self(self, service, db_session: Session) -> None:
         """TEST-USER-SERVICE-014: 自分自身を削除できないことをテスト."""
         # Given: システム管理者
         admin = create_test_user(is_superuser=True)
@@ -328,7 +330,7 @@ class TestUserService:
         with pytest.raises(BusinessLogicError, match="自分自身"):
             service.delete_user(user_id=admin.id, deleter=admin, db=db_session)
 
-    def test_cannot_delete_last_admin(self, service, db_session) -> None:
+    def test_cannot_delete_last_admin(self, service, db_session: Session) -> None:
         """TEST-USER-SERVICE-015: 最後のシステム管理者を削除できないことをテスト."""
         # Given: 唯一のシステム管理者
         admin = create_test_user(is_superuser=True)
@@ -344,7 +346,7 @@ class TestUserService:
             # 実際には他の管理者を全て削除してから実行
             service.delete_user(user_id=admin.id, deleter=other_admin, db=db_session)
 
-    def test_get_user_permissions(self, service, db_session) -> None:
+    def test_get_user_permissions(self, service, db_session: Session) -> None:
         """TEST-USER-SERVICE-016: ユーザーの実効権限取得をテスト."""
         # Given: 複数ロールを持つユーザー
         org = create_test_organization()
@@ -365,7 +367,7 @@ class TestUserService:
         assert "write:own" in permissions
         assert "delete:own" in permissions
 
-    def test_user_activity_logging(self, service, db_session) -> None:
+    def test_user_activity_logging(self, service, db_session: Session) -> None:
         """TEST-USER-SERVICE-017: ユーザー操作の監査ログ記録をテスト."""
         # Given: システム管理者
         admin = create_test_user(is_superuser=True)
@@ -394,7 +396,7 @@ class TestUserService:
             assert call_args[1]["resource_id"] == user.id
             assert call_args[1]["user"] == admin
 
-    def test_search_users_with_filters(self, service, db_session) -> None:
+    def test_search_users_with_filters(self, service, db_session: Session) -> None:
         """TEST-USER-SERVICE-018: 複数フィルタでのユーザー検索をテスト."""
         # Given: 様々な条件のユーザー
         org = create_test_organization()
@@ -433,7 +435,7 @@ class TestUserService:
         assert len(result.items) == 1
         assert result.items[0].email == "active.manager@example.com"
 
-    def test_bulk_user_import(self, service, db_session) -> None:
+    def test_bulk_user_import(self, service, db_session: Session) -> None:
         """TEST-USER-SERVICE-019: 一括ユーザーインポートをテスト."""
         # Given: インポートデータ
         org = create_test_organization()
@@ -469,7 +471,7 @@ class TestUserService:
         assert results.error_count == 0
         assert len(results.created_users) == 2
 
-    def test_export_user_list(self, service, db_session) -> None:
+    def test_export_user_list(self, service, db_session: Session) -> None:
         """TEST-USER-SERVICE-020: ユーザーリストのエクスポートをテスト."""
         # Given: 複数のユーザー
         org = create_test_organization()
