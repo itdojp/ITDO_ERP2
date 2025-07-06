@@ -86,6 +86,9 @@ from tests.factories.organization import OrganizationFactory
 from tests.factories.department import DepartmentFactory
 from tests.factories.role import RoleFactory, PermissionFactory
 from tests.factories.user import UserFactory
+from tests.factories.task import (
+    TaskFactory, TaskAssignmentFactory, TaskDependencyFactory
+)
 
 __all__ = [
     'BaseFactory',
@@ -94,5 +97,8 @@ __all__ = [
     'RoleFactory',
     'PermissionFactory',
     'UserFactory',
+    'TaskFactory',
+    'TaskAssignmentFactory', 
+    'TaskDependencyFactory',
     'fake',
 ]
