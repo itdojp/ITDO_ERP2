@@ -31,13 +31,13 @@ class TestProgressService:
         project_id = 1
         expected_rate = 75.0  # 15 completed out of 20 total tasks
         
-        # Act & Assert
-        with pytest.raises(NotImplementedError):
-            result = self.service.calculate_task_completion_rate(
-                project_id, self.mock_db
-            )
+        # Act
+        result = self.service.calculate_task_completion_rate(project_id, self.mock_db)
         
-        assert False, "ProgressService.calculate_task_completion_rate not implemented"
+        # Assert
+        assert result == expected_rate
+        assert isinstance(result, float)
+        assert 0.0 <= result <= 100.0
 
     def test_calculate_effort_completion_rate(self):
         """Test PROG-U-002: 工数完了率計算."""
@@ -45,13 +45,13 @@ class TestProgressService:
         project_id = 1
         expected_rate = 60.0  # 60 hours completed out of 100 total hours
         
-        # Act & Assert
-        with pytest.raises(NotImplementedError):
-            result = self.service.calculate_effort_completion_rate(
-                project_id, self.mock_db
-            )
+        # Act
+        result = self.service.calculate_effort_completion_rate(project_id, self.mock_db)
         
-        assert False, "ProgressService.calculate_effort_completion_rate not implemented"
+        # Assert
+        assert result == expected_rate
+        assert isinstance(result, float)
+        assert 0.0 <= result <= 100.0
 
     def test_calculate_duration_completion_rate(self):
         """Test PROG-U-003: 期間完了率計算."""
