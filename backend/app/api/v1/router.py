@@ -4,6 +4,7 @@ from sqlalchemy import text
 
 from app.core.database import get_db
 from app.api.v1 import auth, users, users_extended, organizations, departments, roles
+from app.api.v1 import projects, project_members, project_phases, project_milestones
 
 api_router = APIRouter()
 
@@ -14,6 +15,10 @@ api_router.include_router(users_extended.router)
 api_router.include_router(organizations.router)
 api_router.include_router(departments.router)
 api_router.include_router(roles.router)
+api_router.include_router(projects.router)
+api_router.include_router(project_members.router)
+api_router.include_router(project_phases.router)
+api_router.include_router(project_milestones.router)
 
 
 @api_router.get("/ping")
