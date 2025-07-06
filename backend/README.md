@@ -15,9 +15,12 @@ FastAPI based backend for ITDO ERP System.
 ## Setup
 
 ```bash
+# IMPORTANT: Always set PATH for uv
+export PATH="/root/.local/bin:$PATH"
+
 # Install dependencies
 uv venv
-uv pip sync requirements-dev.txt
+uv sync
 
 # Setup environment variables
 cp .env.example .env
@@ -27,14 +30,18 @@ cp .env.example .env
 ## Run
 
 ```bash
+# IMPORTANT: Always set PATH for uv
+export PATH="/root/.local/bin:$PATH"
+
 # Start data layer (PostgreSQL, Redis)
-podman-compose -f ../infra/compose-data.yaml up -d
+make start-data
+# or: podman-compose -f ../infra/compose-data.yaml up -d
 
 # Run migrations (when available)
 # uv run alembic upgrade head
 
 # Start development server
-uv run uvicorn app.main:app --reload
+uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ## API Documentation
@@ -42,6 +49,25 @@ uv run uvicorn app.main:app --reload
 When the server is running, you can access:
 - Swagger UI: http://localhost:8000/api/v1/docs
 - ReDoc: http://localhost:8000/api/v1/redoc
+
+### Available Endpoints
+
+#### Authentication
+- `POST /api/v1/auth/login` - User login
+- `POST /api/v1/auth/refresh` - Refresh access token
+
+#### User Management
+- `GET /api/v1/users/me` - Get current user info
+- `PATCH /api/v1/users/me` - Update current user
+
+#### Dashboard (NEW)
+- `GET /api/v1/dashboard/stats` - Get dashboard statistics
+- `GET /api/v1/dashboard/progress` - Get progress data
+- `GET /api/v1/dashboard/alerts` - Get alerts and notifications
+
+#### Progress Management (NEW)
+- `GET /api/v1/projects/{project_id}/progress` - Get project progress details
+- `GET /api/v1/projects/{project_id}/report` - Generate progress report (JSON/CSV)
 
 ## Authentication
 
@@ -63,6 +89,9 @@ curl -X GET http://localhost:8000/api/v1/users/me \
 ## Testing
 
 ```bash
+# IMPORTANT: Always set PATH for uv
+export PATH="/root/.local/bin:$PATH"
+
 # Run all tests
 uv run pytest
 
@@ -71,6 +100,9 @@ uv run pytest --cov=app --cov-report=html
 
 # Run specific test file
 uv run pytest tests/unit/test_security.py -v
+
+# Run dashboard/progress tests
+uv run pytest tests/test_dashboard_progress/ -v
 
 # Run with type checking
 uv run mypy --strict app/
@@ -83,15 +115,31 @@ backend/
 ├── app/
 │   ├── api/           # API endpoints
 │   │   └── v1/        # API version 1
+│   │       ├── auth.py      # Authentication endpoints
+│   │       ├── users.py     # User management
+│   │       ├── dashboard.py # Dashboard statistics (NEW)
+│   │       └── progress.py  # Progress management (NEW)
 │   ├── core/          # Core utilities
 │   ├── models/        # SQLAlchemy models
 │   ├── schemas/       # Pydantic schemas
+│   │   ├── dashboard.py     # Dashboard schemas (NEW)
+│   │   └── ...
 │   ├── services/      # Business logic
+│   │   ├── dashboard.py     # Dashboard service (NEW)
+│   │   ├── progress.py      # Progress service (NEW)
+│   │   └── ...
 │   └── main.py        # Application entry point
 ├── tests/
 │   ├── unit/          # Unit tests
 │   ├── integration/   # Integration tests
-│   └── security/      # Security tests
+│   ├── security/      # Security tests
+│   └── test_dashboard_progress/  # Dashboard/Progress tests (NEW)
+│       ├── unit/
+│       ├── integration/
+│       └── security/
+├── docs/              # Documentation
+│   ├── dashboard-progress-specification.md
+│   └── dashboard-progress-test-specification.md
 ├── alembic/           # Database migrations
 ├── pyproject.toml     # Project configuration
 └── requirements.txt   # Dependencies
