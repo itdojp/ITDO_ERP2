@@ -34,3 +34,23 @@ class NotFound(Exception):
 class PermissionDenied(Exception):
     """Raised when user lacks permission for an action."""
     pass
+
+
+class CircularDependency(BusinessLogicError):
+    """Raised when a circular dependency is detected."""
+    pass
+
+
+class InvalidTransition(BusinessLogicError):
+    """Raised when an invalid status transition is attempted."""
+    pass
+
+
+class DependencyExists(BusinessLogicError):
+    """Raised when trying to delete a task that has dependencies."""
+    pass
+
+
+class OptimisticLockError(BusinessLogicError):
+    """Raised when optimistic locking fails due to concurrent modification."""
+    pass

@@ -219,3 +219,71 @@ class Organization(SoftDeletableModel):
             path.insert(0, current.parent)
             current = current.parent
         return path
+
+
+class Project(SoftDeletableModel):
+    """Project model for organizing tasks within organizations."""
+    
+    __tablename__ = "projects"
+    
+    # Basic fields
+    code: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        index=True,
+        comment="Project code"
+    )
+    name: Mapped[str] = mapped_column(
+        String(200),
+        nullable=False,
+        comment="Project name"
+    )
+    description: Mapped[Optional[str]] = mapped_column(
+        Text,
+        nullable=True,
+        comment="Project description"
+    )
+    
+    # Organization relationship
+    organization_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
+    
+    # Project timeline
+    start_date: Mapped[Optional[str]] = mapped_column(
+        String(10),  # YYYY-MM-DD format
+        nullable=True,
+        comment="Project start date"
+    )
+    end_date: Mapped[Optional[str]] = mapped_column(
+        String(10),  # YYYY-MM-DD format
+        nullable=True,
+        comment="Project end date"
+    )
+    
+    # Status
+    is_active: Mapped[bool] = mapped_column(
+        Boolean,
+        default=True,
+        nullable=False,
+        comment="Whether project is active"
+    )
+    
+    # Relationships
+    organization: Mapped["Organization"] = relationship(
+        "Organization",
+        lazy="joined"
+    )
+    tasks: Mapped[List["Task"]] = relationship(
+        "Task",
+        back_populates="project",
+        lazy="dynamic",
+        cascade="all, delete-orphan"
+    )
+    
+    def __repr__(self) -> str:
+        """String representation."""
+        return f"<Project(id={self.id}, code='{self.code}', name='{self.name}')>"
