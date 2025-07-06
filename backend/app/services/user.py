@@ -3,7 +3,7 @@
 import random
 import string
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session, joinedload
@@ -243,7 +243,7 @@ class UserService:
             user_orgs = [o.id for o in user.get_organizations()]
             resetter_admin_orgs = [
                 o.id for o in resetter.get_organizations()
-                if any(r.code == "ORG_ADMIN" for r in resetter.get_roles_in_organization(o.id))
+                if any(r.code == "ORG_ADMIN" for r in resetter.get_roles_in_organization(int(o.id)))
             ]
             
             if not any(org_id in resetter_admin_orgs for org_id in user_orgs):
@@ -402,7 +402,7 @@ class UserService:
 
     def bulk_import_users(
         self,
-        data: List[dict],
+        data: List[Dict[str, Any]],
         organization_id: int,
         role_id: int,
         importer: User,
@@ -463,7 +463,7 @@ class UserService:
 
     def export_users(
         self, organization_id: int, format: str, exporter: User, db: Session
-    ) -> dict:
+    ) -> Dict[str, Any]:
         """Export user list."""
         # Permission check
         if not exporter.is_superuser:
@@ -539,7 +539,7 @@ class UserService:
         resource_type: str,
         resource_id: int,
         user: User,
-        changes: dict,
+        changes: Dict[str, Any],
         db: Session,
     ) -> None:
         """Log audit trail."""

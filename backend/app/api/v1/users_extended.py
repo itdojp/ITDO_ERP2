@@ -45,7 +45,7 @@ def create_user_extended(
     user_data: UserCreateExtended,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> UserResponseExtended:
+) -> Union[UserResponseExtended, JSONResponse]:
     """Create a new user with organization and role assignment."""
     service = UserService()
     
@@ -138,7 +138,7 @@ def get_user_detail(
     user_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> UserResponseExtended:
+) -> Union[UserResponseExtended, JSONResponse]:
     """Get user details with roles and organizations."""
     service = UserService()
     
@@ -181,7 +181,7 @@ def update_user(
     user_data: UserUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> UserResponseExtended:
+) -> Union[UserResponseExtended, JSONResponse]:
     """Update user information."""
     service = UserService()
     
@@ -227,7 +227,7 @@ def update_user(
 
 @router.put(
     "/{user_id}/password",
-    response_model=dict,
+    response_model=Dict[str, Any],
     responses={
         400: {"model": ErrorResponse, "description": "Invalid password"},
         403: {"model": ErrorResponse, "description": "Access denied"},
@@ -239,7 +239,7 @@ def change_password(
     password_data: PasswordChange,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> dict:
+) -> Union[Dict[str, Any], JSONResponse]:
     """Change user password."""
     service = UserService()
     
@@ -279,7 +279,7 @@ def change_password(
 
 @router.post(
     "/{user_id}/password/reset",
-    response_model=dict,
+    response_model=Dict[str, Any],
     responses={
         403: {"model": ErrorResponse, "description": "Access denied"},
         404: {"model": ErrorResponse, "description": "User not found"},
@@ -289,7 +289,7 @@ def reset_password(
     user_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> dict:
+) -> Union[Dict[str, Any], JSONResponse]:
     """Reset user password (admin only)."""
     service = UserService()
     
@@ -327,7 +327,7 @@ def reset_password(
 
 @router.post(
     "/{user_id}/roles",
-    response_model=dict,
+    response_model=Dict[str, Any],
     status_code=status.HTTP_201_CREATED,
     responses={
         403: {"model": ErrorResponse, "description": "Access denied"},
@@ -339,7 +339,7 @@ def assign_role(
     assignment: RoleAssignment,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> dict:
+) -> Union[Dict[str, Any], JSONResponse]:
     """Assign role to user."""
     service = UserService()
     
