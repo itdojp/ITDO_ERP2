@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session
 from app.main import app
 from app.core.database import get_db
 from tests.conftest import get_test_db, create_test_user, create_test_jwt_token
+from unittest.mock import Mock, patch
+from app.models.user import User
 
 
 class TestDashboardAPI:
@@ -29,19 +31,25 @@ class TestDashboardAPI:
 
     def test_get_dashboard_stats_endpoint(self):
         """Test DASH-I-001: 統計API正常呼び出し."""
+        # Mock the dependencies
+        mock_user = User(id=1, email="test@example.com", is_active=True, is_superuser=False)
+        
+        # Override dependency to return mock user
+        def override_get_current_active_user():
+            return mock_user
+        
+        from app.core.dependencies import get_current_active_user
+        app.dependency_overrides[get_current_active_user] = override_get_current_active_user
+        
         # Act
         response = self.client.get("/api/v1/dashboard/stats", headers=self.headers)
         
         # Assert
-        # This will fail until API is implemented
-        assert response.status_code == 404  # Not Found until implemented
-        
-        # Expected behavior after implementation:
-        # assert response.status_code == 200
-        # data = response.json()
-        # assert "project_stats" in data
-        # assert "task_stats" in data
-        # assert "recent_activity" in data
+        assert response.status_code == 200
+        data = response.json()
+        assert "project_stats" in data
+        assert "task_stats" in data
+        assert "recent_activity" in data
 
     def test_get_dashboard_stats_unauthorized(self):
         """Test DASH-I-002: 未認証アクセス."""
@@ -49,11 +57,7 @@ class TestDashboardAPI:
         response = self.client.get("/api/v1/dashboard/stats")
         
         # Assert
-        # This will fail until API is implemented
-        assert response.status_code == 404  # Not Found until implemented
-        
-        # Expected behavior after implementation:
-        # assert response.status_code == 401
+        assert response.status_code == 401
 
     def test_get_dashboard_stats_organization_access(self):
         """Test DASH-I-003: 組織アクセス制御."""

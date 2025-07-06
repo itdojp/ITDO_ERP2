@@ -32,6 +32,16 @@ class TestProgressAPI:
         # Arrange
         project_id = 1
         
+        # Mock the dependencies
+        from app.models.user import User
+        mock_user = User(id=1, email="test@example.com", is_active=True, is_superuser=False)
+        
+        def override_get_current_active_user():
+            return mock_user
+        
+        from app.core.dependencies import get_current_active_user
+        app.dependency_overrides[get_current_active_user] = override_get_current_active_user
+        
         # Act
         response = self.client.get(
             f"/api/v1/projects/{project_id}/progress",
@@ -39,18 +49,14 @@ class TestProgressAPI:
         )
         
         # Assert
-        # This will fail until API is implemented
-        assert response.status_code == 404  # Not Found until implemented
-        
-        # Expected behavior after implementation:
-        # assert response.status_code == 200
-        # data = response.json()
-        # assert "project_id" in data
-        # assert "completion_percentage" in data
-        # assert "total_tasks" in data
-        # assert "completed_tasks" in data
-        # assert "task_breakdown" in data
-        # assert "timeline" in data
+        assert response.status_code == 200
+        data = response.json()
+        assert "project_id" in data
+        assert "completion_percentage" in data
+        assert "total_tasks" in data
+        assert "completed_tasks" in data
+        assert "task_breakdown" in data
+        assert "timeline" in data
 
     def test_get_project_progress_not_found(self):
         """Test PROG-I-002: 存在しないプロジェクト."""

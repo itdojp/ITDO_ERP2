@@ -2,12 +2,20 @@
 
 from datetime import datetime
 
-from fastapi import Request, status
+from fastapi import Request, status, HTTPException
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError
 
 from app.schemas.error import ErrorResponse
+
+
+class APIError(HTTPException):
+    """Custom API error exception."""
+    
+    def __init__(self, status_code: int, detail: str, code: str = None):
+        super().__init__(status_code=status_code, detail=detail)
+        self.code = code or "API_ERROR"
 
 
 async def validation_exception_handler(
