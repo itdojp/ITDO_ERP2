@@ -328,7 +328,7 @@ class User(Base):
     
     def get_effective_permissions(self, organization_id: int) -> List[str]:
         """Get user's effective permissions in organization."""
-        permissions = set()
+        permissions: set[str] = set()
         
         for user_role in self.user_roles:
             if user_role.organization_id == organization_id and not user_role.is_expired():
