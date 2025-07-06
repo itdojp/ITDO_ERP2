@@ -28,8 +28,7 @@ jobs:
     
     - name: Install dependencies
       run: |
-        uv venv
-        uv pip sync requirements-dev.txt
+        uv sync --dev
     
     - name: Run mypy type checking
       run: uv run mypy --strict .
@@ -107,8 +106,7 @@ jobs:
     
     - name: Install dependencies
       run: |
-        uv venv
-        uv pip sync requirements-dev.txt
+        uv sync --dev
     
     - name: Run ruff linting
       run: uv run ruff check .
@@ -196,8 +194,7 @@ jobs:
     - name: Start backend
       run: |
         cd backend
-        uv venv
-        uv pip sync requirements-dev.txt
+        uv sync --dev
         uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 &
         sleep 10
     
@@ -221,7 +218,7 @@ jobs:
         npx playwright test
     
     - name: Upload E2E test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: e2e-test-results

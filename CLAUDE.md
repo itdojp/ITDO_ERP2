@@ -1,81 +1,198 @@
-# Claude Code Project Configuration
+# CLAUDE.md
 
-## Required Reading Files
-
-Before starting any development work, Claude Code must read and understand the following files:
-
-1. `.claude/PROJECT_CONTEXT.md` - Project context and business domain knowledge
-2. `.claude/DEVELOPMENT_WORKFLOW.md` - Detailed development workflow and process
-3. `.claude/CODING_STANDARDS.md` - Coding standards and quality requirements
-4. `.claude/TECHNICAL_CONSTRAINTS.md` - Technical constraints and limitations
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
 
 ITDO ERP System v2 - Modern ERP system with hybrid development environment.
 
 **Technology Stack:**
-- Backend: Python 3.13 + FastAPI + uv
-- Frontend: React 18 + TypeScript 5 + Vite  
+- Backend: Python 3.13 + FastAPI + uv (package manager)
+- Frontend: React 18 + TypeScript 5 + Vite + Vitest
 - Database: PostgreSQL 15 + Redis 7
 - Auth: Keycloak (OAuth2/OpenID Connect)
-- Container: Podman (Hybrid configuration)
+- Container: Podman (data layer only)
 
-## Critical Development Rules
+## Architecture
 
-### MANDATORY CONSTRAINTS
-1. **Test-Driven Development (TDD)**: Write tests BEFORE implementation (REQUIRED)
-2. **Issue-Driven Development**: All work starts from GitHub Issues
-3. **Type Safety**: No `any` types allowed, strict type checking required
-4. **Hybrid Environment**: Data layer in containers, development layer local (recommended)
-5. **uv Tool Usage**: Python environment management (NO pip/activate)
+### Backend Structure
+- `app/main.py` - FastAPI application entry point
+- `app/api/v1/` - API endpoints (versioned)
+- `app/core/` - Core utilities (config, database, security)
+- `app/models/` - SQLAlchemy models
+- `app/schemas/` - Pydantic schemas for API
+- `app/services/` - Business logic layer
+- `tests/` - Test files (unit, integration, security)
 
-### DEVELOPMENT PROCESS (8 Phases)
-1. Issue Confirmation → 2. Draft PR Creation → 3. Specification Creation → 
-4. Test Specification → 5. Test Code Implementation → 6. Implementation → 
-7. Documentation Update → 8. Review Preparation
+### Frontend Structure
+- `src/components/` - React components
+- `src/pages/` - Page components
+- `src/services/` - API client and utilities
+- `src/test/` - Test utilities and setup
 
-### QUALITY STANDARDS
-- API Response Time: <200ms
-- Test Coverage: >80%  
-- Concurrent Users: 1000+
-- Error Handling: Required for all functions
+### Infrastructure
+- `infra/compose-data.yaml` - Data layer containers (PostgreSQL, Redis, Keycloak, pgAdmin)
+- `scripts/` - Development and deployment scripts
+- `Makefile` - Common development commands
+
+## Development Workflow
+
+### Critical Constraints
+1. **Test-Driven Development (TDD)**: Always write tests BEFORE implementation
+2. **Hybrid Environment**: Data layer in containers, development layer local
+3. **uv Tool Usage**: Use `uv` for Python, not pip/activate
+4. **Type Safety**: No `any` types, strict type checking required
+5. **Issue-Driven Development**: All work starts from GitHub Issues
+
+### Development Environment Setup
+```bash
+# 1. Initial setup
+make setup-dev
+
+# 2. Start data layer (PostgreSQL, Redis, Keycloak)
+make start-data
+
+# 3. Development servers (run in separate terminals)
+make dev
+```
 
 ## Essential Commands
 
+### Development
 ```bash
-# Environment Setup (First time)
-source ~/.local/bin/env  # Ensure uv is in PATH
-uv --version  # Verify uv is working
-
-# Data Layer (Always containers)
-podman-compose -f infra/compose-data.yaml up -d
-
-# Development (Local recommended)
-cd backend && uv run uvicorn app.main:app --reload
+# Start development servers
+make dev                    # Both backend and frontend
+cd backend && uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 cd frontend && npm run dev
 
-# Testing
-cd backend && uv run pytest
-cd frontend && npm test
+# Data layer management
+make start-data            # Start containers
+make stop-data            # Stop containers
+make status               # Check container status
+```
 
-# Type Checking
-cd backend && uv run mypy --strict .
+### Testing
+```bash
+# Run all tests
+make test                 # Basic tests (no E2E)
+make test-full           # Full test suite including E2E
+
+# Backend specific
+cd backend && uv run pytest                    # All tests
+cd backend && uv run pytest tests/unit/        # Unit tests only
+cd backend && uv run pytest tests/integration/ # Integration tests only
+cd backend && uv run pytest -v --cov=app      # With coverage
+
+# Frontend specific
+cd frontend && npm test                        # Vitest tests
+cd frontend && npm run test:ui                 # Vitest UI
+cd frontend && npm run coverage                # Coverage report
+```
+
+### Code Quality
+```bash
+# Lint and format
+make lint                 # Both backend and frontend
+cd backend && uv run ruff check . && uv run ruff format .
+cd frontend && npm run lint
+
+# Type checking
+make typecheck           # Both backend and frontend
+cd backend && uv run mypy --strict app/
 cd frontend && npm run typecheck
+
+# Security scanning
+make security-scan       # Full security audit
 ```
 
-## Development Prompt Template
+### Package Management
+```bash
+# Backend (Python with uv)
+cd backend && uv add <package>              # Add dependency
+cd backend && uv add --dev <package>        # Add dev dependency
+cd backend && uv sync                       # Sync dependencies
+cd backend && uv run <command>              # Run command in environment
 
-When starting development work, use this exact prompt:
-
+# Frontend (Node.js with npm)
+cd frontend && npm install <package>        # Add dependency
+cd frontend && npm install --save-dev <package>  # Add dev dependency
+cd frontend && npm install                  # Install dependencies
 ```
-Read the following configuration files first:
-- .claude/PROJECT_CONTEXT.md
-- .claude/DEVELOPMENT_WORKFLOW.md  
-- .claude/CODING_STANDARDS.md
-- .claude/TECHNICAL_CONSTRAINTS.md
 
-Then implement Issue #[number] following the 8-phase development workflow:
-- Use hybrid development environment
-- Follow TDD strictly (tests before implementation)
-- Ensure all constraints and standards are met
+## Testing Patterns
+
+### Backend Testing
+- Use `pytest` with async support
+- Test fixtures in `tests/conftest.py`
+- In-memory SQLite for unit tests
+- `TestClient` for API testing
+- Test categories: unit, integration, security
+
+### Frontend Testing
+- Use `vitest` with React Testing Library
+- Test setup in `src/test/setup.ts`
+- Component tests with `@testing-library/react`
+- Coverage reports available
+
+## Configuration
+
+### Backend Configuration
+- Settings in `app/core/config.py` using Pydantic
+- Environment variables in `.env` file
+- Database: PostgreSQL with SQLAlchemy ORM
+- Authentication: Keycloak integration
+
+### Frontend Configuration
+- Vite configuration in `vite.config.ts`
+- TypeScript strict mode enabled
+- ESLint + Prettier for code formatting
+- Tailwind CSS for styling
+
+## Quality Standards
+- API Response Time: <200ms
+- Test Coverage: >80%
+- Concurrent Users: 1000+
+- Error Handling: Required for all functions
+- Type Safety: Strict TypeScript and mypy
+
+## Key Development Notes
+
+### Python Environment
+- Always use `uv run` prefix for Python commands
+- Never use `pip` or virtual environment activation
+- Python 3.13 required
+
+### Container Management
+- Use `podman-compose` not `docker-compose`
+- Data layer always in containers
+- Development layer runs locally for performance
+
+### Database Access
+- Development: localhost:5432
+- Admin UI: pgAdmin at localhost:8081
+- Test: In-memory SQLite
+
+### Service Ports
+- Backend API: http://localhost:8000
+- Frontend: http://localhost:3000
+- Keycloak: http://localhost:8080
+- pgAdmin: http://localhost:8081
+
+## Common Issues
+
+### Environment Path
+Scripts may need PATH adjustment for uv:
+```bash
+export PATH="$HOME/.local/bin:$PATH"
 ```
+
+### Container Issues
+If containers fail to start:
+```bash
+make stop-data
+make start-data
+make status
+```
+
+### Test Database
+Backend tests use in-memory SQLite automatically configured in `tests/conftest.py`
