@@ -61,30 +61,91 @@ async def get_user(user_id: int) -> UserResponse:
 ```
 
 ### テスト
+
+#### 基本的なテスト構造
 ```python
 # テストファイル: test_{module_name}.py
 import pytest
-from httpx import AsyncClient
+from sqlalchemy.orm import Session
+from fastapi.testclient import TestClient
 
+class TestUserModel:
+    """Test User model functionality."""
+    
+    def test_create_user(self, db_session: Session) -> None:
+        """Test user creation."""
+        # Given: テストデータ
+        user_data = {
+            "email": "test@example.com",
+            "password": "SecurePassword123!",
+            "full_name": "Test User"
+        }
+        
+        # When: ユーザー作成
+        user = User.create(
+            db_session,
+            email=user_data["email"],
+            password=user_data["password"],
+            full_name=user_data["full_name"]
+        )
+        
+        # Then: 正しく作成される
+        assert user.email == "test@example.com"
+        assert user.full_name == "Test User"
+```
+
+#### 型アノテーションのルール
+
+##### 必須の型アノテーション
+```python
+# ✅ 良い例 - 最小限の型アノテーション
+def test_user_creation(self, db_session: Session) -> None:
+    """Test user creation functionality."""
+    pass
+
+def test_api_endpoint(self, client: TestClient, admin_token: str) -> None:
+    """Test API endpoint."""
+    pass
+
+@pytest.fixture
+def sample_user(self) -> User:
+    """Create sample user for testing."""
+    return User(email="test@example.com")
+```
+
+##### 型アノテーションのガイドライン
+- **関数の引数**: 必須（Session, TestClient, str等）
+- **戻り値**: None を明示的に指定
+- **fixture**: 戻り値の型を必ず指定
+- **複雑な型**: Any を使用して簡潔に
+
+#### 統合テスト
+```python
 @pytest.mark.asyncio
-async def test_get_user_success(client: AsyncClient):
+async def test_get_user_success(client: TestClient, user_token: str) -> None:
     # Arrange
     user_id = 1
     
     # Act
-    response = await client.get(f"/api/v1/users/{user_id}")
+    response = client.get(
+        f"/api/v1/users/{user_id}",
+        headers={"Authorization": f"Bearer {user_token}"}
+    )
     
     # Assert
     assert response.status_code == 200
     assert response.json()["id"] == user_id
 
 @pytest.mark.asyncio
-async def test_get_user_not_found(client: AsyncClient):
+async def test_get_user_not_found(client: TestClient, admin_token: str) -> None:
     # Arrange
     user_id = 999
     
     # Act
-    response = await client.get(f"/api/v1/users/{user_id}")
+    response = client.get(
+        f"/api/v1/users/{user_id}",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
     
     # Assert
     assert response.status_code == 404
@@ -586,6 +647,7 @@ export const UserManagement = memo(() => {
 
 ### 自動チェック項目
 - [ ] 型チェック（mypy --strict / tsc --noEmit）
+- [ ] テストコードの型チェック（最小限のアノテーション必須）
 - [ ] リント（black, isort, eslint）
 - [ ] テスト（pytest / vitest）
 - [ ] セキュリティスキャン
