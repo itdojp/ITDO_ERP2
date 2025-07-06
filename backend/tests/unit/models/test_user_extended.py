@@ -27,7 +27,13 @@ class TestUserExtendedModel:
         }
 
         # When: ユーザー作成
-        user = User.create(db_session, **user_data)
+        user = User.create(
+            db_session,
+            email=user_data["email"],
+            password=user_data["password"],
+            full_name=user_data["full_name"],
+            phone=user_data["phone"]
+        )
         db_session.commit()
 
         # Then: 正しく作成される

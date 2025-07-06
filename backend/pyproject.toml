@@ -90,11 +90,14 @@ warn_unused_ignores = true
 warn_no_return = true
 warn_unreachable = true
 strict_equality = true
+exclude = ["tests/"]
 # plugins = ["sqlalchemy.ext.mypy.plugin"]
 
-# Ignore test files type checking errors
+# Ignore test files completely for type checking
 [[tool.mypy.overrides]]
 module = "tests.*"
+follow_imports = "skip"
+ignore_missing_imports = true
 ignore_errors = true
 
 # Ignore specific imports
