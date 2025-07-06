@@ -38,6 +38,9 @@ dev = [
     "httpx>=0.25.2",
     "factory-boy>=3.3.0",
     "pytest-mock>=3.12.0",
+    "types-python-jose>=3.3.4",
+    "types-passlib>=1.7.7",
+    "sqlalchemy[mypy]>=2.0.23",
 ]
 
 [build-system]
@@ -73,7 +76,7 @@ force_grid_wrap = 0
 line_length = 88
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.13"
 strict = true
 warn_return_any = true
 warn_unused_configs = true
@@ -87,6 +90,7 @@ warn_unused_ignores = true
 warn_no_return = true
 warn_unreachable = true
 strict_equality = true
+plugins = ["sqlalchemy.ext.mypy.plugin"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
