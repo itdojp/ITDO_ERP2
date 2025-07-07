@@ -45,16 +45,19 @@ class RoleService:
         self,
         query: str,
         skip: int = 0,
-        limit: int = 100
+        limit: int = 100,
+        filters: Optional[Dict[str, Any]] = None
     ) -> Tuple[List[Role], int]:
         """Search roles by name or description."""
-        filters = {
+        search_filters = {
             "or": [
                 {"name": {"ilike": f"%{query}%"}},
                 {"description": {"ilike": f"%{query}%"}}
             ]
         }
-        return self.list_roles(skip=skip, limit=limit, filters=filters)
+        if filters:
+            search_filters.update(filters)
+        return self.list_roles(skip=skip, limit=limit, filters=search_filters)
     
     def get_role_user_count(self, role_id: int) -> int:
         """Get count of users with this role."""
@@ -249,3 +252,113 @@ class RoleService:
             result.append(UserRoleInfo.model_validate(ur))
         
         return result
+    
+    def get_role_summary(self, role: Role) -> "RoleSummary":
+        """Get role summary with counts."""
+        from app.schemas.role import RoleSummary
+        
+        user_count = self.get_role_user_count(role.id)
+        sub_role_count = len(role.child_roles) if hasattr(role, 'child_roles') else 0
+        
+        return RoleSummary(
+            id=role.id,
+            code=role.code,
+            name=role.name,
+            name_en=role.name_en,
+            is_active=role.is_active,
+            user_count=user_count,
+            sub_role_count=sub_role_count
+        )
+    
+    def get_role_response(self, role: Role) -> RoleResponse:
+        """Get full role response."""
+        data = role.to_dict()
+        data["parent"] = role.parent.to_dict() if role.parent else None
+        
+        return RoleResponse.model_validate(data)
+    
+    def get_role_with_permissions(
+        self,
+        role: Role,
+        include_inherited: bool = False
+    ) -> "RoleWithPermissions":
+        """Get role with permissions details."""
+        from app.schemas.role import RoleWithPermissions
+        
+        effective_permissions = role.permissions or {}
+        inherited_permissions = {}
+        
+        if include_inherited and role.parent:
+            parent = role.parent
+            while parent:
+                inherited_permissions.update(parent.permissions or {})
+                parent = parent.parent
+        
+        return RoleWithPermissions(
+            **self.get_role_response(role).model_dump(),
+            effective_permissions=effective_permissions,
+            inherited_permissions=inherited_permissions
+        )
+    
+    def list_all_permissions(self, category: Optional[str] = None) -> List["PermissionBasic"]:
+        """List all available permissions."""
+        from app.schemas.role import PermissionBasic
+        
+        # This is a placeholder - in a real system, permissions would come from a database or configuration
+        permissions = [
+            {"code": "user.read", "name": "View Users", "category": "user", "description": "View user information"},
+            {"code": "user.create", "name": "Create Users", "category": "user", "description": "Create new users"},
+            {"code": "user.update", "name": "Update Users", "category": "user", "description": "Update user information"},
+            {"code": "user.delete", "name": "Delete Users", "category": "user", "description": "Delete users"},
+            {"code": "role.read", "name": "View Roles", "category": "role", "description": "View role information"},
+            {"code": "role.create", "name": "Create Roles", "category": "role", "description": "Create new roles"},
+            {"code": "role.update", "name": "Update Roles", "category": "role", "description": "Update role information"},
+            {"code": "role.delete", "name": "Delete Roles", "category": "role", "description": "Delete roles"},
+        ]
+        
+        if category:
+            permissions = [p for p in permissions if p["category"] == category]
+        
+        return [PermissionBasic(**p) for p in permissions]
+    
+    def user_has_permission(
+        self,
+        user_id: UserId,
+        permission: str,
+        organization_id: OrganizationId
+    ) -> bool:
+        """Check if user has a specific permission in an organization."""
+        user_roles = self.get_user_roles(user_id, organization_id)
+        
+        for ur in user_roles:
+            role = self.get_role(ur.role_id)
+            if role and role.has_permission(permission):
+                return True
+        
+        return False
+    
+    def update_role_permissions(
+        self,
+        role_id: int,
+        permissions: Dict[str, Any]
+    ) -> Optional[Role]:
+        """Update role permissions."""
+        role = self.get_role(role_id)
+        if not role:
+            return None
+        
+        role.permissions = permissions
+        self.db.commit()
+        self.db.refresh(role)
+        
+        return role
+    
+    def get_user_role_response(self, user_role: UserRole) -> UserRoleResponse:
+        """Get user role response with full details."""
+        role = user_role.role
+        effective_permissions = role.get_all_permissions() if hasattr(role, 'get_all_permissions') else {}
+        
+        return UserRoleResponse(
+            **user_role.to_dict(),
+            effective_permissions=effective_permissions
+        )

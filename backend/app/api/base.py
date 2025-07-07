@@ -2,7 +2,7 @@
 
 This module provides a generic API router with full type safety and standard CRUD operations.
 """
-from typing import TypeVar, Generic, Optional, List, Dict, Any, Type, Callable
+from typing import TypeVar, Generic, Optional, List, Dict, Any, Type, Callable, Sequence
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
@@ -33,14 +33,14 @@ class BaseAPIRouter(Generic[ModelType, CreateSchemaType, UpdateSchemaType, Respo
         self,
         *,
         prefix: str,
-        tags: List[str],
+        tags: Sequence[str],
         model: Type[ModelType],
         repository: Type[BaseRepository[ModelType, CreateSchemaType, UpdateSchemaType]],
         create_schema: Type[CreateSchemaType],
         update_schema: Type[UpdateSchemaType],
         response_schema: Type[ResponseSchemaType],
-        get_current_user_fn: Optional[Callable] = None,
-        dependencies: Optional[List[Depends]] = None
+        get_current_user_fn: Optional[Callable[..., Any]] = None,
+        dependencies: Optional[List[Any]] = None
     ):
         """Initialize base API router with configurations."""
         self.model = model
@@ -107,7 +107,7 @@ class BaseAPIRouter(Generic[ModelType, CreateSchemaType, UpdateSchemaType, Respo
                 limit=limit
             )
         
-        @self.router.get("/{item_id}", response_model=ResponseSchemaType)
+        @self.router.get("/{item_id}", response_model=self.response_schema)
         async def get_item(
             item_id: int,
             db: Session = Depends(get_db),
@@ -125,7 +125,7 @@ class BaseAPIRouter(Generic[ModelType, CreateSchemaType, UpdateSchemaType, Respo
             
             return self.response_schema.model_validate(item.to_dict())
         
-        @self.router.post("/", response_model=ResponseSchemaType, status_code=status.HTTP_201_CREATED)
+        @self.router.post("/", response_model=self.response_schema, status_code=status.HTTP_201_CREATED)
         async def create_item(
             item_in: CreateSchemaType,
             db: Session = Depends(get_db),
@@ -146,7 +146,7 @@ class BaseAPIRouter(Generic[ModelType, CreateSchemaType, UpdateSchemaType, Respo
             
             return self.response_schema.model_validate(item.to_dict())
         
-        @self.router.put("/{item_id}", response_model=ResponseSchemaType)
+        @self.router.put("/{item_id}", response_model=self.response_schema)
         async def update_item(
             item_id: int,
             item_in: UpdateSchemaType,

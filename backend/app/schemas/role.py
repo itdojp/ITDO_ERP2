@@ -175,5 +175,37 @@ class BulkRoleAssignment(BaseModel):
     notes: Optional[str] = Field(None, max_length=1000)
 
 
+# Additional schemas for API compatibility
+class RoleSummary(RoleBasic):
+    """Role summary with additional info."""
+    user_count: int = 0
+    sub_role_count: int = 0
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
+class RoleWithPermissions(RoleResponse):
+    """Role with full permissions details."""
+    effective_permissions: Dict[str, Any] = Field(default_factory=dict)
+    inherited_permissions: Dict[str, Any] = Field(default_factory=dict)
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PermissionBasic(BaseModel):
+    """Basic permission information."""
+    code: str = Field(..., description="Permission code")
+    name: str = Field(..., description="Permission name")
+    category: str = Field(..., description="Permission category")
+    description: Optional[str] = None
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UserRoleAssignment(UserRoleCreate):
+    """User role assignment schema (alias for compatibility)."""
+    pass
+
+
 # Update forward references
 RoleTree.model_rebuild()

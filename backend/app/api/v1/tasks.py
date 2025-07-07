@@ -1,6 +1,6 @@
 """Task management API endpoints."""
 
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Query
 from sqlalchemy.orm import Session
 
@@ -69,10 +69,12 @@ def get_tasks(
             due_date_to_dt = datetime.fromisoformat(due_date_to)
         
         # Create search params
+        from app.models.task import TaskStatus, TaskPriority
+        
         search_params = TaskSearchParams(
             search=search,
-            status=status_filter,
-            priority=priority,
+            status=TaskStatus(status_filter) if status_filter else None,
+            priority=TaskPriority(priority) if priority else None,
             assignee_id=assignee_id,
             project_id=project_id,
             due_date_from=due_date_from_dt,
@@ -251,7 +253,7 @@ def get_task_dependencies(
     task_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
-) -> dict:
+) -> Dict[str, Any]:
     """Get task dependency tree."""
     service = TaskService(db)
     try:
@@ -286,7 +288,7 @@ def get_task_comments(
     task_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
-) -> dict:
+) -> Dict[str, Any]:
     """Get task comments."""
     service = TaskService(db)
     try:
@@ -306,7 +308,7 @@ def upload_task_attachment(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
-) -> dict:
+) -> Dict[str, Any]:
     """Upload file attachment to task."""
     service = TaskService(db)
     try:
@@ -333,7 +335,7 @@ def download_task_attachment(
     attachment_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
-) -> dict:
+) -> Dict[str, Any]:
     """Download task attachment."""
     service = TaskService(db)
     try:

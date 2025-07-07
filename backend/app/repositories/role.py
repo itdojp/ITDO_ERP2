@@ -109,21 +109,29 @@ class RoleRepository(BaseRepository[Role, RoleCreate, RoleUpdate]):
         if not source:
             raise ValueError(f"Role {source_id} not found")
         
-        data = {
-            "code": new_code,
-            "name": new_name,
-            "name_en": source.name_en,
-            "description": f"Cloned from {source.name}",
-            "role_type": "custom",
-            "parent_id": source.parent_id,
-            "permissions": source.permissions if include_permissions else {},
-            "is_system": False,
-            "display_order": source.display_order,
-            "icon": source.icon,
-            "color": source.color
-        }
+        from typing import cast
         
-        return self.create(RoleCreate(**data))
+        # Create role data with explicit type
+        role_data = RoleCreate(
+            code=new_code,
+            name=new_name,
+            name_en=source.name_en,
+            description=f"Cloned from {source.name}",
+            parent_id=source.parent_id,
+            is_active=True
+        )
+        
+        # Create the role first
+        new_role = self.create(role_data)
+        
+        # Update additional fields if needed
+        if new_role and (source.permissions if include_permissions else {}):
+            update_data = {"permissions": source.permissions}
+            self.db.query(Role).filter(Role.id == new_role.id).update(update_data)
+            self.db.commit()
+            self.db.refresh(new_role)
+        
+        return new_role
 
 
 class UserRoleRepository(BaseRepository[UserRole, UserRoleCreate, UserRoleUpdate]):

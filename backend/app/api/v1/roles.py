@@ -55,7 +55,7 @@ def list_roles(
     if active_only:
         filters["is_active"] = True
     if role_type:
-        filters["role_type"] = role_type
+        filters["role_type"] = str(role_type)
     
     # Get roles
     if search:
@@ -99,7 +99,7 @@ def get_role_tree(
             detail="Organization not found"
         )
     
-    return service.get_role_tree(organization_id)
+    return service.get_role_tree()
 
 
 @router.get(
@@ -192,30 +192,16 @@ def create_role(
     # Check permissions
     service = RoleService(db)
     if not current_user.is_superuser:
-        if not service.user_has_permission(
-            current_user.id,
-            "roles.create",
-            role_data.organization_id
-        ):
-            return JSONResponse(
-                status_code=status.HTTP_403_FORBIDDEN,
-                content=ErrorResponse(
-                    detail="Insufficient permissions to create roles",
-                    code="PERMISSION_DENIED"
-                ).model_dump()
-            )
-    
-    # Verify organization exists
-    from app.services.organization import OrganizationService
-    org_service = OrganizationService(db)
-    if not org_service.get_organization(role_data.organization_id):
+        # For now, only superusers can create roles
         return JSONResponse(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=status.HTTP_403_FORBIDDEN,
             content=ErrorResponse(
-                detail="Organization not found",
-                code="ORGANIZATION_NOT_FOUND"
+                detail="Insufficient permissions to create roles",
+                code="PERMISSION_DENIED"
             ).model_dump()
         )
+    
+    # Organization check removed as roles are not organization-specific
     
     # Verify parent role if specified
     if role_data.parent_id:
