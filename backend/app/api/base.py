@@ -55,9 +55,10 @@ class BaseAPIRouter(Generic[ModelType, CreateSchemaType, UpdateSchemaType, Respo
         if self.get_current_user_fn:
             router_dependencies.append(Depends(self.get_current_user_fn))
         
+        from typing import Sequence, cast
         self.router = APIRouter(
             prefix=prefix,
-            tags=tags,
+            tags=cast(Sequence[str], tags) if tags else None,
             dependencies=router_dependencies
         )
         
@@ -125,7 +126,7 @@ class BaseAPIRouter(Generic[ModelType, CreateSchemaType, UpdateSchemaType, Respo
             
             return self.response_schema.model_validate(item, from_attributes=True)
         
-        @self.router.post("/", response_model=ResponseSchemaType, status_code=status.HTTP_201_CREATED)
+        @self.router.post("/", response_model=self.response_schema, status_code=status.HTTP_201_CREATED)
         async def create_item(
             item_in: CreateSchemaType,
             db: Session = Depends(get_db),
@@ -146,7 +147,7 @@ class BaseAPIRouter(Generic[ModelType, CreateSchemaType, UpdateSchemaType, Respo
             
             return self.response_schema.model_validate(item, from_attributes=True)
         
-        @self.router.put("/{item_id}", response_model=ResponseSchemaType)
+        @self.router.put("/{item_id}", response_model=self.response_schema)
         async def update_item(
             item_id: int,
             item_in: UpdateSchemaType,
@@ -293,7 +294,8 @@ class BaseAPIRouter(Generic[ModelType, CreateSchemaType, UpdateSchemaType, Respo
                     item.soft_delete(deleted_by=current_user.id)
                     deleted_count += 1
                 else:
-                    if repo.delete(item.id):
+                    item_id = getattr(item, 'id', None)
+                    if item_id and repo.delete(item_id):
                         deleted_count += 1
             
             db.commit()
