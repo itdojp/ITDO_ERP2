@@ -127,6 +127,15 @@ class DepartmentRepository(BaseRepository[Department, DepartmentCreate, Departme
             .where(self.model.is_deleted == False)
         )
     
+    def get_with_parent(self, department_id: DepartmentId) -> Optional[Department]:
+        """Get department with parent eager loaded."""
+        return self.db.scalar(
+            select(self.model)
+            .options(joinedload(self.model.parent))
+            .where(self.model.id == department_id)
+            .where(self.model.is_deleted == False)
+        )
+    
     def validate_unique_code(
         self,
         code: str,

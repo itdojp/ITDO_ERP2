@@ -256,7 +256,13 @@ class DepartmentService:
         
         # Get users
         users = self.db.query(User).filter(
-            User.department_id.in_(department_ids),
+            # Get users from user_roles that have department_id in department_ids
+            User.id.in_(
+                self.db.query(UserRole.user_id).filter(
+                    UserRole.department_id.in_(department_ids),
+                    UserRole.is_active == True
+                ).subquery()
+            ),
             User.is_active == True
         ).order_by(User.full_name).all()
         
@@ -312,7 +318,12 @@ class DepartmentService:
     def get_department_user_count(self, department_id: DepartmentId) -> int:
         """Get count of active users in department."""
         return self.db.query(User).filter(
-            User.department_id == department_id,
+            User.id.in_(
+                self.db.query(UserRole.user_id).filter(
+                    UserRole.department_id == department_id,
+                    UserRole.is_active == True
+                ).subquery()
+            ),
             User.is_active == True
         ).count()
     

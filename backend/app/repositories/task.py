@@ -77,7 +77,7 @@ class TaskRepository(BaseRepository[Task, TaskCreate, TaskUpdate]):
             for tag in params.tags:
                 query = query.where(Task.tags.contains([tag]))
         
-        if params.is_overdue:
+        if params.is_overdue is not None:
             now = datetime.now()
             if params.is_overdue:
                 query = query.where(
@@ -195,7 +195,7 @@ class TaskRepository(BaseRepository[Task, TaskCreate, TaskUpdate]):
     
     def get_dependency_tree(self, task_id: int) -> Dict[str, Any]:
         """Get the complete dependency tree for a task."""
-        def get_predecessors(tid: int, visited: Set[int]) -> List[Dict]:
+        def get_predecessors(tid: int, visited: Set[int]) -> List[Dict[str, Any]]:
             if tid in visited:
                 return []
             visited.add(tid)
@@ -216,7 +216,7 @@ class TaskRepository(BaseRepository[Task, TaskCreate, TaskUpdate]):
                 for dep in deps
             ]
         
-        def get_successors(tid: int, visited: Set[int]) -> List[Dict]:
+        def get_successors(tid: int, visited: Set[int]) -> List[Dict[str, Any]]:
             if tid in visited:
                 return []
             visited.add(tid)
@@ -298,7 +298,7 @@ class TaskRepository(BaseRepository[Task, TaskCreate, TaskUpdate]):
                 }
             )
             
-            if result.rowcount == 0:
+            if hasattr(result, 'rowcount') and result.rowcount == 0:
                 raise OptimisticLockError("Task was modified by another user")
             
             self.db.commit()
@@ -332,12 +332,12 @@ class TaskRepository(BaseRepository[Task, TaskCreate, TaskUpdate]):
         task_dict = {task.id: task for task in tasks}
         
         # Calculate earliest start times (forward pass)
-        earliest_start = {}
-        earliest_finish = {}
+        earliest_start: Dict[int, float] = {}
+        earliest_finish: Dict[int, float] = {}
         
         def calculate_earliest(task_id: int) -> float:
             if task_id in earliest_start:
-                return earliest_start[task_id]
+                return float(earliest_start[task_id])
             
             task = task_dict[task_id]
             max_predecessor_finish = 0.0
@@ -364,12 +364,12 @@ class TaskRepository(BaseRepository[Task, TaskCreate, TaskUpdate]):
         project_duration = max(earliest_finish.values()) if earliest_finish else 0
         
         # Calculate latest start times (backward pass)
-        latest_start = {}
-        latest_finish = {}
+        latest_start: Dict[int, float] = {}
+        latest_finish: Dict[int, float] = {}
         
         def calculate_latest(task_id: int) -> float:
             if task_id in latest_finish:
-                return latest_finish[task_id]
+                return float(latest_finish[task_id])
             
             task = task_dict[task_id]
             

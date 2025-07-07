@@ -132,7 +132,7 @@ class OrganizationService:
         updated_by: Optional[UserId] = None
     ) -> Optional[Organization]:
         """Activate an inactive organization."""
-        data = {"is_active": True}
+        data: Dict[str, Any] = {"is_active": True}
         if updated_by:
             data["updated_by"] = updated_by
         
@@ -144,7 +144,7 @@ class OrganizationService:
         updated_by: Optional[UserId] = None
     ) -> Optional[Organization]:
         """Deactivate an active organization."""
-        data = {"is_active": False}
+        data: Dict[str, Any] = {"is_active": False}
         if updated_by:
             data["updated_by"] = updated_by
         
@@ -185,7 +185,9 @@ class OrganizationService:
         """Get full organization response."""
         # Load parent if needed
         if organization.parent_id and not organization.parent:
-            organization = self.repository.get_with_parent(organization.id)
+            loaded_org = self.repository.get_with_parent(organization.id)
+            if loaded_org:
+                organization = loaded_org
         
         # Get counts
         subsidiary_count = len(self.repository.get_subsidiaries(organization.id))

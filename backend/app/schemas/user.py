@@ -89,3 +89,17 @@ class UserBasic(BaseModel):
     class Config:
         """Pydantic configuration."""
         from_attributes = True
+
+
+class UserSummary(BaseModel):
+    """User summary information."""
+    
+    id: int = Field(..., description="User ID")
+    email: EmailStr = Field(..., description="User email address")
+    full_name: str = Field(..., description="User full name")
+    employee_code: Optional[str] = Field(None, description="Employee code")
+    is_active: bool = Field(..., description="Whether user is active")
+    
+    class Config:
+        """Pydantic configuration."""
+        from_attributes = True

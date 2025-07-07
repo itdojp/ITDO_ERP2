@@ -32,6 +32,7 @@ class User(SoftDeletableModel):
     email: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
     hashed_password: Mapped[str] = mapped_column(String, nullable=False)
     full_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    employee_code: Mapped[Optional[str]] = mapped_column(String(50))
     phone: Mapped[Optional[str]] = mapped_column(String(20))
     profile_image_url: Mapped[Optional[str]] = mapped_column(String(500))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -49,6 +50,14 @@ class User(SoftDeletableModel):
     password_history: Mapped[List["PasswordHistory"]] = relationship("PasswordHistory", back_populates="user", cascade="all, delete-orphan")
     sessions: Mapped[List["UserSession"]] = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
     activity_logs: Mapped[List["UserActivityLog"]] = relationship("UserActivityLog", back_populates="user", cascade="all, delete-orphan")
+    
+    @property
+    def department(self) -> Optional["Department"]:
+        """Get the user's primary department from active user roles."""
+        for ur in self.user_roles:
+            if ur.is_active and ur.department:
+                return ur.department
+        return None
     
     @classmethod
     def create(

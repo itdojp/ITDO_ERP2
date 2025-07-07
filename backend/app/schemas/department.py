@@ -94,6 +94,7 @@ class DepartmentSummary(DepartmentBasic):
     parent_name: Optional[str] = None
     manager_id: Optional[int] = None
     manager_name: Optional[str] = None
+    user_count: int = 0
     current_headcount: int = 0
     headcount_limit: Optional[int] = None
     is_over_headcount: bool = False
@@ -132,10 +133,14 @@ class DepartmentTree(BaseModel):
     id: int
     code: str
     name: str
+    name_en: Optional[str] = None
     short_name: Optional[str] = None
     is_active: bool
     level: int = 0
     parent_id: Optional[int] = None
+    manager_id: Optional[int] = None
+    manager_name: Optional[str] = None
+    user_count: int = 0
     current_headcount: int = 0
     headcount_limit: Optional[int] = None
     children: List["DepartmentTree"] = Field(default_factory=list)

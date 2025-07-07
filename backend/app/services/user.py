@@ -33,7 +33,7 @@ class UserService:
         """Initialize service with database session."""
         self.db = db
         self.repository = UserRepository(db)
-        self.audit_logger = AuditLogger(db)
+        self.audit_logger = AuditLogger()
 
     def create_user(
         self, data: UserCreateExtended, creator: User, db: Session
@@ -392,7 +392,7 @@ class UserService:
                 raise BusinessLogicError("最後のシステム管理者は削除できません")
 
         # Soft delete
-        user.soft_delete(db, deleter.id)
+        user.soft_delete(deleted_by=deleter.id)
 
         # Log audit
         self._log_audit("delete", "user", user.id, deleter, {}, db)
@@ -512,7 +512,7 @@ class UserService:
         # Get user roles with organizations/departments
         role_infos = []
         for ur in user.user_roles:
-            if not ur.is_expired():
+            if not ur.is_expired:
                 # Type assertions for SQLAlchemy 1.x style models
                 role = ur.role
                 org = ur.organization

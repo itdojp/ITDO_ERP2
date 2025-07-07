@@ -121,7 +121,10 @@ class TaskService:
         if comment:
             self.add_comment(task_id, TaskCommentCreate(content=comment), user)
         
-        return self._task_to_response(updated_task)
+        if updated_task:
+            return self._task_to_response(updated_task)
+        else:
+            raise ValueError("Failed to update task status")
     
     def search_tasks(
         self,
@@ -359,7 +362,7 @@ class TaskService:
             try:
                 task = self._get_task_with_permission_check(task_id, user)
                 
-                update_dict = {}
+                update_dict: Dict[str, Any] = {}
                 if update_data.status:
                     if task.can_transition_to(update_data.status):
                         update_dict["status"] = update_data.status

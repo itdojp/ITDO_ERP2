@@ -164,9 +164,7 @@ class Department(SoftDeletableModel):
     )
     users: Mapped[List["User"]] = relationship(
         "User",
-        secondary="user_roles",
-        primaryjoin="Department.id == UserRole.department_id",
-        secondaryjoin="UserRole.user_id == User.id",
+        back_populates="department",
         viewonly=True
     )
     
@@ -193,6 +191,21 @@ class Department(SoftDeletableModel):
     def current_headcount(self) -> int:
         """Get current number of users in the department."""
         return len([u for u in self.users if u.is_active])
+    
+    @property
+    def full_path(self) -> str:
+        """Get full department path from root."""
+        path_parts = []
+        current = self
+        while current:
+            path_parts.insert(0, current.name)
+            current = current.parent
+        return " > ".join(path_parts)
+    
+    @property
+    def is_leaf(self) -> bool:
+        """Check if department has no sub-departments."""
+        return len(self.sub_departments) == 0
     
     @property
     def is_over_headcount(self) -> bool:
