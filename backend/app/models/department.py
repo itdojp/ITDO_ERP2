@@ -149,7 +149,7 @@ class Department(SoftDeletableModel):
     )
     parent: Mapped[Optional["Department"]] = relationship(
         "Department",
-        remote_side=[id],
+        remote_side="Department.id",
         backref="sub_departments",
         lazy="joined"
     )
@@ -163,8 +163,7 @@ class Department(SoftDeletableModel):
         secondary="user_roles",
         primaryjoin="Department.id == UserRole.department_id",
         secondaryjoin="UserRole.user_id == User.id",
-        viewonly=True,
-        lazy="dynamic"
+        viewonly=True
     )
     
     def __repr__(self) -> str:
@@ -189,7 +188,7 @@ class Department(SoftDeletableModel):
     @property
     def current_headcount(self) -> int:
         """Get current number of users in the department."""
-        return self.users.filter_by(is_active=True).count()
+        return len([u for u in self.users if u.is_active])
     
     @property
     def is_over_headcount(self) -> bool:
@@ -217,11 +216,11 @@ class Department(SoftDeletableModel):
     
     def get_all_users(self, include_sub_departments: bool = False) -> List["User"]:
         """Get all users in this department and optionally in sub-departments."""
-        users = list(self.users.filter_by(is_active=True).all())
+        users = [u for u in self.users if u.is_active]
         
         if include_sub_departments:
             for sub_dept in self.get_all_sub_departments():
-                users.extend(sub_dept.users.filter_by(is_active=True).all())
+                users.extend([u for u in sub_dept.users if u.is_active])
         
         # Remove duplicates while preserving order
         seen = set()

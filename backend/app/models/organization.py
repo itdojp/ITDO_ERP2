@@ -8,6 +8,7 @@ from app.types import OrganizationId, UserId
 if TYPE_CHECKING:
     from app.models.department import Department
     from app.models.user import User
+    from app.models.task import Task
 
 
 class Organization(SoftDeletableModel):
@@ -153,14 +154,13 @@ class Organization(SoftDeletableModel):
     # Relationships
     parent: Mapped[Optional["Organization"]] = relationship(
         "Organization",
-        remote_side=[id],
+        remote_side="Organization.id",
         backref="subsidiaries",
         lazy="joined"
     )
     departments: Mapped[List["Department"]] = relationship(
         "Department",
         back_populates="organization",
-        lazy="dynamic",
         cascade="all, delete-orphan"
     )
     users: Mapped[List["User"]] = relationship(
@@ -168,8 +168,7 @@ class Organization(SoftDeletableModel):
         secondary="user_roles",
         primaryjoin="Organization.id == UserRole.organization_id",
         secondaryjoin="UserRole.user_id == User.id",
-        viewonly=True,
-        lazy="dynamic"
+        viewonly=True
     )
     
     def __repr__(self) -> str:
@@ -280,7 +279,6 @@ class Project(SoftDeletableModel):
     tasks: Mapped[List["Task"]] = relationship(
         "Task",
         back_populates="project",
-        lazy="dynamic",
         cascade="all, delete-orphan"
     )
     
