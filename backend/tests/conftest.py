@@ -12,7 +12,8 @@ from app.core.database import Base, get_db
 from app.models.user import User
 from app.models.organization import Organization
 from app.models.department import Department
-from app.models.role import Role, Permission
+from app.models.role import Role
+from app.models.permission import Permission
 from app.core.security import create_access_token
 from tests.factories import (
     UserFactory, 

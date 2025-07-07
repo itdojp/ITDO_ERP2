@@ -577,6 +577,7 @@ def bulk_import_users(
 
 @router.get(
     "/export",
+    response_model=None,
     responses={
         403: {"model": ErrorResponse, "description": "Access denied"},
     },

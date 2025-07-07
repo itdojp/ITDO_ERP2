@@ -70,7 +70,7 @@ class AuditableModel(BaseModel):
     
     # Relationships to user (will be defined in concrete models to avoid circular imports)
     @declared_attr
-    def creator(cls) -> Any:
+    def creator(cls) -> Mapped[Optional["User"]]:
         """Relationship to creator user."""
         return relationship(
             "User",
@@ -80,7 +80,7 @@ class AuditableModel(BaseModel):
         )
     
     @declared_attr
-    def updater(cls) -> Any:
+    def updater(cls) -> Mapped[Optional["User"]]:
         """Relationship to updater user."""
         return relationship(
             "User",
@@ -113,7 +113,7 @@ class SoftDeletableModel(AuditableModel):
     )
     
     @declared_attr
-    def deleter(cls) -> Any:
+    def deleter(cls) -> Mapped[Optional["User"]]:
         """Relationship to deleter user."""
         return relationship(
             "User",
