@@ -1,9 +1,10 @@
 """Factory classes for creating test data."""
 
 from abc import ABC, abstractmethod
-from typing import Type, Dict, Any, Optional, TypeVar
-from sqlalchemy.orm import Session
+from typing import Any, Dict, Type, TypeVar
+
 from faker import Faker
+from sqlalchemy.orm import Session
 
 from app.models.base import SoftDeletableModel
 
@@ -14,16 +15,16 @@ T = TypeVar('T', bound=SoftDeletableModel)
 
 class BaseFactory(ABC):
     """Base factory class for creating test model instances."""
-    
+
     model_class: Type[T]  # Abstract class variable to be overridden in subclasses
-    
+
     @classmethod
     def build_dict(cls, **kwargs: Any) -> Dict[str, Any]:
         """Build a dictionary of attributes for model creation."""
         defaults = cls._get_default_attributes()
         defaults.update(kwargs)
         return defaults
-    
+
     @classmethod
     def build_update_dict(cls, **kwargs: Any) -> Dict[str, Any]:
         """Build a dictionary of attributes for model updates."""
@@ -31,14 +32,14 @@ class BaseFactory(ABC):
         defaults = cls._get_update_attributes()
         defaults.update(kwargs)
         return defaults
-    
+
     @classmethod
     def build(cls, **kwargs: Any) -> Any:
         """Build a model instance without saving to database."""
         attributes = cls.build_dict(**kwargs)
         # Use the class variable directly
         return cls.model_class(**attributes)
-    
+
     @classmethod
     def create(cls, db_session: Session, **kwargs: Any) -> T:
         """Create and save a model instance to database."""
@@ -47,7 +48,7 @@ class BaseFactory(ABC):
         db_session.commit()
         db_session.refresh(instance)
         return instance
-    
+
     @classmethod
     def create_batch(cls, db_session: Session, count: int, **kwargs: Any) -> list[T]:
         """Create multiple instances."""
@@ -61,13 +62,13 @@ class BaseFactory(ABC):
                 instance_kwargs['code'] = f"{instance_kwargs['code']}{i}"
             instances.append(cls.create(db_session, **instance_kwargs))
         return instances
-    
+
     @classmethod
     @abstractmethod
     def _get_default_attributes(cls) -> Dict[str, Any]:
         """Get default attributes for creating instances."""
         pass
-    
+
     @classmethod
     def _get_update_attributes(cls) -> Dict[str, Any]:
         """Get default attributes for updating instances."""
@@ -79,9 +80,14 @@ class BaseFactory(ABC):
 
 
 # Re-export factory classes
-from tests.factories.organization import OrganizationFactory, create_test_organization
 from tests.factories.department import DepartmentFactory, create_test_department
-from tests.factories.role import RoleFactory, PermissionFactory, create_test_role, create_test_user_role
+from tests.factories.organization import OrganizationFactory, create_test_organization
+from tests.factories.role import (
+    PermissionFactory,
+    RoleFactory,
+    create_test_role,
+    create_test_user_role,
+)
 from tests.factories.user import UserFactory, create_test_user
 
 __all__ = [

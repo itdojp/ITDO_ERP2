@@ -1,7 +1,8 @@
 """Project milestone model implementation (stub for type checking)."""
-from typing import Optional, TYPE_CHECKING
 from datetime import date
-from sqlalchemy import Integer, ForeignKey, String, Date, Text, Boolean
+from typing import TYPE_CHECKING, Optional
+
+from sqlalchemy import Boolean, Date, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 if TYPE_CHECKING:
@@ -11,9 +12,9 @@ from app.models.base import SoftDeletableModel
 
 class ProjectMilestone(SoftDeletableModel):
     """Project milestone model (stub implementation)."""
-    
+
     __tablename__ = "project_milestones"
-    
+
     project_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("projects.id"), nullable=False
     )
@@ -26,7 +27,7 @@ class ProjectMilestone(SoftDeletableModel):
     actual_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     is_overdue: Mapped[bool] = mapped_column(default=False, nullable=False)
     is_critical: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    
+
     # Computed properties for dashboard
     @property
     def days_until_due(self) -> int:
@@ -36,7 +37,7 @@ class ProjectMilestone(SoftDeletableModel):
             delta = self.due_date - today
             return delta.days
         return 0
-    
+
     @property
     def project(self) -> "Project":
         """Get related project (stub)."""

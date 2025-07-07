@@ -1,6 +1,6 @@
 """Audit logging service."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from sqlalchemy.orm import Session
 
@@ -35,13 +35,13 @@ class AuditLogger:
             ip_address=ip_address,
             user_agent=user_agent,
         )
-        
+
         # Calculate checksum for integrity
         audit.checksum = audit.calculate_checksum()
-        
+
         db.add(audit)
         db.flush()
-        
+
         return audit
 
 
@@ -60,30 +60,30 @@ class AuditService:
     ) -> Dict[str, Any]:
         """Get audit logs with filtering."""
         query = db.query(AuditLog)
-        
+
         # Filter by organization if not superuser
         if not user.is_superuser:
             user_org_ids = [o.id for o in user.get_organizations()]
             query = query.filter(AuditLog.organization_id.in_(user_org_ids))
-        
+
         # Apply filters
         if organization_id:
             query = query.filter(AuditLog.organization_id == organization_id)
-        
+
         if resource_type:
             query = query.filter(AuditLog.resource_type == resource_type)
-        
+
         if action:
             query = query.filter(AuditLog.action == action)
-        
+
         # Order by newest first
         query = query.order_by(AuditLog.created_at.desc())
-        
+
         # Pagination
         total = query.count()
         offset = (page - 1) * limit
         items = query.offset(offset).limit(limit).all()
-        
+
         return {
             "items": items,
             "total": total,

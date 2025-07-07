@@ -1,11 +1,11 @@
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.exc import IntegrityError
 
+from app.api.errors import integrity_error_handler, validation_exception_handler
 from app.api.v1.router import api_router
 from app.core.config import settings
-from app.api.errors import validation_exception_handler, integrity_error_handler
 
 app = FastAPI(
     title=settings.PROJECT_NAME,

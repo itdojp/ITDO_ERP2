@@ -1,7 +1,8 @@
 """Organization schemas."""
-from typing import Optional, List
-from datetime import datetime
-from pydantic import BaseModel, Field, ConfigDict, field_validator
+from typing import List, Optional
+
+from pydantic import BaseModel, ConfigDict, Field
+
 from app.schemas.common import AuditInfo, SoftDeleteInfo
 
 
@@ -60,27 +61,27 @@ class OrganizationUpdate(BaseModel):
     name_kana: Optional[str] = Field(None, max_length=200)
     name_en: Optional[str] = Field(None, max_length=200)
     is_active: Optional[bool] = None
-    
+
     # Contact info
     phone: Optional[str] = Field(None, max_length=20, pattern=r'^[\d\-\+\(\)]+$')
     fax: Optional[str] = Field(None, max_length=20, pattern=r'^[\d\-\+\(\)]+$')
     email: Optional[str] = Field(None, max_length=255, pattern=r'^[\w\.\-]+@[\w\.\-]+\.\w+$')
     website: Optional[str] = Field(None, max_length=255)
-    
+
     # Address info
     postal_code: Optional[str] = Field(None, max_length=10, pattern=r'^\d{3}-?\d{4}$')
     prefecture: Optional[str] = Field(None, max_length=50)
     city: Optional[str] = Field(None, max_length=100)
     address_line1: Optional[str] = Field(None, max_length=255)
     address_line2: Optional[str] = Field(None, max_length=255)
-    
+
     # Business info
     business_type: Optional[str] = Field(None, max_length=100)
     industry: Optional[str] = Field(None, max_length=100)
     capital: Optional[int] = Field(None, ge=0)
     employee_count: Optional[int] = Field(None, ge=0)
     fiscal_year_end: Optional[str] = Field(None, pattern=r'^\d{2}-\d{2}$')
-    
+
     # Other fields
     parent_id: Optional[int] = None
     description: Optional[str] = Field(None, max_length=1000)
@@ -95,7 +96,7 @@ class OrganizationBasic(BaseModel):
     name: str
     name_en: Optional[str] = None
     is_active: bool
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -105,7 +106,7 @@ class OrganizationSummary(OrganizationBasic):
     parent_name: Optional[str] = None
     department_count: int = 0
     user_count: int = 0
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -128,7 +129,7 @@ class OrganizationResponse(
     is_subsidiary: bool = False
     is_parent: bool = False
     subsidiary_count: int = 0
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -141,7 +142,7 @@ class OrganizationTree(BaseModel):
     level: int = 0
     parent_id: Optional[int] = None
     children: List["OrganizationTree"] = Field(default_factory=list)
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 

@@ -4,18 +4,18 @@ Extended User API integration tests.
 Following TDD approach - Red phase: Writing tests before implementation.
 """
 
-import pytest
 import time
 from datetime import datetime, timedelta
+
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.core.security import create_access_token
 from tests.factories import (
-    create_test_user,
-    create_test_organization,
     create_test_department,
+    create_test_organization,
     create_test_role,
+    create_test_user,
     create_test_user_role,
 )
 
@@ -336,7 +336,7 @@ class TestUserManagementAPI:
         user = create_test_user()
         admin = create_test_user(is_superuser=True)
         role = create_test_role(code="REMOVE_ME")
-        user_role = create_test_user_role(user=user, role=role, organization=org)
+        create_test_user_role(user=user, role=role, organization=org)
         db_session.commit()
         admin_token = create_access_token({"sub": str(admin.id)})
 

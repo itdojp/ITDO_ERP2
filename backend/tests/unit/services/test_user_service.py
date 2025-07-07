@@ -4,20 +4,21 @@ User service unit tests.
 Following TDD approach - Red phase: Writing tests before implementation.
 """
 
-import pytest
 from datetime import datetime, timedelta
-from unittest.mock import Mock, patch
+from unittest.mock import patch
+
+import pytest
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import NotFound, PermissionDenied, BusinessLogicError
+from app.core.exceptions import BusinessLogicError, PermissionDenied
 from app.schemas.user import UserUpdate
 from app.schemas.user_extended import UserCreateExtended, UserSearchParams
 from app.services.user import UserService
 from tests.factories import (
-    create_test_user,
-    create_test_organization,
     create_test_department,
+    create_test_organization,
     create_test_role,
+    create_test_user,
     create_test_user_role,
 )
 
@@ -286,7 +287,7 @@ class TestUserService:
         user = create_test_user()
         admin = create_test_user(is_superuser=True)
         role = create_test_role(code="REMOVE_ME")
-        user_role = create_test_user_role(user=user, role=role, organization=org)
+        create_test_user_role(user=user, role=role, organization=org)
         db_session.commit()
 
         # When: ロール削除

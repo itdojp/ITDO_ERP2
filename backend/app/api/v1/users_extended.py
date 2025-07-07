@@ -3,9 +3,9 @@
 import csv
 import io
 from datetime import datetime
-from typing import List, Optional, Union, Dict, Any
+from typing import Any, Dict, Optional, Union
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.orm import Session
 
@@ -48,7 +48,7 @@ def create_user_extended(
 ) -> Union[UserResponseExtended, JSONResponse]:
     """Create a new user with organization and role assignment."""
     service = UserService(db)
-    
+
     try:
         user = service.create_user(
             data=user_data,
@@ -56,9 +56,9 @@ def create_user_extended(
             db=db
         )
         db.commit()
-        
+
         return service._user_to_extended_response(user, db)
-        
+
     except PermissionDenied as e:
         db.rollback()
         return JSONResponse(
@@ -103,7 +103,7 @@ def list_users(
 ) -> UserListResponse:
     """List users with filtering and pagination."""
     service = UserService(db)
-    
+
     # Build search params
     search_params = UserSearchParams(
         search=search,
@@ -112,17 +112,17 @@ def list_users(
         role_id=role_id,
         is_active=is_active
     )
-    
+
     result = service.search_users(
         params=search_params,
         searcher=current_user,
         db=db
     )
-    
+
     # Override pagination from query params
     result.page = page
     result.limit = limit
-    
+
     return result
 
 
@@ -141,7 +141,7 @@ def get_user_detail(
 ) -> Union[UserResponseExtended, JSONResponse]:
     """Get user details with roles and organizations."""
     service = UserService(db)
-    
+
     try:
         return service.get_user_detail(
             user_id=user_id,
@@ -184,7 +184,7 @@ def update_user(
 ) -> Union[UserResponseExtended, JSONResponse]:
     """Update user information."""
     service = UserService(db)
-    
+
     try:
         user = service.update_user(
             user_id=user_id,
@@ -193,16 +193,16 @@ def update_user(
             db=db
         )
         db.commit()
-        
+
         # Log activity
         user.log_activity(
             db,
             action="profile_update",
             details=user_data.model_dump(exclude_unset=True)
         )
-        
+
         return service._user_to_extended_response(user, db)
-        
+
     except NotFound:
         db.rollback()
         return JSONResponse(
@@ -242,7 +242,7 @@ def change_password(
 ) -> Union[Dict[str, Any], JSONResponse]:
     """Change user password."""
     service = UserService(db)
-    
+
     try:
         service.change_password(
             user_id=user_id,
@@ -252,9 +252,9 @@ def change_password(
             db=db
         )
         db.commit()
-        
+
         return {"message": "パスワードが変更されました"}
-        
+
     except BusinessLogicError as e:
         db.rollback()
         return JSONResponse(
@@ -292,7 +292,7 @@ def reset_password(
 ) -> Union[Dict[str, Any], JSONResponse]:
     """Reset user password (admin only)."""
     service = UserService(db)
-    
+
     try:
         temp_password = service.reset_password(
             user_id=user_id,
@@ -300,9 +300,9 @@ def reset_password(
             db=db
         )
         db.commit()
-        
+
         return {"temporary_password": temp_password}
-        
+
     except NotFound:
         db.rollback()
         return JSONResponse(
@@ -342,9 +342,9 @@ def assign_role(
 ) -> Union[Dict[str, Any], JSONResponse]:
     """Assign role to user."""
     service = UserService(db)
-    
+
     try:
-        user_role = service.assign_role(
+        service.assign_role(
             user_id=user_id,
             role_id=assignment.role_id,
             organization_id=assignment.organization_id,
@@ -354,11 +354,11 @@ def assign_role(
             expires_at=assignment.expires_at,
         )
         db.commit()
-        
+
         # Build response
         from app.models.role import Role
         role = db.query(Role).filter(Role.id == assignment.role_id).first()
-        
+
         if not role:
             return JSONResponse(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -367,7 +367,7 @@ def assign_role(
                     code="ROLE_NOT_FOUND"
                 ).model_dump()
             )
-        
+
         response = {
             "role": {
                 "id": role.id,
@@ -378,9 +378,9 @@ def assign_role(
             "department_id": assignment.department_id,
             "expires_at": assignment.expires_at.isoformat() if assignment.expires_at else None,
         }
-        
+
         return response
-        
+
     except NotFound as e:
         db.rollback()
         return JSONResponse(
@@ -420,7 +420,7 @@ def remove_role(
 ) -> None:
     """Remove role from user."""
     service = UserService(db)
-    
+
     try:
         service.remove_role(
             user_id=user_id,
@@ -430,7 +430,7 @@ def remove_role(
             db=db
         )
         db.commit()
-        
+
     except PermissionDenied:
         db.rollback()
         raise HTTPException(
@@ -455,7 +455,7 @@ def get_user_permissions(
 ) -> PermissionListResponse:
     """Get user's effective permissions in organization."""
     service = UserService(db)
-    
+
     # Permission check - user can view own permissions
     if current_user.id != user_id and not current_user.is_superuser:
         # Check if viewer has permission in the organization
@@ -465,19 +465,19 @@ def get_user_permissions(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Access denied"
             )
-    
+
     try:
         permissions = service.get_user_permissions(
             user_id=user_id,
             organization_id=organization_id,
             db=db
         )
-        
+
         return PermissionListResponse(
             permissions=permissions,
             organization_id=organization_id
         )
-        
+
     except NotFound:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -501,7 +501,7 @@ def delete_user(
 ) -> None:
     """Soft delete user (admin only)."""
     service = UserService(db)
-    
+
     try:
         service.delete_user(
             user_id=user_id,
@@ -509,7 +509,7 @@ def delete_user(
             db=db
         )
         db.commit()
-        
+
     except BusinessLogicError as e:
         db.rollback()
         if "自分自身" in str(e):
@@ -544,7 +544,7 @@ def bulk_import_users(
 ) -> BulkImportResponse:
     """Bulk import users."""
     service = UserService(db)
-    
+
     try:
         # Convert import data to dict format
         users_data = [
@@ -555,7 +555,7 @@ def bulk_import_users(
             }
             for user in import_data.users
         ]
-        
+
         result = service.bulk_import_users(
             data=users_data,
             organization_id=import_data.organization_id,
@@ -564,9 +564,9 @@ def bulk_import_users(
             db=db
         )
         db.commit()
-        
+
         return result
-        
+
     except PermissionDenied:
         db.rollback()
         raise HTTPException(
@@ -590,7 +590,7 @@ def export_users(
 ) -> Union[StreamingResponse, JSONResponse]:
     """Export user list."""
     service = UserService(db)
-    
+
     try:
         export_data = service.export_users(
             organization_id=organization_id,
@@ -598,14 +598,14 @@ def export_users(
             exporter=current_user,
             db=db
         )
-        
+
         if format == "csv":
             # Create CSV content
             output = io.StringIO()
             writer = csv.writer(output)
             writer.writerow(export_data["headers"])
             writer.writerows(export_data["rows"])
-            
+
             return StreamingResponse(
                 io.BytesIO(output.getvalue().encode()),
                 media_type="text/csv",
@@ -613,10 +613,10 @@ def export_users(
                     "Content-Disposition": f"attachment; filename=users_{organization_id}_{datetime.now().strftime('%Y%m%d')}.csv"
                 }
             )
-        
+
         # For other formats, return the data structure
         return JSONResponse(content=export_data)
-        
+
     except PermissionDenied:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -645,7 +645,7 @@ def get_user_activities(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied"
         )
-    
+
     # Get user
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -653,15 +653,15 @@ def get_user_activities(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
         )
-    
+
     # Get activities
     from app.models.user_activity_log import UserActivityLog
     from app.schemas.user_extended import UserActivity
-    
+
     activities = db.query(UserActivityLog).filter(
         UserActivityLog.user_id == user_id
     ).order_by(UserActivityLog.created_at.desc()).limit(limit).all()
-    
+
     return UserActivityListResponse(
         items=[
             UserActivity(

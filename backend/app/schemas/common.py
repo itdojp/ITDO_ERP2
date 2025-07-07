@@ -1,7 +1,8 @@
 """Common schemas used across the ITDO ERP System."""
-from typing import TypeVar, Generic, List, Optional, Any
-from pydantic import BaseModel, Field
 from datetime import datetime
+from typing import Any, Generic, List, Optional, TypeVar
+
+from pydantic import BaseModel, Field
 
 # Type variable for generic responses
 T = TypeVar('T')
@@ -11,7 +12,7 @@ class ErrorResponse(BaseModel):
     detail: str = Field(..., description="Error message")
     code: Optional[str] = Field(None, description="Error code")
     field: Optional[str] = Field(None, description="Field that caused the error")
-    
+
     class Config:
         json_schema_extra = {
             "example": {
@@ -26,7 +27,7 @@ class SuccessResponse(BaseModel):
     success: bool = Field(True, description="Operation success status")
     message: str = Field(..., description="Success message")
     data: Optional[Any] = Field(None, description="Additional data")
-    
+
     class Config:
         json_schema_extra = {
             "example": {
@@ -42,7 +43,7 @@ class DeleteResponse(BaseModel):
     message: str = Field(..., description="Deletion message")
     id: Optional[int] = Field(None, description="ID of deleted item")
     count: Optional[int] = Field(None, description="Number of deleted items")
-    
+
     class Config:
         json_schema_extra = {
             "example": {
@@ -60,13 +61,13 @@ class PaginatedResponse(BaseModel, Generic[T]):
     skip: int = Field(..., description="Number of items skipped")
     limit: int = Field(..., description="Maximum number of items returned")
     has_more: Optional[bool] = Field(None, description="Whether more items are available")
-    
+
     def __init__(self, **data: Any) -> None:
         """Initialize paginated response with computed has_more field."""
         if 'has_more' not in data:
             data['has_more'] = data.get('total', 0) > data.get('skip', 0) + len(data.get('items', []))
         super().__init__(**data)
-    
+
     class Config:
         json_schema_extra = {
             "example": {
@@ -85,7 +86,7 @@ class HealthCheckResponse(BaseModel):
     version: str = Field(..., description="API version")
     database: str = Field(..., description="Database connection status")
     cache: Optional[str] = Field(None, description="Cache connection status")
-    
+
     class Config:
         json_schema_extra = {
             "example": {
@@ -103,7 +104,7 @@ class BulkOperationResult(BaseModel):
     error_count: int = Field(..., description="Number of failed operations")
     errors: List[ErrorResponse] = Field(default_factory=list, description="List of errors")
     success_ids: List[int] = Field(default_factory=list, description="IDs of successful operations")
-    
+
     class Config:
         json_schema_extra = {
             "example": {
@@ -125,7 +126,7 @@ class FilterOption(BaseModel):
     field: str = Field(..., description="Field name to filter on")
     operator: str = Field(..., description="Filter operator (eq, ne, gt, lt, gte, lte, like, in)")
     value: Any = Field(..., description="Filter value")
-    
+
     class Config:
         json_schema_extra = {
             "example": {
@@ -139,7 +140,7 @@ class SortOption(BaseModel):
     """Sort option for search operations."""
     field: str = Field(..., description="Field name to sort by")
     order: str = Field("asc", description="Sort order (asc or desc)")
-    
+
     class Config:
         json_schema_extra = {
             "example": {
@@ -155,7 +156,7 @@ class SearchRequest(BaseModel):
     sort: List[SortOption] = Field(default_factory=list, description="List of sort options")
     skip: int = Field(0, ge=0, description="Number of items to skip")
     limit: int = Field(100, ge=1, le=1000, description="Maximum number of items to return")
-    
+
     class Config:
         json_schema_extra = {
             "example": {
@@ -185,7 +186,7 @@ class AuditInfo(BaseModel):
     created_by: Optional[int] = Field(None, description="ID of user who created the resource")
     updated_at: datetime = Field(..., description="Last update timestamp")
     updated_by: Optional[int] = Field(None, description="ID of user who last updated the resource")
-    
+
     class Config:
         json_schema_extra = {
             "example": {
@@ -201,7 +202,7 @@ class SoftDeleteInfo(BaseModel):
     is_deleted: bool = Field(..., description="Whether the resource is soft deleted")
     deleted_at: Optional[datetime] = Field(None, description="Deletion timestamp")
     deleted_by: Optional[int] = Field(None, description="ID of user who deleted the resource")
-    
+
     class Config:
         json_schema_extra = {
             "example": {

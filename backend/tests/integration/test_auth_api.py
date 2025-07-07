@@ -1,12 +1,11 @@
 """Integration tests for authentication API."""
 
-import pytest
-from fastapi.testclient import TestClient
-from datetime import timedelta
 import time
-from sqlalchemy.orm import Session
+from datetime import timedelta
 
-from app.core.security import create_access_token, create_refresh_token
+from fastapi.testclient import TestClient
+
+from app.core.security import create_refresh_token
 from app.models.user import User
 
 
@@ -23,7 +22,7 @@ class TestAuthAPI:
                 "password": "TestPassword123!"
             }
         )
-        
+
         # Then: Should return tokens
         assert response.status_code == 200
         data = response.json()
@@ -42,7 +41,7 @@ class TestAuthAPI:
                 "password": "WrongPassword123!"
             }
         )
-        
+
         # Then: Should return 401
         assert response.status_code == 401
         assert response.json()["code"] == "AUTH001"
@@ -57,7 +56,7 @@ class TestAuthAPI:
                 "password": "Password123!"
             }
         )
-        
+
         # Then: Should return 401
         assert response.status_code == 401
         assert response.json()["code"] == "AUTH001"
@@ -65,7 +64,7 @@ class TestAuthAPI:
     def test_login_inactive_user(self, client: TestClient, db_session) -> None:
         """Test login with inactive user."""
         # Given: Inactive user
-        user = User.create(
+        User.create(
             db_session,
             email="inactive@example.com",
             password="InactivePass123!",
@@ -73,7 +72,7 @@ class TestAuthAPI:
             is_active=False
         )
         db_session.commit()
-        
+
         # When: Trying to login
         response = client.post(
             "/api/v1/auth/login",
@@ -82,7 +81,7 @@ class TestAuthAPI:
                 "password": "InactivePass123!"
             }
         )
-        
+
         # Then: Should return 401
         assert response.status_code == 401
         assert response.json()["code"] == "AUTH001"
@@ -91,13 +90,13 @@ class TestAuthAPI:
         """Test successful token refresh."""
         # Given: Valid refresh token
         refresh_token = create_refresh_token({"sub": str(test_user.id)})
-        
+
         # When: Refreshing token
         response = client.post(
             "/api/v1/auth/refresh",
             json={"refresh_token": refresh_token}
         )
-        
+
         # Then: Should return new tokens
         assert response.status_code == 200
         data = response.json()
@@ -111,7 +110,7 @@ class TestAuthAPI:
             "/api/v1/auth/refresh",
             json={"refresh_token": "invalid.token.here"}
         )
-        
+
         # Then: Should return 401
         assert response.status_code == 401
         assert response.json()["code"] == "AUTH003"
@@ -123,13 +122,13 @@ class TestAuthAPI:
             {"sub": str(test_user.id)},
             expires_delta=timedelta(seconds=-1)
         )
-        
+
         # When: Using expired token
         response = client.post(
             "/api/v1/auth/refresh",
             json={"refresh_token": expired_token}
         )
-        
+
         # Then: Should return 401
         assert response.status_code == 401
         assert response.json()["code"] == "AUTH002"
@@ -144,7 +143,7 @@ class TestAuthAPI:
                 "password": "Password123!"
             }
         )
-        
+
         # Then: Should return 422
         assert response.status_code == 422
 
@@ -155,7 +154,7 @@ class TestAuthAPI:
             "/api/v1/auth/login",
             json={"email": "test@example.com"}
         )
-        
+
         # Then: Should return 422
         assert response.status_code == 422
 
@@ -163,7 +162,7 @@ class TestAuthAPI:
         """Test login API response time."""
         # When: Measuring login response time
         start_time = time.time()
-        
+
         response = client.post(
             "/api/v1/auth/login",
             json={
@@ -171,9 +170,9 @@ class TestAuthAPI:
                 "password": "TestPassword123!"
             }
         )
-        
+
         response_time = (time.time() - start_time) * 1000
-        
+
         # Then: Should respond within 200ms
         assert response.status_code == 200
         assert response_time < 200

@@ -1,33 +1,30 @@
 """Pytest configuration and fixtures."""
 
-import pytest
-from typing import Generator, Any, Dict
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
-from sqlalchemy.pool import StaticPool
-
-from app.main import app
-from app.core.database import get_db
-from app.models.base import Base
-# Import all models to ensure they are registered with SQLAlchemy
-from app.models import (
-    User, Organization, Department, Role, UserRole, RolePermission,
-    Permission, PasswordHistory, UserSession, UserActivityLog,
-    AuditLog, Project, ProjectMember, ProjectMilestone
-)
-from app.core.security import create_access_token
-from tests.factories import (
-    UserFactory, 
-    OrganizationFactory, 
-    DepartmentFactory, 
-    RoleFactory, 
-    PermissionFactory
-)
-
-
 # Use PostgreSQL for integration tests (same as development)
 import os
+from typing import Any, Dict, Generator
+
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
+
+from app.core.database import get_db
+from app.core.security import create_access_token
+from app.main import app
+
+# Import all models to ensure they are registered with SQLAlchemy
+from app.models import Department, Organization, Permission, Role, User
+from app.models.base import Base
+from tests.factories import (
+    DepartmentFactory,
+    OrganizationFactory,
+    PermissionFactory,
+    RoleFactory,
+    UserFactory,
+)
+
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://itdo_user:itdo_password@localhost:5432/itdo_erp")
 
 # For SQLite tests (unit tests)
@@ -49,10 +46,10 @@ def db_session() -> Generator[Session, None, None]:
     """Create a clean database session for each test."""
     # Create tables
     Base.metadata.create_all(bind=engine)
-    
+
     # Create session
     session = TestingSessionLocal()
-    
+
     try:
         yield session
     finally:
@@ -81,12 +78,12 @@ def client(db_session: Session) -> Generator[TestClient, None, None]:
             yield db_session
         finally:
             pass
-    
+
     app.dependency_overrides[get_db] = override_get_db
-    
+
     with TestClient(app) as test_client:
         yield test_client
-    
+
     # Clear overrides
     app.dependency_overrides.clear()
 
@@ -207,9 +204,9 @@ def test_department(db_session: Session, test_organization: Organization) -> Dep
 def test_department_tree(db_session: Session, test_organization: Organization) -> Dict[str, Any]:
     """Create a department tree structure."""
     return DepartmentFactory.create_department_tree(
-        db_session, 
-        test_organization, 
-        depth=3, 
+        db_session,
+        test_organization,
+        depth=3,
         children_per_level=2
     )
 
@@ -246,7 +243,7 @@ def complete_test_system(db_session: Session) -> Dict[str, Any]:
     """Create a complete test system with all entities."""
     # Create role system (includes organization and permissions)
     role_system = RoleFactory.create_complete_role_system(db_session)
-    
+
     # Create department structure
     dept_tree = DepartmentFactory.create_department_tree(
         db_session,
@@ -254,10 +251,10 @@ def complete_test_system(db_session: Session) -> Dict[str, Any]:
         depth=3,
         children_per_level=2
     )
-    
+
     # Create test users
     users = UserFactory.create_test_users_set(db_session)
-    
+
     return {
         'organization': role_system['organization'],
         'departments': dept_tree,

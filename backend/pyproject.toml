@@ -68,6 +68,14 @@ extend-exclude = '''
 )/
 '''
 
+[tool.ruff]
+line-length = 88
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N"]
+ignore = ["E402"]  # Module level import not at top of file (needed for circular import prevention)
+
 [tool.isort]
 profile = "black"
 multi_line_output = 3

@@ -1,7 +1,8 @@
 """Department schemas."""
-from typing import Optional, List
-from datetime import datetime
-from pydantic import BaseModel, Field, ConfigDict, field_validator
+from typing import List, Optional
+
+from pydantic import BaseModel, ConfigDict, Field
+
 from app.schemas.common import AuditInfo, SoftDeleteInfo
 from app.schemas.organization import OrganizationBasic
 from app.schemas.user import UserBasic
@@ -16,7 +17,7 @@ class UserSummary(BaseModel):
     is_active: bool
     department_id: Optional[int] = None
     department_name: Optional[str] = None
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -67,20 +68,20 @@ class DepartmentUpdate(BaseModel):
     name_en: Optional[str] = Field(None, max_length=200)
     short_name: Optional[str] = Field(None, max_length=50)
     is_active: Optional[bool] = None
-    
+
     # Contact info
     phone: Optional[str] = Field(None, max_length=20, pattern=r'^[\d\-\+\(\)]+$')
     fax: Optional[str] = Field(None, max_length=20, pattern=r'^[\d\-\+\(\)]+$')
     email: Optional[str] = Field(None, max_length=255, pattern=r'^[\w\.\-]+@[\w\.\-]+\.\w+$')
     location: Optional[str] = Field(None, max_length=255)
-    
+
     # Operational info
     department_type: Optional[str] = Field(None, max_length=50)
     budget: Optional[int] = Field(None, ge=0)
     headcount_limit: Optional[int] = Field(None, ge=0)
     cost_center_code: Optional[str] = Field(None, max_length=50)
     display_order: Optional[int] = Field(None, ge=0)
-    
+
     # Other fields
     parent_id: Optional[int] = None
     manager_id: Optional[int] = None
@@ -96,7 +97,7 @@ class DepartmentBasic(BaseModel):
     short_name: Optional[str] = None
     organization_id: int
     is_active: bool
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -114,7 +115,7 @@ class DepartmentSummary(DepartmentBasic):
     is_over_headcount: bool = False
     sub_department_count: int = 0
     user_count: int = 0
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -139,7 +140,7 @@ class DepartmentResponse(
     is_parent_department: bool = False
     current_headcount: int = 0
     is_over_headcount: bool = False
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -159,7 +160,7 @@ class DepartmentTree(BaseModel):
     headcount_limit: Optional[int] = None
     user_count: int = 0
     children: List["DepartmentTree"] = Field(default_factory=list)
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -167,7 +168,7 @@ class DepartmentWithUsers(DepartmentResponse):
     """Department with user list."""
     users: List[UserBasic] = Field(default_factory=list)
     total_users: int = 0
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
