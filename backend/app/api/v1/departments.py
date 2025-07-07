@@ -1,5 +1,5 @@
 """Department API endpoints."""
-from typing import List, Optional, Union, Dict
+from typing import List, Optional, Union, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Path
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
@@ -45,7 +45,7 @@ def list_departments(
     service = DepartmentService(db)
     
     # Build filters
-    filters = {}
+    filters: Dict[str, Any] = {}
     if organization_id:
         filters["organization_id"] = organization_id
     if active_only:
@@ -245,7 +245,7 @@ def create_department(
 )
 def update_department(
     department_id: int = Path(..., description="Department ID"),
-    department_data: DepartmentUpdate = ...,
+    department_data: DepartmentUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ) -> Union[DepartmentResponse, JSONResponse]:
