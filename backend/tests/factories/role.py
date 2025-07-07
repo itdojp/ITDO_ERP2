@@ -13,8 +13,8 @@ from tests.factories.organization import OrganizationFactory
 class RoleFactory(BaseFactory):
     """Factory for creating Role test instances."""
     
-    @classmethod
-    def model_class(cls) -> Type[Role]:
+    @property
+    def model_class(self) -> Type[Role]:
         """Return the Role model class."""
         return Role
     
@@ -56,7 +56,7 @@ class RoleFactory(BaseFactory):
     def create_role_hierarchy(cls, db_session: Session, depth: int = 3) -> Dict[str, Any]:
         """Create a hierarchy of roles."""
         # Create root role (Admin)
-        admin_role = cls.create(
+        admin_role: Role = cls.create(
             db_session,
             code="ADMIN",
             name="システム管理者",

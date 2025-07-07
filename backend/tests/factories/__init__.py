@@ -15,9 +15,9 @@ T = TypeVar('T', bound=SoftDeletableModel)
 class BaseFactory(ABC):
     """Base factory class for creating test model instances."""
     
-    @classmethod
+    @property
     @abstractmethod
-    def model_class(cls) -> Type[T]:
+    def model_class(self) -> Type[T]:
         """Model class this factory creates."""
         pass
     
@@ -40,18 +40,18 @@ class BaseFactory(ABC):
     def build(cls, **kwargs: Any) -> Any:
         """Build a model instance without saving to database."""
         attributes = cls.build_dict(**kwargs)
-        return cls.model_class(**attributes)
+        # Create a temporary instance to access the property
+        factory = cls()
+        return factory.model_class(**attributes)
     
     @classmethod
     def create(cls, db_session: Session, **kwargs: Any) -> T:
         """Create and save a model instance to database."""
-        model = cls.model_class()
-        for key, value in kwargs.items():
-            setattr(model, key, value)
-        db_session.add(model)
+        instance = cls.build(**kwargs)
+        db_session.add(instance)
         db_session.commit()
-        db_session.refresh(model)
-        return model
+        db_session.refresh(instance)
+        return instance
     
     @classmethod
     def create_batch(cls, db_session: Session, count: int, **kwargs: Any) -> list[T]:
