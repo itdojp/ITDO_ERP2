@@ -42,6 +42,18 @@ class UserCreateExtended(UserBase):
         return v
 
 
+class UserBasic(BaseModel):
+    """Basic user information schema."""
+    
+    id: int
+    email: EmailStr
+    full_name: str
+    is_active: bool
+    
+    class Config:
+        from_attributes = True
+
+
 class UserUpdate(BaseModel):
     """User update schema."""
     

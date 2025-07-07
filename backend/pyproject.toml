@@ -78,6 +78,7 @@ line_length = 88
 [tool.mypy]
 python_version = "3.13"
 strict = true
+mypy_path = "$MYPY_CONFIG_FILE_DIR"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
@@ -92,8 +93,24 @@ warn_unreachable = true
 strict_equality = true
 show_error_codes = true
 show_column_numbers = true
+
 pretty = true
 plugins = ["pydantic.mypy"]
+
+# Ignore untyped imports for monitoring dependencies
+[[tool.mypy.overrides]]
+module = [
+    "structlog",
+    "prometheus_client", 
+    "opentelemetry.*",
+    "psutil"
+]
+ignore_missing_imports = true
+
+# Exclude problematic module paths
+[[tool.mypy.overrides]]
+module = "tests.factories.*"
+ignore_errors = true
 
 # Pydantic plugin configuration
 [tool.pydantic-mypy]
@@ -153,4 +170,6 @@ dev = [
     "ruff>=0.12.2",
     "types-python-jose>=3.3.4",
     "types-passlib>=1.7.7",
+    "types-psutil>=7.0.0.20250601",
+    "faker>=37.4.0",
 ]

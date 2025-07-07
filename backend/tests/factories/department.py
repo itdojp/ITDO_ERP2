@@ -6,22 +6,19 @@ from datetime import datetime
 from app.models.department import Department
 from app.models.organization import Organization
 from tests.factories import BaseFactory, fake
-from tests.factories.organization import OrganizationFactory
+from .organization import OrganizationFactory
 
 
 class DepartmentFactory(BaseFactory):
     """Factory for creating Department test instances."""
     
-    @property
-    def model_class(self) -> Type[Department]:
-        """Return the Department model class."""
-        return Department
+    model_class = Department  # Model class for this factory
     
     @classmethod
     def _get_default_attributes(cls) -> Dict[str, Any]:
         """Get default attributes for creating Department instances."""
         return {
-            "code": fake.unique.bothify(text="DEPT-####"),
+            "code": fake.bothify(text="DEPT-####"),
             "name": fake.random_element(elements=(
                 "総務部", "人事部", "経理部", "営業部", "開発部", 
                 "マーケティング部", "企画部", "法務部", "情報システム部"
@@ -32,7 +29,6 @@ class DepartmentFactory(BaseFactory):
             )),
             "description": fake.text(max_nb_chars=200),
             "department_type": fake.random_element(elements=("operational", "support", "management")),
-            "cost_center": fake.bothify(text="CC-####"),
             "budget": fake.random_int(min=1000000, max=50000000),
             "display_order": fake.random_int(min=1, max=100),
             "is_active": True
@@ -156,7 +152,7 @@ class DepartmentFactory(BaseFactory):
     def create_minimal(cls, db_session, organization_id: int, **kwargs) -> Department:
         """Create a department with minimal required fields."""
         minimal_attrs = {
-            "code": fake.unique.bothify(text="DEPT-####"),
+            "code": fake.bothify(text="DEPT-####"),
             "name": fake.word(),
             "organization_id": organization_id,
             "is_active": True
@@ -179,3 +175,9 @@ class DepartmentFactory(BaseFactory):
             departments.append(dept)
         
         return departments
+
+
+# Helper function for backward compatibility
+def create_test_department(db_session, **kwargs):
+    """Create a test department (backward compatibility wrapper)."""
+    return DepartmentFactory.create(db_session, **kwargs)

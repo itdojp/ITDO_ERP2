@@ -149,16 +149,21 @@ class Department(SoftDeletableModel):
     )
     parent: Mapped[Optional["Department"]] = relationship(
         "Department",
-        remote_side=[id],
-        backref="sub_departments",
+        remote_side="Department.id",
+        back_populates="sub_departments",
         lazy="joined"
+    )
+    sub_departments: Mapped[List["Department"]] = relationship(
+        "Department",
+        back_populates="parent",
+        lazy="select"
     )
     manager: Mapped[Optional["User"]] = relationship(
         "User",
         foreign_keys=[manager_id],
         lazy="joined"
     )
-    users: Mapped[List["User"]] = relationship(
+    users = relationship(
         "User",
         secondary="user_roles",
         primaryjoin="Department.id == UserRole.department_id",
@@ -189,7 +194,7 @@ class Department(SoftDeletableModel):
     @property
     def current_headcount(self) -> int:
         """Get current number of users in the department."""
-        return self.users.filter_by(is_active=True).count()
+        return self.users.filter_by(is_active=True).count()  # type: ignore[no-any-return]
     
     @property
     def is_over_headcount(self) -> bool:

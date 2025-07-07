@@ -305,6 +305,11 @@ def update_department(
             department_data,
             updated_by=current_user.id
         )
+        if not updated_department:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Department not found after update"
+            )
         return service.get_department_response(updated_department)
     except ValueError as e:
         return JSONResponse(

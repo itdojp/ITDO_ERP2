@@ -8,7 +8,7 @@ from sqlalchemy.orm import relationship, Mapped, mapped_column
 import hashlib
 import json
 
-from app.core.database import Base
+from app.models.base import BaseModel
 
 if TYPE_CHECKING:
     from app.models.user import User
@@ -20,7 +20,7 @@ from app.models.user_activity_log import UserActivityLog
 __all__ = ["AuditLog", "UserActivityLog"]
 
 
-class AuditLog(Base):
+class AuditLog(BaseModel):
     """Audit log for tracking all system changes."""
 
     __tablename__ = "audit_logs"

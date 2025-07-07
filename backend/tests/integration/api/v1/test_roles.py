@@ -5,7 +5,8 @@ from typing import Dict, Any
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.models.role import Role, Permission
+from app.models.role import Role
+from app.models.permission import Permission
 from app.models.organization import Organization
 from app.schemas.role import RoleCreate, RoleUpdate, RoleResponse
 from tests.base import BaseAPITestCase, SearchTestMixin, HierarchyTestMixin

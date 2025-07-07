@@ -26,11 +26,11 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     
     def get(self, id: int) -> Optional[ModelType]:
         """Get a single record by ID."""
-        return self.db.scalar(select(self.model).where(self.model.id == id))
+        return self.db.scalar(select(self.model).where(getattr(self.model, 'id') == id))
     
     def get_by_ids(self, ids: List[int]) -> List[ModelType]:
         """Get multiple records by IDs."""
-        return list(self.db.scalars(select(self.model).where(self.model.id.in_(ids))))
+        return list(self.db.scalars(select(self.model).where(getattr(self.model, 'id').in_(ids))))
     
     def get_multi(
         self,
@@ -54,7 +54,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     
     def get_count(self, filters: Optional[Dict[str, Any]] = None) -> int:
         """Get total count of records with optional filtering."""
-        query = select(func.count(self.model.id))
+        query = select(func.count(getattr(self.model, 'id')))
         
         if filters:
             conditions = []
@@ -99,7 +99,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         if obj_data:
             self.db.execute(
                 update(self.model)
-                .where(self.model.id == id)
+                .where(getattr(self.model, 'id') == id)
                 .values(**obj_data)
             )
             self.db.commit()
@@ -118,7 +118,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         if obj_data and ids:
             self.db.execute(
                 update(self.model)
-                .where(self.model.id.in_(ids))
+                .where(getattr(self.model, 'id').in_(ids))
                 .values(**obj_data)
             )
             self.db.commit()
@@ -128,7 +128,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     def delete(self, id: int) -> bool:
         """Delete a record by ID (hard delete)."""
         result = self.db.execute(
-            delete(self.model).where(self.model.id == id)
+            delete(self.model).where(getattr(self.model, 'id') == id)
         )
         self.db.commit()
         return result.rowcount > 0
@@ -139,17 +139,18 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             return 0
         
         result = self.db.execute(
-            delete(self.model).where(self.model.id.in_(ids))
+            delete(self.model).where(getattr(self.model, 'id').in_(ids))
         )
         self.db.commit()
         return result.rowcount
     
     def exists(self, id: int) -> bool:
         """Check if a record exists by ID."""
-        return self.db.scalar(
-            select(func.count(self.model.id))
-            .where(self.model.id == id)
-        ) > 0
+        result = self.db.scalar(
+            select(func.count(getattr(self.model, 'id')))
+            .where(getattr(self.model, 'id') == id)
+        )
+        return (result or 0) > 0
     
     def search(self, params: SearchParams) -> tuple[List[ModelType], int]:
         """Search records with pagination."""
@@ -158,7 +159,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         # Apply search query if provided
         if params.query and hasattr(self.model, 'name'):
             query = query.where(
-                self.model.name.ilike(f"%{params.query}%")
+                getattr(self.model, 'name').ilike(f"%{params.query}%")
             )
         
         # Apply filters

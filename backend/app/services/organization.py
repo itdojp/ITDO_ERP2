@@ -132,11 +132,11 @@ class OrganizationService:
         updated_by: Optional[UserId] = None
     ) -> Optional[Organization]:
         """Activate an inactive organization."""
-        data = {"is_active": True}
-        if updated_by:
-            data["updated_by"] = updated_by
-        
-        return self.repository.update(organization_id, OrganizationUpdate(**data))
+        org = self.repository.update(organization_id, OrganizationUpdate(is_active=True))
+        if org and updated_by:
+            org.updated_by = updated_by
+            self.db.commit()
+        return org
     
     def deactivate_organization(
         self,
@@ -144,11 +144,11 @@ class OrganizationService:
         updated_by: Optional[UserId] = None
     ) -> Optional[Organization]:
         """Deactivate an active organization."""
-        data = {"is_active": False}
-        if updated_by:
-            data["updated_by"] = updated_by
-        
-        return self.repository.update(organization_id, OrganizationUpdate(**data))
+        org = self.repository.update(organization_id, OrganizationUpdate(is_active=False))
+        if org and updated_by:
+            org.updated_by = updated_by
+            self.db.commit()
+        return org
     
     def get_direct_subsidiaries(self, parent_id: OrganizationId) -> List[Organization]:
         """Get direct subsidiaries of an organization."""
@@ -185,7 +185,9 @@ class OrganizationService:
         """Get full organization response."""
         # Load parent if needed
         if organization.parent_id and not organization.parent:
-            organization = self.repository.get_with_parent(organization.id)
+            org_with_parent = self.repository.get_with_parent(organization.id)
+            if org_with_parent:
+                organization = org_with_parent
         
         # Get counts
         subsidiary_count = len(self.repository.get_subsidiaries(organization.id))

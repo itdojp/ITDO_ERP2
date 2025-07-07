@@ -34,3 +34,13 @@ class NotFound(Exception):
 class PermissionDenied(Exception):
     """Raised when user lacks permission for an action."""
     pass
+
+
+class AlreadyExists(Exception):
+    """Raised when attempting to create a resource that already exists."""
+    pass
+
+
+class ValidationError(Exception):
+    """Raised when validation fails."""
+    pass

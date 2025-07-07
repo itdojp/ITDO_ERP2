@@ -15,11 +15,7 @@ T = TypeVar('T', bound=SoftDeletableModel)
 class BaseFactory(ABC):
     """Base factory class for creating test model instances."""
     
-    @property
-    @abstractmethod
-    def model_class(self) -> Type[T]:
-        """Model class this factory creates."""
-        pass
+    model_class: Type[T]  # Abstract class variable to be overridden in subclasses
     
     @classmethod
     def build_dict(cls, **kwargs: Any) -> Dict[str, Any]:
@@ -40,6 +36,7 @@ class BaseFactory(ABC):
     def build(cls, **kwargs: Any) -> Any:
         """Build a model instance without saving to database."""
         attributes = cls.build_dict(**kwargs)
+        # Use the class variable directly
         return cls.model_class(**attributes)
     
     @classmethod
@@ -82,10 +79,10 @@ class BaseFactory(ABC):
 
 
 # Re-export factory classes
-from tests.factories.organization import OrganizationFactory
-from tests.factories.department import DepartmentFactory
-from tests.factories.role import RoleFactory, PermissionFactory
-from tests.factories.user import UserFactory
+from tests.factories.organization import OrganizationFactory, create_test_organization
+from tests.factories.department import DepartmentFactory, create_test_department
+from tests.factories.role import RoleFactory, PermissionFactory, create_test_role, create_test_user_role
+from tests.factories.user import UserFactory, create_test_user
 
 __all__ = [
     'BaseFactory',
@@ -94,5 +91,10 @@ __all__ = [
     'RoleFactory',
     'PermissionFactory',
     'UserFactory',
+    'create_test_user',
+    'create_test_organization',
+    'create_test_department',
+    'create_test_role',
+    'create_test_user_role',
     'fake',
 ]
