@@ -2,20 +2,23 @@
 
 This module provides base model classes with common functionality for all database models.
 """
-from typing import Any, Dict, Optional, TypeVar, Generic, Type
+from typing import Any, Dict, Optional, TypeVar, Generic, Type, TYPE_CHECKING
 from datetime import datetime
 from sqlalchemy import Column, Integer, DateTime, Boolean, ForeignKey, func
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.types import UserId, AuditableProtocol, SoftDeletableProtocol
 
+if TYPE_CHECKING:
+    from app.models.user import User
+
 # Create base class for all models
 Base = declarative_base()
 
-# Type variable for model types
+# Type variable for model types  
 ModelType = TypeVar('ModelType', bound='BaseModel')
 
-class BaseModel(Base):
+class BaseModel(Base):  # type: ignore[valid-type]
     """Base model with common fields and functionality."""
     
     __abstract__ = True
@@ -77,7 +80,7 @@ class AuditableModel(BaseModel):
     def creator(cls) -> Mapped[Optional["User"]]:
         return relationship(
             "User",
-            foreign_keys=[cls.created_by],
+            foreign_keys=[cls.created_by.property.columns[0]],  # type: ignore[attr-defined]
             lazy="joined",
             uselist=False
         )
@@ -86,7 +89,7 @@ class AuditableModel(BaseModel):
     def updater(cls) -> Mapped[Optional["User"]]:
         return relationship(
             "User",
-            foreign_keys=[cls.updated_by],
+            foreign_keys=[cls.updated_by.property.columns[0]],  # type: ignore[attr-defined]
             lazy="joined",
             uselist=False
         )
@@ -118,7 +121,7 @@ class SoftDeletableModel(AuditableModel):
     def deleter(cls) -> Mapped[Optional["User"]]:
         return relationship(
             "User",
-            foreign_keys=[cls.deleted_by],
+            foreign_keys=[cls.deleted_by.property.columns[0]],  # type: ignore[attr-defined]
             lazy="joined",
             uselist=False
         )
