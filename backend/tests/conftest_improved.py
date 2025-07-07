@@ -1,9 +1,10 @@
-"""Pytest configuration and fixtures."""
+"""Improved pytest configuration and fixtures."""
 
 import pytest
+import asyncio
 from typing import Generator, Any, Dict
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import StaticPool
 
@@ -26,31 +27,46 @@ from tests.factories import (
 )
 
 
-# Use PostgreSQL for integration tests (same as development)
+# Test database configuration
 import os
-SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://itdo_user:itdo_password@localhost:5432/itdo_erp")
+TEST_DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://itdo_user:itdo_password@localhost:5432/itdo_erp_test")
 
-# For SQLite tests (unit tests)
-if "unit" in os.getenv("PYTEST_CURRENT_TEST", ""):
-    SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
+# Force SQLite for unit tests, PostgreSQL for integration
+if "unit" in os.getenv("PYTEST_CURRENT_TEST", "") or os.getenv("USE_SQLITE_TESTS", "false").lower() == "true":
+    TEST_DATABASE_URL = "sqlite:///:memory:"
     engine = create_engine(
-        SQLALCHEMY_DATABASE_URL,
+        TEST_DATABASE_URL,
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
 else:
-    # For integration tests, use PostgreSQL
-    engine = create_engine(SQLALCHEMY_DATABASE_URL)
+    # For integration tests, use PostgreSQL with proper isolation
+    engine = create_engine(
+        TEST_DATABASE_URL,
+        pool_pre_ping=True,
+        pool_recycle=300,
+        echo=False  # Disable SQL echo in CI
+    )
+
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
-@pytest.fixture
-def db_session() -> Generator[Session, None, None]:
-    """Create a clean database session for each test."""
-    # Create tables
+@pytest.fixture(scope="session")
+def setup_test_database():
+    """Set up test database once per session."""
+    # Create all tables
     Base.metadata.create_all(bind=engine)
-    
-    # Create session
+    yield
+    # Clean up after all tests
+    if "postgresql" in str(engine.url):
+        with engine.begin() as conn:
+            # Drop all tables
+            Base.metadata.drop_all(bind=conn)
+
+
+@pytest.fixture
+def db_session(setup_test_database) -> Generator[Session, None, None]:
+    """Create a clean database session for each test with improved cleanup."""
     session = TestingSessionLocal()
     
     try:
@@ -60,41 +76,33 @@ def db_session() -> Generator[Session, None, None]:
         
         # Improved cleanup for PostgreSQL
         if "postgresql" in str(engine.url):
-            try:
-                with engine.begin() as conn:
-                    from sqlalchemy import text
-                    
-                    # Simple approach: Delete in safe order
-                    # Start with tables that have foreign keys
-                    table_order = [
-                        "user_roles", "role_permissions", "password_history", 
-                        "user_sessions", "user_activity_logs", "audit_logs",
-                        "project_members", "project_milestones", "projects",
-                        "users", "roles", "permissions", "departments", "organizations"
-                    ]
-                    
-                    for table_name in table_order:
+            with engine.begin() as conn:
+                # Disable foreign key checks temporarily
+                conn.execute(text("SET session_replication_role = replica;"))
+                
+                # Get all table names in dependency order (reverse of creation)
+                tables = list(reversed(Base.metadata.sorted_tables))
+                
+                # Delete all data from tables
+                for table in tables:
+                    conn.execute(text(f'DELETE FROM "{table.name}"'))
+                
+                # Reset sequences (for auto-incrementing IDs)
+                for table in tables:
+                    # Reset sequence if table has an auto-incrementing primary key
+                    pk_cols = [col for col in table.columns if col.primary_key and col.autoincrement]
+                    if pk_cols:
+                        seq_name = f"{table.name}_{pk_cols[0].name}_seq"
                         try:
-                            conn.execute(text(f'DELETE FROM "{table_name}"'))
-                        except Exception:
-                            # Table might not exist, ignore
-                            pass
-                    
-                    # Reset sequences for main tables
-                    main_tables = ["users", "organizations", "departments", "roles", "permissions"]
-                    for table_name in main_tables:
-                        try:
-                            conn.execute(text(f'ALTER SEQUENCE "{table_name}_id_seq" RESTART WITH 1'))
+                            conn.execute(text(f'ALTER SEQUENCE "{seq_name}" RESTART WITH 1'))
                         except Exception:
                             # Sequence might not exist, ignore
                             pass
-            except Exception as e:
-                # If cleanup fails, recreate tables as fallback
-                print(f"Warning: DB cleanup failed: {e}")
-                Base.metadata.drop_all(bind=engine)
-                Base.metadata.create_all(bind=engine)
+                
+                # Re-enable foreign key checks
+                conn.execute(text("SET session_replication_role = DEFAULT;"))
         else:
-            # For SQLite, drop and recreate tables
+            # For SQLite, recreate tables
             Base.metadata.drop_all(bind=engine)
             Base.metadata.create_all(bind=engine)
 
@@ -117,24 +125,24 @@ def client(db_session: Session) -> Generator[TestClient, None, None]:
     app.dependency_overrides.clear()
 
 
-# User Fixtures
+# User Fixtures with unique identifiers
 
 @pytest.fixture
 def test_user(db_session: Session) -> User:
-    """Create a basic test user."""
+    """Create a basic test user with unique email."""
+    unique_id = id(db_session) % 10000  # Use session id for uniqueness
     return UserFactory.create_with_password(
         db_session,
         password="TestPassword123!",
-        email="testuser@example.com",
+        email=f"testuser{unique_id}@example.com",
         full_name="Test User"
     )
 
 
 @pytest.fixture
 def test_admin(db_session: Session) -> User:
-    """Create a test admin user."""
-    # Use session id for uniqueness to avoid email conflicts
-    unique_id = id(db_session) % 10000
+    """Create a test admin user with unique email."""
+    unique_id = id(db_session) % 10000  # Use session id for uniqueness
     return UserFactory.create_with_password(
         db_session,
         password="AdminPassword123!",
@@ -146,19 +154,21 @@ def test_admin(db_session: Session) -> User:
 
 @pytest.fixture
 def test_manager(db_session: Session) -> User:
-    """Create a test manager user."""
+    """Create a test manager user with unique email."""
+    unique_id = id(db_session) % 10000  # Use session id for uniqueness
     return UserFactory.create_with_password(
         db_session,
         password="ManagerPassword123!",
-        email="manager@example.com",
+        email=f"manager{unique_id}@example.com",
         full_name="Manager User"
     )
 
 
 @pytest.fixture
 def test_users_set(db_session: Session) -> Dict[str, User]:
-    """Create a complete set of test users."""
-    return UserFactory.create_test_users_set(db_session)
+    """Create a complete set of test users with unique emails."""
+    unique_id = id(db_session) % 10000
+    return UserFactory.create_test_users_set(db_session, email_suffix=f"{unique_id}")
 
 
 # Token Fixtures
@@ -203,11 +213,12 @@ def manager_token(test_manager: User) -> str:
 
 @pytest.fixture
 def test_organization(db_session: Session) -> Organization:
-    """Create a test organization."""
+    """Create a test organization with unique code."""
+    unique_id = id(db_session) % 10000
     return OrganizationFactory.create(
         db_session,
-        name="テスト株式会社",
-        code="TEST-ORG",
+        name=f"テスト株式会社{unique_id}",
+        code=f"TEST-ORG-{unique_id}",
         industry="IT"
     )
 
@@ -222,12 +233,13 @@ def test_organization_tree(db_session: Session) -> Dict[str, Any]:
 
 @pytest.fixture
 def test_department(db_session: Session, test_organization: Organization) -> Department:
-    """Create a test department."""
+    """Create a test department with unique code."""
+    unique_id = id(db_session) % 10000
     return DepartmentFactory.create_with_organization(
         db_session,
         test_organization,
-        name="テスト部門",
-        code="TEST-DEPT"
+        name=f"テスト部門{unique_id}",
+        code=f"TEST-DEPT-{unique_id}"
     )
 
 
@@ -246,11 +258,12 @@ def test_department_tree(db_session: Session, test_organization: Organization) -
 
 @pytest.fixture
 def test_role(db_session: Session, test_organization: Organization) -> Role:
-    """Create a test role."""
+    """Create a test role with unique name."""
+    unique_id = id(db_session) % 10000
     return RoleFactory.create_with_organization(
         db_session,
         test_organization,
-        name="テストロール",
+        name=f"テストロール{unique_id}",
         role_type="custom"
     )
 
@@ -306,7 +319,7 @@ def setup_test_environment(monkeypatch: Any) -> None:
     monkeypatch.setenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440")
     monkeypatch.setenv("REFRESH_TOKEN_EXPIRE_DAYS", "7")
     monkeypatch.setenv("BCRYPT_ROUNDS", "4")  # Lower rounds for faster tests
-    monkeypatch.setenv("DATABASE_URL", SQLALCHEMY_DATABASE_URL)
+    monkeypatch.setenv("DATABASE_URL", TEST_DATABASE_URL)
 
 
 # Utility Functions for Tests

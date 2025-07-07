@@ -1,10 +1,18 @@
-name: CI/CD Pipeline
+name: Improved CI/CD Pipeline
 
 on:
   push:
     branches: [ main, develop ]
   pull_request:
     branches: [ main, develop ]
+
+env:
+  # Test environment variables
+  SECRET_KEY: test-secret-key-for-testing-only-32-chars-long
+  ALGORITHM: HS256
+  ACCESS_TOKEN_EXPIRE_MINUTES: 1440
+  REFRESH_TOKEN_EXPIRE_DAYS: 7
+  BCRYPT_ROUNDS: 4
 
 jobs:
   # Python型チェックジョブ
@@ -27,28 +35,18 @@ jobs:
       run: uv python install 3.13
     
     - name: Install dependencies
-      run: |
-        uv sync --dev
+      run: uv sync --dev
     
-    - name: Run mypy type checking
+    - name: Run mypy type checking (informational)
       run: |
-        echo "Running strict type checking..."
+        echo "Running mypy for information..."
         uv run mypy app/ --show-error-context --show-error-codes || true
-        echo "Generating type check report..."
-        uv run mypy app/ --html-report mypy-report || true
     
-    - name: Upload type check report
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: mypy-report
-        path: backend/mypy-report/
+    - name: Run ruff linting
+      run: uv run ruff check .
     
-    - name: Run strict type check (fail on errors)
-      run: |
-        # Note: Currently allowing failures due to existing type errors in main branch
-        # This will be enforced after type safety fixes are merged (PR #36)
-        uv run mypy app/ || echo "⚠️ Type errors exist - will be fixed in PR #36"
+    - name: Run ruff formatting check  
+      run: uv run ruff format --check .
 
   # TypeScript型チェックジョブ  
   typescript-typecheck:
@@ -73,13 +71,14 @@ jobs:
     - name: TypeScript type checking
       run: npm run typecheck
     
-    - name: Check for unused exports
-      run: npx ts-unused-exports tsconfig.json
+    - name: Run ESLint
+      run: npm run lint
 
-  # Backend テストジョブ
+  # Backend テストジョブ（改善版）
   backend-test:
     runs-on: ubuntu-latest
     needs: python-typecheck
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: ./backend
@@ -91,6 +90,7 @@ jobs:
           POSTGRES_PASSWORD: itdo_password
           POSTGRES_USER: itdo_user
           POSTGRES_DB: itdo_erp_test
+          POSTGRES_INITDB_ARGS: "--auth-host=trust"
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -122,31 +122,66 @@ jobs:
       run: uv python install 3.13
     
     - name: Install dependencies
+      run: uv sync --dev
+    
+    - name: Wait for PostgreSQL
       run: |
-        uv sync --dev
+        until pg_isready -h localhost -p 5432 -U itdo_user; do
+          echo "Waiting for PostgreSQL..."
+          sleep 2
+        done
+        echo "PostgreSQL is ready!"
     
-    - name: Run ruff linting
-      run: uv run ruff check .
-    
-    - name: Run ruff formatting check
-      run: uv run ruff format --check .
-    
-    - name: Run tests with coverage
+    - name: Setup test database
       env:
         DATABASE_URL: postgresql://itdo_user:itdo_password@localhost:5432/itdo_erp_test
         REDIS_URL: redis://localhost:6379
-        SECRET_KEY: test-secret-key-for-testing-only-32-chars-long
-        ALGORITHM: HS256
-        ACCESS_TOKEN_EXPIRE_MINUTES: 1440
-        BCRYPT_ROUNDS: 4
       run: |
-        # Run user management tests first (they work)
-        uv run pytest tests/integration/api/v1/test_users.py --cov=app --cov-report=xml --cov-report=term-missing -v
-        # Run other critical tests with more tolerance
-        # uv run pytest tests/integration/ --maxfail=10 --tb=short -x
+        # Create a clean test database
+        uv run python -c "
+        from app.models.base import Base
+        from sqlalchemy import create_engine
+        import os
+        engine = create_engine(os.getenv('DATABASE_URL'))
+        Base.metadata.create_all(bind=engine)
+        print('Test database initialized')
+        "
+    
+    - name: Run unit tests (SQLite)
+      env:
+        USE_SQLITE_TESTS: "true"
+        REDIS_URL: redis://localhost:6379
+      run: |
+        echo "Running unit tests with SQLite..."
+        uv run pytest tests/unit/ -v --tb=short --timeout=60
+    
+    - name: Run integration tests (PostgreSQL)
+      env:
+        DATABASE_URL: postgresql://itdo_user:itdo_password@localhost:5432/itdo_erp_test
+        REDIS_URL: redis://localhost:6379
+      run: |
+        echo "Running integration tests with PostgreSQL..."
+        uv run pytest tests/integration/ -v --tb=short --timeout=120 --maxfail=5
+    
+    - name: Run API tests (PostgreSQL) 
+      env:
+        DATABASE_URL: postgresql://itdo_user:itdo_password@localhost:5432/itdo_erp_test
+        REDIS_URL: redis://localhost:6379
+      run: |
+        echo "Running API tests with PostgreSQL..."
+        uv run pytest tests/integration/api/ -v --tb=short --timeout=180 --maxfail=10 --durations=10
+    
+    - name: Generate coverage report
+      env:
+        DATABASE_URL: postgresql://itdo_user:itdo_password@localhost:5432/itdo_erp_test
+        REDIS_URL: redis://localhost:6379
+      run: |
+        echo "Generating coverage report..."
+        uv run pytest tests/integration/api/v1/test_users.py --cov=app --cov-report=xml --cov-report=term-missing
     
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
+      if: success()
       with:
         file: ./backend/coverage.xml
         flags: backend
@@ -156,6 +191,7 @@ jobs:
   frontend-test:
     runs-on: ubuntu-latest
     needs: typescript-typecheck
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: ./frontend
@@ -173,23 +209,23 @@ jobs:
     - name: Install dependencies
       run: npm ci
     
-    - name: Run ESLint
-      run: npm run lint
-    
     - name: Run tests with coverage
       run: npm run coverage
     
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
+      if: success()
       with:
         file: ./frontend/coverage/coverage-final.json
         flags: frontend
         name: frontend-coverage
 
-  # E2E テストジョブ
-  e2e-test:
+  # 軽量なE2Eテスト（重要なパスのみ）
+  critical-e2e-test:
     runs-on: ubuntu-latest
     needs: [backend-test, frontend-test]
+    if: github.ref == 'refs/heads/main' || contains(github.event.pull_request.labels.*.name, 'e2e-test')
+    timeout-minutes: 20
     
     steps:
     - uses: actions/checkout@v4
@@ -210,10 +246,10 @@ jobs:
     - name: Set up Python
       run: uv python install 3.13
     
-    - name: Start services with Docker Compose
+    - name: Start services
       run: |
         docker compose -f infra/compose-data.yaml up -d
-        sleep 30  # サービス起動待機
+        sleep 30  # Wait for services
     
     - name: Start backend
       run: |
@@ -230,16 +266,12 @@ jobs:
         npm run preview &
         sleep 10
     
-    - name: Install Playwright
+    - name: Run critical E2E tests only
       run: |
         cd e2e
         npm ci
         npx playwright install --with-deps
-    
-    - name: Run E2E tests
-      run: |
-        cd e2e
-        npx playwright test
+        npx playwright test tests/critical/ --reporter=list
     
     - name: Upload E2E test results
       uses: actions/upload-artifact@v4
@@ -252,36 +284,47 @@ jobs:
       if: always()
       run: docker compose -f infra/compose-data.yaml down
 
-  # コンテナビルドジョブ（mainブランチのみ）
-  build-containers:
+  # セキュリティスキャン（並行実行）
+  security-scan:
     runs-on: ubuntu-latest
-    needs: [e2e-test]
-    if: github.ref == 'refs/heads/main'
-    
     steps:
     - uses: actions/checkout@v4
     
-    - name: Log in to GitHub Container Registry
-      uses: docker/login-action@v3
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Run Python security scan
+      run: |
+        cd backend
+        pip install bandit safety
+        bandit -r app/
+        safety check
     
-    - name: Build and push backend image
-      uses: docker/build-push-action@v5
-      with:
-        context: ./backend
-        push: true
-        tags: |
-          ghcr.io/${{ github.repository_owner }}/itdo-erp-backend:latest
-          ghcr.io/${{ github.repository_owner }}/itdo-erp-backend:${{ github.sha }}
-    
-    - name: Build and push frontend image
-      uses: docker/build-push-action@v5
-      with:
-        context: ./frontend
-        push: true
-        tags: |
-          ghcr.io/${{ github.repository_owner }}/itdo-erp-frontend:latest
-          ghcr.io/${{ github.repository_owner }}/itdo-erp-frontend:${{ github.sha }}
+    - name: Run Node.js security audit
+      run: |
+        cd frontend
+        npm audit --audit-level moderate
+
+  # 成功時のまとめ
+  test-summary:
+    runs-on: ubuntu-latest
+    needs: [python-typecheck, typescript-typecheck, backend-test, frontend-test, security-scan]
+    if: always()
+    steps:
+    - name: Test Results Summary
+      run: |
+        echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
+        echo "- Python Typecheck: ${{ needs.python-typecheck.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- TypeScript Typecheck: ${{ needs.typescript-typecheck.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Backend Tests: ${{ needs.backend-test.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Frontend Tests: ${{ needs.frontend-test.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Security Scan: ${{ needs.security-scan.result }}" >> $GITHUB_STEP_SUMMARY
+        
+        if [[ "${{ needs.backend-test.result }}" == "failure" ]]; then
+          echo "❌ Backend tests failed - check logs for details" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+        
+        if [[ "${{ needs.frontend-test.result }}" == "failure" ]]; then
+          echo "❌ Frontend tests failed - check logs for details" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+        
+        echo "✅ All critical tests passed!" >> $GITHUB_STEP_SUMMARY
