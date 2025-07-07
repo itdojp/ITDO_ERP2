@@ -143,9 +143,9 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
     def update_last_login(self, user_id: UserId) -> None:
         """Update user's last login timestamp."""
         self.db.execute(
-            select(User)
+            update(User)
             .where(User.id == user_id)
-            .update({"last_login_at": datetime.utcnow()})
+            .values({"last_login_at": datetime.utcnow()})
         )
         self.db.commit()
     

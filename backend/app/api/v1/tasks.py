@@ -25,7 +25,7 @@ def create_task(
     task_data: TaskCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
-):
+) -> TaskResponse:
     """Create a new task."""
     service = TaskService(db)
     try:
@@ -55,7 +55,7 @@ def get_tasks(
     sort_order: Optional[str] = Query("desc", regex="^(asc|desc)$"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
-):
+) -> TaskListResponse:
     """Get tasks with filtering and pagination."""
     try:
         # Parse date strings
@@ -99,7 +99,7 @@ def get_task(
     task_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
-):
+) -> TaskResponse:
     """Get task by ID."""
     service = TaskService(db)
     try:
@@ -116,7 +116,7 @@ def update_task(
     task_data: TaskUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
-):
+) -> TaskResponse:
     """Update task with optimistic locking."""
     service = TaskService(db)
     try:
@@ -136,7 +136,7 @@ def delete_task(
     task_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
-):
+) -> None:
     """Delete task (soft delete)."""
     service = TaskService(db)
     try:
@@ -155,7 +155,7 @@ def update_task_status(
     status_update: TaskStatusUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
-):
+) -> TaskResponse:
     """Update task status with validation."""
     service = TaskService(db)
     try:
@@ -179,7 +179,7 @@ def assign_user_to_task(
     assignment_data: TaskAssignmentCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
-):
+) -> None:
     """Assign user to task."""
     service = TaskService(db)
     try:
@@ -198,7 +198,7 @@ def remove_user_assignment(
     user_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
-):
+) -> None:
     """Remove user assignment from task."""
     service = TaskService(db)
     try:
@@ -215,7 +215,7 @@ def add_task_dependency(
     dependency_data: TaskDependencyCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
-):
+) -> None:
     """Add dependency to task."""
     service = TaskService(db)
     try:
@@ -235,7 +235,7 @@ def remove_task_dependency(
     dependency_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
-):
+) -> None:
     """Remove task dependency."""
     service = TaskService(db)
     try:
@@ -251,7 +251,7 @@ def get_task_dependencies(
     task_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
-):
+) -> dict:
     """Get task dependency tree."""
     service = TaskService(db)
     try:
@@ -270,7 +270,7 @@ def add_comment_to_task(
     comment_data: TaskCommentCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
-):
+) -> None:
     """Add comment to task."""
     service = TaskService(db)
     try:
@@ -286,7 +286,7 @@ def get_task_comments(
     task_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
-):
+) -> dict:
     """Get task comments."""
     service = TaskService(db)
     try:
@@ -306,7 +306,7 @@ def upload_task_attachment(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
-):
+) -> dict:
     """Upload file attachment to task."""
     service = TaskService(db)
     try:
@@ -333,7 +333,7 @@ def download_task_attachment(
     attachment_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
-):
+) -> dict:
     """Download task attachment."""
     service = TaskService(db)
     try:
@@ -354,7 +354,7 @@ def bulk_update_tasks(
     update_data: BulkTaskUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
-):
+) -> BulkOperationResponse:
     """Bulk update multiple tasks."""
     service = TaskService(db)
     try:
@@ -368,7 +368,7 @@ def get_user_workload(
     user_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
-):
+) -> UserWorkloadResponse:
     """Get user workload analytics."""
     service = TaskService(db)
     try:
@@ -384,7 +384,7 @@ def get_user_workload(
 def get_organization_analytics(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
-):
+) -> TaskAnalyticsResponse:
     """Get organization task analytics."""
     service = TaskService(db)
     user_organizations = [org.id for org in current_user.get_organizations()]
@@ -398,7 +398,7 @@ def get_project_critical_path(
     project_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
-):
+) -> List[TaskResponse]:
     """Get critical path for project."""
     service = TaskService(db)
     try:
@@ -416,7 +416,7 @@ def get_user_tasks(
     limit: int = Query(50, le=100),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
-):
+) -> List[TaskResponse]:
     """Get tasks assigned to user."""
     service = TaskService(db)
     try:

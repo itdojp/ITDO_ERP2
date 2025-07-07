@@ -10,7 +10,13 @@ from datetime import datetime
 
 # Generic type variables
 T = TypeVar('T')
-ModelType = TypeVar('ModelType')
+
+# Import BaseModel from models.base to use as bound
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from app.models.base import BaseModel as DBBaseModel
+
+ModelType = TypeVar('ModelType', bound='DBBaseModel')
 CreateSchemaType = TypeVar('CreateSchemaType', bound=BaseModel)
 UpdateSchemaType = TypeVar('UpdateSchemaType', bound=BaseModel)
 ResponseSchemaType = TypeVar('ResponseSchemaType', bound=BaseModel)

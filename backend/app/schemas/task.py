@@ -1,6 +1,6 @@
 """Task management Pydantic schemas."""
 
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 
@@ -27,7 +27,7 @@ class TaskCreate(TaskBase):
     
     @field_validator('tags')
     @classmethod
-    def validate_tags(cls, v):
+    def validate_tags(cls, v: Optional[List[str]]) -> Optional[List[str]]:
         if v is not None and len(v) > 10:
             raise ValueError('Maximum 10 tags allowed')
         return v
@@ -48,7 +48,7 @@ class TaskUpdate(BaseModel):
     
     @field_validator('tags')
     @classmethod
-    def validate_tags(cls, v):
+    def validate_tags(cls, v: Optional[List[str]]) -> Optional[List[str]]:
         if v is not None and len(v) > 10:
             raise ValueError('Maximum 10 tags allowed')
         return v
@@ -210,8 +210,8 @@ class UserWorkloadResponse(BaseModel):
 class TaskAnalyticsResponse(BaseModel):
     """Schema for task analytics response."""
     total_tasks: int
-    by_status: dict[TaskStatus, int]
-    by_priority: dict[TaskPriority, int]
+    by_status: Dict[TaskStatus, int]
+    by_priority: Dict[TaskPriority, int]
     overdue_count: int
     completion_rate: float
     average_completion_time_days: Optional[float]
@@ -223,7 +223,7 @@ class TaskEventData(BaseModel):
     type: str = Field(..., description="Event type")
     task_id: int
     user_id: Optional[int] = None
-    data: dict = Field(default_factory=dict)
+    data: Dict[str, Any] = Field(default_factory=dict)
     timestamp: datetime = Field(default_factory=datetime.now)
 
 
@@ -241,4 +241,4 @@ class BulkOperationResponse(BaseModel):
     """Schema for bulk operation response."""
     success_count: int
     error_count: int
-    errors: List[dict] = Field(default_factory=list)
+    errors: List[Dict[str, Any]] = Field(default_factory=list)

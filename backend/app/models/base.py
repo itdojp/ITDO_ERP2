@@ -2,15 +2,19 @@
 
 This module provides base model classes with common functionality for all database models.
 """
-from typing import Any, Dict, Optional, TypeVar, Generic, Type
+from typing import Any, Dict, Optional, TypeVar, Generic, Type, TYPE_CHECKING
 from datetime import datetime
 from sqlalchemy import Column, Integer, DateTime, Boolean, ForeignKey, func
-from sqlalchemy.ext.declarative import declarative_base, declared_attr
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, declared_attr
 from app.types import UserId, AuditableProtocol, SoftDeletableProtocol
 
-# Create base class for all models
-Base = declarative_base()
+if TYPE_CHECKING:
+    from app.models.user import User
+
+# Create base class for all models using SQLAlchemy 2.0 style
+class Base(DeclarativeBase):
+    """Base class for all SQLAlchemy models."""
+    pass
 
 # Type variable for model types
 ModelType = TypeVar('ModelType', bound='BaseModel')
@@ -74,19 +78,19 @@ class AuditableModel(BaseModel):
     
     # Relationships to user (will be defined in concrete models to avoid circular imports)
     @declared_attr
-    def creator(cls) -> Mapped[Optional["User"]]:
+    def creator(cls) -> relationship:
         return relationship(
             "User",
-            foreign_keys=[cls.created_by],
+            foreign_keys=lambda: [cls.created_by],
             lazy="joined",
             uselist=False
         )
     
     @declared_attr
-    def updater(cls) -> Mapped[Optional["User"]]:
+    def updater(cls) -> relationship:
         return relationship(
             "User",
-            foreign_keys=[cls.updated_by],
+            foreign_keys=lambda: [cls.updated_by],
             lazy="joined",
             uselist=False
         )
@@ -115,10 +119,10 @@ class SoftDeletableModel(AuditableModel):
     )
     
     @declared_attr
-    def deleter(cls) -> Mapped[Optional["User"]]:
+    def deleter(cls) -> relationship:
         return relationship(
             "User",
-            foreign_keys=[cls.deleted_by],
+            foreign_keys=lambda: [cls.deleted_by],
             lazy="joined",
             uselist=False
         )

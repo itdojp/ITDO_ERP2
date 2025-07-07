@@ -1,5 +1,5 @@
 """Organization schemas."""
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 from app.schemas.common import AuditInfo, SoftDeleteInfo
@@ -50,7 +50,7 @@ class OrganizationCreate(
     parent_id: Optional[int] = Field(None, description="Parent organization ID")
     description: Optional[str] = Field(None, max_length=1000)
     logo_url: Optional[str] = Field(None, max_length=255)
-    settings: Optional[dict] = Field(default_factory=dict)
+    settings: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
 
 class OrganizationUpdate(BaseModel):
@@ -85,7 +85,7 @@ class OrganizationUpdate(BaseModel):
     parent_id: Optional[int] = None
     description: Optional[str] = Field(None, max_length=1000)
     logo_url: Optional[str] = Field(None, max_length=255)
-    settings: Optional[dict] = None
+    settings: Optional[Dict[str, Any]] = None
 
 
 class OrganizationBasic(BaseModel):
@@ -118,12 +118,14 @@ class OrganizationResponse(
     SoftDeleteInfo
 ):
     """Full organization response schema."""
+    model_config = ConfigDict()
+    
     id: int
     parent_id: Optional[int] = None
     parent: Optional[OrganizationBasic] = None
     description: Optional[str] = None
     logo_url: Optional[str] = None
-    settings: dict = Field(default_factory=dict)
+    settings: Dict[str, Any] = Field(default_factory=dict)
     full_address: Optional[str] = None
     is_subsidiary: bool = False
     is_parent: bool = False
