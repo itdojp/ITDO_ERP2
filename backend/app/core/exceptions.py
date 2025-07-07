@@ -112,7 +112,7 @@ class DependencyError(BaseAPIException):
 
 class CircularDependencyError(DependencyError):
     """Raised when circular dependency is detected."""
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(detail="Circular dependency detected")
 
 

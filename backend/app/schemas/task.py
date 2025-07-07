@@ -1,7 +1,7 @@
 """Task schemas for API request/response validation."""
 
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Any
 from enum import Enum
 from pydantic import BaseModel, Field, validator
 
@@ -128,7 +128,7 @@ class TaskHistoryResponse(BaseModel):
 
 class BulkStatusUpdate(BaseModel):
     """Schema for bulk status update."""
-    task_ids: List[int] = Field(..., min_items=1)
+    task_ids: List[int] = Field(..., min_length=1)
     status: TaskStatus
 
 
@@ -136,4 +136,4 @@ class BulkUpdateResponse(BaseModel):
     """Response for bulk update operations."""
     updated_count: int
     failed_count: int
-    errors: Optional[List[dict]] = None
+    errors: Optional[List[dict[str, Any]]] = None
