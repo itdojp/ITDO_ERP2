@@ -192,7 +192,8 @@ class DepartmentService:
         manager_name = None
         
         if department.manager_id:
-            manager = self.db.query(User).filter(User.id == department.manager_id).first()
+            from sqlalchemy import select
+            manager = self.db.scalar(select(User).where(User.id == department.manager_id))
             if manager:
                 manager_name = manager.full_name
         

@@ -7,6 +7,19 @@ from app.schemas.organization import OrganizationBasic
 from app.schemas.user import UserBasic
 
 
+class UserSummary(BaseModel):
+    """Summary information about a user."""
+    id: int
+    email: str
+    full_name: str
+    phone: Optional[str] = None
+    is_active: bool
+    department_id: Optional[int] = None
+    department_name: Optional[str] = None
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
 class DepartmentBase(BaseModel):
     """Base schema for department."""
     code: str = Field(..., min_length=1, max_length=50, description="Department code")
@@ -89,7 +102,9 @@ class DepartmentBasic(BaseModel):
 
 class DepartmentSummary(DepartmentBasic):
     """Department summary with additional info."""
-    organization_name: str
+    name_en: Optional[str] = None
+    organization_id: int
+    organization_name: Optional[str] = None
     parent_id: Optional[int] = None
     parent_name: Optional[str] = None
     manager_id: Optional[int] = None
@@ -98,6 +113,7 @@ class DepartmentSummary(DepartmentBasic):
     headcount_limit: Optional[int] = None
     is_over_headcount: bool = False
     sub_department_count: int = 0
+    user_count: int = 0
     
     model_config = ConfigDict(from_attributes=True)
 
@@ -132,12 +148,16 @@ class DepartmentTree(BaseModel):
     id: int
     code: str
     name: str
+    name_en: Optional[str] = None
     short_name: Optional[str] = None
     is_active: bool
     level: int = 0
     parent_id: Optional[int] = None
+    manager_id: Optional[int] = None
+    manager_name: Optional[str] = None
     current_headcount: int = 0
     headcount_limit: Optional[int] = None
+    user_count: int = 0
     children: List["DepartmentTree"] = Field(default_factory=list)
     
     model_config = ConfigDict(from_attributes=True)
