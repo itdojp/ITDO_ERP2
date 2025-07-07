@@ -27,9 +27,9 @@ class TestUserService:
     """Test cases for UserService."""
 
     @pytest.fixture
-    def service(self) -> UserService:
+    def service(self, db_session: Session) -> UserService:
         """Create service instance."""
-        return UserService()
+        return UserService(db_session)
 
     def test_create_user_system_admin(self, service, db_session: Session) -> None:
         """TEST-USER-SERVICE-001: システム管理者によるユーザー作成をテスト."""
