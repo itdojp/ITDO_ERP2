@@ -5,7 +5,8 @@ This module provides base model classes with common functionality for all databa
 from typing import Any, Dict, Optional, TypeVar, Generic, Type, TYPE_CHECKING
 from datetime import datetime
 from sqlalchemy import Column, Integer, DateTime, Boolean, ForeignKey, func
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, declared_attr, RelationshipProperty
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, declared_attr
+from sqlalchemy.orm.relationships import RelationshipProperty
 from app.types import UserId, AuditableProtocol, SoftDeletableProtocol
 
 if TYPE_CHECKING:
@@ -78,7 +79,7 @@ class AuditableModel(BaseModel):
     
     # Relationships to user (will be defined in concrete models to avoid circular imports)
     @declared_attr
-    def creator(cls) -> RelationshipProperty:
+    def creator(cls) -> RelationshipProperty["User"]:
         return relationship(
             "User",
             foreign_keys=[cls.created_by],
@@ -87,7 +88,7 @@ class AuditableModel(BaseModel):
         )
     
     @declared_attr
-    def updater(cls) -> RelationshipProperty:
+    def updater(cls) -> RelationshipProperty["User"]:
         return relationship(
             "User",
             foreign_keys=[cls.updated_by],
@@ -119,7 +120,7 @@ class SoftDeletableModel(AuditableModel):
     )
     
     @declared_attr
-    def deleter(cls) -> RelationshipProperty:
+    def deleter(cls) -> RelationshipProperty["User"]:
         return relationship(
             "User",
             foreign_keys=[cls.deleted_by],

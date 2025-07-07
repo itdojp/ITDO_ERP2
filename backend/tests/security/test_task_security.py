@@ -80,7 +80,7 @@ class TestTaskSecurity:
         # Should reject virus file
         assert response.status_code in [400, 415, 422]
 
-    def test_file_upload_large(self, client: TestClient, auth_headers: dict):
+    def test_file_upload_large(self, client: TestClient, auth_headers: Dict[str, str]) -> None:
         """Test ST-006: ファイルアップロード（大容量）"""
         # Create file larger than 10MB limit
         large_content = b"x" * (11 * 1024 * 1024)  # 11MB

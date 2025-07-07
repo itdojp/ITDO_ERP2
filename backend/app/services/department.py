@@ -14,7 +14,7 @@ from app.schemas.department import (
     DepartmentTree,
     DepartmentWithUsers
 )
-from app.schemas.user import UserBasic
+from app.schemas.user import UserBasic, UserSummary
 from app.types import DepartmentId, UserId, OrganizationId
 
 
