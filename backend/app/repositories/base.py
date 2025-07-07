@@ -146,20 +146,26 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     
     def exists(self, id: int) -> bool:
         """Check if a record exists by ID."""
-        return self.db.scalar(
+        count = self.db.scalar(
             select(func.count(self.model.id))
             .where(self.model.id == id)
-        ) > 0
+        )
+        return bool(count and count > 0)
     
     def search(self, params: SearchParams) -> tuple[List[ModelType], int]:
         """Search records with pagination."""
         query = select(self.model)
         
         # Apply search query if provided
-        if params.query and hasattr(self.model, 'name'):
-            query = query.where(
-                self.model.name.ilike(f"%{params.query}%")
-            )
+        if params.query:
+            try:
+                name_attr = getattr(self.model, 'name', None)
+                if name_attr is not None:
+                    query = query.where(
+                        name_attr.ilike(f"%{params.query}%")
+                    )
+            except AttributeError:
+                pass
         
         # Apply filters
         if params.filters:

@@ -13,7 +13,7 @@ from app.models.user import User
 class TestAuthAPI:
     """Test authentication API endpoints."""
 
-    def test_login_success(self, client: TestClient, db_session, test_user) -> None:
+    def test_login_success(self, client: TestClient, db_session: Session, test_user: User) -> None:
         """Test successful login."""
         # When: Logging in with correct credentials
         response = client.post(
@@ -32,7 +32,7 @@ class TestAuthAPI:
         assert data["token_type"] == "bearer"
         assert data["expires_in"] == 86400  # 24 hours
 
-    def test_login_invalid_password(self, client: TestClient, test_user) -> None:
+    def test_login_invalid_password(self, client: TestClient, test_user: User) -> None:
         """Test login with invalid password."""
         # When: Logging in with wrong password
         response = client.post(
@@ -62,7 +62,7 @@ class TestAuthAPI:
         assert response.status_code == 401
         assert response.json()["code"] == "AUTH001"
 
-    def test_login_inactive_user(self, client: TestClient, db_session) -> None:
+    def test_login_inactive_user(self, client: TestClient, db_session: Session) -> None:
         """Test login with inactive user."""
         # Given: Inactive user
         user = User.create(
@@ -87,7 +87,7 @@ class TestAuthAPI:
         assert response.status_code == 401
         assert response.json()["code"] == "AUTH001"
 
-    def test_refresh_token_success(self, client: TestClient, test_user) -> None:
+    def test_refresh_token_success(self, client: TestClient, test_user: User) -> None:
         """Test successful token refresh."""
         # Given: Valid refresh token
         refresh_token = create_refresh_token({"sub": str(test_user.id)})
@@ -116,7 +116,7 @@ class TestAuthAPI:
         assert response.status_code == 401
         assert response.json()["code"] == "AUTH003"
 
-    def test_refresh_token_expired(self, client: TestClient, test_user) -> None:
+    def test_refresh_token_expired(self, client: TestClient, test_user: User) -> None:
         """Test refresh with expired token."""
         # Given: Expired refresh token
         expired_token = create_refresh_token(
@@ -159,7 +159,7 @@ class TestAuthAPI:
         # Then: Should return 422
         assert response.status_code == 422
 
-    def test_login_response_time(self, client: TestClient, test_user) -> None:
+    def test_login_response_time(self, client: TestClient, test_user: User) -> None:
         """Test login API response time."""
         # When: Measuring login response time
         start_time = time.time()

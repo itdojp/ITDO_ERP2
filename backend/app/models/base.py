@@ -6,7 +6,6 @@ from typing import Any, Dict, Optional, TypeVar, Generic, Type, TYPE_CHECKING
 from datetime import datetime
 from sqlalchemy import Column, Integer, DateTime, Boolean, ForeignKey, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, declared_attr
-from sqlalchemy.orm.relationships import RelationshipProperty
 from app.types import UserId, AuditableProtocol, SoftDeletableProtocol
 
 if TYPE_CHECKING:
@@ -79,19 +78,19 @@ class AuditableModel(BaseModel):
     
     # Relationships to user (will be defined in concrete models to avoid circular imports)
     @declared_attr
-    def creator(cls) -> RelationshipProperty["User"]:
+    def creator(cls) -> Mapped[Optional["User"]]:
         return relationship(
             "User",
-            foreign_keys=[cls.created_by],
+            foreign_keys="AuditableModel.created_by",
             lazy="joined",
             uselist=False
         )
     
     @declared_attr
-    def updater(cls) -> RelationshipProperty["User"]:
+    def updater(cls) -> Mapped[Optional["User"]]:
         return relationship(
             "User",
-            foreign_keys=[cls.updated_by],
+            foreign_keys="AuditableModel.updated_by",
             lazy="joined",
             uselist=False
         )
@@ -120,10 +119,10 @@ class SoftDeletableModel(AuditableModel):
     )
     
     @declared_attr
-    def deleter(cls) -> RelationshipProperty["User"]:
+    def deleter(cls) -> Mapped[Optional["User"]]:
         return relationship(
             "User",
-            foreign_keys=[cls.deleted_by],
+            foreign_keys="SoftDeletableModel.deleted_by",
             lazy="joined",
             uselist=False
         )

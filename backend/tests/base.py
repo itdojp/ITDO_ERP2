@@ -28,7 +28,7 @@ class BaseAPITestCase(ABC, Generic[T, CreateSchemaType, UpdateSchemaType, Respon
     
     @property
     @abstractmethod
-    def factory_class(self) -> Type[BaseFactory]:
+    def factory_class(self) -> Type[BaseFactory[T]]:
         """Factory class for creating test instances."""
         pass
     
@@ -56,11 +56,11 @@ class BaseAPITestCase(ABC, Generic[T, CreateSchemaType, UpdateSchemaType, Respon
     
     def create_test_instance(self, db_session: Session, **kwargs: Any) -> T:
         """Create a test instance using the factory."""
-        return self.factory_class.create(db_session, **kwargs)
+        return self.factory_class.create(db_session, **kwargs)  # type: ignore
     
     def create_valid_payload(self, **overrides: Any) -> Dict[str, Any]:
         """Create a valid payload for create operations."""
-        return self.factory_class.build_dict(**overrides)
+        return self.factory_class.build_dict(**overrides)  # type: ignore
     
     def create_update_payload(self, **overrides: Any) -> Dict[str, Any]:
         """Create a valid payload for update operations."""
@@ -341,7 +341,7 @@ class BaseServiceTestCase(ABC, Generic[T]):
     
     def create_test_instance(self, db_session: Session, **kwargs: Any) -> T:
         """Create a test instance using the factory."""
-        return self.factory_class.create(db_session, **kwargs)
+        return self.factory_class.create(db_session, **kwargs)  # type: ignore
 
 
 class BaseRepositoryTestCase(ABC, Generic[T]):
@@ -371,7 +371,7 @@ class BaseRepositoryTestCase(ABC, Generic[T]):
     
     def create_test_instance(self, db_session: Session, **kwargs: Any) -> T:
         """Create a test instance using the factory."""
-        return self.factory_class.create(db_session, **kwargs)
+        return self.factory_class.create(db_session, **kwargs)  # type: ignore
 
 
 # Test Mixins for specific functionality

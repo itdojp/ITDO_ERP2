@@ -101,7 +101,7 @@ class TestUsersAPI:
         errors = response.json()["detail"]
         assert any(error["loc"] == ["body", "password"] for error in errors)
 
-    def test_get_current_user(self, client: TestClient, test_user, user_token: str) -> None:
+    def test_get_current_user(self, client: TestClient, test_user: User, user_token: str) -> None:
         """Test getting current user info."""
         # When: Getting current user
         response = client.get(

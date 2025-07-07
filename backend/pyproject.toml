@@ -80,6 +80,7 @@ python_version = "3.13"
 strict = true
 exclude = [
     "tests/performance/.*",
+    "tests/factories/.*",
     "run_task_v2_tests.py"
 ]
 warn_return_any = true
