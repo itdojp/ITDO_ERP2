@@ -4,7 +4,7 @@ import time
 import logging
 import json
 import asyncio
-from typing import Dict, Any, Optional, Callable
+from typing import Dict, Any, Optional, Callable, TypeVar, Union, List
 from functools import wraps
 from contextlib import contextmanager
 from datetime import datetime, timedelta
@@ -94,7 +94,7 @@ BUSINESS_METRICS = {
 class MonitoringMiddleware(BaseHTTPMiddleware):
     """Middleware for collecting metrics and logging."""
     
-    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+    async def dispatch(self, request: Request, call_next: Callable[..., Any]) -> Response:
         """Process request and collect metrics."""
         start_time = time.time()
         
@@ -198,11 +198,13 @@ def setup_tracing(service_name: str = "itdo-erp-backend") -> None:
     RedisInstrumentor.instrument()
 
 
-def trace_function(operation_name: Optional[str] = None):
+F = TypeVar('F', bound=Callable[..., Any])
+
+def trace_function(operation_name: Optional[str] = None) -> Callable[[F], F]:
     """Decorator to trace function execution."""
-    def decorator(func: Callable) -> Callable:
+    def decorator(func: F) -> F:
         @wraps(func)
-        async def async_wrapper(*args, **kwargs):
+        async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
             tracer = trace.get_tracer(__name__)
             span_name = operation_name or f"{func.__module__}.{func.__name__}"
             
@@ -221,7 +223,7 @@ def trace_function(operation_name: Optional[str] = None):
                     raise
         
         @wraps(func)
-        def sync_wrapper(*args, **kwargs):
+        def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
             tracer = trace.get_tracer(__name__)
             span_name = operation_name or f"{func.__module__}.{func.__name__}"
             
@@ -250,7 +252,7 @@ def trace_function(operation_name: Optional[str] = None):
 
 
 @contextmanager
-def database_query_timer(operation: str, table: str):
+def database_query_timer(operation: str, table: str) -> Any:
     """Context manager for timing database queries."""
     start_time = time.time()
     
@@ -301,9 +303,9 @@ def log_business_event(event_type: str, details: Dict[str, Any]) -> None:
 class HealthChecker:
     """Health check implementation."""
     
-    def __init__(self):
-        self.checks = {}
-        self.last_check_time = {}
+    def __init__(self) -> None:
+        self.checks: Dict[str, Callable[[], bool]] = {}
+        self.last_check_time: Dict[str, datetime] = {}
         self.check_interval = timedelta(seconds=30)
     
     def register_check(self, name: str, check_func: Callable[[], bool]) -> None:
@@ -356,10 +358,10 @@ class HealthChecker:
 health_checker = HealthChecker()
 
 
-def setup_health_checks(app, db_session_factory, redis_client=None) -> None:
+def setup_health_checks(app: Any, db_session_factory: Any, redis_client: Any = None) -> None:
     """Setup standard health checks."""
     
-    def check_database():
+    def check_database() -> bool:
         """Check database connectivity."""
         try:
             from sqlalchemy import text
@@ -370,7 +372,7 @@ def setup_health_checks(app, db_session_factory, redis_client=None) -> None:
             logger.error("Database health check failed", error=str(e))
             return False
     
-    def check_redis():
+    def check_redis() -> bool:
         """Check Redis connectivity."""
         if not redis_client:
             return True
@@ -382,7 +384,7 @@ def setup_health_checks(app, db_session_factory, redis_client=None) -> None:
             logger.error("Redis health check failed", error=str(e))
             return False
     
-    def check_disk_space():
+    def check_disk_space() -> bool:
         """Check available disk space."""
         try:
             import shutil
@@ -393,7 +395,7 @@ def setup_health_checks(app, db_session_factory, redis_client=None) -> None:
             logger.error("Disk space check failed", error=str(e))
             return False
     
-    def check_memory():
+    def check_memory() -> bool:
         """Check available memory."""
         try:
             import psutil
@@ -416,11 +418,11 @@ def get_metrics() -> str:
 
 
 # Performance monitoring decorator
-def monitor_performance(metric_name: Optional[str] = None):
+def monitor_performance(metric_name: Optional[str] = None) -> Callable[[F], F]:
     """Decorator to monitor function performance."""
-    def decorator(func: Callable) -> Callable:
+    def decorator(func: F) -> F:
         @wraps(func)
-        async def async_wrapper(*args, **kwargs):
+        async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
             start_time = time.time()
             function_name = metric_name or f"{func.__module__}.{func.__name__}"
             
@@ -450,7 +452,7 @@ def monitor_performance(metric_name: Optional[str] = None):
                 raise
         
         @wraps(func)
-        def sync_wrapper(*args, **kwargs):
+        def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
             start_time = time.time()
             function_name = metric_name or f"{func.__module__}.{func.__name__}"
             

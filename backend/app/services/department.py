@@ -230,18 +230,12 @@ class DepartmentService:
                     id=manager_obj.id,
                     email=manager_obj.email,
                     full_name=manager_obj.full_name,
-                    employee_code=manager_obj.employee_code,
+                    phone=manager_obj.phone,
                     is_active=manager_obj.is_active
                 )
         
-        # Build response
-        data = department.to_dict()
-        data["parent"] = department.parent.to_dict() if department.parent else None
-        data["manager"] = manager.model_dump() if manager else None
-        data["full_path"] = department.full_path
-        data["is_leaf"] = department.is_leaf
-        
-        return DepartmentResponse.model_validate(data)
+        # Build response using Pydantic
+        return DepartmentResponse.model_validate(department, from_attributes=True)
     
     def get_department_with_users(
         self,
@@ -256,10 +250,13 @@ class DepartmentService:
             department_ids.extend([d.id for d in sub_depts])
         
         # Get users
-        users = self.db.query(User).filter(
-            User.department_id.in_(department_ids),
-            User.is_active == True
-        ).order_by(User.full_name).all()
+        from sqlalchemy import select
+        users = list(self.db.scalars(
+            select(User).where(
+                User.department_id.in_(department_ids),
+                User.is_active == True
+            ).order_by(User.full_name)
+        ))
         
         # Convert to UserSummary
         user_summaries = [
@@ -267,7 +264,7 @@ class DepartmentService:
                 id=user.id,
                 email=user.email,
                 full_name=user.full_name,
-                employee_code=user.employee_code,
+                phone=user.phone,
                 is_active=user.is_active
             )
             for user in users

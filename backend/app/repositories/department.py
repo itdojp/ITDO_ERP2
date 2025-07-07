@@ -174,3 +174,11 @@ class DepartmentRepository(BaseRepository[Department, DepartmentCreate, Departme
                 .values(display_order=index)
             )
         self.db.commit()
+    
+    def get_with_parent(self, id: int) -> Optional[Department]:
+        """Get department with parent loaded."""
+        return self.db.scalar(
+            select(self.model)
+            .options(joinedload(self.model.parent))
+            .where(self.model.id == id)
+        )
