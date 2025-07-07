@@ -1,6 +1,7 @@
 """Organization model implementation."""
 
-from typing import TYPE_CHECKING, List, Optional
+import json
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from sqlalchemy import Boolean, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -157,6 +158,16 @@ class Organization(SoftDeletableModel):
         return " ".join(parts) if parts else None
 
     @property
+    def settings_dict(self) -> Dict[str, Any]:
+        """Get settings as dictionary."""
+        if not self.settings:
+            return {}
+        try:
+            return json.loads(self.settings)
+        except (json.JSONDecodeError, TypeError):
+            return {}
+    
+    @property
     def is_subsidiary(self) -> bool:
         """Check if this is a subsidiary organization."""
         return self.parent_id is not None
@@ -182,3 +193,11 @@ class Organization(SoftDeletableModel):
             path.insert(0, current.parent)
             current = current.parent
         return path
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert model to dictionary, handling JSON fields."""
+        data = super().to_dict()
+        # Convert settings JSON string to dict
+        if "settings" in data:
+            data["settings"] = self.settings_dict
+        return data

@@ -53,25 +53,24 @@ class OrganizationRepository(
 
     def get_all_subsidiaries(self, parent_id: OrganizationId) -> List[Organization]:
         """Get all subsidiaries recursively."""
-        # Use CTE for recursive query
-        org_cte = (
-            select(self.model)
-            .where(self.model.parent_id == parent_id)
-            .cte(recursive=True)
-        )
-        org_alias = org_cte.alias()
-
-        org_cte = org_cte.union_all(
-            select(self.model).where(self.model.parent_id.in_(select(org_alias.c.id)))
-        )
-
-        return list(
-            self.db.scalars(
-                select(self.model)
-                .join(org_cte, self.model.id == org_cte.c.id)
-                .where(not self.model.is_deleted)
+        # For now, use a simple non-recursive approach
+        # TODO: Fix recursive CTE query
+        subsidiaries = []
+        
+        def collect_subsidiaries(pid: OrganizationId) -> None:
+            direct_subs = list(
+                self.db.scalars(
+                    select(self.model)
+                    .where(self.model.parent_id == pid)
+                    .where(not self.model.is_deleted)
+                )
             )
-        )
+            for sub in direct_subs:
+                subsidiaries.append(sub)
+                collect_subsidiaries(sub.id)
+        
+        collect_subsidiaries(parent_id)
+        return subsidiaries
 
     def get_root_organizations(self) -> List[Organization]:
         """Get organizations without parent (root level)."""

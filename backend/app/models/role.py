@@ -350,7 +350,7 @@ class UserRole(AuditableModel):
         return self.role.get_all_permissions()
 
 
-class RolePermission(BaseModel):
+class RolePermission(Base):
     """Association table between roles and permissions."""
 
     __tablename__ = "role_permissions"
@@ -362,6 +362,21 @@ class RolePermission(BaseModel):
         Integer, ForeignKey("permissions.id"), primary_key=True, comment="Permission ID"
     )
 
+    # Timestamps (required by Base model conventions)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+        comment="When the role-permission was created",
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+        comment="When the role-permission was last updated",
+    )
+    
     # Additional metadata
     granted_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
