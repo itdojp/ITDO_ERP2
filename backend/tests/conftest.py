@@ -44,10 +44,9 @@ if is_unit_test:
         poolclass=StaticPool,
     )
 else:
-    # For integration tests, use PostgreSQL with proper isolation
+    # For integration tests, use PostgreSQL 
     engine = create_engine(
         SQLALCHEMY_DATABASE_URL,
-        isolation_level="AUTOCOMMIT",  # Ensure immediate commits for TRUNCATE
         pool_pre_ping=True,  # Verify connections before use
     )
 
@@ -99,10 +98,9 @@ def db_session() -> Generator[Session, None, None]:
     try:
         yield session
     finally:
-        session.rollback()  # Rollback any pending transactions
         session.close()
         
-        # Clean up test data
+        # Clean up test data using improved TRUNCATE
         if "postgresql" in str(engine.url):
             truncate_all_tables()
         else:
