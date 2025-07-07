@@ -309,22 +309,22 @@ class RoleService:
     
     def list_roles(
         self,
-        organization_id: Optional[OrganizationId] = None,
-        include_system: bool = True,
         skip: int = 0,
-        limit: int = 100
+        active_only: bool = True,
+        limit: int = 100,
+        organization_id: Optional[OrganizationId] = None
     ) -> Tuple[List[Role], int]:
         """List roles with filtering."""
         query = select(Role).where(Role.is_deleted == False)
+        
+        if active_only:
+            query = query.where(Role.is_active == True)
         
         if organization_id:
             query = query.where(or_(
                 Role.organization_id == organization_id,
                 Role.organization_id.is_(None)
             ))
-        
-        if not include_system:
-            query = query.where(Role.is_system == False)
         
         # Count total
         count_query = select(func.count()).select_from(query.subquery())
@@ -418,25 +418,6 @@ class RoleService:
             "errors": errors
         }
     
-    def list_roles(self, skip: int, active_only: bool = True, limit: int = 100, organization_id: Optional[OrganizationId] = None) -> Tuple[List[Role], int]:
-        """List roles with pagination."""
-        # Stub implementation for API compatibility
-        query = select(Role).where(Role.is_deleted == False)
-        
-        if active_only:
-            query = query.where(Role.is_active == True)
-        
-        if organization_id:
-            query = query.where(or_(
-                Role.organization_id == organization_id,
-                Role.organization_id.is_(None)
-            ))
-        
-        total = self.db.scalar(select(func.count()).select_from(query.subquery())) or 0
-        roles = self.db.scalars(query.offset(skip).limit(limit)).all()
-        
-        return list(roles), total
-    
     def search_roles(self, search: str, skip: int, limit: int, filters: Dict[str, Any]) -> Tuple[List[Role], int]:
         """Search roles by name or description."""
         # Stub implementation for API compatibility
@@ -470,10 +451,12 @@ class RoleService:
     def get_role_with_permissions(self, role: Role, include_inherited: bool = False) -> RoleWithPermissions:
         """Get role with its permissions."""
         permissions = self.get_role_permissions(role.id)
-        return RoleWithPermissions(
-            **role.__dict__,
-            permissions=[PermissionBasic.model_validate(p, from_attributes=True) for p in permissions]
-        )
+        # Create base role response first
+        role_response = self.get_role_response(role)
+        # Convert to dict and add permission_list
+        role_data = role_response.model_dump()
+        role_data["permission_list"] = [PermissionBasic.model_validate(p, from_attributes=True) for p in permissions]
+        return RoleWithPermissions(**role_data)
     
     def user_has_permission(self, user_id: UserId, permission_code: str, organization_id: Optional[OrganizationId] = None) -> bool:
         """Check if user has specific permission."""
@@ -495,14 +478,3 @@ class RoleService:
     def get_user_role_response(self, user_role: UserRole) -> UserRoleResponse:
         """Get user role response."""
         return UserRoleResponse.model_validate(user_role, from_attributes=True)
-    
-    def get_user_roles(self, user_id: UserId) -> List[UserRole]:
-        """Get user roles (simple version)."""
-        return self.db.scalars(
-            select(UserRole).where(
-                and_(
-                    UserRole.user_id == user_id,
-                    UserRole.is_active == True
-                )
-            )
-        ).all()

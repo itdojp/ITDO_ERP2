@@ -58,7 +58,7 @@ class BaseAPIRouter(Generic[ModelType, CreateSchemaType, UpdateSchemaType, Respo
         from typing import Sequence, cast
         self.router = APIRouter(
             prefix=prefix,
-            tags=cast(Sequence[str], tags) if tags else None,
+            tags=list(tags) if tags else None,
             dependencies=router_dependencies
         )
         

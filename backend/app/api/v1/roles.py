@@ -1,5 +1,5 @@
 """Role API endpoints."""
-from typing import List, Optional, Union, Dict
+from typing import List, Optional, Union, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Path, Body
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
@@ -584,6 +584,16 @@ def remove_role_from_user(
                 ).model_dump()
             )
     
+    # Ensure organization_id is not None
+    if role.organization_id is None:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content=ErrorResponse(
+                detail="Role must have an organization",
+                code="INVALID_ROLE"
+            ).model_dump()
+        )
+    
     success = service.remove_role_from_user(user_id, role_id, role.organization_id, current_user.id)
     
     if not success:
@@ -627,6 +637,6 @@ def get_user_roles(
         )
     
     service = RoleService(db)
-    user_roles = service.get_user_roles(user_id)
+    user_role_responses = service.get_user_roles(user_id)
     
-    return [service.get_user_role_response(ur) for ur in user_roles]
+    return user_role_responses  # Already UserRoleResponse objects
