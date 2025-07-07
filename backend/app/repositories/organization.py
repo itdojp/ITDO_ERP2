@@ -56,7 +56,7 @@ class OrganizationRepository(
         # For now, use a simple non-recursive approach
         # TODO: Fix recursive CTE query
         subsidiaries = []
-        
+
         def collect_subsidiaries(pid: OrganizationId) -> None:
             direct_subs = list(
                 self.db.scalars(
@@ -68,7 +68,7 @@ class OrganizationRepository(
             for sub in direct_subs:
                 subsidiaries.append(sub)
                 collect_subsidiaries(sub.id)
-        
+
         collect_subsidiaries(parent_id)
         return subsidiaries
 

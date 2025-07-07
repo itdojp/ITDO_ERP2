@@ -166,7 +166,7 @@ class Organization(SoftDeletableModel):
             return json.loads(self.settings)
         except (json.JSONDecodeError, TypeError):
             return {}
-    
+
     @property
     def is_subsidiary(self) -> bool:
         """Check if this is a subsidiary organization."""
@@ -193,7 +193,7 @@ class Organization(SoftDeletableModel):
             path.insert(0, current.parent)
             current = current.parent
         return path
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert model to dictionary, handling JSON fields."""
         data = super().to_dict()

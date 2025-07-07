@@ -17,7 +17,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import AuditableModel, BaseModel, SoftDeletableModel
+from app.models.base import AuditableModel, Base, SoftDeletableModel
 from app.types import DepartmentId, OrganizationId, RoleId, UserId
 
 if TYPE_CHECKING:
@@ -376,7 +376,7 @@ class RolePermission(Base):
         nullable=False,
         comment="When the role-permission was last updated",
     )
-    
+
     # Additional metadata
     granted_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

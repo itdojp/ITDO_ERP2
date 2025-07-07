@@ -62,7 +62,7 @@ class DepartmentService:
         # Get all matching departments
         all_results = (
             self.db.query(Department)
-            .filter(and_(*conditions), Department.is_deleted == False)
+            .filter(and_(*conditions), ~Department.is_deleted)
             .order_by(Department.updated_at.desc())
             .all()
         )
@@ -83,7 +83,7 @@ class DepartmentService:
             .filter(
                 Department.organization_id == department_data.organization_id,
                 Department.code == department_data.code,
-                Department.is_deleted == False,
+                ~Department.is_deleted,
             )
             .first()
         )
@@ -122,7 +122,7 @@ class DepartmentService:
                     Department.organization_id == department.organization_id,
                     Department.code == department_data.code,
                     Department.id != department_id,
-                    Department.is_deleted == False,
+                    ~Department.is_deleted,
                 )
                 .first()
             )
@@ -162,8 +162,8 @@ class DepartmentService:
             self.db.query(Department)
             .filter(
                 Department.organization_id == organization_id,
-                Department.parent_id == None,
-                Department.is_deleted == False,
+                Department.parent_id.is_(None),
+                ~Department.is_deleted,
             )
             .order_by(Department.display_order, Department.name)
             .all()
@@ -174,7 +174,7 @@ class DepartmentService:
             children = []
             sub_depts = (
                 self.db.query(Department)
-                .filter(Department.parent_id == dept.id, Department.is_deleted == False)
+                .filter(Department.parent_id == dept.id, ~Department.is_deleted)
                 .order_by(Department.display_order, Department.name)
                 .all()
             )
@@ -309,7 +309,7 @@ class DepartmentService:
         """Get direct sub-departments."""
         return (
             self.db.query(Department)
-            .filter(Department.parent_id == parent_id, Department.is_deleted == False)
+            .filter(Department.parent_id == parent_id, ~Department.is_deleted)
             .order_by(Department.display_order, Department.name)
             .all()
         )
@@ -333,8 +333,8 @@ class DepartmentService:
             self.db.query(Department)
             .filter(
                 Department.parent_id == department_id,
-                Department.is_deleted == False,
-                Department.is_active == True,
+                ~Department.is_deleted,
+                Department.is_active,
             )
             .first()
             is not None
