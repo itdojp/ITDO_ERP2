@@ -96,7 +96,7 @@ class BaseAPIRouter(Generic[ModelType, CreateSchemaType, UpdateSchemaType, Respo
             
             # Convert to response schema
             items_data = [
-                self.response_schema.model_validate(item.to_dict())
+                self.response_schema.model_validate(item, from_attributes=True)
                 for item in items
             ]
             
@@ -107,12 +107,12 @@ class BaseAPIRouter(Generic[ModelType, CreateSchemaType, UpdateSchemaType, Respo
                 limit=limit
             )
         
-        @self.router.get("/{item_id}", response_model=ResponseSchemaType)
+        @self.router.get("/{item_id}", response_model=self.response_schema)
         async def get_item(
             item_id: int,
             db: Session = Depends(get_db),
             current_user: User = Depends(self.get_current_user_fn)
-        ) -> ResponseSchemaType:
+        ) -> Any:
             """Get a single item by ID."""
             repo = self.repository(self.model, db)
             item = repo.get(item_id)
@@ -123,14 +123,14 @@ class BaseAPIRouter(Generic[ModelType, CreateSchemaType, UpdateSchemaType, Respo
                     detail=f"{self.model.__name__} not found"
                 )
             
-            return self.response_schema.model_validate(item.to_dict())
+            return self.response_schema.model_validate(item, from_attributes=True)
         
         @self.router.post("/", response_model=ResponseSchemaType, status_code=status.HTTP_201_CREATED)
         async def create_item(
             item_in: CreateSchemaType,
             db: Session = Depends(get_db),
             current_user: User = Depends(self.get_current_user_fn)
-        ) -> ResponseSchemaType:
+        ) -> Any:
             """Create a new item."""
             repo = self.repository(self.model, db)
             
@@ -144,7 +144,7 @@ class BaseAPIRouter(Generic[ModelType, CreateSchemaType, UpdateSchemaType, Respo
             # Create item
             item = repo.create(self.create_schema(**item_data))
             
-            return self.response_schema.model_validate(item.to_dict())
+            return self.response_schema.model_validate(item, from_attributes=True)
         
         @self.router.put("/{item_id}", response_model=ResponseSchemaType)
         async def update_item(
@@ -152,7 +152,7 @@ class BaseAPIRouter(Generic[ModelType, CreateSchemaType, UpdateSchemaType, Respo
             item_in: UpdateSchemaType,
             db: Session = Depends(get_db),
             current_user: User = Depends(self.get_current_user_fn)
-        ) -> ResponseSchemaType:
+        ) -> Any:
             """Update an existing item."""
             repo = self.repository(self.model, db)
             
@@ -178,7 +178,7 @@ class BaseAPIRouter(Generic[ModelType, CreateSchemaType, UpdateSchemaType, Respo
                     detail="Failed to update item"
                 )
             
-            return self.response_schema.model_validate(item.to_dict())
+            return self.response_schema.model_validate(item, from_attributes=True)
         
         @self.router.delete("/{item_id}", response_model=DeleteResponse)
         async def delete_item(
@@ -253,7 +253,7 @@ class BaseAPIRouter(Generic[ModelType, CreateSchemaType, UpdateSchemaType, Respo
             items = repo.create_multi(items_data)
             
             return [
-                self.response_schema.model_validate(item.to_dict())
+                self.response_schema.model_validate(item, from_attributes=True)
                 for item in items
             ]
         
