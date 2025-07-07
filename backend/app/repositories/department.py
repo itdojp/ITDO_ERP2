@@ -1,5 +1,5 @@
 """Department repository implementation."""
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Any
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import select, and_, or_, func, update
 from app.repositories.base import BaseRepository
@@ -144,7 +144,7 @@ class DepartmentRepository(BaseRepository[Department, DepartmentCreate, Departme
         count = self.db.scalar(query) or 0
         return count == 0
     
-    def get_headcount_stats(self, department_id: DepartmentId) -> Dict[str, int]:
+    def get_headcount_stats(self, department_id: DepartmentId) -> Dict[str, Any]:
         """Get headcount statistics for department."""
         from app.models.role import UserRole
         

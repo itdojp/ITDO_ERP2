@@ -150,15 +150,20 @@ class Department(SoftDeletableModel):
     parent: Mapped[Optional["Department"]] = relationship(
         "Department",
         remote_side="Department.id",
-        backref="sub_departments",
+        back_populates="sub_departments",
         lazy="joined"
+    )
+    sub_departments: Mapped[List["Department"]] = relationship(
+        "Department",
+        back_populates="parent",
+        lazy="select"
     )
     manager: Mapped[Optional["User"]] = relationship(
         "User",
         foreign_keys=[manager_id],
         lazy="joined"
     )
-    users = relationship(  # type: ignore[assignment]
+    users = relationship(
         "User",
         secondary="user_roles",
         primaryjoin="Department.id == UserRole.department_id",
@@ -217,11 +222,11 @@ class Department(SoftDeletableModel):
     
     def get_all_users(self, include_sub_departments: bool = False) -> List["User"]:
         """Get all users in this department and optionally in sub-departments."""
-        users = list(self.users.filter_by(is_active=True).all())  # type: ignore[attr-defined]
+        users = list(self.users.filter_by(is_active=True).all())
         
         if include_sub_departments:
             for sub_dept in self.get_all_sub_departments():
-                users.extend(sub_dept.users.filter_by(is_active=True).all())  # type: ignore[attr-defined]
+                users.extend(sub_dept.users.filter_by(is_active=True).all())
         
         # Remove duplicates while preserving order
         seen = set()

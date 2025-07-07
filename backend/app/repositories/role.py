@@ -102,6 +102,7 @@ class RoleRepository(BaseRepository[Role, RoleCreate, RoleUpdate]):
         source_id: int,
         new_code: str,
         new_name: str,
+        organization_id: int,
         include_permissions: bool = True
     ) -> Role:
         """Clone a role with new code and name."""
@@ -115,12 +116,14 @@ class RoleRepository(BaseRepository[Role, RoleCreate, RoleUpdate]):
             "name_en": source.name_en,
             "description": f"Cloned from {source.name}",
             "role_type": "custom",
+            "organization_id": organization_id,
             "parent_id": source.parent_id,
             "permissions": source.permissions if include_permissions else {},
             "is_system": False,
             "display_order": source.display_order,
             "icon": source.icon,
-            "color": source.color
+            "color": source.color,
+            "is_active": True
         }
         
         return self.create(RoleCreate(**data))
