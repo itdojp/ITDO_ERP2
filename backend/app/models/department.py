@@ -150,8 +150,12 @@ class Department(SoftDeletableModel):
     parent: Mapped[Optional["Department"]] = relationship(
         "Department",
         remote_side="Department.id",
-        backref="sub_departments",
+        back_populates="sub_departments",
         lazy="joined"
+    )
+    sub_departments: Mapped[List["Department"]] = relationship(
+        "Department",
+        back_populates="parent"
     )
     manager: Mapped[Optional["User"]] = relationship(
         "User",

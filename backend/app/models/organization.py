@@ -155,8 +155,12 @@ class Organization(SoftDeletableModel):
     parent: Mapped[Optional["Organization"]] = relationship(
         "Organization",
         remote_side="Organization.id",
-        backref="subsidiaries",
+        back_populates="subsidiaries",
         lazy="joined"
+    )
+    subsidiaries: Mapped[List["Organization"]] = relationship(
+        "Organization",
+        back_populates="parent"
     )
     departments: Mapped[List["Department"]] = relationship(
         "Department",

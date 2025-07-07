@@ -12,9 +12,9 @@ from app.schemas.department import (
     DepartmentResponse,
     DepartmentSummary,
     DepartmentTree,
-    DepartmentWithUsers,
-    UserSummary
+    DepartmentWithUsers
 )
+from app.schemas.user import UserBasic
 from app.types import DepartmentId, UserId, OrganizationId
 
 

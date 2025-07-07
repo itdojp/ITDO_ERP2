@@ -1,6 +1,7 @@
 """Security tests for task management."""
 
 import pytest
+from typing import Dict, Any
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
@@ -8,7 +9,7 @@ from sqlalchemy.orm import Session
 class TestTaskSecurity:
     """Security test cases for task management."""
 
-    def test_sql_injection(self, client: TestClient, auth_headers: dict):
+    def test_sql_injection(self, client: TestClient, auth_headers: Dict[str, str]) -> None:
         """Test ST-001: SQLインジェクション"""
         # Try SQL injection in search parameter
         malicious_input = "'; DROP TABLE tasks; --"
@@ -24,7 +25,7 @@ class TestTaskSecurity:
         response = client.get("/api/v1/tasks", headers=auth_headers)
         assert response.status_code == 200
 
-    def test_xss_attack(self, client: TestClient, auth_headers: dict):
+    def test_xss_attack(self, client: TestClient, auth_headers: Dict[str, str]) -> None:
         """Test ST-002: XSS攻撃"""
         # Try XSS in task title
         xss_payload = "<script>alert('XSS')</script>"
@@ -43,7 +44,7 @@ class TestTaskSecurity:
             assert "<script>" not in task["title"]
             assert task["title"] == xss_payload  # Stored as-is but escaped on render
 
-    def test_privilege_escalation(self, client: TestClient, regular_user_headers: dict):
+    def test_privilege_escalation(self, client: TestClient, regular_user_headers: Dict[str, str]) -> None:
         """Test ST-003: 権限昇格試行"""
         # Try to access admin-only endpoint as regular user
         response = client.post(
@@ -53,7 +54,7 @@ class TestTaskSecurity:
         
         assert response.status_code == 403
 
-    def test_cross_org_data_access(self, client: TestClient, auth_headers: dict):
+    def test_cross_org_data_access(self, client: TestClient, auth_headers: Dict[str, str]) -> None:
         """Test ST-004: 他組織データアクセス"""
         # Try to access task from different organization
         response = client.get(
@@ -63,7 +64,7 @@ class TestTaskSecurity:
         
         assert response.status_code == 404  # Should appear as not found
 
-    def test_file_upload_virus(self, client: TestClient, auth_headers: dict):
+    def test_file_upload_virus(self, client: TestClient, auth_headers: Dict[str, str]) -> None:
         """Test ST-005: ファイルアップロード（ウイルス）"""
         # Simulate virus-infected file upload
         # EICAR test signature
