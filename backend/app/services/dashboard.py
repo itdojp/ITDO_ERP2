@@ -137,16 +137,16 @@ class DashboardService:
             project_name=project.name,
             project_code=project.code,
             project_status=project.status,
-            total_tasks=stats.task_count,
-            completed_tasks=stats.completed_task_count,
-            in_progress_tasks=stats.task_count - stats.completed_task_count,
+            total_tasks=stats.get("task_count", 0),
+            completed_tasks=stats.get("completed_task_count", 0),
+            in_progress_tasks=stats.get("task_count", 0) - stats.get("completed_task_count", 0),
             overdue_tasks=0,  # This would need task model implementation
-            total_phases=stats.phase_count,
-            completed_phases=stats.completed_phase_count,
-            total_milestones=stats.milestone_count,
-            completed_milestones=stats.completed_milestone_count,
-            overdue_milestones=stats.overdue_milestone_count,
-            team_members=stats.active_member_count,
+            total_phases=stats.get("phase_count", 0),
+            completed_phases=stats.get("completed_phase_count", 0),
+            total_milestones=stats.get("milestone_count", 0),
+            completed_milestones=stats.get("completed_milestone_count", 0),
+            overdue_milestones=stats.get("overdue_milestone_count", 0),
+            team_members=stats.get("active_member_count", 0),
             budget_status=budget_status,
             timeline_status=timeline_status
         )
@@ -209,8 +209,17 @@ class DashboardService:
         
         # Get budget information
         budget_query = project_query.where(Project.budget.isnot(None))
-        total_budget = self.db.scalar(select(func.sum(Project.budget)).select_from(budget_query.subquery()))
-        total_spent = self.db.scalar(select(func.sum(Project.actual_cost)).select_from(budget_query.subquery()))
+        total_budget_raw = self.db.scalar(select(func.sum(Project.budget)).select_from(budget_query.subquery()))
+        total_spent_raw = self.db.scalar(select(func.sum(Project.actual_cost)).select_from(budget_query.subquery()))
+        
+        # Convert to Decimal if not None
+        total_budget = None
+        if total_budget_raw is not None:
+            total_budget = Decimal(str(total_budget_raw))
+        
+        total_spent = None
+        if total_spent_raw is not None:
+            total_spent = Decimal(str(total_spent_raw))
         
         budget_utilization = None
         if total_budget and total_budget > 0 and total_spent:
@@ -421,12 +430,21 @@ class DashboardService:
             query = query.where(Project.organization_id.in_(user_orgs))
         
         # Get totals
-        total_budget = self.db.scalar(
+        total_budget_raw = self.db.scalar(
             select(func.sum(Project.budget)).select_from(query.subquery())
         )
-        spent_amount = self.db.scalar(
+        spent_amount_raw = self.db.scalar(
             select(func.sum(Project.actual_cost)).select_from(query.subquery())
         )
+        
+        # Convert to Decimal if not None
+        total_budget = None
+        if total_budget_raw is not None:
+            total_budget = Decimal(str(total_budget_raw))
+        
+        spent_amount = None
+        if spent_amount_raw is not None:
+            spent_amount = Decimal(str(spent_amount_raw))
         
         # Calculate derived values
         remaining_amount = None
@@ -529,6 +547,8 @@ class DashboardService:
         
         summaries = []
         for milestone in milestones:
+            if milestone.due_date is None:
+                continue  # Skip milestones without due dates
             summaries.append(MilestoneSummary(
                 id=milestone.id,
                 name=milestone.name,
@@ -556,7 +576,7 @@ class DashboardService:
         # Would need audit log implementation
         return []
     
-    def _calculate_project_budget_status(self, project) -> BudgetStatus:
+    def _calculate_project_budget_status(self, project: Any) -> BudgetStatus:
         """Calculate budget status for a project."""
         total_budget = project.budget
         spent_amount = project.actual_cost
@@ -579,7 +599,7 @@ class DashboardService:
             is_over_budget=is_over_budget
         )
     
-    def _calculate_project_timeline_status(self, project) -> TimelineStatus:
+    def _calculate_project_timeline_status(self, project: Any) -> TimelineStatus:
         """Calculate timeline status for a project."""
         return TimelineStatus(
             planned_start=project.planned_start_date,
@@ -612,7 +632,7 @@ class DashboardService:
             return True
         
         # Check if user is member of the organization
-        return self.db.scalar(
+        count = self.db.scalar(
             select(func.count(UserRole.id)).where(
                 and_(
                     UserRole.user_id == user_id,
@@ -620,7 +640,8 @@ class DashboardService:
                     UserRole.is_active == True
                 )
             )
-        ) > 0
+        )
+        return (count or 0) > 0
     
     def _get_user_organizations(self, user_id: UserId) -> List[OrganizationId]:
         """Get user's organizations."""

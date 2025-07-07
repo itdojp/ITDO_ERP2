@@ -170,7 +170,7 @@ class UserRoleResponse(UserRoleInfo, AuditInfo):
 
 class BulkRoleAssignment(BaseModel):
     """Schema for bulk role assignment."""
-    user_ids: List[int] = Field(..., min_items=1, description="List of user IDs")
+    user_ids: List[int] = Field(..., min_length=1, description="List of user IDs")
     role_id: int = Field(..., description="Role ID to assign")
     organization_id: int = Field(..., description="Organization ID")
     department_id: Optional[int] = Field(None, description="Department ID")

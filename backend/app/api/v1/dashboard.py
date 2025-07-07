@@ -1,6 +1,6 @@
 """Dashboard API endpoints."""
 
-from typing import Optional, Union
+from typing import Optional, Union, Dict, Any, List
 from fastapi import APIRouter, Depends, Query, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
@@ -223,7 +223,7 @@ def get_recent_activities(
     organization_id: Optional[int] = Query(None, description="Filter by organization"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
-):
+) -> Union[List[Dict[str, Any]], JSONResponse]:
     """Get recent activities."""
     service = DashboardService(db)
     
@@ -233,7 +233,8 @@ def get_recent_activities(
     
     try:
         activities = service._get_recent_activities(current_user.id, filters, limit)
-        return activities
+        # Convert to dict format
+        return [activity.model_dump() for activity in activities]
         
     except PermissionDenied as e:
         return JSONResponse(
@@ -252,11 +253,12 @@ def get_recent_activities(
 )
 def dashboard_health_check(
     db: Session = Depends(get_db)
-) -> dict:
+) -> Dict[str, Any]:
     """Health check for dashboard services."""
     try:
         # Test database connection
-        result = db.execute("SELECT 1").scalar()
+        from sqlalchemy import text
+        result = db.execute(text("SELECT 1")).scalar()
         
         return {
             "status": "healthy",
