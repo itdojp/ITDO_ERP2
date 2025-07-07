@@ -35,3 +35,11 @@ class ProjectService:
             "days_remaining": 0,
             "is_overdue": False
         }
+    
+    def get_total_budget(self, project_id: int) -> float:
+        """Get total project budget."""
+        return 0.0
+    
+    def get_budget_utilization(self, project_id: int) -> float:
+        """Get budget utilization percentage."""
+        return 0.0

@@ -18,3 +18,6 @@ class ProjectMilestone(SoftDeletableModel):
     due_date: Mapped[Optional[Date]] = mapped_column(Date, nullable=True)
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="pending")
     completion_percentage: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    planned_date: Mapped[Optional[Date]] = mapped_column(Date, nullable=True)
+    actual_date: Mapped[Optional[Date]] = mapped_column(Date, nullable=True)
+    is_overdue: Mapped[bool] = mapped_column(default=False, nullable=False)

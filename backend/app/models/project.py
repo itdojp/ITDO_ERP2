@@ -38,6 +38,9 @@ class Project(SoftDeletableModel):
     budget: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     start_date: Mapped[Optional[Date]] = mapped_column(Date, nullable=True)
     end_date: Mapped[Optional[Date]] = mapped_column(Date, nullable=True)
+    planned_end_date: Mapped[Optional[Date]] = mapped_column(Date, nullable=True)
+    total_budget: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    actual_cost: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     
     # Relationships
     organization: Mapped["Organization"] = relationship("Organization", lazy="joined")
