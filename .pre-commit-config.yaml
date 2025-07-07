@@ -26,10 +26,19 @@ repos:
     hooks:
       - id: mypy
         name: mypy
-        entry: bash -c 'cd backend && uv run mypy --strict .'
+        entry: bash -c 'cd backend && uv run mypy .'
         language: system
         files: ^backend/.*\.py$
         pass_filenames: false
+        require_serial: true
+      
+      - id: type-safety-check
+        name: Type Safety Quality Check
+        entry: bash -c 'cd backend && ./scripts/typecheck.sh'
+        language: system
+        files: ^backend/.*\.py$
+        pass_filenames: false
+        stages: [commit]
 
   # TypeScript/JavaScript formatting and linting
   - repo: https://github.com/pre-commit/mirrors-prettier

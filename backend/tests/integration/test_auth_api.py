@@ -4,6 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 from datetime import timedelta
 import time
+from sqlalchemy.orm import Session
 
 from app.core.security import create_access_token, create_refresh_token
 from app.models.user import User

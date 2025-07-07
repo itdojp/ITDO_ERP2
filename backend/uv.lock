@@ -592,15 +592,22 @@ dev = [
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
     { name = "pytest-mock" },
+    { name = "sqlalchemy", extra = ["mypy"] },
+    { name = "types-passlib" },
+    { name = "types-python-jose" },
 ]
 
 [package.dev-dependencies]
 dev = [
+    { name = "faker" },
     { name = "mypy" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
     { name = "ruff" },
+    { name = "types-passlib" },
+    { name = "types-psutil" },
+    { name = "types-python-jose" },
 ]
 
 [package.metadata]
@@ -629,17 +636,24 @@ requires-dist = [
     { name = "python-multipart", specifier = ">=0.0.6" },
     { name = "redis", specifier = ">=5.0.1" },
     { name = "sqlalchemy", specifier = ">=2.0.23" },
+    { name = "sqlalchemy", extras = ["mypy"], marker = "extra == 'dev'", specifier = ">=2.0.23" },
+    { name = "types-passlib", marker = "extra == 'dev'", specifier = ">=1.7.7" },
+    { name = "types-python-jose", marker = "extra == 'dev'", specifier = ">=3.3.4" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.24.0" },
 ]
 provides-extras = ["dev"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "faker", specifier = ">=37.4.0" },
     { name = "mypy", specifier = ">=1.16.1" },
     { name = "pytest", specifier = ">=8.4.1" },
     { name = "pytest-asyncio", specifier = ">=1.0.0" },
     { name = "pytest-cov", specifier = ">=6.2.1" },
     { name = "ruff", specifier = ">=0.12.2" },
+    { name = "types-passlib", specifier = ">=1.7.7" },
+    { name = "types-psutil", specifier = ">=7.0.0.20250601" },
+    { name = "types-python-jose", specifier = ">=3.3.4" },
 ]
 
 [[package]]
@@ -1206,6 +1220,11 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/1c/fc/9ba22f01b5cdacc8f5ed0d22304718d2c758fce3fd49a5372b886a86f37c/sqlalchemy-2.0.41-py3-none-any.whl", hash = "sha256:57df5dc6fdb5ed1a88a1ed2195fd31927e705cad62dedd86b46972752a80f576", size = 1911224, upload-time = "2025-05-14T17:39:42.154Z" },
 ]
 
+[package.optional-dependencies]
+mypy = [
+    { name = "mypy" },
+]
+
 [[package]]
 name = "starlette"
 version = "0.46.2"
@@ -1216,6 +1235,45 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/ce/20/08dfcd9c983f6a6f4a1000d934b9e6d626cff8d2eeb77a89a68eef20a2b7/starlette-0.46.2.tar.gz", hash = "sha256:7f7361f34eed179294600af672f565727419830b54b7b084efe44bb82d2fccd5", size = 2580846, upload-time = "2025-04-13T13:56:17.942Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8b/0c/9d30a4ebeb6db2b25a841afbb80f6ef9a854fc3b41be131d249a977b4959/starlette-0.46.2-py3-none-any.whl", hash = "sha256:595633ce89f8ffa71a015caed34a5b2dc1c0cdb3f0f1fbd1e69339cf2abeec35", size = 72037, upload-time = "2025-04-13T13:56:16.21Z" },
+]
+
+[[package]]
+name = "types-passlib"
+version = "1.7.7.20250602"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/fa/3e/501a5832130e5f93450b1e02090e2ee27a37135d11378a47debf960e3131/types_passlib-1.7.7.20250602.tar.gz", hash = "sha256:cf2350e78d36b6b09e4db44284d96651b57285f499cfabf111b616065abab7b3", size = 25406, upload-time = "2025-06-02T03:14:56.033Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/39/fc/530236c21f1a0be84c42b23c91c250ef96404c475b739ac4479430ebd7d4/types_passlib-1.7.7.20250602-py3-none-any.whl", hash = "sha256:ed73a91be9a22484ebd62cc0d127675ded542b892b99776db92dab760bbfe274", size = 40410, upload-time = "2025-06-02T03:14:54.834Z" },
+]
+
+[[package]]
+name = "types-psutil"
+version = "7.0.0.20250601"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/c8/af/767b92be7de4105f5e2e87a53aac817164527c4a802119ad5b4e23028f7c/types_psutil-7.0.0.20250601.tar.gz", hash = "sha256:71fe9c4477a7e3d4f1233862f0877af87bff057ff398f04f4e5c0ca60aded197", size = 20297, upload-time = "2025-06-01T03:25:16.698Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8d/85/864c663a924a34e0d87bd10ead4134bb4ab6269fa02daaa5dd644ac478c5/types_psutil-7.0.0.20250601-py3-none-any.whl", hash = "sha256:0c372e2d1b6529938a080a6ba4a9358e3dfc8526d82fabf40c1ef9325e4ca52e", size = 23106, upload-time = "2025-06-01T03:25:15.386Z" },
+]
+
+[[package]]
+name = "types-pyasn1"
+version = "0.6.0.20250516"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/01/9b/5c6e6690da87e9fec317925d4a9500a8d61c2e2c1ec39de46736f76a29e8/types_pyasn1-0.6.0.20250516.tar.gz", hash = "sha256:1a9b35a4f033cd70c384a5043a3407b2cc07afc95900732b66e0d38426c7541d", size = 17153, upload-time = "2025-05-16T03:07:23.961Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/cc/56/0d10029d4d943226f044cec3f3d1f9ad54acb4884ee0b78e5d7b66c07d9d/types_pyasn1-0.6.0.20250516-py3-none-any.whl", hash = "sha256:b9925e4e22e09eed758b93b6f2a7881b89d842c2373dd11c09b173567d170142", size = 24093, upload-time = "2025-05-16T03:07:22.759Z" },
+]
+
+[[package]]
+name = "types-python-jose"
+version = "3.5.0.20250531"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "types-pyasn1" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/89/c8/09095e22b8e5eb3992f47722a3e1b31098b55c5e8325f4b21c5f1bdcb06b/types_python_jose-3.5.0.20250531.tar.gz", hash = "sha256:dbac2bc99fbb8124068696617f8709acfe4a43d79c6df3e59800006d46d621fe", size = 11891, upload-time = "2025-05-31T03:04:29.017Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/67/33/9d8c351a44e68896a53003e00fb01e1158b9e5b68cf3b75c1e4b51eb5263/types_python_jose-3.5.0.20250531-py3-none-any.whl", hash = "sha256:1609ee4d40a8a2ef5f62fcda99ec977b2ae773dfee9355cfb7e5002afa063c55", size = 14725, upload-time = "2025-05-31T03:04:27.802Z" },
 ]
 
 [[package]]
