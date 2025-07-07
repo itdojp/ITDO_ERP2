@@ -1,6 +1,6 @@
 """Department API endpoints."""
 from typing import List, Optional, Union, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Path
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Path, Body
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
@@ -245,7 +245,7 @@ def create_department(
 )
 def update_department(
     department_id: int = Path(..., description="Department ID"),
-    department_data: DepartmentUpdate,
+    department_data: DepartmentUpdate = Body(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ) -> Union[DepartmentResponse, JSONResponse]:

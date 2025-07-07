@@ -1,6 +1,6 @@
 """Organization API endpoints."""
 from typing import List, Optional, Union, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Path
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Path, Body
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
@@ -168,7 +168,7 @@ def create_organization(
 )
 def update_organization(
     organization_id: int = Path(..., description="Organization ID"),
-    organization_data: OrganizationUpdate,
+    organization_data: OrganizationUpdate = Body(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ) -> Union[OrganizationResponse, JSONResponse]:
