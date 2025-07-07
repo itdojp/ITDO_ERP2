@@ -39,7 +39,7 @@ class BaseAPIRouter(Generic[ModelType, CreateSchemaType, UpdateSchemaType, Respo
         create_schema: Type[CreateSchemaType],
         update_schema: Type[UpdateSchemaType],
         response_schema: Type[ResponseSchemaType],
-        get_current_user_fn: Optional[Callable] = None,
+        get_current_user_fn: Optional[Callable[..., Any]] = None,
         dependencies: Optional[List[Depends]] = None
     ):
         """Initialize base API router with configurations."""
