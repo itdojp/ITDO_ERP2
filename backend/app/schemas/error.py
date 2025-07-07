@@ -11,4 +11,3 @@ class ErrorResponse(BaseModel):
     
     detail: str = Field(..., description="Error detail message")
     code: str = Field(..., description="Error code")
-    timestamp: datetime = Field(default_factory=datetime.utcnow, description="Error timestamp")

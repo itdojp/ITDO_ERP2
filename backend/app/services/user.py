@@ -7,11 +7,14 @@ from typing import List, Optional, Dict, Any
 
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.exc import IntegrityError
 
 from app.core.exceptions import BusinessLogicError, NotFound, PermissionDenied
+from app.core.security import hash_password
 from app.models.role import UserRole
 from app.models.user import User
 from app.repositories.user import UserRepository
+from app.schemas.user import UserCreate, UserUpdate
 from app.schemas.user_extended import (
     BulkImportRequest,
     BulkImportResponse,
@@ -21,7 +24,6 @@ from app.schemas.user_extended import (
     UserListResponse,
     UserResponseExtended,
     UserSearchParams,
-    UserUpdate,
 )
 from app.services.audit import AuditLogger
 
@@ -366,36 +368,179 @@ class UserService:
                 db,
             )
 
-    def delete_user(self, user_id: int, deleter: User, db: Session) -> None:
-        """Soft delete user."""
-        user = db.query(User).filter(User.id == user_id).first()
-        if not user:
-            raise NotFound("ユーザーが見つかりません")
-
-        # Permission check
-        if not deleter.is_superuser:
-            raise PermissionDenied("ユーザーを削除する権限がありません")
-
-        # Cannot delete self
-        if deleter.id == user.id:
-            raise BusinessLogicError("自分自身を削除することはできません")
-
-        # Check if last system admin
-        if user.is_superuser:
-            admin_count = db.query(User).filter(
-                User.is_superuser == True,
-                User.is_active == True,
-                User.id != user.id
-            ).count()
+    def list_users(
+        self,
+        skip: int = 0,
+        limit: int = 100,
+        active_only: bool = True,
+        organization_id: Optional[int] = None,
+        department_id: Optional[int] = None,
+        search: Optional[str] = None
+    ) -> tuple[List[User], int]:
+        """List users with filtering and pagination."""
+        from app.models.department import Department
+        
+        query = self.db.query(User)
+        
+        # Apply filters
+        if active_only:
+            query = query.filter(User.is_active == True)
             
-            if admin_count == 0:
-                raise BusinessLogicError("最後のシステム管理者は削除できません")
-
-        # Soft delete
-        user.soft_delete(deleted_by=deleter.id)
-
-        # Log audit
-        self._log_audit("delete", "user", user.id, deleter, {}, db)
+        if department_id:
+            query = query.filter(User.department_id == department_id)
+        elif organization_id:
+            # Get all departments in the organization
+            departments = self.db.query(Department).filter(
+                Department.organization_id == organization_id
+            ).all()
+            dept_ids = [dept.id for dept in departments]
+            if dept_ids:
+                query = query.filter(User.department_id.in_(dept_ids))
+            else:
+                # No departments in organization, return empty
+                return [], 0
+                
+        if search:
+            search_filter = f"%{search}%"
+            query = query.filter(
+                or_(
+                    User.email.ilike(search_filter),
+                    User.full_name.ilike(search_filter),
+                    User.phone.ilike(search_filter)
+                )
+            )
+        
+        # Get total count
+        total = query.count()
+        
+        # Apply pagination
+        users = query.offset(skip).limit(limit).all()
+        
+        return users, total
+        
+    def get_user(self, user_id: int) -> Optional[User]:
+        """Get user by ID."""
+        return self.db.query(User).filter(
+            User.id == user_id,
+            User.is_deleted == False
+        ).first()
+        
+    def create_basic_user(
+        self,
+        user_data: UserCreate,
+        created_by: Optional[int] = None
+    ) -> User:
+        """Create a new user with basic information."""
+        # Check if email already exists
+        existing = self.db.query(User).filter(
+            User.email == user_data.email
+        ).first()
+        if existing:
+            raise BusinessLogicError(f"User with email {user_data.email} already exists")
+            
+        # Validate department if provided
+        if user_data.department_id:
+            from app.models.department import Department
+            department = self.db.query(Department).filter(
+                Department.id == user_data.department_id
+            ).first()
+            if not department:
+                raise NotFound(f"Department with ID {user_data.department_id} not found")
+                
+        # Create user
+        user = User(
+            email=user_data.email,
+            hashed_password=hash_password(user_data.password),
+            full_name=user_data.full_name,
+            phone=user_data.phone,
+            department_id=user_data.department_id,
+            is_active=user_data.is_active,
+            password_changed_at=datetime.utcnow()
+        )
+        
+        if created_by:
+            user.created_by = created_by
+            
+        try:
+            self.db.add(user)
+            self.db.commit()
+            self.db.refresh(user)
+            return user
+        except IntegrityError as e:
+            self.db.rollback()
+            if "users_email_key" in str(e) or "ix_users_email" in str(e):
+                raise BusinessLogicError(f"User with email {user_data.email} already exists")
+            raise
+            
+    def update_basic_user(
+        self,
+        user_id: int,
+        user_data: UserUpdate,
+        updated_by: Optional[int] = None
+    ) -> Optional[User]:
+        """Update user basic information."""
+        user = self.get_user(user_id)
+        if not user:
+            return None
+            
+        # Validate department if being updated
+        if user_data.department_id is not None:
+            if user_data.department_id:  # If not None and not 0
+                from app.models.department import Department
+                department = self.db.query(Department).filter(
+                    Department.id == user_data.department_id
+                ).first()
+                if not department:
+                    raise NotFound(f"Department with ID {user_data.department_id} not found")
+                    
+        # Update fields
+        update_dict = user_data.model_dump(exclude_unset=True)
+        for field, value in update_dict.items():
+            setattr(user, field, value)
+            
+        if updated_by:
+            user.updated_by = updated_by
+            
+        try:
+            self.db.commit()
+            self.db.refresh(user)
+            return user
+        except IntegrityError as e:
+            self.db.rollback()
+            raise
+            
+    def delete_user(
+        self,
+        user_id: int,
+        deleted_by: Optional[int] = None
+    ) -> bool:
+        """Soft delete a user."""
+        user = self.get_user(user_id)
+        if not user:
+            return False
+            
+        # Prevent self-deletion
+        if deleted_by and user_id == deleted_by:
+            raise PermissionDenied("Users cannot delete themselves")
+            
+        user.soft_delete(deleted_by)
+        self.db.commit()
+        return True
+        
+    def change_user_password(
+        self,
+        user_id: int,
+        current_password: str,
+        new_password: str
+    ) -> None:
+        """Change user password."""
+        user = self.get_user(user_id)
+        if not user:
+            raise NotFound(f"User with ID {user_id} not found")
+            
+        # Use the model's change_password method which includes validation
+        user.change_password(self.db, current_password, new_password)
+        self.db.commit()
 
     def get_user_permissions(
         self, user_id: int, organization_id: int, db: Session

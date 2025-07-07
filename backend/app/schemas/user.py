@@ -12,6 +12,8 @@ class UserBase(BaseModel):
     
     email: EmailStr = Field(..., description="User email address")
     full_name: str = Field(..., min_length=1, max_length=100, description="User full name")
+    phone: Optional[str] = Field(None, max_length=20, description="Phone number")
+    department_id: Optional[int] = Field(None, description="Department ID")
     is_active: bool = Field(default=True, description="Whether user is active")
 
 
@@ -48,6 +50,8 @@ class UserResponse(UserBase):
     """User response schema."""
     
     id: int = Field(..., description="User ID")
+    is_superuser: bool = Field(default=False, description="Whether user is superuser")
+    last_login_at: Optional[datetime] = Field(None, description="Last login timestamp")
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: datetime = Field(..., description="Last update timestamp")
     
@@ -69,6 +73,7 @@ class UserUpdate(BaseModel):
     
     full_name: Optional[str] = Field(None, min_length=1, max_length=100)
     phone: Optional[str] = Field(None, max_length=20)
+    department_id: Optional[int] = Field(None, description="Department ID")
     is_active: Optional[bool] = None
 
 
@@ -89,3 +94,33 @@ class UserBasic(BaseModel):
     class Config:
         """Pydantic configuration."""
         from_attributes = True
+
+
+class PasswordChange(BaseModel):
+    """Password change schema."""
+    
+    current_password: str = Field(..., min_length=8, description="Current password")
+    new_password: str = Field(..., min_length=8, description="New password")
+    
+    @field_validator("new_password")
+    @classmethod
+    def validate_password_strength(cls, v: str) -> str:
+        """Validate password strength."""
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters long")
+        
+        # Check for at least 3 of: uppercase, lowercase, digit, special char
+        checks = [
+            bool(re.search(r"[A-Z]", v)),  # Has uppercase
+            bool(re.search(r"[a-z]", v)),  # Has lowercase
+            bool(re.search(r"\d", v)),     # Has digit
+            bool(re.search(r"[!@#$%^&*(),.?\":{}|<>]", v))  # Has special char
+        ]
+        
+        if sum(checks) < 3:
+            raise ValueError(
+                "Password must contain at least 3 of: uppercase letter, "
+                "lowercase letter, digit, special character"
+            )
+        
+        return v
