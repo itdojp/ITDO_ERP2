@@ -1,18 +1,18 @@
 """Audit log models."""
 
+import hashlib
+import json
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
-from sqlalchemy import JSON, Column, DateTime, ForeignKey, Integer, String, Text, func
-from sqlalchemy.orm import relationship, Mapped, mapped_column
-import hashlib
-import json
+from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import BaseModel
 
 if TYPE_CHECKING:
-    from app.models.user import User
     from app.models.organization import Organization
+    from app.models.user import User
 
 # Re-export for backwards compatibility
 from app.models.user_activity_log import UserActivityLog
@@ -53,7 +53,7 @@ class AuditLog(BaseModel):
             "changes": self.changes,
             "created_at": self.created_at.isoformat() if self.created_at else None
         }
-        
+
         # Create hash
         data_str = json.dumps(data, sort_keys=True)
         return hashlib.sha256(data_str.encode()).hexdigest()
@@ -62,7 +62,7 @@ class AuditLog(BaseModel):
         """Verify audit log has not been tampered with."""
         if not self.checksum:
             return False
-        
+
         calculated = self.calculate_checksum()
         return calculated == self.checksum
 

@@ -7,9 +7,9 @@ Create Date: 2025-01-07
 """
 from typing import Sequence, Union
 
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = '004_add_permission_models'
@@ -55,7 +55,7 @@ def upgrade() -> None:
     op.add_column('roles', sa.Column('organization_id', sa.Integer(), nullable=True, comment='Organization ID if role is organization-specific'))
     op.add_column('roles', sa.Column('full_path', sa.String(500), nullable=False, server_default='/', comment='Full path in hierarchy (e.g., /1/2/3)'))
     op.add_column('roles', sa.Column('depth', sa.Integer(), nullable=False, server_default='0', comment='Depth in hierarchy (0 for root)'))
-    
+
     op.create_index('ix_roles_organization_id', 'roles', ['organization_id'])
     op.create_foreign_key('fk_roles_organization_id', 'roles', 'organizations', ['organization_id'], ['id'])
 
@@ -66,19 +66,19 @@ def upgrade() -> None:
 def downgrade() -> None:
     # Remove columns from user_roles
     op.drop_column('user_roles', 'valid_to')
-    
+
     # Remove columns and constraints from roles
     op.drop_constraint('fk_roles_organization_id', 'roles', type_='foreignkey')
     op.drop_index('ix_roles_organization_id', table_name='roles')
     op.drop_column('roles', 'depth')
     op.drop_column('roles', 'full_path')
     op.drop_column('roles', 'organization_id')
-    
+
     # Drop tables
     op.drop_index('ix_role_permissions_role_id', table_name='role_permissions')
     op.drop_index('ix_role_permissions_permission_id', table_name='role_permissions')
     op.drop_table('role_permissions')
-    
+
     op.drop_index('ix_permissions_category_active', table_name='permissions')
     op.drop_index('ix_permissions_code', table_name='permissions')
     op.drop_table('permissions')

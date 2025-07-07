@@ -1,15 +1,16 @@
 """Project member model implementation (stub for type checking)."""
-from sqlalchemy import Integer, ForeignKey, String, Boolean
+from sqlalchemy import Boolean, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
+
 from app.models.base import AuditableModel
 from app.types import UserId
 
 
 class ProjectMember(AuditableModel):
     """Project member model (stub implementation)."""
-    
+
     __tablename__ = "project_members"
-    
+
     project_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("projects.id"), nullable=False
     )

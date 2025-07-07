@@ -1,22 +1,24 @@
 """Project service implementation (stub for type checking)."""
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
+
 from sqlalchemy.orm import Session
+
 from app.models.project import Project
 from app.types import UserId
 
 
 class ProjectService:
     """Service for managing projects (stub implementation)."""
-    
+
     def __init__(self, db: Session):
         """Initialize service with database session."""
         self.db = db
-    
+
     def get_project(self, project_id: int, user_id: UserId) -> Optional[Project]:
         """Get a project by ID if user has access."""
         # Stub implementation
         return self.db.get(Project, project_id)
-    
+
     def get_project_statistics(self, project_id: int, user_id: UserId) -> Dict[str, Any]:
         """Get project statistics."""
         # Stub implementation
@@ -35,16 +37,16 @@ class ProjectService:
             "days_remaining": 0,
             "is_overdue": False
         }
-    
+
     def get_total_budget(self, project_id: int) -> float:
         """Get total project budget."""
         return 0.0
-    
+
     def get_budget_utilization(self, project_id: int) -> float:
         """Get budget utilization percentage."""
         return 0.0
-    
-    def list_projects(self, user_id: UserId, organization_id: Optional[int] = None, 
+
+    def list_projects(self, user_id: UserId, organization_id: Optional[int] = None,
                      department_id: Optional[int] = None, status: Optional[str] = None,
                      skip: int = 0, limit: int = 10) -> tuple[list[Project], int]:
         """List projects with pagination."""
@@ -52,12 +54,12 @@ class ProjectService:
         projects: list[Project] = []
         total = 0
         return projects, total
-    
+
     def get_user_projects(self, user_id: UserId) -> list[Project]:
         """Get projects for a user."""
         # Stub implementation
         return []
-    
+
     @property
     def repository(self) -> 'ProjectRepository':
         """Get project repository."""
@@ -67,10 +69,10 @@ class ProjectService:
 
 class ProjectRepositoryLocal:
     """Local project repository stub for service."""
-    
+
     def __init__(self, db: Session):
         self.db = db
-        
+
     def get_member_count(self, project_id: int) -> int:
         """Get number of project members."""
         return 0

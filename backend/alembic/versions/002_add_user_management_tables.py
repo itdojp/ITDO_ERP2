@@ -5,9 +5,9 @@ Revises: 001
 Create Date: 2024-01-06 12:00:00.000000
 
 """
-from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = '002'
@@ -18,26 +18,26 @@ depends_on = None
 
 def upgrade() -> None:
     """Create user management tables."""
-    
+
     # Add columns to users table
     op.add_column('users', sa.Column('phone', sa.String(20), nullable=True))
     op.add_column('users', sa.Column('profile_image_url', sa.String(500), nullable=True))
     op.add_column('users', sa.Column('last_login_at', sa.DateTime(timezone=True), nullable=True))
-    op.add_column('users', sa.Column('password_changed_at', sa.DateTime(timezone=True), 
+    op.add_column('users', sa.Column('password_changed_at', sa.DateTime(timezone=True),
                                     server_default=sa.func.now()))
-    op.add_column('users', sa.Column('failed_login_attempts', sa.Integer(), 
+    op.add_column('users', sa.Column('failed_login_attempts', sa.Integer(),
                                     server_default='0'))
     op.add_column('users', sa.Column('locked_until', sa.DateTime(timezone=True), nullable=True))
-    op.add_column('users', sa.Column('password_must_change', sa.Boolean(), 
+    op.add_column('users', sa.Column('password_must_change', sa.Boolean(),
                                     server_default='false'))
     op.add_column('users', sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True))
     op.add_column('users', sa.Column('deleted_by', sa.Integer(), nullable=True))
     op.add_column('users', sa.Column('created_by', sa.Integer(), nullable=True))
-    
+
     # Add foreign keys
     op.create_foreign_key('fk_users_deleted_by', 'users', 'users', ['deleted_by'], ['id'])
     op.create_foreign_key('fk_users_created_by', 'users', 'users', ['created_by'], ['id'])
-    
+
     # Create password_history table
     op.create_table('password_history',
         sa.Column('id', sa.Integer(), nullable=False),
@@ -48,7 +48,7 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint('id')
     )
     op.create_index('ix_password_history_user_id', 'password_history', ['user_id'])
-    
+
     # Create user_sessions table
     op.create_table('user_sessions',
         sa.Column('id', sa.Integer(), nullable=False),
@@ -69,7 +69,7 @@ def upgrade() -> None:
     op.create_index('ix_user_sessions_session_token', 'user_sessions', ['session_token'], unique=True)
     op.create_index('ix_user_sessions_refresh_token', 'user_sessions', ['refresh_token'], unique=True)
     op.create_index('ix_user_sessions_user_id', 'user_sessions', ['user_id'])
-    
+
     # Create user_activity_logs table
     op.create_table('user_activity_logs',
         sa.Column('id', sa.Integer(), nullable=False),
@@ -85,7 +85,7 @@ def upgrade() -> None:
     op.create_index('ix_user_activity_logs_user_id', 'user_activity_logs', ['user_id'])
     op.create_index('ix_user_activity_logs_action', 'user_activity_logs', ['action'])
     op.create_index('ix_user_activity_logs_created_at', 'user_activity_logs', ['created_at'])
-    
+
     # Create audit_logs table
     op.create_table('audit_logs',
         sa.Column('id', sa.Integer(), nullable=False),
@@ -113,17 +113,17 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Drop user management tables."""
-    
+
     # Drop tables
     op.drop_table('audit_logs')
     op.drop_table('user_activity_logs')
     op.drop_table('user_sessions')
     op.drop_table('password_history')
-    
+
     # Drop foreign keys
     op.drop_constraint('fk_users_created_by', 'users', type_='foreignkey')
     op.drop_constraint('fk_users_deleted_by', 'users', type_='foreignkey')
-    
+
     # Drop columns from users table
     op.drop_column('users', 'created_by')
     op.drop_column('users', 'deleted_by')

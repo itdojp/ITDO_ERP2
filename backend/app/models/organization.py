@@ -1,9 +1,11 @@
 """Organization model implementation."""
-from typing import Optional, TYPE_CHECKING, List
-from sqlalchemy import String, Text, Boolean, Integer, ForeignKey
+from typing import TYPE_CHECKING, List, Optional
+
+from sqlalchemy import Boolean, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from app.models.base import SoftDeletableModel
-from app.types import OrganizationId, UserId
+from app.types import OrganizationId
 
 if TYPE_CHECKING:
     from app.models.department import Department
@@ -12,9 +14,9 @@ if TYPE_CHECKING:
 
 class Organization(SoftDeletableModel):
     """Organization model representing a company or business entity."""
-    
+
     __tablename__ = "organizations"
-    
+
     # Basic fields
     code: Mapped[str] = mapped_column(
         String(50),
@@ -38,7 +40,7 @@ class Organization(SoftDeletableModel):
         nullable=True,
         comment="Organization name in English"
     )
-    
+
     # Contact information
     phone: Mapped[Optional[str]] = mapped_column(
         String(20),
@@ -60,7 +62,7 @@ class Organization(SoftDeletableModel):
         nullable=True,
         comment="Website URL"
     )
-    
+
     # Address information
     postal_code: Mapped[Optional[str]] = mapped_column(
         String(10),
@@ -87,7 +89,7 @@ class Organization(SoftDeletableModel):
         nullable=True,
         comment="Address line 2"
     )
-    
+
     # Business information
     business_type: Mapped[Optional[str]] = mapped_column(
         String(100),
@@ -114,7 +116,7 @@ class Organization(SoftDeletableModel):
         nullable=True,
         comment="Fiscal year end (MM-DD)"
     )
-    
+
     # Hierarchy
     parent_id: Mapped[Optional[OrganizationId]] = mapped_column(
         Integer,
@@ -122,7 +124,7 @@ class Organization(SoftDeletableModel):
         nullable=True,
         comment="Parent organization ID for subsidiaries"
     )
-    
+
     # Status
     is_active: Mapped[bool] = mapped_column(
         Boolean,
@@ -130,14 +132,14 @@ class Organization(SoftDeletableModel):
         nullable=False,
         comment="Whether the organization is active"
     )
-    
+
     # Settings (JSON)
     settings: Mapped[Optional[str]] = mapped_column(
         Text,
         nullable=True,
         comment="Organization-specific settings in JSON format"
     )
-    
+
     # Additional information
     description: Mapped[Optional[str]] = mapped_column(
         Text,
@@ -149,7 +151,7 @@ class Organization(SoftDeletableModel):
         nullable=True,
         comment="URL to organization logo"
     )
-    
+
     # Relationships
     parent: Mapped[Optional["Organization"]] = relationship(
         "Organization",
@@ -175,11 +177,11 @@ class Organization(SoftDeletableModel):
         viewonly=True,
         lazy="dynamic"
     )
-    
+
     def __repr__(self) -> str:
         """String representation."""
         return f"<Organization(id={self.id}, code='{self.code}', name='{self.name}')>"
-    
+
     @property
     def full_address(self) -> Optional[str]:
         """Get full formatted address."""
@@ -194,19 +196,19 @@ class Organization(SoftDeletableModel):
             parts.append(self.address_line1)
         if self.address_line2:
             parts.append(self.address_line2)
-        
+
         return " ".join(parts) if parts else None
-    
+
     @property
     def is_subsidiary(self) -> bool:
         """Check if this is a subsidiary organization."""
         return self.parent_id is not None
-    
+
     @property
     def is_parent(self) -> bool:
         """Check if this organization has subsidiaries."""
         return len(self.subsidiaries) > 0
-    
+
     def get_all_subsidiaries(self) -> List["Organization"]:
         """Get all subsidiaries recursively."""
         result = []
@@ -214,7 +216,7 @@ class Organization(SoftDeletableModel):
             result.append(subsidiary)
             result.extend(subsidiary.get_all_subsidiaries())
         return result
-    
+
     def get_hierarchy_path(self) -> List["Organization"]:
         """Get the full hierarchy path from root to this organization."""
         path = [self]

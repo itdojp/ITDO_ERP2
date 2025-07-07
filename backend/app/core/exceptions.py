@@ -48,7 +48,6 @@ class ValidationError(Exception):
     """Raised when validation fails."""
     pass
 
-
 # HTTPException-based exceptions for API responses
 class BaseAPIException(HTTPException):
     """Base exception for API errors."""

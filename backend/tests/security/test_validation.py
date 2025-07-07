@@ -19,7 +19,7 @@ class TestInputValidation:
             "/api/v1/auth/login",
             json={"email": email, "password": password}
         )
-        
+
         # Then: Should handle as normal authentication failure
         assert response.status_code in [401, 422]  # Either auth failure or validation error
         # Should not expose database errors
@@ -48,7 +48,7 @@ class TestInputValidation:
             },
             headers={"Authorization": f"Bearer {admin_token}"}
         )
-        
+
         # Then: Should return validation error
         assert response.status_code == 422
 
@@ -64,7 +64,7 @@ class TestInputValidation:
             },
             headers={"Authorization": f"Bearer {admin_token}"}
         )
-        
+
         # Then: Should accept but data should be stored safely
         assert response.status_code == 201
         data = response.json()
@@ -83,7 +83,7 @@ class TestInputValidation:
         # When: Using invalid authorization header
         headers = {"Authorization": token} if token else {}
         response = client.get("/api/v1/users/me", headers=headers)
-        
+
         # Then: Should return 401
         assert response.status_code == 401
 
@@ -100,7 +100,7 @@ class TestInputValidation:
                 }
             )
             responses.append(response.status_code)
-        
+
         # Then: All should be handled (actual rate limiting would be implemented later)
         assert all(status == 401 for status in responses)
 
@@ -116,6 +116,6 @@ class TestInputValidation:
             },
             headers={"Authorization": f"Bearer {admin_token}"}
         )
-        
+
         # Then: Should return validation error
         assert response.status_code == 422
