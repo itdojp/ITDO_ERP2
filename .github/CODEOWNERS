@@ -1,0 +1,50 @@
+# CODEOWNERS file for ITDO ERP System v2
+# このファイルは、各ディレクトリとファイルのコードオーナーを定義します
+# PRが作成されると、対応するオーナーが自動的にレビュアーとして割り当てられます
+
+# 全体的なオーナーシップ（フォールバック）
+* @ootakazuhiko
+
+# Backend Python コード
+/backend/                    @ootakazuhiko
+/backend/app/api/           @ootakazuhiko
+/backend/app/core/          @ootakazuhiko
+/backend/app/models/        @ootakazuhiko
+/backend/app/services/      @ootakazuhiko
+/backend/tests/             @ootakazuhiko
+
+# Frontend TypeScript/React コード
+/frontend/                  @ootakazuhiko
+/frontend/src/components/   @ootakazuhiko
+/frontend/src/services/     @ootakazuhiko
+/frontend/src/test/         @ootakazuhiko
+
+# インフラストラクチャ・DevOps
+/infra/                     @ootakazuhiko
+/.github/workflows/         @ootakazuhiko
+/Makefile                   @ootakazuhiko
+/scripts/                   @ootakazuhiko
+
+# データベース関連
+/backend/alembic/           @ootakazuhiko
+
+# 設定ファイル
+/backend/pyproject.toml     @ootakazuhiko
+/frontend/package.json      @ootakazuhiko
+/frontend/tsconfig.json     @ootakazuhiko
+
+# ドキュメント
+/docs/                      @ootakazuhiko
+/README.md                  @ootakazuhiko
+/CLAUDE.md                  @ootakazuhiko
+
+# セキュリティ関連
+/backend/app/core/security.py  @ootakazuhiko
+/backend/tests/security/        @ootakazuhiko
+
+# 特定の重要ファイル
+/backend/app/main.py            @ootakazuhiko
+/frontend/src/main.tsx          @ootakazuhiko
+
+# GitHub設定
+/.github/                       @ootakazuhiko

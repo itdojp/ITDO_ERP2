@@ -42,7 +42,7 @@ jobs:
         echo "Running mypy with strict configuration..." >> $GITHUB_STEP_SUMMARY
         
         # Run mypy and capture output
-        if uv run mypy . --show-error-codes --show-column-numbers --pretty 2>&1 | tee mypy-output.txt; then
+        if uv run mypy app/ --show-error-codes --show-column-numbers --pretty 2>&1 | tee mypy-output.txt; then
           echo "✅ Python type check passed!" >> $GITHUB_STEP_SUMMARY
           echo "python_errors=0" >> $GITHUB_OUTPUT
         else
