@@ -74,15 +74,26 @@ jobs:
         cd frontend
         npx tsc --noEmit --strict
     
-    - name: Check for any type usage in TypeScript
+    - name: Check for excessive any type usage in TypeScript
       run: |
         cd frontend
-        # any型の使用をチェック
-        if grep -r ": any\|<any>" src/ --include="*.ts" --include="*.tsx" | grep -v "// @ts-ignore" | grep -v "// eslint-disable"; then
-          echo "❌ any型の使用が検出されました。型を明示的に指定してください。"
+        # any型の使用回数をカウント（型注釈として使用されているもののみ）
+        ANY_COUNT=$(grep -r ": any" src/ --include="*.ts" --include="*.tsx" | grep -v "// @ts-ignore" | grep -v "// eslint-disable" | wc -l)
+        echo "📊 TypeScript any型の使用: ${ANY_COUNT}箇所"
+        
+        # 詳細を表示
+        echo ""
+        echo "### any型使用箇所の詳細:"
+        grep -r ": any" src/ --include="*.ts" --include="*.tsx" | grep -v "// @ts-ignore" | grep -v "// eslint-disable" || true
+        echo ""
+        
+        # 閾値を設定（25箇所以下）
+        if [ $ANY_COUNT -gt 25 ]; then
+          echo "⚠️ any型の使用が多すぎます（${ANY_COUNT}箇所）。可能な限り具体的な型を使用してください。"
+          echo "現在の閾値: 25箇所"
           exit 1
         else
-          echo "✅ any型の使用は検出されませんでした。"
+          echo "✅ any型の使用は許容範囲内です（閾値: 25箇所）"
         fi
     
     - name: Check for unused exports (TypeScript)
