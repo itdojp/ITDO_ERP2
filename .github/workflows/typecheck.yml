@@ -78,13 +78,14 @@ jobs:
       run: |
         cd frontend
         # any型の使用回数をカウント（型注釈として使用されているもののみ）
-        ANY_COUNT=$(grep -r ": any" src/ --include="*.ts" --include="*.tsx" | grep -v "// @ts-ignore" | grep -v "// eslint-disable" | wc -l)
+        # ": any" と "<any>" の両方のパターンを検出
+        ANY_COUNT=$(grep -rE ": any|<any>" src/ --include="*.ts" --include="*.tsx" | grep -v "// @ts-ignore" | grep -v "// eslint-disable" | wc -l)
         echo "📊 TypeScript any型の使用: ${ANY_COUNT}箇所"
         
         # 詳細を表示
         echo ""
         echo "### any型使用箇所の詳細:"
-        grep -r ": any" src/ --include="*.ts" --include="*.tsx" | grep -v "// @ts-ignore" | grep -v "// eslint-disable" || true
+        grep -rE ": any|<any>" src/ --include="*.ts" --include="*.tsx" | grep -v "// @ts-ignore" | grep -v "// eslint-disable" || true
         echo ""
         
         # 閾値を設定（25箇所以下）

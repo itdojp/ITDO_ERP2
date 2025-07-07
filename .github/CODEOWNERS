@@ -27,7 +27,6 @@
 
 # データベース関連
 /backend/alembic/           @ootakazuhiko
-/backend/app/models/        @ootakazuhiko
 
 # 設定ファイル
 /backend/pyproject.toml     @ootakazuhiko
