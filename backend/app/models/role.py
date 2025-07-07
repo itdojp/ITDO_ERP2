@@ -101,7 +101,7 @@ class Role(SoftDeletableModel):
     # Relationships
     parent: Mapped[Optional["Role"]] = relationship(
         "Role",
-        remote_side=[id],
+        remote_side="Role.id",
         backref="child_roles",
         lazy="joined"
     )
@@ -151,7 +151,7 @@ class Role(SoftDeletableModel):
     
     def get_users_count(self) -> int:
         """Get count of users with this role."""
-        return self.user_roles.filter_by(is_active=True).count()
+        return len([ur for ur in self.user_roles if ur.is_active])
 
 
 class UserRole(AuditableModel):

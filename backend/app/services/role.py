@@ -4,19 +4,16 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 
-from app.models.role import Role, UserRole, Permission, RolePermission
+from app.models.role import Role, UserRole
 from app.models.user import User
 from app.repositories.role import RoleRepository
 from app.schemas.role import (
     RoleCreate,
     RoleUpdate,
     RoleResponse,
-    RoleSummary,
     RoleTree,
-    RoleWithPermissions,
-    PermissionBasic,
-    UserRoleAssignment,
-    UserRoleResponse
+    UserRoleResponse,
+    BulkRoleAssignment
 )
 from app.types import UserId, OrganizationId
 

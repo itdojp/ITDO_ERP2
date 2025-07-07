@@ -38,6 +38,7 @@ class RoleDisplay(BaseModel):
 
 class RoleCreate(RoleBase, RolePermissions, RoleDisplay):
     """Schema for creating a role."""
+    organization_id: int = Field(..., description="Organization ID")
     role_type: str = Field("custom", max_length=50, description="Type of role")
     parent_id: Optional[int] = Field(None, description="Parent role ID for inheritance")
     is_system: bool = Field(False, description="Whether this is a system role")
