@@ -61,8 +61,8 @@ def truncate_all_tables():
             # Get all table names
             result = conn.execute(
                 text("""
-                SELECT tablename FROM pg_tables 
-                WHERE schemaname = 'public' 
+                SELECT tablename FROM pg_tables
+                WHERE schemaname = 'public'
                 AND tablename NOT LIKE 'pg_%'
             """)
             )

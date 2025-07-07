@@ -74,7 +74,11 @@ target-version = "py313"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N"]
-ignore = ["E402"]  # Module level import not at top of file (needed for circular import prevention)
+ignore = [
+    "E402",  # Module level import not at top of file (needed for circular import prevention)
+    "N805",  # First argument of a method should be named `self` (for validators)
+    "N818",  # Exception name should be named with an Error suffix (legacy exceptions)
+]
 
 [tool.isort]
 profile = "black"
