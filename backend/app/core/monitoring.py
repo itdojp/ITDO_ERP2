@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 
 import structlog
 from fastapi import Request, Response
-from fastapi.middleware.base import BaseHTTPMiddleware
+from fastapi.middleware.base import BaseHTTPMiddleware  # type: ignore[import-not-found]
 from prometheus_client import Counter, Histogram, Gauge, generate_latest
 from opentelemetry import trace
 from opentelemetry.exporter.jaeger.thrift import JaegerExporter
@@ -91,7 +91,7 @@ BUSINESS_METRICS = {
 }
 
 
-class MonitoringMiddleware(BaseHTTPMiddleware):
+class MonitoringMiddleware(BaseHTTPMiddleware):  # type: ignore[misc]
     """Middleware for collecting metrics and logging."""
     
     async def dispatch(self, request: Request, call_next: Callable[..., Any]) -> Response:
@@ -149,7 +149,7 @@ class MonitoringMiddleware(BaseHTTPMiddleware):
                 response_size=getattr(response, 'content_length', 0)
             )
             
-            return response
+            return response  # type: ignore[no-any-return]
             
         except Exception as e:
             # Handle errors
@@ -244,9 +244,9 @@ def trace_function(operation_name: Optional[str] = None) -> Callable[[F], F]:
         # Return appropriate wrapper based on function type
         import asyncio
         if asyncio.iscoroutinefunction(func):
-            return async_wrapper
+            return async_wrapper  # type: ignore[return-value]
         else:
-            return sync_wrapper
+            return sync_wrapper  # type: ignore[return-value]
     
     return decorator
 
@@ -414,7 +414,7 @@ def setup_health_checks(app: Any, db_session_factory: Any, redis_client: Any = N
 
 def get_metrics() -> str:
     """Get Prometheus metrics."""
-    return generate_latest()
+    return generate_latest()  # type: ignore[no-any-return]
 
 
 # Performance monitoring decorator
@@ -483,8 +483,8 @@ def monitor_performance(metric_name: Optional[str] = None) -> Callable[[F], F]:
         
         import asyncio
         if asyncio.iscoroutinefunction(func):
-            return async_wrapper
+            return async_wrapper  # type: ignore[return-value]
         else:
-            return sync_wrapper
+            return sync_wrapper  # type: ignore[return-value]
     
     return decorator

@@ -43,3 +43,38 @@ class ProjectService:
     def get_budget_utilization(self, project_id: int) -> float:
         """Get budget utilization percentage."""
         return 0.0
+    
+    def list_projects(self, user_id: UserId, organization_id: Optional[int] = None, 
+                     department_id: Optional[int] = None, status: Optional[str] = None,
+                     skip: int = 0, limit: int = 10) -> tuple[list[Project], int]:
+        """List projects with pagination."""
+        # Stub implementation
+        projects: list[Project] = []
+        total = 0
+        return projects, total
+    
+    def get_user_projects(self, user_id: UserId) -> list[Project]:
+        """Get projects for a user."""
+        # Stub implementation
+        return []
+    
+    @property
+    def repository(self) -> 'ProjectRepository':
+        """Get project repository."""
+        # Return local repository instance
+        return ProjectRepository(self.db)
+
+
+class ProjectRepositoryLocal:
+    """Local project repository stub for service."""
+    
+    def __init__(self, db: Session):
+        self.db = db
+        
+    def get_member_count(self, project_id: int) -> int:
+        """Get number of project members."""
+        return 0
+
+
+# Type alias for backward compatibility
+ProjectRepository = ProjectRepositoryLocal

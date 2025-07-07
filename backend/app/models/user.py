@@ -36,6 +36,7 @@ class User(SoftDeletableModel):
     profile_image_url: Mapped[Optional[str]] = mapped_column(String(500))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
+    department_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("departments.id"), nullable=True)
     
     # Security fields
     last_login_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))

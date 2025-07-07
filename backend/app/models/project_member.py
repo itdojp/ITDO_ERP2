@@ -1,5 +1,5 @@
 """Project member model implementation (stub for type checking)."""
-from sqlalchemy import Integer, ForeignKey, String
+from sqlalchemy import Integer, ForeignKey, String, Boolean
 from sqlalchemy.orm import Mapped, mapped_column
 from app.models.base import AuditableModel
 from app.types import UserId
@@ -17,4 +17,4 @@ class ProjectMember(AuditableModel):
         Integer, ForeignKey("users.id"), nullable=False
     )
     role: Mapped[str] = mapped_column(String(50), nullable=False, default="member")
-    is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)

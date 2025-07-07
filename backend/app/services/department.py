@@ -219,7 +219,9 @@ class DepartmentService:
         """Get full department response."""
         # Load related data if needed
         if department.parent_id and not department.parent:
-            department = self.repository.get_with_parent(department.id)
+            loaded_dept = self.repository.get_with_parent(department.id)
+            if loaded_dept:
+                department = loaded_dept
         
         # Get manager info
         manager = None
@@ -258,13 +260,13 @@ class DepartmentService:
             ).order_by(User.full_name)
         ))
         
-        # Convert to UserSummary
-        user_summaries = [
-            UserSummary(
+        # Convert to UserBasic for DepartmentWithUsers
+        from app.schemas.user import UserBasic
+        user_basics = [
+            UserBasic(
                 id=user.id,
                 email=user.email,
                 full_name=user.full_name,
-                phone=user.phone,
                 is_active=user.is_active
             )
             for user in users
@@ -275,8 +277,8 @@ class DepartmentService:
         
         return DepartmentWithUsers(
             **dept_response.model_dump(),
-            users=user_summaries,
-            total_users=len(user_summaries)
+            users=user_basics,
+            total_users=len(user_basics)
         )
     
     def get_direct_sub_departments(self, parent_id: DepartmentId) -> List[Department]:
