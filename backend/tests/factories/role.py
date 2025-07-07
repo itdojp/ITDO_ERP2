@@ -3,25 +3,23 @@
 from typing import Dict, Any, Type, Optional, List
 from datetime import datetime
 
-from app.models.role import Role, Permission, RolePermission
+from app.models.role import Role, RolePermission
+from app.models.permission import Permission
 from app.models.organization import Organization
 from tests.factories import BaseFactory, fake
-from tests.factories.organization import OrganizationFactory
+from .organization import OrganizationFactory
 
 
 class PermissionFactory(BaseFactory):
     """Factory for creating Permission test instances."""
     
-    @property
-    def model_class(self) -> Type[Permission]:
-        """Return the Permission model class."""
-        return Permission
+    model_class = Permission  # Model class for this factory
     
     @classmethod
     def _get_default_attributes(cls) -> Dict[str, Any]:
         """Get default attributes for creating Permission instances."""
         return {
-            "code": fake.unique.bothify(text="perm.###.####"),
+            "code": fake.bothify(text="perm.###.####"),
             "name": fake.random_element(elements=(
                 "ユーザー作成", "ユーザー編集", "ユーザー削除", "ユーザー表示",
                 "組織作成", "組織編集", "組織削除", "組織表示",
@@ -91,15 +89,13 @@ class PermissionFactory(BaseFactory):
 class RoleFactory(BaseFactory):
     """Factory for creating Role test instances."""
     
-    @property
-    def model_class(self) -> Type[Role]:
-        """Return the Role model class."""
-        return Role
+    model_class = Role  # Model class for this factory
     
     @classmethod
     def _get_default_attributes(cls) -> Dict[str, Any]:
         """Get default attributes for creating Role instances."""
         return {
+            "code": fake.bothify(text="role.###.####"),
             "name": fake.random_element(elements=(
                 "管理者", "マネージャー", "一般ユーザー", "閲覧者", "オペレーター",
                 "経理担当", "人事担当", "営業担当", "開発者", "システム管理者"
@@ -107,7 +103,11 @@ class RoleFactory(BaseFactory):
             "description": fake.text(max_nb_chars=200),
             "role_type": fake.random_element(elements=("system", "custom", "department", "project")),
             "is_active": True,
-            "can_be_assigned": True
+            "is_system": False,
+            "full_path": "",
+            "depth": 0,
+            "permissions": {},
+            "display_order": 0
         }
     
     @classmethod
@@ -117,7 +117,7 @@ class RoleFactory(BaseFactory):
             "name": fake.word(),
             "description": fake.text(max_nb_chars=200),
             "is_active": fake.boolean(),
-            "can_be_assigned": fake.boolean()
+            "is_system": fake.boolean()
         }
     
     @classmethod
@@ -215,7 +215,7 @@ class RoleFactory(BaseFactory):
     def create_system_role(cls, db_session, **kwargs) -> Role:
         """Create a system role."""
         kwargs['role_type'] = 'system'
-        kwargs['can_be_assigned'] = True
+        kwargs['is_system'] = True
         return cls.create(db_session, **kwargs)
     
     @classmethod
@@ -282,10 +282,43 @@ class RoleFactory(BaseFactory):
     def create_minimal(cls, db_session, organization_id: int, **kwargs) -> Role:
         """Create a role with minimal required fields."""
         minimal_attrs = {
+            "code": fake.bothify(text="role.###.####"),
             "name": fake.word(),
             "organization_id": organization_id,
             "is_active": True,
-            "can_be_assigned": True
+            "is_system": False,
+            "full_path": "",
+            "depth": 0,
+            "permissions": {},
+            "display_order": 0
         }
         minimal_attrs.update(kwargs)
         return cls.create(db_session, **minimal_attrs)
+
+
+# Helper functions for backward compatibility
+def create_test_role(db_session, **kwargs):
+    """Create a test role (backward compatibility wrapper)."""
+    return RoleFactory.create(db_session, **kwargs)
+
+
+def create_test_user_role(db_session, user, role, organization, department=None, **kwargs):
+    """Create a test user role association (backward compatibility wrapper)."""
+    from app.models.role import UserRole
+    
+    user_role = UserRole(
+        user_id=user.id,
+        role_id=role.id,
+        organization_id=organization.id,
+        department_id=department.id if department else None,
+        is_active=kwargs.get('is_active', True),
+        expires_at=kwargs.get('expires_at', None),
+        assigned_by=kwargs.get('assigned_by', None),
+        assignment_reason=kwargs.get('assignment_reason', None)
+    )
+    
+    db_session.add(user_role)
+    db_session.commit()
+    db_session.refresh(user_role)
+    
+    return user_role

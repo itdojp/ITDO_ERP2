@@ -4,14 +4,14 @@ import time
 import logging
 import json
 import asyncio
-from typing import Dict, Any, Optional, Callable, TypeVar, Union, List
+from typing import Dict, Any, Optional, Callable, TypeVar, Union, List, Awaitable, Generator
 from functools import wraps
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 
 import structlog
 from fastapi import Request, Response
-from fastapi.middleware.base import BaseHTTPMiddleware  # type: ignore[import-not-found]
+from starlette.middleware.base import BaseHTTPMiddleware
 from prometheus_client import Counter, Histogram, Gauge, generate_latest
 from opentelemetry import trace
 from opentelemetry.exporter.jaeger.thrift import JaegerExporter
@@ -91,10 +91,10 @@ BUSINESS_METRICS = {
 }
 
 
-class MonitoringMiddleware(BaseHTTPMiddleware):  # type: ignore[misc]
+class MonitoringMiddleware(BaseHTTPMiddleware):
     """Middleware for collecting metrics and logging."""
     
-    async def dispatch(self, request: Request, call_next: Callable[..., Any]) -> Response:
+    async def dispatch(self, request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
         """Process request and collect metrics."""
         start_time = time.time()
         
@@ -149,7 +149,7 @@ class MonitoringMiddleware(BaseHTTPMiddleware):  # type: ignore[misc]
                 response_size=getattr(response, 'content_length', 0)
             )
             
-            return response  # type: ignore[no-any-return]
+            return response
             
         except Exception as e:
             # Handle errors
@@ -252,7 +252,7 @@ def trace_function(operation_name: Optional[str] = None) -> Callable[[F], F]:
 
 
 @contextmanager
-def database_query_timer(operation: str, table: str) -> Any:
+def database_query_timer(operation: str, table: str) -> Generator[None, None, None]:
     """Context manager for timing database queries."""
     start_time = time.time()
     

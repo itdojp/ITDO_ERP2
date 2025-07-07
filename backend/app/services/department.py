@@ -218,8 +218,8 @@ class DepartmentService:
     def get_department_response(self, department: Department) -> DepartmentResponse:
         """Get full department response."""
         # Load related data if needed
-        if department.parent_id and not department.parent:
-            loaded_dept = self.repository.get_with_parent(department.id)
+        if department.parent_id and not hasattr(department, 'parent'):
+            loaded_dept = self.repository.get(department.id)
             if loaded_dept:
                 department = loaded_dept
         
@@ -228,11 +228,11 @@ class DepartmentService:
         if department.manager_id:
             manager_obj = self.db.query(User).filter(User.id == department.manager_id).first()
             if manager_obj:
-                manager = UserSummary(
+                from app.schemas.user import UserBasic
+                manager = UserBasic(
                     id=manager_obj.id,
                     email=manager_obj.email,
                     full_name=manager_obj.full_name,
-                    phone=manager_obj.phone,
                     is_active=manager_obj.is_active
                 )
         

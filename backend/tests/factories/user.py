@@ -2,6 +2,7 @@
 
 from typing import Dict, Any, Type, Optional
 from datetime import datetime, timedelta
+from sqlalchemy.orm import Session
 
 from app.models.user import User
 from tests.factories import BaseFactory, fake
@@ -10,10 +11,7 @@ from tests.factories import BaseFactory, fake
 class UserFactory(BaseFactory):
     """Factory for creating User test instances."""
     
-    @property
-    def model_class(self) -> Type[User]:
-        """Return the User model class."""
-        return User
+    model_class = User  # Model class for this factory
     
     @classmethod
     def _get_default_attributes(cls) -> Dict[str, Any]:
@@ -21,7 +19,6 @@ class UserFactory(BaseFactory):
         return {
             "email": fake.unique.email(),
             "full_name": fake.name(),
-            "employee_code": fake.unique.bothify(text="EMP-####"),
             "phone": fake.phone_number(),
             "is_active": True,
             "is_superuser": False,
@@ -40,8 +37,8 @@ class UserFactory(BaseFactory):
     @classmethod
     def create_with_password(cls, db_session, password: str, **kwargs) -> User:
         """Create a user with a specific password."""
-        from app.core.security import get_password_hash
-        kwargs['hashed_password'] = get_password_hash(password)
+        from app.core.security import hash_password
+        kwargs['hashed_password'] = hash_password(password)
         return cls.create(db_session, **kwargs)
     
     @classmethod
@@ -79,32 +76,28 @@ class UserFactory(BaseFactory):
         users['admin'] = cls.create_admin(
             db_session,
             email="admin@example.com",
-            full_name="Admin User",
-            employee_code="EMP-0001"
+            full_name="Admin User"
         )
         
         # Manager user
         users['manager'] = cls.create(
             db_session,
             email="manager@example.com",
-            full_name="Manager User",
-            employee_code="EMP-0002"
+            full_name="Manager User"
         )
         
         # Regular user
         users['user'] = cls.create(
             db_session,
             email="user@example.com",
-            full_name="Regular User",
-            employee_code="EMP-0003"
+            full_name="Regular User"
         )
         
         # Inactive user
         users['inactive'] = cls.create_inactive(
             db_session,
             email="inactive@example.com",
-            full_name="Inactive User",
-            employee_code="EMP-0004"
+            full_name="Inactive User"
         )
         
         return users
@@ -121,3 +114,9 @@ class UserFactory(BaseFactory):
         }
         minimal_attrs.update(kwargs)
         return cls.create(db_session, **minimal_attrs)
+
+
+# Helper function for backward compatibility
+def create_test_user(db_session: Session, **kwargs) -> User:
+    """Create a test user (backward compatibility wrapper)."""
+    return UserFactory.create(db_session, **kwargs)

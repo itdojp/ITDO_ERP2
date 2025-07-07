@@ -68,26 +68,8 @@ class AuditableModel(BaseModel):
         nullable=True
     )
     
-    # Relationships to user (will be defined in concrete models to avoid circular imports)
-    @declared_attr
-    def creator(cls) -> Mapped[Optional["User"]]:
-        """Relationship to creator user."""
-        return relationship(
-            "User",
-            foreign_keys=f"{cls.__tablename__}.created_by",
-            lazy="joined",
-            uselist=False
-        )
-    
-    @declared_attr
-    def updater(cls) -> Mapped[Optional["User"]]:
-        """Relationship to updater user."""
-        return relationship(
-            "User",
-            foreign_keys=f"{cls.__tablename__}.updated_by",
-            lazy="joined",
-            uselist=False
-        )
+    # Relationships to user (commented out to avoid circular imports and typing issues)
+    # These can be added manually in specific models if needed
 
 
 class SoftDeletableModel(AuditableModel):
@@ -112,15 +94,8 @@ class SoftDeletableModel(AuditableModel):
         index=True
     )
     
-    @declared_attr
-    def deleter(cls) -> Mapped[Optional["User"]]:
-        """Relationship to deleter user."""
-        return relationship(
-            "User",
-            foreign_keys=f"{cls.__tablename__}.deleted_by",
-            lazy="joined",
-            uselist=False
-        )
+    # Relationship to deleter user (commented out to avoid circular imports and typing issues)
+    # This can be added manually in specific models if needed
     
     def soft_delete(self, deleted_by: Optional[UserId] = None) -> None:
         """Perform soft delete on the model."""

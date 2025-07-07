@@ -9,7 +9,8 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import BusinessLogicError
-from app.models.user import User, PasswordHistory
+from app.models.user import User
+from app.models.password_history import PasswordHistory
 from tests.factories import create_test_user
 
 

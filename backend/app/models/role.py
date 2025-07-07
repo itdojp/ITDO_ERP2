@@ -196,8 +196,7 @@ class UserRole(AuditableModel):
     __table_args__ = (
         UniqueConstraint('user_id', 'role_id', 'organization_id', 'department_id', 
                         name='uq_user_role_org_dept'),
-        Index('ix_user_roles_expires_at', 'expires_at'),
-        Index('ix_user_roles_is_active', 'is_active'),
+        # Note: expires_at and is_active already have index=True in column definitions
     )
     
     # Foreign keys

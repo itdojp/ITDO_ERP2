@@ -50,10 +50,49 @@ class TestDepartmentAPI(BaseAPITestCase[Department, DepartmentCreate, Department
     
     def create_valid_payload(self, **overrides: Any) -> Dict[str, Any]:
         """Create a valid payload for department creation."""
-        # Ensure we have an organization_id
-        if 'organization_id' not in overrides:
-            raise ValueError("organization_id must be provided for department creation")
         return self.factory_class.build_dict(**overrides)
+    
+    # Override base test methods to inject organization
+    def test_create_endpoint_success(
+        self,
+        client: TestClient,
+        test_organization: Organization,
+        admin_token: str
+    ) -> None:
+        """Test successful create operation."""
+        payload = self.create_valid_payload(organization_id=test_organization.id)
+        
+        response = client.post(
+            self.endpoint_prefix,
+            json=payload,
+            headers=self.get_auth_headers(admin_token)
+        )
+        
+        assert response.status_code == 201
+        data = response.json()
+        assert "id" in data
+        
+        # Validate against response schema
+        validated_data = self.response_schema_class.model_validate(data)
+        assert validated_data.id is not None
+    
+    def test_create_endpoint_forbidden(
+        self,
+        client: TestClient,
+        test_organization: Organization,
+        user_token: str
+    ) -> None:
+        """Test create operation with insufficient permissions."""
+        payload = self.create_valid_payload(organization_id=test_organization.id)
+        
+        response = client.post(
+            self.endpoint_prefix,
+            json=payload,
+            headers=self.get_auth_headers(user_token)
+        )
+        
+        # Should be forbidden unless user has specific permissions
+        assert response.status_code in [403, 404]
     
     # Department-specific test methods
     

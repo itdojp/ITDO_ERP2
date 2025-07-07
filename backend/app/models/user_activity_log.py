@@ -6,13 +6,13 @@ from typing import TYPE_CHECKING, Any, Dict, Optional
 from sqlalchemy import JSON, Column, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 
-from app.core.database import Base
+from app.models.base import BaseModel
 
 if TYPE_CHECKING:
     from app.models.user import User
 
 
-class UserActivityLog(Base):
+class UserActivityLog(BaseModel):
     """User activity log for tracking user actions."""
 
     __tablename__ = "user_activity_logs"
