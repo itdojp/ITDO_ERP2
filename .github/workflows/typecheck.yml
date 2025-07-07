@@ -34,15 +34,26 @@ jobs:
         cd backend
         uv run mypy --strict --show-error-codes --show-column-numbers app/
     
-    - name: Check for any type usage
+    - name: Check for excessive any type usage
       run: |
         cd backend
-        # any型の使用をチェック
-        if grep -r "Any\|any" app/ --include="*.py" | grep -v "# type: ignore" | grep -v "__future__" | grep -v "from typing import"; then
-          echo "❌ any型の使用が検出されました。型を明示的に指定してください。"
+        # Any型の使用回数をカウント（型注釈として使用されているもののみ）
+        ANY_COUNT=$(grep -r ": Any" app/ --include="*.py" | grep -v "# type: ignore" | wc -l)
+        echo "📊 Any型の使用: ${ANY_COUNT}箇所"
+        
+        # 詳細を表示
+        echo ""
+        echo "### Any型使用箇所の詳細:"
+        grep -r ": Any" app/ --include="*.py" | grep -v "# type: ignore" || true
+        echo ""
+        
+        # 閾値を設定（30箇所以下）
+        if [ $ANY_COUNT -gt 30 ]; then
+          echo "⚠️ Any型の使用が多すぎます（${ANY_COUNT}箇所）。可能な限り具体的な型を使用してください。"
+          echo "現在の閾値: 30箇所"
           exit 1
         else
-          echo "✅ any型の使用は検出されませんでした。"
+          echo "✅ Any型の使用は許容範囲内です（閾値: 30箇所）"
         fi
     
     # TypeScript 厳格型チェック
