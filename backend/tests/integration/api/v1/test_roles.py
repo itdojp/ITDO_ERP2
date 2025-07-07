@@ -5,11 +5,11 @@ from typing import Dict, Any
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.models.role import Role, Permission
+from app.models.role import Role
 from app.models.organization import Organization
 from app.schemas.role import RoleCreate, RoleUpdate, RoleResponse
 from tests.base import BaseAPITestCase, SearchTestMixin, HierarchyTestMixin
-from tests.factories import RoleFactory, PermissionFactory, OrganizationFactory, UserFactory
+from tests.factories import RoleFactory, OrganizationFactory, UserFactory
 from tests.conftest import create_auth_headers
 
 

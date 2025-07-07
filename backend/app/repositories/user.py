@@ -2,7 +2,7 @@
 
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
-from sqlalchemy import select, and_, or_, func
+from sqlalchemy import select, and_, or_, func, update
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.user import User
@@ -174,10 +174,11 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
     
     def exists_by_email(self, email: str) -> bool:
         """Check if user exists by email."""
-        return self.db.scalar(
+        count = self.db.scalar(
             select(func.count(User.id))
             .where(User.email == email)
-        ) > 0
+        )
+        return bool(count and count > 0)
     
     def get_superusers(self) -> List[User]:
         """Get all superuser accounts."""

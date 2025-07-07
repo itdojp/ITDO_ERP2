@@ -12,14 +12,13 @@ from app.core.database import Base, get_db
 from app.models.user import User
 from app.models.organization import Organization
 from app.models.department import Department
-from app.models.role import Role, Permission
+from app.models.role import Role
 from app.core.security import create_access_token
 from tests.factories import (
     UserFactory, 
     OrganizationFactory, 
     DepartmentFactory, 
-    RoleFactory, 
-    PermissionFactory
+    RoleFactory
 )
 
 
@@ -208,16 +207,16 @@ def test_role(db_session: Session, test_organization: Organization) -> Role:
     )
 
 
-@pytest.fixture
-def test_permissions(db_session: Session) -> Dict[str, list[Permission]]:
-    """Create standard permissions."""
-    return PermissionFactory.create_standard_permissions(db_session)
+# @pytest.fixture
+# def test_permissions(db_session: Session) -> Dict[str, list[Permission]]:
+#     """Create standard permissions."""
+#     return PermissionFactory.create_standard_permissions(db_session)
 
 
 @pytest.fixture
 def test_role_system(db_session: Session) -> Dict[str, Any]:
     """Create a complete role system with permissions."""
-    return RoleFactory.create_complete_role_system(db_session)
+    return RoleFactory.create_role_hierarchy(db_session)
 
 
 # Complete System Fixtures
@@ -226,7 +225,7 @@ def test_role_system(db_session: Session) -> Dict[str, Any]:
 def complete_test_system(db_session: Session) -> Dict[str, Any]:
     """Create a complete test system with all entities."""
     # Create role system (includes organization and permissions)
-    role_system = RoleFactory.create_complete_role_system(db_session)
+    role_system = RoleFactory.create_role_hierarchy(db_session)
     
     # Create department structure
     dept_tree = DepartmentFactory.create_department_tree(

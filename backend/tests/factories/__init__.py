@@ -15,9 +15,9 @@ T = TypeVar('T', bound=SoftDeletableModel)
 class BaseFactory(ABC):
     """Base factory class for creating test model instances."""
     
-    @property
+    @classmethod
     @abstractmethod
-    def model_class(self) -> Type[T]:
+    def model_class(cls) -> Type[T]:
         """Model class this factory creates."""
         pass
     
@@ -45,11 +45,13 @@ class BaseFactory(ABC):
     @classmethod
     def create(cls, db_session: Session, **kwargs: Any) -> T:
         """Create and save a model instance to database."""
-        instance = cls.build(**kwargs)
-        db_session.add(instance)
+        model = cls.model_class()
+        for key, value in kwargs.items():
+            setattr(model, key, value)
+        db_session.add(model)
         db_session.commit()
-        db_session.refresh(instance)
-        return instance
+        db_session.refresh(model)
+        return model
     
     @classmethod
     def create_batch(cls, db_session: Session, count: int, **kwargs: Any) -> list[T]:
@@ -84,7 +86,7 @@ class BaseFactory(ABC):
 # Re-export factory classes
 from tests.factories.organization import OrganizationFactory
 from tests.factories.department import DepartmentFactory
-from tests.factories.role import RoleFactory, PermissionFactory
+from tests.factories.role import RoleFactory
 from tests.factories.user import UserFactory
 from tests.factories.task import (
     TaskFactory, TaskAssignmentFactory, TaskDependencyFactory
@@ -95,7 +97,6 @@ __all__ = [
     'OrganizationFactory',
     'DepartmentFactory',
     'RoleFactory',
-    'PermissionFactory',
     'UserFactory',
     'TaskFactory',
     'TaskAssignmentFactory', 
