@@ -25,23 +25,69 @@ from tests.factories import (
     UserFactory,
 )
 
-SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://itdo_user:itdo_password@localhost:5432/itdo_erp")
-
-# For SQLite tests (unit tests)
-if "unit" in os.getenv("PYTEST_CURRENT_TEST", ""):
+# Determine test database URL
+is_unit_test = "unit" in os.getenv("PYTEST_CURRENT_TEST", "")
+if is_unit_test:
     SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
+else:
+    # For integration tests, use the main database but with good cleanup
+    SQLALCHEMY_DATABASE_URL = os.getenv(
+        "DATABASE_URL", 
+        "postgresql://itdo_user:itdo_password@localhost:5432/itdo_erp"
+    )
+
+# Create engine
+if is_unit_test:
     engine = create_engine(
         SQLALCHEMY_DATABASE_URL,
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
 else:
-    # For integration tests, use PostgreSQL
-    engine = create_engine(SQLALCHEMY_DATABASE_URL)
+    # For integration tests, use PostgreSQL with proper isolation
+    engine = create_engine(
+        SQLALCHEMY_DATABASE_URL,
+        isolation_level="AUTOCOMMIT",  # Ensure immediate commits for TRUNCATE
+        pool_pre_ping=True,  # Verify connections before use
+    )
+
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
-@pytest.fixture
+def truncate_all_tables():
+    """Truncate all tables in the database."""
+    if "postgresql" in str(engine.url):
+        with engine.begin() as conn:
+            from sqlalchemy import text
+            # Get all table names
+            result = conn.execute(text("""
+                SELECT tablename FROM pg_tables 
+                WHERE schemaname = 'public' 
+                AND tablename NOT LIKE 'pg_%'
+            """))
+            tables = [row[0] for row in result.fetchall()]
+            
+            if tables:
+                # Disable triggers temporarily
+                conn.execute(text("SET session_replication_role = 'replica';"))
+                
+                # Truncate all tables
+                table_names = ', '.join(f'"{table}"' for table in tables)
+                conn.execute(text(f"TRUNCATE TABLE {table_names} RESTART IDENTITY CASCADE"))
+                
+                # Re-enable triggers
+                conn.execute(text("SET session_replication_role = 'origin';"))
+
+
+@pytest.fixture(scope="session", autouse=True)
+def setup_test_database():
+    """Setup test database once per session."""
+    # Ensure tables exist
+    Base.metadata.create_all(bind=engine)
+    yield
+
+
+@pytest.fixture(scope="function")
 def db_session() -> Generator[Session, None, None]:
     """Create a clean database session for each test."""
     # Create tables
@@ -53,21 +99,16 @@ def db_session() -> Generator[Session, None, None]:
     try:
         yield session
     finally:
+        session.rollback()  # Rollback any pending transactions
         session.close()
-        # Clean up test data using CASCADE in PostgreSQL
+        
+        # Clean up test data
         if "postgresql" in str(engine.url):
-            # For PostgreSQL, use TRUNCATE with CASCADE
-            with engine.begin() as conn:
-                # Get all table names
-                tables = Base.metadata.tables.keys()
-                if tables:
-                    # Truncate all tables with CASCADE
-                    table_names = ', '.join(f'"{table}"' for table in tables)
-                    from sqlalchemy import text
-                    conn.execute(text(f"TRUNCATE {table_names} CASCADE"))
+            truncate_all_tables()
         else:
-            # For SQLite, drop all tables
+            # For SQLite, drop and recreate all tables
             Base.metadata.drop_all(bind=engine)
+            Base.metadata.create_all(bind=engine)
 
 
 @pytest.fixture
