@@ -195,8 +195,8 @@ class Department(SoftDeletableModel):
     @property
     def full_path(self) -> str:
         """Get full department path from root."""
-        path_parts = []
-        current = self
+        path_parts: List[str] = []
+        current: Optional["Department"] = self
         while current:
             path_parts.insert(0, current.name)
             current = current.parent

@@ -17,7 +17,6 @@ from app.schemas.department import (
     DepartmentBasic
 )
 from app.schemas.common import ErrorResponse, PaginatedResponse, DeleteResponse
-from app.repositories.department import DepartmentRepository
 from app.services.department import DepartmentService
 from app.types import OrganizationId
 
@@ -222,7 +221,7 @@ def create_department(
                 code="DUPLICATE_CODE"
             ).model_dump()
         )
-    except IntegrityError as e:
+    except IntegrityError:
         db.rollback()
         return JSONResponse(
             status_code=status.HTTP_409_CONFLICT,
@@ -305,6 +304,11 @@ def update_department(
             department_data,
             updated_by=current_user.id
         )
+        if not updated_department:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to update department"
+            )
         return service.get_department_response(updated_department)
     except ValueError as e:
         return JSONResponse(
@@ -424,7 +428,7 @@ def get_sub_departments(
     }
 )
 def reorder_departments(
-    department_ids: List[int] = ...,
+    department_ids: List[int] = Body(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ) -> Union[Dict[str, str], JSONResponse]:

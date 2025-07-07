@@ -199,12 +199,18 @@ class DepartmentService:
         user_count = self.get_department_user_count(department.id)
         sub_department_count = self.get_sub_department_count(department.id)
         
+        # Get organization name
+        organization_name = "Unknown"
+        if department.organization:
+            organization_name = department.organization.name
+        
         return DepartmentSummary(
             id=department.id,
             code=department.code,
             name=department.name,
             name_en=department.name_en,
             organization_id=department.organization_id,
+            organization_name=organization_name,
             is_active=department.is_active,
             parent_id=department.parent_id,
             parent_name=parent_name,
@@ -218,7 +224,9 @@ class DepartmentService:
         """Get full department response."""
         # Load related data if needed
         if department.parent_id and not department.parent:
-            department = self.repository.get_with_parent(department.id)
+            dept_with_parent = self.repository.get_with_parent(department.id)
+            if dept_with_parent:
+                department = dept_with_parent
         
         # Get manager info
         manager = None
@@ -255,24 +263,24 @@ class DepartmentService:
             department_ids.extend([d.id for d in sub_depts])
         
         # Get users
+        user_ids = self.db.query(UserRole.user_id).filter(
+            UserRole.department_id.in_(department_ids),
+            UserRole.is_active == True
+        ).all()
+        
+        user_id_list = [uid[0] for uid in user_ids]
+        
         users = self.db.query(User).filter(
-            # Get users from user_roles that have department_id in department_ids
-            User.id.in_(
-                self.db.query(UserRole.user_id).filter(
-                    UserRole.department_id.in_(department_ids),
-                    UserRole.is_active == True
-                ).subquery()
-            ),
+            User.id.in_(user_id_list),
             User.is_active == True
         ).order_by(User.full_name).all()
         
-        # Convert to UserSummary
-        user_summaries = [
-            UserSummary(
+        # Convert to UserBasic
+        user_basics = [
+            UserBasic(
                 id=user.id,
                 email=user.email,
                 full_name=user.full_name,
-                employee_code=user.employee_code,
                 is_active=user.is_active
             )
             for user in users
@@ -283,8 +291,8 @@ class DepartmentService:
         
         return DepartmentWithUsers(
             **dept_response.model_dump(),
-            users=user_summaries,
-            total_users=len(user_summaries)
+            users=user_basics,
+            total_users=len(user_basics)
         )
     
     def get_direct_sub_departments(self, parent_id: DepartmentId) -> List[Department]:
@@ -317,13 +325,15 @@ class DepartmentService:
     
     def get_department_user_count(self, department_id: DepartmentId) -> int:
         """Get count of active users in department."""
+        user_ids = self.db.query(UserRole.user_id).filter(
+            UserRole.department_id == department_id,
+            UserRole.is_active == True
+        ).all()
+        
+        user_id_list = [uid[0] for uid in user_ids]
+        
         return self.db.query(User).filter(
-            User.id.in_(
-                self.db.query(UserRole.user_id).filter(
-                    UserRole.department_id == department_id,
-                    UserRole.is_active == True
-                ).subquery()
-            ),
+            User.id.in_(user_id_list),
             User.is_active == True
         ).count()
     

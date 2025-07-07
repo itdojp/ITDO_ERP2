@@ -1,7 +1,7 @@
 """Department repository implementation."""
 from typing import Optional, List, Dict
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import select, and_, or_, func, update
+from sqlalchemy.orm import joinedload
+from sqlalchemy import select, or_, func, update
 from app.repositories.base import BaseRepository
 from app.models.department import Department
 from app.schemas.department import DepartmentCreate, DepartmentUpdate
@@ -167,11 +167,14 @@ class DepartmentRepository(BaseRepository[Department, DepartmentCreate, Departme
         dept = self.get(department_id)
         limit = dept.headcount_limit if dept else None
         
+        available = (limit - current) if limit is not None else None
+        is_over = current > limit if limit is not None else False
+        
         return {
             "current": current,
-            "limit": limit,
-            "available": (limit - current) if limit else None,
-            "is_over": current > limit if limit else False
+            "limit": limit if limit is not None else 0,
+            "available": available if available is not None else 0,
+            "is_over": is_over
         }
     
     def update_display_order(self, department_ids: List[DepartmentId]) -> None:

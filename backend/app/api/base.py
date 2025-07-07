@@ -2,11 +2,9 @@
 
 This module provides a generic API router with full type safety and standard CRUD operations.
 """
-from typing import TypeVar, Generic, Optional, List, Dict, Any, Type, Callable, Sequence
+from typing import Generic, Optional, List, Any, Type, Callable
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
 from app.repositories.base import BaseRepository
 from app.core.dependencies import get_db, get_current_active_user as get_current_user
 from app.types import (
@@ -14,14 +12,11 @@ from app.types import (
     CreateSchemaType,
     UpdateSchemaType,
     ResponseSchemaType,
-    ServiceResult,
     PaginationParams,
     SearchParams
 )
 from app.schemas.common import (
-    ErrorResponse,
     PaginatedResponse,
-    SuccessResponse,
     DeleteResponse
 )
 from app.models.user import User
@@ -33,7 +28,7 @@ class BaseAPIRouter(Generic[ModelType, CreateSchemaType, UpdateSchemaType, Respo
         self,
         *,
         prefix: str,
-        tags: Sequence[str],
+        tags: List[str],
         model: Type[ModelType],
         repository: Type[BaseRepository[ModelType, CreateSchemaType, UpdateSchemaType]],
         create_schema: Type[CreateSchemaType],
@@ -57,7 +52,7 @@ class BaseAPIRouter(Generic[ModelType, CreateSchemaType, UpdateSchemaType, Respo
         
         self.router = APIRouter(
             prefix=prefix,
-            tags=tags,
+            tags=list(tags),
             dependencies=router_dependencies
         )
         

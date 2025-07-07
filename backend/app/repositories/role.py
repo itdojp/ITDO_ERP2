@@ -1,8 +1,8 @@
 """Role and UserRole repository implementation."""
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import select, and_, or_, func, update
+from sqlalchemy.orm import joinedload
+from sqlalchemy import select, or_, func, update
 from app.repositories.base import BaseRepository
 from app.models.role import Role, UserRole
 from app.schemas.role import RoleCreate, RoleUpdate, UserRoleCreate, UserRoleUpdate
@@ -109,7 +109,6 @@ class RoleRepository(BaseRepository[Role, RoleCreate, RoleUpdate]):
         if not source:
             raise ValueError(f"Role {source_id} not found")
         
-        from typing import cast
         
         # Create role data with explicit type
         role_data = RoleCreate(
@@ -125,9 +124,8 @@ class RoleRepository(BaseRepository[Role, RoleCreate, RoleUpdate]):
         new_role = self.create(role_data)
         
         # Update additional fields if needed
-        if new_role and (source.permissions if include_permissions else {}):
-            update_data = {"permissions": source.permissions}
-            self.db.query(Role).filter(Role.id == new_role.id).update(update_data)
+        if new_role and include_permissions and source.permissions:
+            new_role.permissions = source.permissions
             self.db.commit()
             self.db.refresh(new_role)
         

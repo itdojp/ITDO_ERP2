@@ -1,11 +1,9 @@
 """Role service implementation."""
-from typing import List, Optional, Dict, Any, Tuple, Set
-from datetime import datetime, timedelta
+from typing import List, Optional, Dict, Any, Tuple
+from datetime import datetime
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_
 
 from app.models.role import Role, UserRole
-from app.models.user import User
 from app.repositories.role import RoleRepository
 from app.schemas.role import (
     RoleCreate,
@@ -13,7 +11,10 @@ from app.schemas.role import (
     RoleResponse,
     RoleTree,
     UserRoleInfo,
-    UserRoleResponse
+    UserRoleResponse,
+    RoleSummary,
+    RoleWithPermissions,
+    PermissionBasic
 )
 from app.types import UserId, OrganizationId
 
@@ -253,7 +254,7 @@ class RoleService:
         
         return result
     
-    def get_role_summary(self, role: Role) -> "RoleSummary":
+    def get_role_summary(self, role: Role) -> RoleSummary:
         """Get role summary with counts."""
         from app.schemas.role import RoleSummary
         
@@ -265,7 +266,9 @@ class RoleService:
             code=role.code,
             name=role.name,
             name_en=role.name_en,
+            role_type=role.role_type,
             is_active=role.is_active,
+            is_system=role.is_system,
             user_count=user_count,
             sub_role_count=sub_role_count
         )
@@ -281,7 +284,7 @@ class RoleService:
         self,
         role: Role,
         include_inherited: bool = False
-    ) -> "RoleWithPermissions":
+    ) -> RoleWithPermissions:
         """Get role with permissions details."""
         from app.schemas.role import RoleWithPermissions
         
@@ -289,7 +292,7 @@ class RoleService:
         inherited_permissions = {}
         
         if include_inherited and role.parent:
-            parent = role.parent
+            parent: Optional[Role] = role.parent
             while parent:
                 inherited_permissions.update(parent.permissions or {})
                 parent = parent.parent
@@ -300,7 +303,7 @@ class RoleService:
             inherited_permissions=inherited_permissions
         )
     
-    def list_all_permissions(self, category: Optional[str] = None) -> List["PermissionBasic"]:
+    def list_all_permissions(self, category: Optional[str] = None) -> List[PermissionBasic]:
         """List all available permissions."""
         from app.schemas.role import PermissionBasic
         
@@ -331,7 +334,7 @@ class RoleService:
         user_roles = self.get_user_roles(user_id, organization_id)
         
         for ur in user_roles:
-            role = self.get_role(ur.role_id)
+            role = self.get_role(ur.role.id)
             if role and role.has_permission(permission):
                 return True
         
@@ -340,13 +343,15 @@ class RoleService:
     def update_role_permissions(
         self,
         role_id: int,
-        permissions: Dict[str, Any]
+        permission_codes: List[str]
     ) -> Optional[Role]:
         """Update role permissions."""
         role = self.get_role(role_id)
         if not role:
             return None
         
+        # Convert permission codes to permissions dict
+        permissions = {code: True for code in permission_codes}
         role.permissions = permissions
         self.db.commit()
         self.db.refresh(role)

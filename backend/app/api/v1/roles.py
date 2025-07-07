@@ -1,5 +1,5 @@
 """Role API endpoints."""
-from typing import List, Optional, Union, Dict
+from typing import List, Optional, Union, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Path, Body
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
@@ -7,7 +7,6 @@ from sqlalchemy.exc import IntegrityError
 
 from app.core.dependencies import get_db, get_current_active_user
 from app.models.user import User
-from app.models.role import Role
 from app.schemas.role import (
     RoleCreate,
     RoleUpdate,
@@ -15,13 +14,11 @@ from app.schemas.role import (
     RoleSummary,
     RoleTree,
     RoleWithPermissions,
-    RoleBasic,
     PermissionBasic,
     UserRoleAssignment,
     UserRoleResponse
 )
 from app.schemas.common import ErrorResponse, PaginatedResponse, DeleteResponse
-from app.repositories.role import RoleRepository
 from app.services.role import RoleService
 from app.types import OrganizationId, UserId
 
@@ -49,13 +46,13 @@ def list_roles(
     service = RoleService(db)
     
     # Build filters
-    filters = {}
+    filters: Dict[str, Any] = {}
     if organization_id:
         filters["organization_id"] = organization_id
     if active_only:
         filters["is_active"] = True
     if role_type:
-        filters["role_type"] = str(role_type)
+        filters["role_type"] = role_type
     
     # Get roles
     if search:
@@ -206,12 +203,12 @@ def create_role(
     # Verify parent role if specified
     if role_data.parent_id:
         parent = service.get_role(role_data.parent_id)
-        if not parent or parent.organization_id != role_data.organization_id:
+        if not parent:
             return JSONResponse(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 content=ErrorResponse(
-                    detail="Invalid parent role",
-                    code="INVALID_PARENT"
+                    detail="Parent role not found",
+                    code="PARENT_NOT_FOUND"
                 ).model_dump()
             )
     
@@ -229,7 +226,7 @@ def create_role(
                 code="DUPLICATE_NAME"
             ).model_dump()
         )
-    except IntegrityError as e:
+    except IntegrityError:
         db.rollback()
         return JSONResponse(
             status_code=status.HTTP_409_CONFLICT,
@@ -252,7 +249,7 @@ def create_role(
 )
 def update_role(
     role_id: int = Path(..., description="Role ID"),
-    role_data: RoleUpdate = ...,
+    role_data: RoleUpdate = Body(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ) -> Union[RoleResponse, JSONResponse]:
@@ -269,20 +266,15 @@ def update_role(
             ).model_dump()
         )
     
-    # Check permissions
+    # Check permissions - for now, only superusers can update roles
     if not current_user.is_superuser:
-        if not service.user_has_permission(
-            current_user.id,
-            "roles.update",
-            role.organization_id
-        ):
-            return JSONResponse(
-                status_code=status.HTTP_403_FORBIDDEN,
-                content=ErrorResponse(
-                    detail="Insufficient permissions to update this role",
-                    code="PERMISSION_DENIED"
-                ).model_dump()
-            )
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content=ErrorResponse(
+                detail="Insufficient permissions to update this role",
+                code="PERMISSION_DENIED"
+            ).model_dump()
+        )
     
     # Verify parent role if being changed
     if role_data.parent_id is not None and role_data.parent_id != role.parent_id:
@@ -297,7 +289,7 @@ def update_role(
         
         if role_data.parent_id:
             parent = service.get_role(role_data.parent_id)
-            if not parent or parent.organization_id != role.organization_id:
+            if not parent:
                 return JSONResponse(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     content=ErrorResponse(
@@ -309,9 +301,13 @@ def update_role(
     try:
         updated_role = service.update_role(
             role_id,
-            role_data,
-            updated_by=current_user.id
+            role_data
         )
+        if not updated_role:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to update role"
+            )
         return service.get_role_response(updated_role)
     except ValueError as e:
         return JSONResponse(
@@ -351,27 +347,26 @@ def update_role_permissions(
             ).model_dump()
         )
     
-    # Check permissions
+    # Check permissions - for now, only superusers can update role permissions
     if not current_user.is_superuser:
-        if not service.user_has_permission(
-            current_user.id,
-            "roles.update_permissions",
-            role.organization_id
-        ):
-            return JSONResponse(
-                status_code=status.HTTP_403_FORBIDDEN,
-                content=ErrorResponse(
-                    detail="Insufficient permissions to update role permissions",
-                    code="PERMISSION_DENIED"
-                ).model_dump()
-            )
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content=ErrorResponse(
+                detail="Insufficient permissions to update role permissions",
+                code="PERMISSION_DENIED"
+            ).model_dump()
+        )
     
     try:
         updated_role = service.update_role_permissions(
             role_id,
-            permission_codes,
-            updated_by=current_user.id
+            permission_codes
         )
+        if not updated_role:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to update role permissions"
+            )
         return service.get_role_response(updated_role)
     except ValueError as e:
         return JSONResponse(
@@ -480,18 +475,14 @@ def assign_role_to_user(
     
     # Check permissions
     if not current_user.is_superuser:
-        if not service.user_has_permission(
-            current_user.id,
-            "roles.assign",
-            role.organization_id
-        ):
-            return JSONResponse(
-                status_code=status.HTTP_403_FORBIDDEN,
-                content=ErrorResponse(
-                    detail="Insufficient permissions to assign roles",
-                    code="PERMISSION_DENIED"
-                ).model_dump()
-            )
+        # For now, only superusers can assign roles
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content=ErrorResponse(
+                detail="Insufficient permissions to assign roles",
+                code="PERMISSION_DENIED"
+            ).model_dump()
+        )
     
     # Check if user exists
     user = db.query(User).filter(User.id == assignment.user_id).first()
@@ -505,14 +496,14 @@ def assign_role_to_user(
         )
     
     try:
-        # TODO: Fix this to use proper method
+        # Create user role assignment
         user_role = service.assign_user_role(
             user_id=assignment.user_id,
             role_id=assignment.role_id,
             organization_id=1,  # TODO: Get from context
             assigned_by=current_user.id
         )
-        return UserRoleResponse.model_validate(user_role)
+        return service.get_user_role_response(user_role)
     except ValueError as e:
         return JSONResponse(
             status_code=status.HTTP_409_CONFLICT,
@@ -607,6 +598,7 @@ def get_user_roles(
         )
     
     service = RoleService(db)
-    user_roles = service.get_user_roles(user_id, organization_id, active_only)
+    user_roles = service.get_user_roles(user_id, organization_id)
     
-    return [service.get_user_role_response(ur) for ur in user_roles]
+    # Convert UserRoleInfo to UserRoleResponse
+    return [UserRoleResponse.model_validate(ur.model_dump()) for ur in user_roles]
