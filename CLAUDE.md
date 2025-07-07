@@ -43,6 +43,30 @@ ITDO ERP System v2 - Modern ERP system with hybrid development environment.
 3. **uv Tool Usage**: Use `uv` for Python, not pip/activate
 4. **Type Safety**: No `any` types, strict type checking required
 5. **Issue-Driven Development**: All work starts from GitHub Issues
+6. **Issue Assignment Protocol**: MANDATORY issue assignment before starting work
+
+### Issue Assignment Protocol (MANDATORY)
+When starting work on any issue, Claude Code MUST follow this protocol:
+
+1. **Issue Assignment Declaration**:
+   ```
+   🚀 Starting work on this issue
+   Assignee: @[username]
+   Expected completion: [yyyy-mm-dd]
+   Approach: [brief implementation plan]
+   ```
+
+2. **Branch Creation**: 
+   ```bash
+   git checkout -b feature/#[issue-number]-[brief-description]
+   ```
+
+3. **Draft PR Creation**:
+   ```bash
+   gh pr create --draft --title "[WIP] feat: [feature-name] (Closes #[issue-number])" --body "Implementation in progress..."
+   ```
+
+This protocol prevents work duplication and ensures team coordination.
 
 ### Development Environment Setup
 ```bash

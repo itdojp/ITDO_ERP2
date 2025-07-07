@@ -6,6 +6,8 @@ labels: 'feature'
 assignees: ''
 ---
 
+**⚠️ Claude Code Users: この作業を開始する前に [Team Claude Guide](.claude/TEAM_CLAUDE_GUIDE.md) を必ず読んでください**
+
 ## 概要
 <!-- 機能の簡潔な説明 -->
 

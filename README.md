@@ -67,11 +67,19 @@ GitHub Actionsによる包括的な品質保証：
 
 ## Documentation
 
-- [Claude Code Usage Guide](docs/claude-code-usage-guide.md) - Claude Code使用方法
-- [Development Environment Setup](docs/development-environment-setup.md) - 環境構築手順
+### For Developers
+- [Claude Code Team Guide](.claude/TEAM_CLAUDE_GUIDE.md) - **必読**: Claude Code使用時の必須規約
+- [Issue Workflow](.claude/ISSUE_WORKFLOW.md) - Issue着手時の手順
+- [Development Workflow](.claude/DEVELOPMENT_WORKFLOW.md) - 開発ワークフロー
+- [Coding Standards](.claude/CODING_STANDARDS.md) - コーディング規約
+
+### Technical Documentation  
 - [Architecture](docs/architecture.md)
 - [Development Guide](docs/development-guide.md)
 - [API Specification](backend/docs/api-spec.md)
+
+### ⚠️ Important for Claude Code Users
+**All team members using Claude Code MUST read and follow [Team Claude Guide](.claude/TEAM_CLAUDE_GUIDE.md) before starting any work.**
 
 ## License
 
