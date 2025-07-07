@@ -4,7 +4,6 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.core.security import create_access_token
 from app.models.user import User
 
 
@@ -23,7 +22,7 @@ class TestUsersAPI:
             },
             headers={"Authorization": f"Bearer {admin_token}"}
         )
-        
+
         # Then: User should be created
         assert response.status_code == 201
         data = response.json()
@@ -46,7 +45,7 @@ class TestUsersAPI:
             },
             headers={"Authorization": f"Bearer {admin_token}"}
         )
-        
+
         # Then: Should return 409
         assert response.status_code == 409
         assert response.json()["code"] == "USER001"
@@ -63,7 +62,7 @@ class TestUsersAPI:
             },
             headers={"Authorization": f"Bearer {user_token}"}
         )
-        
+
         # Then: Should return 403
         assert response.status_code == 403
         assert response.json()["code"] == "AUTH004"
@@ -79,7 +78,7 @@ class TestUsersAPI:
                 "full_name": "No Auth User"
             }
         )
-        
+
         # Then: Should return 401
         assert response.status_code == 401
 
@@ -95,7 +94,7 @@ class TestUsersAPI:
             },
             headers={"Authorization": f"Bearer {admin_token}"}
         )
-        
+
         # Then: Should return 422
         assert response.status_code == 422
         errors = response.json()["detail"]
@@ -108,7 +107,7 @@ class TestUsersAPI:
             "/api/v1/users/me",
             headers={"Authorization": f"Bearer {user_token}"}
         )
-        
+
         # Then: Should return user info
         assert response.status_code == 200
         data = response.json()
@@ -121,7 +120,7 @@ class TestUsersAPI:
         """Test getting current user without auth."""
         # When: Getting current user without auth
         response = client.get("/api/v1/users/me")
-        
+
         # Then: Should return 401
         assert response.status_code == 401
 
@@ -132,7 +131,7 @@ class TestUsersAPI:
             "/api/v1/users/me",
             headers={"Authorization": "Bearer invalid.token.here"}
         )
-        
+
         # Then: Should return 401
         assert response.status_code == 401
 
@@ -149,7 +148,7 @@ class TestUsersAPI:
             },
             headers={"Authorization": f"Bearer {admin_token}"}
         )
-        
+
         # Then: User should be created as inactive
         assert response.status_code == 201
         assert response.json()["is_active"] is False
@@ -173,6 +172,6 @@ class TestUsersAPI:
             },
             headers={"Authorization": f"Bearer {admin_token}"}
         )
-        
+
         # Then: Should return 422
         assert response.status_code == 422

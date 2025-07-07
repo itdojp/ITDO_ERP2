@@ -3,16 +3,15 @@
 from datetime import datetime
 from typing import Union
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
-from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_db, get_current_active_user, get_current_superuser
+from app.core.dependencies import get_current_active_user, get_current_superuser, get_db
 from app.models.user import User
-from app.schemas.user import UserCreate, UserResponse
 from app.schemas.error import ErrorResponse
-
+from app.schemas.user import UserCreate, UserResponse
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -44,9 +43,9 @@ def create_user(
         )
         db.commit()
         db.refresh(user)
-        
+
         return UserResponse.model_validate(user)
-        
+
     except IntegrityError:
         db.rollback()
         return JSONResponse(

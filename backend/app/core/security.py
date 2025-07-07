@@ -1,14 +1,13 @@
 """Security utilities for authentication and authorization."""
 
 from datetime import datetime, timedelta, timezone
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
-from jose import jwt, JWTError, ExpiredSignatureError
+from jose import ExpiredSignatureError, JWTError, jwt
 from passlib.context import CryptContext
 
 from app.core.config import settings
 from app.core.exceptions import ExpiredTokenError, InvalidTokenError
-
 
 # Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -30,7 +29,7 @@ def create_access_token(
 ) -> str:
     """Create a JWT access token."""
     to_encode = data.copy()
-    
+
     # Set expiration
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
@@ -38,14 +37,14 @@ def create_access_token(
         expire = datetime.now(timezone.utc) + timedelta(
             minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
         )
-    
+
     # Add token metadata
     to_encode.update({
         "exp": expire,
         "iat": datetime.now(timezone.utc),
         "type": "access"
     })
-    
+
     # Encode token
     encoded_jwt = jwt.encode(
         to_encode,
@@ -61,7 +60,7 @@ def create_refresh_token(
 ) -> str:
     """Create a JWT refresh token."""
     to_encode = data.copy()
-    
+
     # Set expiration
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
@@ -69,14 +68,14 @@ def create_refresh_token(
         expire = datetime.now(timezone.utc) + timedelta(
             days=settings.REFRESH_TOKEN_EXPIRE_DAYS
         )
-    
+
     # Add token metadata
     to_encode.update({
         "exp": expire,
         "iat": datetime.now(timezone.utc),
         "type": "refresh"
     })
-    
+
     # Encode token
     encoded_jwt = jwt.encode(
         to_encode,

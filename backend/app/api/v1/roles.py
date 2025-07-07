@@ -1,27 +1,25 @@
 """Role API endpoints."""
-from typing import List, Optional, Union, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Path, Body
-from fastapi.responses import JSONResponse
-from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
+from typing import Any, Dict, List, Optional, Union
 
-from app.core.dependencies import get_db, get_current_active_user
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, status
+from fastapi.responses import JSONResponse
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+
+from app.core.dependencies import get_current_active_user, get_db
 from app.models.user import User
-from app.models.role import Role
+from app.schemas.common import DeleteResponse, ErrorResponse, PaginatedResponse
 from app.schemas.role import (
+    PermissionBasic,
     RoleCreate,
-    RoleUpdate,
     RoleResponse,
     RoleSummary,
     RoleTree,
+    RoleUpdate,
     RoleWithPermissions,
-    RoleBasic,
-    PermissionBasic,
     UserRoleAssignment,
-    UserRoleResponse
+    UserRoleResponse,
 )
-from app.schemas.common import ErrorResponse, PaginatedResponse, DeleteResponse
-from app.repositories.role import RoleRepository
 from app.services.role import RoleService
 from app.types import OrganizationId, UserId
 
@@ -47,7 +45,7 @@ def list_roles(
 ) -> PaginatedResponse[RoleSummary]:
     """List roles with pagination and filtering."""
     service = RoleService(db)
-    
+
     # Build filters
     filters: Dict[str, Any] = {}
     if organization_id:
@@ -56,16 +54,16 @@ def list_roles(
         filters["is_active"] = True
     if role_type:
         filters["role_type"] = role_type  # Keep as string, will be handled in service
-    
+
     # Get roles
     if search:
         roles, total = service.search_roles(search, skip, limit, filters)
     else:
         roles, total = service.list_roles(skip, active_only, limit, organization_id)
-    
+
     # Convert to summary
     items = [service.get_role_summary(role) for role in roles]
-    
+
     return PaginatedResponse(
         items=items,
         total=total,
@@ -89,7 +87,7 @@ def get_role_tree(
 ) -> List[RoleTree]:
     """Get role hierarchy tree for an organization."""
     service = RoleService(db)
-    
+
     # Verify organization exists
     from app.services.organization import OrganizationService
     org_service = OrganizationService(db)
@@ -98,7 +96,7 @@ def get_role_tree(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Organization not found"
         )
-    
+
     return service.get_role_tree(organization_id)
 
 
@@ -135,13 +133,13 @@ def get_role(
     """Get role details."""
     service = RoleService(db)
     role = service.get_role(role_id)
-    
+
     if not role:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Role not found"
         )
-    
+
     return service.get_role_response(role)
 
 
@@ -162,13 +160,13 @@ def get_role_permissions(
     """Get role with permission details."""
     service = RoleService(db)
     role = service.get_role(role_id)
-    
+
     if not role:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Role not found"
         )
-    
+
     return service.get_role_with_permissions(role, include_inherited)
 
 
@@ -204,7 +202,7 @@ def create_role(
                     code="PERMISSION_DENIED"
                 ).model_dump()
             )
-    
+
     # Verify organization exists
     from app.services.organization import OrganizationService
     org_service = OrganizationService(db)
@@ -216,7 +214,7 @@ def create_role(
                 code="ORGANIZATION_NOT_FOUND"
             ).model_dump()
         )
-    
+
     # Verify parent role if specified
     if role_data.parent_id:
         parent = service.get_role(role_data.parent_id)
@@ -228,7 +226,7 @@ def create_role(
                     code="INVALID_PARENT"
                 ).model_dump()
             )
-    
+
     try:
         role = service.create_role(
             role_data,
@@ -243,7 +241,7 @@ def create_role(
                 code="DUPLICATE_NAME"
             ).model_dump()
         )
-    except IntegrityError as e:
+    except IntegrityError:
         db.rollback()
         return JSONResponse(
             status_code=status.HTTP_409_CONFLICT,
@@ -273,7 +271,7 @@ def update_role(
     """Update role details."""
     service = RoleService(db)
     role = service.get_role(role_id)
-    
+
     if not role:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -282,7 +280,7 @@ def update_role(
                 code="NOT_FOUND"
             ).model_dump()
         )
-    
+
     # Check permissions
     if not current_user.is_superuser:
         if not service.user_has_permission(
@@ -297,7 +295,7 @@ def update_role(
                     code="PERMISSION_DENIED"
                 ).model_dump()
             )
-    
+
     # Verify parent role if being changed
     if role_data.parent_id is not None and role_data.parent_id != role.parent_id:
         if role_data.parent_id == role_id:
@@ -308,7 +306,7 @@ def update_role(
                     code="INVALID_PARENT"
                 ).model_dump()
             )
-        
+
         if role_data.parent_id:
             parent = service.get_role(role_data.parent_id)
             if not parent or parent.organization_id != role.organization_id:
@@ -319,7 +317,7 @@ def update_role(
                         code="INVALID_PARENT"
                     ).model_dump()
                 )
-    
+
     try:
         updated_role = service.update_role(
             role_id,
@@ -363,7 +361,7 @@ def update_role_permissions(
     """Update role permissions."""
     service = RoleService(db)
     role = service.get_role(role_id)
-    
+
     if not role:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -372,7 +370,7 @@ def update_role_permissions(
                 code="NOT_FOUND"
             ).model_dump()
         )
-    
+
     # Check permissions
     if not current_user.is_superuser:
         if not service.user_has_permission(
@@ -387,7 +385,7 @@ def update_role_permissions(
                     code="PERMISSION_DENIED"
                 ).model_dump()
             )
-    
+
     try:
         updated_role = service.update_role_permissions(
             role_id,
@@ -423,7 +421,7 @@ def delete_role(
     """Delete (soft delete) a role."""
     service = RoleService(db)
     role = service.get_role(role_id)
-    
+
     if not role:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -432,7 +430,7 @@ def delete_role(
                 code="NOT_FOUND"
             ).model_dump()
         )
-    
+
     # Check permissions
     if not current_user.is_superuser:
         if not service.user_has_permission(
@@ -447,7 +445,7 @@ def delete_role(
                     code="PERMISSION_DENIED"
                 ).model_dump()
             )
-    
+
     # Check if role is in use
     if service.is_role_in_use(role_id):
         return JSONResponse(
@@ -457,10 +455,10 @@ def delete_role(
                 code="ROLE_IN_USE"
             ).model_dump()
         )
-    
+
     # Perform soft delete
     success = service.delete_role(role_id, deleted_by=current_user.id)
-    
+
     return DeleteResponse(
         success=success,
         message="Role deleted successfully",
@@ -486,7 +484,7 @@ def assign_role_to_user(
 ) -> Union[UserRoleResponse, JSONResponse]:
     """Assign a role to a user."""
     service = RoleService(db)
-    
+
     # Get role to check organization
     role = service.get_role(assignment.role_id)
     if not role:
@@ -497,7 +495,7 @@ def assign_role_to_user(
                 code="ROLE_NOT_FOUND"
             ).model_dump()
         )
-    
+
     # Check permissions
     if not current_user.is_superuser:
         if not service.user_has_permission(
@@ -512,7 +510,7 @@ def assign_role_to_user(
                     code="PERMISSION_DENIED"
                 ).model_dump()
             )
-    
+
     # Check if user exists
     user = db.query(User).filter(User.id == assignment.user_id).first()
     if not user:
@@ -523,7 +521,7 @@ def assign_role_to_user(
                 code="USER_NOT_FOUND"
             ).model_dump()
         )
-    
+
     try:
         user_role = service.assign_role_to_user(
             assignment,
@@ -557,7 +555,7 @@ def remove_role_from_user(
 ) -> Union[DeleteResponse, JSONResponse]:
     """Remove a role from a user."""
     service = RoleService(db)
-    
+
     # Get role to check organization
     role = service.get_role(role_id)
     if not role:
@@ -568,7 +566,7 @@ def remove_role_from_user(
                 code="ROLE_NOT_FOUND"
             ).model_dump()
         )
-    
+
     # Check permissions
     if not current_user.is_superuser:
         if not service.user_has_permission(
@@ -583,7 +581,7 @@ def remove_role_from_user(
                     code="PERMISSION_DENIED"
                 ).model_dump()
             )
-    
+
     # Ensure organization_id is not None
     if role.organization_id is None:
         return JSONResponse(
@@ -593,9 +591,9 @@ def remove_role_from_user(
                 code="INVALID_ROLE"
             ).model_dump()
         )
-    
+
     success = service.remove_role_from_user(user_id, role_id, role.organization_id, current_user.id)
-    
+
     if not success:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -604,7 +602,7 @@ def remove_role_from_user(
                 code="ASSIGNMENT_NOT_FOUND"
             ).model_dump()
         )
-    
+
     return DeleteResponse(
         success=success,
         message="Role removed from user successfully",
@@ -635,8 +633,8 @@ def get_user_roles(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
         )
-    
+
     service = RoleService(db)
     user_role_responses = service.get_user_roles(user_id)
-    
+
     return user_role_responses  # Already UserRoleResponse objects

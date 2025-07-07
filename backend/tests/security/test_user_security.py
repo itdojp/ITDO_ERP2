@@ -4,17 +4,18 @@ User management security tests.
 Following TDD approach - Red phase: Writing tests before implementation.
 """
 
-import pytest
 from datetime import datetime, timedelta
+
+import pytest
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import PermissionDenied, AuthenticationError
-from app.models.user import User, PasswordHistory
+from app.core.exceptions import AuthenticationError, PermissionDenied
+from app.models.user import PasswordHistory, User
 from tests.factories import (
-    create_test_user,
-    create_test_organization,
     create_test_department,
+    create_test_organization,
     create_test_role,
+    create_test_user,
     create_test_user_role,
 )
 
@@ -79,7 +80,7 @@ class TestUserSecurityFeatures:
         db_session.commit()
 
         # 正規セッション作成
-        session1 = user.create_session(
+        user.create_session(
             db_session,
             session_token="valid-token",
             ip_address="192.168.1.100",

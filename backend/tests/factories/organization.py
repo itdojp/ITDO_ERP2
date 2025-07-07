@@ -1,9 +1,7 @@
 """Factory for Organization model."""
 
-from typing import Dict, Any, Type, Optional
-from datetime import datetime
 import json
-from sqlalchemy.orm import Session
+from typing import Any, Dict
 
 from app.models.organization import Organization
 from tests.factories import BaseFactory, fake
@@ -11,9 +9,9 @@ from tests.factories import BaseFactory, fake
 
 class OrganizationFactory(BaseFactory):
     """Factory for creating Organization test instances."""
-    
+
     model_class = Organization  # Model class for this factory
-    
+
     @classmethod
     def _get_default_attributes(cls) -> Dict[str, Any]:
         """Get default attributes for creating Organization instances."""
@@ -42,7 +40,7 @@ class OrganizationFactory(BaseFactory):
                 "currency": "JPY"
             })
         }
-    
+
     @classmethod
     def _get_update_attributes(cls) -> Dict[str, Any]:
         """Get default attributes for updating Organization instances."""
@@ -55,23 +53,23 @@ class OrganizationFactory(BaseFactory):
             "employee_count": fake.random_int(min=1, max=1000),
             "is_active": fake.boolean()
         }
-    
+
     @classmethod
     def create_with_parent(cls, db_session, parent_id: int, **kwargs) -> Organization:
         """Create an organization with a parent organization."""
         kwargs['parent_id'] = parent_id
         return cls.create(db_session, **kwargs)
-    
+
     @classmethod
     def create_subsidiary_tree(cls, db_session, depth: int = 2, children_per_level: int = 2):
         """Create a tree of organizations with subsidiaries."""
         # Create root organization
         root = cls.create(db_session, name="Root Organization")
-        
+
         def create_children(parent, current_depth):
             if current_depth >= depth:
                 return []
-            
+
             children = []
             for i in range(children_per_level):
                 child = cls.create_with_parent(
@@ -81,35 +79,35 @@ class OrganizationFactory(BaseFactory):
                     code=f"{parent.code}-C{i+1}"
                 )
                 children.append(child)
-                
+
                 # Recursively create grandchildren
                 grandchildren = create_children(child, current_depth + 1)
                 children.extend(grandchildren)
-            
+
             return children
-        
+
         all_organizations = [root]
         all_organizations.extend(create_children(root, 0))
-        
+
         return {
             'root': root,
             'all': all_organizations,
             'tree_depth': depth,
             'children_per_level': children_per_level
         }
-    
+
     @classmethod
     def create_inactive(cls, db_session, **kwargs) -> Organization:
         """Create an inactive organization."""
         kwargs['is_active'] = False
         return cls.create(db_session, **kwargs)
-    
+
     @classmethod
     def create_with_specific_industry(cls, db_session, industry: str, **kwargs) -> Organization:
         """Create an organization in a specific industry."""
         kwargs['industry'] = industry
         return cls.create(db_session, **kwargs)
-    
+
     @classmethod
     def create_minimal(cls, db_session, **kwargs) -> Organization:
         """Create an organization with minimal required fields."""

@@ -1,10 +1,12 @@
 """Role and UserRole schemas."""
-from typing import Optional, List, Dict, Any
 from datetime import datetime
-from pydantic import BaseModel, Field, ConfigDict, field_validator
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
 from app.schemas.common import AuditInfo, SoftDeleteInfo
-from app.schemas.organization import OrganizationBasic
 from app.schemas.department import DepartmentBasic
+from app.schemas.organization import OrganizationBasic
 from app.schemas.user import UserBasic
 
 
@@ -20,7 +22,7 @@ class RoleBase(BaseModel):
 class RolePermissions(BaseModel):
     """Role permissions schema."""
     permissions: Dict[str, Any] = Field(default_factory=dict, description="Role permissions")
-    
+
     @field_validator('permissions')
     @classmethod
     def validate_permissions(cls, v: Dict[str, Any]) -> Dict[str, Any]:
@@ -67,7 +69,7 @@ class RoleBasic(BaseModel):
     role_type: str
     is_active: bool
     is_system: bool
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -87,7 +89,7 @@ class RoleResponse(
     is_inherited: bool = False
     users_count: int = 0
     all_permissions: Dict[str, Any] = Field(default_factory=dict)
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -104,7 +106,7 @@ class RoleTree(BaseModel):
     user_count: int = 0
     permission_count: int = 0
     children: List["RoleTree"] = Field(default_factory=list)
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -157,14 +159,14 @@ class UserRoleInfo(BaseModel):
     approval_status: Optional[str] = None
     approved_by: Optional[UserBasic] = None
     approved_at: Optional[datetime] = None
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
 class UserRoleResponse(UserRoleInfo, AuditInfo):
     """Full user role response schema."""
     effective_permissions: Dict[str, Any] = Field(default_factory=dict)
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -185,7 +187,7 @@ class RoleSummary(RoleBasic):
     description: Optional[str] = None
     user_count: int = 0
     permission_count: int = 0
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -196,21 +198,21 @@ class PermissionBasic(BaseModel):
     name: str
     description: Optional[str] = None
     category: Optional[str] = None
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
 class RoleWithPermissions(RoleResponse):
     """Role with permissions information."""
     permission_list: List[PermissionBasic] = Field(default_factory=list, description="List of permissions")
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
 class UserRoleAssignment(BaseModel):
     """Schema for user role assignment."""
     user_id: int = Field(..., description="User ID")
-    role_id: int = Field(..., description="Role ID")  
+    role_id: int = Field(..., description="Role ID")
     organization_id: int = Field(..., description="Organization ID")
     department_id: Optional[int] = Field(None, description="Department ID")
     valid_from: datetime = Field(default_factory=datetime.utcnow)

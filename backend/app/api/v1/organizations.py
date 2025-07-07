@@ -1,23 +1,22 @@
 """Organization API endpoints."""
 from typing import List, Optional, Union
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Path
-from fastapi.responses import JSONResponse
-from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
 
-from app.core.dependencies import get_db, get_current_active_user
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
+from fastapi.responses import JSONResponse
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+
+from app.core.dependencies import get_current_active_user, get_db
 from app.models.user import User
-from app.models.organization import Organization
+from app.schemas.common import DeleteResponse, ErrorResponse, PaginatedResponse
 from app.schemas.organization import (
+    OrganizationBasic,
     OrganizationCreate,
-    OrganizationUpdate,
     OrganizationResponse,
     OrganizationSummary,
     OrganizationTree,
-    OrganizationBasic
+    OrganizationUpdate,
 )
-from app.schemas.common import ErrorResponse, PaginatedResponse, DeleteResponse
-from app.repositories.organization import OrganizationRepository
 from app.services.organization import OrganizationService
 
 router = APIRouter(prefix="/organizations", tags=["organizations"])
@@ -41,23 +40,23 @@ def list_organizations(
 ) -> PaginatedResponse[OrganizationSummary]:
     """List organizations with pagination and filtering."""
     service = OrganizationService(db)
-    
+
     # Build filters
     filters = {}
     if active_only:
         filters["is_active"] = True
     if industry:
         filters["industry"] = industry
-    
+
     # Get organizations
     if search:
         organizations, total = service.search_organizations(search, skip, limit, filters)
     else:
         organizations, total = service.list_organizations(skip, limit, filters)
-    
+
     # Convert to summary
     items = [service.get_organization_summary(org) for org in organizations]
-    
+
     return PaginatedResponse(
         items=items,
         total=total,
@@ -98,13 +97,13 @@ def get_organization(
     """Get organization details."""
     service = OrganizationService(db)
     organization = service.get_organization(organization_id)
-    
+
     if not organization:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Organization not found"
         )
-    
+
     return service.get_organization_response(organization)
 
 
@@ -135,7 +134,7 @@ def create_organization(
                     code="PERMISSION_DENIED"
                 ).model_dump()
             )
-    
+
     try:
         service = OrganizationService(db)
         organization = service.create_organization(
@@ -184,7 +183,7 @@ def update_organization(
                     code="PERMISSION_DENIED"
                 ).model_dump()
             )
-    
+
     try:
         service = OrganizationService(db)
         organization = service.update_organization(
@@ -192,7 +191,7 @@ def update_organization(
             organization_data,
             updated_by=current_user.id
         )
-        
+
         if not organization:
             return JSONResponse(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -201,7 +200,7 @@ def update_organization(
                     code="NOT_FOUND"
                 ).model_dump()
             )
-        
+
         return service.get_organization_response(organization)
     except IntegrityError as e:
         db.rollback()
@@ -243,10 +242,10 @@ def delete_organization(
                     code="PERMISSION_DENIED"
                 ).model_dump()
             )
-    
+
     service = OrganizationService(db)
     organization = service.get_organization(organization_id)
-    
+
     if not organization:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -255,7 +254,7 @@ def delete_organization(
                 code="NOT_FOUND"
             ).model_dump()
         )
-    
+
     # Check for active subsidiaries
     if service.has_active_subsidiaries(organization_id):
         return JSONResponse(
@@ -265,10 +264,10 @@ def delete_organization(
                 code="HAS_SUBSIDIARIES"
             ).model_dump()
         )
-    
+
     # Perform soft delete
     success = service.delete_organization(organization_id, deleted_by=current_user.id)
-    
+
     return DeleteResponse(
         success=success,
         message="Organization deleted successfully",
@@ -292,19 +291,19 @@ def get_subsidiaries(
 ) -> List[OrganizationBasic]:
     """Get subsidiaries of an organization."""
     service = OrganizationService(db)
-    
+
     # Check if organization exists
     if not service.get_organization(organization_id):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Organization not found"
         )
-    
+
     if recursive:
         subsidiaries = service.get_all_subsidiaries(organization_id)
     else:
         subsidiaries = service.get_direct_subsidiaries(organization_id)
-    
+
     return [
         OrganizationBasic.model_validate(sub.to_dict())
         for sub in subsidiaries
@@ -337,10 +336,10 @@ def activate_organization(
                     code="PERMISSION_DENIED"
                 ).model_dump()
             )
-    
+
     service = OrganizationService(db)
     organization = service.activate_organization(organization_id, updated_by=current_user.id)
-    
+
     if not organization:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -349,7 +348,7 @@ def activate_organization(
                 code="NOT_FOUND"
             ).model_dump()
         )
-    
+
     return service.get_organization_response(organization)
 
 
@@ -379,10 +378,10 @@ def deactivate_organization(
                     code="PERMISSION_DENIED"
                 ).model_dump()
             )
-    
+
     service = OrganizationService(db)
     organization = service.deactivate_organization(organization_id, updated_by=current_user.id)
-    
+
     if not organization:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -391,5 +390,5 @@ def deactivate_organization(
                 code="NOT_FOUND"
             ).model_dump()
         )
-    
+
     return service.get_organization_response(organization)

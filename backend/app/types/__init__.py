@@ -2,11 +2,11 @@
 
 This module provides common type definitions and protocols used throughout the application.
 """
-from typing import TypeVar, Protocol, runtime_checkable, Optional, Dict, Any
-from sqlalchemy.orm import Session
-from fastapi import Request, Response
-from pydantic import BaseModel
 from datetime import datetime
+from typing import Any, Dict, Optional, Protocol, TypeVar, runtime_checkable
+
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
 # Generic type variables
 T = TypeVar('T')
