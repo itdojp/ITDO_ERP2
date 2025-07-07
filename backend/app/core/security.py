@@ -24,8 +24,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 
 def create_access_token(
-    data: Dict[str, Any],
-    expires_delta: Optional[timedelta] = None
+    data: Dict[str, Any], expires_delta: Optional[timedelta] = None
 ) -> str:
     """Create a JWT access token."""
     to_encode = data.copy()
@@ -39,24 +38,19 @@ def create_access_token(
         )
 
     # Add token metadata
-    to_encode.update({
-        "exp": expire,
-        "iat": datetime.now(timezone.utc),
-        "type": "access"
-    })
+    to_encode.update(
+        {"exp": expire, "iat": datetime.now(timezone.utc), "type": "access"}
+    )
 
     # Encode token
     encoded_jwt = jwt.encode(
-        to_encode,
-        settings.SECRET_KEY,
-        algorithm=settings.ALGORITHM
+        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
     )
     return encoded_jwt
 
 
 def create_refresh_token(
-    data: Dict[str, Any],
-    expires_delta: Optional[timedelta] = None
+    data: Dict[str, Any], expires_delta: Optional[timedelta] = None
 ) -> str:
     """Create a JWT refresh token."""
     to_encode = data.copy()
@@ -70,17 +64,13 @@ def create_refresh_token(
         )
 
     # Add token metadata
-    to_encode.update({
-        "exp": expire,
-        "iat": datetime.now(timezone.utc),
-        "type": "refresh"
-    })
+    to_encode.update(
+        {"exp": expire, "iat": datetime.now(timezone.utc), "type": "refresh"}
+    )
 
     # Encode token
     encoded_jwt = jwt.encode(
-        to_encode,
-        settings.SECRET_KEY,
-        algorithm=settings.ALGORITHM
+        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
     )
     return encoded_jwt
 
@@ -90,9 +80,7 @@ def verify_token(token: str) -> Dict[str, Any]:
     try:
         # Decode token
         payload = jwt.decode(
-            token,
-            settings.SECRET_KEY,
-            algorithms=[settings.ALGORITHM]
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
         )
         return payload
     except ExpiredSignatureError:

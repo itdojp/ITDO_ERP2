@@ -83,8 +83,10 @@ class TestUserService:
         assert user.email == "orguser@example.com"
         assert user.get_organizations()[0].id == org.id
 
-    def test_org_admin_cannot_create_cross_tenant(self, service, db_session: Session) -> None:
-        """TEST-USER-SERVICE-003: 組織管理者が他組織ユーザーを作成できないことをテスト."""
+    def test_org_admin_cannot_create_cross_tenant(
+        self, service, db_session: Session
+    ) -> None:
+        """TEST-USER-SERVICE-003: 組織管理者が他組織ユーザーを作成できないテスト."""
         # Given: 組織1の管理者と組織2
         org1 = create_test_organization(code="ORG1")
         org2 = create_test_organization(code="ORG2")
@@ -106,7 +108,9 @@ class TestUserService:
                 db=db_session,
             )
 
-    def test_search_users_multi_tenant_isolation(self, service, db_session: Session) -> None:
+    def test_search_users_multi_tenant_isolation(
+        self, service, db_session: Session
+    ) -> None:
         """TEST-USER-SERVICE-004: マルチテナント環境でのユーザー検索分離をテスト."""
         # Given: 2つの組織とユーザー
         org1 = create_test_organization(code="ORG1")

@@ -1,4 +1,5 @@
 """Project model implementation (stub for type checking)."""
+
 from datetime import date
 from typing import TYPE_CHECKING, Optional
 
@@ -47,7 +48,9 @@ class Project(SoftDeletableModel):
 
     # Relationships
     organization: Mapped["Organization"] = relationship("Organization", lazy="joined")
-    department: Mapped[Optional["Department"]] = relationship("Department", lazy="joined")
+    department: Mapped[Optional["Department"]] = relationship(
+        "Department", lazy="joined"
+    )
     owner: Mapped["User"] = relationship("User", foreign_keys=[owner_id], lazy="joined")
 
     # Computed properties for dashboard
@@ -61,7 +64,10 @@ class Project(SoftDeletableModel):
         """Check if project is overdue."""
         if self.planned_end_date:
             today = date.today()
-            return self.planned_end_date < today and self.status in ['planning', 'in_progress']
+            return self.planned_end_date < today and self.status in [
+                "planning",
+                "in_progress",
+            ]
         return False
 
     @property

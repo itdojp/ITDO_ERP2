@@ -1,4 +1,5 @@
 """Department model implementation."""
+
 from typing import TYPE_CHECKING, List, Optional
 
 from sqlalchemy import Boolean, ForeignKey, Integer, String, Text
@@ -22,27 +23,19 @@ class Department(SoftDeletableModel):
         String(50),
         nullable=False,
         index=True,
-        comment="Department code (unique within organization)"
+        comment="Department code (unique within organization)",
     )
     name: Mapped[str] = mapped_column(
-        String(200),
-        nullable=False,
-        comment="Department name"
+        String(200), nullable=False, comment="Department name"
     )
     name_kana: Mapped[Optional[str]] = mapped_column(
-        String(200),
-        nullable=True,
-        comment="Department name in Katakana"
+        String(200), nullable=True, comment="Department name in Katakana"
     )
     name_en: Mapped[Optional[str]] = mapped_column(
-        String(200),
-        nullable=True,
-        comment="Department name in English"
+        String(200), nullable=True, comment="Department name in English"
     )
     short_name: Mapped[Optional[str]] = mapped_column(
-        String(50),
-        nullable=True,
-        comment="Short name or abbreviation"
+        String(50), nullable=True, comment="Short name or abbreviation"
     )
 
     # Organization relationship
@@ -51,7 +44,7 @@ class Department(SoftDeletableModel):
         ForeignKey("organizations.id"),
         nullable=False,
         index=True,
-        comment="Organization this department belongs to"
+        comment="Organization this department belongs to",
     )
 
     # Hierarchy
@@ -60,7 +53,7 @@ class Department(SoftDeletableModel):
         ForeignKey("departments.id"),
         nullable=True,
         index=True,
-        comment="Parent department ID for sub-departments"
+        comment="Parent department ID for sub-departments",
     )
 
     # Department head
@@ -68,43 +61,31 @@ class Department(SoftDeletableModel):
         Integer,
         ForeignKey("users.id"),
         nullable=True,
-        comment="Department manager/head user ID"
+        comment="Department manager/head user ID",
     )
 
     # Contact information
     phone: Mapped[Optional[str]] = mapped_column(
-        String(20),
-        nullable=True,
-        comment="Department phone number"
+        String(20), nullable=True, comment="Department phone number"
     )
     fax: Mapped[Optional[str]] = mapped_column(
-        String(20),
-        nullable=True,
-        comment="Department fax number"
+        String(20), nullable=True, comment="Department fax number"
     )
     email: Mapped[Optional[str]] = mapped_column(
-        String(255),
-        nullable=True,
-        comment="Department email address"
+        String(255), nullable=True, comment="Department email address"
     )
 
     # Location
     location: Mapped[Optional[str]] = mapped_column(
-        String(255),
-        nullable=True,
-        comment="Physical location (building, floor, etc.)"
+        String(255), nullable=True, comment="Physical location (building, floor, etc.)"
     )
 
     # Budget and headcount
     budget: Mapped[Optional[int]] = mapped_column(
-        Integer,
-        nullable=True,
-        comment="Annual budget in JPY"
+        Integer, nullable=True, comment="Annual budget in JPY"
     )
     headcount_limit: Mapped[Optional[int]] = mapped_column(
-        Integer,
-        nullable=True,
-        comment="Maximum allowed headcount"
+        Integer, nullable=True, comment="Maximum allowed headcount"
     )
 
     # Status and type
@@ -113,19 +94,17 @@ class Department(SoftDeletableModel):
         default=True,
         nullable=False,
         index=True,
-        comment="Whether the department is active"
+        comment="Whether the department is active",
     )
     department_type: Mapped[Optional[str]] = mapped_column(
         String(50),
         nullable=True,
-        comment="Type of department (e.g., sales, engineering, admin)"
+        comment="Type of department (e.g., sales, engineering, admin)",
     )
 
     # Cost center
     cost_center_code: Mapped[Optional[str]] = mapped_column(
-        String(50),
-        nullable=True,
-        comment="Cost center code for accounting"
+        String(50), nullable=True, comment="Cost center code for accounting"
     )
 
     # Display order
@@ -133,37 +112,29 @@ class Department(SoftDeletableModel):
         Integer,
         default=0,
         nullable=False,
-        comment="Display order within the same level"
+        comment="Display order within the same level",
     )
 
     # Additional fields
     description: Mapped[Optional[str]] = mapped_column(
-        Text,
-        nullable=True,
-        comment="Department description or mission"
+        Text, nullable=True, comment="Department description or mission"
     )
 
     # Relationships
     organization: Mapped["Organization"] = relationship(
-        "Organization",
-        back_populates="departments",
-        lazy="joined"
+        "Organization", back_populates="departments", lazy="joined"
     )
     parent: Mapped[Optional["Department"]] = relationship(
         "Department",
         remote_side="Department.id",
         back_populates="sub_departments",
-        lazy="joined"
+        lazy="joined",
     )
     sub_departments: Mapped[List["Department"]] = relationship(
-        "Department",
-        back_populates="parent",
-        lazy="select"
+        "Department", back_populates="parent", lazy="select"
     )
     manager: Mapped[Optional["User"]] = relationship(
-        "User",
-        foreign_keys=[manager_id],
-        lazy="joined"
+        "User", foreign_keys=[manager_id], lazy="joined"
     )
     users = relationship(
         "User",
@@ -171,12 +142,15 @@ class Department(SoftDeletableModel):
         primaryjoin="Department.id == UserRole.department_id",
         secondaryjoin="UserRole.user_id == User.id",
         viewonly=True,
-        lazy="dynamic"
+        lazy="dynamic",
     )
 
     def __repr__(self) -> str:
         """String representation."""
-        return f"<Department(id={self.id}, code='{self.code}', name='{self.name}', org_id={self.organization_id})>"
+        return (
+            f"<Department(id={self.id}, code='{self.code}', "
+            f"name='{self.name}', org_id={self.organization_id})>"
+        )
 
     @property
     def full_code(self) -> str:

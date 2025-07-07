@@ -1,4 +1,5 @@
 """Organization model implementation."""
+
 from typing import TYPE_CHECKING, List, Optional
 
 from sqlalchemy import Boolean, ForeignKey, Integer, String, Text
@@ -23,98 +24,64 @@ class Organization(SoftDeletableModel):
         unique=True,
         nullable=False,
         index=True,
-        comment="Unique organization code"
+        comment="Unique organization code",
     )
     name: Mapped[str] = mapped_column(
-        String(200),
-        nullable=False,
-        comment="Organization name"
+        String(200), nullable=False, comment="Organization name"
     )
     name_kana: Mapped[Optional[str]] = mapped_column(
-        String(200),
-        nullable=True,
-        comment="Organization name in Katakana"
+        String(200), nullable=True, comment="Organization name in Katakana"
     )
     name_en: Mapped[Optional[str]] = mapped_column(
-        String(200),
-        nullable=True,
-        comment="Organization name in English"
+        String(200), nullable=True, comment="Organization name in English"
     )
 
     # Contact information
     phone: Mapped[Optional[str]] = mapped_column(
-        String(20),
-        nullable=True,
-        comment="Main phone number"
+        String(20), nullable=True, comment="Main phone number"
     )
     fax: Mapped[Optional[str]] = mapped_column(
-        String(20),
-        nullable=True,
-        comment="Fax number"
+        String(20), nullable=True, comment="Fax number"
     )
     email: Mapped[Optional[str]] = mapped_column(
-        String(255),
-        nullable=True,
-        comment="Main email address"
+        String(255), nullable=True, comment="Main email address"
     )
     website: Mapped[Optional[str]] = mapped_column(
-        String(255),
-        nullable=True,
-        comment="Website URL"
+        String(255), nullable=True, comment="Website URL"
     )
 
     # Address information
     postal_code: Mapped[Optional[str]] = mapped_column(
-        String(10),
-        nullable=True,
-        comment="Postal/Zip code"
+        String(10), nullable=True, comment="Postal/Zip code"
     )
     prefecture: Mapped[Optional[str]] = mapped_column(
-        String(50),
-        nullable=True,
-        comment="Prefecture/State"
+        String(50), nullable=True, comment="Prefecture/State"
     )
     city: Mapped[Optional[str]] = mapped_column(
-        String(100),
-        nullable=True,
-        comment="City"
+        String(100), nullable=True, comment="City"
     )
     address_line1: Mapped[Optional[str]] = mapped_column(
-        String(255),
-        nullable=True,
-        comment="Address line 1"
+        String(255), nullable=True, comment="Address line 1"
     )
     address_line2: Mapped[Optional[str]] = mapped_column(
-        String(255),
-        nullable=True,
-        comment="Address line 2"
+        String(255), nullable=True, comment="Address line 2"
     )
 
     # Business information
     business_type: Mapped[Optional[str]] = mapped_column(
-        String(100),
-        nullable=True,
-        comment="Type of business"
+        String(100), nullable=True, comment="Type of business"
     )
     industry: Mapped[Optional[str]] = mapped_column(
-        String(100),
-        nullable=True,
-        comment="Industry category"
+        String(100), nullable=True, comment="Industry category"
     )
     capital: Mapped[Optional[int]] = mapped_column(
-        Integer,
-        nullable=True,
-        comment="Capital amount in JPY"
+        Integer, nullable=True, comment="Capital amount in JPY"
     )
     employee_count: Mapped[Optional[int]] = mapped_column(
-        Integer,
-        nullable=True,
-        comment="Number of employees"
+        Integer, nullable=True, comment="Number of employees"
     )
     fiscal_year_end: Mapped[Optional[str]] = mapped_column(
-        String(5),
-        nullable=True,
-        comment="Fiscal year end (MM-DD)"
+        String(5), nullable=True, comment="Fiscal year end (MM-DD)"
     )
 
     # Hierarchy
@@ -122,7 +89,7 @@ class Organization(SoftDeletableModel):
         Integer,
         ForeignKey("organizations.id"),
         nullable=True,
-        comment="Parent organization ID for subsidiaries"
+        comment="Parent organization ID for subsidiaries",
     )
 
     # Status
@@ -130,44 +97,34 @@ class Organization(SoftDeletableModel):
         Boolean,
         default=True,
         nullable=False,
-        comment="Whether the organization is active"
+        comment="Whether the organization is active",
     )
 
     # Settings (JSON)
     settings: Mapped[Optional[str]] = mapped_column(
-        Text,
-        nullable=True,
-        comment="Organization-specific settings in JSON format"
+        Text, nullable=True, comment="Organization-specific settings in JSON format"
     )
 
     # Additional information
     description: Mapped[Optional[str]] = mapped_column(
-        Text,
-        nullable=True,
-        comment="Organization description"
+        Text, nullable=True, comment="Organization description"
     )
     logo_url: Mapped[Optional[str]] = mapped_column(
-        String(255),
-        nullable=True,
-        comment="URL to organization logo"
+        String(255), nullable=True, comment="URL to organization logo"
     )
 
     # Relationships
     parent: Mapped[Optional["Organization"]] = relationship(
-        "Organization",
-        remote_side="Organization.id",
-        lazy="joined"
+        "Organization", remote_side="Organization.id", lazy="joined"
     )
     subsidiaries: Mapped[List["Organization"]] = relationship(
-        "Organization",
-        back_populates="parent",
-        lazy="select"
+        "Organization", back_populates="parent", lazy="select"
     )
     departments: Mapped[List["Department"]] = relationship(
         "Department",
         back_populates="organization",
         lazy="dynamic",
-        cascade="all, delete-orphan"
+        cascade="all, delete-orphan",
     )
     users: Mapped[List["User"]] = relationship(
         "User",
@@ -175,7 +132,7 @@ class Organization(SoftDeletableModel):
         primaryjoin="Organization.id == UserRole.organization_id",
         secondaryjoin="UserRole.user_id == User.id",
         viewonly=True,
-        lazy="dynamic"
+        lazy="dynamic",
     )
 
     def __repr__(self) -> str:

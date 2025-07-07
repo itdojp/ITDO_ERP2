@@ -1,4 +1,5 @@
 """Organization API endpoints."""
+
 from typing import List, Optional, Union
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
@@ -27,7 +28,7 @@ router = APIRouter(prefix="/organizations", tags=["organizations"])
     response_model=PaginatedResponse[OrganizationSummary],
     responses={
         401: {"model": ErrorResponse, "description": "Unauthorized"},
-    }
+    },
 )
 def list_organizations(
     skip: int = Query(0, ge=0, description="Number of items to skip"),
@@ -36,7 +37,7 @@ def list_organizations(
     active_only: bool = Query(True, description="Only return active organizations"),
     industry: Optional[str] = Query(None, description="Filter by industry"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(get_current_active_user),
 ) -> PaginatedResponse[OrganizationSummary]:
     """List organizations with pagination and filtering."""
     service = OrganizationService(db)
@@ -50,19 +51,16 @@ def list_organizations(
 
     # Get organizations
     if search:
-        organizations, total = service.search_organizations(search, skip, limit, filters)
+        organizations, total = service.search_organizations(
+            search, skip, limit, filters
+        )
     else:
         organizations, total = service.list_organizations(skip, limit, filters)
 
     # Convert to summary
     items = [service.get_organization_summary(org) for org in organizations]
 
-    return PaginatedResponse(
-        items=items,
-        total=total,
-        skip=skip,
-        limit=limit
-    )
+    return PaginatedResponse(items=items, total=total, skip=skip, limit=limit)
 
 
 @router.get(
@@ -70,11 +68,10 @@ def list_organizations(
     response_model=List[OrganizationTree],
     responses={
         401: {"model": ErrorResponse, "description": "Unauthorized"},
-    }
+    },
 )
 def get_organization_tree(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)
 ) -> List[OrganizationTree]:
     """Get organization hierarchy tree."""
     service = OrganizationService(db)
@@ -87,12 +84,12 @@ def get_organization_tree(
     responses={
         401: {"model": ErrorResponse, "description": "Unauthorized"},
         404: {"model": ErrorResponse, "description": "Organization not found"},
-    }
+    },
 )
 def get_organization(
     organization_id: int = Path(..., description="Organization ID"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(get_current_active_user),
 ) -> OrganizationResponse:
     """Get organization details."""
     service = OrganizationService(db)
@@ -100,8 +97,7 @@ def get_organization(
 
     if not organization:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Organization not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found"
         )
 
     return service.get_organization_response(organization)
@@ -114,13 +110,16 @@ def get_organization(
     responses={
         401: {"model": ErrorResponse, "description": "Unauthorized"},
         403: {"model": ErrorResponse, "description": "Insufficient permissions"},
-        409: {"model": ErrorResponse, "description": "Organization code already exists"},
-    }
+        409: {
+            "model": ErrorResponse,
+            "description": "Organization code already exists",
+        },
+    },
 )
 def create_organization(
     organization_data: OrganizationCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(get_current_active_user),
 ) -> Union[OrganizationResponse, JSONResponse]:
     """Create a new organization (requires admin role)."""
     # Check permissions
@@ -131,15 +130,14 @@ def create_organization(
                 status_code=status.HTTP_403_FORBIDDEN,
                 content=ErrorResponse(
                     detail="Insufficient permissions to create organizations",
-                    code="PERMISSION_DENIED"
-                ).model_dump()
+                    code="PERMISSION_DENIED",
+                ).model_dump(),
             )
 
     try:
         service = OrganizationService(db)
         organization = service.create_organization(
-            organization_data,
-            created_by=current_user.id
+            organization_data, created_by=current_user.id
         )
         return service.get_organization_response(organization)
     except IntegrityError as e:
@@ -148,9 +146,11 @@ def create_organization(
             return JSONResponse(
                 status_code=status.HTTP_409_CONFLICT,
                 content=ErrorResponse(
-                    detail=f"Organization with code '{organization_data.code}' already exists",
-                    code="DUPLICATE_CODE"
-                ).model_dump()
+                    detail=(
+                        f"Organization with code '{organization_data.code}' exists"
+                    ),
+                    code="DUPLICATE_CODE",
+                ).model_dump(),
             )
         raise
 
@@ -162,43 +162,45 @@ def create_organization(
         401: {"model": ErrorResponse, "description": "Unauthorized"},
         403: {"model": ErrorResponse, "description": "Insufficient permissions"},
         404: {"model": ErrorResponse, "description": "Organization not found"},
-        409: {"model": ErrorResponse, "description": "Organization code already exists"},
-    }
+        409: {
+            "model": ErrorResponse,
+            "description": "Organization code already exists",
+        },
+    },
 )
 def update_organization(
     organization_id: int = Path(..., description="Organization ID"),
     organization_data: OrganizationUpdate = ...,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(get_current_active_user),
 ) -> Union[OrganizationResponse, JSONResponse]:
     """Update organization details."""
     # Check permissions
     if not current_user.is_superuser:
         service = OrganizationService(db)
-        if not service.user_has_permission(current_user.id, "organizations.update", organization_id):
+        if not service.user_has_permission(
+            current_user.id, "organizations.update", organization_id
+        ):
             return JSONResponse(
                 status_code=status.HTTP_403_FORBIDDEN,
                 content=ErrorResponse(
                     detail="Insufficient permissions to update this organization",
-                    code="PERMISSION_DENIED"
-                ).model_dump()
+                    code="PERMISSION_DENIED",
+                ).model_dump(),
             )
 
     try:
         service = OrganizationService(db)
         organization = service.update_organization(
-            organization_id,
-            organization_data,
-            updated_by=current_user.id
+            organization_id, organization_data, updated_by=current_user.id
         )
 
         if not organization:
             return JSONResponse(
                 status_code=status.HTTP_404_NOT_FOUND,
                 content=ErrorResponse(
-                    detail="Organization not found",
-                    code="NOT_FOUND"
-                ).model_dump()
+                    detail="Organization not found", code="NOT_FOUND"
+                ).model_dump(),
             )
 
         return service.get_organization_response(organization)
@@ -208,9 +210,11 @@ def update_organization(
             return JSONResponse(
                 status_code=status.HTTP_409_CONFLICT,
                 content=ErrorResponse(
-                    detail=f"Organization with code '{organization_data.code}' already exists",
-                    code="DUPLICATE_CODE"
-                ).model_dump()
+                    detail=(
+                        f"Organization with code '{organization_data.code}' exists"
+                    ),
+                    code="DUPLICATE_CODE",
+                ).model_dump(),
             )
         raise
 
@@ -222,13 +226,16 @@ def update_organization(
         401: {"model": ErrorResponse, "description": "Unauthorized"},
         403: {"model": ErrorResponse, "description": "Insufficient permissions"},
         404: {"model": ErrorResponse, "description": "Organization not found"},
-        409: {"model": ErrorResponse, "description": "Organization has active subsidiaries"},
-    }
+        409: {
+            "model": ErrorResponse,
+            "description": "Organization has active subsidiaries",
+        },
+    },
 )
 def delete_organization(
     organization_id: int = Path(..., description="Organization ID"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(get_current_active_user),
 ) -> Union[DeleteResponse, JSONResponse]:
     """Delete (soft delete) an organization."""
     # Check permissions
@@ -239,8 +246,8 @@ def delete_organization(
                 status_code=status.HTTP_403_FORBIDDEN,
                 content=ErrorResponse(
                     detail="Insufficient permissions to delete organizations",
-                    code="PERMISSION_DENIED"
-                ).model_dump()
+                    code="PERMISSION_DENIED",
+                ).model_dump(),
             )
 
     service = OrganizationService(db)
@@ -250,9 +257,8 @@ def delete_organization(
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content=ErrorResponse(
-                detail="Organization not found",
-                code="NOT_FOUND"
-            ).model_dump()
+                detail="Organization not found", code="NOT_FOUND"
+            ).model_dump(),
         )
 
     # Check for active subsidiaries
@@ -261,17 +267,15 @@ def delete_organization(
             status_code=status.HTTP_409_CONFLICT,
             content=ErrorResponse(
                 detail="Cannot delete organization with active subsidiaries",
-                code="HAS_SUBSIDIARIES"
-            ).model_dump()
+                code="HAS_SUBSIDIARIES",
+            ).model_dump(),
         )
 
     # Perform soft delete
     success = service.delete_organization(organization_id, deleted_by=current_user.id)
 
     return DeleteResponse(
-        success=success,
-        message="Organization deleted successfully",
-        id=organization_id
+        success=success, message="Organization deleted successfully", id=organization_id
     )
 
 
@@ -281,13 +285,13 @@ def delete_organization(
     responses={
         401: {"model": ErrorResponse, "description": "Unauthorized"},
         404: {"model": ErrorResponse, "description": "Organization not found"},
-    }
+    },
 )
 def get_subsidiaries(
     organization_id: int = Path(..., description="Organization ID"),
     recursive: bool = Query(False, description="Get all subsidiaries recursively"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(get_current_active_user),
 ) -> List[OrganizationBasic]:
     """Get subsidiaries of an organization."""
     service = OrganizationService(db)
@@ -295,8 +299,7 @@ def get_subsidiaries(
     # Check if organization exists
     if not service.get_organization(organization_id):
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Organization not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found"
         )
 
     if recursive:
@@ -304,10 +307,7 @@ def get_subsidiaries(
     else:
         subsidiaries = service.get_direct_subsidiaries(organization_id)
 
-    return [
-        OrganizationBasic.model_validate(sub.to_dict())
-        for sub in subsidiaries
-    ]
+    return [OrganizationBasic.model_validate(sub.to_dict()) for sub in subsidiaries]
 
 
 @router.post(
@@ -317,12 +317,12 @@ def get_subsidiaries(
         401: {"model": ErrorResponse, "description": "Unauthorized"},
         403: {"model": ErrorResponse, "description": "Insufficient permissions"},
         404: {"model": ErrorResponse, "description": "Organization not found"},
-    }
+    },
 )
 def activate_organization(
     organization_id: int = Path(..., description="Organization ID"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(get_current_active_user),
 ) -> Union[OrganizationResponse, JSONResponse]:
     """Activate an inactive organization."""
     # Check permissions
@@ -333,20 +333,21 @@ def activate_organization(
                 status_code=status.HTTP_403_FORBIDDEN,
                 content=ErrorResponse(
                     detail="Insufficient permissions to activate organizations",
-                    code="PERMISSION_DENIED"
-                ).model_dump()
+                    code="PERMISSION_DENIED",
+                ).model_dump(),
             )
 
     service = OrganizationService(db)
-    organization = service.activate_organization(organization_id, updated_by=current_user.id)
+    organization = service.activate_organization(
+        organization_id, updated_by=current_user.id
+    )
 
     if not organization:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content=ErrorResponse(
-                detail="Organization not found",
-                code="NOT_FOUND"
-            ).model_dump()
+                detail="Organization not found", code="NOT_FOUND"
+            ).model_dump(),
         )
 
     return service.get_organization_response(organization)
@@ -359,12 +360,12 @@ def activate_organization(
         401: {"model": ErrorResponse, "description": "Unauthorized"},
         403: {"model": ErrorResponse, "description": "Insufficient permissions"},
         404: {"model": ErrorResponse, "description": "Organization not found"},
-    }
+    },
 )
 def deactivate_organization(
     organization_id: int = Path(..., description="Organization ID"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(get_current_active_user),
 ) -> Union[OrganizationResponse, JSONResponse]:
     """Deactivate an active organization."""
     # Check permissions
@@ -375,20 +376,21 @@ def deactivate_organization(
                 status_code=status.HTTP_403_FORBIDDEN,
                 content=ErrorResponse(
                     detail="Insufficient permissions to deactivate organizations",
-                    code="PERMISSION_DENIED"
-                ).model_dump()
+                    code="PERMISSION_DENIED",
+                ).model_dump(),
             )
 
     service = OrganizationService(db)
-    organization = service.deactivate_organization(organization_id, updated_by=current_user.id)
+    organization = service.deactivate_organization(
+        organization_id, updated_by=current_user.id
+    )
 
     if not organization:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content=ErrorResponse(
-                detail="Organization not found",
-                code="NOT_FOUND"
-            ).model_dump()
+                detail="Organization not found", code="NOT_FOUND"
+            ).model_dump(),
         )
 
     return service.get_organization_response(organization)

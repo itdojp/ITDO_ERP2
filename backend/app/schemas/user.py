@@ -11,7 +11,9 @@ class UserBase(BaseModel):
     """Base user schema."""
 
     email: EmailStr = Field(..., description="User email address")
-    full_name: str = Field(..., min_length=1, max_length=100, description="User full name")
+    full_name: str = Field(
+        ..., min_length=1, max_length=100, description="User full name"
+    )
     is_active: bool = Field(default=True, description="Whether user is active")
 
 
@@ -31,8 +33,8 @@ class UserCreate(UserBase):
         checks = [
             bool(re.search(r"[A-Z]", v)),  # Has uppercase
             bool(re.search(r"[a-z]", v)),  # Has lowercase
-            bool(re.search(r"\d", v)),     # Has digit
-            bool(re.search(r"[!@#$%^&*(),.?\":{}|<>]", v))  # Has special char
+            bool(re.search(r"\d", v)),  # Has digit
+            bool(re.search(r"[!@#$%^&*(),.?\":{}|<>]", v)),  # Has special char
         ]
 
         if sum(checks) < 3:
@@ -53,6 +55,7 @@ class UserResponse(UserBase):
 
     class Config:
         """Pydantic configuration."""
+
         from_attributes = True
 
 
@@ -88,4 +91,5 @@ class UserBasic(BaseModel):
 
     class Config:
         """Pydantic configuration."""
+
         from_attributes = True

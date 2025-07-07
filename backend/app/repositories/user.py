@@ -21,20 +21,12 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
 
     def get_by_email(self, email: str) -> Optional[User]:
         """Get user by email address."""
-        return self.db.scalar(
-            select(User).where(User.email == email)
-        )
+        return self.db.scalar(select(User).where(User.email == email))
 
     def get_active(self, id: int) -> Optional[User]:
         """Get active user by ID."""
         return self.db.scalar(
-            select(User).where(
-                and_(
-                    User.id == id,
-                    User.is_active,
-                    not User.is_deleted
-                )
-            )
+            select(User).where(and_(User.id == id, User.is_active, not User.is_deleted))
         )
 
     def get_with_relationships(self, id: int) -> Optional[User]:
@@ -45,7 +37,7 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
                 selectinload(User.user_roles),
                 selectinload(User.password_history),
                 selectinload(User.sessions),
-                selectinload(User.activity_logs)
+                selectinload(User.activity_logs),
             )
             .where(User.id == id)
         )
@@ -57,7 +49,7 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
         department_id: Optional[int] = None,
         is_active: Optional[bool] = None,
         skip: int = 0,
-        limit: int = 100
+        limit: int = 100,
     ) -> tuple[List[User], int]:
         """Search users with filters."""
         stmt = select(User).where(not User.is_deleted)
@@ -69,13 +61,14 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
                 or_(
                     User.email.ilike(search_term),
                     User.full_name.ilike(search_term),
-                    User.phone.ilike(search_term)
+                    User.phone.ilike(search_term),
                 )
             )
 
         # Filter by organization
         if organization_id is not None:
             from app.models.role import UserRole
+
             stmt = stmt.join(UserRole).where(
                 UserRole.organization_id == organization_id
             )
@@ -83,9 +76,8 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
         # Filter by department
         if department_id is not None:
             from app.models.role import UserRole
-            stmt = stmt.join(UserRole).where(
-                UserRole.department_id == department_id
-            )
+
+            stmt = stmt.join(UserRole).where(UserRole.department_id == department_id)
 
         # Filter by active status
         if is_active is not None:
@@ -103,47 +95,53 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
 
     def get_locked_users(self) -> List[User]:
         """Get all locked users."""
-        return list(self.db.scalars(
-            select(User).where(
-                and_(
-                    User.locked_until is not None,
-                    User.locked_until > datetime.utcnow()
+        return list(
+            self.db.scalars(
+                select(User).where(
+                    and_(
+                        User.locked_until is not None,
+                        User.locked_until > datetime.utcnow(),
+                    )
                 )
             )
-        ))
+        )
 
     def get_users_with_expired_passwords(self, days: int = 90) -> List[User]:
         """Get users with expired passwords."""
         expiry_date = datetime.utcnow() - timedelta(days=days)
-        return list(self.db.scalars(
-            select(User).where(
-                and_(
-                    User.password_changed_at < expiry_date,
-                    User.is_active,
-                    not User.is_deleted
+        return list(
+            self.db.scalars(
+                select(User).where(
+                    and_(
+                        User.password_changed_at < expiry_date,
+                        User.is_active,
+                        not User.is_deleted,
+                    )
                 )
             )
-        ))
+        )
 
     def get_inactive_users(self, days: int = 30) -> List[User]:
         """Get users who haven't logged in for specified days."""
         cutoff_date = datetime.utcnow() - timedelta(days=days)
-        return list(self.db.scalars(
-            select(User).where(
-                and_(
-                    or_(
-                        User.last_login_at is None,
-                        User.last_login_at < cutoff_date
-                    ),
-                    User.is_active,
-                    not User.is_deleted
+        return list(
+            self.db.scalars(
+                select(User).where(
+                    and_(
+                        or_(
+                            User.last_login_at is None, User.last_login_at < cutoff_date
+                        ),
+                        User.is_active,
+                        not User.is_deleted,
+                    )
                 )
             )
-        ))
+        )
 
     def update_last_login(self, user_id: UserId) -> None:
         """Update user's last login timestamp."""
         from sqlalchemy import update
+
         self.db.execute(
             update(User)
             .where(User.id == user_id)
@@ -176,20 +174,15 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
 
     def exists_by_email(self, email: str) -> bool:
         """Check if user exists by email."""
-        count = self.db.scalar(
-            select(func.count(User.id))
-            .where(User.email == email)
-        )
+        count = self.db.scalar(select(func.count(User.id)).where(User.email == email))
         return bool(count and count > 0)
 
     def get_superusers(self) -> List[User]:
         """Get all superuser accounts."""
-        return list(self.db.scalars(
-            select(User).where(
-                and_(
-                    User.is_superuser,
-                    User.is_active,
-                    not User.is_deleted
+        return list(
+            self.db.scalars(
+                select(User).where(
+                    and_(User.is_superuser, User.is_active, not User.is_deleted)
                 )
             )
-        ))
+        )

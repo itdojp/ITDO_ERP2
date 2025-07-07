@@ -11,8 +11,7 @@ from app.schemas.error import ErrorResponse
 
 
 async def validation_exception_handler(
-    request: Request,
-    exc: RequestValidationError
+    request: Request, exc: RequestValidationError
 ) -> JSONResponse:
     """Handle validation errors."""
     return JSONResponse(
@@ -20,14 +19,13 @@ async def validation_exception_handler(
         content={
             "detail": exc.errors(),
             "code": "VALIDATION_ERROR",
-            "timestamp": datetime.utcnow().isoformat()
-        }
+            "timestamp": datetime.utcnow().isoformat(),
+        },
     )
 
 
 async def integrity_error_handler(
-    request: Request,
-    exc: IntegrityError
+    request: Request, exc: IntegrityError
 ) -> JSONResponse:
     """Handle database integrity errors."""
     return JSONResponse(
@@ -35,6 +33,6 @@ async def integrity_error_handler(
         content=ErrorResponse(
             detail="Database integrity error",
             code="DATABASE_ERROR",
-            timestamp=datetime.utcnow()
-        ).model_dump()
+            timestamp=datetime.utcnow(),
+        ).model_dump(),
     )

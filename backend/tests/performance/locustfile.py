@@ -28,15 +28,10 @@ class ERPAPIUser(HttpUser):
     def login(self):
         """Authenticate and get access token."""
         # Use admin credentials for testing
-        login_data = {
-            "username": "admin@example.com",
-            "password": "AdminPassword123!"
-        }
+        login_data = {"username": "admin@example.com", "password": "AdminPassword123!"}
 
         response = self.client.post(
-            "/api/v1/auth/login",
-            json=login_data,
-            catch_response=True
+            "/api/v1/auth/login", json=login_data, catch_response=True
         )
 
         if response.status_code == 200:
@@ -59,14 +54,11 @@ class ERPAPIUser(HttpUser):
         org_data = {
             "code": f"PERF-ORG-{random.randint(1000, 9999)}",
             "name": f"Performance Test Org {random.randint(1000, 9999)}",
-            "industry": "IT"
+            "industry": "IT",
         }
 
         response = self.client.post(
-            "/api/v1/organizations",
-            json=org_data,
-            headers=headers,
-            catch_response=True
+            "/api/v1/organizations", json=org_data, headers=headers, catch_response=True
         )
 
         if response.status_code == 201:
@@ -87,7 +79,7 @@ class ERPAPIUser(HttpUser):
         self.client.get(
             "/api/v1/organizations",
             headers=self.get_auth_headers(),
-            name="GET /organizations"
+            name="GET /organizations",
         )
 
     @task(3)
@@ -96,7 +88,7 @@ class ERPAPIUser(HttpUser):
         self.client.get(
             "/api/v1/organizations/tree",
             headers=self.get_auth_headers(),
-            name="GET /organizations/tree"
+            name="GET /organizations/tree",
         )
 
     @task(4)
@@ -110,7 +102,7 @@ class ERPAPIUser(HttpUser):
             "/api/v1/departments",
             params=params,
             headers=self.get_auth_headers(),
-            name="GET /departments"
+            name="GET /departments",
         )
 
     @task(2)
@@ -120,7 +112,7 @@ class ERPAPIUser(HttpUser):
             self.client.get(
                 f"/api/v1/departments/organization/{self.organization_id}/tree",
                 headers=self.get_auth_headers(),
-                name="GET /departments/tree"
+                name="GET /departments/tree",
             )
 
     @task(3)
@@ -134,7 +126,7 @@ class ERPAPIUser(HttpUser):
             "/api/v1/roles",
             params=params,
             headers=self.get_auth_headers(),
-            name="GET /roles"
+            name="GET /roles",
         )
 
     @task(2)
@@ -144,7 +136,7 @@ class ERPAPIUser(HttpUser):
             self.client.get(
                 f"/api/v1/roles/organization/{self.organization_id}/tree",
                 headers=self.get_auth_headers(),
-                name="GET /roles/tree"
+                name="GET /roles/tree",
             )
 
     @task(2)
@@ -153,7 +145,7 @@ class ERPAPIUser(HttpUser):
         self.client.get(
             "/api/v1/roles/permissions",
             headers=self.get_auth_headers(),
-            name="GET /permissions"
+            name="GET /permissions",
         )
 
     @task(1)
@@ -162,14 +154,14 @@ class ERPAPIUser(HttpUser):
         org_data = {
             "code": f"LOAD-{random.randint(10000, 99999)}",
             "name": f"Load Test Org {random.randint(1000, 9999)}",
-            "industry": random.choice(["IT", "製造業", "小売業", "金融業"])
+            "industry": random.choice(["IT", "製造業", "小売業", "金融業"]),
         }
 
         self.client.post(
             "/api/v1/organizations",
             json=org_data,
             headers=self.get_auth_headers(),
-            name="POST /organizations"
+            name="POST /organizations",
         )
 
     @task(1)
@@ -182,14 +174,14 @@ class ERPAPIUser(HttpUser):
             "code": f"DEPT-{random.randint(100, 999)}",
             "name": f"Load Test Department {random.randint(100, 999)}",
             "organization_id": self.organization_id,
-            "department_type": random.choice(["operational", "support", "management"])
+            "department_type": random.choice(["operational", "support", "management"]),
         }
 
         self.client.post(
             "/api/v1/departments",
             json=dept_data,
             headers=self.get_auth_headers(),
-            name="POST /departments"
+            name="POST /departments",
         )
 
     @task(1)
@@ -201,14 +193,14 @@ class ERPAPIUser(HttpUser):
         role_data = {
             "name": f"Load Test Role {random.randint(100, 999)}",
             "organization_id": self.organization_id,
-            "role_type": random.choice(["system", "custom", "department"])
+            "role_type": random.choice(["system", "custom", "department"]),
         }
 
         self.client.post(
             "/api/v1/roles",
             json=role_data,
             headers=self.get_auth_headers(),
-            name="POST /roles"
+            name="POST /roles",
         )
 
     @task(2)
@@ -221,7 +213,7 @@ class ERPAPIUser(HttpUser):
             "/api/v1/organizations",
             params={"search": search_term, "limit": 20},
             headers=self.get_auth_headers(),
-            name="GET /organizations (search)"
+            name="GET /organizations (search)",
         )
 
     @task(2)
@@ -234,16 +226,14 @@ class ERPAPIUser(HttpUser):
             "/api/v1/departments",
             params={"search": search_term, "limit": 20},
             headers=self.get_auth_headers(),
-            name="GET /departments (search)"
+            name="GET /departments (search)",
         )
 
     @task(1)
     def get_user_profile(self):
         """Test getting current user profile."""
         self.client.get(
-            "/api/v1/users/me",
-            headers=self.get_auth_headers(),
-            name="GET /users/me"
+            "/api/v1/users/me", headers=self.get_auth_headers(), name="GET /users/me"
         )
 
 
@@ -258,7 +248,7 @@ class HighLoadUser(ERPAPIUser):
         self.client.get(
             "/api/v1/organizations?limit=10",
             headers=self.get_auth_headers(),
-            name="Rapid GET /organizations"
+            name="Rapid GET /organizations",
         )
 
     @task(8)
@@ -267,7 +257,7 @@ class HighLoadUser(ERPAPIUser):
         self.client.get(
             "/api/v1/departments?limit=10",
             headers=self.get_auth_headers(),
-            name="Rapid GET /departments"
+            name="Rapid GET /departments",
         )
 
     @task(6)
@@ -276,7 +266,7 @@ class HighLoadUser(ERPAPIUser):
         self.client.get(
             "/api/v1/roles?limit=10",
             headers=self.get_auth_headers(),
-            name="Rapid GET /roles"
+            name="Rapid GET /roles",
         )
 
 
@@ -289,7 +279,7 @@ class ReadOnlyUser(HttpUser):
         """Login with read-only credentials."""
         login_data = {
             "username": "readonly@example.com",
-            "password": "ReadOnlyPassword123!"
+            "password": "ReadOnlyPassword123!",
         }
 
         response = self.client.post("/api/v1/auth/login", json=login_data)
@@ -306,7 +296,7 @@ class ReadOnlyUser(HttpUser):
         self.client.get(
             "/api/v1/organizations",
             headers=self.get_auth_headers(),
-            name="ReadOnly GET /organizations"
+            name="ReadOnly GET /organizations",
         )
 
     @task(6)
@@ -315,22 +305,22 @@ class ReadOnlyUser(HttpUser):
         self.client.get(
             "/api/v1/departments",
             headers=self.get_auth_headers(),
-            name="ReadOnly GET /departments"
+            name="ReadOnly GET /departments",
         )
 
     @task(4)
     def view_roles(self):
         """View roles."""
         self.client.get(
-            "/api/v1/roles",
-            headers=self.get_auth_headers(),
-            name="ReadOnly GET /roles"
+            "/api/v1/roles", headers=self.get_auth_headers(), name="ReadOnly GET /roles"
         )
 
 
 # Event listeners for custom metrics
 @events.request.add_listener
-def on_request(request_type, name, response_time, response_length, exception, context, **kwargs):
+def on_request(
+    request_type, name, response_time, response_length, exception, context, **kwargs
+):
     """Custom request handler for additional metrics."""
     if exception:
         print(f"Request failed: {name} - {exception}")

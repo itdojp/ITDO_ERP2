@@ -15,11 +15,7 @@ class AuthService:
     """Authentication service."""
 
     @staticmethod
-    def authenticate_user(
-        db: Session,
-        email: str,
-        password: str
-    ) -> Optional[User]:
+    def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
         """Authenticate user and return user object."""
         return User.authenticate(db, email, password)
 
@@ -30,7 +26,7 @@ class AuthService:
         token_data = {
             "sub": str(user.id),
             "email": user.email,
-            "is_superuser": user.is_superuser
+            "is_superuser": user.is_superuser,
         }
 
         # Create tokens
@@ -42,14 +38,11 @@ class AuthService:
             access_token=access_token,
             refresh_token=refresh_token,
             token_type="bearer",
-            expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+            expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         )
 
     @staticmethod
-    def refresh_tokens(
-        db: Session,
-        refresh_token: str
-    ) -> Optional[TokenResponse]:
+    def refresh_tokens(db: Session, refresh_token: str) -> Optional[TokenResponse]:
         """Refresh tokens using refresh token."""
         try:
             # Verify refresh token

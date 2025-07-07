@@ -36,20 +36,32 @@ class User(SoftDeletableModel):
     profile_image_url: Mapped[Optional[str]] = mapped_column(String(500))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
-    department_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("departments.id"), nullable=True)
+    department_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("departments.id"), nullable=True
+    )
 
     # Security fields
     last_login_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
-    password_changed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    password_changed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
     failed_login_attempts: Mapped[int] = mapped_column(Integer, default=0)
     locked_until: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     password_must_change: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Relationships
-    user_roles: Mapped[List["UserRole"]] = relationship("UserRole", back_populates="user", foreign_keys="UserRole.user_id")
-    password_history: Mapped[List["PasswordHistory"]] = relationship("PasswordHistory", back_populates="user", cascade="all, delete-orphan")
-    sessions: Mapped[List["UserSession"]] = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
-    activity_logs: Mapped[List["UserActivityLog"]] = relationship("UserActivityLog", back_populates="user", cascade="all, delete-orphan")
+    user_roles: Mapped[List["UserRole"]] = relationship(
+        "UserRole", back_populates="user", foreign_keys="UserRole.user_id"
+    )
+    password_history: Mapped[List["PasswordHistory"]] = relationship(
+        "PasswordHistory", back_populates="user", cascade="all, delete-orphan"
+    )
+    sessions: Mapped[List["UserSession"]] = relationship(
+        "UserSession", back_populates="user", cascade="all, delete-orphan"
+    )
+    activity_logs: Mapped[List["UserActivityLog"]] = relationship(
+        "UserActivityLog", back_populates="user", cascade="all, delete-orphan"
+    )
 
     @classmethod
     def create(
@@ -61,7 +73,7 @@ class User(SoftDeletableModel):
         full_name: str,
         phone: Optional[str] = None,
         is_active: bool = True,
-        is_superuser: bool = False
+        is_superuser: bool = False,
     ) -> "User":
         """Create a new user."""
         # Validate password strength
@@ -78,7 +90,7 @@ class User(SoftDeletableModel):
             phone=phone,
             is_active=is_active,
             is_superuser=is_superuser,
-            password_changed_at=datetime.utcnow()
+            password_changed_at=datetime.utcnow(),
         )
 
         # Add to database
@@ -125,7 +137,9 @@ class User(SoftDeletableModel):
         db.add(self)
         db.flush()
 
-    def change_password(self, db: Session, current_password: str, new_password: str) -> None:
+    def change_password(
+        self, db: Session, current_password: str, new_password: str
+    ) -> None:
         """Change user password with validation."""
         # Verify current password
         if not verify_password(current_password, self.hashed_password):
@@ -140,10 +154,8 @@ class User(SoftDeletableModel):
 
         # Save current password to history
         from app.models.password_history import PasswordHistory
-        history = PasswordHistory(
-            user_id=self.id,
-            password_hash=self.hashed_password
-        )
+
+        history = PasswordHistory(user_id=self.id, password_hash=self.hashed_password)
         db.add(history)
 
         # Update password
@@ -194,17 +206,22 @@ class User(SoftDeletableModel):
         refresh_token: Optional[str] = None,
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None,
-        expires_at: Optional[datetime] = None
+        expires_at: Optional[datetime] = None,
     ) -> "UserSession":
         """Create a new user session."""
         from app.models.user_session import UserSession
 
         # Check concurrent session limit (5 sessions)
-        active_sessions = db.query(UserSession).filter(
-            UserSession.user_id == self.id,
-            UserSession.is_active,
-            UserSession.expires_at > datetime.utcnow()
-        ).order_by(UserSession.created_at).all()
+        active_sessions = (
+            db.query(UserSession)
+            .filter(
+                UserSession.user_id == self.id,
+                UserSession.is_active,
+                UserSession.expires_at > datetime.utcnow(),
+            )
+            .order_by(UserSession.created_at)
+            .all()
+        )
 
         if len(active_sessions) >= 5:
             # Invalidate oldest session
@@ -221,7 +238,7 @@ class User(SoftDeletableModel):
             refresh_token=refresh_token,
             ip_address=ip_address,
             user_agent=user_agent,
-            expires_at=expires_at
+            expires_at=expires_at,
         )
 
         db.add(session)
@@ -234,15 +251,19 @@ class User(SoftDeletableModel):
         db: Session,
         session_token: str,
         ip_address: Optional[str] = None,
-        user_agent: Optional[str] = None
+        user_agent: Optional[str] = None,
     ) -> "UserSession":
         """Validate session with security checks."""
         from app.models.user_session import UserSession
 
-        session = db.query(UserSession).filter(
-            UserSession.session_token == session_token,
-            UserSession.user_id == self.id
-        ).first()
+        session = (
+            db.query(UserSession)
+            .filter(
+                UserSession.session_token == session_token,
+                UserSession.user_id == self.id,
+            )
+            .first()
+        )
 
         if not session or not session.is_valid():
             raise BusinessLogicError("無効なセッションです")
@@ -260,11 +281,7 @@ class User(SoftDeletableModel):
         return [s for s in self.sessions if s.is_valid()]
 
     def assign_to_organization(
-        self,
-        db: Session,
-        organization: "Organization",
-        role: "Role",
-        assigned_by: int
+        self, db: Session, organization: "Organization", role: "Role", assigned_by: int
     ) -> "UserRole":
         """Assign user to organization with role."""
         from app.models.role import UserRole
@@ -273,7 +290,7 @@ class User(SoftDeletableModel):
             user_id=self.id,
             role_id=role.id,
             organization_id=organization.id,
-            assigned_by=assigned_by
+            assigned_by=assigned_by,
         )
 
         db.add(user_role)
@@ -287,7 +304,7 @@ class User(SoftDeletableModel):
         organization: "Organization",
         department: "Department",
         role: "Role",
-        assigned_by: int
+        assigned_by: int,
     ) -> "UserRole":
         """Assign user to department with role."""
         from app.models.role import UserRole
@@ -297,7 +314,7 @@ class User(SoftDeletableModel):
             role_id=role.id,
             organization_id=organization.id,
             department_id=department.id,
-            assigned_by=assigned_by
+            assigned_by=assigned_by,
         )
 
         db.add(user_role)
@@ -312,14 +329,16 @@ class User(SoftDeletableModel):
     def get_departments(self, organization_id: int) -> List["Department"]:
         """Get user's departments in organization."""
         return [
-            ur.department for ur in self.user_roles
+            ur.department
+            for ur in self.user_roles
             if ur.organization_id == organization_id and ur.department
         ]
 
     def get_roles_in_organization(self, organization_id: int) -> List["Role"]:
         """Get user's roles in organization."""
         return [
-            ur.role for ur in self.user_roles
+            ur.role
+            for ur in self.user_roles
             if ur.organization_id == organization_id and ur.role
         ]
 
@@ -328,7 +347,10 @@ class User(SoftDeletableModel):
         permissions: set[str] = set()
 
         for user_role in self.user_roles:
-            if user_role.organization_id == organization_id and not user_role.is_expired:
+            if (
+                user_role.organization_id == organization_id
+                and not user_role.is_expired
+            ):
                 # TODO: Implement role permissions system
                 # if user_role.role.permissions:
                 #     permissions.update(user_role.role.permissions)
@@ -343,9 +365,11 @@ class User(SoftDeletableModel):
     def has_role_in_department(self, role_code: str, department_id: int) -> bool:
         """Check if user has role in department."""
         for user_role in self.user_roles:
-            if (user_role.department_id == department_id and
-                user_role.role.code == role_code and
-                not user_role.is_expired):
+            if (
+                user_role.department_id == department_id
+                and user_role.role.code == role_code
+                and not user_role.is_expired
+            ):
                 return True
         return False
 
@@ -393,7 +417,7 @@ class User(SoftDeletableModel):
         action: str,
         details: Optional[Dict[str, Any]] = None,
         ip_address: Optional[str] = None,
-        user_agent: Optional[str] = None
+        user_agent: Optional[str] = None,
     ) -> None:
         """Log user activity."""
         from app.models.user_activity_log import UserActivityLog
@@ -403,7 +427,7 @@ class User(SoftDeletableModel):
             action=action,
             details=details or {},
             ip_address=ip_address,
-            user_agent=user_agent
+            user_agent=user_agent,
         )
 
         db.add(log)
@@ -418,7 +442,7 @@ class User(SoftDeletableModel):
             "phone": self._mask_phone(self.phone) if self.phone else None,
             "is_active": self.is_active,
             "created_at": self.created_at,
-            "last_login_at": self.last_login_at
+            "last_login_at": self.last_login_at,
         }
 
     @staticmethod
@@ -455,11 +479,12 @@ class User(SoftDeletableModel):
 
         # Check for at least 3 of: uppercase, lowercase, digit, special char
         import re
+
         checks = [
             bool(re.search(r"[A-Z]", password)),  # Has uppercase
             bool(re.search(r"[a-z]", password)),  # Has lowercase
-            bool(re.search(r"\d", password)),     # Has digit
-            bool(re.search(r"[!@#$%^&*(),.?\":{}|<>]", password))  # Has special char
+            bool(re.search(r"\d", password)),  # Has digit
+            bool(re.search(r"[!@#$%^&*(),.?\":{}|<>]", password)),  # Has special char
         ]
 
         if sum(checks) < 3:
@@ -476,9 +501,13 @@ class User(SoftDeletableModel):
         from app.models.password_history import PasswordHistory
 
         # Get last 3 passwords
-        recent_passwords = db.query(PasswordHistory).filter(
-            PasswordHistory.user_id == self.id
-        ).order_by(desc(PasswordHistory.created_at)).limit(3).all()
+        recent_passwords = (
+            db.query(PasswordHistory)
+            .filter(PasswordHistory.user_id == self.id)
+            .order_by(desc(PasswordHistory.created_at))
+            .limit(3)
+            .all()
+        )
 
         # Check against history
         for history in recent_passwords:
