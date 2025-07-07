@@ -2,10 +2,10 @@
 
 import random
 import string
-from datetime import datetime, timedelta
-from typing import List, Optional, Dict, Any
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from sqlalchemy import and_, or_
+from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import IntegrityError
 
@@ -16,10 +16,7 @@ from app.models.user import User
 from app.repositories.user import UserRepository
 from app.schemas.user import UserCreate, UserUpdate
 from app.schemas.user_extended import (
-    BulkImportRequest,
     BulkImportResponse,
-    PasswordChange,
-    RoleAssignment,
     UserCreateExtended,
     UserListResponse,
     UserResponseExtended,
@@ -30,7 +27,7 @@ from app.services.audit import AuditLogger
 
 class UserService:
     """User management service class with type-safe operations."""
-    
+
     def __init__(self, db: Session):
         """Initialize service with database session."""
         self.db = db
@@ -128,7 +125,7 @@ class UserService:
         if not searcher.is_superuser:
             # Get searcher's organizations
             searcher_org_ids = [o.id for o in searcher.get_organizations()]
-            
+
             # Filter to users in same organizations
             query = query.join(User.user_roles).filter(
                 UserRole.organization_id.in_(searcher_org_ids)
@@ -254,13 +251,13 @@ class UserService:
                 o.id for o in resetter.get_organizations()
                 if any(r.code == "ORG_ADMIN" for r in resetter.get_roles_in_organization(int(o.id)))
             ]
-            
+
             if not any(org_id in resetter_admin_orgs for org_id in user_orgs):
                 raise PermissionDenied("パスワードをリセットする権限がありません")
 
         # Generate temporary password
         temp_password = self._generate_temp_password()
-        
+
         # Set password and mark for change
         user.update(db, password=temp_password)
         user.password_must_change = True
@@ -574,7 +571,7 @@ class UserService:
             try:
                 # Generate temporary password
                 temp_password = self._generate_temp_password()
-                
+
                 # Create user
                 user = User.create(
                     db,
@@ -631,7 +628,7 @@ class UserService:
         # Prepare data
         headers = ["email", "full_name", "phone", "is_active", "created_at"]
         rows = []
-        
+
         for user in users:
             rows.append([
                 user.email,
@@ -649,10 +646,10 @@ class UserService:
 
     def _user_to_extended_response(self, user: User, db: Session) -> UserResponseExtended:
         """Convert user to extended response."""
-        from app.schemas.user_extended import UserRoleInfo
-        from app.schemas.role_basic import RoleBasic
-        from app.schemas.organization_basic import OrganizationBasic
         from app.schemas.department_basic import DepartmentBasic
+        from app.schemas.organization_basic import OrganizationBasic
+        from app.schemas.role_basic import RoleBasic
+        from app.schemas.user_extended import UserRoleInfo
 
         # Get user roles with organizations/departments
         role_infos = []
@@ -662,7 +659,7 @@ class UserService:
                 role = ur.role
                 org = ur.organization
                 dept = ur.department
-                
+
                 role_info = UserRoleInfo(
                     role=RoleBasic(
                         id=int(role.id),
@@ -694,7 +691,7 @@ class UserService:
                     str(org.code),
                     str(org.name)
                 ))
-        
+
         organizations = [
             OrganizationBasic(id=org[0], code=org[1], name=org[2])
             for org in organizations_set
@@ -710,7 +707,7 @@ class UserService:
                     str(dept.code),
                     str(dept.name)
                 ))
-        
+
         departments = [
             DepartmentBasic(id=dept[0], code=dept[1], name=dept[2])
             for dept in departments_set

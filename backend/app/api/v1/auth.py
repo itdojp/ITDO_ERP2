@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Union
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
@@ -11,7 +11,6 @@ from app.core.dependencies import get_db
 from app.schemas.auth import LoginRequest, RefreshRequest, TokenResponse
 from app.schemas.error import ErrorResponse
 from app.services.auth import AuthService
-
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -40,7 +39,7 @@ def login(
                 timestamp=datetime.utcnow()
             ).model_dump()
         )
-    
+
     # Create tokens
     return AuthService.create_tokens(user)
 
@@ -69,7 +68,7 @@ def refresh_token(
         except Exception:
             # Token is expired or invalid
             error_code = "AUTH002"
-        
+
         return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
             content=ErrorResponse(
@@ -78,5 +77,5 @@ def refresh_token(
                 timestamp=datetime.utcnow()
             ).model_dump()
         )
-    
+
     return tokens

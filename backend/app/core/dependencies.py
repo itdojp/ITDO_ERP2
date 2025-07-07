@@ -1,15 +1,14 @@
 """Dependency injection utilities."""
 
-from typing import Generator, Optional
+from typing import Generator
 
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from app.core.database import SessionLocal
 from app.models.user import User
 from app.services.auth import AuthService
-
 
 # Security scheme
 security = HTTPBearer(auto_error=False)
@@ -39,7 +38,7 @@ def get_current_user(
     
     # Extract token
     token = credentials.credentials
-    
+
     # Get user from token
     user = AuthService.get_current_user(db, token)
     if not user:
@@ -48,7 +47,7 @@ def get_current_user(
             detail="Invalid authentication credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     return user
 
 

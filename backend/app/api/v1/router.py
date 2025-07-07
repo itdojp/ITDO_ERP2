@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
 from sqlalchemy import text
+from sqlalchemy.orm import Session
 
+from app.api.v1 import auth, departments, organizations, roles, users, users_extended
 from app.core.database import get_db
-from app.api.v1 import auth, users, users_extended, organizations, departments, roles
 
 api_router = APIRouter()
 

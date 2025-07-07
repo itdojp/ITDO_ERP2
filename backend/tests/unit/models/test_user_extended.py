@@ -4,13 +4,14 @@ Extended User model unit tests.
 Following TDD approach - Red phase: Writing tests before implementation.
 """
 
-import pytest
 from datetime import datetime, timedelta
+
+import pytest
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import BusinessLogicError
-from app.models.user import User
 from app.models.password_history import PasswordHistory
+from app.models.user import User
 from tests.factories import create_test_user
 
 
@@ -218,8 +219,8 @@ class TestUserExtendedModel:
         """TEST-USER-MODEL-011: ユーザーの部門割り当てをテスト."""
         # Given: ユーザー、組織、部門
         from tests.factories import (
-            create_test_organization,
             create_test_department,
+            create_test_organization,
             create_test_role,
         )
 

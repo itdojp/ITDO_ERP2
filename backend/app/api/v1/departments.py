@@ -1,23 +1,23 @@
 """Department API endpoints."""
-from typing import List, Optional, Union, Dict
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Path, Body
-from fastapi.responses import JSONResponse
-from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
+from typing import Dict, List, Optional, Union
 
-from app.core.dependencies import get_db, get_current_active_user
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, status, Body
+from fastapi.responses import JSONResponse
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+
+from app.core.dependencies import get_current_active_user, get_db
 from app.models.user import User
+from app.schemas.common import DeleteResponse, ErrorResponse, PaginatedResponse
 from app.schemas.department import (
+    DepartmentBasic,
     DepartmentCreate,
-    DepartmentUpdate,
     DepartmentResponse,
     DepartmentSummary,
     DepartmentTree,
+    DepartmentUpdate,
     DepartmentWithUsers,
-    DepartmentBasic
 )
-from app.schemas.common import ErrorResponse, PaginatedResponse, DeleteResponse
-from app.repositories.department import DepartmentRepository
 from app.services.department import DepartmentService
 from app.types import OrganizationId
 
@@ -43,7 +43,7 @@ def list_departments(
 ) -> PaginatedResponse[DepartmentSummary]:
     """List departments with pagination and filtering."""
     service = DepartmentService(db)
-    
+
     # Build filters
     filters = {}
     if organization_id:
@@ -52,16 +52,16 @@ def list_departments(
         filters["is_active"] = True
     if department_type:
         filters["department_type"] = department_type
-    
+
     # Get departments
     if search:
         departments, total = service.search_departments(search, skip, limit, organization_id)
     else:
         departments, total = service.list_departments(skip, limit, filters)
-    
+
     # Convert to summary
     items = [service.get_department_summary(dept) for dept in departments]
-    
+
     return PaginatedResponse(
         items=items,
         total=total,
@@ -85,7 +85,7 @@ def get_department_tree(
 ) -> List[DepartmentTree]:
     """Get department hierarchy tree for an organization."""
     service = DepartmentService(db)
-    
+
     # Verify organization exists
     from app.services.organization import OrganizationService
     org_service = OrganizationService(db)
@@ -94,7 +94,7 @@ def get_department_tree(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Organization not found"
         )
-    
+
     return service.get_department_tree(organization_id)
 
 
@@ -176,13 +176,13 @@ def get_department(
     """Get department details."""
     service = DepartmentService(db)
     department = service.get_department(department_id)
-    
+
     if not department:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Department not found"
         )
-    
+
     return service.get_department_response(department)
 
 
@@ -203,13 +203,13 @@ def get_department_users(
     """Get department with user list."""
     service = DepartmentService(db)
     department = service.get_department(department_id)
-    
+
     if not department:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Department not found"
         )
-    
+
     return service.get_department_with_users(department, include_sub_departments)
 
 
@@ -245,7 +245,7 @@ def create_department(
                     code="PERMISSION_DENIED"
                 ).model_dump()
             )
-    
+
     # Verify organization exists
     from app.services.organization import OrganizationService
     org_service = OrganizationService(db)
@@ -257,7 +257,7 @@ def create_department(
                 code="ORGANIZATION_NOT_FOUND"
             ).model_dump()
         )
-    
+
     # Verify parent department if specified
     if department_data.parent_id:
         parent = service.get_department(department_data.parent_id)
@@ -269,7 +269,7 @@ def create_department(
                     code="INVALID_PARENT"
                 ).model_dump()
             )
-    
+
     try:
         department = service.create_department(
             department_data,
@@ -284,7 +284,7 @@ def create_department(
                 code="DUPLICATE_CODE"
             ).model_dump()
         )
-    except IntegrityError as e:
+    except IntegrityError:
         db.rollback()
         return JSONResponse(
             status_code=status.HTTP_409_CONFLICT,
@@ -314,7 +314,7 @@ def update_department(
     """Update department details."""
     service = DepartmentService(db)
     department = service.get_department(department_id)
-    
+
     if not department:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -323,7 +323,7 @@ def update_department(
                 code="NOT_FOUND"
             ).model_dump()
         )
-    
+
     # Check permissions
     if not current_user.is_superuser:
         if not service.user_has_permission(
@@ -338,7 +338,7 @@ def update_department(
                     code="PERMISSION_DENIED"
                 ).model_dump()
             )
-    
+
     # Verify parent department if being changed
     if department_data.parent_id is not None and department_data.parent_id != department.parent_id:
         if department_data.parent_id == department_id:
@@ -349,7 +349,7 @@ def update_department(
                     code="INVALID_PARENT"
                 ).model_dump()
             )
-        
+
         if department_data.parent_id:
             parent = service.get_department(department_data.parent_id)
             if not parent or parent.organization_id != department.organization_id:
@@ -360,7 +360,7 @@ def update_department(
                         code="INVALID_PARENT"
                     ).model_dump()
                 )
-    
+
     try:
         updated_department = service.update_department(
             department_id,
@@ -401,7 +401,7 @@ def delete_department(
     """Delete (soft delete) a department."""
     service = DepartmentService(db)
     department = service.get_department(department_id)
-    
+
     if not department:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -410,7 +410,7 @@ def delete_department(
                 code="NOT_FOUND"
             ).model_dump()
         )
-    
+
     # Check permissions
     if not current_user.is_superuser:
         if not service.user_has_permission(
@@ -425,7 +425,7 @@ def delete_department(
                     code="PERMISSION_DENIED"
                 ).model_dump()
             )
-    
+
     # Check for sub-departments
     if service.has_sub_departments(department_id):
         return JSONResponse(
@@ -435,10 +435,10 @@ def delete_department(
                 code="HAS_SUB_DEPARTMENTS"
             ).model_dump()
         )
-    
+
     # Perform soft delete
     success = service.delete_department(department_id, deleted_by=current_user.id)
-    
+
     return DeleteResponse(
         success=success,
         message="Department deleted successfully",
@@ -462,19 +462,19 @@ def get_sub_departments(
 ) -> List[DepartmentBasic]:
     """Get sub-departments of a department."""
     service = DepartmentService(db)
-    
+
     # Check if department exists
     if not service.get_department(department_id):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Department not found"
         )
-    
+
     if recursive:
         sub_departments = service.get_all_sub_departments(department_id)
     else:
         sub_departments = service.get_direct_sub_departments(department_id)
-    
+
     return [
         DepartmentBasic.model_validate(dept.to_dict())
         for dept in sub_departments

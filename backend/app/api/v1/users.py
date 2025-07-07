@@ -5,17 +5,16 @@ from typing import Union, List, Optional, Dict, Any
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Path
 from fastapi.responses import JSONResponse
-from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_db, get_current_active_user, get_current_superuser
+from app.core.dependencies import get_current_active_user, get_current_superuser, get_db
 from app.models.user import User
 from app.schemas.user import UserCreate, UserResponse, UserUpdate, PasswordChange
 from app.schemas.common import PaginatedResponse, DeleteResponse
 from app.schemas.error import ErrorResponse
 from app.services.user import UserService
 from app.core.exceptions import BusinessLogicError, NotFound, PermissionDenied
-
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -43,6 +42,7 @@ def create_user(
             user_data,
             created_by=current_user.id
         )
+<<<<<<< HEAD
         
         return UserResponse.model_validate(user)
         
@@ -62,6 +62,13 @@ def create_user(
                 code="NOT_FOUND"
             ).model_dump()
         )
+=======
+        db.commit()
+        db.refresh(user)
+
+        return UserResponse.model_validate(user)
+
+>>>>>>> origin/main
     except IntegrityError:
         db.rollback()
         return JSONResponse(
@@ -85,6 +92,7 @@ def get_current_user_info(
 ) -> UserResponse:
     """Get current user information."""
     return UserResponse.model_validate(current_user)
+<<<<<<< HEAD
 
 
 @router.get(
@@ -342,3 +350,5 @@ def change_password(
                 code="INVALID_PASSWORD"
             ).model_dump()
         )
+=======
+>>>>>>> origin/main
