@@ -2,7 +2,7 @@
 from datetime import datetime
 from typing import Any, Generic, List, Optional, TypeVar
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 # Type variable for generic responses
 T = TypeVar('T')
@@ -187,8 +187,9 @@ class AuditInfo(BaseModel):
     updated_at: datetime = Field(..., description="Last update timestamp")
     updated_by: Optional[int] = Field(None, description="ID of user who last updated the resource")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
             "example": {
                 "created_at": "2024-01-06T12:00:00Z",
                 "created_by": 1,
@@ -196,6 +197,7 @@ class AuditInfo(BaseModel):
                 "updated_by": 1
             }
         }
+    )
 
 class SoftDeleteInfo(BaseModel):
     """Soft delete information for resources."""
@@ -203,14 +205,16 @@ class SoftDeleteInfo(BaseModel):
     deleted_at: Optional[datetime] = Field(None, description="Deletion timestamp")
     deleted_by: Optional[int] = Field(None, description="ID of user who deleted the resource")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
             "example": {
                 "is_deleted": False,
                 "deleted_at": None,
                 "deleted_by": None
             }
         }
+    )
 
 # Export all common schemas
 __all__ = [

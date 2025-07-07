@@ -32,7 +32,7 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
                 and_(
                     User.id == id,
                     User.is_active,
-                    not User.is_deleted
+                    User.is_deleted == False
                 )
             )
         )
@@ -60,7 +60,7 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
         limit: int = 100
     ) -> tuple[List[User], int]:
         """Search users with filters."""
-        stmt = select(User).where(not User.is_deleted)
+        stmt = select(User).where(User.is_deleted == False)
 
         # Text search
         if query:
@@ -106,7 +106,7 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
         return list(self.db.scalars(
             select(User).where(
                 and_(
-                    User.locked_until is not None,
+                    User.locked_until.isnot(None),
                     User.locked_until > datetime.utcnow()
                 )
             )
@@ -120,7 +120,7 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
                 and_(
                     User.password_changed_at < expiry_date,
                     User.is_active,
-                    not User.is_deleted
+                    User.is_deleted == False
                 )
             )
         ))
@@ -132,11 +132,11 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
             select(User).where(
                 and_(
                     or_(
-                        User.last_login_at is None,
+                        User.last_login_at.is_(None),
                         User.last_login_at < cutoff_date
                     ),
                     User.is_active,
-                    not User.is_deleted
+                    User.is_deleted == False
                 )
             )
         ))
@@ -189,7 +189,7 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
                 and_(
                     User.is_superuser,
                     User.is_active,
-                    not User.is_deleted
+                    User.is_deleted == False
                 )
             )
         ))

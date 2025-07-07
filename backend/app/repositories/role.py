@@ -26,7 +26,7 @@ class RoleRepository(BaseRepository[Role, RoleCreate, RoleUpdate]):
         return list(self.db.scalars(
             select(self.model)
             .where(self.model.is_system)
-            .where(not self.model.is_deleted)
+            .where(self.model.is_deleted == False)
             .order_by(self.model.display_order, self.model.name)
         ))
 
@@ -35,7 +35,7 @@ class RoleRepository(BaseRepository[Role, RoleCreate, RoleUpdate]):
         return list(self.db.scalars(
             select(self.model)
             .where(self.model.role_type == role_type)
-            .where(not self.model.is_deleted)
+            .where(self.model.is_deleted == False)
             .order_by(self.model.display_order, self.model.name)
         ))
 
@@ -43,8 +43,8 @@ class RoleRepository(BaseRepository[Role, RoleCreate, RoleUpdate]):
         """Get root roles (without parent)."""
         return list(self.db.scalars(
             select(self.model)
-            .where(self.model.parent_id is None)
-            .where(not self.model.is_deleted)
+            .where(self.model.parent_id.is_(None))
+            .where(self.model.is_deleted == False)
             .order_by(self.model.display_order, self.model.name)
         ))
 
@@ -53,7 +53,7 @@ class RoleRepository(BaseRepository[Role, RoleCreate, RoleUpdate]):
         return list(self.db.scalars(
             select(self.model)
             .where(self.model.parent_id == parent_id)
-            .where(not self.model.is_deleted)
+            .where(self.model.is_deleted == False)
             .order_by(self.model.display_order, self.model.name)
         ))
 
@@ -78,7 +78,7 @@ class RoleRepository(BaseRepository[Role, RoleCreate, RoleUpdate]):
                     self.model.description.ilike(search_term)
                 )
             )
-            .where(not self.model.is_deleted)
+            .where(self.model.is_deleted == False)
             .order_by(self.model.name)
         ))
 
@@ -151,7 +151,7 @@ class UserRoleRepository(BaseRepository[UserRole, UserRoleCreate, UserRoleUpdate
             query = query.where(self.model.valid_from <= now)
             query = query.where(
                 or_(
-                    self.model.expires_at is None,
+                    self.model.expires_at.is_(None),
                     self.model.expires_at > now
                 )
             )
@@ -309,7 +309,7 @@ class UserRoleRepository(BaseRepository[UserRole, UserRoleCreate, UserRoleUpdate
         return list(self.db.scalars(
             select(self.model)
             .where(self.model.is_active)
-            .where(self.model.expires_at is not None)
+            .where(self.model.expires_at.isnot(None))
             .where(self.model.expires_at <= future_date)
             .where(self.model.expires_at > datetime.utcnow())
             .options(

@@ -25,7 +25,7 @@ class OrganizationRepository(BaseRepository[Organization, OrganizationCreate, Or
         return list(self.db.scalars(
             select(self.model)
             .where(self.model.is_active)
-            .where(not self.model.is_deleted)
+            .where(self.model.is_deleted == False)
             .offset(skip)
             .limit(limit)
         ))
@@ -43,7 +43,7 @@ class OrganizationRepository(BaseRepository[Organization, OrganizationCreate, Or
         return list(self.db.scalars(
             select(self.model)
             .where(self.model.parent_id == parent_id)
-            .where(not self.model.is_deleted)
+            .where(self.model.is_deleted == False)
             .order_by(self.model.name)
         ))
 
@@ -60,15 +60,15 @@ class OrganizationRepository(BaseRepository[Organization, OrganizationCreate, Or
         return list(self.db.scalars(
             select(self.model)
             .join(org_cte, self.model.id == org_cte.c.id)
-            .where(not self.model.is_deleted)
+            .where(self.model.is_deleted == False)
         ))
 
     def get_root_organizations(self) -> List[Organization]:
         """Get organizations without parent (root level)."""
         return list(self.db.scalars(
             select(self.model)
-            .where(self.model.parent_id is None)
-            .where(not self.model.is_deleted)
+            .where(self.model.parent_id.is_(None))
+            .where(self.model.is_deleted == False)
             .order_by(self.model.name)
         ))
 
@@ -85,7 +85,7 @@ class OrganizationRepository(BaseRepository[Organization, OrganizationCreate, Or
                     self.model.code.ilike(search_term)
                 )
             )
-            .where(not self.model.is_deleted)
+            .where(self.model.is_deleted == False)
             .order_by(self.model.name)
         ))
 
@@ -94,7 +94,7 @@ class OrganizationRepository(BaseRepository[Organization, OrganizationCreate, Or
         return list(self.db.scalars(
             select(self.model)
             .where(self.model.industry == industry)
-            .where(not self.model.is_deleted)
+            .where(self.model.is_deleted == False)
             .order_by(self.model.name)
         ))
 
@@ -104,7 +104,7 @@ class OrganizationRepository(BaseRepository[Organization, OrganizationCreate, Or
         return self.db.scalar(
             select(func.count(Department.id))
             .where(Department.organization_id == org_id)
-            .where(not Department.is_deleted)
+            .where(Department.is_deleted == False)
         ) or 0
 
     def get_user_count(self, org_id: OrganizationId) -> int:
