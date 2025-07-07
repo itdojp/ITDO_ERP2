@@ -1,6 +1,6 @@
 """Department API endpoints."""
 from typing import List, Optional, Union, Dict
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Path
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Path, Body
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
@@ -96,6 +96,68 @@ def get_department_tree(
         )
     
     return service.get_department_tree(organization_id)
+
+
+@router.put(
+    "/reorder",
+    response_model=Dict[str, str],
+    responses={
+        401: {"model": ErrorResponse, "description": "Unauthorized"},
+        403: {"model": ErrorResponse, "description": "Insufficient permissions"},
+        400: {"model": ErrorResponse, "description": "Invalid department IDs"},
+    }
+)
+def reorder_departments(
+    department_ids: List[int] = Body(..., description="List of department IDs in new order"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+) -> Union[Dict[str, str], JSONResponse]:
+    """Update display order for multiple departments."""
+    if not department_ids:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content=ErrorResponse(
+                detail="No department IDs provided",
+                code="INVALID_REQUEST"
+            ).model_dump()
+        )
+    
+    service = DepartmentService(db)
+    
+    # Verify all departments exist and get their organizations
+    org_ids = set()
+    for dept_id in department_ids:
+        dept = service.get_department(dept_id)
+        if not dept:
+            return JSONResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                content=ErrorResponse(
+                    detail=f"Department {dept_id} not found",
+                    code="INVALID_DEPARTMENT"
+                ).model_dump()
+            )
+        org_ids.add(dept.organization_id)
+    
+    # Check permissions for all organizations
+    if not current_user.is_superuser:
+        for org_id in org_ids:
+            if not service.user_has_permission(
+                current_user.id,
+                "departments.reorder",
+                org_id
+            ):
+                return JSONResponse(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    content=ErrorResponse(
+                        detail="Insufficient permissions to reorder departments",
+                        code="PERMISSION_DENIED"
+                    ).model_dump()
+                )
+    
+    # Update display order
+    service.update_display_order(department_ids)
+    
+    return {"message": f"Display order updated for {len(department_ids)} departments"}
 
 
 @router.get(
@@ -419,63 +481,3 @@ def get_sub_departments(
     ]
 
 
-@router.put(
-    "/reorder",
-    response_model=Dict[str, str],
-    responses={
-        401: {"model": ErrorResponse, "description": "Unauthorized"},
-        403: {"model": ErrorResponse, "description": "Insufficient permissions"},
-        400: {"model": ErrorResponse, "description": "Invalid department IDs"},
-    }
-)
-def reorder_departments(
-    department_ids: List[int] = ...,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
-) -> Union[Dict[str, str], JSONResponse]:
-    """Update display order for multiple departments."""
-    if not department_ids:
-        return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            content=ErrorResponse(
-                detail="No department IDs provided",
-                code="INVALID_REQUEST"
-            ).model_dump()
-        )
-    
-    service = DepartmentService(db)
-    
-    # Verify all departments exist and get their organizations
-    org_ids = set()
-    for dept_id in department_ids:
-        dept = service.get_department(dept_id)
-        if not dept:
-            return JSONResponse(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                content=ErrorResponse(
-                    detail=f"Department {dept_id} not found",
-                    code="INVALID_DEPARTMENT"
-                ).model_dump()
-            )
-        org_ids.add(dept.organization_id)
-    
-    # Check permissions for all organizations
-    if not current_user.is_superuser:
-        for org_id in org_ids:
-            if not service.user_has_permission(
-                current_user.id,
-                "departments.reorder",
-                org_id
-            ):
-                return JSONResponse(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    content=ErrorResponse(
-                        detail="Insufficient permissions to reorder departments",
-                        code="PERMISSION_DENIED"
-                    ).model_dump()
-                )
-    
-    # Update display order
-    service.update_display_order(department_ids)
-    
-    return {"message": f"Display order updated for {len(department_ids)} departments"}
