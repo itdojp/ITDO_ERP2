@@ -10,7 +10,7 @@ from tests.factories import BaseFactory, fake
 from tests.factories.organization import OrganizationFactory
 
 
-class RoleFactory(BaseFactory):
+class RoleFactory(BaseFactory[Role]):
     """Factory for creating Role test instances."""
     
     @property

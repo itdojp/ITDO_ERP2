@@ -1,6 +1,7 @@
 """Factory for Department model."""
 
 from typing import Dict, Any, Type, Optional, List
+from sqlalchemy.orm import Session, List
 from datetime import datetime
 
 from app.models.department import Department
@@ -9,7 +10,7 @@ from tests.factories import BaseFactory, fake
 from tests.factories.organization import OrganizationFactory
 
 
-class DepartmentFactory(BaseFactory):
+class DepartmentFactory(BaseFactory[Department]):
     """Factory for creating Department test instances."""
     
     @property
@@ -52,20 +53,20 @@ class DepartmentFactory(BaseFactory):
         }
     
     @classmethod
-    def create_with_organization(cls, db_session, organization: Organization, **kwargs) -> Department:
+    def create_with_organization(cls, db_session: Session, organization: Organization, **kwargs: Any) -> Department:
         """Create a department for a specific organization."""
         kwargs['organization_id'] = organization.id
         return cls.create(db_session, **kwargs)
     
     @classmethod
-    def create_with_parent(cls, db_session, parent_department: Department, **kwargs) -> Department:
+    def create_with_parent(cls, db_session: Session, parent_department: Department, **kwargs: Any) -> Department:
         """Create a department with a parent department."""
         kwargs['parent_id'] = parent_department.id
         kwargs['organization_id'] = parent_department.organization_id
         return cls.create(db_session, **kwargs)
     
     @classmethod
-    def create_department_tree(cls, db_session, organization: Organization, depth: int = 3, children_per_level: int = 2):
+    def create_department_tree(cls, db_session: Session, organization: Organization, depth: int = 3, children_per_level: int = 2) -> Dict[str, Any]:
         """Create a tree of departments within an organization."""
         # Create root departments
         root_departments = []
@@ -80,7 +81,7 @@ class DepartmentFactory(BaseFactory):
             )
             root_departments.append(root)
         
-        def create_children(parent_dept, current_depth, dept_prefix):
+        def create_children(parent_dept: Department, current_depth: int, dept_prefix: str) -> List[Department]:
             if current_depth >= depth:
                 return []
             
@@ -120,25 +121,25 @@ class DepartmentFactory(BaseFactory):
         }
     
     @classmethod
-    def create_with_manager(cls, db_session, manager_id: int, **kwargs) -> Department:
+    def create_with_manager(cls, db_session: Session, manager_id: int, **kwargs: Any) -> Department:
         """Create a department with a specific manager."""
         kwargs['manager_id'] = manager_id
         return cls.create(db_session, **kwargs)
     
     @classmethod
-    def create_inactive(cls, db_session, **kwargs) -> Department:
+    def create_inactive(cls, db_session: Session, **kwargs: Any) -> Department:
         """Create an inactive department."""
         kwargs['is_active'] = False
         return cls.create(db_session, **kwargs)
     
     @classmethod
-    def create_by_type(cls, db_session, department_type: str, **kwargs) -> Department:
+    def create_by_type(cls, db_session: Session, department_type: str, **kwargs: Any) -> Department:
         """Create a department of a specific type."""
         kwargs['department_type'] = department_type
         return cls.create(db_session, **kwargs)
     
     @classmethod
-    def create_full_organization_structure(cls, db_session):
+    def create_full_organization_structure(cls, db_session: Session) -> Dict[str, Any]:
         """Create a complete organization with departments."""
         # Create organization
         organization = OrganizationFactory.create(db_session, name="テスト株式会社")
@@ -153,7 +154,7 @@ class DepartmentFactory(BaseFactory):
         }
     
     @classmethod
-    def create_minimal(cls, db_session, organization_id: int, **kwargs) -> Department:
+    def create_minimal(cls, db_session: Session, organization_id: int, **kwargs: Any) -> Department:
         """Create a department with minimal required fields."""
         minimal_attrs = {
             "code": fake.unique.bothify(text="DEPT-####"),
@@ -165,7 +166,7 @@ class DepartmentFactory(BaseFactory):
         return cls.create(db_session, **minimal_attrs)
     
     @classmethod
-    def create_ordered_list(cls, db_session, organization: Organization, count: int = 5) -> List[Department]:
+    def create_ordered_list(cls, db_session: Session, organization: Organization, count: int = 5) -> List[Department]:
         """Create a list of departments with specific display order."""
         departments = []
         for i in range(count):

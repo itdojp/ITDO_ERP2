@@ -1,13 +1,14 @@
 """Factory for User model."""
 
 from typing import Dict, Any, Type, Optional
+from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 
 from app.models.user import User
 from tests.factories import BaseFactory, fake
 
 
-class UserFactory(BaseFactory):
+class UserFactory(BaseFactory[User]):
     """Factory for creating User test instances."""
     
     @property
@@ -38,40 +39,40 @@ class UserFactory(BaseFactory):
         }
     
     @classmethod
-    def create_with_password(cls, db_session, password: str, **kwargs) -> User:
+    def create_with_password(cls, db_session: Session, password: str, **kwargs: Any) -> User:
         """Create a user with a specific password."""
-        from app.core.security import get_password_hash
-        kwargs['hashed_password'] = get_password_hash(password)
+        from app.core.security import hash_password
+        kwargs['hashed_password'] = hash_password(password)
         return cls.create(db_session, **kwargs)
     
     @classmethod
-    def create_admin(cls, db_session, **kwargs) -> User:
+    def create_admin(cls, db_session: Session, **kwargs: Any) -> User:
         """Create an admin user."""
         kwargs['is_superuser'] = True
         kwargs['email'] = kwargs.get('email', fake.unique.email())
         return cls.create(db_session, **kwargs)
     
     @classmethod
-    def create_inactive(cls, db_session, **kwargs) -> User:
+    def create_inactive(cls, db_session: Session, **kwargs: Any) -> User:
         """Create an inactive user."""
         kwargs['is_active'] = False
         return cls.create(db_session, **kwargs)
     
     @classmethod
-    def create_with_department(cls, db_session, department_id: int, **kwargs) -> User:
+    def create_with_department(cls, db_session: Session, department_id: int, **kwargs: Any) -> User:
         """Create a user in a specific department."""
         kwargs['department_id'] = department_id
         return cls.create(db_session, **kwargs)
     
     @classmethod
-    def create_with_email_domain(cls, db_session, domain: str, **kwargs) -> User:
+    def create_with_email_domain(cls, db_session: Session, domain: str, **kwargs: Any) -> User:
         """Create a user with a specific email domain."""
         username = fake.user_name()
         kwargs['email'] = f"{username}@{domain}"
         return cls.create(db_session, **kwargs)
     
     @classmethod
-    def create_test_users_set(cls, db_session):
+    def create_test_users_set(cls, db_session: Session) -> Dict[str, User]:
         """Create a standard set of test users."""
         users = {}
         
@@ -110,7 +111,7 @@ class UserFactory(BaseFactory):
         return users
     
     @classmethod
-    def create_minimal(cls, db_session, **kwargs) -> User:
+    def create_minimal(cls, db_session: Session, **kwargs: Any) -> User:
         """Create a user with minimal required fields."""
         minimal_attrs = {
             "email": fake.unique.email(),

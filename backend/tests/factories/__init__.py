@@ -1,7 +1,7 @@
 """Factory classes for creating test data."""
 
 from abc import ABC, abstractmethod
-from typing import Type, Dict, Any, Optional, TypeVar
+from typing import Type, Dict, Any, Optional, TypeVar, Generic, List
 from sqlalchemy.orm import Session
 from faker import Faker
 
@@ -12,7 +12,7 @@ fake = Faker('ja_JP')  # Japanese locale for more realistic test data
 T = TypeVar('T', bound=SoftDeletableModel)
 
 
-class BaseFactory(ABC):
+class BaseFactory(Generic[T], ABC):
     """Base factory class for creating test model instances."""
     
     @property
@@ -37,7 +37,7 @@ class BaseFactory(ABC):
         return defaults
     
     @classmethod
-    def build(cls, **kwargs: Any) -> Any:
+    def build(cls, **kwargs: Any) -> T:
         """Build a model instance without saving to database."""
         attributes = cls.build_dict(**kwargs)
         # Create a temporary instance to access the property
@@ -54,9 +54,9 @@ class BaseFactory(ABC):
         return instance
     
     @classmethod
-    def create_batch(cls, db_session: Session, count: int, **kwargs: Any) -> list[T]:
+    def create_batch(cls, db_session: Session, count: int, **kwargs: Any) -> List[T]:
         """Create multiple instances."""
-        instances = []
+        instances: List[T] = []
         for i in range(count):
             instance_kwargs = kwargs.copy()
             # Add sequence number to make names unique

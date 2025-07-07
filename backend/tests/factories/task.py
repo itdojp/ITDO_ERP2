@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 
 from app.models.task import Task, TaskStatus, TaskPriority, TaskAssignment, TaskDependency, DependencyType, AssignmentRole
 from tests.factories.user import UserFactory
-from tests.factories.organization import ProjectFactory
+# from tests.factories.organization import ProjectFactory  # ProjectFactory doesn't exist
 
 
 class TaskFactory(SQLAlchemyModelFactory):
@@ -18,7 +18,8 @@ class TaskFactory(SQLAlchemyModelFactory):
     
     title = factory.Sequence(lambda n: f"Task {n}")
     description = factory.Faker("text", max_nb_chars=200)
-    project_id = factory.SubFactory(ProjectFactory)
+    # project_id = factory.SubFactory(ProjectFactory)  # ProjectFactory doesn't exist
+    project_id = 1  # Default project ID
     status = TaskStatus.NOT_STARTED
     priority = TaskPriority.MEDIUM
     due_date = factory.LazyFunction(lambda: datetime.now(timezone.utc) + timedelta(days=7))
@@ -26,7 +27,8 @@ class TaskFactory(SQLAlchemyModelFactory):
     progress_percentage = 0
     tags = factory.LazyFunction(lambda: ["test", "sample"])
     created_by = factory.SubFactory(UserFactory)
-    organization_id = factory.LazyAttribute(lambda obj: obj.project.organization_id)
+    # organization_id = factory.LazyAttribute(lambda obj: obj.project.organization_id)
+    organization_id = 1  # Default organization ID
 
 
 class TaskAssignmentFactory(SQLAlchemyModelFactory):

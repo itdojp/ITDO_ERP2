@@ -1,13 +1,14 @@
 """Factory for Organization model."""
 
-from typing import Dict, Any, Type, Optional
+from typing import Dict, Any, Type
+from sqlalchemy.orm import Session, Optional
 from datetime import datetime
 
 from app.models.organization import Organization
 from tests.factories import BaseFactory, fake
 
 
-class OrganizationFactory(BaseFactory):
+class OrganizationFactory(BaseFactory[Organization]):
     """Factory for creating Organization test instances."""
     
     @property
@@ -60,18 +61,18 @@ class OrganizationFactory(BaseFactory):
         }
     
     @classmethod
-    def create_with_parent(cls, db_session, parent_id: int, **kwargs) -> Organization:
+    def create_with_parent(cls, db_session: Session, parent_id: int, **kwargs: Any) -> Organization:
         """Create an organization with a parent organization."""
         kwargs['parent_id'] = parent_id
         return cls.create(db_session, **kwargs)
     
     @classmethod
-    def create_subsidiary_tree(cls, db_session, depth: int = 2, children_per_level: int = 2):
+    def create_subsidiary_tree(cls, db_session: Session, depth: int = 2, children_per_level: int = 2) -> Dict[str, Any]:
         """Create a tree of organizations with subsidiaries."""
         # Create root organization
         root = cls.create(db_session, name="Root Organization")
         
-        def create_children(parent, current_depth):
+        def create_children(parent: Organization, current_depth: int) -> list[Organization]:
             if current_depth >= depth:
                 return []
             
@@ -102,19 +103,19 @@ class OrganizationFactory(BaseFactory):
         }
     
     @classmethod
-    def create_inactive(cls, db_session, **kwargs) -> Organization:
+    def create_inactive(cls, db_session: Session, **kwargs: Any) -> Organization:
         """Create an inactive organization."""
         kwargs['is_active'] = False
         return cls.create(db_session, **kwargs)
     
     @classmethod
-    def create_with_specific_industry(cls, db_session, industry: str, **kwargs) -> Organization:
+    def create_with_specific_industry(cls, db_session: Session, industry: str, **kwargs: Any) -> Organization:
         """Create an organization in a specific industry."""
         kwargs['industry'] = industry
         return cls.create(db_session, **kwargs)
     
     @classmethod
-    def create_minimal(cls, db_session, **kwargs) -> Organization:
+    def create_minimal(cls, db_session: Session, **kwargs: Any) -> Organization:
         """Create an organization with minimal required fields."""
         minimal_attrs = {
             "code": fake.unique.company_suffix(),
