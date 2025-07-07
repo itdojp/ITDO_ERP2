@@ -3,55 +3,49 @@
 # PRが作成されると、対応するオーナーが自動的にレビュアーとして割り当てられます
 
 # 全体的なオーナーシップ（フォールバック）
-# * @team-lead @senior-developer
+* @ootakazuhiko
 
 # Backend Python コード
-/backend/                    @backend-team
-/backend/app/api/           @backend-api-team
-/backend/app/core/          @backend-core-team
-/backend/app/models/        @backend-models-team
-/backend/app/services/      @backend-services-team
-/backend/tests/             @backend-team @qa-team
+/backend/                    @ootakazuhiko
+/backend/app/api/           @ootakazuhiko
+/backend/app/core/          @ootakazuhiko
+/backend/app/models/        @ootakazuhiko
+/backend/app/services/      @ootakazuhiko
+/backend/tests/             @ootakazuhiko
 
 # Frontend TypeScript/React コード
-/frontend/                  @frontend-team
-/frontend/src/components/   @frontend-components-team
-/frontend/src/services/     @frontend-services-team
-/frontend/src/test/         @frontend-team @qa-team
+/frontend/                  @ootakazuhiko
+/frontend/src/components/   @ootakazuhiko
+/frontend/src/services/     @ootakazuhiko
+/frontend/src/test/         @ootakazuhiko
 
 # インフラストラクチャ・DevOps
-/infra/                     @devops-team @infrastructure-team
-/.github/workflows/         @devops-team @ci-cd-team
-/Makefile                   @devops-team
-/scripts/                   @devops-team
+/infra/                     @ootakazuhiko
+/.github/workflows/         @ootakazuhiko
+/Makefile                   @ootakazuhiko
+/scripts/                   @ootakazuhiko
 
 # データベース関連
-/backend/alembic/           @backend-models-team @dba-team
-/backend/app/models/        @backend-models-team @dba-team
+/backend/alembic/           @ootakazuhiko
+/backend/app/models/        @ootakazuhiko
 
 # 設定ファイル
-/backend/pyproject.toml     @backend-team @devops-team
-/frontend/package.json      @frontend-team @devops-team
-/frontend/tsconfig.json     @frontend-team
+/backend/pyproject.toml     @ootakazuhiko
+/frontend/package.json      @ootakazuhiko
+/frontend/tsconfig.json     @ootakazuhiko
 
 # ドキュメント
-/docs/                      @documentation-team
-/README.md                  @team-lead @documentation-team
-/CLAUDE.md                  @team-lead @devops-team
+/docs/                      @ootakazuhiko
+/README.md                  @ootakazuhiko
+/CLAUDE.md                  @ootakazuhiko
 
 # セキュリティ関連
-/backend/app/core/security.py  @security-team @backend-core-team
-/backend/tests/security/        @security-team @qa-team
+/backend/app/core/security.py  @ootakazuhiko
+/backend/tests/security/        @ootakazuhiko
 
 # 特定の重要ファイル
-/backend/app/main.py            @backend-team @team-lead
-/frontend/src/main.tsx          @frontend-team @team-lead
+/backend/app/main.py            @ootakazuhiko
+/frontend/src/main.tsx          @ootakazuhiko
 
 # GitHub設定
-/.github/                       @devops-team @team-lead
-
-# テンプレート（実際のチームメンバーのGitHubユーザー名に置き換えてください）
-# 例:
-# @backend-team は実際のGitHubユーザー名またはチームに置き換え
-# 個人のユーザー名の場合: @john-doe @jane-smith
-# GitHubチームの場合: @company/backend-team @company/frontend-team
+/.github/                       @ootakazuhiko
