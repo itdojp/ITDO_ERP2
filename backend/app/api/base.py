@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from app.repositories.base import BaseRepository
-from app.core.deps import get_db, get_current_user
+from app.core.dependencies import get_db, get_current_user
 from app.types import (
     ModelType,
     CreateSchemaType,
