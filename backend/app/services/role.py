@@ -1,11 +1,13 @@
-"""Role service implementation."""
+"""Role service implementation with complete type safety."""
 from typing import List, Optional, Dict, Any, Tuple, Set
 from datetime import datetime, timedelta
-from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_
+from sqlalchemy.orm import Session, selectinload
+from sqlalchemy import and_, or_, select, func
 
-from app.models.role import Role, UserRole
+from app.models.role import Role, UserRole, RolePermission
+from app.models.permission import Permission
 from app.models.user import User
+from app.models.organization import Organization
 from app.repositories.role import RoleRepository
 from app.schemas.role import (
     RoleCreate,
@@ -13,479 +15,398 @@ from app.schemas.role import (
     RoleResponse,
     RoleTree,
     UserRoleResponse,
-    BulkRoleAssignment
+    BulkRoleAssignment,
+    RoleSummary,
+    RoleWithPermissions,
+    PermissionBasic,
+    UserRoleAssignment
 )
-from app.types import UserId, OrganizationId
+from app.schemas.user_extended import UserBasic
+from app.types import UserId, OrganizationId, RoleId
+from app.core.exceptions import NotFound, AlreadyExists, ValidationError, PermissionDenied
 
 
 class RoleService:
-    """Service for role business logic."""
+    """Service for managing roles and permissions."""
     
     def __init__(self, db: Session):
         """Initialize service with database session."""
         self.db = db
         self.repository = RoleRepository(Role, db)
     
-    def get_role(self, role_id: int) -> Optional[Role]:
-        """Get role by ID."""
-        return self.repository.get(role_id)
-    
-    def list_roles(
-        self,
-        skip: int = 0,
-        limit: int = 100,
-        filters: Optional[Dict[str, Any]] = None
-    ) -> Tuple[List[Role], int]:
-        """List roles with pagination."""
-        roles = self.repository.get_multi(skip=skip, limit=limit, filters=filters)
-        total = self.repository.get_count(filters=filters)
-        return roles, total
-    
-    def search_roles(
-        self,
-        query: str,
-        skip: int = 0,
-        limit: int = 100,
-        filters: Optional[Dict[str, Any]] = None
-    ) -> Tuple[List[Role], int]:
-        """Search roles by name."""
-        # Build search conditions
-        search_condition = or_(
-            Role.name.ilike(f"%{query}%"),
-            Role.description.ilike(f"%{query}%")
-        )
-        
-        conditions = [search_condition]
-        
-        # Apply additional filters
-        if filters:
-            for key, value in filters.items():
-                if hasattr(Role, key):
-                    conditions.append(getattr(Role, key) == value)
-        
-        # Get all matching roles
-        all_results = self.db.query(Role).filter(
-            and_(*conditions),
-            Role.is_deleted == False
-        ).order_by(Role.updated_at.desc()).all()
-        
-        # Apply pagination
-        total = len(all_results)
-        paginated_results = all_results[skip:skip + limit]
-        
-        return paginated_results, total
+    # Role CRUD operations
     
     def create_role(
         self,
         role_data: RoleCreate,
-        created_by: Optional[UserId] = None
+        created_by: UserId
     ) -> Role:
         """Create a new role."""
-        # Validate unique name within organization
-        existing = self.db.query(Role).filter(
-            Role.organization_id == role_data.organization_id,
-            Role.name == role_data.name,
-            Role.is_deleted == False
-        ).first()
+        # Check if role code already exists
+        if self.repository.get_by_code(role_data.code):
+            raise AlreadyExists(f"Role with code '{role_data.code}' already exists")
         
-        if existing:
-            raise ValueError(f"Role name '{role_data.name}' already exists in this organization")
-        
-        # Add audit fields
-        data = role_data.model_dump()
-        if created_by:
-            data["created_by"] = created_by
-            data["updated_by"] = created_by
+        # Check if organization exists if specified
+        if hasattr(role_data, 'organization_id') and role_data.organization_id:
+            org = self.db.get(Organization, role_data.organization_id)
+            if not org:
+                raise NotFound(f"Organization {role_data.organization_id} not found")
         
         # Create role
-        return self.repository.create(RoleCreate(**data))
+        role = Role(
+            code=role_data.code,
+            name=role_data.name,
+            name_en=role_data.name_en,
+            description=role_data.description,
+            role_type=role_data.role_type,
+            organization_id=getattr(role_data, 'organization_id', None),
+            parent_id=role_data.parent_id,
+            permissions=role_data.permissions,
+            is_system=role_data.is_system,
+            display_order=role_data.display_order,
+            icon=role_data.icon,
+            color=role_data.color,
+            created_by=created_by,
+            updated_by=created_by
+        )
+        
+        # Update hierarchy metadata
+        if role_data.parent_id:
+            parent = self.db.get(Role, role_data.parent_id)
+            if parent:
+                role.full_path = f"{parent.full_path}{role_data.parent_id}/"
+                role.depth = parent.depth + 1
+        else:
+            role.full_path = "/"
+            role.depth = 0
+        
+        self.db.add(role)
+        self.db.flush()
+        
+        return role
     
     def update_role(
         self,
-        role_id: int,
+        role_id: RoleId,
         role_data: RoleUpdate,
-        updated_by: Optional[UserId] = None
+        updated_by: UserId
     ) -> Optional[Role]:
-        """Update role details."""
-        # Check if role exists
+        """Update an existing role."""
         role = self.repository.get(role_id)
         if not role:
-            return None
+            raise NotFound(f"Role {role_id} not found")
         
-        # Validate unique name if being changed
-        if role_data.name and role_data.name != role.name:
-            existing = self.db.query(Role).filter(
-                Role.organization_id == role.organization_id,
-                Role.name == role_data.name,
-                Role.id != role_id,
-                Role.is_deleted == False
-            ).first()
-            
-            if existing:
-                raise ValueError(f"Role name '{role_data.name}' already exists in this organization")
+        # System roles cannot be modified
+        if role.is_system:
+            raise PermissionDenied("System roles cannot be modified")
         
-        # Add audit fields
-        data = role_data.model_dump(exclude_unset=True)
-        if updated_by:
-            data["updated_by"] = updated_by
+        # Check if new code conflicts
+        if role_data.code and role_data.code != role.code:
+            existing = self.repository.get_by_code(role_data.code)
+            if existing and existing.id != role_id:
+                raise AlreadyExists(f"Role with code '{role_data.code}' already exists")
         
-        # Update role
-        return self.repository.update(role_id, RoleUpdate(**data))
+        # Update fields
+        update_fields = role_data.model_dump(exclude_unset=True)
+        for field, value in update_fields.items():
+            setattr(role, field, value)
+        
+        role.updated_by = updated_by
+        role.updated_at = datetime.utcnow()
+        
+        self.db.flush()
+        return role
     
-    def delete_role(
-        self,
-        role_id: int,
-        deleted_by: Optional[UserId] = None
-    ) -> bool:
+    def delete_role(self, role_id: RoleId, deleted_by: UserId) -> bool:
         """Soft delete a role."""
         role = self.repository.get(role_id)
         if not role:
-            return False
+            raise NotFound(f"Role {role_id} not found")
         
-        # Perform soft delete
+        # System roles cannot be deleted
+        if role.is_system:
+            raise PermissionDenied("System roles cannot be deleted")
+        
+        # Check if role has active assignments
+        active_count = self.db.scalar(
+            select(func.count(UserRole.id))
+            .where(and_(
+                UserRole.role_id == role_id,
+                UserRole.is_active == True
+            ))
+        )
+        
+        if active_count and active_count > 0:
+            raise ValidationError(f"Cannot delete role with {active_count} active assignments")
+        
         role.soft_delete(deleted_by=deleted_by)
-        self.db.commit()
+        self.db.flush()
+        
         return True
     
-    def get_role_tree(self, organization_id: OrganizationId) -> List[RoleTree]:
-        """Get role hierarchy tree for an organization."""
-        # Get root roles
-        roots = self.db.query(Role).filter(
-            Role.organization_id == organization_id,
-            Role.parent_id == None,
-            Role.is_deleted == False
-        ).order_by(Role.name).all()
-        
-        def build_tree(role: Role, level: int = 0) -> RoleTree:
-            """Build tree recursively."""
-            children = []
-            sub_roles = self.db.query(Role).filter(
-                Role.parent_id == role.id,
-                Role.is_deleted == False
-            ).order_by(Role.name).all()
-            
-            for sub in sub_roles:
-                children.append(build_tree(sub, level + 1))
-            
-            user_count = self.get_role_user_count(role.id)
-            permission_count = len(role.get_all_permissions())
-            
-            return RoleTree(
-                id=role.id,
-                name=role.name,
-                description=role.description,
-                is_active=role.is_active,
-                level=level,
-                parent_id=role.parent_id,
-                user_count=user_count,
-                permission_count=permission_count,
-                children=children
-            )
-        
-        return [build_tree(root) for root in roots]
+    # Permission management
     
-    def get_role_summary(self, role: Role) -> RoleSummary:
-        """Get role summary with counts."""
-        parent_name = role.parent.name if role.parent else None
-        user_count = self.get_role_user_count(role.id)
-        permission_count = len(role.get_all_permissions())
+    def get_role_permissions(self, role_id: RoleId) -> List[Permission]:
+        """Get all permissions for a role."""
+        role_perms = self.db.scalars(
+            select(Permission)
+            .join(RolePermission)
+            .where(RolePermission.role_id == role_id)
+            .order_by(Permission.category, Permission.code)
+        ).all()
         
-        return RoleSummary(
-            id=role.id,
-            name=role.name,
-            description=role.description,
-            organization_id=role.organization_id,
-            is_active=role.is_active,
-            parent_id=role.parent_id,
-            parent_name=parent_name,
-            user_count=user_count,
-            permission_count=permission_count,
-            role_type=role.role_type
-        )
-    
-    def get_role_response(self, role: Role) -> RoleResponse:
-        """Get full role response."""
-        # Load parent if needed
-        if role.parent_id and not role.parent:
-            role = self.repository.get_with_parent(role.id)
-        
-        # Build response
-        data = role.to_dict()
-        data["parent"] = role.parent.to_dict() if role.parent else None
-        data["full_path"] = role.full_path
-        data["depth"] = role.depth
-        
-        return RoleResponse.model_validate(data)
-    
-    def get_role_with_permissions(
-        self,
-        role: Role,
-        include_inherited: bool = True
-    ) -> RoleWithPermissions:
-        """Get role with permission details."""
-        # Get direct permissions
-        direct_permissions = [
-            PermissionBasic(
-                id=rp.permission.id,
-                code=rp.permission.code,
-                name=rp.permission.name,
-                description=rp.permission.description,
-                category=rp.permission.category
-            )
-            for rp in role.role_permissions
-            if rp.is_active
-        ]
-        
-        # Get all permissions (including inherited)
-        all_permission_codes = set()
-        inherited_permissions = []
-        
-        if include_inherited:
-            all_permissions = role.get_all_permissions()
-            all_permission_codes = {p.code for p in all_permissions}
-            
-            # Identify inherited permissions
-            direct_codes = {p.code for p in direct_permissions}
-            for perm in all_permissions:
-                if perm.code not in direct_codes:
-                    inherited_permissions.append(
-                        PermissionBasic(
-                            id=perm.id,
-                            code=perm.code,
-                            name=perm.name,
-                            description=perm.description,
-                            category=perm.category
-                        )
-                    )
-        else:
-            all_permission_codes = {p.code for p in direct_permissions}
-        
-        # Get role response
-        role_response = self.get_role_response(role)
-        
-        return RoleWithPermissions(
-            **role_response.model_dump(),
-            direct_permissions=direct_permissions,
-            inherited_permissions=inherited_permissions,
-            all_permission_codes=list(all_permission_codes)
-        )
-    
-    def list_all_permissions(self, category: Optional[str] = None) -> List[PermissionBasic]:
-        """List all available permissions."""
-        query = self.db.query(Permission)
-        
-        if category:
-            query = query.filter(Permission.category == category)
-        
-        permissions = query.order_by(Permission.category, Permission.name).all()
-        
-        return [
-            PermissionBasic(
-                id=p.id,
-                code=p.code,
-                name=p.name,
-                description=p.description,
-                category=p.category
-            )
-            for p in permissions
-        ]
+        return list(role_perms)
     
     def update_role_permissions(
         self,
-        role_id: int,
-        permission_codes: List[str],
-        updated_by: Optional[UserId] = None
+        role_id: RoleId,
+        permission_ids: List[int],
+        updated_by: UserId
     ) -> Role:
         """Update role permissions."""
         role = self.repository.get(role_id)
         if not role:
-            raise ValueError("Role not found")
+            raise NotFound(f"Role {role_id} not found")
         
-        # Validate all permission codes exist
-        permissions = self.db.query(Permission).filter(
-            Permission.code.in_(permission_codes)
-        ).all()
-        
-        if len(permissions) != len(permission_codes):
-            found_codes = {p.code for p in permissions}
-            invalid_codes = set(permission_codes) - found_codes
-            raise ValueError(f"Invalid permission codes: {invalid_codes}")
-        
-        # Remove existing permissions
-        self.db.query(RolePermission).filter(
-            RolePermission.role_id == role_id
-        ).delete()
+        # Clear existing permissions
+        from sqlalchemy import delete
+        self.db.execute(
+            delete(RolePermission).where(
+                RolePermission.role_id == role_id
+            )
+        )
         
         # Add new permissions
-        for permission in permissions:
-            role_permission = RolePermission(
+        for perm_id in permission_ids:
+            role_perm = RolePermission(
                 role_id=role_id,
-                permission_id=permission.id,
+                permission_id=perm_id,
                 granted_by=updated_by
             )
-            self.db.add(role_permission)
+            self.db.add(role_perm)
         
-        # Update audit fields
-        if updated_by:
-            role.updated_by = updated_by
-            role.updated_at = datetime.utcnow()
-        
-        self.db.commit()
-        self.db.refresh(role)
-        
+        self.db.flush()
         return role
     
-    def is_role_in_use(self, role_id: int) -> bool:
-        """Check if role is assigned to any users."""
-        return self.db.query(UserRole).filter(
-            UserRole.role_id == role_id,
-            UserRole.is_active == True
-        ).first() is not None
-    
-    def get_role_user_count(self, role_id: int) -> int:
-        """Get count of users with this role."""
-        return self.db.query(UserRole).filter(
-            UserRole.role_id == role_id,
-            UserRole.is_active == True
-        ).count()
+    # Role assignment
     
     def assign_role_to_user(
         self,
         assignment: UserRoleAssignment,
-        assigned_by: Optional[UserId] = None
+        assigned_by: UserId
     ) -> UserRole:
         """Assign a role to a user."""
         # Check if assignment already exists
-        existing = self.db.query(UserRole).filter(
-            UserRole.user_id == assignment.user_id,
-            UserRole.role_id == assignment.role_id
-        ).first()
+        existing = self.db.scalar(
+            select(UserRole).where(and_(
+                UserRole.user_id == assignment.user_id,
+                UserRole.role_id == assignment.role_id,
+                UserRole.organization_id == assignment.organization_id,
+                UserRole.is_active == True
+            ))
+        )
         
         if existing:
-            if existing.is_active:
-                raise ValueError("User already has this role")
-            else:
-                # Reactivate existing assignment
-                existing.is_active = True
-                existing.valid_from = assignment.valid_from or datetime.utcnow()
-                existing.valid_to = assignment.valid_to
-                existing.assigned_by = assigned_by
-                self.db.commit()
-                self.db.refresh(existing)
-                return existing
+            raise AlreadyExists("User already has this role assignment")
         
-        # Get role to determine organization
-        role = self.repository.get(assignment.role_id)
-        if not role:
-            raise ValueError("Role not found")
-        
-        # Create new assignment
+        # Create assignment
         user_role = UserRole(
             user_id=assignment.user_id,
             role_id=assignment.role_id,
-            organization_id=role.organization_id,
-            valid_from=assignment.valid_from or datetime.utcnow(),
-            valid_to=assignment.valid_to,
-            assigned_by=assigned_by
+            organization_id=assignment.organization_id,
+            department_id=assignment.department_id,
+            assigned_by=assigned_by,
+            valid_from=assignment.valid_from,
+            expires_at=assignment.expires_at,
+            is_active=True,
+            created_by=assigned_by,
+            updated_by=assigned_by
         )
         
         self.db.add(user_role)
-        self.db.commit()
-        self.db.refresh(user_role)
+        self.db.flush()
         
         return user_role
     
-    def remove_role_from_user(self, user_id: UserId, role_id: int) -> bool:
+    def remove_role_from_user(
+        self,
+        user_id: UserId,
+        role_id: RoleId,
+        organization_id: OrganizationId,
+        removed_by: UserId
+    ) -> bool:
         """Remove a role from a user."""
-        user_role = self.db.query(UserRole).filter(
-            UserRole.user_id == user_id,
-            UserRole.role_id == role_id,
-            UserRole.is_active == True
-        ).first()
+        user_role = self.db.scalar(
+            select(UserRole).where(and_(
+                UserRole.user_id == user_id,
+                UserRole.role_id == role_id,
+                UserRole.organization_id == organization_id,
+                UserRole.is_active == True
+            ))
+        )
         
         if not user_role:
-            return False
+            raise NotFound("Role assignment not found")
         
-        # Deactivate assignment
         user_role.is_active = False
-        self.db.commit()
+        user_role.updated_by = removed_by
+        user_role.updated_at = datetime.utcnow()
         
+        self.db.flush()
         return True
+    
+    # Query methods
+    
+    def get_role(self, role_id: RoleId) -> Optional[Role]:
+        """Get a role by ID."""
+        return self.repository.get_with_parent(role_id)
+    
+    def get_role_response(self, role: Role) -> RoleResponse:
+        """Convert role to response schema."""
+        return RoleResponse.model_validate(role, from_attributes=True)
+    
+    def get_role_tree(self, organization_id: Optional[OrganizationId] = None) -> List[RoleTree]:
+        """Get hierarchical role tree."""
+        # Get root roles
+        query = select(Role).where(Role.parent_id.is_(None))
+        
+        if organization_id:
+            query = query.where(or_(
+                Role.organization_id == organization_id,
+                Role.organization_id.is_(None)
+            ))
+        
+        roots = self.db.scalars(query).all()
+        
+        # Build tree recursively
+        def build_tree(role: Role) -> RoleTree:
+            children = [
+                build_tree(child)
+                for child in role.child_roles
+                if child.is_active
+            ]
+            
+            return RoleTree(
+                id=role.id,
+                code=role.code,
+                name=role.name,
+                description=role.description,
+                role_type=role.role_type,
+                is_active=role.is_active,
+                user_count=len([ur for ur in role.user_roles if ur.is_active]),
+                permission_count=len(role.role_permissions),
+                children=children
+            )
+        
+        return [build_tree(root) for root in roots if root.is_active]
+    
+    def list_roles(
+        self,
+        organization_id: Optional[OrganizationId] = None,
+        include_system: bool = True,
+        skip: int = 0,
+        limit: int = 100
+    ) -> Tuple[List[Role], int]:
+        """List roles with filtering."""
+        query = select(Role).where(Role.is_deleted == False)
+        
+        if organization_id:
+            query = query.where(or_(
+                Role.organization_id == organization_id,
+                Role.organization_id.is_(None)
+            ))
+        
+        if not include_system:
+            query = query.where(Role.is_system == False)
+        
+        # Count total
+        count_query = select(func.count()).select_from(query.subquery())
+        total = self.db.scalar(count_query) or 0
+        
+        # Get paginated results
+        roles = self.db.scalars(
+            query.order_by(Role.display_order, Role.name)
+            .offset(skip)
+            .limit(limit)
+        ).all()
+        
+        return list(roles), total
     
     def get_user_roles(
         self,
         user_id: UserId,
-        organization_id: Optional[OrganizationId] = None,
-        active_only: bool = True
-    ) -> List[UserRole]:
-        """Get all roles assigned to a user."""
-        query = self.db.query(UserRole).filter(UserRole.user_id == user_id)
-        
-        if organization_id:
-            query = query.filter(UserRole.organization_id == organization_id)
-        
-        if active_only:
-            query = query.filter(UserRole.is_active == True)
-        
-        return query.all()
-    
-    def get_user_role_response(self, user_role: UserRole) -> UserRoleResponse:
-        """Get user role assignment response."""
-        # Load related data
-        if not user_role.role:
-            user_role = self.db.query(UserRole).filter(
-                UserRole.id == user_role.id
-            ).first()
-        
-        role_basic = {
-            "id": user_role.role.id,
-            "name": user_role.role.name,
-            "description": user_role.role.description,
-            "is_active": user_role.role.is_active
-        }
-        
-        assigner_name = None
-        if user_role.assigned_by:
-            assigner = self.db.query(User).filter(
-                User.id == user_role.assigned_by
-            ).first()
-            if assigner:
-                assigner_name = assigner.full_name
-        
-        return UserRoleResponse(
-            id=user_role.id,
-            user_id=user_role.user_id,
-            role_id=user_role.role_id,
-            organization_id=user_role.organization_id,
-            role=role_basic,
-            valid_from=user_role.valid_from,
-            valid_to=user_role.valid_to,
-            is_active=user_role.is_active,
-            is_valid=user_role.is_valid,
-            assigned_by=user_role.assigned_by,
-            assigner_name=assigner_name,
-            created_at=user_role.created_at
-        )
-    
-    def user_has_permission(
-        self,
-        user_id: UserId,
-        permission: str,
         organization_id: Optional[OrganizationId] = None
-    ) -> bool:
-        """Check if user has permission for roles."""
-        # Get user roles
-        user_roles = self.db.query(UserRole).filter(
+    ) -> List[UserRoleResponse]:
+        """Get all roles for a user."""
+        query = select(UserRole).where(and_(
             UserRole.user_id == user_id,
             UserRole.is_active == True
-        )
+        ))
         
         if organization_id:
-            user_roles = user_roles.filter(UserRole.organization_id == organization_id)
+            query = query.where(UserRole.organization_id == organization_id)
         
-        # Check permissions
-        for user_role in user_roles.all():
-            if user_role.is_valid and user_role.role.has_permission(permission):
-                return True
+        user_roles = self.db.scalars(
+            query.options(
+                selectinload(UserRole.role),
+                selectinload(UserRole.organization),
+                selectinload(UserRole.department)
+            )
+        ).all()
         
-        return False
+        responses = []
+        for ur in user_roles:
+            if ur.is_valid:
+                responses.append(UserRoleResponse.model_validate(ur, from_attributes=True))
+        
+        return responses
+    
+    def get_available_permissions(self) -> List[PermissionBasic]:
+        """Get all available permissions."""
+        permissions = self.db.scalars(
+            select(Permission)
+            .where(Permission.is_active == True)
+            .order_by(Permission.category, Permission.code)
+        ).all()
+        
+        return [
+            PermissionBasic.model_validate(perm, from_attributes=True)
+            for perm in permissions
+        ]
+    
+    def bulk_assign_roles(
+        self,
+        assignment: BulkRoleAssignment,
+        assigned_by: UserId
+    ) -> Dict[str, Any]:
+        """Bulk assign roles to multiple users."""
+        success_count = 0
+        error_count = 0
+        errors = []
+        
+        for user_id in assignment.user_ids:
+            try:
+                self.assign_role_to_user(
+                    UserRoleAssignment(
+                        user_id=user_id,
+                        role_id=assignment.role_id,
+                        organization_id=assignment.organization_id,
+                        department_id=assignment.department_id,
+                        valid_from=assignment.valid_from,
+                        expires_at=assignment.expires_at
+                    ),
+                    assigned_by
+                )
+                success_count += 1
+            except Exception as e:
+                error_count += 1
+                errors.append({
+                    "user_id": user_id,
+                    "error": str(e)
+                })
+        
+        return {
+            "success_count": success_count,
+            "error_count": error_count,
+            "errors": errors
+        }

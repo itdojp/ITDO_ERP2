@@ -96,10 +96,13 @@ class RoleTree(BaseModel):
     id: int
     code: str
     name: str
+    description: Optional[str] = None
     role_type: str
     is_active: bool
     level: int = 0
     parent_id: Optional[int] = None
+    user_count: int = 0
+    permission_count: int = 0
     children: List["RoleTree"] = Field(default_factory=list)
     
     model_config = ConfigDict(from_attributes=True)

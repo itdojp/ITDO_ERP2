@@ -3,13 +3,14 @@ from datetime import datetime
 from typing import Optional, TYPE_CHECKING, List, Dict, Any
 from sqlalchemy import String, Text, Boolean, Integer, ForeignKey, JSON, UniqueConstraint, Index, func, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from app.models.base import SoftDeletableModel, AuditableModel
+from app.models.base import SoftDeletableModel, AuditableModel, BaseModel
 from app.types import RoleId, UserId, OrganizationId, DepartmentId
 
 if TYPE_CHECKING:
     from app.models.user import User
     from app.models.organization import Organization
     from app.models.department import Department
+    from app.models.permission import Permission
 
 
 class Role(SoftDeletableModel):
@@ -49,12 +50,35 @@ class Role(SoftDeletableModel):
         comment="Type of role (system, organization, custom)"
     )
     
+    # Organization scope
+    organization_id: Mapped[Optional[OrganizationId]] = mapped_column(
+        Integer,
+        ForeignKey("organizations.id"),
+        nullable=True,
+        index=True,
+        comment="Organization ID if role is organization-specific"
+    )
+    
     # Hierarchy
     parent_id: Mapped[Optional[RoleId]] = mapped_column(
         Integer,
         ForeignKey("roles.id"),
         nullable=True,
         comment="Parent role ID for role inheritance"
+    )
+    
+    # Hierarchy metadata
+    full_path: Mapped[str] = mapped_column(
+        String(500),
+        nullable=False,
+        default="/",
+        comment="Full path in hierarchy (e.g., /1/2/3)"
+    )
+    depth: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+        comment="Depth in hierarchy (0 for root)"
     )
     
     # Permissions (JSON array)
@@ -102,14 +126,25 @@ class Role(SoftDeletableModel):
     parent: Mapped[Optional["Role"]] = relationship(
         "Role",
         remote_side="Role.id",
-        backref="child_roles",
+        back_populates="child_roles",
         lazy="joined"
+    )
+    child_roles: Mapped[List["Role"]] = relationship(
+        "Role",
+        back_populates="parent",
+        lazy="select"
     )
     user_roles: Mapped[List["UserRole"]] = relationship(
         "UserRole",
         back_populates="role",
         cascade="all, delete-orphan",
         lazy="dynamic"
+    )
+    role_permissions: Mapped[List["RolePermission"]] = relationship(
+        "RolePermission",
+        back_populates="role",
+        cascade="all, delete-orphan",
+        lazy="select"
     )
     
     def __repr__(self) -> str:
@@ -215,6 +250,11 @@ class UserRole(AuditableModel):
         nullable=False,
         server_default=func.now(),
         comment="When the role becomes valid"
+    )
+    valid_to: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="When the role validity ends (deprecated, use expires_at)"
     )
     expires_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True),
@@ -343,3 +383,59 @@ class UserRole(AuditableModel):
             return {}
         
         return self.role.get_all_permissions()
+
+
+class RolePermission(BaseModel):
+    """Association table between roles and permissions."""
+    
+    __tablename__ = "role_permissions"
+    
+    role_id: Mapped[RoleId] = mapped_column(
+        Integer,
+        ForeignKey("roles.id"),
+        primary_key=True,
+        comment="Role ID"
+    )
+    permission_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("permissions.id"),
+        primary_key=True,
+        comment="Permission ID"
+    )
+    
+    # Additional metadata
+    granted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+        comment="When permission was granted"
+    )
+    granted_by: Mapped[Optional[UserId]] = mapped_column(
+        Integer,
+        ForeignKey("users.id"),
+        nullable=True,
+        comment="User who granted the permission"
+    )
+    
+    # Relationships
+    role: Mapped["Role"] = relationship(
+        "Role",
+        back_populates="role_permissions",
+        lazy="joined"
+    )
+    permission: Mapped["Permission"] = relationship(
+        "Permission",
+        back_populates="role_permissions",
+        lazy="joined"
+    )
+    
+    # Indexes and constraints
+    __table_args__ = (
+        UniqueConstraint("role_id", "permission_id", name="uq_role_permissions"),
+        Index("ix_role_permissions_role_id", "role_id"),
+        Index("ix_role_permissions_permission_id", "permission_id"),
+    )
+    
+    def __repr__(self) -> str:
+        """String representation."""
+        return f"<RolePermission(role_id={self.role_id}, permission_id={self.permission_id})>"
