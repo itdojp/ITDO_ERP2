@@ -6,13 +6,13 @@ from typing import TYPE_CHECKING, Optional
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 
-from app.core.database import Base
+from app.models.base import BaseModel
 
 if TYPE_CHECKING:
     from app.models.user import User
 
 
-class UserSession(Base):
+class UserSession(BaseModel):
     """User session model for tracking active sessions."""
 
     __tablename__ = "user_sessions"

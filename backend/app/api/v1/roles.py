@@ -1,5 +1,5 @@
 """Role API endpoints."""
-from typing import List, Optional, Union, Dict
+from typing import List, Optional, Union, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Path, Body
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
@@ -49,19 +49,19 @@ def list_roles(
     service = RoleService(db)
     
     # Build filters
-    filters = {}
+    filters: Dict[str, Any] = {}
     if organization_id:
         filters["organization_id"] = organization_id
     if active_only:
         filters["is_active"] = True
     if role_type:
-        filters["role_type"] = role_type
+        filters["role_type"] = role_type  # Keep as string, will be handled in service
     
     # Get roles
     if search:
         roles, total = service.search_roles(search, skip, limit, filters)
     else:
-        roles, total = service.list_roles(skip, limit, filters)
+        roles, total = service.list_roles(skip, active_only, limit, organization_id)
     
     # Convert to summary
     items = [service.get_role_summary(role) for role in roles]
@@ -326,6 +326,14 @@ def update_role(
             role_data,
             updated_by=current_user.id
         )
+        if updated_role is None:
+            return JSONResponse(
+                status_code=status.HTTP_404_NOT_FOUND,
+                content=ErrorResponse(
+                    detail="Role not found",
+                    code="ROLE_NOT_FOUND"
+                ).model_dump()
+            )
         return service.get_role_response(updated_role)
     except ValueError as e:
         return JSONResponse(
@@ -576,7 +584,17 @@ def remove_role_from_user(
                 ).model_dump()
             )
     
-    success = service.remove_role_from_user(user_id, role_id)
+    # Ensure organization_id is not None
+    if role.organization_id is None:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content=ErrorResponse(
+                detail="Role must have an organization",
+                code="INVALID_ROLE"
+            ).model_dump()
+        )
+    
+    success = service.remove_role_from_user(user_id, role_id, role.organization_id, current_user.id)
     
     if not success:
         return JSONResponse(
@@ -619,6 +637,6 @@ def get_user_roles(
         )
     
     service = RoleService(db)
-    user_roles = service.get_user_roles(user_id, organization_id, active_only)
+    user_role_responses = service.get_user_roles(user_id)
     
-    return [service.get_user_role_response(ur) for ur in user_roles]
+    return user_role_responses  # Already UserRoleResponse objects

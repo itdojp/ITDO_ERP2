@@ -36,6 +36,7 @@ class User(SoftDeletableModel):
     profile_image_url: Mapped[Optional[str]] = mapped_column(String(500))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
+    department_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("departments.id"), nullable=True)
     
     # Security fields
     last_login_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
@@ -328,7 +329,7 @@ class User(SoftDeletableModel):
         permissions: set[str] = set()
         
         for user_role in self.user_roles:
-            if user_role.organization_id == organization_id and not user_role.is_expired():
+            if user_role.organization_id == organization_id and not user_role.is_expired:
                 # TODO: Implement role permissions system
                 # if user_role.role.permissions:
                 #     permissions.update(user_role.role.permissions)
@@ -345,14 +346,14 @@ class User(SoftDeletableModel):
         for user_role in self.user_roles:
             if (user_role.department_id == department_id and 
                 user_role.role.code == role_code and 
-                not user_role.is_expired()):
+                not user_role.is_expired):
                 return True
         return False
     
     def has_permission_in_department(self, permission: str, department_id: int) -> bool:
         """Check if user has permission in department."""
         for user_role in self.user_roles:
-            if user_role.department_id == department_id and not user_role.is_expired():
+            if user_role.department_id == department_id and not user_role.is_expired:
                 # TODO: Implement role permission checking
                 # if user_role.role.has_permission(permission):
                 #     return True

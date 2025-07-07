@@ -192,7 +192,8 @@ class DepartmentService:
         manager_name = None
         
         if department.manager_id:
-            manager = self.db.query(User).filter(User.id == department.manager_id).first()
+            from sqlalchemy import select
+            manager = self.db.scalar(select(User).where(User.id == department.manager_id))
             if manager:
                 manager_name = manager.full_name
         
@@ -217,30 +218,26 @@ class DepartmentService:
     def get_department_response(self, department: Department) -> DepartmentResponse:
         """Get full department response."""
         # Load related data if needed
-        if department.parent_id and not department.parent:
-            department = self.repository.get_with_parent(department.id)
+        if department.parent_id and not hasattr(department, 'parent'):
+            loaded_dept = self.repository.get(department.id)
+            if loaded_dept:
+                department = loaded_dept
         
         # Get manager info
         manager = None
         if department.manager_id:
             manager_obj = self.db.query(User).filter(User.id == department.manager_id).first()
             if manager_obj:
-                manager = UserSummary(
+                from app.schemas.user import UserBasic
+                manager = UserBasic(
                     id=manager_obj.id,
                     email=manager_obj.email,
                     full_name=manager_obj.full_name,
-                    employee_code=manager_obj.employee_code,
                     is_active=manager_obj.is_active
                 )
         
-        # Build response
-        data = department.to_dict()
-        data["parent"] = department.parent.to_dict() if department.parent else None
-        data["manager"] = manager.model_dump() if manager else None
-        data["full_path"] = department.full_path
-        data["is_leaf"] = department.is_leaf
-        
-        return DepartmentResponse.model_validate(data)
+        # Build response using Pydantic
+        return DepartmentResponse.model_validate(department, from_attributes=True)
     
     def get_department_with_users(
         self,
@@ -255,18 +252,21 @@ class DepartmentService:
             department_ids.extend([d.id for d in sub_depts])
         
         # Get users
-        users = self.db.query(User).filter(
-            User.department_id.in_(department_ids),
-            User.is_active == True
-        ).order_by(User.full_name).all()
+        from sqlalchemy import select
+        users = list(self.db.scalars(
+            select(User).where(
+                User.department_id.in_(department_ids),
+                User.is_active == True
+            ).order_by(User.full_name)
+        ))
         
-        # Convert to UserSummary
-        user_summaries = [
-            UserSummary(
+        # Convert to UserBasic for DepartmentWithUsers
+        from app.schemas.user import UserBasic
+        user_basics = [
+            UserBasic(
                 id=user.id,
                 email=user.email,
                 full_name=user.full_name,
-                employee_code=user.employee_code,
                 is_active=user.is_active
             )
             for user in users
@@ -277,8 +277,8 @@ class DepartmentService:
         
         return DepartmentWithUsers(
             **dept_response.model_dump(),
-            users=user_summaries,
-            total_users=len(user_summaries)
+            users=user_basics,
+            total_users=len(user_basics)
         )
     
     def get_direct_sub_departments(self, parent_id: DepartmentId) -> List[Department]:

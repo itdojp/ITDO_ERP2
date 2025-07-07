@@ -47,7 +47,7 @@ def create_user_extended(
     current_user: User = Depends(get_current_active_user),
 ) -> Union[UserResponseExtended, JSONResponse]:
     """Create a new user with organization and role assignment."""
-    service = UserService()
+    service = UserService(db)
     
     try:
         user = service.create_user(
@@ -102,7 +102,7 @@ def list_users(
     current_user: User = Depends(get_current_active_user),
 ) -> UserListResponse:
     """List users with filtering and pagination."""
-    service = UserService()
+    service = UserService(db)
     
     # Build search params
     search_params = UserSearchParams(
@@ -140,7 +140,7 @@ def get_user_detail(
     current_user: User = Depends(get_current_active_user),
 ) -> Union[UserResponseExtended, JSONResponse]:
     """Get user details with roles and organizations."""
-    service = UserService()
+    service = UserService(db)
     
     try:
         return service.get_user_detail(
@@ -183,7 +183,7 @@ def update_user(
     current_user: User = Depends(get_current_active_user),
 ) -> Union[UserResponseExtended, JSONResponse]:
     """Update user information."""
-    service = UserService()
+    service = UserService(db)
     
     try:
         user = service.update_user(
@@ -241,7 +241,7 @@ def change_password(
     current_user: User = Depends(get_current_active_user),
 ) -> Union[Dict[str, Any], JSONResponse]:
     """Change user password."""
-    service = UserService()
+    service = UserService(db)
     
     try:
         service.change_password(
@@ -291,7 +291,7 @@ def reset_password(
     current_user: User = Depends(get_current_active_user),
 ) -> Union[Dict[str, Any], JSONResponse]:
     """Reset user password (admin only)."""
-    service = UserService()
+    service = UserService(db)
     
     try:
         temp_password = service.reset_password(
@@ -341,7 +341,7 @@ def assign_role(
     current_user: User = Depends(get_current_active_user),
 ) -> Union[Dict[str, Any], JSONResponse]:
     """Assign role to user."""
-    service = UserService()
+    service = UserService(db)
     
     try:
         user_role = service.assign_role(
@@ -419,7 +419,7 @@ def remove_role(
     current_user: User = Depends(get_current_active_user),
 ) -> None:
     """Remove role from user."""
-    service = UserService()
+    service = UserService(db)
     
     try:
         service.remove_role(
@@ -454,7 +454,7 @@ def get_user_permissions(
     current_user: User = Depends(get_current_active_user),
 ) -> PermissionListResponse:
     """Get user's effective permissions in organization."""
-    service = UserService()
+    service = UserService(db)
     
     # Permission check - user can view own permissions
     if current_user.id != user_id and not current_user.is_superuser:
@@ -500,7 +500,7 @@ def delete_user(
     current_user: User = Depends(get_current_superuser),
 ) -> None:
     """Soft delete user (admin only)."""
-    service = UserService()
+    service = UserService(db)
     
     try:
         service.delete_user(
@@ -543,7 +543,7 @@ def bulk_import_users(
     current_user: User = Depends(get_current_active_user),
 ) -> BulkImportResponse:
     """Bulk import users."""
-    service = UserService()
+    service = UserService(db)
     
     try:
         # Convert import data to dict format
@@ -577,6 +577,7 @@ def bulk_import_users(
 
 @router.get(
     "/export",
+    response_model=None,
     responses={
         403: {"model": ErrorResponse, "description": "Access denied"},
     },
@@ -588,7 +589,7 @@ def export_users(
     current_user: User = Depends(get_current_active_user),
 ) -> Union[StreamingResponse, JSONResponse]:
     """Export user list."""
-    service = UserService()
+    service = UserService(db)
     
     try:
         export_data = service.export_users(

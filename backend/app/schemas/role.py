@@ -38,6 +38,7 @@ class RoleDisplay(BaseModel):
 
 class RoleCreate(RoleBase, RolePermissions, RoleDisplay):
     """Schema for creating a role."""
+    organization_id: int = Field(..., description="Organization ID")
     role_type: str = Field("custom", max_length=50, description="Type of role")
     parent_id: Optional[int] = Field(None, description="Parent role ID for inheritance")
     is_system: bool = Field(False, description="Whether this is a system role")
@@ -95,10 +96,13 @@ class RoleTree(BaseModel):
     id: int
     code: str
     name: str
+    description: Optional[str] = None
     role_type: str
     is_active: bool
     level: int = 0
     parent_id: Optional[int] = None
+    user_count: int = 0
+    permission_count: int = 0
     children: List["RoleTree"] = Field(default_factory=list)
     
     model_config = ConfigDict(from_attributes=True)
@@ -173,6 +177,44 @@ class BulkRoleAssignment(BaseModel):
     valid_from: datetime = Field(default_factory=datetime.utcnow)
     expires_at: Optional[datetime] = None
     notes: Optional[str] = Field(None, max_length=1000)
+
+
+# Additional schemas for API compatibility
+class RoleSummary(RoleBasic):
+    """Role summary with additional info."""
+    description: Optional[str] = None
+    user_count: int = 0
+    permission_count: int = 0
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PermissionBasic(BaseModel):
+    """Basic permission information."""
+    id: int
+    code: str
+    name: str
+    description: Optional[str] = None
+    category: Optional[str] = None
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
+class RoleWithPermissions(RoleResponse):
+    """Role with permissions information."""
+    permission_list: List[PermissionBasic] = Field(default_factory=list, description="List of permissions")
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UserRoleAssignment(BaseModel):
+    """Schema for user role assignment."""
+    user_id: int = Field(..., description="User ID")
+    role_id: int = Field(..., description="Role ID")  
+    organization_id: int = Field(..., description="Organization ID")
+    department_id: Optional[int] = Field(None, description="Department ID")
+    valid_from: datetime = Field(default_factory=datetime.utcnow)
+    expires_at: Optional[datetime] = None
 
 
 # Update forward references

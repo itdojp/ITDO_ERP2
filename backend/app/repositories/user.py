@@ -142,10 +142,11 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
     
     def update_last_login(self, user_id: UserId) -> None:
         """Update user's last login timestamp."""
+        from sqlalchemy import update
         self.db.execute(
-            select(User)
+            update(User)
             .where(User.id == user_id)
-            .update({"last_login_at": datetime.utcnow()})
+            .values(last_login_at=datetime.utcnow())
         )
         self.db.commit()
     
@@ -174,10 +175,11 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
     
     def exists_by_email(self, email: str) -> bool:
         """Check if user exists by email."""
-        return self.db.scalar(
+        count = self.db.scalar(
             select(func.count(User.id))
             .where(User.email == email)
-        ) > 0
+        )
+        return bool(count and count > 0)
     
     def get_superusers(self) -> List[User]:
         """Get all superuser accounts."""

@@ -8,11 +8,14 @@ from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import StaticPool
 
 from app.main import app
-from app.core.database import Base, get_db
-from app.models.user import User
-from app.models.organization import Organization
-from app.models.department import Department
-from app.models.role import Role, Permission
+from app.core.database import get_db
+from app.models.base import Base
+# Import all models to ensure they are registered with SQLAlchemy
+from app.models import (
+    User, Organization, Department, Role, UserRole, RolePermission,
+    Permission, PasswordHistory, UserSession, UserActivityLog,
+    AuditLog, Project, ProjectMember, ProjectMilestone
+)
 from app.core.security import create_access_token
 from tests.factories import (
     UserFactory, 
@@ -23,14 +26,21 @@ from tests.factories import (
 )
 
 
-# Use in-memory SQLite for tests
-SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
+# Use PostgreSQL for integration tests (same as development)
+import os
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://itdo_user:itdo_password@localhost:5432/itdo_erp")
 
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
+# For SQLite tests (unit tests)
+if "unit" in os.getenv("PYTEST_CURRENT_TEST", ""):
+    SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
+    engine = create_engine(
+        SQLALCHEMY_DATABASE_URL,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+else:
+    # For integration tests, use PostgreSQL
+    engine = create_engine(SQLALCHEMY_DATABASE_URL)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
@@ -47,8 +57,20 @@ def db_session() -> Generator[Session, None, None]:
         yield session
     finally:
         session.close()
-        # Drop all tables after test
-        Base.metadata.drop_all(bind=engine)
+        # Clean up test data using CASCADE in PostgreSQL
+        if "postgresql" in str(engine.url):
+            # For PostgreSQL, use TRUNCATE with CASCADE
+            with engine.begin() as conn:
+                # Get all table names
+                tables = Base.metadata.tables.keys()
+                if tables:
+                    # Truncate all tables with CASCADE
+                    table_names = ', '.join(f'"{table}"' for table in tables)
+                    from sqlalchemy import text
+                    conn.execute(text(f"TRUNCATE {table_names} CASCADE"))
+        else:
+            # For SQLite, drop all tables
+            Base.metadata.drop_all(bind=engine)
 
 
 @pytest.fixture
@@ -78,8 +100,7 @@ def test_user(db_session: Session) -> User:
         db_session,
         password="TestPassword123!",
         email="testuser@example.com",
-        full_name="Test User",
-        employee_code="EMP-TEST"
+        full_name="Test User"
     )
 
 
@@ -91,7 +112,6 @@ def test_admin(db_session: Session) -> User:
         password="AdminPassword123!",
         email="admin@example.com",
         full_name="Admin User",
-        employee_code="EMP-ADMIN",
         is_superuser=True
     )
 
@@ -103,8 +123,7 @@ def test_manager(db_session: Session) -> User:
         db_session,
         password="ManagerPassword123!",
         email="manager@example.com",
-        full_name="Manager User",
-        employee_code="EMP-MGR"
+        full_name="Manager User"
     )
 
 

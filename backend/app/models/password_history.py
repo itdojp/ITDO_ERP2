@@ -6,13 +6,13 @@ from typing import TYPE_CHECKING
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, func
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 
-from app.core.database import Base
+from app.models.base import BaseModel
 
 if TYPE_CHECKING:
     from app.models.user import User
 
 
-class PasswordHistory(Base):
+class PasswordHistory(BaseModel):
     """Password history model to track user's previous passwords."""
 
     __tablename__ = "password_history"
