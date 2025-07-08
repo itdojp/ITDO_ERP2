@@ -31,19 +31,19 @@ class BusinessLogicError(Exception):
     pass
 
 
-class NotFound(Exception):
+class NotFoundError(Exception):
     """Raised when a resource is not found."""
 
     pass
 
 
-class PermissionDenied(Exception):
+class PermissionDeniedError(Exception):
     """Raised when user lacks permission for an action."""
 
     pass
 
 
-class AlreadyExists(Exception):
+class AlreadyExistsError(Exception):
     """Raised when attempting to create a resource that already exists."""
 
     pass
