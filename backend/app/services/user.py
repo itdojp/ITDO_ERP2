@@ -27,7 +27,7 @@ from app.services.audit import AuditLogger
 @dataclass
 class ExportData:
     """Export data container."""
-    
+
     content_type: str
     headers: List[str]
     rows: List[List[str]]

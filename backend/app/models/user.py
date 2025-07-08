@@ -362,7 +362,9 @@ class User(SoftDeletableModel):
                         if "codes" in user_role.role.permissions:
                             permissions.update(user_role.role.permissions["codes"])
                         elif "permissions" in user_role.role.permissions:
-                            permissions.update(user_role.role.permissions["permissions"])
+                            permissions.update(
+                                user_role.role.permissions["permissions"]
+                            )
                         else:
                             # Try to extract values that look like permission codes
                             for key, value in user_role.role.permissions.items():
