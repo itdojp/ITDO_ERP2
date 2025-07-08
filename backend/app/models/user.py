@@ -1,6 +1,6 @@
 """User model."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, desc, func
@@ -90,7 +90,7 @@ class User(SoftDeletableModel):
             phone=phone,
             is_active=is_active,
             is_superuser=is_superuser,
-            password_changed_at=datetime.utcnow(),
+            password_changed_at=datetime.now(timezone.utc),
         )
 
         # Add to database
@@ -131,7 +131,7 @@ class User(SoftDeletableModel):
                     self._validate_password_strength(value)
                     value = hash_password(value)
                     key = "hashed_password"
-                    self.password_changed_at = datetime.utcnow()
+                    self.password_changed_at = datetime.now(timezone.utc)
                 setattr(self, key, value)
 
         db.add(self)
@@ -160,7 +160,7 @@ class User(SoftDeletableModel):
 
         # Update password
         self.hashed_password = hash_password(new_password)
-        self.password_changed_at = datetime.utcnow()
+        self.password_changed_at = datetime.now(timezone.utc)
         self.password_must_change = False
         self.failed_login_attempts = 0
         self.locked_until = None
@@ -174,7 +174,7 @@ class User(SoftDeletableModel):
 
         # Lock account after 5 failed attempts
         if self.failed_login_attempts >= 5:
-            self.locked_until = datetime.utcnow() + timedelta(minutes=30)
+            self.locked_until = datetime.now(timezone.utc) + timedelta(minutes=30)
 
         db.add(self)
         db.flush()
@@ -183,7 +183,7 @@ class User(SoftDeletableModel):
         """Record successful login."""
         self.failed_login_attempts = 0
         self.locked_until = None
-        self.last_login_at = datetime.utcnow()
+        self.last_login_at = datetime.now(timezone.utc)
 
         db.add(self)
         db.flush()
@@ -192,12 +192,12 @@ class User(SoftDeletableModel):
         """Check if account is locked."""
         if not self.locked_until:
             return False
-        return datetime.utcnow() < self.locked_until
+        return datetime.now(timezone.utc) < self.locked_until
 
     def is_password_expired(self) -> bool:
         """Check if password has expired (90 days)."""
         expiry_date = self.password_changed_at + timedelta(days=90)
-        return datetime.utcnow() > expiry_date
+        return datetime.now(timezone.utc) > expiry_date
 
     def create_session(
         self,
@@ -217,7 +217,7 @@ class User(SoftDeletableModel):
             .filter(
                 UserSession.user_id == self.id,
                 UserSession.is_active,
-                UserSession.expires_at > datetime.utcnow(),
+                UserSession.expires_at > datetime.now(timezone.utc),
             )
             .order_by(UserSession.created_at)
             .all()
@@ -230,7 +230,7 @@ class User(SoftDeletableModel):
 
         # Create new session
         if not expires_at:
-            expires_at = datetime.utcnow() + timedelta(hours=24)
+            expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
 
         session = UserSession(
             user_id=self.id,
