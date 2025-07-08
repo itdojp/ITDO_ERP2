@@ -112,4 +112,6 @@ class UserFactory(BaseFactory):
 # Helper function for backward compatibility
 def create_test_user(db_session: Session, **kwargs) -> User:
     """Create a test user (backward compatibility wrapper)."""
-    return UserFactory.create(db_session, **kwargs)
+    # Extract password if provided, otherwise use default
+    password = kwargs.pop("password", "TestPassword123!")
+    return UserFactory.create_with_password(db_session, password, **kwargs)

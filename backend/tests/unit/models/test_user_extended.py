@@ -47,13 +47,12 @@ class TestUserExtendedModel:
     def test_password_history_tracking(self, db_session: Session) -> None:
         """TEST-USER-MODEL-002: パスワード履歴の記録をテスト."""
         # Given: 既存ユーザー
-        user = create_test_user(email="history@example.com")
-        db_session.add(user)
+        user = create_test_user(db_session, email="history@example.com")
         db_session.commit()
         old_hash = user.hashed_password
 
         # When: パスワード変更
-        user.change_password(db_session, "OldPass123!", "NewPassword123!")
+        user.change_password(db_session, "TestPassword123!", "NewPassword123!")
         db_session.commit()
 
         # Then: 履歴が記録される
@@ -68,7 +67,7 @@ class TestUserExtendedModel:
     def test_password_reuse_prevention(self, db_session: Session) -> None:
         """TEST-USER-MODEL-003: 直近3回のパスワード再利用防止をテスト."""
         # Given: ユーザーとパスワード履歴
-        user = create_test_user()
+        user = create_test_user(db_session)
         db_session.add(user)
         db_session.commit()
 
@@ -85,7 +84,7 @@ class TestUserExtendedModel:
     def test_account_lockout_after_failed_attempts(self, db_session: Session) -> None:
         """TEST-USER-MODEL-004: ログイン失敗によるアカウントロックをテスト."""
         # Given: ユーザー
-        user = create_test_user()
+        user = create_test_user(db_session)
         db_session.add(user)
         db_session.commit()
 
@@ -102,7 +101,7 @@ class TestUserExtendedModel:
     def test_successful_login_resets_failed_attempts(self, db_session: Session) -> None:
         """TEST-USER-MODEL-005: 成功ログインで失敗回数リセットをテスト."""
         # Given: 失敗回数があるユーザー
-        user = create_test_user()
+        user = create_test_user(db_session)
         db_session.add(user)
         user.failed_login_attempts = 3
         db_session.commit()
@@ -117,7 +116,7 @@ class TestUserExtendedModel:
     def test_profile_image_url(self, db_session: Session) -> None:
         """TEST-USER-MODEL-006: プロファイル画像URLの保存をテスト."""
         # Given: ユーザー
-        user = create_test_user()
+        user = create_test_user(db_session)
         db_session.add(user)
         db_session.commit()
 
@@ -130,7 +129,7 @@ class TestUserExtendedModel:
     def test_password_strength_validation(self, db_session: Session) -> None:
         """TEST-USER-MODEL-007: パスワード強度検証をテスト."""
         # Given: ユーザー
-        user = create_test_user()
+        user = create_test_user(db_session)
         db_session.add(user)
         db_session.commit()
 
@@ -150,7 +149,7 @@ class TestUserExtendedModel:
     def test_user_session_tracking(self, db_session: Session) -> None:
         """TEST-USER-MODEL-008: ユーザーセッション追跡をテスト."""
         # Given: ユーザー
-        user = create_test_user()
+        user = create_test_user(db_session)
         db_session.add(user)
         db_session.commit()
 
@@ -172,7 +171,7 @@ class TestUserExtendedModel:
     def test_concurrent_session_limit(self, db_session: Session) -> None:
         """TEST-USER-MODEL-009: 同時セッション数制限をテスト."""
         # Given: ユーザーと5つのセッション
-        user = create_test_user()
+        user = create_test_user(db_session)
         db_session.add(user)
         db_session.commit()
 
@@ -198,7 +197,7 @@ class TestUserExtendedModel:
         # Given: ユーザーと組織
         from tests.factories import create_test_organization, create_test_role
 
-        user = create_test_user()
+        user = create_test_user(db_session)
         org = create_test_organization()
         role = create_test_role(code="USER")
         db_session.add_all([user, org, role])
@@ -224,7 +223,7 @@ class TestUserExtendedModel:
             create_test_role,
         )
 
-        user = create_test_user()
+        user = create_test_user(db_session)
         org = create_test_organization()
         dept = create_test_department(organization=org)
         role = create_test_role(code="DEPT_USER")
@@ -249,7 +248,7 @@ class TestUserExtendedModel:
         # Given: 複数ロールを持つユーザー
         from tests.factories import create_test_organization, create_test_role
 
-        user = create_test_user()
+        user = create_test_user(db_session)
         org = create_test_organization()
         role1 = create_test_role(code="READER", permissions=["read:*"])
         role2 = create_test_role(code="WRITER", permissions=["write:own"])
@@ -270,7 +269,7 @@ class TestUserExtendedModel:
     def test_password_expiry_check(self, db_session: Session) -> None:
         """TEST-USER-MODEL-013: パスワード有効期限チェックをテスト."""
         # Given: パスワード変更から90日経過したユーザー
-        user = create_test_user()
+        user = create_test_user(db_session)
         db_session.add(user)
         user.password_changed_at = datetime.utcnow() - timedelta(days=91)
         db_session.commit()
@@ -284,7 +283,7 @@ class TestUserExtendedModel:
     def test_user_soft_delete(self, db_session: Session) -> None:
         """TEST-USER-MODEL-014: ユーザーの論理削除をテスト."""
         # Given: アクティブなユーザー
-        user = create_test_user()
+        user = create_test_user(db_session)
         db_session.add(user)
         db_session.commit()
         user_id = user.id
@@ -302,7 +301,7 @@ class TestUserExtendedModel:
     def test_user_activity_log(self, db_session: Session) -> None:
         """TEST-USER-MODEL-015: ユーザー活動ログ記録をテスト."""
         # Given: ユーザー
-        user = create_test_user()
+        user = create_test_user(db_session)
         db_session.add(user)
         db_session.commit()
 
