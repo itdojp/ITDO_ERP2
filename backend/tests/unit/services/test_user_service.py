@@ -420,9 +420,10 @@ class TestUserService:
 
     def test_user_activity_logging(self, service, db_session: Session) -> None:
         """TEST-USER-SERVICE-017: ユーザー操作の監査ログ記録をテスト."""
-        # Given: システム管理者
+        # Given: システム管理者と組織
         admin = create_test_user(db_session, is_superuser=True)
-        db_session.add(admin)
+        org = create_test_organization(db_session)
+        db_session.add_all([admin, org])
         db_session.commit()
 
         # Mock audit logger
@@ -433,7 +434,7 @@ class TestUserService:
                     email="audit@example.com",
                     full_name="監査テストユーザー",
                     password="AuditPass123!",
-                    organization_id=1,
+                    organization_id=org.id,
                     role_ids=[],
                 ),
                 creator=admin,
