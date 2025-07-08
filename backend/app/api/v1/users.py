@@ -1,6 +1,5 @@
 """User management endpoints."""
 
-from datetime import datetime
 from typing import Union
 
 from fastapi import APIRouter, Depends, status
@@ -53,7 +52,6 @@ def create_user(
             content=ErrorResponse(
                 detail="User with this email already exists",
                 code="USER001",
-                timestamp=datetime.utcnow(),
             ).model_dump(),
         )
 
