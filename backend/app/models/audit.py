@@ -26,22 +26,30 @@ class AuditLog(BaseModel):
     __tablename__ = "audit_logs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id"), nullable=False, index=True
+    )
     action: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
     resource_type: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
     resource_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
-    organization_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("organizations.id"), index=True)
+    organization_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("organizations.id"), index=True
+    )
     changes: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
     ip_address: Mapped[Optional[str]] = mapped_column(String(45))
     user_agent: Mapped[Optional[str]] = mapped_column(Text)
-    checksum: Mapped[Optional[str]] = mapped_column(String(64))  # SHA-256 hash for integrity
+    checksum: Mapped[Optional[str]] = mapped_column(
+        String(64)
+    )  # SHA-256 hash for integrity
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), index=True
     )
 
     # Relationships
     user: Mapped["User"] = relationship("User", foreign_keys=[user_id])
-    organization: Mapped[Optional["Organization"]] = relationship("Organization", foreign_keys=[organization_id])
+    organization: Mapped[Optional["Organization"]] = relationship(
+        "Organization", foreign_keys=[organization_id]
+    )
 
     def calculate_checksum(self) -> str:
         """Calculate checksum for audit log integrity."""
@@ -51,7 +59,7 @@ class AuditLog(BaseModel):
             "resource_type": self.resource_type,
             "resource_id": self.resource_id,
             "changes": self.changes,
-            "created_at": self.created_at.isoformat() if self.created_at else None
+            "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 
         # Create hash

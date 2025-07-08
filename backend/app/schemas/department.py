@@ -1,4 +1,5 @@
 """Department schemas."""
+
 from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -10,6 +11,7 @@ from app.schemas.user import UserBasic
 
 class UserSummary(BaseModel):
     """Summary information about a user."""
+
     id: int
     email: str
     full_name: str
@@ -23,37 +25,55 @@ class UserSummary(BaseModel):
 
 class DepartmentBase(BaseModel):
     """Base schema for department."""
+
     code: str = Field(..., min_length=1, max_length=50, description="Department code")
     name: str = Field(..., min_length=1, max_length=200, description="Department name")
-    name_kana: Optional[str] = Field(None, max_length=200, description="Department name in Katakana")
-    name_en: Optional[str] = Field(None, max_length=200, description="Department name in English")
-    short_name: Optional[str] = Field(None, max_length=50, description="Short name or abbreviation")
+    name_kana: Optional[str] = Field(
+        None, max_length=200, description="Department name in Katakana"
+    )
+    name_en: Optional[str] = Field(
+        None, max_length=200, description="Department name in English"
+    )
+    short_name: Optional[str] = Field(
+        None, max_length=50, description="Short name or abbreviation"
+    )
     is_active: bool = Field(True, description="Whether the department is active")
 
 
 class DepartmentContactInfo(BaseModel):
     """Department contact information."""
-    phone: Optional[str] = Field(None, max_length=20, pattern=r'^[\d\-\+\(\)]+$')
-    fax: Optional[str] = Field(None, max_length=20, pattern=r'^[\d\-\+\(\)]+$')
-    email: Optional[str] = Field(None, max_length=255, pattern=r'^[\w\.\-]+@[\w\.\-]+\.\w+$')
-    location: Optional[str] = Field(None, max_length=255, description="Physical location")
+
+    phone: Optional[str] = Field(None, max_length=20, pattern=r"^[\d\-\+\(\)]+$")
+    fax: Optional[str] = Field(None, max_length=20, pattern=r"^[\d\-\+\(\)]+$")
+    email: Optional[str] = Field(
+        None, max_length=255, pattern=r"^[\w\.\-]+@[\w\.\-]+\.\w+$"
+    )
+    location: Optional[str] = Field(
+        None, max_length=255, description="Physical location"
+    )
 
 
 class DepartmentOperationalInfo(BaseModel):
     """Department operational information."""
-    department_type: Optional[str] = Field(None, max_length=50, description="Type of department")
+
+    department_type: Optional[str] = Field(
+        None, max_length=50, description="Type of department"
+    )
     budget: Optional[int] = Field(None, ge=0, description="Annual budget in JPY")
-    headcount_limit: Optional[int] = Field(None, ge=0, description="Maximum allowed headcount")
-    cost_center_code: Optional[str] = Field(None, max_length=50, description="Cost center code")
+    headcount_limit: Optional[int] = Field(
+        None, ge=0, description="Maximum allowed headcount"
+    )
+    cost_center_code: Optional[str] = Field(
+        None, max_length=50, description="Cost center code"
+    )
     display_order: int = Field(0, ge=0, description="Display order")
 
 
 class DepartmentCreate(
-    DepartmentBase,
-    DepartmentContactInfo,
-    DepartmentOperationalInfo
+    DepartmentBase, DepartmentContactInfo, DepartmentOperationalInfo
 ):
     """Schema for creating a department."""
+
     organization_id: int = Field(..., description="Organization ID")
     parent_id: Optional[int] = Field(None, description="Parent department ID")
     manager_id: Optional[int] = Field(None, description="Department manager user ID")
@@ -62,6 +82,7 @@ class DepartmentCreate(
 
 class DepartmentUpdate(BaseModel):
     """Schema for updating a department."""
+
     code: Optional[str] = Field(None, min_length=1, max_length=50)
     name: Optional[str] = Field(None, min_length=1, max_length=200)
     name_kana: Optional[str] = Field(None, max_length=200)
@@ -70,9 +91,11 @@ class DepartmentUpdate(BaseModel):
     is_active: Optional[bool] = None
 
     # Contact info
-    phone: Optional[str] = Field(None, max_length=20, pattern=r'^[\d\-\+\(\)]+$')
-    fax: Optional[str] = Field(None, max_length=20, pattern=r'^[\d\-\+\(\)]+$')
-    email: Optional[str] = Field(None, max_length=255, pattern=r'^[\w\.\-]+@[\w\.\-]+\.\w+$')
+    phone: Optional[str] = Field(None, max_length=20, pattern=r"^[\d\-\+\(\)]+$")
+    fax: Optional[str] = Field(None, max_length=20, pattern=r"^[\d\-\+\(\)]+$")
+    email: Optional[str] = Field(
+        None, max_length=255, pattern=r"^[\w\.\-]+@[\w\.\-]+\.\w+$"
+    )
     location: Optional[str] = Field(None, max_length=255)
 
     # Operational info
@@ -90,6 +113,7 @@ class DepartmentUpdate(BaseModel):
 
 class DepartmentBasic(BaseModel):
     """Basic department information."""
+
     id: int
     code: str
     name: str
@@ -103,6 +127,7 @@ class DepartmentBasic(BaseModel):
 
 class DepartmentSummary(DepartmentBasic):
     """Department summary with additional info."""
+
     name_en: Optional[str] = None
     organization_id: int
     organization_name: Optional[str] = None
@@ -124,9 +149,10 @@ class DepartmentResponse(
     DepartmentContactInfo,
     DepartmentOperationalInfo,
     AuditInfo,
-    SoftDeleteInfo
+    SoftDeleteInfo,
 ):
     """Full department response schema."""
+
     id: int
     organization_id: int
     organization: OrganizationBasic
@@ -146,6 +172,7 @@ class DepartmentResponse(
 
 class DepartmentTree(BaseModel):
     """Department tree structure."""
+
     id: int
     code: str
     name: str
@@ -166,6 +193,7 @@ class DepartmentTree(BaseModel):
 
 class DepartmentWithUsers(DepartmentResponse):
     """Department with user list."""
+
     users: List[UserBasic] = Field(default_factory=list)
     total_users: int = 0
 

@@ -18,7 +18,9 @@ class UserActivityLog(BaseModel):
     __tablename__ = "user_activity_logs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id"), nullable=False, index=True
+    )
     action: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     details: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
     ip_address: Mapped[Optional[str]] = mapped_column(String(45))
@@ -31,4 +33,7 @@ class UserActivityLog(BaseModel):
     user: Mapped["User"] = relationship("User", back_populates="activity_logs")
 
     def __repr__(self) -> str:
-        return f"<UserActivityLog(id={self.id}, user={self.user_id}, action={self.action})>"
+        return (
+            f"<UserActivityLog(id={self.id}, user={self.user_id}, "
+            f"action={self.action})>"
+        )

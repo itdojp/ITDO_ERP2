@@ -22,7 +22,8 @@ class UserFactory(BaseFactory):
             "phone": fake.phone_number(),
             "is_active": True,
             "is_superuser": False,
-            "hashed_password": fake.password(length=60)  # Simulated bcrypt hash length
+            "is_deleted": False,
+            "hashed_password": fake.password(length=60),  # Simulated bcrypt hash length
         }
 
     @classmethod
@@ -31,40 +32,41 @@ class UserFactory(BaseFactory):
         return {
             "full_name": fake.name(),
             "phone": fake.phone_number(),
-            "is_active": fake.boolean()
+            "is_active": fake.boolean(),
         }
 
     @classmethod
     def create_with_password(cls, db_session, password: str, **kwargs) -> User:
         """Create a user with a specific password."""
         from app.core.security import hash_password
-        kwargs['hashed_password'] = hash_password(password)
+
+        kwargs["hashed_password"] = hash_password(password)
         return cls.create(db_session, **kwargs)
 
     @classmethod
     def create_admin(cls, db_session, **kwargs) -> User:
         """Create an admin user."""
-        kwargs['is_superuser'] = True
-        kwargs['email'] = kwargs.get('email', fake.unique.email())
+        kwargs["is_superuser"] = True
+        kwargs["email"] = kwargs.get("email", fake.unique.email())
         return cls.create(db_session, **kwargs)
 
     @classmethod
     def create_inactive(cls, db_session, **kwargs) -> User:
         """Create an inactive user."""
-        kwargs['is_active'] = False
+        kwargs["is_active"] = False
         return cls.create(db_session, **kwargs)
 
     @classmethod
     def create_with_department(cls, db_session, department_id: int, **kwargs) -> User:
         """Create a user in a specific department."""
-        kwargs['department_id'] = department_id
+        kwargs["department_id"] = department_id
         return cls.create(db_session, **kwargs)
 
     @classmethod
     def create_with_email_domain(cls, db_session, domain: str, **kwargs) -> User:
         """Create a user with a specific email domain."""
         username = fake.user_name()
-        kwargs['email'] = f"{username}@{domain}"
+        kwargs["email"] = f"{username}@{domain}"
         return cls.create(db_session, **kwargs)
 
     @classmethod
@@ -73,31 +75,23 @@ class UserFactory(BaseFactory):
         users = {}
 
         # Admin user
-        users['admin'] = cls.create_admin(
-            db_session,
-            email="admin@example.com",
-            full_name="Admin User"
+        users["admin"] = cls.create_admin(
+            db_session, email="admin@example.com", full_name="Admin User"
         )
 
         # Manager user
-        users['manager'] = cls.create(
-            db_session,
-            email="manager@example.com",
-            full_name="Manager User"
+        users["manager"] = cls.create(
+            db_session, email="manager@example.com", full_name="Manager User"
         )
 
         # Regular user
-        users['user'] = cls.create(
-            db_session,
-            email="user@example.com",
-            full_name="Regular User"
+        users["user"] = cls.create(
+            db_session, email="user@example.com", full_name="Regular User"
         )
 
         # Inactive user
-        users['inactive'] = cls.create_inactive(
-            db_session,
-            email="inactive@example.com",
-            full_name="Inactive User"
+        users["inactive"] = cls.create_inactive(
+            db_session, email="inactive@example.com", full_name="Inactive User"
         )
 
         return users
@@ -110,7 +104,7 @@ class UserFactory(BaseFactory):
             "full_name": fake.name(),
             "is_active": True,
             "is_superuser": False,
-            "hashed_password": fake.password(length=60)
+            "hashed_password": fake.password(length=60),
         }
         minimal_attrs.update(kwargs)
         return cls.create(db_session, **minimal_attrs)
@@ -119,4 +113,6 @@ class UserFactory(BaseFactory):
 # Helper function for backward compatibility
 def create_test_user(db_session: Session, **kwargs) -> User:
     """Create a test user (backward compatibility wrapper)."""
-    return UserFactory.create(db_session, **kwargs)
+    # Extract password if provided, otherwise use default
+    password = kwargs.pop("password", "TestPassword123!")
+    return UserFactory.create_with_password(db_session, password, **kwargs)

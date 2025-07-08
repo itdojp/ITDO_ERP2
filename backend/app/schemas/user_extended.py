@@ -26,11 +26,12 @@ class UserCreateExtended(UserBase):
 
         # Check for at least 3 of: uppercase, lowercase, digit, special char
         import re
+
         checks = [
             bool(re.search(r"[A-Z]", v)),  # Has uppercase
             bool(re.search(r"[a-z]", v)),  # Has lowercase
-            bool(re.search(r"\d", v)),     # Has digit
-            bool(re.search(r"[!@#$%^&*(),.?\":{}|<>]", v))  # Has special char
+            bool(re.search(r"\d", v)),  # Has digit
+            bool(re.search(r"[!@#$%^&*(),.?\":{}|<>]", v)),  # Has special char
         ]
 
         if sum(checks) < 3:
@@ -88,11 +89,12 @@ class PasswordChange(BaseModel):
             raise ValueError("Password must be at least 8 characters long")
 
         import re
+
         checks = [
             bool(re.search(r"[A-Z]", v)),
             bool(re.search(r"[a-z]", v)),
             bool(re.search(r"\d", v)),
-            bool(re.search(r"[!@#$%^&*(),.?\":{}|<>]", v))
+            bool(re.search(r"[!@#$%^&*(),.?\":{}|<>]", v)),
         ]
 
         if sum(checks) < 3:

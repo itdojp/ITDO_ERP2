@@ -1,4 +1,5 @@
 """Organization schemas."""
+
 from typing import Any, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -8,10 +9,13 @@ from app.schemas.common import AuditInfo, SoftDeleteInfo
 
 class OrganizationBase(BaseModel):
     """Base schema for organization."""
+
     code: str = Field(
         ..., min_length=1, max_length=50, description="Unique organization code"
     )
-    name: str = Field(..., min_length=1, max_length=200, description="Organization name")
+    name: str = Field(
+        ..., min_length=1, max_length=200, description="Organization name"
+    )
     name_kana: Optional[str] = Field(
         None, max_length=200, description="Organization name in Katakana"
     )
@@ -23,17 +27,19 @@ class OrganizationBase(BaseModel):
 
 class OrganizationContactInfo(BaseModel):
     """Contact information schema."""
-    phone: Optional[str] = Field(None, max_length=20, pattern=r'^[\d\-\+\(\)]+$')
-    fax: Optional[str] = Field(None, max_length=20, pattern=r'^[\d\-\+\(\)]+$')
+
+    phone: Optional[str] = Field(None, max_length=20, pattern=r"^[\d\-\+\(\)]+$")
+    fax: Optional[str] = Field(None, max_length=20, pattern=r"^[\d\-\+\(\)]+$")
     email: Optional[str] = Field(
-        None, max_length=255, pattern=r'^[\w\.\-]+@[\w\.\-]+\.\w+$'
+        None, max_length=255, pattern=r"^[\w\.\-]+@[\w\.\-]+\.\w+$"
     )
     website: Optional[str] = Field(None, max_length=255)
 
 
 class OrganizationAddressInfo(BaseModel):
     """Address information schema."""
-    postal_code: Optional[str] = Field(None, max_length=10, pattern=r'^\d{3}-?\d{4}$')
+
+    postal_code: Optional[str] = Field(None, max_length=10, pattern=r"^\d{3}-?\d{4}$")
     prefecture: Optional[str] = Field(None, max_length=50)
     city: Optional[str] = Field(None, max_length=100)
     address_line1: Optional[str] = Field(None, max_length=255)
@@ -42,12 +48,13 @@ class OrganizationAddressInfo(BaseModel):
 
 class OrganizationBusinessInfo(BaseModel):
     """Business information schema."""
+
     business_type: Optional[str] = Field(None, max_length=100)
     industry: Optional[str] = Field(None, max_length=100)
     capital: Optional[int] = Field(None, ge=0, description="Capital amount in JPY")
     employee_count: Optional[int] = Field(None, ge=0)
     fiscal_year_end: Optional[str] = Field(
-        None, pattern=r'^\d{2}-\d{2}$', description="MM-DD format"
+        None, pattern=r"^\d{2}-\d{2}$", description="MM-DD format"
     )
 
 
@@ -55,9 +62,10 @@ class OrganizationCreate(
     OrganizationBase,
     OrganizationContactInfo,
     OrganizationAddressInfo,
-    OrganizationBusinessInfo
+    OrganizationBusinessInfo,
 ):
     """Schema for creating an organization."""
+
     parent_id: Optional[int] = Field(None, description="Parent organization ID")
     description: Optional[str] = Field(None, max_length=1000)
     logo_url: Optional[str] = Field(None, max_length=255)
@@ -66,6 +74,7 @@ class OrganizationCreate(
 
 class OrganizationUpdate(BaseModel):
     """Schema for updating an organization."""
+
     code: Optional[str] = Field(None, min_length=1, max_length=50)
     name: Optional[str] = Field(None, min_length=1, max_length=200)
     name_kana: Optional[str] = Field(None, max_length=200)
@@ -73,15 +82,15 @@ class OrganizationUpdate(BaseModel):
     is_active: Optional[bool] = None
 
     # Contact info
-    phone: Optional[str] = Field(None, max_length=20, pattern=r'^[\d\-\+\(\)]+$')
-    fax: Optional[str] = Field(None, max_length=20, pattern=r'^[\d\-\+\(\)]+$')
+    phone: Optional[str] = Field(None, max_length=20, pattern=r"^[\d\-\+\(\)]+$")
+    fax: Optional[str] = Field(None, max_length=20, pattern=r"^[\d\-\+\(\)]+$")
     email: Optional[str] = Field(
-        None, max_length=255, pattern=r'^[\w\.\-]+@[\w\.\-]+\.\w+$'
+        None, max_length=255, pattern=r"^[\w\.\-]+@[\w\.\-]+\.\w+$"
     )
     website: Optional[str] = Field(None, max_length=255)
 
     # Address info
-    postal_code: Optional[str] = Field(None, max_length=10, pattern=r'^\d{3}-?\d{4}$')
+    postal_code: Optional[str] = Field(None, max_length=10, pattern=r"^\d{3}-?\d{4}$")
     prefecture: Optional[str] = Field(None, max_length=50)
     city: Optional[str] = Field(None, max_length=100)
     address_line1: Optional[str] = Field(None, max_length=255)
@@ -92,7 +101,7 @@ class OrganizationUpdate(BaseModel):
     industry: Optional[str] = Field(None, max_length=100)
     capital: Optional[int] = Field(None, ge=0)
     employee_count: Optional[int] = Field(None, ge=0)
-    fiscal_year_end: Optional[str] = Field(None, pattern=r'^\d{2}-\d{2}$')
+    fiscal_year_end: Optional[str] = Field(None, pattern=r"^\d{2}-\d{2}$")
 
     # Other fields
     parent_id: Optional[int] = None
@@ -103,6 +112,7 @@ class OrganizationUpdate(BaseModel):
 
 class OrganizationBasic(BaseModel):
     """Basic organization information."""
+
     id: int
     code: str
     name: str
@@ -114,6 +124,7 @@ class OrganizationBasic(BaseModel):
 
 class OrganizationSummary(OrganizationBasic):
     """Organization summary with additional info."""
+
     parent_id: Optional[int] = None
     parent_name: Optional[str] = None
     department_count: int = 0
@@ -128,9 +139,10 @@ class OrganizationResponse(
     OrganizationAddressInfo,
     OrganizationBusinessInfo,
     AuditInfo,
-    SoftDeleteInfo
+    SoftDeleteInfo,
 ):
     """Full organization response schema."""
+
     id: int
     parent_id: Optional[int] = None
     parent: Optional[OrganizationBasic] = None
@@ -147,6 +159,7 @@ class OrganizationResponse(
 
 class OrganizationTree(BaseModel):
     """Organization tree structure."""
+
     id: int
     code: str
     name: str

@@ -1,1 +1,1 @@
-# Tests module
+"""Test package for ITDO ERP System."""

@@ -26,7 +26,9 @@ structlog.configure(
         structlog.processors.TimeStamper(fmt="iso"),
         structlog.processors.add_log_level,
         structlog.processors.StackInfoRenderer(),
-        structlog.dev.ConsoleRenderer() if __debug__ else structlog.processors.JSONRenderer()
+        structlog.dev.ConsoleRenderer()
+        if __debug__
+        else structlog.processors.JSONRenderer(),
     ],
     wrapper_class=structlog.make_filtering_bound_logger(30),  # INFO level
     context_class=dict,
@@ -39,59 +41,54 @@ logger = structlog.get_logger(__name__)
 
 # Prometheus metrics
 REQUEST_COUNT = Counter(
-    'http_requests_total',
-    'Total HTTP requests',
-    ['method', 'endpoint', 'status_code']
+    "http_requests_total", "Total HTTP requests", ["method", "endpoint", "status_code"]
 )
 
 REQUEST_DURATION = Histogram(
-    'http_request_duration_seconds',
-    'HTTP request duration in seconds',
-    ['method', 'endpoint']
+    "http_request_duration_seconds",
+    "HTTP request duration in seconds",
+    ["method", "endpoint"],
 )
 
-ACTIVE_CONNECTIONS = Gauge(
-    'active_connections',
-    'Number of active connections'
-)
+ACTIVE_CONNECTIONS = Gauge("active_connections", "Number of active connections")
 
 DATABASE_QUERY_COUNT = Counter(
-    'database_queries_total',
-    'Total database queries',
-    ['operation', 'table']
+    "database_queries_total", "Total database queries", ["operation", "table"]
 )
 
 DATABASE_QUERY_DURATION = Histogram(
-    'database_query_duration_seconds',
-    'Database query duration in seconds',
-    ['operation', 'table']
+    "database_query_duration_seconds",
+    "Database query duration in seconds",
+    ["operation", "table"],
 )
 
 API_RESPONSE_SIZE = Histogram(
-    'api_response_size_bytes',
-    'API response size in bytes',
-    ['endpoint']
+    "api_response_size_bytes", "API response size in bytes", ["endpoint"]
 )
 
-ERROR_COUNT = Counter(
-    'errors_total',
-    'Total errors',
-    ['error_type', 'endpoint']
-)
+ERROR_COUNT = Counter("errors_total", "Total errors", ["error_type", "endpoint"])
 
 BUSINESS_METRICS = {
-    'organizations_created': Counter('organizations_created_total', 'Total organizations created'),
-    'departments_created': Counter('departments_created_total', 'Total departments created'),
-    'roles_created': Counter('roles_created_total', 'Total roles created'),
-    'users_active': Gauge('users_active', 'Number of active users'),
-    'login_attempts': Counter('login_attempts_total', 'Total login attempts', ['status']),
+    "organizations_created": Counter(
+        "organizations_created_total", "Total organizations created"
+    ),
+    "departments_created": Counter(
+        "departments_created_total", "Total departments created"
+    ),
+    "roles_created": Counter("roles_created_total", "Total roles created"),
+    "users_active": Gauge("users_active", "Number of active users"),
+    "login_attempts": Counter(
+        "login_attempts_total", "Total login attempts", ["status"]
+    ),
 }
 
 
 class MonitoringMiddleware(BaseHTTPMiddleware):
     """Middleware for collecting metrics and logging."""
 
-    async def dispatch(self, request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
+    async def dispatch(
+        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
         """Process request and collect metrics."""
         start_time = time.time()
 
@@ -110,7 +107,7 @@ class MonitoringMiddleware(BaseHTTPMiddleware):
             method=method,
             path=path,
             client_ip=client_ip,
-            user_agent=request.headers.get("user-agent", "unknown")
+            user_agent=request.headers.get("user-agent", "unknown"),
         )
 
         try:
@@ -123,18 +120,13 @@ class MonitoringMiddleware(BaseHTTPMiddleware):
 
             # Update metrics
             REQUEST_COUNT.labels(
-                method=method,
-                endpoint=path,
-                status_code=status_code
+                method=method, endpoint=path, status_code=status_code
             ).inc()
 
-            REQUEST_DURATION.labels(
-                method=method,
-                endpoint=path
-            ).observe(duration)
+            REQUEST_DURATION.labels(method=method, endpoint=path).observe(duration)
 
             # Log response size if available
-            if hasattr(response, 'body'):
+            if hasattr(response, "body"):
                 body_size = len(response.body) if response.body else 0
                 API_RESPONSE_SIZE.labels(endpoint=path).observe(body_size)
 
@@ -143,7 +135,7 @@ class MonitoringMiddleware(BaseHTTPMiddleware):
                 "Request completed",
                 status_code=status_code,
                 duration=duration,
-                response_size=getattr(response, 'content_length', 0)
+                response_size=getattr(response, "content_length", 0),
             )
 
             return response
@@ -153,17 +145,14 @@ class MonitoringMiddleware(BaseHTTPMiddleware):
             duration = time.time() - start_time
             error_type = type(e).__name__
 
-            ERROR_COUNT.labels(
-                error_type=error_type,
-                endpoint=path
-            ).inc()
+            ERROR_COUNT.labels(error_type=error_type, endpoint=path).inc()
 
             logger.error(
                 "Request failed",
                 error_type=error_type,
                 error_message=str(e),
                 duration=duration,
-                exc_info=True
+                exc_info=True,
             )
 
             raise
@@ -194,10 +183,12 @@ def setup_tracing(service_name: str = "itdo-erp-backend") -> None:
     RedisInstrumentor.instrument()
 
 
-F = TypeVar('F', bound=Callable[..., Any])
+F = TypeVar("F", bound=Callable[..., Any])
+
 
 def trace_function(operation_name: Optional[str] = None) -> Callable[[F], F]:
     """Decorator to trace function execution."""
+
     def decorator(func: F) -> F:
         @wraps(func)
         async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -239,6 +230,7 @@ def trace_function(operation_name: Optional[str] = None) -> Callable[[F], F]:
 
         # Return appropriate wrapper based on function type
         import asyncio
+
         if asyncio.iscoroutinefunction(func):
             return async_wrapper  # type: ignore[return-value]
         else:
@@ -257,43 +249,35 @@ def database_query_timer(operation: str, table: str) -> Generator[None, None, No
     finally:
         duration = time.time() - start_time
 
-        DATABASE_QUERY_COUNT.labels(
-            operation=operation,
-            table=table
-        ).inc()
+        DATABASE_QUERY_COUNT.labels(operation=operation, table=table).inc()
 
-        DATABASE_QUERY_DURATION.labels(
-            operation=operation,
-            table=table
-        ).observe(duration)
+        DATABASE_QUERY_DURATION.labels(operation=operation, table=table).observe(
+            duration
+        )
 
         logger.debug(
             "Database query executed",
             operation=operation,
             table=table,
-            duration=duration
+            duration=duration,
         )
 
 
 def log_business_event(event_type: str, details: Dict[str, Any]) -> None:
     """Log business events for analytics."""
-    logger.info(
-        "Business event",
-        event_type=event_type,
-        **details
-    )
+    logger.info("Business event", event_type=event_type, **details)
 
     # Update business metrics
     if event_type == "organization_created":
-        BUSINESS_METRICS['organizations_created'].inc()
+        BUSINESS_METRICS["organizations_created"].inc()
     elif event_type == "department_created":
-        BUSINESS_METRICS['departments_created'].inc()
+        BUSINESS_METRICS["departments_created"].inc()
     elif event_type == "role_created":
-        BUSINESS_METRICS['roles_created'].inc()
+        BUSINESS_METRICS["roles_created"].inc()
     elif event_type == "user_login":
-        BUSINESS_METRICS['login_attempts'].labels(status="success").inc()
+        BUSINESS_METRICS["login_attempts"].labels(status="success").inc()
     elif event_type == "user_login_failed":
-        BUSINESS_METRICS['login_attempts'].labels(status="failed").inc()
+        BUSINESS_METRICS["login_attempts"].labels(status="failed").inc()
 
 
 class HealthChecker:
@@ -316,18 +300,25 @@ class HealthChecker:
         for name, check_func in self.checks.items():
             try:
                 # Skip if checked recently
-                if (name in self.last_check_time and
-                    datetime.now() - self.last_check_time[name] < self.check_interval):
+                if (
+                    name in self.last_check_time
+                    and datetime.now() - self.last_check_time[name]
+                    < self.check_interval
+                ):
                     continue
 
                 start_time = time.time()
-                healthy = await check_func() if asyncio.iscoroutinefunction(check_func) else check_func()
+                healthy = (
+                    await check_func()
+                    if asyncio.iscoroutinefunction(check_func)
+                    else check_func()
+                )
                 duration = time.time() - start_time
 
                 results[name] = {
                     "healthy": healthy,
                     "duration": duration,
-                    "timestamp": datetime.now().isoformat()
+                    "timestamp": datetime.now().isoformat(),
                 }
 
                 if not healthy:
@@ -339,14 +330,14 @@ class HealthChecker:
                 results[name] = {
                     "healthy": False,
                     "error": str(e),
-                    "timestamp": datetime.now().isoformat()
+                    "timestamp": datetime.now().isoformat(),
                 }
                 overall_healthy = False
 
         return {
             "healthy": overall_healthy,
             "checks": results,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
 
 
@@ -354,13 +345,16 @@ class HealthChecker:
 health_checker = HealthChecker()
 
 
-def setup_health_checks(app: Any, db_session_factory: Any, redis_client: Any = None) -> None:
+def setup_health_checks(
+    app: Any, db_session_factory: Any, redis_client: Any = None
+) -> None:
     """Setup standard health checks."""
 
     def check_database() -> bool:
         """Check database connectivity."""
         try:
             from sqlalchemy import text
+
             with db_session_factory() as session:
                 session.execute(text("SELECT 1"))
                 return True
@@ -384,6 +378,7 @@ def setup_health_checks(app: Any, db_session_factory: Any, redis_client: Any = N
         """Check available disk space."""
         try:
             import shutil
+
             total, used, free = shutil.disk_usage("/")
             free_percent = (free / total) * 100
             return free_percent > 10  # At least 10% free
@@ -395,6 +390,7 @@ def setup_health_checks(app: Any, db_session_factory: Any, redis_client: Any = N
         """Check available memory."""
         try:
             import psutil
+
             memory = psutil.virtual_memory()
             return memory.percent < 90  # Less than 90% used
         except Exception as e:
@@ -416,6 +412,7 @@ def get_metrics() -> str:
 # Performance monitoring decorator
 def monitor_performance(metric_name: Optional[str] = None) -> Callable[[F], F]:
     """Decorator to monitor function performance."""
+
     def decorator(func: F) -> F:
         @wraps(func)
         async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -430,7 +427,7 @@ def monitor_performance(metric_name: Optional[str] = None) -> Callable[[F], F]:
                     "Function performance",
                     function=function_name,
                     duration=duration,
-                    status="success"
+                    status="success",
                 )
 
                 return result
@@ -442,7 +439,7 @@ def monitor_performance(metric_name: Optional[str] = None) -> Callable[[F], F]:
                     function=function_name,
                     duration=duration,
                     status="error",
-                    error=str(e)
+                    error=str(e),
                 )
 
                 raise
@@ -460,7 +457,7 @@ def monitor_performance(metric_name: Optional[str] = None) -> Callable[[F], F]:
                     "Function performance",
                     function=function_name,
                     duration=duration,
-                    status="success"
+                    status="success",
                 )
 
                 return result
@@ -472,12 +469,13 @@ def monitor_performance(metric_name: Optional[str] = None) -> Callable[[F], F]:
                     function=function_name,
                     duration=duration,
                     status="error",
-                    error=str(e)
+                    error=str(e),
                 )
 
                 raise
 
         import asyncio
+
         if asyncio.iscoroutinefunction(func):
             return async_wrapper  # type: ignore[return-value]
         else:

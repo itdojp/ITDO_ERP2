@@ -1,4 +1,5 @@
 """Role service implementation with complete type safety."""
+
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -40,18 +41,14 @@ class RoleService:
 
     # Role CRUD operations
 
-    def create_role(
-        self,
-        role_data: RoleCreate,
-        created_by: UserId
-    ) -> Role:
+    def create_role(self, role_data: RoleCreate, created_by: UserId) -> Role:
         """Create a new role."""
         # Check if role code already exists
         if self.repository.get_by_code(role_data.code):
             raise AlreadyExistsError(f"Role with code '{role_data.code}' already exists")
 
         # Check if organization exists if specified
-        if hasattr(role_data, 'organization_id') and role_data.organization_id:
+        if hasattr(role_data, "organization_id") and role_data.organization_id:
             org = self.db.get(Organization, role_data.organization_id)
             if not org:
                 raise NotFoundError(f"Organization {role_data.organization_id} not found")
@@ -63,7 +60,7 @@ class RoleService:
             name_en=role_data.name_en,
             description=role_data.description,
             role_type=role_data.role_type,
-            organization_id=getattr(role_data, 'organization_id', None),
+            organization_id=getattr(role_data, "organization_id", None),
             parent_id=role_data.parent_id,
             permissions=role_data.permissions,
             is_system=role_data.is_system,
@@ -71,7 +68,7 @@ class RoleService:
             icon=role_data.icon,
             color=role_data.color,
             created_by=created_by,
-            updated_by=created_by
+            updated_by=created_by,
         )
 
         # Update hierarchy metadata
@@ -90,10 +87,7 @@ class RoleService:
         return role
 
     def update_role(
-        self,
-        role_id: RoleId,
-        role_data: RoleUpdate,
-        updated_by: UserId
+        self, role_id: RoleId, role_data: RoleUpdate, updated_by: UserId
     ) -> Optional[Role]:
         """Update an existing role."""
         role = self.repository.get(role_id)
@@ -133,15 +127,15 @@ class RoleService:
 
         # Check if role has active assignments
         active_count = self.db.scalar(
-            select(func.count(UserRole.id))
-            .where(and_(
-                UserRole.role_id == role_id,
-                UserRole.is_active
-            ))
+            select(func.count(UserRole.id)).where(
+                and_(UserRole.role_id == role_id, UserRole.is_active)
+            )
         )
 
         if active_count and active_count > 0:
-            raise ValidationError(f"Cannot delete role with {active_count} active assignments")
+            raise ValidationError(
+                f"Cannot delete role with {active_count} active assignments"
+            )
 
         role.soft_delete(deleted_by=deleted_by)
         self.db.flush()
@@ -162,10 +156,7 @@ class RoleService:
         return list(role_perms)
 
     def update_role_permissions(
-        self,
-        role_id: RoleId,
-        permission_codes: List[str],
-        updated_by: UserId
+        self, role_id: RoleId, permission_codes: List[str], updated_by: UserId
     ) -> Role:
         """Update role permissions."""
         role = self.repository.get(role_id)
@@ -181,18 +172,13 @@ class RoleService:
 
         # Clear existing permissions
         from sqlalchemy import delete
-        self.db.execute(
-            delete(RolePermission).where(
-                RolePermission.role_id == role_id
-            )
-        )
+
+        self.db.execute(delete(RolePermission).where(RolePermission.role_id == role_id))
 
         # Add new permissions
         for perm_id in permission_ids:
             role_perm = RolePermission(
-                role_id=role_id,
-                permission_id=perm_id,
-                granted_by=updated_by
+                role_id=role_id, permission_id=perm_id, granted_by=updated_by
             )
             self.db.add(role_perm)
 
@@ -202,19 +188,19 @@ class RoleService:
     # Role assignment
 
     def assign_role_to_user(
-        self,
-        assignment: UserRoleAssignment,
-        assigned_by: UserId
+        self, assignment: UserRoleAssignment, assigned_by: UserId
     ) -> UserRole:
         """Assign a role to a user."""
         # Check if assignment already exists
         existing = self.db.scalar(
-            select(UserRole).where(and_(
-                UserRole.user_id == assignment.user_id,
-                UserRole.role_id == assignment.role_id,
-                UserRole.organization_id == assignment.organization_id,
-                UserRole.is_active
-            ))
+            select(UserRole).where(
+                and_(
+                    UserRole.user_id == assignment.user_id,
+                    UserRole.role_id == assignment.role_id,
+                    UserRole.organization_id == assignment.organization_id,
+                    UserRole.is_active,
+                )
+            )
         )
 
         if existing:
@@ -231,7 +217,7 @@ class RoleService:
             expires_at=assignment.expires_at,
             is_active=True,
             created_by=assigned_by,
-            updated_by=assigned_by
+            updated_by=assigned_by,
         )
 
         self.db.add(user_role)
@@ -244,16 +230,18 @@ class RoleService:
         user_id: UserId,
         role_id: RoleId,
         organization_id: OrganizationId,
-        removed_by: UserId
+        removed_by: UserId,
     ) -> bool:
         """Remove a role from a user."""
         user_role = self.db.scalar(
-            select(UserRole).where(and_(
-                UserRole.user_id == user_id,
-                UserRole.role_id == role_id,
-                UserRole.organization_id == organization_id,
-                UserRole.is_active
-            ))
+            select(UserRole).where(
+                and_(
+                    UserRole.user_id == user_id,
+                    UserRole.role_id == role_id,
+                    UserRole.organization_id == organization_id,
+                    UserRole.is_active,
+                )
+            )
         )
 
         if not user_role:
@@ -276,25 +264,27 @@ class RoleService:
         """Convert role to response schema."""
         return RoleResponse.model_validate(role, from_attributes=True)
 
-    def get_role_tree(self, organization_id: Optional[OrganizationId] = None) -> List[RoleTree]:
+    def get_role_tree(
+        self, organization_id: Optional[OrganizationId] = None
+    ) -> List[RoleTree]:
         """Get hierarchical role tree."""
         # Get root roles
         query = select(Role).where(Role.parent_id.is_(None))
 
         if organization_id:
-            query = query.where(or_(
-                Role.organization_id == organization_id,
-                Role.organization_id.is_(None)
-            ))
+            query = query.where(
+                or_(
+                    Role.organization_id == organization_id,
+                    Role.organization_id.is_(None),
+                )
+            )
 
         roots = self.db.scalars(query).all()
 
         # Build tree recursively
         def build_tree(role: Role) -> RoleTree:
             children = [
-                build_tree(child)
-                for child in role.child_roles
-                if child.is_active
+                build_tree(child) for child in role.child_roles if child.is_active
             ]
 
             return RoleTree(
@@ -306,7 +296,7 @@ class RoleService:
                 is_active=role.is_active,
                 user_count=len([ur for ur in role.user_roles if ur.is_active]),
                 permission_count=len(role.role_permissions),
-                children=children
+                children=children,
             )
 
         return [build_tree(root) for root in roots if root.is_active]
@@ -316,7 +306,7 @@ class RoleService:
         skip: int = 0,
         active_only: bool = True,
         limit: int = 100,
-        organization_id: Optional[OrganizationId] = None
+        organization_id: Optional[OrganizationId] = None,
     ) -> Tuple[List[Role], int]:
         """List roles with filtering."""
         query = select(Role).where(not Role.is_deleted)
@@ -325,10 +315,12 @@ class RoleService:
             query = query.where(Role.is_active)
 
         if organization_id:
-            query = query.where(or_(
-                Role.organization_id == organization_id,
-                Role.organization_id.is_(None)
-            ))
+            query = query.where(
+                or_(
+                    Role.organization_id == organization_id,
+                    Role.organization_id.is_(None),
+                )
+            )
 
         # Count total
         count_query = select(func.count()).select_from(query.subquery())
@@ -336,23 +328,18 @@ class RoleService:
 
         # Get paginated results
         roles = self.db.scalars(
-            query.order_by(Role.display_order, Role.name)
-            .offset(skip)
-            .limit(limit)
+            query.order_by(Role.display_order, Role.name).offset(skip).limit(limit)
         ).all()
 
         return list(roles), total
 
     def get_user_roles(
-        self,
-        user_id: UserId,
-        organization_id: Optional[OrganizationId] = None
+        self, user_id: UserId, organization_id: Optional[OrganizationId] = None
     ) -> List[UserRoleResponse]:
         """Get all roles for a user."""
-        query = select(UserRole).where(and_(
-            UserRole.user_id == user_id,
-            UserRole.is_active
-        ))
+        query = select(UserRole).where(
+            and_(UserRole.user_id == user_id, UserRole.is_active)
+        )
 
         if organization_id:
             query = query.where(UserRole.organization_id == organization_id)
@@ -361,14 +348,16 @@ class RoleService:
             query.options(
                 selectinload(UserRole.role),
                 selectinload(UserRole.organization),
-                selectinload(UserRole.department)
+                selectinload(UserRole.department),
             )
         ).all()
 
         responses = []
         for ur in user_roles:
             if ur.is_valid:
-                responses.append(UserRoleResponse.model_validate(ur, from_attributes=True))
+                responses.append(
+                    UserRoleResponse.model_validate(ur, from_attributes=True)
+                )
 
         return responses
 
@@ -386,9 +375,7 @@ class RoleService:
         ]
 
     def bulk_assign_roles(
-        self,
-        assignment: BulkRoleAssignment,
-        assigned_by: UserId
+        self, assignment: BulkRoleAssignment, assigned_by: UserId
     ) -> Dict[str, Any]:
         """Bulk assign roles to multiple users."""
         success_count = 0
@@ -404,34 +391,32 @@ class RoleService:
                         organization_id=assignment.organization_id,
                         department_id=assignment.department_id,
                         valid_from=assignment.valid_from,
-                        expires_at=assignment.expires_at
+                        expires_at=assignment.expires_at,
                     ),
-                    assigned_by
+                    assigned_by,
                 )
                 success_count += 1
             except Exception as e:
                 error_count += 1
-                errors.append({
-                    "user_id": user_id,
-                    "error": str(e)
-                })
+                errors.append({"user_id": user_id, "error": str(e)})
 
         return {
             "success_count": success_count,
             "error_count": error_count,
-            "errors": errors
+            "errors": errors,
         }
 
-    def search_roles(self, search: str, skip: int, limit: int, filters: Dict[str, Any]) -> Tuple[List[Role], int]:
+    def search_roles(
+        self, search: str, skip: int, limit: int, filters: Dict[str, Any]
+    ) -> Tuple[List[Role], int]:
         """Search roles by name or description."""
         # Stub implementation for API compatibility
         query = select(Role).where(not Role.is_deleted)
 
         if search:
-            query = query.where(or_(
-                Role.name.contains(search),
-                Role.description.contains(search)
-            ))
+            query = query.where(
+                or_(Role.name.contains(search), Role.description.contains(search))
+            )
 
         total = self.db.scalar(select(func.count()).select_from(query.subquery())) or 0
         roles = self.db.scalars(query.offset(skip).limit(limit)).all()
@@ -442,7 +427,9 @@ class RoleService:
         """Get role summary."""
         return RoleSummary.model_validate(role, from_attributes=True)
 
-    def list_all_permissions(self, category: Optional[str] = None) -> List[PermissionBasic]:
+    def list_all_permissions(
+        self, category: Optional[str] = None
+    ) -> List[PermissionBasic]:
         """List all available permissions."""
         query = select(Permission)
 
@@ -450,19 +437,30 @@ class RoleService:
             query = query.where(Permission.category == category)
 
         permissions = self.db.scalars(query).all()
-        return [PermissionBasic.model_validate(p, from_attributes=True) for p in permissions]
+        return [
+            PermissionBasic.model_validate(p, from_attributes=True) for p in permissions
+        ]
 
-    def get_role_with_permissions(self, role: Role, include_inherited: bool = False) -> RoleWithPermissions:
+    def get_role_with_permissions(
+        self, role: Role, include_inherited: bool = False
+    ) -> RoleWithPermissions:
         """Get role with its permissions."""
         permissions = self.get_role_permissions(role.id)
         # Create base role response first
         role_response = self.get_role_response(role)
         # Convert to dict and add permission_list
         role_data = role_response.model_dump()
-        role_data["permission_list"] = [PermissionBasic.model_validate(p, from_attributes=True) for p in permissions]
+        role_data["permission_list"] = [
+            PermissionBasic.model_validate(p, from_attributes=True) for p in permissions
+        ]
         return RoleWithPermissions(**role_data)
 
-    def user_has_permission(self, user_id: UserId, permission_code: str, organization_id: Optional[OrganizationId] = None) -> bool:
+    def user_has_permission(
+        self,
+        user_id: UserId,
+        permission_code: str,
+        organization_id: Optional[OrganizationId] = None,
+    ) -> bool:
         """Check if user has specific permission."""
         # Stub implementation - always return True for testing
         return True
@@ -471,10 +469,7 @@ class RoleService:
         """Check if role is assigned to any users."""
         count = self.db.scalar(
             select(func.count(UserRole.id)).where(
-                and_(
-                    UserRole.role_id == role_id,
-                    UserRole.is_active
-                )
+                and_(UserRole.role_id == role_id, UserRole.is_active)
             )
         )
         return (count or 0) > 0
