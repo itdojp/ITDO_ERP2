@@ -351,10 +351,27 @@ class User(SoftDeletableModel):
                 user_role.organization_id == organization_id
                 and not user_role.is_expired
             ):
-                # TODO: Implement role permissions system
-                # if user_role.role.permissions:
-                #     permissions.update(user_role.role.permissions)
-                pass
+                # Handle permissions stored as JSON
+                if user_role.role and user_role.role.permissions:
+                    # If permissions is a list, add all items
+                    if isinstance(user_role.role.permissions, list):
+                        permissions.update(user_role.role.permissions)
+                    # If permissions is a dict, extract permission codes
+                    elif isinstance(user_role.role.permissions, dict):
+                        # Handle various dict structures
+                        if "codes" in user_role.role.permissions:
+                            permissions.update(user_role.role.permissions["codes"])
+                        elif "permissions" in user_role.role.permissions:
+                            permissions.update(
+                                user_role.role.permissions["permissions"]
+                            )
+                        else:
+                            # Try to extract values that look like permission codes
+                            for key, value in user_role.role.permissions.items():
+                                if isinstance(value, list):
+                                    permissions.update(value)
+                                elif isinstance(value, str) and ":" in value:
+                                    permissions.add(value)
 
         return list(permissions)
 

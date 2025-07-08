@@ -381,29 +381,13 @@ class TestUserService:
         db_session.add_all([admin1, admin2])
         db_session.commit()
 
-        # 1人目の管理者を削除（成功するはず）
-        service.delete_user(user_id=admin1.id, deleter=admin2, db=db_session)
-
-        # この時点でadmin1は論理削除されているので、アクティブな管理者はadmin2のみ
-        # 最後の管理者を削除しようとすると、自分自身削除エラーまたは
-        # BusinessLogicErrorが発生するはず
-        # しかし、自分自身削除エラーが先に発生する可能性があるので、
-        # 異なるアプローチを取る
-
-        # 3人目の管理者を作成してから2人目を削除し、3人目で最後を削除しようとする
-        admin3 = create_test_user(db_session, is_superuser=True)
-        db_session.add(admin3)
+        # When: 最初の管理者を無効化（削除と同じ扱い）
+        admin1.is_active = False
         db_session.commit()
 
-        # 2人目を削除（まだ3人目が残っているので成功）
-        service.delete_user(user_id=admin2.id, deleter=admin3, db=db_session)
-
-        # 最後の管理者（admin3）を削除しようとして失敗
-        # NOTE: 自分自身削除エラーが最後のシステム管理者エラーより先にチェックされる
-        # このテストはこの仕様を受け入れてスキップするか、別のアプローチが必要
-        # 今回は、存在するテストとして自分自身削除エラーをテストすることにする
-        with pytest.raises(BusinessLogicError, match="自分自身"):
-            service.delete_user(user_id=admin3.id, deleter=admin3, db=db_session)
+        # Then: 最後のアクティブな管理者を削除しようとして失敗
+        with pytest.raises(BusinessLogicError, match="最後のシステム管理者"):
+            service.delete_user(user_id=admin2.id, deleter=admin1, db=db_session)
 
     @pytest.mark.skip(reason="get_effective_permissions implementation needs update")
     def test_get_user_permissions(self, service, db_session: Session) -> None:
@@ -437,8 +421,8 @@ class TestUserService:
         """TEST-USER-SERVICE-017: ユーザー操作の監査ログ記録をテスト."""
         # Given: システム管理者と組織
         admin = create_test_user(db_session, is_superuser=True)
+        db_session.add(admin)
         org = create_test_organization(db_session)
-        db_session.add_all([admin, org])
         db_session.commit()
 
         # Mock audit logger

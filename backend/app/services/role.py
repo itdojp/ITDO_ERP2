@@ -1,6 +1,6 @@
 """Role service implementation with complete type safety."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 from sqlalchemy import and_, func, or_, select
@@ -110,7 +110,7 @@ class RoleService:
             setattr(role, field, value)
 
         role.updated_by = updated_by
-        role.updated_at = datetime.utcnow()
+        role.updated_at = datetime.now(timezone.utc)
 
         self.db.flush()
         return role
@@ -249,7 +249,7 @@ class RoleService:
 
         user_role.is_active = False
         user_role.updated_by = removed_by
-        user_role.updated_at = datetime.utcnow()
+        user_role.updated_at = datetime.now(timezone.utc)
 
         self.db.flush()
         return True

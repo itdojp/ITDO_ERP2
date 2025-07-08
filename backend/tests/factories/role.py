@@ -352,6 +352,9 @@ class RoleFactory(BaseFactory):
 # Helper functions for backward compatibility
 def create_test_role(db_session, **kwargs):
     """Create a test role (backward compatibility wrapper)."""
+    # Handle permissions parameter - convert list to dict format
+    if "permissions" in kwargs and isinstance(kwargs["permissions"], list):
+        kwargs["permissions"] = kwargs["permissions"]
     return RoleFactory.create(db_session, **kwargs)
 
 
