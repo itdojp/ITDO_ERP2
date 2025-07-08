@@ -1,4 +1,5 @@
 """Project service implementation (stub for type checking)."""
+
 from typing import Any, Dict, Optional
 
 from sqlalchemy.orm import Session
@@ -19,7 +20,9 @@ class ProjectService:
         # Stub implementation
         return self.db.get(Project, project_id)
 
-    def get_project_statistics(self, project_id: int, user_id: UserId) -> Dict[str, Any]:
+    def get_project_statistics(
+        self, project_id: int, user_id: UserId
+    ) -> Dict[str, Any]:
         """Get project statistics."""
         # Stub implementation
         return {
@@ -35,7 +38,7 @@ class ProjectService:
             "milestones_total": 0,
             "milestones_completed": 0,
             "days_remaining": 0,
-            "is_overdue": False
+            "is_overdue": False,
         }
 
     def get_total_budget(self, project_id: int) -> float:
@@ -46,9 +49,15 @@ class ProjectService:
         """Get budget utilization percentage."""
         return 0.0
 
-    def list_projects(self, user_id: UserId, organization_id: Optional[int] = None,
-                     department_id: Optional[int] = None, status: Optional[str] = None,
-                     skip: int = 0, limit: int = 10) -> tuple[list[Project], int]:
+    def list_projects(
+        self,
+        user_id: UserId,
+        organization_id: Optional[int] = None,
+        department_id: Optional[int] = None,
+        status: Optional[str] = None,
+        skip: int = 0,
+        limit: int = 10,
+    ) -> tuple[list[Project], int]:
         """List projects with pagination."""
         # Stub implementation
         projects: list[Project] = []
@@ -61,7 +70,7 @@ class ProjectService:
         return []
 
     @property
-    def repository(self) -> 'ProjectRepository':
+    def repository(self) -> "ProjectRepository":
         """Get project repository."""
         # Return local repository instance
         return ProjectRepository(self.db)

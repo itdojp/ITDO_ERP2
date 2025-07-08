@@ -50,11 +50,7 @@ def create_user_extended(
     service = UserService(db)
 
     try:
-        user = service.create_user(
-            data=user_data,
-            creator=current_user,
-            db=db
-        )
+        user = service.create_user(data=user_data, creator=current_user, db=db)
         db.commit()
 
         return service._user_to_extended_response(user, db)
@@ -66,8 +62,8 @@ def create_user_extended(
             content=ErrorResponse(
                 detail=str(e),
                 code="INSUFFICIENT_PERMISSIONS",
-                timestamp=datetime.utcnow()
-            ).model_dump()
+                timestamp=datetime.utcnow(),
+            ).model_dump(),
         )
     except Exception as e:
         db.rollback()
@@ -77,8 +73,8 @@ def create_user_extended(
                 content=ErrorResponse(
                     detail="User with this email already exists",
                     code="USER_ALREADY_EXISTS",
-                    timestamp=datetime.utcnow()
-                ).model_dump()
+                    timestamp=datetime.utcnow(),
+                ).model_dump(),
             )
         raise
 
@@ -110,14 +106,10 @@ def list_users(
         organization_id=organization_id,
         department_id=department_id,
         role_id=role_id,
-        is_active=is_active
+        is_active=is_active,
     )
 
-    result = service.search_users(
-        params=search_params,
-        searcher=current_user,
-        db=db
-    )
+    result = service.search_users(params=search_params, searcher=current_user, db=db)
 
     # Override pagination from query params
     result.page = page
@@ -143,19 +135,15 @@ def get_user_detail(
     service = UserService(db)
 
     try:
-        return service.get_user_detail(
-            user_id=user_id,
-            viewer=current_user,
-            db=db
-        )
+        return service.get_user_detail(user_id=user_id, viewer=current_user, db=db)
     except NotFound:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content=ErrorResponse(
                 detail="User not found",
                 code="USER_NOT_FOUND",
-                timestamp=datetime.utcnow()
-            ).model_dump()
+                timestamp=datetime.utcnow(),
+            ).model_dump(),
         )
     except PermissionDenied:
         return JSONResponse(
@@ -163,8 +151,8 @@ def get_user_detail(
             content=ErrorResponse(
                 detail="Access denied",
                 code="ACCESS_DENIED",
-                timestamp=datetime.utcnow()
-            ).model_dump()
+                timestamp=datetime.utcnow(),
+            ).model_dump(),
         )
 
 
@@ -187,10 +175,7 @@ def update_user(
 
     try:
         user = service.update_user(
-            user_id=user_id,
-            data=user_data,
-            updater=current_user,
-            db=db
+            user_id=user_id, data=user_data, updater=current_user, db=db
         )
         db.commit()
 
@@ -198,7 +183,7 @@ def update_user(
         user.log_activity(
             db,
             action="profile_update",
-            details=user_data.model_dump(exclude_unset=True)
+            details=user_data.model_dump(exclude_unset=True),
         )
 
         return service._user_to_extended_response(user, db)
@@ -210,8 +195,8 @@ def update_user(
             content=ErrorResponse(
                 detail="User not found",
                 code="USER_NOT_FOUND",
-                timestamp=datetime.utcnow()
-            ).model_dump()
+                timestamp=datetime.utcnow(),
+            ).model_dump(),
         )
     except PermissionDenied:
         db.rollback()
@@ -220,8 +205,8 @@ def update_user(
             content=ErrorResponse(
                 detail="Access denied",
                 code="ACCESS_DENIED",
-                timestamp=datetime.utcnow()
-            ).model_dump()
+                timestamp=datetime.utcnow(),
+            ).model_dump(),
         )
 
 
@@ -249,7 +234,7 @@ def change_password(
             current_password=password_data.current_password,
             new_password=password_data.new_password,
             changer=current_user,
-            db=db
+            db=db,
         )
         db.commit()
 
@@ -260,10 +245,8 @@ def change_password(
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
             content=ErrorResponse(
-                detail=str(e),
-                code="INVALID_PASSWORD",
-                timestamp=datetime.utcnow()
-            ).model_dump()
+                detail=str(e), code="INVALID_PASSWORD", timestamp=datetime.utcnow()
+            ).model_dump(),
         )
     except PermissionDenied:
         db.rollback()
@@ -272,8 +255,8 @@ def change_password(
             content=ErrorResponse(
                 detail="Access denied",
                 code="ACCESS_DENIED",
-                timestamp=datetime.utcnow()
-            ).model_dump()
+                timestamp=datetime.utcnow(),
+            ).model_dump(),
         )
 
 
@@ -295,9 +278,7 @@ def reset_password(
 
     try:
         temp_password = service.reset_password(
-            user_id=user_id,
-            resetter=current_user,
-            db=db
+            user_id=user_id, resetter=current_user, db=db
         )
         db.commit()
 
@@ -310,8 +291,8 @@ def reset_password(
             content=ErrorResponse(
                 detail="User not found",
                 code="USER_NOT_FOUND",
-                timestamp=datetime.utcnow()
-            ).model_dump()
+                timestamp=datetime.utcnow(),
+            ).model_dump(),
         )
     except PermissionDenied:
         db.rollback()
@@ -320,8 +301,8 @@ def reset_password(
             content=ErrorResponse(
                 detail="Access denied",
                 code="ACCESS_DENIED",
-                timestamp=datetime.utcnow()
-            ).model_dump()
+                timestamp=datetime.utcnow(),
+            ).model_dump(),
         )
 
 
@@ -357,15 +338,15 @@ def assign_role(
 
         # Build response
         from app.models.role import Role
+
         role = db.query(Role).filter(Role.id == assignment.role_id).first()
 
         if not role:
             return JSONResponse(
                 status_code=status.HTTP_404_NOT_FOUND,
                 content=ErrorResponse(
-                    detail="Role not found",
-                    code="ROLE_NOT_FOUND"
-                ).model_dump()
+                    detail="Role not found", code="ROLE_NOT_FOUND"
+                ).model_dump(),
             )
 
         response = {
@@ -376,7 +357,9 @@ def assign_role(
             },
             "organization_id": assignment.organization_id,
             "department_id": assignment.department_id,
-            "expires_at": assignment.expires_at.isoformat() if assignment.expires_at else None,
+            "expires_at": assignment.expires_at.isoformat()
+            if assignment.expires_at
+            else None,
         }
 
         return response
@@ -386,10 +369,8 @@ def assign_role(
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content=ErrorResponse(
-                detail=str(e),
-                code="NOT_FOUND",
-                timestamp=datetime.utcnow()
-            ).model_dump()
+                detail=str(e), code="NOT_FOUND", timestamp=datetime.utcnow()
+            ).model_dump(),
         )
     except PermissionDenied:
         db.rollback()
@@ -398,8 +379,8 @@ def assign_role(
             content=ErrorResponse(
                 detail="Access denied",
                 code="ACCESS_DENIED",
-                timestamp=datetime.utcnow()
-            ).model_dump()
+                timestamp=datetime.utcnow(),
+            ).model_dump(),
         )
 
 
@@ -427,15 +408,14 @@ def remove_role(
             role_id=role_id,
             organization_id=organization_id,
             remover=current_user,
-            db=db
+            db=db,
         )
         db.commit()
 
     except PermissionDenied:
         db.rollback()
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
         )
 
 
@@ -462,26 +442,21 @@ def get_user_permissions(
         viewer_orgs = [o.id for o in current_user.get_organizations()]
         if organization_id not in viewer_orgs:
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Access denied"
+                status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
             )
 
     try:
         permissions = service.get_user_permissions(
-            user_id=user_id,
-            organization_id=organization_id,
-            db=db
+            user_id=user_id, organization_id=organization_id, db=db
         )
 
         return PermissionListResponse(
-            permissions=permissions,
-            organization_id=organization_id
+            permissions=permissions, organization_id=organization_id
         )
 
     except NotFound:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
 
 
@@ -503,11 +478,7 @@ def delete_user(
     service = UserService(db)
 
     try:
-        service.delete_user(
-            user_id=user_id,
-            deleter=current_user,
-            db=db
-        )
+        service.delete_user(user_id=user_id, deleter=current_user, db=db)
         db.commit()
 
     except BusinessLogicError as e:
@@ -516,17 +487,13 @@ def delete_user(
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Cannot delete self",
-                headers={"X-Error-Code": "CANNOT_DELETE_SELF"}
+                headers={"X-Error-Code": "CANNOT_DELETE_SELF"},
             )
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except NotFound:
         db.rollback()
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
 
 
@@ -561,7 +528,7 @@ def bulk_import_users(
             organization_id=import_data.organization_id,
             role_id=import_data.role_id,
             importer=current_user,
-            db=db
+            db=db,
         )
         db.commit()
 
@@ -570,8 +537,7 @@ def bulk_import_users(
     except PermissionDenied:
         db.rollback()
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
         )
 
 
@@ -593,10 +559,7 @@ def export_users(
 
     try:
         export_data = service.export_users(
-            organization_id=organization_id,
-            format=format,
-            exporter=current_user,
-            db=db
+            organization_id=organization_id, format=format, exporter=current_user, db=db
         )
 
         if format == "csv":
@@ -611,7 +574,7 @@ def export_users(
                 media_type="text/csv",
                 headers={
                     "Content-Disposition": f"attachment; filename=users_{organization_id}_{datetime.now().strftime('%Y%m%d')}.csv"
-                }
+                },
             )
 
         # For other formats, return the data structure
@@ -619,8 +582,7 @@ def export_users(
 
     except PermissionDenied:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
         )
 
 
@@ -642,25 +604,27 @@ def get_user_activities(
     # Permission check - user can view own activities
     if current_user.id != user_id and not current_user.is_superuser:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
         )
 
     # Get user
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
 
     # Get activities
     from app.models.user_activity_log import UserActivityLog
     from app.schemas.user_extended import UserActivity
 
-    activities = db.query(UserActivityLog).filter(
-        UserActivityLog.user_id == user_id
-    ).order_by(UserActivityLog.created_at.desc()).limit(limit).all()
+    activities = (
+        db.query(UserActivityLog)
+        .filter(UserActivityLog.user_id == user_id)
+        .order_by(UserActivityLog.created_at.desc())
+        .limit(limit)
+        .all()
+    )
 
     return UserActivityListResponse(
         items=[
@@ -668,9 +632,9 @@ def get_user_activities(
                 action=a.action,
                 details=a.details,
                 ip_address=a.ip_address,
-                created_at=a.created_at
+                created_at=a.created_at,
             )
             for a in activities
         ],
-        total=len(activities)
+        total=len(activities),
     )

@@ -10,13 +10,15 @@ from sqlalchemy.orm import Session
 from app.models.base import SoftDeletableModel
 from tests.factories import BaseFactory
 
-T = TypeVar('T', bound=SoftDeletableModel)
-CreateSchemaType = TypeVar('CreateSchemaType', bound=BaseModel)
-UpdateSchemaType = TypeVar('UpdateSchemaType', bound=BaseModel)
-ResponseSchemaType = TypeVar('ResponseSchemaType', bound=BaseModel)
+T = TypeVar("T", bound=SoftDeletableModel)
+CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel)
+UpdateSchemaType = TypeVar("UpdateSchemaType", bound=BaseModel)
+ResponseSchemaType = TypeVar("ResponseSchemaType", bound=BaseModel)
 
 
-class BaseAPITestCase(ABC, Generic[T, CreateSchemaType, UpdateSchemaType, ResponseSchemaType]):
+class BaseAPITestCase(
+    ABC, Generic[T, CreateSchemaType, UpdateSchemaType, ResponseSchemaType]
+):
     """Base test case for API endpoints with common CRUD operations."""
 
     @property
@@ -68,27 +70,22 @@ class BaseAPITestCase(ABC, Generic[T, CreateSchemaType, UpdateSchemaType, Respon
     # CRUD Test Methods
 
     def test_list_endpoint_success(
-        self,
-        client: TestClient,
-        db_session: Session,
-        admin_token: str
+        self, client: TestClient, db_session: Session, admin_token: str
     ) -> None:
         """Test successful list operation."""
         # Create test instances
-        instances = [
-            self.create_test_instance(db_session)
-            for _ in range(3)
-        ]
+        instances = [self.create_test_instance(db_session) for _ in range(3)]
 
         response = client.get(
-            self.endpoint_prefix,
-            headers=self.get_auth_headers(admin_token)
+            self.endpoint_prefix, headers=self.get_auth_headers(admin_token)
         )
 
         print(f"Admin token: {admin_token}")
         print(f"Headers: {self.get_auth_headers(admin_token)}")
         print(f"Response status code: {response.status_code}")
-        print(f"Response body: {response.json() if response.status_code != 204 else 'No content'}")
+        print(
+            f"Response body: {response.json() if response.status_code != 204 else 'No content'}"
+        )
         assert response.status_code == 200
         data = response.json()
 
@@ -100,10 +97,7 @@ class BaseAPITestCase(ABC, Generic[T, CreateSchemaType, UpdateSchemaType, Respon
         assert len(data["items"]) >= len(instances)
 
     def test_list_endpoint_pagination(
-        self,
-        client: TestClient,
-        db_session: Session,
-        admin_token: str
+        self, client: TestClient, db_session: Session, admin_token: str
     ) -> None:
         """Test pagination parameters."""
         # Create test instances
@@ -112,7 +106,7 @@ class BaseAPITestCase(ABC, Generic[T, CreateSchemaType, UpdateSchemaType, Respon
 
         response = client.get(
             f"{self.endpoint_prefix}?skip=2&limit=2",
-            headers=self.get_auth_headers(admin_token)
+            headers=self.get_auth_headers(admin_token),
         )
 
         assert response.status_code == 200
@@ -125,36 +119,33 @@ class BaseAPITestCase(ABC, Generic[T, CreateSchemaType, UpdateSchemaType, Respon
         """Test list operation without authentication."""
         response = client.get(self.endpoint_prefix)
         print(f"Response status code: {response.status_code}")
-        print(f"Response body: {response.json() if response.status_code != 204 else 'No content'}")
-        assert response.status_code in [401, 403]  # Either is acceptable for authentication failure
+        print(
+            f"Response body: {response.json() if response.status_code != 204 else 'No content'}"
+        )
+        assert response.status_code in [
+            401,
+            403,
+        ]  # Either is acceptable for authentication failure
 
     def test_get_endpoint_success(
-        self,
-        client: TestClient,
-        db_session: Session,
-        admin_token: str
+        self, client: TestClient, db_session: Session, admin_token: str
     ) -> None:
         """Test successful get operation."""
         instance = self.create_test_instance(db_session)
 
         response = client.get(
             f"{self.endpoint_prefix}/{instance.id}",
-            headers=self.get_auth_headers(admin_token)
+            headers=self.get_auth_headers(admin_token),
         )
 
         assert response.status_code == 200
         data = response.json()
         assert data["id"] == instance.id
 
-    def test_get_endpoint_not_found(
-        self,
-        client: TestClient,
-        admin_token: str
-    ) -> None:
+    def test_get_endpoint_not_found(self, client: TestClient, admin_token: str) -> None:
         """Test get operation with non-existent ID."""
         response = client.get(
-            f"{self.endpoint_prefix}/99999",
-            headers=self.get_auth_headers(admin_token)
+            f"{self.endpoint_prefix}/99999", headers=self.get_auth_headers(admin_token)
         )
 
         assert response.status_code == 404
@@ -162,9 +153,7 @@ class BaseAPITestCase(ABC, Generic[T, CreateSchemaType, UpdateSchemaType, Respon
         assert "detail" in data
 
     def test_create_endpoint_success(
-        self,
-        client: TestClient,
-        admin_token: str
+        self, client: TestClient, admin_token: str
     ) -> None:
         """Test successful create operation."""
         payload = self.create_valid_payload()
@@ -172,7 +161,7 @@ class BaseAPITestCase(ABC, Generic[T, CreateSchemaType, UpdateSchemaType, Respon
         response = client.post(
             self.endpoint_prefix,
             json=payload,
-            headers=self.get_auth_headers(admin_token)
+            headers=self.get_auth_headers(admin_token),
         )
 
         assert response.status_code == 201
@@ -184,9 +173,7 @@ class BaseAPITestCase(ABC, Generic[T, CreateSchemaType, UpdateSchemaType, Respon
         assert validated_data.id is not None
 
     def test_create_endpoint_validation_error(
-        self,
-        client: TestClient,
-        admin_token: str
+        self, client: TestClient, admin_token: str
     ) -> None:
         """Test create operation with invalid payload."""
         payload = {}  # Empty payload should fail validation
@@ -194,7 +181,7 @@ class BaseAPITestCase(ABC, Generic[T, CreateSchemaType, UpdateSchemaType, Respon
         response = client.post(
             self.endpoint_prefix,
             json=payload,
-            headers=self.get_auth_headers(admin_token)
+            headers=self.get_auth_headers(admin_token),
         )
 
         assert response.status_code == 422
@@ -202,10 +189,7 @@ class BaseAPITestCase(ABC, Generic[T, CreateSchemaType, UpdateSchemaType, Respon
         assert "detail" in data
 
     def test_update_endpoint_success(
-        self,
-        client: TestClient,
-        db_session: Session,
-        admin_token: str
+        self, client: TestClient, db_session: Session, admin_token: str
     ) -> None:
         """Test successful update operation."""
         instance = self.create_test_instance(db_session)
@@ -214,7 +198,7 @@ class BaseAPITestCase(ABC, Generic[T, CreateSchemaType, UpdateSchemaType, Respon
         response = client.put(
             f"{self.endpoint_prefix}/{instance.id}",
             json=payload,
-            headers=self.get_auth_headers(admin_token)
+            headers=self.get_auth_headers(admin_token),
         )
 
         assert response.status_code == 200
@@ -222,9 +206,7 @@ class BaseAPITestCase(ABC, Generic[T, CreateSchemaType, UpdateSchemaType, Respon
         assert data["id"] == instance.id
 
     def test_update_endpoint_not_found(
-        self,
-        client: TestClient,
-        admin_token: str
+        self, client: TestClient, admin_token: str
     ) -> None:
         """Test update operation with non-existent ID."""
         payload = self.create_update_payload()
@@ -232,23 +214,20 @@ class BaseAPITestCase(ABC, Generic[T, CreateSchemaType, UpdateSchemaType, Respon
         response = client.put(
             f"{self.endpoint_prefix}/99999",
             json=payload,
-            headers=self.get_auth_headers(admin_token)
+            headers=self.get_auth_headers(admin_token),
         )
 
         assert response.status_code == 404
 
     def test_delete_endpoint_success(
-        self,
-        client: TestClient,
-        db_session: Session,
-        admin_token: str
+        self, client: TestClient, db_session: Session, admin_token: str
     ) -> None:
         """Test successful delete operation."""
         instance = self.create_test_instance(db_session)
 
         response = client.delete(
             f"{self.endpoint_prefix}/{instance.id}",
-            headers=self.get_auth_headers(admin_token)
+            headers=self.get_auth_headers(admin_token),
         )
 
         assert response.status_code == 200
@@ -257,14 +236,11 @@ class BaseAPITestCase(ABC, Generic[T, CreateSchemaType, UpdateSchemaType, Respon
         assert data["id"] == instance.id
 
     def test_delete_endpoint_not_found(
-        self,
-        client: TestClient,
-        admin_token: str
+        self, client: TestClient, admin_token: str
     ) -> None:
         """Test delete operation with non-existent ID."""
         response = client.delete(
-            f"{self.endpoint_prefix}/99999",
-            headers=self.get_auth_headers(admin_token)
+            f"{self.endpoint_prefix}/99999", headers=self.get_auth_headers(admin_token)
         )
 
         assert response.status_code == 404
@@ -272,9 +248,7 @@ class BaseAPITestCase(ABC, Generic[T, CreateSchemaType, UpdateSchemaType, Respon
     # Permission Tests
 
     def test_create_endpoint_forbidden(
-        self,
-        client: TestClient,
-        user_token: str
+        self, client: TestClient, user_token: str
     ) -> None:
         """Test create operation with insufficient permissions."""
         payload = self.create_valid_payload()
@@ -282,17 +256,14 @@ class BaseAPITestCase(ABC, Generic[T, CreateSchemaType, UpdateSchemaType, Respon
         response = client.post(
             self.endpoint_prefix,
             json=payload,
-            headers=self.get_auth_headers(user_token)
+            headers=self.get_auth_headers(user_token),
         )
 
         # Should be forbidden unless user has specific permissions
         assert response.status_code in [403, 404]
 
     def test_update_endpoint_forbidden(
-        self,
-        client: TestClient,
-        db_session: Session,
-        user_token: str
+        self, client: TestClient, db_session: Session, user_token: str
     ) -> None:
         """Test update operation with insufficient permissions."""
         instance = self.create_test_instance(db_session)
@@ -301,24 +272,21 @@ class BaseAPITestCase(ABC, Generic[T, CreateSchemaType, UpdateSchemaType, Respon
         response = client.put(
             f"{self.endpoint_prefix}/{instance.id}",
             json=payload,
-            headers=self.get_auth_headers(user_token)
+            headers=self.get_auth_headers(user_token),
         )
 
         # Should be forbidden unless user has specific permissions
         assert response.status_code in [403, 404]
 
     def test_delete_endpoint_forbidden(
-        self,
-        client: TestClient,
-        db_session: Session,
-        user_token: str
+        self, client: TestClient, db_session: Session, user_token: str
     ) -> None:
         """Test delete operation with insufficient permissions."""
         instance = self.create_test_instance(db_session)
 
         response = client.delete(
             f"{self.endpoint_prefix}/{instance.id}",
-            headers=self.get_auth_headers(user_token)
+            headers=self.get_auth_headers(user_token),
         )
 
         # Should be forbidden unless user has specific permissions
@@ -381,14 +349,12 @@ class BaseRepositoryTestCase(ABC, Generic[T]):
 
 # Test Mixins for specific functionality
 
+
 class SearchTestMixin:
     """Mixin for testing search functionality."""
 
     def test_search_endpoint_success(
-        self,
-        client: TestClient,
-        db_session: Session,
-        admin_token: str
+        self, client: TestClient, db_session: Session, admin_token: str
     ) -> None:
         """Test search endpoint with valid query."""
         # Create test instance with known name
@@ -396,7 +362,7 @@ class SearchTestMixin:
 
         response = client.get(
             f"{self.endpoint_prefix}?search=Search",
-            headers=self.get_auth_headers(admin_token)
+            headers=self.get_auth_headers(admin_token),
         )
 
         assert response.status_code == 200
@@ -412,10 +378,7 @@ class HierarchyTestMixin:
     """Mixin for testing hierarchical data functionality."""
 
     def test_tree_endpoint_success(
-        self,
-        client: TestClient,
-        db_session: Session,
-        admin_token: str
+        self, client: TestClient, db_session: Session, admin_token: str
     ) -> None:
         """Test tree endpoint for hierarchical data."""
         # This will be implemented based on specific requirements
@@ -423,10 +386,7 @@ class HierarchyTestMixin:
         pass
 
     def test_parent_child_relationship(
-        self,
-        client: TestClient,
-        db_session: Session,
-        admin_token: str
+        self, client: TestClient, db_session: Session, admin_token: str
     ) -> None:
         """Test parent-child relationships."""
         # This will be implemented based on specific requirements
@@ -436,21 +396,14 @@ class HierarchyTestMixin:
 class BulkOperationTestMixin:
     """Mixin for testing bulk operations."""
 
-    def test_bulk_create_success(
-        self,
-        client: TestClient,
-        admin_token: str
-    ) -> None:
+    def test_bulk_create_success(self, client: TestClient, admin_token: str) -> None:
         """Test bulk create operation."""
-        payloads = [
-            self.create_valid_payload(name=f"Bulk{i}")
-            for i in range(3)
-        ]
+        payloads = [self.create_valid_payload(name=f"Bulk{i}") for i in range(3)]
 
         response = client.post(
             f"{self.endpoint_prefix}/bulk",
             json={"items": payloads},
-            headers=self.get_auth_headers(admin_token)
+            headers=self.get_auth_headers(admin_token),
         )
 
         assert response.status_code == 201
@@ -461,14 +414,19 @@ class BulkOperationTestMixin:
 
 # Utility functions for assertions
 
-def assert_error_response(response_data: Dict[str, Any], expected_code: Optional[str] = None) -> None:
+
+def assert_error_response(
+    response_data: Dict[str, Any], expected_code: Optional[str] = None
+) -> None:
     """Assert that response contains proper error structure."""
     assert "detail" in response_data
     if expected_code:
         assert response_data.get("code") == expected_code
 
 
-def assert_pagination_response(response_data: Dict[str, Any], expected_total: Optional[int] = None) -> None:
+def assert_pagination_response(
+    response_data: Dict[str, Any], expected_total: Optional[int] = None
+) -> None:
     """Assert that response contains proper pagination structure."""
     assert "items" in response_data
     assert "total" in response_data

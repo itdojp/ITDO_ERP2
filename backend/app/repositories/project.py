@@ -1,4 +1,5 @@
 """Project repository implementation (stub for type checking)."""
+
 from sqlalchemy.orm import Session
 
 

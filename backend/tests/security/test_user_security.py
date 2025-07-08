@@ -292,13 +292,21 @@ class TestUserSecurityFeatures:
             code="DEPT_MANAGER", permissions=["dept:*", "user:read"]
         )
         create_test_user_role(
-            user=dept_manager, role=manager_role, organization=org, department=child_dept
+            user=dept_manager,
+            role=manager_role,
+            organization=org,
+            department=child_dept,
         )
         db_session.commit()
 
         # When: 親部門のユーザーにアクセス
         parent_user = create_test_user(email="parent@example.com")
-        create_test_user_role(user=parent_user, role=manager_role, organization=org, department=parent_dept)
+        create_test_user_role(
+            user=parent_user,
+            role=manager_role,
+            organization=org,
+            department=parent_dept,
+        )
 
         # Then: アクセス拒否（権限境界）
         assert not dept_manager.can_access_user(parent_user)

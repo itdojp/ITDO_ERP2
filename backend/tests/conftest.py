@@ -25,7 +25,9 @@ from tests.factories import (
     UserFactory,
 )
 
-SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://itdo_user:itdo_password@localhost:5432/itdo_erp")
+SQLALCHEMY_DATABASE_URL = os.getenv(
+    "DATABASE_URL", "postgresql://itdo_user:itdo_password@localhost:5432/itdo_erp"
+)
 
 # For SQLite tests (unit tests)
 if "unit" in os.getenv("PYTEST_CURRENT_TEST", ""):
@@ -59,12 +61,23 @@ def db_session() -> Generator[Session, None, None]:
             # For PostgreSQL, use DELETE in dependency order to avoid foreign key violations
             with engine.begin() as conn:
                 from sqlalchemy import text
+
                 # Simple approach: Delete in safe order
                 table_order = [
-                    "user_roles", "role_permissions", "password_history", 
-                    "user_sessions", "user_activity_logs", "audit_logs",
-                    "project_members", "project_milestones", "projects",
-                    "users", "roles", "permissions", "departments", "organizations"
+                    "user_roles",
+                    "role_permissions",
+                    "password_history",
+                    "user_sessions",
+                    "user_activity_logs",
+                    "audit_logs",
+                    "project_members",
+                    "project_milestones",
+                    "projects",
+                    "users",
+                    "roles",
+                    "permissions",
+                    "departments",
+                    "organizations",
                 ]
                 for table in table_order:
                     conn.execute(text(f'DELETE FROM "{table}"'))
@@ -76,6 +89,7 @@ def db_session() -> Generator[Session, None, None]:
 @pytest.fixture
 def client(db_session: Session) -> Generator[TestClient, None, None]:
     """Create a test client with overridden database dependency."""
+
     def override_get_db() -> Generator[Session, None, None]:
         try:
             yield db_session
@@ -93,6 +107,7 @@ def client(db_session: Session) -> Generator[TestClient, None, None]:
 
 # User Fixtures
 
+
 @pytest.fixture
 def test_user(db_session: Session) -> User:
     """Create a basic test user."""
@@ -100,7 +115,7 @@ def test_user(db_session: Session) -> User:
         db_session,
         password="TestPassword123!",
         email="testuser@example.com",
-        full_name="Test User"
+        full_name="Test User",
     )
 
 
@@ -112,7 +127,7 @@ def test_admin(db_session: Session) -> User:
         password="AdminPassword123!",
         email="admin@example.com",
         full_name="Admin User",
-        is_superuser=True
+        is_superuser=True,
     )
 
 
@@ -123,7 +138,7 @@ def test_manager(db_session: Session) -> User:
         db_session,
         password="ManagerPassword123!",
         email="manager@example.com",
-        full_name="Manager User"
+        full_name="Manager User",
     )
 
 
@@ -135,15 +150,12 @@ def test_users_set(db_session: Session) -> Dict[str, User]:
 
 # Token Fixtures
 
+
 @pytest.fixture
 def user_token(test_user: User) -> str:
     """Create an access token for test user."""
     return create_access_token(
-        data={
-            "sub": str(test_user.id),
-            "email": test_user.email,
-            "is_superuser": False
-        }
+        data={"sub": str(test_user.id), "email": test_user.email, "is_superuser": False}
     )
 
 
@@ -154,7 +166,7 @@ def admin_token(test_admin: User) -> str:
         data={
             "sub": str(test_admin.id),
             "email": test_admin.email,
-            "is_superuser": True
+            "is_superuser": True,
         }
     )
 
@@ -166,64 +178,59 @@ def manager_token(test_manager: User) -> str:
         data={
             "sub": str(test_manager.id),
             "email": test_manager.email,
-            "is_superuser": False
+            "is_superuser": False,
         }
     )
 
 
 # Organization Fixtures
 
+
 @pytest.fixture
 def test_organization(db_session: Session) -> Organization:
     """Create a test organization."""
     return OrganizationFactory.create(
-        db_session,
-        name="テスト株式会社",
-        code="TEST-ORG",
-        industry="IT"
+        db_session, name="テスト株式会社", code="TEST-ORG", industry="IT"
     )
 
 
 @pytest.fixture
 def test_organization_tree(db_session: Session) -> Dict[str, Any]:
     """Create an organization tree structure."""
-    return OrganizationFactory.create_subsidiary_tree(db_session, depth=2, children_per_level=2)
+    return OrganizationFactory.create_subsidiary_tree(
+        db_session, depth=2, children_per_level=2
+    )
 
 
 # Department Fixtures
+
 
 @pytest.fixture
 def test_department(db_session: Session, test_organization: Organization) -> Department:
     """Create a test department."""
     return DepartmentFactory.create_with_organization(
-        db_session,
-        test_organization,
-        name="テスト部門",
-        code="TEST-DEPT"
+        db_session, test_organization, name="テスト部門", code="TEST-DEPT"
     )
 
 
 @pytest.fixture
-def test_department_tree(db_session: Session, test_organization: Organization) -> Dict[str, Any]:
+def test_department_tree(
+    db_session: Session, test_organization: Organization
+) -> Dict[str, Any]:
     """Create a department tree structure."""
     return DepartmentFactory.create_department_tree(
-        db_session,
-        test_organization,
-        depth=3,
-        children_per_level=2
+        db_session, test_organization, depth=3, children_per_level=2
     )
 
 
 # Role Fixtures
 
+
 @pytest.fixture
 def test_role(db_session: Session, test_organization: Organization) -> Role:
     """Create a test role."""
     return RoleFactory.create_with_organization(
-        db_session,
-        test_organization,
-        name="テストロール",
-        role_type="custom"
+        db_session, test_organization, name="テストロール", role_type="custom"
     )
 
 
@@ -241,6 +248,7 @@ def test_role_system(db_session: Session) -> Dict[str, Any]:
 
 # Complete System Fixtures
 
+
 @pytest.fixture
 def complete_test_system(db_session: Session) -> Dict[str, Any]:
     """Create a complete test system with all entities."""
@@ -249,25 +257,23 @@ def complete_test_system(db_session: Session) -> Dict[str, Any]:
 
     # Create department structure
     dept_tree = DepartmentFactory.create_department_tree(
-        db_session,
-        role_system['organization'],
-        depth=3,
-        children_per_level=2
+        db_session, role_system["organization"], depth=3, children_per_level=2
     )
 
     # Create test users
     users = UserFactory.create_test_users_set(db_session)
 
     return {
-        'organization': role_system['organization'],
-        'departments': dept_tree,
-        'roles': role_system['roles'],
-        'permissions': role_system['permissions'],
-        'users': users
+        "organization": role_system["organization"],
+        "departments": dept_tree,
+        "roles": role_system["roles"],
+        "permissions": role_system["permissions"],
+        "users": users,
     }
 
 
 # Environment Setup
+
 
 @pytest.fixture(autouse=True)
 def setup_test_environment(monkeypatch: Any) -> None:
@@ -282,6 +288,7 @@ def setup_test_environment(monkeypatch: Any) -> None:
 
 
 # Utility Functions for Tests
+
 
 def create_auth_headers(token: str) -> Dict[str, str]:
     """Create authorization headers with bearer token."""

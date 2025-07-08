@@ -21,11 +21,10 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
     responses={
         400: {"model": ErrorResponse, "description": "Bad request"},
         401: {"model": ErrorResponse, "description": "Authentication failed"},
-    }
+    },
 )
 def login(
-    request: LoginRequest,
-    db: Session = Depends(get_db)
+    request: LoginRequest, db: Session = Depends(get_db)
 ) -> Union[TokenResponse, JSONResponse]:
     """User login endpoint."""
     # Authenticate user
@@ -36,8 +35,8 @@ def login(
             content=ErrorResponse(
                 detail="Invalid authentication credentials",
                 code="AUTH001",
-                timestamp=datetime.utcnow()
-            ).model_dump()
+                timestamp=datetime.utcnow(),
+            ).model_dump(),
         )
 
     # Create tokens
@@ -49,11 +48,10 @@ def login(
     response_model=TokenResponse,
     responses={
         401: {"model": ErrorResponse, "description": "Invalid or expired token"},
-    }
+    },
 )
 def refresh_token(
-    request: RefreshRequest,
-    db: Session = Depends(get_db)
+    request: RefreshRequest, db: Session = Depends(get_db)
 ) -> Union[TokenResponse, JSONResponse]:
     """Refresh access token."""
     # Refresh tokens
@@ -62,6 +60,7 @@ def refresh_token(
         # Determine error type based on token validation
         try:
             from app.core.security import verify_token
+
             verify_token(request.refresh_token)
             # Token is valid but not a refresh token or user issue
             error_code = "AUTH003"
@@ -74,8 +73,8 @@ def refresh_token(
             content=ErrorResponse(
                 detail="Invalid or expired refresh token",
                 code=error_code,
-                timestamp=datetime.utcnow()
-            ).model_dump()
+                timestamp=datetime.utcnow(),
+            ).model_dump(),
         )
 
     return tokens

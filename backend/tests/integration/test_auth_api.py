@@ -17,10 +17,7 @@ class TestAuthAPI:
         # When: Logging in with correct credentials
         response = client.post(
             "/api/v1/auth/login",
-            json={
-                "email": test_user.email,
-                "password": "TestPassword123!"
-            }
+            json={"email": test_user.email, "password": "TestPassword123!"},
         )
 
         # Then: Should return tokens
@@ -36,10 +33,7 @@ class TestAuthAPI:
         # When: Logging in with wrong password
         response = client.post(
             "/api/v1/auth/login",
-            json={
-                "email": test_user.email,
-                "password": "WrongPassword123!"
-            }
+            json={"email": test_user.email, "password": "WrongPassword123!"},
         )
 
         # Then: Should return 401
@@ -51,10 +45,7 @@ class TestAuthAPI:
         # When: Logging in with non-existent email
         response = client.post(
             "/api/v1/auth/login",
-            json={
-                "email": "nonexistent@example.com",
-                "password": "Password123!"
-            }
+            json={"email": "nonexistent@example.com", "password": "Password123!"},
         )
 
         # Then: Should return 401
@@ -69,17 +60,14 @@ class TestAuthAPI:
             email="inactive@example.com",
             password="InactivePass123!",
             full_name="Inactive User",
-            is_active=False
+            is_active=False,
         )
         db_session.commit()
 
         # When: Trying to login
         response = client.post(
             "/api/v1/auth/login",
-            json={
-                "email": "inactive@example.com",
-                "password": "InactivePass123!"
-            }
+            json={"email": "inactive@example.com", "password": "InactivePass123!"},
         )
 
         # Then: Should return 401
@@ -93,8 +81,7 @@ class TestAuthAPI:
 
         # When: Refreshing token
         response = client.post(
-            "/api/v1/auth/refresh",
-            json={"refresh_token": refresh_token}
+            "/api/v1/auth/refresh", json={"refresh_token": refresh_token}
         )
 
         # Then: Should return new tokens
@@ -107,8 +94,7 @@ class TestAuthAPI:
         """Test refresh with invalid token."""
         # When: Using invalid refresh token
         response = client.post(
-            "/api/v1/auth/refresh",
-            json={"refresh_token": "invalid.token.here"}
+            "/api/v1/auth/refresh", json={"refresh_token": "invalid.token.here"}
         )
 
         # Then: Should return 401
@@ -119,14 +105,12 @@ class TestAuthAPI:
         """Test refresh with expired token."""
         # Given: Expired refresh token
         expired_token = create_refresh_token(
-            {"sub": str(test_user.id)},
-            expires_delta=timedelta(seconds=-1)
+            {"sub": str(test_user.id)}, expires_delta=timedelta(seconds=-1)
         )
 
         # When: Using expired token
         response = client.post(
-            "/api/v1/auth/refresh",
-            json={"refresh_token": expired_token}
+            "/api/v1/auth/refresh", json={"refresh_token": expired_token}
         )
 
         # Then: Should return 401
@@ -138,10 +122,7 @@ class TestAuthAPI:
         # When: Using invalid email format
         response = client.post(
             "/api/v1/auth/login",
-            json={
-                "email": "invalid-email",
-                "password": "Password123!"
-            }
+            json={"email": "invalid-email", "password": "Password123!"},
         )
 
         # Then: Should return 422
@@ -150,10 +131,7 @@ class TestAuthAPI:
     def test_login_missing_fields(self, client: TestClient) -> None:
         """Test login with missing fields."""
         # When: Missing password
-        response = client.post(
-            "/api/v1/auth/login",
-            json={"email": "test@example.com"}
-        )
+        response = client.post("/api/v1/auth/login", json={"email": "test@example.com"})
 
         # Then: Should return 422
         assert response.status_code == 422
@@ -165,10 +143,7 @@ class TestAuthAPI:
 
         response = client.post(
             "/api/v1/auth/login",
-            json={
-                "email": test_user.email,
-                "password": "TestPassword123!"
-            }
+            json={"email": test_user.email, "password": "TestPassword123!"},
         )
 
         response_time = (time.time() - start_time) * 1000

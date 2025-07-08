@@ -17,9 +17,7 @@ class TestUserRepository:
         """Test creating a user."""
         repository = UserRepository(db_session)
         user_data = UserCreate(
-            email="test@example.com",
-            password="Test123!@#",
-            full_name="Test User"
+            email="test@example.com", password="Test123!@#", full_name="Test User"
         )
 
         user = repository.create(user_data)
@@ -93,8 +91,18 @@ class TestUserRepository:
         user2 = UserFactory.create(db_session)
 
         # Assign users to organizations
-        UserRole(user_id=user1.id, role_id=role.id, organization_id=org1.id, assigned_by=user1.id)
-        UserRole(user_id=user2.id, role_id=role.id, organization_id=org2.id, assigned_by=user2.id)
+        UserRole(
+            user_id=user1.id,
+            role_id=role.id,
+            organization_id=org1.id,
+            assigned_by=user1.id,
+        )
+        UserRole(
+            user_id=user2.id,
+            role_id=role.id,
+            organization_id=org2.id,
+            assigned_by=user2.id,
+        )
         db_session.commit()
 
         # Search by organization
@@ -109,12 +117,10 @@ class TestUserRepository:
 
         # Create users with different lock states
         locked_user = UserFactory.create(
-            db_session,
-            locked_until=datetime.utcnow() + timedelta(minutes=30)
+            db_session, locked_until=datetime.utcnow() + timedelta(minutes=30)
         )
         UserFactory.create(
-            db_session,
-            locked_until=datetime.utcnow() - timedelta(minutes=1)
+            db_session, locked_until=datetime.utcnow() - timedelta(minutes=1)
         )
         UserFactory.create(db_session, locked_until=None)
 
@@ -129,12 +135,10 @@ class TestUserRepository:
 
         # Create users with different password ages
         old_password = UserFactory.create(
-            db_session,
-            password_changed_at=datetime.utcnow() - timedelta(days=100)
+            db_session, password_changed_at=datetime.utcnow() - timedelta(days=100)
         )
         UserFactory.create(
-            db_session,
-            password_changed_at=datetime.utcnow() - timedelta(days=30)
+            db_session, password_changed_at=datetime.utcnow() - timedelta(days=30)
         )
 
         expired_users = repository.get_users_with_expired_passwords(days=90)
@@ -169,7 +173,7 @@ class TestUserRepository:
         user = UserFactory.create(
             db_session,
             failed_login_attempts=5,
-            locked_until=datetime.utcnow() + timedelta(minutes=30)
+            locked_until=datetime.utcnow() + timedelta(minutes=30),
         )
 
         repository.reset_failed_login(user.id)
