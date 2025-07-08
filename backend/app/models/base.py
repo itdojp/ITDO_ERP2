@@ -4,7 +4,7 @@ This module provides base model classes with common functionality
 for all database models.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, TypeVar
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, func
@@ -94,7 +94,7 @@ class SoftDeletableModel(AuditableModel):
     def soft_delete(self, deleted_by: Optional[UserId] = None) -> None:
         """Perform soft delete on the model."""
         self.is_deleted = True
-        self.deleted_at = datetime.utcnow()
+        self.deleted_at = datetime.now(timezone.utc)
         if deleted_by:
             self.deleted_by = deleted_by
 

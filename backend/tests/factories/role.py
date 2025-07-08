@@ -369,7 +369,6 @@ def create_test_user_role(
         is_active=kwargs.get("is_active", True),
         expires_at=kwargs.get("expires_at", None),
         assigned_by=kwargs.get("assigned_by", None),
-        assignment_reason=kwargs.get("assignment_reason", None),
     )
 
     db_session.add(user_role)

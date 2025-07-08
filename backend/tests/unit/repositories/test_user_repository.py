@@ -1,6 +1,6 @@
 """Unit tests for User repository."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
@@ -91,18 +91,19 @@ class TestUserRepository:
         user2 = UserFactory.create(db_session)
 
         # Assign users to organizations
-        UserRole(
+        user_role1 = UserRole(
             user_id=user1.id,
             role_id=role.id,
             organization_id=org1.id,
             assigned_by=user1.id,
         )
-        UserRole(
+        user_role2 = UserRole(
             user_id=user2.id,
             role_id=role.id,
             organization_id=org2.id,
             assigned_by=user2.id,
         )
+        db_session.add_all([user_role1, user_role2])
         db_session.commit()
 
         # Search by organization
@@ -117,10 +118,10 @@ class TestUserRepository:
 
         # Create users with different lock states
         locked_user = UserFactory.create(
-            db_session, locked_until=datetime.utcnow() + timedelta(minutes=30)
+            db_session, locked_until=datetime.now(timezone.utc) + timedelta(minutes=30)
         )
         UserFactory.create(
-            db_session, locked_until=datetime.utcnow() - timedelta(minutes=1)
+            db_session, locked_until=datetime.now(timezone.utc) - timedelta(minutes=1)
         )
         UserFactory.create(db_session, locked_until=None)
 
@@ -135,10 +136,10 @@ class TestUserRepository:
 
         # Create users with different password ages
         old_password = UserFactory.create(
-            db_session, password_changed_at=datetime.utcnow() - timedelta(days=100)
+            db_session, password_changed_at=datetime.now(timezone.utc) - timedelta(days=100)
         )
         UserFactory.create(
-            db_session, password_changed_at=datetime.utcnow() - timedelta(days=30)
+            db_session, password_changed_at=datetime.now(timezone.utc) - timedelta(days=30)
         )
 
         expired_users = repository.get_users_with_expired_passwords(days=90)
@@ -165,7 +166,7 @@ class TestUserRepository:
         assert locked_user is not None
         assert locked_user.failed_login_attempts == 5
         assert locked_user.locked_until is not None
-        assert locked_user.locked_until > datetime.utcnow()
+        assert locked_user.locked_until > datetime.now(timezone.utc)
 
     def test_reset_failed_login(self, db_session: Session) -> None:
         """Test resetting failed login attempts."""
@@ -173,7 +174,7 @@ class TestUserRepository:
         user = UserFactory.create(
             db_session,
             failed_login_attempts=5,
-            locked_until=datetime.utcnow() + timedelta(minutes=30),
+            locked_until=datetime.now(timezone.utc) + timedelta(minutes=30),
         )
 
         repository.reset_failed_login(user.id)

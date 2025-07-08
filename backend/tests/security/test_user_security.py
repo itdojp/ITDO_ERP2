@@ -4,7 +4,7 @@ User management security tests.
 Following TDD approach - Red phase: Writing tests before implementation.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 from sqlalchemy.orm import Session
@@ -69,8 +69,8 @@ class TestUserSecurityFeatures:
                 assert user.is_locked()
 
         # Then: ロック期間中はログイン不可
-        assert user.locked_until > datetime.utcnow()
-        assert user.locked_until < datetime.utcnow() + timedelta(minutes=31)
+        assert user.locked_until > datetime.now(timezone.utc)
+        assert user.locked_until < datetime.now(timezone.utc) + timedelta(minutes=31)
 
     def test_session_hijacking_prevention(self, db_session: Session) -> None:
         """TEST-SEC-USER-003: セッションハイジャック防止をテスト."""
@@ -237,13 +237,11 @@ class TestUserSecurityFeatures:
         db_session.commit()
 
         # When: 短時間での大量ログイン試行
-        from datetime import datetime
-
-        start_time = datetime.utcnow()
+        start_time = datetime.now(timezone.utc)
         attempt_count = 0
 
         # 1分間での試行
-        while (datetime.utcnow() - start_time).seconds < 60:
+        while (datetime.now(timezone.utc) - start_time).seconds < 60:
             try:
                 # ログイン試行
                 user.authenticate(db_session, user.email, "wrong_password")
@@ -348,7 +346,7 @@ class TestUserSecurityFeatures:
         # Given: 期限切れパスワードのユーザー
         user = create_test_user(db_session)
         db_session.add(user)
-        user.password_changed_at = datetime.utcnow() - timedelta(days=91)
+        user.password_changed_at = datetime.now(timezone.utc) - timedelta(days=91)
         db_session.commit()
 
         # When: ログイン試行

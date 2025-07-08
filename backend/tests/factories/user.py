@@ -22,6 +22,7 @@ class UserFactory(BaseFactory):
             "phone": fake.phone_number(),
             "is_active": True,
             "is_superuser": False,
+            "is_deleted": False,
             "hashed_password": fake.password(length=60),  # Simulated bcrypt hash length
         }
 
