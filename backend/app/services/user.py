@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional
 from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
 
-from app.core.exceptions import BusinessLogicError, NotFoundError, PermissionDeniedError
+from app.core.exceptions import BusinessLogicError, NotFound, PermissionDenied
 from app.models.role import UserRole
 from app.models.user import User
 from app.repositories.user import UserRepository

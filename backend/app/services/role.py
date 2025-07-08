@@ -7,9 +7,9 @@ from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.exceptions import (
-    AlreadyExistsError,
-    NotFoundError,
-    PermissionDeniedError,
+    AlreadyExists,
+    NotFound,
+    PermissionDenied,
     ValidationError,
 )
 from app.models.organization import Organization
@@ -45,7 +45,7 @@ class RoleService:
         """Create a new role."""
         # Check if role code already exists
         if self.repository.get_by_code(role_data.code):
-            raise AlreadyExistsError(
+            raise AlreadyExists(
                 f"Role with code '{role_data.code}' already exists"
             )
 
@@ -106,7 +106,7 @@ class RoleService:
         if role_data.code and role_data.code != role.code:
             existing = self.repository.get_by_code(role_data.code)
             if existing and existing.id != role_id:
-                raise AlreadyExistsError(
+                raise AlreadyExists(
                     f"Role with code '{role_data.code}' already exists"
                 )
 
@@ -210,7 +210,7 @@ class RoleService:
         )
 
         if existing:
-            raise AlreadyExistsError("User already has this role assignment")
+            raise AlreadyExists("User already has this role assignment")
 
         # Create assignment
         user_role = UserRole(

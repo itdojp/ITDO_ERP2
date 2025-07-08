@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_active_user, get_current_superuser, get_db
-from app.core.exceptions import BusinessLogicError, NotFoundError, PermissionDeniedError
+from app.core.exceptions import BusinessLogicError, NotFound, PermissionDenied
 from app.models.user import User
 from app.schemas.error import ErrorResponse
 from app.schemas.user_extended import (
