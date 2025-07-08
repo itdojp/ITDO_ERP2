@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional
 
 from sqlalchemy.orm import Session, joinedload
 
-from app.core.exceptions import NotFound, PermissionDenied
+from app.core.exceptions import BusinessLogicError, NotFound, PermissionDenied
 from app.models.project import Project
 from app.models.task import Task
 from app.models.user import User
@@ -122,7 +122,7 @@ class TaskService:
         # Soft delete
         task.deleted_at = datetime.utcnow()
         task.deleted_by = user.id
-        task.is_active = False
+        task.is_deleted = True
 
         db.commit()
         return True
@@ -154,8 +154,8 @@ class TaskService:
         if filters.get("assignee_id"):
             query = query.filter(Task.assignee_id == filters["assignee_id"])
 
-        # Only show active tasks
-        query = query.filter(Task.is_active.is_(True))
+        # Only show active tasks (not deleted)
+        query = query.filter(Task.is_deleted.is_(False))
 
         # Count total
         total = query.count()
@@ -188,77 +188,332 @@ class TaskService:
         self, task_id: int, status_update: TaskStatusUpdate, user: User, db: Session
     ) -> TaskResponse:
         """Update task status."""
-        raise NotImplementedError("Task status update not implemented")
+        task = db.query(Task).filter(Task.id == task_id).first()
+        if not task:
+            raise NotFound("Task not found")
+
+        # TODO: Check task update permissions
+        if not user.is_active:
+            raise PermissionDenied("User is not active")
+
+        # Update status
+        task.status = status_update.status.value
+        if status_update.status.value == "completed":
+            task.completed_at = datetime.utcnow()
+
+        task.updated_by = user.id
+        task.updated_at = datetime.utcnow()
+
+        db.commit()
+        db.refresh(task)
+
+        return self._task_to_response(task)
 
     def get_task_history(
         self, task_id: int, user: User, db: Session
     ) -> TaskHistoryResponse:
         """Get task change history."""
-        raise NotImplementedError("Task history not implemented")
+        # For now, return empty history
+        # TODO: Implement actual audit log retrieval
+        task = db.query(Task).filter(Task.id == task_id).first()
+        if not task:
+            raise NotFound("Task not found")
+
+        if not user.is_active:
+            raise PermissionDenied("User is not active")
+
+        return TaskHistoryResponse(items=[], total=0)
 
     def assign_user(
         self, task_id: int, assignee_id: int, user: User, db: Session
     ) -> TaskResponse:
         """Assign a user to a task."""
-        raise NotImplementedError("User assignment not implemented")
+        task = db.query(Task).filter(Task.id == task_id).first()
+        if not task:
+            raise NotFound("Task not found")
+
+        # Check if assignee exists
+        from app.models.user import User as UserModel
+
+        assignee = db.query(UserModel).filter(UserModel.id == assignee_id).first()
+        if not assignee:
+            raise NotFound("User not found")
+
+        # TODO: Check assignment permissions
+        if not user.is_active:
+            raise PermissionDenied("User is not active")
+
+        task.assignee_id = assignee_id
+        task.updated_by = user.id
+        task.updated_at = datetime.utcnow()
+
+        db.commit()
+        db.refresh(task)
+
+        return self._task_to_response(task)
 
     def unassign_user(
         self, task_id: int, assignee_id: int, user: User, db: Session
     ) -> TaskResponse:
         """Remove a user from a task."""
-        raise NotImplementedError("User unassignment not implemented")
+        task = db.query(Task).filter(Task.id == task_id).first()
+        if not task:
+            raise NotFound("Task not found")
+
+        # TODO: Check unassignment permissions
+        if not user.is_active:
+            raise PermissionDenied("User is not active")
+
+        if task.assignee_id != assignee_id:
+            raise BusinessLogicError("User is not assigned to this task")
+
+        task.assignee_id = None
+        task.updated_by = user.id
+        task.updated_at = datetime.utcnow()
+
+        db.commit()
+        db.refresh(task)
+
+        return self._task_to_response(task)
 
     def bulk_assign_users(
         self, task_id: int, assignee_ids: List[int], user: User, db: Session
     ) -> TaskResponse:
         """Assign multiple users to a task."""
-        raise NotImplementedError("Bulk user assignment not implemented")
+        # For now, assign the first user only (single assignee model)
+        if not assignee_ids:
+            raise BusinessLogicError("At least one assignee ID required")
+
+        return self.assign_user(task_id, assignee_ids[0], user, db)
 
     def set_due_date(
         self, task_id: int, due_date: datetime, user: User, db: Session
     ) -> TaskResponse:
         """Set task due date."""
-        raise NotImplementedError("Due date setting not implemented")
+        task = db.query(Task).filter(Task.id == task_id).first()
+        if not task:
+            raise NotFound("Task not found")
+
+        # TODO: Check task update permissions
+        if not user.is_active:
+            raise PermissionDenied("User is not active")
+
+        task.due_date = due_date
+        task.updated_by = user.id
+        task.updated_at = datetime.utcnow()
+
+        db.commit()
+        db.refresh(task)
+
+        return self._task_to_response(task)
 
     def get_overdue_tasks(
         self, project_id: int, user: User, db: Session
     ) -> TaskListResponse:
         """Get overdue tasks for a project."""
-        raise NotImplementedError("Overdue task retrieval not implemented")
+        if not user.is_active:
+            raise PermissionDenied("User is not active")
+
+        now = datetime.utcnow()
+        overdue_tasks = (
+            db.query(Task)
+            .options(
+                joinedload(Task.project),
+                joinedload(Task.assignee),
+                joinedload(Task.reporter),
+            )
+            .filter(
+                Task.project_id == project_id,
+                Task.due_date < now,
+                Task.status != "completed",
+                Task.is_deleted.is_(False),
+            )
+            .all()
+        )
+
+        return TaskListResponse(
+            items=[self._task_to_response(task) for task in overdue_tasks],
+            total=len(overdue_tasks),
+            page=1,
+            page_size=len(overdue_tasks),
+            total_pages=1,
+        )
 
     def set_priority(
         self, task_id: int, priority: str, user: User, db: Session
     ) -> TaskResponse:
         """Set task priority."""
-        raise NotImplementedError("Priority setting not implemented")
+        task = db.query(Task).filter(Task.id == task_id).first()
+        if not task:
+            raise NotFound("Task not found")
+
+        # Validate priority
+        valid_priorities = ["high", "medium", "low"]
+        if priority not in valid_priorities:
+            raise BusinessLogicError(
+                f"Invalid priority. Must be one of: {valid_priorities}"
+            )
+
+        # TODO: Check task update permissions
+        if not user.is_active:
+            raise PermissionDenied("User is not active")
+
+        task.priority = priority
+        task.updated_by = user.id
+        task.updated_at = datetime.utcnow()
+
+        db.commit()
+        db.refresh(task)
+
+        return self._task_to_response(task)
 
     def add_dependency(
         self, task_id: int, depends_on: int, user: User, db: Session
     ) -> Dict[str, Any]:
         """Add task dependency."""
-        raise NotImplementedError("Dependency addition not implemented")
+        # For now, use parent_task_id for simple hierarchy
+        task = db.query(Task).filter(Task.id == task_id).first()
+        if not task:
+            raise NotFound("Task not found")
+
+        depends_task = db.query(Task).filter(Task.id == depends_on).first()
+        if not depends_task:
+            raise NotFound("Dependency task not found")
+
+        if not user.is_active:
+            raise PermissionDenied("User is not active")
+
+        # Check for circular dependency
+        if depends_on == task_id:
+            raise BusinessLogicError("Task cannot depend on itself")
+
+        task.parent_task_id = depends_on
+        task.updated_by = user.id
+        task.updated_at = datetime.utcnow()
+
+        db.commit()
+
+        return {"task_id": task_id, "depends_on": depends_on, "status": "added"}
 
     def get_dependencies(self, task_id: int, user: User, db: Session) -> Dict[str, Any]:
         """Get task dependencies."""
-        raise NotImplementedError("Dependency retrieval not implemented")
+        task = db.query(Task).filter(Task.id == task_id).first()
+        if not task:
+            raise NotFound("Task not found")
+
+        if not user.is_active:
+            raise PermissionDenied("User is not active")
+
+        dependencies = []
+        if task.parent_task_id:
+            dependencies.append({"id": task.parent_task_id, "type": "blocks"})
+
+        return {
+            "task_id": task_id,
+            "dependencies": dependencies,
+            "count": len(dependencies),
+        }
 
     def remove_dependency(
         self, task_id: int, depends_on: int, user: User, db: Session
     ) -> bool:
         """Remove task dependency."""
-        raise NotImplementedError("Dependency removal not implemented")
+        task = db.query(Task).filter(Task.id == task_id).first()
+        if not task:
+            raise NotFound("Task not found")
+
+        if not user.is_active:
+            raise PermissionDenied("User is not active")
+
+        if task.parent_task_id != depends_on:
+            raise BusinessLogicError("Dependency does not exist")
+
+        task.parent_task_id = None
+        task.updated_by = user.id
+        task.updated_at = datetime.utcnow()
+
+        db.commit()
+
+        return True
 
     def bulk_update_status(
         self, bulk_data: BulkStatusUpdate, user: User, db: Session
     ) -> BulkUpdateResponse:
         """Update status for multiple tasks."""
-        raise NotImplementedError("Bulk status update not implemented")
+        if not user.is_active:
+            raise PermissionDenied("User is not active")
+
+        updated_count = 0
+        failed_count = 0
+        errors = []
+
+        for task_id in bulk_data.task_ids:
+            try:
+                task = db.query(Task).filter(Task.id == task_id).first()
+                if task:
+                    task.status = bulk_data.status.value
+                    if bulk_data.status.value == "completed":
+                        task.completed_at = datetime.utcnow()
+                    task.updated_by = user.id
+                    task.updated_at = datetime.utcnow()
+                    updated_count += 1
+                else:
+                    failed_count += 1
+                    errors.append({"task_id": task_id, "error": "Task not found"})
+            except Exception as e:
+                failed_count += 1
+                errors.append({"task_id": task_id, "error": str(e)})
+
+        db.commit()
+
+        return BulkUpdateResponse(
+            updated_count=updated_count,
+            failed_count=failed_count,
+            errors=errors if errors else None,
+        )
 
     def search_tasks(
         self, query: str, user: User, db: Session, page: int = 1, page_size: int = 20
     ) -> TaskListResponse:
         """Search tasks by keyword."""
-        raise NotImplementedError("Task search not implemented")
+        from sqlalchemy import or_
+
+        # TODO: Check search permissions
+        if not user.is_active:
+            raise PermissionDenied("User is not active")
+
+        # Search in title and description
+        search_filter = or_(
+            Task.title.ilike(f"%{query}%"), Task.description.ilike(f"%{query}%")
+        )
+
+        query_obj = (
+            db.query(Task)
+            .options(
+                joinedload(Task.project),
+                joinedload(Task.assignee),
+                joinedload(Task.reporter),
+            )
+            .filter(search_filter, Task.is_deleted.is_(False))
+        )
+
+        # Count total
+        total = query_obj.count()
+
+        # Apply pagination
+        offset = (page - 1) * page_size
+        tasks = query_obj.offset(offset).limit(page_size).all()
+
+        # Calculate total pages
+        total_pages = (total + page_size - 1) // page_size if total > 0 else 0
+
+        return TaskListResponse(
+            items=[self._task_to_response(task) for task in tasks],
+            total=total,
+            page=page,
+            page_size=page_size,
+            total_pages=total_pages,
+        )
 
     def _task_to_response(self, task: Task) -> TaskResponse:
         """Convert Task model to TaskResponse schema."""
