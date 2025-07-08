@@ -247,7 +247,9 @@ class TestUserExtendedModel:
         """TEST-USER-MODEL-012: ユーザーの実効権限計算をテスト."""
         # Skip this test as it requires complex permission setup
         # This functionality will be tested in integration tests
-        pytest.skip("Permission assignment requires full service layer - tested in integration")
+        pytest.skip(
+            "Permission assignment requires full service layer - tested in integration"
+        )
 
     def test_password_expiry_check(self, db_session: Session) -> None:
         """TEST-USER-MODEL-013: パスワード有効期限チェックをテスト."""
