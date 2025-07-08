@@ -55,14 +55,14 @@ class DepartmentService:
             Department.code.ilike(f"%{query}%"),
         )
 
-        conditions = [search_condition]
+        conditions = [search_condition, ~Department.is_deleted]
         if organization_id:
             conditions.append(Department.organization_id == organization_id)
 
         # Get all matching departments
         all_results = (
             self.db.query(Department)
-            .filter(and_(*conditions), not Department.is_deleted)
+            .filter(and_(*conditions))
             .order_by(Department.updated_at.desc())
             .all()
         )
