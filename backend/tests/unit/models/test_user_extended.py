@@ -246,9 +246,9 @@ class TestUserExtendedModel:
     def test_user_effective_permissions(self, db_session: Session) -> None:
         """TEST-USER-MODEL-012: ユーザーの実効権限計算をテスト."""
         # Given: 複数ロールを持つユーザー
-        from tests.factories import create_test_organization, create_test_role
         from app.models.permission import Permission
         from app.models.role import RolePermission
+        from tests.factories import create_test_organization, create_test_role
 
         user = create_test_user(db_session)
         org = create_test_organization(db_session)
