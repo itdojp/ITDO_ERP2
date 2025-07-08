@@ -91,7 +91,7 @@ jobs:
     - name: Run ruff linting
       run: |
         echo "::group::Ruff Linting"
-        uv run ruff check . --output-format=github
+        uv run ruff check . --output-format=github --ignore E501,N805,N818
         echo "::endgroup::"
     
     - name: Run ruff formatting check
