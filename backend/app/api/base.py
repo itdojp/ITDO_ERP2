@@ -1,6 +1,7 @@
 """Base API router implementation for ITDO ERP System.
 
-This module provides a generic API router with full type safety and standard CRUD operations.
+This module provides a generic API router with full type safety
+and standard CRUD operations.
 """
 
 from typing import Any, Callable, Generic, List, Optional, Type
