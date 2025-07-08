@@ -385,17 +385,19 @@ class TestUserService:
         service.delete_user(user_id=admin1.id, deleter=admin2, db=db_session)
 
         # この時点でadmin1は論理削除されているので、アクティブな管理者はadmin2のみ
-        # 最後の管理者を削除しようとして、PermissionDeniedError（自分自身削除）またはBusinessLogicErrorが発生するはず
-        # しかし、自分自身削除エラーが先に発生する可能性があるので、異なるアプローチを取る
-        
+        # 最後の管理者を削除しようとすると、自分自身削除エラーまたは
+        # BusinessLogicErrorが発生するはず
+        # しかし、自分自身削除エラーが先に発生する可能性があるので、
+        # 異なるアプローチを取る
+
         # 3人目の管理者を作成してから2人目を削除し、3人目で最後を削除しようとする
         admin3 = create_test_user(db_session, is_superuser=True)
         db_session.add(admin3)
         db_session.commit()
-        
+
         # 2人目を削除（まだ3人目が残っているので成功）
         service.delete_user(user_id=admin2.id, deleter=admin3, db=db_session)
-        
+
         # 最後の管理者（admin3）を削除しようとして失敗
         # NOTE: 自分自身削除エラーが最後のシステム管理者エラーより先にチェックされる
         # このテストはこの仕様を受け入れてスキップするか、別のアプローチが必要
