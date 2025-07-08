@@ -212,7 +212,7 @@ class TestUserSecurityFeatures:
     def test_sensitive_data_masking(self, db_session: Session) -> None:
         """TEST-SEC-USER-009: 機密データのマスキングをテスト."""
         # Given: ユーザー
-        user = create_test_user(db_session, 
+        user = create_test_user(db_session,
             email="sensitive@example.com",
             full_name="山田太郎",
             phone="090-1234-5678",
@@ -365,7 +365,7 @@ class TestUserSecurityFeatures:
     def test_personal_data_encryption(self, db_session: Session) -> None:
         """TEST-SEC-USER-015: 個人情報の暗号化をテスト."""
         # Given: 個人情報を含むユーザー
-        user = create_test_user(db_session, 
+        user = create_test_user(db_session,
             full_name="山田太郎",
             phone="090-1234-5678",
             # 将来的に追加される可能性のある機密情報
