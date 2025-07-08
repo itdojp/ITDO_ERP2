@@ -2,6 +2,7 @@
 
 import random
 import string
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -21,6 +22,14 @@ from app.schemas.user_extended import (
     UserUpdate,
 )
 from app.services.audit import AuditLogger
+
+
+@dataclass
+class ExportData:
+    """Export data response object."""
+    content_type: str
+    headers: List[str]
+    rows: List[List[str]]
 
 
 class UserService:
@@ -485,7 +494,7 @@ class UserService:
 
     def export_users(
         self, organization_id: int, format: str, exporter: User, db: Session
-    ) -> Dict[str, Any]:
+    ) -> ExportData:
         """Export user list."""
         # Permission check
         if not exporter.is_superuser:
@@ -516,11 +525,11 @@ class UserService:
                 ]
             )
 
-        return {
-            "content_type": f"text/{format}",
-            "headers": headers,
-            "rows": rows,
-        }
+        return ExportData(
+            content_type=f"text/{format}",
+            headers=headers,
+            rows=rows,
+        )
 
     def _user_to_extended_response(
         self, user: User, db: Session

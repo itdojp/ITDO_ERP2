@@ -351,12 +351,37 @@ class User(SoftDeletableModel):
                 user_role.organization_id == organization_id
                 and not user_role.is_expired
             ):
-                # TODO: Implement role permissions system
-                # if user_role.role.permissions:
-                #     permissions.update(user_role.role.permissions)
-                pass
+                # Get role permissions
+                role_permissions = user_role.role.permissions
+                if isinstance(role_permissions, dict):
+                    # Flatten nested permissions to list of strings
+                    permissions.update(self._flatten_permissions(role_permissions))
+                elif isinstance(role_permissions, list):
+                    permissions.update(role_permissions)
 
         return list(permissions)
+
+    def _flatten_permissions(self, permissions: Dict[str, Any]) -> List[str]:
+        """Flatten nested permissions dictionary to list of strings."""
+        result = []
+        
+        def _extract_permissions(obj: Any, prefix: str = "") -> None:
+            if isinstance(obj, dict):
+                for key, value in obj.items():
+                    current_prefix = f"{prefix}.{key}" if prefix else key
+                    if isinstance(value, bool) and value:
+                        result.append(current_prefix)
+                    elif isinstance(value, (dict, list)):
+                        _extract_permissions(value, current_prefix)
+            elif isinstance(obj, list):
+                for item in obj:
+                    if isinstance(item, str):
+                        result.append(f"{prefix}.{item}" if prefix else item)
+                    elif isinstance(item, dict):
+                        _extract_permissions(item, prefix)
+        
+        _extract_permissions(permissions)
+        return result
 
     def has_permission(self, permission: str, organization_id: int) -> bool:
         """Check if user has specific permission in organization."""

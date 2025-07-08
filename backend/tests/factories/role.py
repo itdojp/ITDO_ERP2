@@ -176,6 +176,17 @@ class RoleFactory(BaseFactory):
         return cls.create(db_session, **kwargs)
 
     @classmethod
+    def create(cls, db_session, **kwargs):
+        """Create a role instance with proper permissions handling."""
+        # Handle permissions parameter conversion
+        if 'permissions' in kwargs and isinstance(kwargs['permissions'], list):
+            # Convert list of permissions to dict format
+            permissions_list = kwargs['permissions']
+            kwargs['permissions'] = {perm: True for perm in permissions_list}
+        
+        return super().create(db_session, **kwargs)
+
+    @classmethod
     def create_with_permissions(
         cls, db_session, permissions: List[Permission], **kwargs
     ) -> Role:
