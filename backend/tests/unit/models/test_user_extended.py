@@ -247,7 +247,6 @@ class TestUserExtendedModel:
         """TEST-USER-MODEL-012: ユーザーの実効権限計算をテスト."""
         # Given: 複数ロールを持つユーザー
         from app.models.permission import Permission
-        from app.models.role import RolePermission
         from tests.factories import create_test_organization, create_test_role
 
         user = create_test_user(db_session)
@@ -265,10 +264,9 @@ class TestUserExtendedModel:
         db_session.add_all([user, org, role1, role2])
         db_session.commit()
 
-        # Assign permissions to roles
-        rp1 = RolePermission(role_id=role1.id, permission_id=perm1.id)
-        rp2 = RolePermission(role_id=role2.id, permission_id=perm2.id)
-        db_session.add_all([rp1, rp2])
+        # Assign permissions to roles using the role's method
+        role1.permissions.append(perm1)
+        role2.permissions.append(perm2)
         db_session.commit()
 
         # ロール割り当て
