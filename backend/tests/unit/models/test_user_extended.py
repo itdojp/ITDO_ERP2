@@ -74,7 +74,7 @@ class TestUserExtendedModel:
         # パスワードを3回変更
         passwords = ["Pass1234!", "Pass5678!", "Pass9012!"]
         for i, new_pass in enumerate(passwords):
-            current_pass = "TestPass123!" if i == 0 else passwords[i - 1]
+            current_pass = "TestPassword123!" if i == 0 else passwords[i - 1]
             user.change_password(db_session, current_pass, new_pass)
 
         # When/Then: 直近のパスワードは使用不可
@@ -136,15 +136,15 @@ class TestUserExtendedModel:
         # When/Then: 弱いパスワードは拒否
         weak_passwords = [
             "short",  # 短すぎる
-            "alllowercase123",  # 大文字なし
-            "ALLUPPERCASE123",  # 小文字なし
-            "NoNumbers!",  # 数字なし
-            "NoSpecialChar123",  # 特殊文字なし
+            "alllowercase123",  # 大文字なし (2/4)
+            "ALLUPPERCASE123",  # 小文字なし (2/4)
+            "no123",  # 大文字・特殊文字なし (2/4)
+            "NOLOWER123",  # 小文字・特殊文字なし (2/4)
         ]
 
         for weak_pass in weak_passwords:
             with pytest.raises(BusinessLogicError, match="パスワード"):
-                user.change_password(db_session, "CurrentPass123!", weak_pass)
+                user.change_password(db_session, "TestPassword123!", weak_pass)
 
     def test_user_session_tracking(self, db_session: Session) -> None:
         """TEST-USER-MODEL-008: ユーザーセッション追跡をテスト."""

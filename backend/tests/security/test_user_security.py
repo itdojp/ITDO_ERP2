@@ -26,7 +26,7 @@ class TestUserSecurityFeatures:
     def test_password_history_prevents_reuse(self, db_session: Session) -> None:
         """TEST-SEC-USER-001: パスワード履歴による再利用防止をテスト."""
         # Given: ユーザーとパスワード履歴
-        user = create_test_user()
+        user = create_test_user(db_session)
         db_session.add(user)
         db_session.commit()
 
@@ -52,7 +52,7 @@ class TestUserSecurityFeatures:
     def test_account_lockout_security(self, db_session: Session) -> None:
         """TEST-SEC-USER-002: アカウントロックアウトのセキュリティをテスト."""
         # Given: ユーザー
-        user = create_test_user()
+        user = create_test_user(db_session)
         db_session.add(user)
         db_session.commit()
 
@@ -75,7 +75,7 @@ class TestUserSecurityFeatures:
     def test_session_hijacking_prevention(self, db_session: Session) -> None:
         """TEST-SEC-USER-003: セッションハイジャック防止をテスト."""
         # Given: ユーザーとセッション
-        user = create_test_user()
+        user = create_test_user(db_session)
         db_session.add(user)
         db_session.commit()
 
@@ -101,7 +101,7 @@ class TestUserSecurityFeatures:
     def test_concurrent_session_limit_security(self, db_session: Session) -> None:
         """TEST-SEC-USER-004: 同時セッション数制限のセキュリティをテスト."""
         # Given: ユーザー
-        user = create_test_user()
+        user = create_test_user(db_session)
         db_session.add(user)
         db_session.commit()
 
@@ -123,7 +123,7 @@ class TestUserSecurityFeatures:
     def test_privilege_escalation_prevention(self, db_session: Session) -> None:
         """TEST-SEC-USER-005: 権限昇格攻撃の防止をテスト."""
         # Given: 一般ユーザー
-        user = create_test_user()
+        user = create_test_user(db_session)
         org = create_test_organization()
         user_role = create_test_role(code="USER", permissions=["read:own"])
         admin_role = create_test_role(code="ADMIN", permissions=["*"])
@@ -140,8 +140,8 @@ class TestUserSecurityFeatures:
         org1 = create_test_organization(code="ORG1")
         org2 = create_test_organization(code="ORG2")
 
-        user1 = create_test_user(email="user1@org1.com")
-        user2 = create_test_user(email="user2@org2.com")
+        user1 = create_test_user(db_session, email="user1@org1.com")
+        user2 = create_test_user(db_session, email="user2@org2.com")
 
         role = create_test_role(code="USER")
         create_test_user_role(user=user1, role=role, organization=org1)
@@ -160,8 +160,8 @@ class TestUserSecurityFeatures:
     def test_sql_injection_in_user_search(self, db_session: Session) -> None:
         """TEST-SEC-USER-007: ユーザー検索でのSQLインジェクション防止をテスト."""
         # Given: ユーザーデータ
-        admin = create_test_user(is_superuser=True)
-        target_user = create_test_user(email="target@example.com")
+        admin = create_test_user(db_session, is_superuser=True)
+        target_user = create_test_user(db_session, email="target@example.com")
         db_session.add_all([admin, target_user])
         db_session.commit()
 
@@ -190,7 +190,7 @@ class TestUserSecurityFeatures:
     def test_password_complexity_enforcement(self, db_session: Session) -> None:
         """TEST-SEC-USER-008: パスワード複雑性の強制をテスト."""
         # Given: ユーザー
-        user = create_test_user()
+        user = create_test_user(db_session)
         db_session.add(user)
         db_session.commit()
 
@@ -212,7 +212,7 @@ class TestUserSecurityFeatures:
     def test_sensitive_data_masking(self, db_session: Session) -> None:
         """TEST-SEC-USER-009: 機密データのマスキングをテスト."""
         # Given: ユーザー
-        user = create_test_user(
+        user = create_test_user(db_session, 
             email="sensitive@example.com",
             full_name="山田太郎",
             phone="090-1234-5678",
@@ -231,7 +231,7 @@ class TestUserSecurityFeatures:
     def test_brute_force_protection(self, db_session: Session) -> None:
         """TEST-SEC-USER-010: ブルートフォース攻撃防止をテスト."""
         # Given: ユーザー
-        user = create_test_user()
+        user = create_test_user(db_session)
         db_session.add(user)
         db_session.commit()
 
@@ -257,7 +257,7 @@ class TestUserSecurityFeatures:
     def test_token_security_validation(self, db_session: Session) -> None:
         """TEST-SEC-USER-011: トークンセキュリティ検証をテスト."""
         # Given: ユーザーとトークン
-        user = create_test_user()
+        user = create_test_user(db_session)
         db_session.add(user)
         db_session.commit()
 
@@ -287,7 +287,7 @@ class TestUserSecurityFeatures:
         )
 
         # 部門管理者
-        dept_manager = create_test_user()
+        dept_manager = create_test_user(db_session)
         manager_role = create_test_role(
             code="DEPT_MANAGER", permissions=["dept:*", "user:read"]
         )
@@ -300,7 +300,7 @@ class TestUserSecurityFeatures:
         db_session.commit()
 
         # When: 親部門のユーザーにアクセス
-        parent_user = create_test_user(email="parent@example.com")
+        parent_user = create_test_user(db_session, email="parent@example.com")
         create_test_user_role(
             user=parent_user,
             role=manager_role,
@@ -314,8 +314,8 @@ class TestUserSecurityFeatures:
     def test_audit_trail_integrity(self, db_session: Session) -> None:
         """TEST-SEC-USER-013: 監査証跡の完全性をテスト."""
         # Given: ユーザー操作
-        admin = create_test_user(is_superuser=True)
-        user = create_test_user()
+        admin = create_test_user(db_session, is_superuser=True)
+        user = create_test_user(db_session)
         db_session.add_all([admin, user])
         db_session.commit()
 
@@ -345,7 +345,7 @@ class TestUserSecurityFeatures:
     def test_password_expiry_enforcement(self, db_session: Session) -> None:
         """TEST-SEC-USER-014: パスワード有効期限の強制をテスト."""
         # Given: 期限切れパスワードのユーザー
-        user = create_test_user()
+        user = create_test_user(db_session)
         db_session.add(user)
         user.password_changed_at = datetime.utcnow() - timedelta(days=91)
         db_session.commit()
@@ -365,7 +365,7 @@ class TestUserSecurityFeatures:
     def test_personal_data_encryption(self, db_session: Session) -> None:
         """TEST-SEC-USER-015: 個人情報の暗号化をテスト."""
         # Given: 個人情報を含むユーザー
-        user = create_test_user(
+        user = create_test_user(db_session, 
             full_name="山田太郎",
             phone="090-1234-5678",
             # 将来的に追加される可能性のある機密情報
