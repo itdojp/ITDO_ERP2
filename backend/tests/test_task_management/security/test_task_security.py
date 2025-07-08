@@ -17,13 +17,9 @@ class TestTaskSecurity:
 
         # Create test users with different permissions
         self.regular_user = create_test_user()
-        self.admin_user = create_test_user(
-            email="admin@example.com",
-            is_superuser=True
-        )
+        self.admin_user = create_test_user(email="admin@example.com", is_superuser=True)
         self.other_org_user = create_test_user(
-            email="other@example.com",
-            organization_id=2
+            email="other@example.com", organization_id=2
         )
 
         self.regular_token = create_test_jwt_token(self.regular_user)
@@ -85,7 +81,7 @@ class TestTaskSecurity:
             "title": "<script>alert('XSS')</script>",
             "description": "javascript:alert('XSS')",
             "project_id": 1,
-            "priority": "medium"
+            "priority": "medium",
         }
         headers = {"Authorization": f"Bearer {self.regular_token}"}
 
@@ -116,7 +112,9 @@ class TestTaskSecurity:
 
         # Assert
         # This will fail until API is implemented
-        assert all(r.status_code == 404 for r in responses)  # Not Found until implemented
+        assert all(
+            r.status_code == 404 for r in responses
+        )  # Not Found until implemented
 
         # Expected behavior after implementation:
         # # Should have some rate limiting
@@ -130,7 +128,7 @@ class TestTaskSecurity:
             "title": "",  # Empty title
             "project_id": "not-a-number",  # Invalid type
             "priority": "invalid-priority",  # Invalid enum value
-            "due_date": "invalid-date"  # Invalid date format
+            "due_date": "invalid-date",  # Invalid date format
         }
         headers = {"Authorization": f"Bearer {self.regular_token}"}
 
@@ -161,7 +159,9 @@ class TestTaskAuthorizationLevels:
         # Create users with different roles
         self.viewer_user = create_test_user(email="viewer@example.com", role="viewer")
         self.member_user = create_test_user(email="member@example.com", role="member")
-        self.manager_user = create_test_user(email="manager@example.com", role="manager")
+        self.manager_user = create_test_user(
+            email="manager@example.com", role="manager"
+        )
         self.admin_user = create_test_user(email="admin@example.com", is_superuser=True)
 
         self.viewer_token = create_test_jwt_token(self.viewer_user)
@@ -199,7 +199,9 @@ class TestTaskAuthorizationLevels:
         # Expected: 201 Created
 
         # Can update own task
-        response = self.client.patch("/api/v1/tasks/1", json={"title": "Updated"}, headers=headers)
+        response = self.client.patch(
+            "/api/v1/tasks/1", json={"title": "Updated"}, headers=headers
+        )
         assert response.status_code == 404  # Not Found until implemented
         # Expected: 200 OK (if owner) or 403 Forbidden (if not owner)
 
@@ -208,7 +210,9 @@ class TestTaskAuthorizationLevels:
         headers = {"Authorization": f"Bearer {self.manager_token}"}
 
         # Can update any task in organization
-        response = self.client.patch("/api/v1/tasks/1", json={"title": "Updated"}, headers=headers)
+        response = self.client.patch(
+            "/api/v1/tasks/1", json={"title": "Updated"}, headers=headers
+        )
         assert response.status_code == 404  # Not Found until implemented
         # Expected: 200 OK
 
@@ -228,7 +232,9 @@ class TestTaskAuthorizationLevels:
 
         # Can perform bulk operations
         bulk_data = {"task_ids": [1, 2, 3], "status": "completed"}
-        response = self.client.post("/api/v1/tasks/bulk/status", json=bulk_data, headers=headers)
+        response = self.client.post(
+            "/api/v1/tasks/bulk/status", json=bulk_data, headers=headers
+        )
         assert response.status_code == 404  # Not Found until implemented
         # Expected: 200 OK
 
@@ -281,9 +287,7 @@ class TestTaskDataIsolation:
         task_id = 1  # Assuming this belongs to org1
         headers = {"Authorization": f"Bearer {self.org2_token}"}
         response = self.client.patch(
-            f"/api/v1/tasks/{task_id}",
-            json={"title": "Hacked!"},
-            headers=headers
+            f"/api/v1/tasks/{task_id}", json={"title": "Hacked!"}, headers=headers
         )
         assert response.status_code == 404  # Not Found until implemented
         # Expected: 403 Forbidden
@@ -297,7 +301,7 @@ class TestTaskDataIsolation:
         response = self.client.post(
             f"/api/v1/tasks/{task_id}/assign",
             json={"user_id": org2_user_id},
-            headers=headers
+            headers=headers,
         )
         assert response.status_code == 404  # Not Found until implemented
         # Expected: 403 Forbidden or 400 Bad Request
@@ -326,11 +330,13 @@ class TestTaskInputSanitization:
             "title": "<h1>Title with HTML</h1>",
             "description": "<p>Description with <strong>HTML</strong></p>",
             "project_id": 1,
-            "priority": "medium"
+            "priority": "medium",
         }
 
         # Act
-        response = self.client.post("/api/v1/tasks", json=task_data, headers=self.headers)
+        response = self.client.post(
+            "/api/v1/tasks", json=task_data, headers=self.headers
+        )
 
         # Assert
         assert response.status_code == 404  # Not Found until implemented
@@ -343,11 +349,13 @@ class TestTaskInputSanitization:
             "title": "Click me",
             "description": "Visit javascript:alert('XSS')",
             "project_id": 1,
-            "priority": "medium"
+            "priority": "medium",
         }
 
         # Act
-        response = self.client.post("/api/v1/tasks", json=task_data, headers=self.headers)
+        response = self.client.post(
+            "/api/v1/tasks", json=task_data, headers=self.headers
+        )
 
         # Assert
         assert response.status_code == 404  # Not Found until implemented
@@ -360,11 +368,13 @@ class TestTaskInputSanitization:
             "title": "A" * 300,  # Exceeds 200 char limit
             "description": "B" * 6000,  # Exceeds 5000 char limit
             "project_id": 1,
-            "priority": "medium"
+            "priority": "medium",
         }
 
         # Act
-        response = self.client.post("/api/v1/tasks", json=task_data, headers=self.headers)
+        response = self.client.post(
+            "/api/v1/tasks", json=task_data, headers=self.headers
+        )
 
         # Assert
         assert response.status_code == 404  # Not Found until implemented
@@ -377,11 +387,13 @@ class TestTaskInputSanitization:
             "title": "Task with 特殊文字 and émojis 🎉",
             "description": "Line1\nLine2\tTabbed\r\nWindows line",
             "project_id": 1,
-            "priority": "medium"
+            "priority": "medium",
         }
 
         # Act
-        response = self.client.post("/api/v1/tasks", json=task_data, headers=self.headers)
+        response = self.client.post(
+            "/api/v1/tasks", json=task_data, headers=self.headers
+        )
 
         # Assert
         assert response.status_code == 404  # Not Found until implemented

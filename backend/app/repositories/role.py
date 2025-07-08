@@ -157,10 +157,7 @@ class UserRoleRepository(BaseRepository[UserRole, UserRoleCreate, UserRoleUpdate
             now = datetime.utcnow()
             query = query.where(self.model.valid_from <= now)
             query = query.where(
-                or_(
-                    self.model.expires_at.is_(None),
-                    self.model.expires_at > now
-                )
+                or_(self.model.expires_at.is_(None), self.model.expires_at > now)
             )
 
         query = query.options(

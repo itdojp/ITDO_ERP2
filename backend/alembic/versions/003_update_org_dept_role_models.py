@@ -59,7 +59,8 @@ def upgrade() -> None:
     op.add_column("organizations", sa.Column("description", sa.Text(), nullable=True))
     op.add_column("organizations", sa.Column("logo_url", sa.String(255), nullable=True))
     op.add_column(
-        "organizations", sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True)
+        "organizations",
+        sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
     )
     op.add_column("organizations", sa.Column("deleted_by", sa.Integer(), nullable=True))
     op.add_column(
@@ -71,7 +72,11 @@ def upgrade() -> None:
 
     # Add foreign keys for organizations
     op.create_foreign_key(
-        "fk_organizations_parent", "organizations", "organizations", ["parent_id"], ["id"]
+        "fk_organizations_parent",
+        "organizations",
+        "organizations",
+        ["parent_id"],
+        ["id"],
     )
     op.create_foreign_key(
         "fk_organizations_deleted_by", "organizations", "users", ["deleted_by"], ["id"]
@@ -110,8 +115,12 @@ def upgrade() -> None:
         sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("deleted_by", sa.Integer(), nullable=True),
         sa.Column("is_deleted", sa.Boolean(), server_default="false", nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), server_default=sa.func.now()
+        ),
+        sa.Column(
+            "updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()
+        ),
         sa.Column("created_by", sa.Integer(), nullable=True),
         sa.Column("updated_by", sa.Integer(), nullable=True),
         sa.ForeignKeyConstraint(["organization_id"], ["organizations.id"]),
@@ -125,7 +134,9 @@ def upgrade() -> None:
     )
 
     # Add indexes for departments
-    op.create_index("ix_departments_organization_id", "departments", ["organization_id"])
+    op.create_index(
+        "ix_departments_organization_id", "departments", ["organization_id"]
+    )
     op.create_index("ix_departments_parent_id", "departments", ["parent_id"])
     op.create_index("ix_departments_manager_id", "departments", ["manager_id"])
     op.create_index("ix_departments_is_active", "departments", ["is_active"])
@@ -142,8 +153,12 @@ def upgrade() -> None:
         sa.Column("category", sa.String(50), nullable=False),
         sa.Column("is_active", sa.Boolean(), server_default="true"),
         sa.Column("is_system", sa.Boolean(), server_default="false"),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), server_default=sa.func.now()
+        ),
+        sa.Column(
+            "updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()
+        ),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("code", name="uq_permissions_code"),
     )
@@ -175,8 +190,12 @@ def upgrade() -> None:
         sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("deleted_by", sa.Integer(), nullable=True),
         sa.Column("is_deleted", sa.Boolean(), server_default="false", nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), server_default=sa.func.now()
+        ),
+        sa.Column(
+            "updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()
+        ),
         sa.Column("created_by", sa.Integer(), nullable=True),
         sa.Column("updated_by", sa.Integer(), nullable=True),
         sa.ForeignKeyConstraint(["organization_id"], ["organizations.id"]),
@@ -203,7 +222,9 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("role_id", sa.Integer(), nullable=False),
         sa.Column("permission_id", sa.Integer(), nullable=False),
-        sa.Column("granted_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
+        sa.Column(
+            "granted_at", sa.DateTime(timezone=True), server_default=sa.func.now()
+        ),
         sa.Column("granted_by", sa.Integer(), nullable=True),
         sa.ForeignKeyConstraint(["role_id"], ["roles.id"]),
         sa.ForeignKeyConstraint(["permission_id"], ["permissions.id"]),
@@ -227,8 +248,12 @@ def upgrade() -> None:
         sa.Column("organization_id", sa.Integer(), nullable=False),
         sa.Column("department_id", sa.Integer(), nullable=True),
         sa.Column("assigned_by", sa.Integer(), nullable=True),
-        sa.Column("assigned_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
-        sa.Column("valid_from", sa.DateTime(timezone=True), server_default=sa.func.now()),
+        sa.Column(
+            "assigned_at", sa.DateTime(timezone=True), server_default=sa.func.now()
+        ),
+        sa.Column(
+            "valid_from", sa.DateTime(timezone=True), server_default=sa.func.now()
+        ),
         sa.Column("expires_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("is_active", sa.Boolean(), server_default="true"),
         sa.Column("is_primary", sa.Boolean(), server_default="false"),
@@ -236,8 +261,12 @@ def upgrade() -> None:
         sa.Column("approval_status", sa.String(50), nullable=True),
         sa.Column("approved_by", sa.Integer(), nullable=True),
         sa.Column("approved_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), server_default=sa.func.now()
+        ),
+        sa.Column(
+            "updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()
+        ),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"]),
         sa.ForeignKeyConstraint(["role_id"], ["roles.id"]),
         sa.ForeignKeyConstraint(["organization_id"], ["organizations.id"]),

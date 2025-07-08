@@ -213,7 +213,7 @@ class AuditInfo(BaseModel):
                 "updated_at": "2024-01-06T12:00:00Z",
                 "updated_by": 1,
             }
-        }
+        },
     )
 
 

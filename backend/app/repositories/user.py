@@ -152,7 +152,7 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
                     and_(
                         or_(
                             User.last_login_at.is_(None),
-                            User.last_login_at < cutoff_date
+                            User.last_login_at < cutoff_date,
                         ),
                         User.is_active,
                         ~User.is_deleted,

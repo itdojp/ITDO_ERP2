@@ -34,14 +34,12 @@ class TestTaskAPI:
             "description": "タスクの説明",
             "project_id": 1,
             "priority": "medium",
-            "due_date": (datetime.now(timezone.utc) + timedelta(days=7)).isoformat()
+            "due_date": (datetime.now(timezone.utc) + timedelta(days=7)).isoformat(),
         }
 
         # Act
         response = self.client.post(
-            "/api/v1/tasks",
-            json=task_data,
-            headers=self.headers
+            "/api/v1/tasks", json=task_data, headers=self.headers
         )
 
         # Assert
@@ -57,10 +55,7 @@ class TestTaskAPI:
     def test_list_tasks_api(self):
         """Test TASK-I-002: GET /api/v1/tasks."""
         # Act
-        response = self.client.get(
-            "/api/v1/tasks",
-            headers=self.headers
-        )
+        response = self.client.get("/api/v1/tasks", headers=self.headers)
 
         # Assert
         # This will fail until API is implemented
@@ -80,10 +75,7 @@ class TestTaskAPI:
         task_id = 1
 
         # Act
-        response = self.client.get(
-            f"/api/v1/tasks/{task_id}",
-            headers=self.headers
-        )
+        response = self.client.get(f"/api/v1/tasks/{task_id}", headers=self.headers)
 
         # Assert
         # This will fail until API is implemented
@@ -100,16 +92,11 @@ class TestTaskAPI:
         """Test TASK-I-004: PATCH /api/v1/tasks/{id}."""
         # Arrange
         task_id = 1
-        update_data = {
-            "title": "更新されたタスク",
-            "description": "更新された説明"
-        }
+        update_data = {"title": "更新されたタスク", "description": "更新された説明"}
 
         # Act
         response = self.client.patch(
-            f"/api/v1/tasks/{task_id}",
-            json=update_data,
-            headers=self.headers
+            f"/api/v1/tasks/{task_id}", json=update_data, headers=self.headers
         )
 
         # Assert
@@ -128,10 +115,7 @@ class TestTaskAPI:
         task_id = 1
 
         # Act
-        response = self.client.delete(
-            f"/api/v1/tasks/{task_id}",
-            headers=self.headers
-        )
+        response = self.client.delete(f"/api/v1/tasks/{task_id}", headers=self.headers)
 
         # Assert
         # This will fail until API is implemented
@@ -144,16 +128,11 @@ class TestTaskAPI:
         """Test TASK-I-006: POST /api/v1/tasks/{id}/status."""
         # Arrange
         task_id = 1
-        status_data = {
-            "status": "in_progress",
-            "comment": "作業開始"
-        }
+        status_data = {"status": "in_progress", "comment": "作業開始"}
 
         # Act
         response = self.client.post(
-            f"/api/v1/tasks/{task_id}/status",
-            json=status_data,
-            headers=self.headers
+            f"/api/v1/tasks/{task_id}/status", json=status_data, headers=self.headers
         )
 
         # Assert
@@ -168,16 +147,11 @@ class TestTaskAPI:
     def test_bulk_update_api(self):
         """Test TASK-I-007: POST /api/v1/tasks/bulk/status."""
         # Arrange
-        bulk_data = {
-            "task_ids": [1, 2, 3],
-            "status": "completed"
-        }
+        bulk_data = {"task_ids": [1, 2, 3], "status": "completed"}
 
         # Act
         response = self.client.post(
-            "/api/v1/tasks/bulk/status",
-            json=bulk_data,
-            headers=self.headers
+            "/api/v1/tasks/bulk/status", json=bulk_data, headers=self.headers
         )
 
         # Assert
@@ -196,8 +170,7 @@ class TestTaskAPI:
 
         # Act
         response = self.client.get(
-            f"/api/v1/tasks?q={search_keyword}",
-            headers=self.headers
+            f"/api/v1/tasks?q={search_keyword}", headers=self.headers
         )
 
         # Assert
@@ -231,8 +204,7 @@ class TestTaskAPIFilters:
         """Test filtering tasks by status."""
         # Act
         response = self.client.get(
-            "/api/v1/tasks?status=in_progress",
-            headers=self.headers
+            "/api/v1/tasks?status=in_progress", headers=self.headers
         )
 
         # Assert
@@ -248,10 +220,7 @@ class TestTaskAPIFilters:
     def test_filter_by_priority(self):
         """Test filtering tasks by priority."""
         # Act
-        response = self.client.get(
-            "/api/v1/tasks?priority=high",
-            headers=self.headers
-        )
+        response = self.client.get("/api/v1/tasks?priority=high", headers=self.headers)
 
         # Assert
         # This will fail until API is implemented
@@ -266,10 +235,7 @@ class TestTaskAPIFilters:
     def test_filter_by_assignee(self):
         """Test filtering tasks by assignee."""
         # Act
-        response = self.client.get(
-            "/api/v1/tasks?assignee_id=2",
-            headers=self.headers
-        )
+        response = self.client.get("/api/v1/tasks?assignee_id=2", headers=self.headers)
 
         # Assert
         # This will fail until API is implemented
@@ -291,7 +257,7 @@ class TestTaskAPIFilters:
         # Act
         response = self.client.get(
             f"/api/v1/tasks?due_date_start={start_date}&due_date_end={end_date}",
-            headers=self.headers
+            headers=self.headers,
         )
 
         # Assert
@@ -326,10 +292,7 @@ class TestTaskAPIPagination:
     def test_pagination_default(self):
         """Test default pagination settings."""
         # Act
-        response = self.client.get(
-            "/api/v1/tasks",
-            headers=self.headers
-        )
+        response = self.client.get("/api/v1/tasks", headers=self.headers)
 
         # Assert
         # This will fail until API is implemented
@@ -344,10 +307,7 @@ class TestTaskAPIPagination:
     def test_pagination_custom_page_size(self):
         """Test custom page size."""
         # Act
-        response = self.client.get(
-            "/api/v1/tasks?page_size=5",
-            headers=self.headers
-        )
+        response = self.client.get("/api/v1/tasks?page_size=5", headers=self.headers)
 
         # Assert
         # This will fail until API is implemented
@@ -363,8 +323,7 @@ class TestTaskAPIPagination:
         """Test accessing second page."""
         # Act
         response = self.client.get(
-            "/api/v1/tasks?page=2&page_size=10",
-            headers=self.headers
+            "/api/v1/tasks?page=2&page_size=10", headers=self.headers
         )
 
         # Assert
@@ -398,8 +357,7 @@ class TestTaskAPISorting:
         """Test sorting by creation date."""
         # Act
         response = self.client.get(
-            "/api/v1/tasks?sort_by=created_at&sort_order=desc",
-            headers=self.headers
+            "/api/v1/tasks?sort_by=created_at&sort_order=desc", headers=self.headers
         )
 
         # Assert
@@ -417,8 +375,7 @@ class TestTaskAPISorting:
         """Test sorting by priority."""
         # Act
         response = self.client.get(
-            "/api/v1/tasks?sort_by=priority&sort_order=asc",
-            headers=self.headers
+            "/api/v1/tasks?sort_by=priority&sort_order=asc", headers=self.headers
         )
 
         # Assert
@@ -433,8 +390,7 @@ class TestTaskAPISorting:
         """Test sorting by due date."""
         # Act
         response = self.client.get(
-            "/api/v1/tasks?sort_by=due_date&sort_order=asc",
-            headers=self.headers
+            "/api/v1/tasks?sort_by=due_date&sort_order=asc", headers=self.headers
         )
 
         # Assert

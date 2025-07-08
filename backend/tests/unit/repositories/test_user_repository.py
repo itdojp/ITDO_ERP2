@@ -136,10 +136,12 @@ class TestUserRepository:
 
         # Create users with different password ages
         old_password = UserFactory.create(
-            db_session, password_changed_at=datetime.now(timezone.utc) - timedelta(days=100)
+            db_session,
+            password_changed_at=datetime.now(timezone.utc) - timedelta(days=100),
         )
         UserFactory.create(
-            db_session, password_changed_at=datetime.now(timezone.utc) - timedelta(days=30)
+            db_session,
+            password_changed_at=datetime.now(timezone.utc) - timedelta(days=30),
         )
 
         expired_users = repository.get_users_with_expired_passwords(days=90)

@@ -29,7 +29,6 @@ jobs:
 
       - name: Start data services
         run: |
-          cd backend
           make start-data
           sleep 10
 
@@ -51,7 +50,6 @@ jobs:
       - name: Stop data services
         if: always()
         run: |
-          cd backend
           make stop-data
 
   # 📋 LINTING: 失敗時マージブロック
@@ -115,7 +113,6 @@ jobs:
 
       - name: Start data services
         run: |
-          cd backend
           make start-data
           sleep 10
 
@@ -129,7 +126,6 @@ jobs:
       - name: Stop data services
         if: always()
         run: |
-          cd backend
           make stop-data
 
   # 📊 COVERAGE: 警告のみ
@@ -156,7 +152,6 @@ jobs:
 
       - name: Start data services
         run: |
-          cd backend
           make start-data
           sleep 10
 
@@ -169,7 +164,6 @@ jobs:
       - name: Stop data services
         if: always()
         run: |
-          cd backend
           make stop-data
 
   # 🎯 PHASE STATUS

@@ -210,9 +210,7 @@ def get_department_users(
             status_code=status.HTTP_404_NOT_FOUND, detail="Department not found"
         )
 
-    return service.get_department_with_users(
-        department, include_sub_departments
-    )
+    return service.get_department_with_users(department, include_sub_departments)
 
 
 @router.post(
@@ -261,10 +259,7 @@ def create_department(
     # Verify parent department if specified
     if department_data.parent_id:
         parent = service.get_department(department_data.parent_id)
-        if (
-            not parent or
-            parent.organization_id != department_data.organization_id
-        ):
+        if not parent or parent.organization_id != department_data.organization_id:
             return JSONResponse(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 content=ErrorResponse(
@@ -349,10 +344,7 @@ def update_department(
 
         if department_data.parent_id:
             parent = service.get_department(department_data.parent_id)
-            if (
-                not parent or
-                parent.organization_id != department.organization_id
-            ):
+            if not parent or parent.organization_id != department.organization_id:
                 return JSONResponse(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     content=ErrorResponse(
@@ -428,9 +420,7 @@ def delete_department(
         )
 
     # Perform soft delete
-    success = service.delete_department(
-        department_id, deleted_by=current_user.id
-    )
+    success = service.delete_department(department_id, deleted_by=current_user.id)
 
     return DeleteResponse(
         success=success, message="Department deleted successfully", id=department_id

@@ -45,13 +45,17 @@ class RoleService:
         """Create a new role."""
         # Check if role code already exists
         if self.repository.get_by_code(role_data.code):
-            raise AlreadyExistsError(f"Role with code '{role_data.code}' already exists")
+            raise AlreadyExistsError(
+                f"Role with code '{role_data.code}' already exists"
+            )
 
         # Check if organization exists if specified
         if hasattr(role_data, "organization_id") and role_data.organization_id:
             org = self.db.get(Organization, role_data.organization_id)
             if not org:
-                raise NotFoundError(f"Organization {role_data.organization_id} not found")
+                raise NotFoundError(
+                    f"Organization {role_data.organization_id} not found"
+                )
 
         # Create role
         role = Role(
@@ -102,7 +106,9 @@ class RoleService:
         if role_data.code and role_data.code != role.code:
             existing = self.repository.get_by_code(role_data.code)
             if existing and existing.id != role_id:
-                raise AlreadyExistsError(f"Role with code '{role_data.code}' already exists")
+                raise AlreadyExistsError(
+                    f"Role with code '{role_data.code}' already exists"
+                )
 
         # Update fields
         update_fields = role_data.model_dump(exclude_unset=True)

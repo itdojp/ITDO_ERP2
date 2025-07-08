@@ -125,9 +125,7 @@ def create_organization(
     # Check permissions
     if not current_user.is_superuser:
         service = OrganizationService(db)
-        if not service.user_has_permission(
-            current_user.id, "organizations.create"
-        ):
+        if not service.user_has_permission(current_user.id, "organizations.create"):
             return JSONResponse(
                 status_code=status.HTTP_403_FORBIDDEN,
                 content=ErrorResponse(
@@ -245,9 +243,7 @@ def delete_organization(
     # Check permissions
     if not current_user.is_superuser:
         service = OrganizationService(db)
-        if not service.user_has_permission(
-            current_user.id, "organizations.delete"
-        ):
+        if not service.user_has_permission(current_user.id, "organizations.delete"):
             return JSONResponse(
                 status_code=status.HTTP_403_FORBIDDEN,
                 content=ErrorResponse(
@@ -278,9 +274,7 @@ def delete_organization(
         )
 
     # Perform soft delete
-    success = service.delete_organization(
-        organization_id, deleted_by=current_user.id
-    )
+    success = service.delete_organization(organization_id, deleted_by=current_user.id)
 
     return DeleteResponse(
         success=success, message="Organization deleted successfully", id=organization_id
@@ -336,9 +330,7 @@ def activate_organization(
     # Check permissions
     if not current_user.is_superuser:
         service = OrganizationService(db)
-        if not service.user_has_permission(
-            current_user.id, "organizations.activate"
-        ):
+        if not service.user_has_permission(current_user.id, "organizations.activate"):
             return JSONResponse(
                 status_code=status.HTTP_403_FORBIDDEN,
                 content=ErrorResponse(
@@ -381,9 +373,7 @@ def deactivate_organization(
     # Check permissions
     if not current_user.is_superuser:
         service = OrganizationService(db)
-        if not service.user_has_permission(
-            current_user.id, "organizations.deactivate"
-        ):
+        if not service.user_has_permission(current_user.id, "organizations.deactivate"):
             return JSONResponse(
                 status_code=status.HTTP_403_FORBIDDEN,
                 content=ErrorResponse(

@@ -27,6 +27,7 @@ from app.services.audit import AuditLogger
 @dataclass
 class ExportData:
     """Export data response object."""
+
     content_type: str
     headers: List[str]
     rows: List[List[str]]
@@ -500,7 +501,9 @@ class UserService:
         if not exporter.is_superuser:
             exporter_roles = exporter.get_roles_in_organization(organization_id)
             if not any(r.code == "ORG_ADMIN" for r in exporter_roles):
-                raise PermissionDeniedError("ユーザーをエクスポートする権限がありません")
+                raise PermissionDeniedError(
+                    "ユーザーをエクスポートする権限がありません"
+                )
 
         # Get users
         users = (

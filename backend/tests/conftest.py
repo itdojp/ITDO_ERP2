@@ -301,6 +301,7 @@ def auth_headers():
     """Provide auth headers helper function."""
     return create_auth_headers
 
+
 # Helper functions for tests
 def get_test_db() -> Generator[Session, None, None]:
     """Get test database session."""
@@ -320,10 +321,11 @@ def create_test_user(
     is_superuser: bool = False,
     is_active: bool = True,
     organization_id: int = 1,
-    role: str = "member"
+    role: str = "member",
 ) -> Any:
     """Create a mock test user for unit tests."""
     from unittest.mock import MagicMock
+
     user = MagicMock()
     user.id = 1
     user.email = email
@@ -341,6 +343,6 @@ def create_test_jwt_token(user: Any) -> str:
         data={
             "sub": str(user.id),
             "email": user.email,
-            "is_superuser": getattr(user, "is_superuser", False)
+            "is_superuser": getattr(user, "is_superuser", False),
         }
     )

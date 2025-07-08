@@ -43,7 +43,7 @@ class TestTaskService:
             description="タスクの説明",
             project_id=1,
             priority="medium",
-            due_date=datetime.now(timezone.utc) + timedelta(days=7)
+            due_date=datetime.now(timezone.utc) + timedelta(days=7),
         )
 
         # Act & Assert
@@ -56,7 +56,7 @@ class TestTaskService:
         task_data = TaskCreate(
             title="新しいタスク",
             project_id=999,  # 存在しないプロジェクト
-            priority="medium"
+            priority="medium",
         )
 
         # Act & Assert
@@ -67,11 +67,7 @@ class TestTaskService:
     def test_create_task_no_permission(self):
         """Test TASK-U-003: 権限なしでタスク作成."""
         # Arrange
-        task_data = TaskCreate(
-            title="新しいタスク",
-            project_id=1,
-            priority="medium"
-        )
+        task_data = TaskCreate(title="新しいタスク", project_id=1, priority="medium")
         other_org_user = MagicMock(spec=User)
         other_org_user.id = 3
         other_org_user.email = "other@example.com"
@@ -107,10 +103,7 @@ class TestTaskService:
         """Test TASK-U-006: タスク更新成功."""
         # Arrange
         task_id = 1
-        update_data = TaskUpdate(
-            title="更新されたタスク",
-            description="更新された説明"
-        )
+        update_data = TaskUpdate(title="更新されたタスク", description="更新された説明")
 
         # Act & Assert
         with pytest.raises(NotImplementedError):
@@ -159,7 +152,7 @@ class TestTaskService:
             "project_id": 1,
             "status": "in_progress",
             "assignee_id": 2,
-            "priority": "high"
+            "priority": "high",
         }
 
         # Act & Assert
@@ -174,7 +167,9 @@ class TestTaskService:
 
         # Act & Assert
         with pytest.raises(NotImplementedError):
-            self.service.list_tasks({}, self.test_user, self.db, page=page, page_size=page_size)
+            self.service.list_tasks(
+                {}, self.test_user, self.db, page=page, page_size=page_size
+            )
 
     def test_list_tasks_sorting(self):
         """Test TASK-U-012: ソート機能."""
@@ -184,7 +179,9 @@ class TestTaskService:
 
         # Act & Assert
         with pytest.raises(NotImplementedError):
-            self.service.list_tasks({}, self.test_user, self.db, sort_by=sort_by, sort_order=sort_order)
+            self.service.list_tasks(
+                {}, self.test_user, self.db, sort_by=sort_by, sort_order=sort_order
+            )
 
 
 class TestTaskStatusManagement:
@@ -203,14 +200,13 @@ class TestTaskStatusManagement:
         """Test TASK-U-013: 有効なステータス遷移."""
         # Arrange
         task_id = 1
-        status_update = TaskStatusUpdate(
-            status="in_progress",
-            comment="作業開始"
-        )
+        status_update = TaskStatusUpdate(status="in_progress", comment="作業開始")
 
         # Act & Assert
         with pytest.raises(NotImplementedError):
-            self.service.update_task_status(task_id, status_update, self.test_user, self.db)
+            self.service.update_task_status(
+                task_id, status_update, self.test_user, self.db
+            )
 
     def test_update_status_invalid_transition(self):
         """Test TASK-U-014: 無効なステータス遷移."""
@@ -218,13 +214,15 @@ class TestTaskStatusManagement:
         task_id = 1
         status_update = TaskStatusUpdate(
             status="completed",  # not_started -> completed は無効
-            comment="完了"
+            comment="完了",
         )
 
         # Act & Assert
         with pytest.raises(NotImplementedError):
             # Expected: InvalidTransition
-            self.service.update_task_status(task_id, status_update, self.test_user, self.db)
+            self.service.update_task_status(
+                task_id, status_update, self.test_user, self.db
+            )
 
     def test_get_status_history(self):
         """Test TASK-U-015: ステータス履歴取得."""
@@ -298,7 +296,9 @@ class TestTaskAssignment:
 
         # Act & Assert
         with pytest.raises(NotImplementedError):
-            self.service.bulk_assign_users(task_id, assignee_ids, self.test_user, self.db)
+            self.service.bulk_assign_users(
+                task_id, assignee_ids, self.test_user, self.db
+            )
 
 
 class TestTaskDueDateAndPriority:
