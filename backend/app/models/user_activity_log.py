@@ -33,4 +33,7 @@ class UserActivityLog(BaseModel):
     user: Mapped["User"] = relationship("User", back_populates="activity_logs")
 
     def __repr__(self) -> str:
-        return f"<UserActivityLog(id={self.id}, user={self.user_id}, action={self.action})>"
+        return (
+            f"<UserActivityLog(id={self.id}, user={self.user_id}, "
+            f"action={self.action})>"
+        )

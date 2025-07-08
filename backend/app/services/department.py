@@ -90,7 +90,8 @@ class DepartmentService:
 
         if existing:
             raise ValueError(
-                f"Department code '{department_data.code}' already exists in this organization"
+                f"Department code '{department_data.code}' "
+                "already exists in this organization"
             )
 
         # Add audit fields
@@ -129,7 +130,8 @@ class DepartmentService:
 
             if existing:
                 raise ValueError(
-                    f"Department code '{department_data.code}' already exists in this organization"
+                    f"Department code '{department_data.code}' "
+                    "already exists in this organization"
                 )
 
         # Add audit fields

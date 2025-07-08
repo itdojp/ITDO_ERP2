@@ -393,4 +393,7 @@ class RolePermission(BaseModel):
 
     def __repr__(self) -> str:
         """String representation."""
-        return f"<RolePermission(role_id={self.role_id}, permission_id={self.permission_id})>"
+        return (
+            f"<RolePermission(role_id={self.role_id}, "
+            f"permission_id={self.permission_id})>"
+        )

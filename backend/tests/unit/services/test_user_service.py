@@ -86,7 +86,8 @@ class TestUserService:
     def test_org_admin_cannot_create_cross_tenant(
         self, service, db_session: Session
     ) -> None:
-        """TEST-USER-SERVICE-003: 組織管理者が他組織ユーザーを作成できないことをテスト."""
+        """TEST-USER-SERVICE-003: 組織管理者が他組織ユーザーを作成できない
+        ことをテスト."""
         # Given: 組織1の管理者と組織2
         org1 = create_test_organization(code="ORG1")
         org2 = create_test_organization(code="ORG2")

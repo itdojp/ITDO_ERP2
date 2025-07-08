@@ -58,4 +58,7 @@ class UserSession(BaseModel):
         self.is_active = False
 
     def __repr__(self) -> str:
-        return f"<UserSession(id={self.id}, user_id={self.user_id}, active={self.is_active})>"
+        return (
+            f"<UserSession(id={self.id}, user_id={self.user_id}, "
+            f"active={self.is_active})>"
+        )

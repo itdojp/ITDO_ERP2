@@ -607,7 +607,8 @@ class TestRolePermissions:
         db_session: Session,
         user_token: str,
     ) -> None:
-        """Test that regular users cannot perform role operations without permissions."""
+        """Test that regular users cannot perform role operations without
+        permissions."""
         role = RoleFactory.create_with_organization(db_session, test_organization)
         user = UserFactory.create(db_session)
 

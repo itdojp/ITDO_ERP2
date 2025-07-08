@@ -579,7 +579,8 @@ class TestDepartmentPermissions:
         db_session: Session,
         user_token: str,
     ) -> None:
-        """Test that regular users cannot perform department operations without permissions."""
+        """Test that regular users cannot perform department operations
+        without permissions."""
         department = DepartmentFactory.create_with_organization(
             db_session, test_organization
         )

@@ -1,6 +1,7 @@
 """Type definitions for ITDO ERP System.
 
-This module provides common type definitions and protocols used throughout the application.
+This module provides common type definitions and protocols used throughout
+the application.
 """
 
 from datetime import datetime

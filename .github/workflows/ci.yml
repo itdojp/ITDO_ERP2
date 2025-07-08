@@ -121,9 +121,19 @@ jobs:
     - name: Set up Python
       run: uv python install 3.13
     
-    - name: Install dependencies
+    - name: Install dependencies with retry
       run: |
-        uv sync --dev
+        # Retry logic for UV sync in case of network issues
+        for i in {1..3}; do
+          echo "Attempt $i to sync dependencies..."
+          if uv sync --dev; then
+            echo "Dependencies synced successfully"
+            break
+          else
+            echo "Failed to sync dependencies, retrying in 5 seconds..."
+            sleep 5
+          fi
+        done
     
     - name: Run ruff linting
       run: uv run ruff check . --ignore E501,N805,N818

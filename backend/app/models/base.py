@@ -1,6 +1,7 @@
 """Base model implementation for ITDO ERP System.
 
-This module provides base model classes with common functionality for all database models.
+This module provides base model classes with common functionality
+for all database models.
 """
 
 from datetime import datetime
@@ -87,8 +88,8 @@ class SoftDeletableModel(AuditableModel):
         Boolean, default=False, nullable=False, index=True
     )
 
-    # Relationship to deleter user (commented out to avoid circular imports and typing issues)
-    # This can be added manually in specific models if needed
+    # Relationship to deleter user (commented out to avoid circular imports
+    # and typing issues). This can be added manually in specific models if needed
 
     def soft_delete(self, deleted_by: Optional[UserId] = None) -> None:
         """Perform soft delete on the model."""

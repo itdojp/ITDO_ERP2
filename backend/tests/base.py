@@ -84,7 +84,8 @@ class BaseAPITestCase(
         print(f"Headers: {self.get_auth_headers(admin_token)}")
         print(f"Response status code: {response.status_code}")
         print(
-            f"Response body: {response.json() if response.status_code != 204 else 'No content'}"
+            "Response body: "
+            f"{response.json() if response.status_code != 204 else 'No content'}"
         )
         assert response.status_code == 200
         data = response.json()
@@ -120,7 +121,8 @@ class BaseAPITestCase(
         response = client.get(self.endpoint_prefix)
         print(f"Response status code: {response.status_code}")
         print(
-            f"Response body: {response.json() if response.status_code != 204 else 'No content'}"
+            "Response body: "
+            f"{response.json() if response.status_code != 204 else 'No content'}"
         )
         assert response.status_code in [
             401,

@@ -147,7 +147,10 @@ class Department(SoftDeletableModel):
 
     def __repr__(self) -> str:
         """String representation."""
-        return f"<Department(id={self.id}, code='{self.code}', name='{self.name}', org_id={self.organization_id})>"
+        return (
+            f"<Department(id={self.id}, code='{self.code}', "
+            f"name='{self.name}', org_id={self.organization_id})>"
+        )
 
     @property
     def full_code(self) -> str:

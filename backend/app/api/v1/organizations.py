@@ -146,7 +146,10 @@ def create_organization(
             return JSONResponse(
                 status_code=status.HTTP_409_CONFLICT,
                 content=ErrorResponse(
-                    detail=f"Organization with code '{organization_data.code}' already exists",
+                    detail=(
+                        f"Organization with code '{organization_data.code}' "
+                        "already exists"
+                    ),
                     code="DUPLICATE_CODE",
                 ).model_dump(),
             )
@@ -208,7 +211,10 @@ def update_organization(
             return JSONResponse(
                 status_code=status.HTTP_409_CONFLICT,
                 content=ErrorResponse(
-                    detail=f"Organization with code '{organization_data.code}' already exists",
+                    detail=(
+                        f"Organization with code '{organization_data.code}' "
+                        "already exists"
+                    ),
                     code="DUPLICATE_CODE",
                 ).model_dump(),
             )

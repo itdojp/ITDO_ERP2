@@ -69,7 +69,10 @@ class Permission(BaseModel):
 
     def __repr__(self) -> str:
         """String representation."""
-        return f"<Permission(code='{self.code}', name='{self.name}', category='{self.category}')>"
+        return (
+            f"<Permission(code='{self.code}', name='{self.name}', "
+            f"category='{self.category}')>"
+        )
 
     @property
     def full_code(self) -> str:

@@ -58,7 +58,8 @@ def db_session() -> Generator[Session, None, None]:
         session.close()
         # Clean up test data using safe DELETE order in PostgreSQL
         if "postgresql" in str(engine.url):
-            # For PostgreSQL, use DELETE in dependency order to avoid foreign key violations
+            # For PostgreSQL, use DELETE in dependency order to avoid
+            # foreign key violations
             with engine.begin() as conn:
                 from sqlalchemy import text
 

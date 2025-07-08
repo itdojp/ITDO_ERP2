@@ -573,7 +573,10 @@ def export_users(
                 io.BytesIO(output.getvalue().encode()),
                 media_type="text/csv",
                 headers={
-                    "Content-Disposition": f"attachment; filename=users_{organization_id}_{datetime.now().strftime('%Y%m%d')}.csv"
+                    "Content-Disposition": (
+                        f"attachment; filename=users_{organization_id}_"
+                        f"{datetime.now().strftime('%Y%m%d')}.csv"
+                    )
                 },
             )
 
