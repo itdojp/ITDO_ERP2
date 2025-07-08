@@ -380,14 +380,16 @@ class TestUserService:
         db_session.add(admin)
         db_session.commit()
 
-        # When/Then: 削除しようとして失敗
-        other_admin = create_test_user(db_session, is_superuser=True)
-        db_session.add(other_admin)
+        # Create a non-superuser who will attempt the deletion
+        deleter = create_test_user(db_session, email="deleter@example.com", is_superuser=False)
+        db_session.add(deleter)
         db_session.commit()
 
-        with pytest.raises(BusinessLogicError, match="最後のシステム管理者"):
-            # 実際には他の管理者を全て削除してから実行
-            service.delete_user(user_id=admin.id, deleter=other_admin, db=db_session)
+        # Mock the permission check to bypass it for this test
+        with patch.object(deleter, 'is_superuser', True):
+            # When/Then: Try to delete the only admin and it should fail
+            with pytest.raises(BusinessLogicError, match="最後のシステム管理者"):
+                service.delete_user(user_id=admin.id, deleter=deleter, db=db_session)
 
     def test_get_user_permissions(self, service, db_session: Session) -> None:
         """TEST-USER-SERVICE-016: ユーザーの実効権限取得をテスト."""
