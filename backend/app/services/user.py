@@ -2,6 +2,7 @@
 
 import random
 import string
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -21,6 +22,15 @@ from app.schemas.user_extended import (
     UserUpdate,
 )
 from app.services.audit import AuditLogger
+
+
+@dataclass
+class ExportData:
+    """Export data response object."""
+
+    content_type: str
+    headers: List[str]
+    rows: List[List[str]]
 
 
 class UserService:
@@ -485,7 +495,7 @@ class UserService:
 
     def export_users(
         self, organization_id: int, format: str, exporter: User, db: Session
-    ) -> Dict[str, Any]:
+    ) -> ExportData:
         """Export user list."""
         # Permission check
         if not exporter.is_superuser:
@@ -516,11 +526,11 @@ class UserService:
                 ]
             )
 
-        return {
-            "content_type": f"text/{format}",
-            "headers": headers,
-            "rows": rows,
-        }
+        return ExportData(
+            content_type=f"text/{format}",
+            headers=headers,
+            rows=rows,
+        )
 
     def _user_to_extended_response(
         self, user: User, db: Session
@@ -598,9 +608,24 @@ class UserService:
 
     def _generate_temp_password(self) -> str:
         """Generate temporary password."""
-        # Use a mix of letters, digits, and special chars
-        chars = string.ascii_letters + string.digits + "!@#$%"
-        return "".join(random.choice(chars) for _ in range(12))
+        # Ensure password meets complexity requirements
+        # Must contain at least 3 of: uppercase, lowercase, digits, special chars
+        password_chars = []
+
+        # Add at least one of each type
+        password_chars.append(random.choice(string.ascii_uppercase))
+        password_chars.append(random.choice(string.ascii_lowercase))
+        password_chars.append(random.choice(string.digits))
+        password_chars.append(random.choice("!@#$%"))
+
+        # Fill the rest randomly
+        all_chars = string.ascii_letters + string.digits + "!@#$%"
+        for _ in range(8):  # Total length will be 12
+            password_chars.append(random.choice(all_chars))
+
+        # Shuffle to avoid predictable pattern
+        random.shuffle(password_chars)
+        return "".join(password_chars)
 
     def _log_audit(
         self,

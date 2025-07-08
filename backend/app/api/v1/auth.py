@@ -1,6 +1,5 @@
 """Authentication endpoints."""
 
-from datetime import datetime
 from typing import Union
 
 from fastapi import APIRouter, Depends, status
@@ -35,7 +34,6 @@ def login(
             content=ErrorResponse(
                 detail="Invalid authentication credentials",
                 code="AUTH001",
-                timestamp=datetime.utcnow(),
             ).model_dump(),
         )
 
@@ -73,7 +71,6 @@ def refresh_token(
             content=ErrorResponse(
                 detail="Invalid or expired refresh token",
                 code=error_code,
-                timestamp=datetime.utcnow(),
             ).model_dump(),
         )
 

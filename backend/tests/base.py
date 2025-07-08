@@ -361,6 +361,8 @@ class SearchTestMixin:
         """Test search endpoint with valid query."""
         # Create test instance with known name
         instance = self.create_test_instance(db_session, name="SearchTest")
+        # Ensure the instance is committed to the database
+        db_session.commit()
 
         response = client.get(
             f"{self.endpoint_prefix}?search=Search",
@@ -369,6 +371,7 @@ class SearchTestMixin:
 
         assert response.status_code == 200
         data = response.json()
+
         assert len(data["items"]) >= 1
 
         # Verify the found instance is in results

@@ -24,7 +24,7 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
         # Extract data from schema
         obj_data = obj_in.model_dump()
         password = obj_data.pop("password")
-        
+
         # Use User.create method which handles password hashing
         user = User.create(
             self.db,
@@ -33,7 +33,7 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
             full_name=obj_data["full_name"],
             is_active=obj_data.get("is_active", True),
         )
-        
+
         return user
 
     def get_by_email(self, email: str) -> Optional[User]:
@@ -84,7 +84,7 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
 
         # Filter by organization or department (need to handle joins properly)
         user_role_joined = False
-        
+
         if organization_id is not None:
             from app.models.role import UserRole
 
@@ -98,7 +98,7 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
 
             if not user_role_joined:
                 stmt = stmt.join(UserRole, User.id == UserRole.user_id)
-                
+
             stmt = stmt.where(UserRole.department_id == department_id)
 
         # Filter by active status
@@ -121,7 +121,7 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
             self.db.scalars(
                 select(User).where(
                     and_(
-                        User.locked_until is not None,
+                        User.locked_until.is_not(None),
                         User.locked_until > datetime.now(timezone.utc),
                     )
                 )
@@ -151,7 +151,8 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
                 select(User).where(
                     and_(
                         or_(
-                            User.last_login_at is None, User.last_login_at < cutoff_date
+                            User.last_login_at.is_(None),
+                            User.last_login_at < cutoff_date,
                         ),
                         User.is_active,
                         ~User.is_deleted,

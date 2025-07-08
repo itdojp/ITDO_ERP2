@@ -566,8 +566,8 @@ def export_users(
             # Create CSV content
             output = io.StringIO()
             writer = csv.writer(output)
-            writer.writerow(export_data["headers"])
-            writer.writerows(export_data["rows"])
+            writer.writerow(export_data.headers)
+            writer.writerows(export_data.rows)
 
             return StreamingResponse(
                 io.BytesIO(output.getvalue().encode()),

@@ -309,7 +309,7 @@ class RoleService:
         organization_id: Optional[OrganizationId] = None,
     ) -> Tuple[List[Role], int]:
         """List roles with filtering."""
-        query = select(Role).where(not Role.is_deleted)
+        query = select(Role).where(~Role.is_deleted)
 
         if active_only:
             query = query.where(Role.is_active)
@@ -411,7 +411,7 @@ class RoleService:
     ) -> Tuple[List[Role], int]:
         """Search roles by name or description."""
         # Stub implementation for API compatibility
-        query = select(Role).where(not Role.is_deleted)
+        query = select(Role).where(~Role.is_deleted)
 
         if search:
             query = query.where(

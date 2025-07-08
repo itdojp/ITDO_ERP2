@@ -1,6 +1,6 @@
 """Organization API endpoints."""
 
-from typing import List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from fastapi.responses import JSONResponse
@@ -43,7 +43,7 @@ def list_organizations(
     service = OrganizationService(db)
 
     # Build filters
-    filters = {}
+    filters: Dict[str, Any] = {}
     if active_only:
         filters["is_active"] = True
     if industry:
@@ -171,7 +171,8 @@ def create_organization(
 )
 def update_organization(
     organization_id: int = Path(..., description="Organization ID"),
-    organization_data: OrganizationUpdate = ...,
+    *,
+    organization_data: OrganizationUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ) -> Union[OrganizationResponse, JSONResponse]:

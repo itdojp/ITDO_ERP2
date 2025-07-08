@@ -107,7 +107,7 @@ class SoftDeletableModel(AuditableModel):
     @classmethod
     def apply_soft_delete_filter(cls, query: Any) -> Any:
         """Apply soft delete filter to query."""
-        return query.filter(not cls.is_deleted)
+        return query.filter(~cls.is_deleted)
 
 
 # Export all base classes

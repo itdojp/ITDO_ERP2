@@ -31,19 +31,19 @@ class BusinessLogicError(Exception):
     pass
 
 
-class NotFound(Exception):
+class NotFound(Exception):  # noqa: N818
     """Raised when a resource is not found."""
 
     pass
 
 
-class PermissionDenied(Exception):
+class PermissionDenied(Exception):  # noqa: N818
     """Raised when user lacks permission for an action."""
 
     pass
 
 
-class AlreadyExists(Exception):
+class AlreadyExists(Exception):  # noqa: N818
     """Raised when attempting to create a resource that already exists."""
 
     pass
