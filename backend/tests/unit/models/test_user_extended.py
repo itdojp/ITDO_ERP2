@@ -198,8 +198,8 @@ class TestUserExtendedModel:
         from tests.factories import create_test_organization, create_test_role
 
         user = create_test_user(db_session)
-        org = create_test_organization()
-        role = create_test_role(code="USER")
+        org = create_test_organization(db_session)
+        role = create_test_role(db_session, code="USER")
         db_session.add_all([user, org, role])
         db_session.commit()
 
@@ -224,9 +224,9 @@ class TestUserExtendedModel:
         )
 
         user = create_test_user(db_session)
-        org = create_test_organization()
-        dept = create_test_department(organization=org)
-        role = create_test_role(code="DEPT_USER")
+        org = create_test_organization(db_session)
+        dept = create_test_department(db_session, organization=org)
+        role = create_test_role(db_session, code="DEPT_USER")
         db_session.add_all([user, org, dept, role])
         db_session.commit()
 
@@ -249,9 +249,9 @@ class TestUserExtendedModel:
         from tests.factories import create_test_organization, create_test_role
 
         user = create_test_user(db_session)
-        org = create_test_organization()
-        role1 = create_test_role(code="READER", permissions=["read:*"])
-        role2 = create_test_role(code="WRITER", permissions=["write:own"])
+        org = create_test_organization(db_session)
+        role1 = create_test_role(db_session, code="READER", permissions=["read:*"])
+        role2 = create_test_role(db_session, code="WRITER", permissions=["write:own"])
         db_session.add_all([user, org, role1, role2])
         db_session.commit()
 
