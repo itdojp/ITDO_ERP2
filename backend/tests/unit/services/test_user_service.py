@@ -10,7 +10,7 @@ from unittest.mock import patch
 import pytest
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import BusinessLogicError, PermissionDenied
+from app.core.exceptions import BusinessLogicError, PermissionDeniedError
 from app.schemas.user import UserUpdate
 from app.schemas.user_extended import UserCreateExtended, UserSearchParams
 from app.services.user import UserService
@@ -94,7 +94,7 @@ class TestUserService:
         db_session.commit()
 
         # When/Then: 組織2のユーザー作成で権限エラー
-        with pytest.raises(PermissionDenied, match="権限がありません"):
+        with pytest.raises(PermissionDeniedError, match="権限がありません"):
             service.create_user(
                 data=UserCreateExtended(
                     email="crossorg@example.com",
@@ -162,7 +162,7 @@ class TestUserService:
         db_session.commit()
 
         # When/Then: user1がuser2を更新しようとして失敗
-        with pytest.raises(PermissionDenied):
+        with pytest.raises(PermissionDeniedError):
             service.update_user(
                 user_id=user2.id,
                 data=UserUpdate(full_name="不正な更新"),

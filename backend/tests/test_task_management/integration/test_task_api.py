@@ -1,13 +1,12 @@
 """Integration tests for Task API endpoints."""
 
-import pytest
 from datetime import datetime, timedelta, timezone
-from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
 
-from app.main import app
+from fastapi.testclient import TestClient
+
 from app.core.database import get_db
-from tests.conftest import get_test_db, create_test_user, create_test_jwt_token
+from app.main import app
+from tests.conftest import create_test_jwt_token, create_test_user, get_test_db
 
 
 class TestTaskAPI:
@@ -17,7 +16,7 @@ class TestTaskAPI:
         """Set up test fixtures."""
         self.client = TestClient(app)
         app.dependency_overrides[get_db] = get_test_db
-        
+
         # Create test user and token
         self.test_user = create_test_user()
         self.test_token = create_test_jwt_token(self.test_user)
@@ -37,18 +36,18 @@ class TestTaskAPI:
             "priority": "medium",
             "due_date": (datetime.now(timezone.utc) + timedelta(days=7)).isoformat()
         }
-        
+
         # Act
         response = self.client.post(
             "/api/v1/tasks",
             json=task_data,
             headers=self.headers
         )
-        
+
         # Assert
         # This will fail until API is implemented
         assert response.status_code == 404  # Not Found until implemented
-        
+
         # Expected behavior after implementation:
         # assert response.status_code == 201
         # data = response.json()
@@ -62,11 +61,11 @@ class TestTaskAPI:
             "/api/v1/tasks",
             headers=self.headers
         )
-        
+
         # Assert
         # This will fail until API is implemented
         assert response.status_code == 404  # Not Found until implemented
-        
+
         # Expected behavior after implementation:
         # assert response.status_code == 200
         # data = response.json()
@@ -79,17 +78,17 @@ class TestTaskAPI:
         """Test TASK-I-003: GET /api/v1/tasks/{id}."""
         # Arrange
         task_id = 1
-        
+
         # Act
         response = self.client.get(
             f"/api/v1/tasks/{task_id}",
             headers=self.headers
         )
-        
+
         # Assert
         # This will fail until API is implemented
         assert response.status_code == 404  # Not Found until implemented
-        
+
         # Expected behavior after implementation:
         # assert response.status_code == 200
         # data = response.json()
@@ -105,18 +104,18 @@ class TestTaskAPI:
             "title": "更新されたタスク",
             "description": "更新された説明"
         }
-        
+
         # Act
         response = self.client.patch(
             f"/api/v1/tasks/{task_id}",
             json=update_data,
             headers=self.headers
         )
-        
+
         # Assert
         # This will fail until API is implemented
         assert response.status_code == 404  # Not Found until implemented
-        
+
         # Expected behavior after implementation:
         # assert response.status_code == 200
         # data = response.json()
@@ -127,17 +126,17 @@ class TestTaskAPI:
         """Test TASK-I-005: DELETE /api/v1/tasks/{id}."""
         # Arrange
         task_id = 1
-        
+
         # Act
         response = self.client.delete(
             f"/api/v1/tasks/{task_id}",
             headers=self.headers
         )
-        
+
         # Assert
         # This will fail until API is implemented
         assert response.status_code == 404  # Not Found until implemented
-        
+
         # Expected behavior after implementation:
         # assert response.status_code == 204
 
@@ -149,18 +148,18 @@ class TestTaskAPI:
             "status": "in_progress",
             "comment": "作業開始"
         }
-        
+
         # Act
         response = self.client.post(
             f"/api/v1/tasks/{task_id}/status",
             json=status_data,
             headers=self.headers
         )
-        
+
         # Assert
         # This will fail until API is implemented
         assert response.status_code == 404  # Not Found until implemented
-        
+
         # Expected behavior after implementation:
         # assert response.status_code == 200
         # data = response.json()
@@ -173,18 +172,18 @@ class TestTaskAPI:
             "task_ids": [1, 2, 3],
             "status": "completed"
         }
-        
+
         # Act
         response = self.client.post(
             "/api/v1/tasks/bulk/status",
             json=bulk_data,
             headers=self.headers
         )
-        
+
         # Assert
         # This will fail until API is implemented
         assert response.status_code == 404  # Not Found until implemented
-        
+
         # Expected behavior after implementation:
         # assert response.status_code == 200
         # data = response.json()
@@ -194,17 +193,17 @@ class TestTaskAPI:
         """Test TASK-I-008: GET /api/v1/tasks?q=keyword."""
         # Arrange
         search_keyword = "テスト"
-        
+
         # Act
         response = self.client.get(
             f"/api/v1/tasks?q={search_keyword}",
             headers=self.headers
         )
-        
+
         # Assert
         # This will fail until API is implemented
         assert response.status_code == 404  # Not Found until implemented
-        
+
         # Expected behavior after implementation:
         # assert response.status_code == 200
         # data = response.json()
@@ -219,7 +218,7 @@ class TestTaskAPIFilters:
         """Set up test fixtures."""
         self.client = TestClient(app)
         app.dependency_overrides[get_db] = get_test_db
-        
+
         self.test_user = create_test_user()
         self.test_token = create_test_jwt_token(self.test_user)
         self.headers = {"Authorization": f"Bearer {self.test_token}"}
@@ -235,11 +234,11 @@ class TestTaskAPIFilters:
             "/api/v1/tasks?status=in_progress",
             headers=self.headers
         )
-        
+
         # Assert
         # This will fail until API is implemented
         assert response.status_code == 404  # Not Found until implemented
-        
+
         # Expected behavior after implementation:
         # assert response.status_code == 200
         # data = response.json()
@@ -253,11 +252,11 @@ class TestTaskAPIFilters:
             "/api/v1/tasks?priority=high",
             headers=self.headers
         )
-        
+
         # Assert
         # This will fail until API is implemented
         assert response.status_code == 404  # Not Found until implemented
-        
+
         # Expected behavior after implementation:
         # assert response.status_code == 200
         # data = response.json()
@@ -271,11 +270,11 @@ class TestTaskAPIFilters:
             "/api/v1/tasks?assignee_id=2",
             headers=self.headers
         )
-        
+
         # Assert
         # This will fail until API is implemented
         assert response.status_code == 404  # Not Found until implemented
-        
+
         # Expected behavior after implementation:
         # assert response.status_code == 200
         # data = response.json()
@@ -288,17 +287,17 @@ class TestTaskAPIFilters:
         # Arrange
         start_date = datetime.now(timezone.utc).isoformat()
         end_date = (datetime.now(timezone.utc) + timedelta(days=7)).isoformat()
-        
+
         # Act
         response = self.client.get(
             f"/api/v1/tasks?due_date_start={start_date}&due_date_end={end_date}",
             headers=self.headers
         )
-        
+
         # Assert
         # This will fail until API is implemented
         assert response.status_code == 404  # Not Found until implemented
-        
+
         # Expected behavior after implementation:
         # assert response.status_code == 200
         # data = response.json()
@@ -315,7 +314,7 @@ class TestTaskAPIPagination:
         """Set up test fixtures."""
         self.client = TestClient(app)
         app.dependency_overrides[get_db] = get_test_db
-        
+
         self.test_user = create_test_user()
         self.test_token = create_test_jwt_token(self.test_user)
         self.headers = {"Authorization": f"Bearer {self.test_token}"}
@@ -331,11 +330,11 @@ class TestTaskAPIPagination:
             "/api/v1/tasks",
             headers=self.headers
         )
-        
+
         # Assert
         # This will fail until API is implemented
         assert response.status_code == 404  # Not Found until implemented
-        
+
         # Expected behavior after implementation:
         # assert response.status_code == 200
         # data = response.json()
@@ -349,11 +348,11 @@ class TestTaskAPIPagination:
             "/api/v1/tasks?page_size=5",
             headers=self.headers
         )
-        
+
         # Assert
         # This will fail until API is implemented
         assert response.status_code == 404  # Not Found until implemented
-        
+
         # Expected behavior after implementation:
         # assert response.status_code == 200
         # data = response.json()
@@ -367,11 +366,11 @@ class TestTaskAPIPagination:
             "/api/v1/tasks?page=2&page_size=10",
             headers=self.headers
         )
-        
+
         # Assert
         # This will fail until API is implemented
         assert response.status_code == 404  # Not Found until implemented
-        
+
         # Expected behavior after implementation:
         # assert response.status_code == 200
         # data = response.json()
@@ -386,7 +385,7 @@ class TestTaskAPISorting:
         """Set up test fixtures."""
         self.client = TestClient(app)
         app.dependency_overrides[get_db] = get_test_db
-        
+
         self.test_user = create_test_user()
         self.test_token = create_test_jwt_token(self.test_user)
         self.headers = {"Authorization": f"Bearer {self.test_token}"}
@@ -402,11 +401,11 @@ class TestTaskAPISorting:
             "/api/v1/tasks?sort_by=created_at&sort_order=desc",
             headers=self.headers
         )
-        
+
         # Assert
         # This will fail until API is implemented
         assert response.status_code == 404  # Not Found until implemented
-        
+
         # Expected behavior after implementation:
         # assert response.status_code == 200
         # data = response.json()
@@ -421,11 +420,11 @@ class TestTaskAPISorting:
             "/api/v1/tasks?sort_by=priority&sort_order=asc",
             headers=self.headers
         )
-        
+
         # Assert
         # This will fail until API is implemented
         assert response.status_code == 404  # Not Found until implemented
-        
+
         # Expected behavior after implementation:
         # assert response.status_code == 200
         # Priority order: low < medium < high
@@ -437,11 +436,11 @@ class TestTaskAPISorting:
             "/api/v1/tasks?sort_by=due_date&sort_order=asc",
             headers=self.headers
         )
-        
+
         # Assert
         # This will fail until API is implemented
         assert response.status_code == 404  # Not Found until implemented
-        
+
         # Expected behavior after implementation:
         # assert response.status_code == 200
         # Tasks with no due date should appear last

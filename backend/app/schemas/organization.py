@@ -1,17 +1,23 @@
 """Organization schemas."""
-from typing import Optional, List, Any
-from datetime import datetime
-from pydantic import BaseModel, Field, ConfigDict, field_validator
+from typing import Any, List, Optional
+
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.common import AuditInfo, SoftDeleteInfo
 
 
 class OrganizationBase(BaseModel):
     """Base schema for organization."""
-    code: str = Field(..., min_length=1, max_length=50, description="Unique organization code")
+    code: str = Field(
+        ..., min_length=1, max_length=50, description="Unique organization code"
+    )
     name: str = Field(..., min_length=1, max_length=200, description="Organization name")
-    name_kana: Optional[str] = Field(None, max_length=200, description="Organization name in Katakana")
-    name_en: Optional[str] = Field(None, max_length=200, description="Organization name in English")
+    name_kana: Optional[str] = Field(
+        None, max_length=200, description="Organization name in Katakana"
+    )
+    name_en: Optional[str] = Field(
+        None, max_length=200, description="Organization name in English"
+    )
     is_active: bool = Field(True, description="Whether the organization is active")
 
 
@@ -19,7 +25,9 @@ class OrganizationContactInfo(BaseModel):
     """Contact information schema."""
     phone: Optional[str] = Field(None, max_length=20, pattern=r'^[\d\-\+\(\)]+$')
     fax: Optional[str] = Field(None, max_length=20, pattern=r'^[\d\-\+\(\)]+$')
-    email: Optional[str] = Field(None, max_length=255, pattern=r'^[\w\.\-]+@[\w\.\-]+\.\w+$')
+    email: Optional[str] = Field(
+        None, max_length=255, pattern=r'^[\w\.\-]+@[\w\.\-]+\.\w+$'
+    )
     website: Optional[str] = Field(None, max_length=255)
 
 
@@ -38,7 +46,9 @@ class OrganizationBusinessInfo(BaseModel):
     industry: Optional[str] = Field(None, max_length=100)
     capital: Optional[int] = Field(None, ge=0, description="Capital amount in JPY")
     employee_count: Optional[int] = Field(None, ge=0)
-    fiscal_year_end: Optional[str] = Field(None, pattern=r'^\d{2}-\d{2}$', description="MM-DD format")
+    fiscal_year_end: Optional[str] = Field(
+        None, pattern=r'^\d{2}-\d{2}$', description="MM-DD format"
+    )
 
 
 class OrganizationCreate(
@@ -65,7 +75,9 @@ class OrganizationUpdate(BaseModel):
     # Contact info
     phone: Optional[str] = Field(None, max_length=20, pattern=r'^[\d\-\+\(\)]+$')
     fax: Optional[str] = Field(None, max_length=20, pattern=r'^[\d\-\+\(\)]+$')
-    email: Optional[str] = Field(None, max_length=255, pattern=r'^[\w\.\-]+@[\w\.\-]+\.\w+$')
+    email: Optional[str] = Field(
+        None, max_length=255, pattern=r'^[\w\.\-]+@[\w\.\-]+\.\w+$'
+    )
     website: Optional[str] = Field(None, max_length=255)
 
     # Address info

@@ -64,7 +64,7 @@ class DepartmentService:
         # Get all matching departments
         all_results = self.db.query(Department).filter(
             and_(*conditions),
-            Department.is_deleted == False
+            not Department.is_deleted
         ).order_by(Department.updated_at.desc()).all()
 
         # Apply pagination
@@ -83,7 +83,7 @@ class DepartmentService:
         existing = self.db.query(Department).filter(
             Department.organization_id == department_data.organization_id,
             Department.code == department_data.code,
-            Department.is_deleted == False
+            not Department.is_deleted
         ).first()
 
         if existing:
@@ -116,7 +116,7 @@ class DepartmentService:
                 Department.organization_id == department.organization_id,
                 Department.code == department_data.code,
                 Department.id != department_id,
-                Department.is_deleted == False
+                not Department.is_deleted
             ).first()
 
             if existing:
@@ -151,7 +151,7 @@ class DepartmentService:
         roots = self.db.query(Department).filter(
             Department.organization_id == organization_id,
             Department.parent_id.is_(None),
-            Department.is_deleted == False
+            not Department.is_deleted
         ).order_by(Department.display_order, Department.name).all()
 
         def build_tree(dept: Department, level: int = 0) -> DepartmentTree:
@@ -159,7 +159,7 @@ class DepartmentService:
             children = []
             sub_depts = self.db.query(Department).filter(
                 Department.parent_id == dept.id,
-                Department.is_deleted == False
+                not Department.is_deleted
             ).order_by(Department.display_order, Department.name).all()
 
             for sub in sub_depts:
@@ -285,7 +285,7 @@ class DepartmentService:
         """Get direct sub-departments."""
         return self.db.query(Department).filter(
             Department.parent_id == parent_id,
-            Department.is_deleted == False
+            not Department.is_deleted
         ).order_by(Department.display_order, Department.name).all()
 
     def get_all_sub_departments(self, parent_id: DepartmentId) -> List[Department]:
@@ -305,7 +305,7 @@ class DepartmentService:
         """Check if department has active sub-departments."""
         return self.db.query(Department).filter(
             Department.parent_id == department_id,
-            Department.is_deleted == False,
+            not Department.is_deleted,
             Department.is_active
         ).first() is not None
 
@@ -320,7 +320,7 @@ class DepartmentService:
         """Get count of direct sub-departments."""
         return self.db.query(Department).filter(
             Department.parent_id == parent_id,
-            Department.is_deleted == False
+            not Department.is_deleted
         ).count()
 
     def update_display_order(self, department_ids: List[DepartmentId]) -> None:

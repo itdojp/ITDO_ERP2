@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_active_user, get_current_superuser, get_db
-from app.core.exceptions import BusinessLogicError, NotFound, PermissionDenied
+from app.core.exceptions import BusinessLogicError, NotFoundError, PermissionDeniedError
 from app.models.user import User
 from app.schemas.error import ErrorResponse
 from app.schemas.user_extended import (
@@ -59,7 +59,7 @@ def create_user_extended(
 
         return service._user_to_extended_response(user, db)
 
-    except PermissionDenied as e:
+    except PermissionDeniedError as e:
         db.rollback()
         return JSONResponse(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -148,7 +148,7 @@ def get_user_detail(
             viewer=current_user,
             db=db
         )
-    except NotFound:
+    except NotFoundError:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content=ErrorResponse(
@@ -157,7 +157,7 @@ def get_user_detail(
                 timestamp=datetime.utcnow()
             ).model_dump()
         )
-    except PermissionDenied:
+    except PermissionDeniedError:
         return JSONResponse(
             status_code=status.HTTP_403_FORBIDDEN,
             content=ErrorResponse(
@@ -203,7 +203,7 @@ def update_user(
 
         return service._user_to_extended_response(user, db)
 
-    except NotFound:
+    except NotFoundError:
         db.rollback()
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -213,7 +213,7 @@ def update_user(
                 timestamp=datetime.utcnow()
             ).model_dump()
         )
-    except PermissionDenied:
+    except PermissionDeniedError:
         db.rollback()
         return JSONResponse(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -265,7 +265,7 @@ def change_password(
                 timestamp=datetime.utcnow()
             ).model_dump()
         )
-    except PermissionDenied:
+    except PermissionDeniedError:
         db.rollback()
         return JSONResponse(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -303,7 +303,7 @@ def reset_password(
 
         return {"temporary_password": temp_password}
 
-    except NotFound:
+    except NotFoundError:
         db.rollback()
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -313,7 +313,7 @@ def reset_password(
                 timestamp=datetime.utcnow()
             ).model_dump()
         )
-    except PermissionDenied:
+    except PermissionDeniedError:
         db.rollback()
         return JSONResponse(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -381,7 +381,7 @@ def assign_role(
 
         return response
 
-    except NotFound as e:
+    except NotFoundError as e:
         db.rollback()
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -391,7 +391,7 @@ def assign_role(
                 timestamp=datetime.utcnow()
             ).model_dump()
         )
-    except PermissionDenied:
+    except PermissionDeniedError:
         db.rollback()
         return JSONResponse(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -431,7 +431,7 @@ def remove_role(
         )
         db.commit()
 
-    except PermissionDenied:
+    except PermissionDeniedError:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -478,7 +478,7 @@ def get_user_permissions(
             organization_id=organization_id
         )
 
-    except NotFound:
+    except NotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
@@ -522,7 +522,7 @@ def delete_user(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
-    except NotFound:
+    except NotFoundError:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -567,7 +567,7 @@ def bulk_import_users(
 
         return result
 
-    except PermissionDenied:
+    except PermissionDeniedError:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -617,7 +617,7 @@ def export_users(
         # For other formats, return the data structure
         return JSONResponse(content=export_data)
 
-    except PermissionDenied:
+    except PermissionDeniedError:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied"

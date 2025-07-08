@@ -1,9 +1,10 @@
 """Department API endpoints."""
-from typing import List, Optional, Union, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Path, Body
+from typing import Any, Dict, List, Optional, Union
+
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, status
 from fastapi.responses import JSONResponse
-from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_active_user, get_db
 from app.models.user import User
@@ -33,7 +34,9 @@ router = APIRouter(prefix="/departments", tags=["departments"])
 def list_departments(
     skip: int = Query(0, ge=0, description="Number of items to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Number of items to return"),
-    organization_id: Optional[OrganizationId] = Query(None, description="Filter by organization"),
+    organization_id: Optional[OrganizationId] = Query(
+        None, description="Filter by organization"
+    ),
     search: Optional[str] = Query(None, description="Search query"),
     active_only: bool = Query(True, description="Only return active departments"),
     department_type: Optional[str] = Query(None, description="Filter by department type"),
@@ -54,7 +57,9 @@ def list_departments(
 
     # Get departments
     if search:
-        departments, total = service.search_departments(search, skip, limit, organization_id)
+        departments, total = service.search_departments(
+            search, skip, limit, organization_id
+        )
     else:
         departments, total = service.list_departments(skip, limit, filters)
 
@@ -133,7 +138,9 @@ def get_department(
 )
 def get_department_users(
     department_id: int = Path(..., description="Department ID"),
-    include_sub_departments: bool = Query(False, description="Include users from sub-departments"),
+    include_sub_departments: bool = Query(
+        False, description="Include users from sub-departments"
+    ),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ) -> DepartmentWithUsers:
@@ -147,7 +154,9 @@ def get_department_users(
             detail="Department not found"
         )
 
-    return service.get_department_with_users(department, include_sub_departments)
+    return service.get_department_with_users(
+        department, include_sub_departments
+    )
 
 
 @router.post(
@@ -198,7 +207,10 @@ def create_department(
     # Verify parent department if specified
     if department_data.parent_id:
         parent = service.get_department(department_data.parent_id)
-        if not parent or parent.organization_id != department_data.organization_id:
+        if (
+            not parent or
+            parent.organization_id != department_data.organization_id
+        ):
             return JSONResponse(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 content=ErrorResponse(
@@ -226,7 +238,9 @@ def create_department(
         return JSONResponse(
             status_code=status.HTTP_409_CONFLICT,
             content=ErrorResponse(
-                detail="Department code already exists in this organization",
+                detail=(
+                    "Department code already exists in this organization"
+                ),
                 code="DUPLICATE_CODE"
             ).model_dump()
         )
@@ -277,7 +291,10 @@ def update_department(
             )
 
     # Verify parent department if being changed
-    if department_data.parent_id is not None and department_data.parent_id != department.parent_id:
+    if (
+        department_data.parent_id is not None and
+        department_data.parent_id != department.parent_id
+    ):
         if department_data.parent_id == department_id:
             return JSONResponse(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -289,7 +306,10 @@ def update_department(
 
         if department_data.parent_id:
             parent = service.get_department(department_data.parent_id)
-            if not parent or parent.organization_id != department.organization_id:
+            if (
+                not parent or
+                parent.organization_id != department.organization_id
+            ):
                 return JSONResponse(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     content=ErrorResponse(
@@ -368,13 +388,17 @@ def delete_department(
         return JSONResponse(
             status_code=status.HTTP_409_CONFLICT,
             content=ErrorResponse(
-                detail="Cannot delete department with active sub-departments",
+                detail=(
+                    "Cannot delete department with active sub-departments"
+                ),
                 code="HAS_SUB_DEPARTMENTS"
             ).model_dump()
         )
 
     # Perform soft delete
-    success = service.delete_department(department_id, deleted_by=current_user.id)
+    success = service.delete_department(
+        department_id, deleted_by=current_user.id
+    )
 
     return DeleteResponse(
         success=success,
@@ -477,4 +501,6 @@ def reorder_departments(
     # Update display order
     service.update_display_order(department_ids)
 
-    return {"message": f"Display order updated for {len(department_ids)} departments"}
+    return {
+        "message": f"Display order updated for {len(department_ids)} departments"
+    }

@@ -1,9 +1,10 @@
 """Task schemas for API request/response validation."""
 
 from datetime import datetime
-from typing import Optional, List, Any
 from enum import Enum
-from pydantic import BaseModel, Field, validator
+from typing import Any, List, Optional
+
+from pydantic import BaseModel, Field
 
 
 class TaskStatus(str, Enum):

@@ -32,7 +32,7 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
                 and_(
                     User.id == id,
                     User.is_active,
-                    User.is_deleted == False
+                    not User.is_deleted
                 )
             )
         )
@@ -60,7 +60,7 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
         limit: int = 100
     ) -> tuple[List[User], int]:
         """Search users with filters."""
-        stmt = select(User).where(User.is_deleted == False)
+        stmt = select(User).where(not User.is_deleted)
 
         # Text search
         if query:
@@ -120,7 +120,7 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
                 and_(
                     User.password_changed_at < expiry_date,
                     User.is_active,
-                    User.is_deleted == False
+                    not User.is_deleted
                 )
             )
         ))
@@ -136,7 +136,7 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
                         User.last_login_at < cutoff_date
                     ),
                     User.is_active,
-                    User.is_deleted == False
+                    not User.is_deleted
                 )
             )
         ))
@@ -189,7 +189,7 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
                 and_(
                     User.is_superuser,
                     User.is_active,
-                    User.is_deleted == False
+                    not User.is_deleted
                 )
             )
         ))

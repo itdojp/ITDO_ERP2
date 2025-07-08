@@ -65,7 +65,10 @@ class PaginatedResponse(BaseModel, Generic[T]):
     def __init__(self, **data: Any) -> None:
         """Initialize paginated response with computed has_more field."""
         if 'has_more' not in data:
-            data['has_more'] = data.get('total', 0) > data.get('skip', 0) + len(data.get('items', []))
+            data['has_more'] = (
+                data.get('total', 0) >
+                data.get('skip', 0) + len(data.get('items', []))
+            )
         super().__init__(**data)
 
     class Config:
@@ -102,8 +105,12 @@ class BulkOperationResult(BaseModel):
     """Result of a bulk operation."""
     success_count: int = Field(..., description="Number of successful operations")
     error_count: int = Field(..., description="Number of failed operations")
-    errors: List[ErrorResponse] = Field(default_factory=list, description="List of errors")
-    success_ids: List[int] = Field(default_factory=list, description="IDs of successful operations")
+    errors: List[ErrorResponse] = Field(
+        default_factory=list, description="List of errors"
+    )
+    success_ids: List[int] = Field(
+        default_factory=list, description="IDs of successful operations"
+    )
 
     class Config:
         json_schema_extra = {

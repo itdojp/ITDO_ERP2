@@ -93,44 +93,141 @@ class Permission(BaseModel):
 # Predefined system permissions
 SYSTEM_PERMISSIONS = [
     # User management
-    {"code": "user.view", "name": "View Users", "category": "user", "description": "View user information"},
-    {"code": "user.create", "name": "Create Users", "category": "user", "description": "Create new users"},
-    {"code": "user.edit", "name": "Edit Users", "category": "user", "description": "Edit user information"},
-    {"code": "user.delete", "name": "Delete Users", "category": "user", "description": "Delete users"},
+    {
+        "code": "user.view", "name": "View Users", "category": "user",
+        "description": "View user information"
+    },
+    {
+        "code": "user.create", "name": "Create Users", "category": "user",
+        "description": "Create new users"
+    },
+    {
+        "code": "user.edit", "name": "Edit Users", "category": "user",
+        "description": "Edit user information"
+    },
+    {
+        "code": "user.delete", "name": "Delete Users", "category": "user",
+        "description": "Delete users"
+    },
 
     # Role management
-    {"code": "role.view", "name": "View Roles", "category": "role", "description": "View role information"},
-    {"code": "role.create", "name": "Create Roles", "category": "role", "description": "Create new roles"},
-    {"code": "role.edit", "name": "Edit Roles", "category": "role", "description": "Edit role information"},
-    {"code": "role.delete", "name": "Delete Roles", "category": "role", "description": "Delete roles"},
-    {"code": "role.assign", "name": "Assign Roles", "category": "role", "description": "Assign roles to users"},
+    {
+        "code": "role.view", "name": "View Roles", "category": "role",
+        "description": "View role information"
+    },
+    {
+        "code": "role.create", "name": "Create Roles", "category": "role",
+        "description": "Create new roles"
+    },
+    {
+        "code": "role.edit", "name": "Edit Roles", "category": "role",
+        "description": "Edit role information"
+    },
+    {
+        "code": "role.delete", "name": "Delete Roles", "category": "role",
+        "description": "Delete roles"
+    },
+    {
+        "code": "role.assign", "name": "Assign Roles", "category": "role",
+        "description": "Assign roles to users"
+    },
 
     # Organization management
-    {"code": "org.view", "name": "View Organizations", "category": "organization", "description": "View organization information"},
-    {"code": "org.create", "name": "Create Organizations", "category": "organization", "description": "Create new organizations"},
-    {"code": "org.edit", "name": "Edit Organizations", "category": "organization", "description": "Edit organization information"},
-    {"code": "org.delete", "name": "Delete Organizations", "category": "organization", "description": "Delete organizations"},
+    {
+        "code": "org.view", "name": "View Organizations",
+        "category": "organization",
+        "description": "View organization information"
+    },
+    {
+        "code": "org.create", "name": "Create Organizations",
+        "category": "organization",
+        "description": "Create new organizations"
+    },
+    {
+        "code": "org.edit", "name": "Edit Organizations",
+        "category": "organization",
+        "description": "Edit organization information"
+    },
+    {
+        "code": "org.delete", "name": "Delete Organizations",
+        "category": "organization",
+        "description": "Delete organizations"
+    },
 
     # Department management
-    {"code": "dept.view", "name": "View Departments", "category": "department", "description": "View department information"},
-    {"code": "dept.create", "name": "Create Departments", "category": "department", "description": "Create new departments"},
-    {"code": "dept.edit", "name": "Edit Departments", "category": "department", "description": "Edit department information"},
-    {"code": "dept.delete", "name": "Delete Departments", "category": "department", "description": "Delete departments"},
+    {
+        "code": "dept.view", "name": "View Departments",
+        "category": "department",
+        "description": "View department information"
+    },
+    {
+        "code": "dept.create", "name": "Create Departments",
+        "category": "department",
+        "description": "Create new departments"
+    },
+    {
+        "code": "dept.edit", "name": "Edit Departments",
+        "category": "department",
+        "description": "Edit department information"
+    },
+    {
+        "code": "dept.delete", "name": "Delete Departments",
+        "category": "department",
+        "description": "Delete departments"
+    },
 
     # Project management
-    {"code": "project.view", "name": "View Projects", "category": "project", "description": "View project information"},
-    {"code": "project.create", "name": "Create Projects", "category": "project", "description": "Create new projects"},
-    {"code": "project.edit", "name": "Edit Projects", "category": "project", "description": "Edit project information"},
-    {"code": "project.delete", "name": "Delete Projects", "category": "project", "description": "Delete projects"},
+    {
+        "code": "project.view", "name": "View Projects",
+        "category": "project",
+        "description": "View project information"
+    },
+    {
+        "code": "project.create", "name": "Create Projects",
+        "category": "project",
+        "description": "Create new projects"
+    },
+    {
+        "code": "project.edit", "name": "Edit Projects",
+        "category": "project",
+        "description": "Edit project information"
+    },
+    {
+        "code": "project.delete", "name": "Delete Projects",
+        "category": "project",
+        "description": "Delete projects"
+    },
 
     # Task management
-    {"code": "task.view", "name": "View Tasks", "category": "task", "description": "View task information"},
-    {"code": "task.create", "name": "Create Tasks", "category": "task", "description": "Create new tasks"},
-    {"code": "task.edit", "name": "Edit Tasks", "category": "task", "description": "Edit task information"},
-    {"code": "task.delete", "name": "Delete Tasks", "category": "task", "description": "Delete tasks"},
+    {
+        "code": "task.view", "name": "View Tasks", "category": "task",
+        "description": "View task information"
+    },
+    {
+        "code": "task.create", "name": "Create Tasks", "category": "task",
+        "description": "Create new tasks"
+    },
+    {
+        "code": "task.edit", "name": "Edit Tasks", "category": "task",
+        "description": "Edit task information"
+    },
+    {
+        "code": "task.delete", "name": "Delete Tasks", "category": "task",
+        "description": "Delete tasks"
+    },
 
     # Admin permissions
-    {"code": "admin.all", "name": "Full Admin Access", "category": "admin", "description": "Full system administration access"},
-    {"code": "admin.audit", "name": "View Audit Logs", "category": "admin", "description": "View system audit logs"},
-    {"code": "admin.settings", "name": "Manage Settings", "category": "admin", "description": "Manage system settings"},
+    {
+        "code": "admin.all", "name": "Full Admin Access", "category": "admin",
+        "description": "Full system administration access"
+    },
+    {
+        "code": "admin.audit", "name": "View Audit Logs", "category": "admin",
+        "description": "View system audit logs"
+    },
+    {
+        "code": "admin.settings", "name": "Manage Settings",
+        "category": "admin",
+        "description": "Manage system settings"
+    },
 ]

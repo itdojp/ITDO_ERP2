@@ -6,9 +6,9 @@ from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.exceptions import (
-    AlreadyExists,
-    NotFound,
-    PermissionDenied,
+    AlreadyExistsError,
+    NotFoundError,
+    PermissionDeniedError,
     ValidationError,
 )
 from app.models.organization import Organization
@@ -48,13 +48,13 @@ class RoleService:
         """Create a new role."""
         # Check if role code already exists
         if self.repository.get_by_code(role_data.code):
-            raise AlreadyExists(f"Role with code '{role_data.code}' already exists")
+            raise AlreadyExistsError(f"Role with code '{role_data.code}' already exists")
 
         # Check if organization exists if specified
         if hasattr(role_data, 'organization_id') and role_data.organization_id:
             org = self.db.get(Organization, role_data.organization_id)
             if not org:
-                raise NotFound(f"Organization {role_data.organization_id} not found")
+                raise NotFoundError(f"Organization {role_data.organization_id} not found")
 
         # Create role
         role = Role(
@@ -98,17 +98,17 @@ class RoleService:
         """Update an existing role."""
         role = self.repository.get(role_id)
         if not role:
-            raise NotFound(f"Role {role_id} not found")
+            raise NotFoundError(f"Role {role_id} not found")
 
         # System roles cannot be modified
         if role.is_system:
-            raise PermissionDenied("System roles cannot be modified")
+            raise PermissionDeniedError("System roles cannot be modified")
 
         # Check if new code conflicts
         if role_data.code and role_data.code != role.code:
             existing = self.repository.get_by_code(role_data.code)
             if existing and existing.id != role_id:
-                raise AlreadyExists(f"Role with code '{role_data.code}' already exists")
+                raise AlreadyExistsError(f"Role with code '{role_data.code}' already exists")
 
         # Update fields
         update_fields = role_data.model_dump(exclude_unset=True)
@@ -125,11 +125,11 @@ class RoleService:
         """Soft delete a role."""
         role = self.repository.get(role_id)
         if not role:
-            raise NotFound(f"Role {role_id} not found")
+            raise NotFoundError(f"Role {role_id} not found")
 
         # System roles cannot be deleted
         if role.is_system:
-            raise PermissionDenied("System roles cannot be deleted")
+            raise PermissionDeniedError("System roles cannot be deleted")
 
         # Check if role has active assignments
         active_count = self.db.scalar(
@@ -170,7 +170,7 @@ class RoleService:
         """Update role permissions."""
         role = self.repository.get(role_id)
         if not role:
-            raise NotFound(f"Role {role_id} not found")
+            raise NotFoundError(f"Role {role_id} not found")
 
         # Convert permission codes to IDs
         permission_ids = []
@@ -218,7 +218,7 @@ class RoleService:
         )
 
         if existing:
-            raise AlreadyExists("User already has this role assignment")
+            raise AlreadyExistsError("User already has this role assignment")
 
         # Create assignment
         user_role = UserRole(
@@ -257,7 +257,7 @@ class RoleService:
         )
 
         if not user_role:
-            raise NotFound("Role assignment not found")
+            raise NotFoundError("Role assignment not found")
 
         user_role.is_active = False
         user_role.updated_by = removed_by
@@ -319,7 +319,7 @@ class RoleService:
         organization_id: Optional[OrganizationId] = None
     ) -> Tuple[List[Role], int]:
         """List roles with filtering."""
-        query = select(Role).where(Role.is_deleted == False)
+        query = select(Role).where(not Role.is_deleted)
 
         if active_only:
             query = query.where(Role.is_active)
@@ -425,7 +425,7 @@ class RoleService:
     def search_roles(self, search: str, skip: int, limit: int, filters: Dict[str, Any]) -> Tuple[List[Role], int]:
         """Search roles by name or description."""
         # Stub implementation for API compatibility
-        query = select(Role).where(Role.is_deleted == False)
+        query = select(Role).where(not Role.is_deleted)
 
         if search:
             query = query.where(or_(

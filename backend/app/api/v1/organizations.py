@@ -1,9 +1,10 @@
 """Organization API endpoints."""
-from typing import List, Optional, Union, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Path, Body
+from typing import Any, Dict, List, Optional, Union
+
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, status
 from fastapi.responses import JSONResponse
-from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_active_user, get_db
 from app.models.user import User
@@ -49,7 +50,9 @@ def list_organizations(
 
     # Get organizations
     if search:
-        organizations, total = service.search_organizations(search, skip, limit, filters)
+        organizations, total = service.search_organizations(
+            search, skip, limit, filters
+        )
     else:
         organizations, total = service.list_organizations(skip, limit, filters)
 
@@ -125,7 +128,9 @@ def create_organization(
     # Check permissions
     if not current_user.is_superuser:
         service = OrganizationService(db)
-        if not service.user_has_permission(current_user.id, "organizations.create"):
+        if not service.user_has_permission(
+            current_user.id, "organizations.create"
+        ):
             return JSONResponse(
                 status_code=status.HTTP_403_FORBIDDEN,
                 content=ErrorResponse(
@@ -147,7 +152,10 @@ def create_organization(
             return JSONResponse(
                 status_code=status.HTTP_409_CONFLICT,
                 content=ErrorResponse(
-                    detail=f"Organization with code '{organization_data.code}' already exists",
+                    detail=(
+                        f"Organization with code '{organization_data.code}' "
+                        "already exists"
+                    ),
                     code="DUPLICATE_CODE"
                 ).model_dump()
             )
@@ -174,7 +182,9 @@ def update_organization(
     # Check permissions
     if not current_user.is_superuser:
         service = OrganizationService(db)
-        if not service.user_has_permission(current_user.id, "organizations.update", organization_id):
+        if not service.user_has_permission(
+            current_user.id, "organizations.update", organization_id
+        ):
             return JSONResponse(
                 status_code=status.HTTP_403_FORBIDDEN,
                 content=ErrorResponse(
@@ -207,7 +217,10 @@ def update_organization(
             return JSONResponse(
                 status_code=status.HTTP_409_CONFLICT,
                 content=ErrorResponse(
-                    detail=f"Organization with code '{organization_data.code}' already exists",
+                    detail=(
+                        f"Organization with code '{organization_data.code}' "
+                        "already exists"
+                    ),
                     code="DUPLICATE_CODE"
                 ).model_dump()
             )
@@ -233,7 +246,9 @@ def delete_organization(
     # Check permissions
     if not current_user.is_superuser:
         service = OrganizationService(db)
-        if not service.user_has_permission(current_user.id, "organizations.delete"):
+        if not service.user_has_permission(
+            current_user.id, "organizations.delete"
+        ):
             return JSONResponse(
                 status_code=status.HTTP_403_FORBIDDEN,
                 content=ErrorResponse(
@@ -259,13 +274,17 @@ def delete_organization(
         return JSONResponse(
             status_code=status.HTTP_409_CONFLICT,
             content=ErrorResponse(
-                detail="Cannot delete organization with active subsidiaries",
+                detail=(
+                    "Cannot delete organization with active subsidiaries"
+                ),
                 code="HAS_SUBSIDIARIES"
             ).model_dump()
         )
 
     # Perform soft delete
-    success = service.delete_organization(organization_id, deleted_by=current_user.id)
+    success = service.delete_organization(
+        organization_id, deleted_by=current_user.id
+    )
 
     return DeleteResponse(
         success=success,
@@ -327,7 +346,9 @@ def activate_organization(
     # Check permissions
     if not current_user.is_superuser:
         service = OrganizationService(db)
-        if not service.user_has_permission(current_user.id, "organizations.activate"):
+        if not service.user_has_permission(
+            current_user.id, "organizations.activate"
+        ):
             return JSONResponse(
                 status_code=status.HTTP_403_FORBIDDEN,
                 content=ErrorResponse(
@@ -337,7 +358,9 @@ def activate_organization(
             )
 
     service = OrganizationService(db)
-    organization = service.activate_organization(organization_id, updated_by=current_user.id)
+    organization = service.activate_organization(
+        organization_id, updated_by=current_user.id
+    )
 
     if not organization:
         return JSONResponse(
@@ -369,7 +392,9 @@ def deactivate_organization(
     # Check permissions
     if not current_user.is_superuser:
         service = OrganizationService(db)
-        if not service.user_has_permission(current_user.id, "organizations.deactivate"):
+        if not service.user_has_permission(
+            current_user.id, "organizations.deactivate"
+        ):
             return JSONResponse(
                 status_code=status.HTTP_403_FORBIDDEN,
                 content=ErrorResponse(
@@ -379,7 +404,9 @@ def deactivate_organization(
             )
 
     service = OrganizationService(db)
-    organization = service.deactivate_organization(organization_id, updated_by=current_user.id)
+    organization = service.deactivate_organization(
+        organization_id, updated_by=current_user.id
+    )
 
     if not organization:
         return JSONResponse(

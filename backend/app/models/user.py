@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, desc, func
 from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
 
-from app.core.exceptions import BusinessLogicError, PermissionDenied
+from app.core.exceptions import BusinessLogicError, PermissionDeniedError
 from app.core.security import hash_password, verify_password
 from app.models.base import SoftDeletableModel
 
@@ -499,7 +499,7 @@ class User(SoftDeletableModel):
 
     def assign_role_to_self(self, role: "Role", organization: "Organization") -> None:
         """Attempt to assign role to self (should fail for security)."""
-        raise PermissionDenied("ユーザーは自分自身にロールを割り当てることはできません")
+        raise PermissionDeniedError("ユーザーは自分自身にロールを割り当てることはできません")
 
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email={self.email})>"

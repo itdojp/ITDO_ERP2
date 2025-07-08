@@ -46,17 +46,38 @@ def upgrade() -> None:
         sa.Column('parent_id', sa.Integer(), nullable=True),
         sa.Column('is_active', sa.Boolean(), server_default='true'),
         sa.Column('settings', sa.JSON(), server_default='{}'),
-        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
-        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.func.now(), onupdate=sa.func.now()),
+        sa.Column(
+            'created_at',
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now()
+        ),
+        sa.Column(
+            'updated_at',
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            onupdate=sa.func.now()
+        ),
         sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
         sa.Column('created_by', sa.Integer(), nullable=True),
         sa.Column('updated_by', sa.Integer(), nullable=True),
         sa.Column('deleted_by', sa.Integer(), nullable=True),
         sa.Column('is_deleted', sa.Boolean(), server_default='false'),
-        sa.ForeignKeyConstraint(['parent_id'], ['organizations.id'], name='fk_organizations_parent'),
-        sa.ForeignKeyConstraint(['created_by'], ['users.id'], name='fk_organizations_created_by'),
-        sa.ForeignKeyConstraint(['updated_by'], ['users.id'], name='fk_organizations_updated_by'),
-        sa.ForeignKeyConstraint(['deleted_by'], ['users.id'], name='fk_organizations_deleted_by'),
+        sa.ForeignKeyConstraint(
+            ['parent_id'], ['organizations.id'],
+            name='fk_organizations_parent'
+        ),
+        sa.ForeignKeyConstraint(
+            ['created_by'], ['users.id'],
+            name='fk_organizations_created_by'
+        ),
+        sa.ForeignKeyConstraint(
+            ['updated_by'], ['users.id'],
+            name='fk_organizations_updated_by'
+        ),
+        sa.ForeignKeyConstraint(
+            ['deleted_by'], ['users.id'],
+            name='fk_organizations_deleted_by'
+        ),
         sa.PrimaryKeyConstraint('id')
     )
     op.create_index('ix_organizations_code', 'organizations', ['code'], unique=True)
@@ -80,24 +101,58 @@ def upgrade() -> None:
         sa.Column('budget', sa.BigInteger(), nullable=True),
         sa.Column('display_order', sa.Integer(), server_default='0'),
         sa.Column('is_active', sa.Boolean(), server_default='true'),
-        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
-        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.func.now(), onupdate=sa.func.now()),
+        sa.Column(
+            'created_at',
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now()
+        ),
+        sa.Column(
+            'updated_at',
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            onupdate=sa.func.now()
+        ),
         sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
         sa.Column('created_by', sa.Integer(), nullable=True),
         sa.Column('updated_by', sa.Integer(), nullable=True),
         sa.Column('deleted_by', sa.Integer(), nullable=True),
         sa.Column('is_deleted', sa.Boolean(), server_default='false'),
-        sa.ForeignKeyConstraint(['organization_id'], ['organizations.id'], name='fk_departments_organization'),
-        sa.ForeignKeyConstraint(['parent_id'], ['departments.id'], name='fk_departments_parent'),
-        sa.ForeignKeyConstraint(['manager_id'], ['users.id'], name='fk_departments_manager'),
-        sa.ForeignKeyConstraint(['created_by'], ['users.id'], name='fk_departments_created_by'),
-        sa.ForeignKeyConstraint(['updated_by'], ['users.id'], name='fk_departments_updated_by'),
-        sa.ForeignKeyConstraint(['deleted_by'], ['users.id'], name='fk_departments_deleted_by'),
+        sa.ForeignKeyConstraint(
+            ['organization_id'], ['organizations.id'],
+            name='fk_departments_organization'
+        ),
+        sa.ForeignKeyConstraint(
+            ['parent_id'], ['departments.id'],
+            name='fk_departments_parent'
+        ),
+        sa.ForeignKeyConstraint(
+            ['manager_id'], ['users.id'],
+            name='fk_departments_manager'
+        ),
+        sa.ForeignKeyConstraint(
+            ['created_by'], ['users.id'],
+            name='fk_departments_created_by'
+        ),
+        sa.ForeignKeyConstraint(
+            ['updated_by'], ['users.id'],
+            name='fk_departments_updated_by'
+        ),
+        sa.ForeignKeyConstraint(
+            ['deleted_by'], ['users.id'],
+            name='fk_departments_deleted_by'
+        ),
         sa.PrimaryKeyConstraint('id')
     )
-    op.create_index('ix_departments_code_org', 'departments', ['code', 'organization_id'], unique=True)
+    op.create_index(
+        'ix_departments_code_org',
+        'departments',
+        ['code', 'organization_id'],
+        unique=True
+    )
     op.create_index('ix_departments_name', 'departments', ['name'])
-    op.create_index('ix_departments_organization_id', 'departments', ['organization_id'])
+    op.create_index(
+        'ix_departments_organization_id', 'departments', ['organization_id']
+    )
     op.create_index('ix_departments_parent_id', 'departments', ['parent_id'])
     op.create_index('ix_departments_manager_id', 'departments', ['manager_id'])
     op.create_index('ix_departments_is_active', 'departments', ['is_active'])
@@ -112,8 +167,17 @@ def upgrade() -> None:
         sa.Column('description', sa.Text(), nullable=True),
         sa.Column('category', sa.String(50), nullable=False),
         sa.Column('is_system', sa.Boolean(), server_default='false'),
-        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
-        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.func.now(), onupdate=sa.func.now()),
+        sa.Column(
+            'created_at',
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now()
+        ),
+        sa.Column(
+            'updated_at',
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            onupdate=sa.func.now()
+        ),
         sa.PrimaryKeyConstraint('id')
     )
     op.create_index('ix_permissions_code', 'permissions', ['code'], unique=True)
@@ -130,21 +194,41 @@ def upgrade() -> None:
         sa.Column('role_type', sa.String(50), nullable=True),
         sa.Column('is_active', sa.Boolean(), server_default='true'),
         sa.Column('can_be_assigned', sa.Boolean(), server_default='true'),
-        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
-        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.func.now(), onupdate=sa.func.now()),
+        sa.Column(
+            'created_at',
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now()
+        ),
+        sa.Column(
+            'updated_at',
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            onupdate=sa.func.now()
+        ),
         sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
         sa.Column('created_by', sa.Integer(), nullable=True),
         sa.Column('updated_by', sa.Integer(), nullable=True),
         sa.Column('deleted_by', sa.Integer(), nullable=True),
         sa.Column('is_deleted', sa.Boolean(), server_default='false'),
-        sa.ForeignKeyConstraint(['organization_id'], ['organizations.id'], name='fk_roles_organization'),
+        sa.ForeignKeyConstraint(
+            ['organization_id'], ['organizations.id'],
+            name='fk_roles_organization'
+        ),
         sa.ForeignKeyConstraint(['parent_id'], ['roles.id'], name='fk_roles_parent'),
-        sa.ForeignKeyConstraint(['created_by'], ['users.id'], name='fk_roles_created_by'),
-        sa.ForeignKeyConstraint(['updated_by'], ['users.id'], name='fk_roles_updated_by'),
-        sa.ForeignKeyConstraint(['deleted_by'], ['users.id'], name='fk_roles_deleted_by'),
+        sa.ForeignKeyConstraint(
+            ['created_by'], ['users.id'], name='fk_roles_created_by'
+        ),
+        sa.ForeignKeyConstraint(
+            ['updated_by'], ['users.id'], name='fk_roles_updated_by'
+        ),
+        sa.ForeignKeyConstraint(
+            ['deleted_by'], ['users.id'], name='fk_roles_deleted_by'
+        ),
         sa.PrimaryKeyConstraint('id')
     )
-    op.create_index('ix_roles_name_org', 'roles', ['name', 'organization_id'], unique=True)
+    op.create_index(
+        'ix_roles_name_org', 'roles', ['name', 'organization_id'], unique=True
+    )
     op.create_index('ix_roles_organization_id', 'roles', ['organization_id'])
     op.create_index('ix_roles_parent_id', 'roles', ['parent_id'])
     op.create_index('ix_roles_role_type', 'roles', ['role_type'])
@@ -158,8 +242,17 @@ def upgrade() -> None:
         sa.Column('permission_id', sa.Integer(), nullable=False),
         sa.Column('granted_by', sa.Integer(), nullable=True),
         sa.Column('is_active', sa.Boolean(), server_default='true'),
-        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
-        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.func.now(), onupdate=sa.func.now()),
+        sa.Column(
+            'created_at',
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now()
+        ),
+        sa.Column(
+            'updated_at',
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            onupdate=sa.func.now()
+        ),
         sa.ForeignKeyConstraint(['role_id'], ['roles.id'], name='fk_role_permissions_role', ondelete='CASCADE'),
         sa.ForeignKeyConstraint(['permission_id'], ['permissions.id'], name='fk_role_permissions_permission'),
         sa.ForeignKeyConstraint(['granted_by'], ['users.id'], name='fk_role_permissions_granted_by'),
@@ -180,8 +273,17 @@ def upgrade() -> None:
         sa.Column('valid_to', sa.DateTime(timezone=True), nullable=True),
         sa.Column('is_active', sa.Boolean(), server_default='true'),
         sa.Column('assigned_by', sa.Integer(), nullable=True),
-        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
-        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.func.now(), onupdate=sa.func.now()),
+        sa.Column(
+            'created_at',
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now()
+        ),
+        sa.Column(
+            'updated_at',
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            onupdate=sa.func.now()
+        ),
         sa.ForeignKeyConstraint(['user_id'], ['users.id'], name='fk_user_roles_user', ondelete='CASCADE'),
         sa.ForeignKeyConstraint(['role_id'], ['roles.id'], name='fk_user_roles_role'),
         sa.ForeignKeyConstraint(['organization_id'], ['organizations.id'], name='fk_user_roles_organization'),
@@ -200,12 +302,23 @@ def upgrade() -> None:
     op.add_column('users', sa.Column('department_id', sa.Integer(), nullable=True))
     op.add_column('users', sa.Column('organization_id', sa.Integer(), nullable=True))
     op.add_column('users', sa.Column('updated_by', sa.Integer(), nullable=True))
-    op.add_column('users', sa.Column('is_deleted', sa.Boolean(), server_default='false'))
+    op.add_column(
+        'users',
+        sa.Column('is_deleted', sa.Boolean(), server_default='false')
+    )
 
     # Create foreign keys for new user fields
-    op.create_foreign_key('fk_users_department', 'users', 'departments', ['department_id'], ['id'])
-    op.create_foreign_key('fk_users_organization', 'users', 'organizations', ['organization_id'], ['id'])
-    op.create_foreign_key('fk_users_updated_by', 'users', 'users', ['updated_by'], ['id'])
+    op.create_foreign_key(
+        'fk_users_department', 'users', 'departments',
+        ['department_id'], ['id']
+    )
+    op.create_foreign_key(
+        'fk_users_organization', 'users', 'organizations',
+        ['organization_id'], ['id']
+    )
+    op.create_foreign_key(
+        'fk_users_updated_by', 'users', 'users', ['updated_by'], ['id']
+    )
 
     # Create indexes for new user fields
     op.create_index('ix_users_employee_code', 'users', ['employee_code'], unique=True)
@@ -223,20 +336,56 @@ def upgrade() -> None:
         ('users.search', 'Search Users', 'Search and filter users', 'users'),
 
         # Organizations permissions
-        ('organizations.create', 'Create Organizations', 'Create new organizations', 'organizations'),
-        ('organizations.read', 'Read Organizations', 'View organization information', 'organizations'),
-        ('organizations.update', 'Update Organizations', 'Modify organization information', 'organizations'),
-        ('organizations.delete', 'Delete Organizations', 'Delete organizations', 'organizations'),
-        ('organizations.manage', 'Manage Organizations', 'Full organization management', 'organizations'),
-        ('organizations.activate', 'Activate Organizations', 'Activate organizations', 'organizations'),
-        ('organizations.deactivate', 'Deactivate Organizations', 'Deactivate organizations', 'organizations'),
+        (
+            'organizations.create', 'Create Organizations',
+            'Create new organizations', 'organizations'
+        ),
+        (
+            'organizations.read', 'Read Organizations',
+            'View organization information', 'organizations'
+        ),
+        (
+            'organizations.update', 'Update Organizations',
+            'Modify organization information', 'organizations'
+        ),
+        (
+            'organizations.delete', 'Delete Organizations',
+            'Delete organizations', 'organizations'
+        ),
+        (
+            'organizations.manage', 'Manage Organizations',
+            'Full organization management', 'organizations'
+        ),
+        (
+            'organizations.activate', 'Activate Organizations',
+            'Activate organizations', 'organizations'
+        ),
+        (
+            'organizations.deactivate', 'Deactivate Organizations',
+            'Deactivate organizations', 'organizations'
+        ),
 
         # Departments permissions
-        ('departments.create', 'Create Departments', 'Create new departments', 'departments'),
-        ('departments.read', 'Read Departments', 'View department information', 'departments'),
-        ('departments.update', 'Update Departments', 'Modify department information', 'departments'),
-        ('departments.delete', 'Delete Departments', 'Delete departments', 'departments'),
-        ('departments.reorder', 'Reorder Departments', 'Change department display order', 'departments'),
+        (
+            'departments.create', 'Create Departments',
+            'Create new departments', 'departments'
+        ),
+        (
+            'departments.read', 'Read Departments',
+            'View department information', 'departments'
+        ),
+        (
+            'departments.update', 'Update Departments',
+            'Modify department information', 'departments'
+        ),
+        (
+            'departments.delete', 'Delete Departments',
+            'Delete departments', 'departments'
+        ),
+        (
+            'departments.reorder', 'Reorder Departments',
+            'Change department display order', 'departments'
+        ),
 
         # Roles permissions
         ('roles.create', 'Create Roles', 'Create new roles', 'roles'),
@@ -309,8 +458,17 @@ def downgrade() -> None:
         sa.Column('code', sa.String(), nullable=False),
         sa.Column('name', sa.String(), nullable=False),
         sa.Column('is_active', sa.Boolean(), server_default='true'),
-        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
-        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.func.now(), onupdate=sa.func.now()),
+        sa.Column(
+            'created_at',
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now()
+        ),
+        sa.Column(
+            'updated_at',
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            onupdate=sa.func.now()
+        ),
         sa.PrimaryKeyConstraint('id')
     )
     op.create_index('ix_organizations_code', 'organizations', ['code'], unique=True)

@@ -1,12 +1,10 @@
 """Security tests for Task Management functionality."""
 
-import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
 
-from app.main import app
 from app.core.database import get_db
-from tests.conftest import get_test_db, create_test_user, create_test_jwt_token
+from app.main import app
+from tests.conftest import create_test_jwt_token, create_test_user, get_test_db
 
 
 class TestTaskSecurity:
@@ -16,18 +14,18 @@ class TestTaskSecurity:
         """Set up test fixtures."""
         self.client = TestClient(app)
         app.dependency_overrides[get_db] = get_test_db
-        
+
         # Create test users with different permissions
         self.regular_user = create_test_user()
         self.admin_user = create_test_user(
-            email="admin@example.com", 
+            email="admin@example.com",
             is_superuser=True
         )
         self.other_org_user = create_test_user(
-            email="other@example.com", 
+            email="other@example.com",
             organization_id=2
         )
-        
+
         self.regular_token = create_test_jwt_token(self.regular_user)
         self.admin_token = create_test_jwt_token(self.admin_user)
         self.other_org_token = create_test_jwt_token(self.other_org_user)
@@ -40,11 +38,11 @@ class TestTaskSecurity:
         """Test TASK-S-001: 認証なしでアクセス."""
         # Act
         response = self.client.get("/api/v1/tasks")
-        
+
         # Assert
         # This will fail until API is implemented
         assert response.status_code == 404  # Not Found until implemented
-        
+
         # Expected behavior after implementation:
         # assert response.status_code == 401  # Unauthorized
 
@@ -53,14 +51,14 @@ class TestTaskSecurity:
         # Arrange
         task_id = 1  # Task belonging to organization 1
         headers = {"Authorization": f"Bearer {self.other_org_token}"}
-        
+
         # Act
         response = self.client.get(f"/api/v1/tasks/{task_id}", headers=headers)
-        
+
         # Assert
         # This will fail until API is implemented
         assert response.status_code == 404  # Not Found until implemented
-        
+
         # Expected behavior after implementation:
         # assert response.status_code == 403  # Forbidden
 
@@ -69,14 +67,14 @@ class TestTaskSecurity:
         # Arrange
         malicious_id = "1; DROP TABLE tasks; --"
         headers = {"Authorization": f"Bearer {self.regular_token}"}
-        
+
         # Act
         response = self.client.get(f"/api/v1/tasks/{malicious_id}", headers=headers)
-        
+
         # Assert
         # This will fail until API is implemented
         assert response.status_code == 404  # Not Found until implemented
-        
+
         # Expected behavior after implementation:
         # assert response.status_code == 400  # Bad Request
 
@@ -90,14 +88,14 @@ class TestTaskSecurity:
             "priority": "medium"
         }
         headers = {"Authorization": f"Bearer {self.regular_token}"}
-        
+
         # Act
         response = self.client.post("/api/v1/tasks", json=xss_payload, headers=headers)
-        
+
         # Assert
         # This will fail until API is implemented
         assert response.status_code == 404  # Not Found until implemented
-        
+
         # Expected behavior after implementation:
         # assert response.status_code == 201
         # data = response.json()
@@ -109,17 +107,17 @@ class TestTaskSecurity:
         """Test TASK-S-005: レート制限."""
         # Arrange
         headers = {"Authorization": f"Bearer {self.regular_token}"}
-        
+
         # Act
         responses = []
         for i in range(100):  # Make 100 requests rapidly
             response = self.client.get("/api/v1/tasks", headers=headers)
             responses.append(response)
-        
+
         # Assert
         # This will fail until API is implemented
         assert all(r.status_code == 404 for r in responses)  # Not Found until implemented
-        
+
         # Expected behavior after implementation:
         # # Should have some rate limiting
         # status_codes = [r.status_code for r in responses]
@@ -135,14 +133,14 @@ class TestTaskSecurity:
             "due_date": "invalid-date"  # Invalid date format
         }
         headers = {"Authorization": f"Bearer {self.regular_token}"}
-        
+
         # Act
         response = self.client.post("/api/v1/tasks", json=invalid_data, headers=headers)
-        
+
         # Assert
         # This will fail until API is implemented
         assert response.status_code == 404  # Not Found until implemented
-        
+
         # Expected behavior after implementation:
         # assert response.status_code == 422  # Unprocessable Entity
         # errors = response.json()
@@ -159,13 +157,13 @@ class TestTaskAuthorizationLevels:
         """Set up test fixtures."""
         self.client = TestClient(app)
         app.dependency_overrides[get_db] = get_test_db
-        
+
         # Create users with different roles
         self.viewer_user = create_test_user(email="viewer@example.com", role="viewer")
         self.member_user = create_test_user(email="member@example.com", role="member")
         self.manager_user = create_test_user(email="manager@example.com", role="manager")
         self.admin_user = create_test_user(email="admin@example.com", is_superuser=True)
-        
+
         self.viewer_token = create_test_jwt_token(self.viewer_user)
         self.member_token = create_test_jwt_token(self.member_user)
         self.manager_token = create_test_jwt_token(self.manager_user)
@@ -178,12 +176,12 @@ class TestTaskAuthorizationLevels:
     def test_viewer_can_only_read(self):
         """Test that viewer role can only read tasks."""
         headers = {"Authorization": f"Bearer {self.viewer_token}"}
-        
+
         # Can read
         response = self.client.get("/api/v1/tasks", headers=headers)
         assert response.status_code == 404  # Not Found until implemented
         # Expected: 200 OK
-        
+
         # Cannot create
         task_data = {"title": "Test", "project_id": 1, "priority": "medium"}
         response = self.client.post("/api/v1/tasks", json=task_data, headers=headers)
@@ -193,13 +191,13 @@ class TestTaskAuthorizationLevels:
     def test_member_can_create_and_update_own(self):
         """Test that member role can create and update own tasks."""
         headers = {"Authorization": f"Bearer {self.member_token}"}
-        
+
         # Can create
         task_data = {"title": "Test", "project_id": 1, "priority": "medium"}
         response = self.client.post("/api/v1/tasks", json=task_data, headers=headers)
         assert response.status_code == 404  # Not Found until implemented
         # Expected: 201 Created
-        
+
         # Can update own task
         response = self.client.patch("/api/v1/tasks/1", json={"title": "Updated"}, headers=headers)
         assert response.status_code == 404  # Not Found until implemented
@@ -208,12 +206,12 @@ class TestTaskAuthorizationLevels:
     def test_manager_can_manage_all_in_org(self):
         """Test that manager role can manage all tasks in organization."""
         headers = {"Authorization": f"Bearer {self.manager_token}"}
-        
+
         # Can update any task in organization
         response = self.client.patch("/api/v1/tasks/1", json={"title": "Updated"}, headers=headers)
         assert response.status_code == 404  # Not Found until implemented
         # Expected: 200 OK
-        
+
         # Can delete tasks
         response = self.client.delete("/api/v1/tasks/1", headers=headers)
         assert response.status_code == 404  # Not Found until implemented
@@ -222,12 +220,12 @@ class TestTaskAuthorizationLevels:
     def test_admin_has_full_access(self):
         """Test that admin has full access across organizations."""
         headers = {"Authorization": f"Bearer {self.admin_token}"}
-        
+
         # Can access any organization's tasks
         response = self.client.get("/api/v1/tasks?organization_id=2", headers=headers)
         assert response.status_code == 404  # Not Found until implemented
         # Expected: 200 OK
-        
+
         # Can perform bulk operations
         bulk_data = {"task_ids": [1, 2, 3], "status": "completed"}
         response = self.client.post("/api/v1/tasks/bulk/status", json=bulk_data, headers=headers)
@@ -242,11 +240,11 @@ class TestTaskDataIsolation:
         """Set up test fixtures."""
         self.client = TestClient(app)
         app.dependency_overrides[get_db] = get_test_db
-        
+
         # Create users from different organizations
         self.org1_user = create_test_user(email="org1@example.com", organization_id=1)
         self.org2_user = create_test_user(email="org2@example.com", organization_id=2)
-        
+
         self.org1_token = create_test_jwt_token(self.org1_user)
         self.org2_token = create_test_jwt_token(self.org2_user)
 
@@ -261,7 +259,7 @@ class TestTaskDataIsolation:
         response = self.client.get("/api/v1/tasks", headers=headers)
         assert response.status_code == 404  # Not Found until implemented
         # Expected: Should only return org1 tasks
-        
+
         # Org2 user tries to list tasks
         headers = {"Authorization": f"Bearer {self.org2_token}"}
         response = self.client.get("/api/v1/tasks", headers=headers)
@@ -312,7 +310,7 @@ class TestTaskInputSanitization:
         """Set up test fixtures."""
         self.client = TestClient(app)
         app.dependency_overrides[get_db] = get_test_db
-        
+
         self.test_user = create_test_user()
         self.test_token = create_test_jwt_token(self.test_user)
         self.headers = {"Authorization": f"Bearer {self.test_token}"}
@@ -330,10 +328,10 @@ class TestTaskInputSanitization:
             "project_id": 1,
             "priority": "medium"
         }
-        
+
         # Act
         response = self.client.post("/api/v1/tasks", json=task_data, headers=self.headers)
-        
+
         # Assert
         assert response.status_code == 404  # Not Found until implemented
         # Expected: HTML tags should be escaped or stripped
@@ -347,10 +345,10 @@ class TestTaskInputSanitization:
             "project_id": 1,
             "priority": "medium"
         }
-        
+
         # Act
         response = self.client.post("/api/v1/tasks", json=task_data, headers=self.headers)
-        
+
         # Assert
         assert response.status_code == 404  # Not Found until implemented
         # Expected: JavaScript URLs should be removed or blocked
@@ -364,10 +362,10 @@ class TestTaskInputSanitization:
             "project_id": 1,
             "priority": "medium"
         }
-        
+
         # Act
         response = self.client.post("/api/v1/tasks", json=task_data, headers=self.headers)
-        
+
         # Assert
         assert response.status_code == 404  # Not Found until implemented
         # Expected: 422 Unprocessable Entity (validation error)
@@ -381,10 +379,10 @@ class TestTaskInputSanitization:
             "project_id": 1,
             "priority": "medium"
         }
-        
+
         # Act
         response = self.client.post("/api/v1/tasks", json=task_data, headers=self.headers)
-        
+
         # Assert
         assert response.status_code == 404  # Not Found until implemented
         # Expected: Special characters should be preserved correctly

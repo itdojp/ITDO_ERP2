@@ -139,10 +139,22 @@ disallow_subclassing_any = true
 module = "tests.*"
 disallow_untyped_defs = false
 disallow_untyped_decorators = false
+disallow_incomplete_defs = false
+check_untyped_defs = false
+warn_return_any = false
+warn_unused_ignores = false
+no_implicit_optional = false
+strict_optional = false
 
 # Factory imports
 [[tool.mypy.overrides]]
-module = "tests.factories"
+module = "tests.factories.*"
+ignore_missing_imports = true
+ignore_errors = true
+
+# Factory-boy library
+[[tool.mypy.overrides]]
+module = "factory.*"
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

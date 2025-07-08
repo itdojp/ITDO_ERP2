@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional
 from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
 
-from app.core.exceptions import BusinessLogicError, NotFound, PermissionDenied
+from app.core.exceptions import BusinessLogicError, NotFoundError, PermissionDeniedError
 from app.models.role import UserRole
 from app.models.user import User
 from app.repositories.user import UserRepository
@@ -41,14 +41,14 @@ class UserService:
             # Organization admin can create users in their org
             creator_orgs = [o.id for o in creator.get_organizations()]
             if data.organization_id not in creator_orgs:
-                raise PermissionDenied("組織へのアクセス権限がありません")
+                raise PermissionDeniedError("組織へのアクセス権限がありません")
 
             # Check if creator has org admin role
             if not any(
                 r.code == "ORG_ADMIN"
                 for r in creator.get_roles_in_organization(data.organization_id)
             ):
-                raise PermissionDenied("組織管理者権限が必要です")
+                raise PermissionDeniedError("組織管理者権限が必要です")
 
         # Create user
         user = User.create(
@@ -67,7 +67,7 @@ class UserService:
 
         org = db.query(Organization).filter(Organization.id == data.organization_id).first()
         if not org:
-            raise NotFound("組織が見つかりません")
+            raise NotFoundError("組織が見つかりません")
 
         # Assign department if specified
         department = None
@@ -78,7 +78,7 @@ class UserService:
                 Department.organization_id == data.organization_id
             ).first()
             if not department:
-                raise NotFound("部門が見つかりません")
+                raise NotFoundError("部門が見つかりません")
 
         # Assign roles
         for role_id in data.role_ids:
@@ -181,11 +181,11 @@ class UserService:
         """Get user details with permission check."""
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
-            raise NotFound("ユーザーが見つかりません")
+            raise NotFoundError("ユーザーが見つかりません")
 
         # Permission check
         if not viewer.can_access_user(user):
-            raise PermissionDenied("このユーザーへのアクセス権限がありません")
+            raise PermissionDeniedError("このユーザーへのアクセス権限がありません")
 
         return self._user_to_extended_response(user, db)
 
@@ -195,11 +195,11 @@ class UserService:
         """Update user information."""
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
-            raise NotFound("ユーザーが見つかりません")
+            raise NotFoundError("ユーザーが見つかりません")
 
         # Permission check
         if not updater.can_access_user(user):
-            raise PermissionDenied("このユーザーを更新する権限がありません")
+            raise PermissionDeniedError("このユーザーを更新する権限がありません")
 
         # Update fields
         update_data = data.model_dump(exclude_unset=True)
@@ -221,11 +221,11 @@ class UserService:
         """Change user password."""
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
-            raise NotFound("ユーザーが見つかりません")
+            raise NotFoundError("ユーザーが見つかりません")
 
         # Permission check (only self or admin)
         if changer.id != user.id and not changer.is_superuser:
-            raise PermissionDenied("パスワードを変更する権限がありません")
+            raise PermissionDeniedError("パスワードを変更する権限がありません")
 
         # Change password
         user.change_password(db, current_password, new_password)
@@ -239,7 +239,7 @@ class UserService:
         """Reset user password (admin only)."""
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
-            raise NotFound("ユーザーが見つかりません")
+            raise NotFoundError("ユーザーが見つかりません")
 
         # Permission check
         if not resetter.is_superuser:
@@ -251,7 +251,7 @@ class UserService:
             ]
 
             if not any(org_id in resetter_admin_orgs for org_id in user_orgs):
-                raise PermissionDenied("パスワードをリセットする権限がありません")
+                raise PermissionDeniedError("パスワードをリセットする権限がありません")
 
         # Generate temporary password
         temp_password = self._generate_temp_password()
@@ -284,20 +284,20 @@ class UserService:
         # Get user
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
-            raise NotFound("ユーザーが見つかりません")
+            raise NotFoundError("ユーザーが見つかりません")
 
         # Permission check
         if not assigner.is_superuser:
             # Must be org admin in target organization
             assigner_roles = assigner.get_roles_in_organization(organization_id)
             if not any(r.code == "ORG_ADMIN" for r in assigner_roles):
-                raise PermissionDenied("ロールを割り当てる権限がありません")
+                raise PermissionDeniedError("ロールを割り当てる権限がありません")
 
         # Check role exists
         from app.models.role import Role
         role = db.query(Role).filter(Role.id == role_id).first()
         if not role:
-            raise NotFound("ロールが見つかりません")
+            raise NotFoundError("ロールが見つかりません")
 
         # Create assignment
         user_role = UserRole(
@@ -340,7 +340,7 @@ class UserService:
         if not remover.is_superuser:
             remover_roles = remover.get_roles_in_organization(organization_id)
             if not any(r.code == "ORG_ADMIN" for r in remover_roles):
-                raise PermissionDenied("ロールを削除する権限がありません")
+                raise PermissionDeniedError("ロールを削除する権限がありません")
 
         # Find and remove role
         user_role = db.query(UserRole).filter(
@@ -367,11 +367,11 @@ class UserService:
         """Soft delete user."""
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
-            raise NotFound("ユーザーが見つかりません")
+            raise NotFoundError("ユーザーが見つかりません")
 
         # Permission check
         if not deleter.is_superuser:
-            raise PermissionDenied("ユーザーを削除する権限がありません")
+            raise PermissionDeniedError("ユーザーを削除する権限がありません")
 
         # Cannot delete self
         if deleter.id == user.id:
@@ -400,7 +400,7 @@ class UserService:
         """Get user's effective permissions in organization."""
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
-            raise NotFound("ユーザーが見つかりません")
+            raise NotFoundError("ユーザーが見つかりません")
 
         return user.get_effective_permissions(organization_id)
 
@@ -417,7 +417,7 @@ class UserService:
         if not importer.is_superuser:
             importer_roles = importer.get_roles_in_organization(organization_id)
             if not any(r.code == "ORG_ADMIN" for r in importer_roles):
-                raise PermissionDenied("ユーザーをインポートする権限がありません")
+                raise PermissionDeniedError("ユーザーをインポートする権限がありません")
 
         created_users = []
         errors = []
@@ -473,7 +473,7 @@ class UserService:
         if not exporter.is_superuser:
             exporter_roles = exporter.get_roles_in_organization(organization_id)
             if not any(r.code == "ORG_ADMIN" for r in exporter_roles):
-                raise PermissionDenied("ユーザーをエクスポートする権限がありません")
+                raise PermissionDeniedError("ユーザーをエクスポートする権限がありません")
 
         # Get users
         users = db.query(User).join(User.user_roles).filter(

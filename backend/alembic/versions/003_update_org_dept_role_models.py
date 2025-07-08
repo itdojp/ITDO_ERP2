@@ -41,17 +41,38 @@ def upgrade() -> None:
     op.add_column('organizations', sa.Column('settings', sa.Text(), nullable=True))
     op.add_column('organizations', sa.Column('description', sa.Text(), nullable=True))
     op.add_column('organizations', sa.Column('logo_url', sa.String(255), nullable=True))
-    op.add_column('organizations', sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True))
+    op.add_column(
+        'organizations',
+        sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True)
+    )
     op.add_column('organizations', sa.Column('deleted_by', sa.Integer(), nullable=True))
-    op.add_column('organizations', sa.Column('is_deleted', sa.Boolean(), server_default='false', nullable=False))
+    op.add_column(
+        'organizations',
+        sa.Column(
+            'is_deleted', sa.Boolean(),
+            server_default='false', nullable=False
+        )
+    )
     op.add_column('organizations', sa.Column('created_by', sa.Integer(), nullable=True))
     op.add_column('organizations', sa.Column('updated_by', sa.Integer(), nullable=True))
 
     # Add foreign key constraints for organizations
-    op.create_foreign_key('fk_organizations_parent_id', 'organizations', 'organizations', ['parent_id'], ['id'])
-    op.create_foreign_key('fk_organizations_created_by', 'organizations', 'users', ['created_by'], ['id'])
-    op.create_foreign_key('fk_organizations_updated_by', 'organizations', 'users', ['updated_by'], ['id'])
-    op.create_foreign_key('fk_organizations_deleted_by', 'organizations', 'users', ['deleted_by'], ['id'])
+    op.create_foreign_key(
+        'fk_organizations_parent_id', 'organizations', 'organizations',
+        ['parent_id'], ['id']
+    )
+    op.create_foreign_key(
+        'fk_organizations_created_by', 'organizations', 'users',
+        ['created_by'], ['id']
+    )
+    op.create_foreign_key(
+        'fk_organizations_updated_by', 'organizations', 'users',
+        ['updated_by'], ['id']
+    )
+    op.create_foreign_key(
+        'fk_organizations_deleted_by', 'organizations', 'users',
+        ['deleted_by'], ['id']
+    )
 
     # Add indexes for organizations
     op.create_index('ix_organizations_is_deleted', 'organizations', ['is_deleted'])
@@ -71,20 +92,50 @@ def upgrade() -> None:
     op.add_column('departments', sa.Column('headcount_limit', sa.Integer(), nullable=True))
     op.add_column('departments', sa.Column('department_type', sa.String(50), nullable=True))
     op.add_column('departments', sa.Column('cost_center_code', sa.String(50), nullable=True))
-    op.add_column('departments', sa.Column('display_order', sa.Integer(), server_default='0', nullable=False))
+    op.add_column(
+        'departments',
+        sa.Column(
+            'display_order', sa.Integer(),
+            server_default='0', nullable=False
+        )
+    )
     op.add_column('departments', sa.Column('description', sa.Text(), nullable=True))
-    op.add_column('departments', sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True))
+    op.add_column(
+        'departments',
+        sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True)
+    )
     op.add_column('departments', sa.Column('deleted_by', sa.Integer(), nullable=True))
-    op.add_column('departments', sa.Column('is_deleted', sa.Boolean(), server_default='false', nullable=False))
+    op.add_column(
+        'departments',
+        sa.Column(
+            'is_deleted', sa.Boolean(),
+            server_default='false', nullable=False
+        )
+    )
     op.add_column('departments', sa.Column('created_by', sa.Integer(), nullable=True))
     op.add_column('departments', sa.Column('updated_by', sa.Integer(), nullable=True))
 
     # Add foreign key constraints for departments
-    op.create_foreign_key('fk_departments_parent_id', 'departments', 'departments', ['parent_id'], ['id'])
-    op.create_foreign_key('fk_departments_manager_id', 'departments', 'users', ['manager_id'], ['id'])
-    op.create_foreign_key('fk_departments_created_by', 'departments', 'users', ['created_by'], ['id'])
-    op.create_foreign_key('fk_departments_updated_by', 'departments', 'users', ['updated_by'], ['id'])
-    op.create_foreign_key('fk_departments_deleted_by', 'departments', 'users', ['deleted_by'], ['id'])
+    op.create_foreign_key(
+        'fk_departments_parent_id', 'departments', 'departments',
+        ['parent_id'], ['id']
+    )
+    op.create_foreign_key(
+        'fk_departments_manager_id', 'departments', 'users',
+        ['manager_id'], ['id']
+    )
+    op.create_foreign_key(
+        'fk_departments_created_by', 'departments', 'users',
+        ['created_by'], ['id']
+    )
+    op.create_foreign_key(
+        'fk_departments_updated_by', 'departments', 'users',
+        ['updated_by'], ['id']
+    )
+    op.create_foreign_key(
+        'fk_departments_deleted_by', 'departments', 'users',
+        ['deleted_by'], ['id']
+    )
 
     # Add indexes for departments
     op.create_index('ix_departments_parent_id', 'departments', ['parent_id'])

@@ -26,7 +26,7 @@ class RoleRepository(BaseRepository[Role, RoleCreate, RoleUpdate]):
         return list(self.db.scalars(
             select(self.model)
             .where(self.model.is_system)
-            .where(self.model.is_deleted == False)
+            .where(not self.model.is_deleted)
             .order_by(self.model.display_order, self.model.name)
         ))
 
@@ -35,7 +35,7 @@ class RoleRepository(BaseRepository[Role, RoleCreate, RoleUpdate]):
         return list(self.db.scalars(
             select(self.model)
             .where(self.model.role_type == role_type)
-            .where(self.model.is_deleted == False)
+            .where(not self.model.is_deleted)
             .order_by(self.model.display_order, self.model.name)
         ))
 
@@ -44,7 +44,7 @@ class RoleRepository(BaseRepository[Role, RoleCreate, RoleUpdate]):
         return list(self.db.scalars(
             select(self.model)
             .where(self.model.parent_id.is_(None))
-            .where(self.model.is_deleted == False)
+            .where(not self.model.is_deleted)
             .order_by(self.model.display_order, self.model.name)
         ))
 
@@ -53,7 +53,7 @@ class RoleRepository(BaseRepository[Role, RoleCreate, RoleUpdate]):
         return list(self.db.scalars(
             select(self.model)
             .where(self.model.parent_id == parent_id)
-            .where(self.model.is_deleted == False)
+            .where(not self.model.is_deleted)
             .order_by(self.model.display_order, self.model.name)
         ))
 
@@ -78,7 +78,7 @@ class RoleRepository(BaseRepository[Role, RoleCreate, RoleUpdate]):
                     self.model.description.ilike(search_term)
                 )
             )
-            .where(self.model.is_deleted == False)
+            .where(not self.model.is_deleted)
             .order_by(self.model.name)
         ))
 
