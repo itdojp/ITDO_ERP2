@@ -205,7 +205,6 @@ class AuditInfo(BaseModel):
     )
 
 
-
 class SoftDeleteInfo(BaseModel):
     """Soft delete information for resources."""
 
@@ -214,7 +213,6 @@ class SoftDeleteInfo(BaseModel):
     deleted_by: Optional[int] = Field(
         None, description="ID of user who deleted the resource"
     )
-
 
 
 # Export all common schemas
