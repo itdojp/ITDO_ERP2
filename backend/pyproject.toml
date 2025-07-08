@@ -72,10 +72,29 @@ extend-exclude = '''
 [tool.ruff]
 line-length = 88
 target-version = "py313"
+# Fix inconsistent line ending handling
+respect-gitignore = true
+extend-exclude = [
+    ".git",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".venv",
+    "__pycache__",
+    "build",
+    "dist",
+]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N"]
 ignore = ["E402"]  # Module level import not at top of file (needed for circular import prevention)
+
+[tool.ruff.format]
+# Ensure consistent formatting across environments
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
 
 [tool.isort]
 profile = "black"
@@ -172,11 +191,11 @@ exclude_lines = [
 
 [dependency-groups]
 dev = [
-    "mypy>=1.16.1",
+    "mypy==1.16.1",
     "pytest>=8.4.1",
     "pytest-asyncio>=1.0.0",
     "pytest-cov>=6.2.1",
-    "ruff>=0.12.2",
+    "ruff==0.12.2",
     "types-python-jose>=3.3.4",
     "types-passlib>=1.7.7",
     "types-psutil>=7.0.0.20250601",
