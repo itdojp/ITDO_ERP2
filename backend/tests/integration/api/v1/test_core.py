@@ -31,7 +31,7 @@ class TestCoreAPI:
     def test_unauthorized_protected_endpoint(self, client: TestClient) -> None:
         """Test access to protected endpoint without auth."""
         response = client.get("/api/v1/users/me")
-        assert response.status_code == 401
+        assert response.status_code == 403  # HTTPBearer returns 403 when no auth header
 
     def test_authorized_access(
         self, client: TestClient, test_user: User, user_token: str
