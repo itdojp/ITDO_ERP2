@@ -7,14 +7,25 @@ set -e
 echo "🧹 Starting branch cleanup for ITDO ERP2 repository..."
 echo "=================================================="
 
+# Function to check if remote branch exists
+branch_exists() {
+    branch=$1
+    git ls-remote --heads origin "$branch" | grep -q "$branch"
+}
+
 # Function to delete remote branch
 delete_remote_branch() {
     branch=$1
-    echo -n "  Deleting remote branch $branch... "
-    if git push origin --delete "$branch" 2>/dev/null; then
-        echo "✅"
+    echo -n "  Checking remote branch $branch... "
+    if branch_exists "$branch"; then
+        echo -n "exists, deleting... "
+        if git push origin --delete "$branch" 2>/dev/null; then
+            echo "✅"
+        else
+            echo "❌ (deletion failed)"
+        fi
     else
-        echo "❌ (may already be deleted or protected)"
+        echo "🔍 (not found - may already be deleted)"
     fi
 }
 
@@ -27,32 +38,23 @@ delete_remote_branch "fix/lint-errors"
 
 # 2. Delete stale user management branches
 echo ""
-echo "📌 Step 2: Cleaning up stale user management branches..."
-echo "  Keeping only feature/user-management (most recent)"
-delete_remote_branch "feature/user-management-clean"
-delete_remote_branch "feature/user-management-v2"
+echo "📌 Step 2: Reviewing user management branches..."
+echo "  Note: Only feature/user-management exists currently"
+echo "  Other user-management variants not found"
 
 # 3. Delete obsolete type safety branches (after PR #50)
 echo ""
-echo "📌 Step 3: Cleaning up obsolete type safety branches..."
-echo "  PR #50 has been merged, removing phase branches"
-delete_remote_branch "feature/type-safety-phase1"
-delete_remote_branch "feature/type-safety-phase2"
-delete_remote_branch "feature/type-safety-phase3"
-delete_remote_branch "feature/type-safety-phase4"
-delete_remote_branch "feature/type-safety-phase5"
-delete_remote_branch "fix/type-safety"
+echo "📌 Step 3: Reviewing type safety branches..."
+echo "  Note: Phase branches appear to have been already cleaned up"
+echo "  No type-safety phase branches found in current remote"
 
-# 4. Review other stale branches
+# 4. List current stale branches for review
 echo ""
-echo "📌 Step 4: Other stale branches for review..."
-echo "  The following branches need manual review:"
-echo "  - origin/feature/dashboard-progress"
-echo "  - origin/feature/keycloak-integration"
-echo "  - origin/feature/organization-management"
-echo "  - origin/feature/task-management"
-echo "  - origin/feature/type-safe-task-management"
-echo "  - origin/feature/user-management"
+echo "📌 Step 4: Current branches for manual review..."
+echo "  The following remote branches exist and may need review:"
+git branch -r | grep -v "HEAD\|main\|chore/issue-57-branch-cleanup" | while read branch; do
+    echo "  - $branch"
+done
 
 # 5. Clean temporary files
 echo ""
