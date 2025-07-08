@@ -267,19 +267,21 @@ class TestUserExtendedModel:
 
     def test_user_soft_delete(self, db_session: Session) -> None:
         """TEST-USER-MODEL-014: ユーザーの論理削除をテスト."""
-        # Given: アクティブなユーザー
-        user = create_test_user(db_session)
-        db_session.add(user)
+        # Given: アクティブなユーザーと削除実行者
+        user = create_test_user(db_session, email="target@example.com")
+        deleter = create_test_user(db_session, email="deleter@example.com")
+        db_session.add_all([user, deleter])
         db_session.commit()
         user_id = user.id
 
         # When: 論理削除
-        user.soft_delete(db_session, deleted_by=1)
+        user.soft_delete(deleted_by=deleter.id)
+        db_session.commit()
 
         # Then: 非アクティブ化される
         assert user.is_active is False
         assert user.deleted_at is not None
-        assert user.deleted_by == 1
+        assert user.deleted_by == deleter.id
         # データは残っている
         assert db_session.query(User).filter(User.id == user_id).first() is not None
 
