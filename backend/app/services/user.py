@@ -608,9 +608,24 @@ class UserService:
 
     def _generate_temp_password(self) -> str:
         """Generate temporary password."""
-        # Use a mix of letters, digits, and special chars
-        chars = string.ascii_letters + string.digits + "!@#$%"
-        return "".join(random.choice(chars) for _ in range(12))
+        # Ensure password meets complexity requirements
+        # Must contain at least 3 of: uppercase, lowercase, digits, special chars
+        password_chars = []
+        
+        # Add at least one of each type
+        password_chars.append(random.choice(string.ascii_uppercase))
+        password_chars.append(random.choice(string.ascii_lowercase))
+        password_chars.append(random.choice(string.digits))
+        password_chars.append(random.choice("!@#$%"))
+        
+        # Fill the rest randomly
+        all_chars = string.ascii_letters + string.digits + "!@#$%"
+        for _ in range(8):  # Total length will be 12
+            password_chars.append(random.choice(all_chars))
+        
+        # Shuffle to avoid predictable pattern
+        random.shuffle(password_chars)
+        return "".join(password_chars)
 
     def _log_audit(
         self,
