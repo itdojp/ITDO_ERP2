@@ -328,7 +328,7 @@ class DepartmentService:
         for i, dept_id in enumerate(department_ids):
             dept = self.repository.get(dept_id)
             if dept:
-                dept.display_order = i
+                dept.display_order = i + 1  # Changed from i to i + 1
         self.db.commit()
 
     def user_has_permission(

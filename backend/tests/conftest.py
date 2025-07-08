@@ -54,17 +54,20 @@ def db_session() -> Generator[Session, None, None]:
         yield session
     finally:
         session.close()
-        # Clean up test data using CASCADE in PostgreSQL
+        # Clean up test data using safe DELETE order in PostgreSQL
         if "postgresql" in str(engine.url):
-            # For PostgreSQL, use TRUNCATE with CASCADE
+            # For PostgreSQL, use DELETE in dependency order to avoid foreign key violations
             with engine.begin() as conn:
-                # Get all table names
-                tables = Base.metadata.tables.keys()
-                if tables:
-                    # Truncate all tables with CASCADE
-                    table_names = ', '.join(f'"{table}"' for table in tables)
-                    from sqlalchemy import text
-                    conn.execute(text(f"TRUNCATE {table_names} CASCADE"))
+                from sqlalchemy import text
+                # Simple approach: Delete in safe order
+                table_order = [
+                    "user_roles", "role_permissions", "password_history", 
+                    "user_sessions", "user_activity_logs", "audit_logs",
+                    "project_members", "project_milestones", "projects",
+                    "users", "roles", "permissions", "departments", "organizations"
+                ]
+                for table in table_order:
+                    conn.execute(text(f'DELETE FROM "{table}"'))
         else:
             # For SQLite, drop all tables
             Base.metadata.drop_all(bind=engine)
