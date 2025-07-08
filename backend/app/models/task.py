@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text
+from sqlalchemy import DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import SoftDeletableModel
@@ -23,22 +23,22 @@ class Task(SoftDeletableModel):
     description: Mapped[Optional[str]] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(50), default="pending")
     priority: Mapped[str] = mapped_column(String(20), default="medium")
-    
+
     # Related fields
     project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), nullable=False)
     assignee_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"))
     reporter_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     parent_task_id: Mapped[Optional[int]] = mapped_column(ForeignKey("tasks.id"))
-    
+
     # Date fields
     due_date: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     start_date: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
-    
+
     # Additional fields
     estimated_hours: Mapped[Optional[float]] = mapped_column()
     actual_hours: Mapped[Optional[float]] = mapped_column()
-    
+
     # Relationships
     project: Mapped["Project"] = relationship("Project", back_populates="tasks")
     assignee: Mapped[Optional["User"]] = relationship(
@@ -53,6 +53,6 @@ class Task(SoftDeletableModel):
     subtasks: Mapped[list["Task"]] = relationship(
         "Task", back_populates="parent_task", cascade="all, delete-orphan"
     )
-    
+
     def __repr__(self) -> str:
         return f"<Task(id={self.id}, title={self.title}, status={self.status})>"

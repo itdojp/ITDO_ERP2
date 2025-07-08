@@ -1,12 +1,12 @@
 """Task management API endpoints."""
 
-from typing import Dict, List, Optional
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_active_user, get_db
-from app.core.exceptions import NotFound, PermissionDenied, BusinessLogicError
+from app.core.exceptions import NotFound, PermissionDenied
 from app.models.user import User
 from app.schemas.task import (
     TaskCreate,
@@ -34,7 +34,7 @@ def create_task(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except PermissionDenied as e:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create task",
@@ -56,7 +56,7 @@ def list_tasks(
 ) -> TaskListResponse:
     """List tasks with filters and pagination."""
     service = TaskService()
-    
+
     filters = {}
     if project_id is not None:
         filters["project_id"] = project_id
@@ -66,7 +66,7 @@ def list_tasks(
         filters["priority"] = priority
     if assignee_id is not None:
         filters["assignee_id"] = assignee_id
-    
+
     try:
         return service.list_tasks(
             filters=filters,
@@ -77,7 +77,7 @@ def list_tasks(
             sort_by=sort_by,
             sort_order=sort_order,
         )
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to list tasks",

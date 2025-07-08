@@ -3,10 +3,9 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session, joinedload
 
-from app.core.exceptions import NotFound, PermissionDenied, BusinessLogicError
+from app.core.exceptions import NotFound, PermissionDenied
 from app.models.project import Project
 from app.models.task import Task
 from app.models.user import User
@@ -33,12 +32,12 @@ class TaskService:
         project = db.query(Project).filter(Project.id == task_data.project_id).first()
         if not project:
             raise NotFound("Project not found")
-        
+
         # TODO: Check project access permissions
         # For now, just check if user is active
         if not user.is_active:
             raise PermissionDenied("User is not active")
-        
+
         # Create task
         task = Task(
             title=task_data.title,
@@ -54,29 +53,34 @@ class TaskService:
             estimated_hours=task_data.estimated_hours,
             created_by=user.id,
         )
-        
+
         db.add(task)
         db.commit()
         db.refresh(task)
-        
+
         return self._task_to_response(task)
 
     def get_task(self, task_id: int, user: User, db: Session) -> TaskResponse:
         """Get task details."""
-        task = db.query(Task).options(
-            joinedload(Task.project),
-            joinedload(Task.assignee),
-            joinedload(Task.reporter),
-        ).filter(Task.id == task_id).first()
-        
+        task = (
+            db.query(Task)
+            .options(
+                joinedload(Task.project),
+                joinedload(Task.assignee),
+                joinedload(Task.reporter),
+            )
+            .filter(Task.id == task_id)
+            .first()
+        )
+
         if not task:
             raise NotFound("Task not found")
-        
+
         # TODO: Check task access permissions
         # For now, just check if user is active
         if not user.is_active:
             raise PermissionDenied("User is not active")
-        
+
         return self._task_to_response(task)
 
     def update_task(
@@ -86,22 +90,22 @@ class TaskService:
         task = db.query(Task).filter(Task.id == task_id).first()
         if not task:
             raise NotFound("Task not found")
-        
+
         # TODO: Check task update permissions
         # For now, just check if user is active
         if not user.is_active:
             raise PermissionDenied("User is not active")
-        
+
         # Update fields
         for field, value in update_data.model_dump(exclude_unset=True).items():
             setattr(task, field, value)
-        
+
         task.updated_by = user.id
         task.updated_at = datetime.utcnow()
-        
+
         db.commit()
         db.refresh(task)
-        
+
         return self._task_to_response(task)
 
     def delete_task(self, task_id: int, user: User, db: Session) -> bool:
@@ -109,17 +113,17 @@ class TaskService:
         task = db.query(Task).filter(Task.id == task_id).first()
         if not task:
             raise NotFound("Task not found")
-        
+
         # TODO: Check task delete permissions
         # For now, just check if user is active
         if not user.is_active:
             raise PermissionDenied("User is not active")
-        
+
         # Soft delete
         task.deleted_at = datetime.utcnow()
         task.deleted_by = user.id
         task.is_active = False
-        
+
         db.commit()
         return True
 
@@ -139,7 +143,7 @@ class TaskService:
             joinedload(Task.assignee),
             joinedload(Task.reporter),
         )
-        
+
         # Apply filters
         if filters.get("project_id"):
             query = query.filter(Task.project_id == filters["project_id"])
@@ -149,13 +153,13 @@ class TaskService:
             query = query.filter(Task.priority == filters["priority"])
         if filters.get("assignee_id"):
             query = query.filter(Task.assignee_id == filters["assignee_id"])
-        
+
         # Only show active tasks
-        query = query.filter(Task.is_active == True)
-        
+        query = query.filter(Task.is_active.is_(True))
+
         # Count total
         total = query.count()
-        
+
         # Apply sorting
         if sort_by:
             sort_column = getattr(Task, sort_by, None)
@@ -164,14 +168,14 @@ class TaskService:
                     query = query.order_by(sort_column.desc())
                 else:
                     query = query.order_by(sort_column)
-        
+
         # Apply pagination
         offset = (page - 1) * page_size
         tasks = query.offset(offset).limit(page_size).all()
-        
+
         # Calculate total pages
         total_pages = (total + page_size - 1) // page_size if total > 0 else 0
-        
+
         return TaskListResponse(
             items=[self._task_to_response(task) for task in tasks],
             total=total,
@@ -255,11 +259,11 @@ class TaskService:
     ) -> TaskListResponse:
         """Search tasks by keyword."""
         raise NotImplementedError("Task search not implemented")
-    
+
     def _task_to_response(self, task: Task) -> TaskResponse:
         """Convert Task model to TaskResponse schema."""
-        from app.schemas.task import ProjectInfo, UserInfo, TaskStatus, TaskPriority
-        
+        from app.schemas.task import ProjectInfo, TaskPriority, TaskStatus, UserInfo
+
         # Convert status string to enum
         status_map = {
             "not_started": TaskStatus.NOT_STARTED,
@@ -269,7 +273,7 @@ class TaskService:
             "pending": TaskStatus.NOT_STARTED,  # Map pending to not_started
         }
         status = status_map.get(task.status, TaskStatus.NOT_STARTED)
-        
+
         # Convert priority string to enum
         priority_map = {
             "high": TaskPriority.HIGH,
@@ -277,29 +281,31 @@ class TaskService:
             "low": TaskPriority.LOW,
         }
         priority = priority_map.get(task.priority, TaskPriority.MEDIUM)
-        
+
         # Build project info
         project_info = ProjectInfo(
             id=task.project.id if task.project else task.project_id,
-            name=task.project.name if task.project else f"Project {task.project_id}"
+            name=task.project.name if task.project else f"Project {task.project_id}",
         )
-        
+
         # Build assignees list
         assignees = []
         if task.assignee:
-            assignees.append(UserInfo(
-                id=task.assignee.id,
-                name=task.assignee.full_name,
-                email=task.assignee.email,
-            ))
-        
+            assignees.append(
+                UserInfo(
+                    id=task.assignee.id,
+                    name=task.assignee.full_name,
+                    email=task.assignee.email,
+                )
+            )
+
         # Build created_by info
         created_by = UserInfo(
             id=task.reporter.id if task.reporter else task.reporter_id,
             name=task.reporter.full_name if task.reporter else "Unknown",
             email=task.reporter.email if task.reporter else "unknown@example.com",
         )
-        
+
         return TaskResponse(
             id=task.id,
             title=task.title,
