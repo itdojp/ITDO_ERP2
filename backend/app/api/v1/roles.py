@@ -251,7 +251,8 @@ def create_role(
 )
 def update_role(
     role_id: int = Path(..., description="Role ID"),
-    role_data: RoleUpdate = ...,
+    *,
+    role_data: RoleUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ) -> Union[RoleResponse, JSONResponse]:

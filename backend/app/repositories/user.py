@@ -121,7 +121,7 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
             self.db.scalars(
                 select(User).where(
                     and_(
-                        User.locked_until is not None,
+                        User.locked_until.is_not(None),
                         User.locked_until > datetime.now(timezone.utc),
                     )
                 )
@@ -151,7 +151,7 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
                 select(User).where(
                     and_(
                         or_(
-                            User.last_login_at is None, User.last_login_at < cutoff_date
+                            User.last_login_at.is_(None), User.last_login_at < cutoff_date
                         ),
                         User.is_active,
                         ~User.is_deleted,

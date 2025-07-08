@@ -39,7 +39,7 @@ class DepartmentRepository(
         if active_only:
             query = query.where(self.model.is_active)
 
-        query = query.where(not self.model.is_deleted)
+        query = query.where(~self.model.is_deleted)
         query = query.order_by(self.model.display_order, self.model.name)
         query = query.offset(skip).limit(limit)
 
@@ -51,8 +51,8 @@ class DepartmentRepository(
             self.db.scalars(
                 select(self.model)
                 .where(self.model.organization_id == organization_id)
-                .where(self.model.parent_id is None)
-                .where(not self.model.is_deleted)
+                .where(self.model.parent_id.is_(None))
+                .where(~self.model.is_deleted)
                 .order_by(self.model.display_order, self.model.name)
             )
         )
@@ -63,7 +63,7 @@ class DepartmentRepository(
             self.db.scalars(
                 select(self.model)
                 .where(self.model.parent_id == parent_id)
-                .where(not self.model.is_deleted)
+                .where(~self.model.is_deleted)
                 .order_by(self.model.display_order, self.model.name)
             )
         )
@@ -74,7 +74,7 @@ class DepartmentRepository(
             self.db.scalars(
                 select(self.model)
                 .where(self.model.manager_id == manager_id)
-                .where(not self.model.is_deleted)
+                .where(~self.model.is_deleted)
                 .order_by(self.model.name)
             )
         )
@@ -109,7 +109,7 @@ class DepartmentRepository(
         if organization_id:
             q = q.where(self.model.organization_id == organization_id)
 
-        q = q.where(not self.model.is_deleted)
+        q = q.where(~self.model.is_deleted)
         q = q.order_by(self.model.name)
 
         return list(self.db.scalars(q))
@@ -123,7 +123,7 @@ class DepartmentRepository(
         if organization_id:
             query = query.where(self.model.organization_id == organization_id)
 
-        query = query.where(not self.model.is_deleted)
+        query = query.where(~self.model.is_deleted)
         query = query.order_by(self.model.name)
 
         return list(self.db.scalars(query))
@@ -133,7 +133,7 @@ class DepartmentRepository(
         return self.db.scalar(
             select(self.model)
             .where(self.model.cost_center_code == cost_center_code)
-            .where(not self.model.is_deleted)
+            .where(~self.model.is_deleted)
         )
 
     def validate_unique_code(

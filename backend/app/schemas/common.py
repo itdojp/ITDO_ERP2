@@ -204,15 +204,6 @@ class AuditInfo(BaseModel):
         None, description="ID of user who last updated the resource"
     )
 
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "created_at": "2024-01-06T12:00:00Z",
-                "created_by": 1,
-                "updated_at": "2024-01-06T12:00:00Z",
-                "updated_by": 1,
-            }
-        }
 
 
 class SoftDeleteInfo(BaseModel):
@@ -224,10 +215,6 @@ class SoftDeleteInfo(BaseModel):
         None, description="ID of user who deleted the resource"
     )
 
-    class Config:
-        json_schema_extra = {
-            "example": {"is_deleted": False, "deleted_at": None, "deleted_by": None}
-        }
 
 
 # Export all common schemas
