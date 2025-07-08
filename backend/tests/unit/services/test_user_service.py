@@ -27,16 +27,16 @@ class TestUserService:
     """Test cases for UserService."""
 
     @pytest.fixture
-    def service(self) -> UserService:
+    def service(self, db_session: Session) -> UserService:
         """Create service instance."""
-        return UserService()
+        return UserService(db_session)
 
     def test_create_user_system_admin(self, service, db_session: Session) -> None:
         """TEST-USER-SERVICE-001: システム管理者によるユーザー作成をテスト."""
         # Given: システム管理者と組織
-        admin = create_test_user(is_superuser=True)
-        org = create_test_organization()
-        role = create_test_role(code="USER")
+        admin = create_test_user(db_session, is_superuser=True)
+        org = create_test_organization(db_session, )
+        role = create_test_role(db_session, code="USER")
         db_session.add_all([admin, org, role])
         db_session.commit()
 
@@ -61,11 +61,11 @@ class TestUserService:
     def test_org_admin_create_user_in_org(self, service, db_session: Session) -> None:
         """TEST-USER-SERVICE-002: 組織管理者による自組織ユーザー作成をテスト."""
         # Given: 組織管理者
-        org = create_test_organization()
-        admin = create_test_user()
-        admin_role = create_test_role(code="ORG_ADMIN")
-        user_role = create_test_role(code="USER")
-        create_test_user_role(user=admin, role=admin_role, organization=org)
+        org = create_test_organization(db_session, )
+        admin = create_test_user(db_session, )
+        admin_role = create_test_role(db_session, code="ORG_ADMIN")
+        user_role = create_test_role(db_session, code="USER")
+        create_test_user_role(db_session, user=admin, role=admin_role, organization=org)
         db_session.add_all([org, admin, admin_role, user_role])
         db_session.commit()
 
@@ -89,11 +89,11 @@ class TestUserService:
         """TEST-USER-SERVICE-003: 組織管理者が他組織ユーザーを作成できない
         ことをテスト."""
         # Given: 組織1の管理者と組織2
-        org1 = create_test_organization(code="ORG1")
-        org2 = create_test_organization(code="ORG2")
-        admin = create_test_user()
-        admin_role = create_test_role(code="ORG_ADMIN")
-        create_test_user_role(user=admin, role=admin_role, organization=org1)
+        org1 = create_test_organization(db_session, code="ORG1")
+        org2 = create_test_organization(db_session, code="ORG2")
+        admin = create_test_user(db_session, )
+        admin_role = create_test_role(db_session, code="ORG_ADMIN")
+        create_test_user_role(db_session, user=admin, role=admin_role, organization=org1)
         db_session.commit()
 
         # When/Then: 組織2のユーザー作成で権限エラー
@@ -114,20 +114,20 @@ class TestUserService:
     ) -> None:
         """TEST-USER-SERVICE-004: マルチテナント環境でのユーザー検索分離をテスト."""
         # Given: 2つの組織とユーザー
-        org1 = create_test_organization(code="ORG1")
-        org2 = create_test_organization(code="ORG2")
-        role = create_test_role(code="USER")
+        org1 = create_test_organization(db_session, code="ORG1")
+        org2 = create_test_organization(db_session, code="ORG2")
+        role = create_test_role(db_session, code="USER")
 
         # 各組織にユーザー作成
-        user1 = create_test_user(email="user1@org1.com")
-        user2 = create_test_user(email="user2@org2.com")
-        create_test_user_role(user=user1, role=role, organization=org1)
-        create_test_user_role(user=user2, role=role, organization=org2)
+        user1 = create_test_user(db_session, email="user1@org1.com")
+        user2 = create_test_user(db_session, email="user2@org2.com")
+        create_test_user_role(db_session, user=user1, role=role, organization=org1)
+        create_test_user_role(db_session, user=user2, role=role, organization=org2)
 
         # 組織1の管理者
-        admin1 = create_test_user(email="admin@org1.com")
-        admin_role = create_test_role(code="ORG_ADMIN")
-        create_test_user_role(user=admin1, role=admin_role, organization=org1)
+        admin1 = create_test_user(db_session, email="admin@org1.com")
+        admin_role = create_test_role(db_session, code="ORG_ADMIN")
+        create_test_user_role(db_session, user=admin1, role=admin_role, organization=org1)
         db_session.commit()
 
         # When: 組織1管理者が検索
@@ -144,7 +144,7 @@ class TestUserService:
     def test_update_user_self(self, service, db_session: Session) -> None:
         """TEST-USER-SERVICE-005: ユーザーが自分の情報を更新できることをテスト."""
         # Given: ユーザー
-        user = create_test_user(full_name="旧名前", phone="090-0000-0000")
+        user = create_test_user(db_session, full_name="旧名前", phone="090-0000-0000")
         db_session.add(user)
         db_session.commit()
 
@@ -161,8 +161,8 @@ class TestUserService:
     def test_update_user_permission_denied(self, service, db_session: Session) -> None:
         """TEST-USER-SERVICE-006: 権限のないユーザー更新が拒否されることをテスト."""
         # Given: 2人のユーザー（関係なし）
-        user1 = create_test_user(email="user1@example.com")
-        user2 = create_test_user(email="user2@example.com")
+        user1 = create_test_user(db_session, email="user1@example.com")
+        user2 = create_test_user(db_session, email="user2@example.com")
         db_session.add_all([user1, user2])
         db_session.commit()
 
@@ -178,7 +178,7 @@ class TestUserService:
     def test_change_password_self(self, service, db_session: Session) -> None:
         """TEST-USER-SERVICE-007: ユーザーが自分のパスワードを変更できることをテスト."""
         # Given: ユーザー
-        user = create_test_user()
+        user = create_test_user(db_session, )
         db_session.add(user)
         db_session.commit()
         old_hash = user.hashed_password
@@ -200,7 +200,7 @@ class TestUserService:
     def test_change_password_wrong_current(self, service, db_session: Session) -> None:
         """TEST-USER-SERVICE-008: 現在のパスワードが間違っている場合をテスト."""
         # Given: ユーザー
-        user = create_test_user()
+        user = create_test_user(db_session, )
         db_session.add(user)
         db_session.commit()
 
@@ -217,13 +217,13 @@ class TestUserService:
     def test_admin_reset_password(self, service, db_session: Session) -> None:
         """TEST-USER-SERVICE-009: 管理者によるパスワードリセットをテスト."""
         # Given: ユーザーと組織管理者
-        org = create_test_organization()
-        user = create_test_user()
-        admin = create_test_user()
-        role = create_test_role(code="USER")
-        admin_role = create_test_role(code="ORG_ADMIN")
-        create_test_user_role(user=user, role=role, organization=org)
-        create_test_user_role(user=admin, role=admin_role, organization=org)
+        org = create_test_organization(db_session, )
+        user = create_test_user(db_session, )
+        admin = create_test_user(db_session, )
+        role = create_test_role(db_session, code="USER")
+        admin_role = create_test_role(db_session, code="ORG_ADMIN")
+        create_test_user_role(db_session, user=user, role=role, organization=org)
+        create_test_user_role(db_session, user=admin, role=admin_role, organization=org)
         db_session.commit()
 
         # When: 管理者がパスワードリセット
@@ -238,12 +238,12 @@ class TestUserService:
     def test_assign_role_to_user(self, service, db_session: Session) -> None:
         """TEST-USER-SERVICE-010: ユーザーへのロール割り当てをテスト."""
         # Given: ユーザー、組織、ロール
-        org = create_test_organization()
-        user = create_test_user()
-        admin = create_test_user()
-        new_role = create_test_role(code="MANAGER")
-        admin_role = create_test_role(code="ORG_ADMIN")
-        create_test_user_role(user=admin, role=admin_role, organization=org)
+        org = create_test_organization(db_session, )
+        user = create_test_user(db_session, )
+        admin = create_test_user(db_session, )
+        new_role = create_test_role(db_session, code="MANAGER")
+        admin_role = create_test_role(db_session, code="ORG_ADMIN")
+        create_test_user_role(db_session, user=admin, role=admin_role, organization=org)
         db_session.commit()
 
         # When: ロール割り当て
@@ -263,10 +263,10 @@ class TestUserService:
     def test_assign_role_with_expiry(self, service, db_session: Session) -> None:
         """TEST-USER-SERVICE-011: 期限付きロール割り当てをテスト."""
         # Given: セットアップ
-        org = create_test_organization()
-        user = create_test_user()
-        admin = create_test_user(is_superuser=True)
-        role = create_test_role(code="TEMP_MANAGER")
+        org = create_test_organization(db_session, )
+        user = create_test_user(db_session, )
+        admin = create_test_user(db_session, is_superuser=True)
+        role = create_test_role(db_session, code="TEMP_MANAGER")
         db_session.add_all([org, user, admin, role])
         db_session.commit()
 
@@ -288,11 +288,11 @@ class TestUserService:
     def test_remove_role_from_user(self, service, db_session: Session) -> None:
         """TEST-USER-SERVICE-012: ユーザーからのロール削除をテスト."""
         # Given: ロールを持つユーザー
-        org = create_test_organization()
-        user = create_test_user()
-        admin = create_test_user(is_superuser=True)
-        role = create_test_role(code="REMOVE_ME")
-        create_test_user_role(user=user, role=role, organization=org)
+        org = create_test_organization(db_session, )
+        user = create_test_user(db_session, )
+        admin = create_test_user(db_session, is_superuser=True)
+        role = create_test_role(db_session, code="REMOVE_ME")
+        create_test_user_role(db_session, user=user, role=role, organization=org)
         db_session.commit()
 
         # When: ロール削除
@@ -311,8 +311,8 @@ class TestUserService:
     def test_soft_delete_user(self, service, db_session: Session) -> None:
         """TEST-USER-SERVICE-013: ユーザーの論理削除をテスト."""
         # Given: ユーザーとシステム管理者
-        user = create_test_user(is_active=True)
-        admin = create_test_user(is_superuser=True)
+        user = create_test_user(db_session, is_active=True)
+        admin = create_test_user(db_session, is_superuser=True)
         db_session.add_all([user, admin])
         db_session.commit()
 
@@ -328,7 +328,7 @@ class TestUserService:
     def test_cannot_delete_self(self, service, db_session: Session) -> None:
         """TEST-USER-SERVICE-014: 自分自身を削除できないことをテスト."""
         # Given: システム管理者
-        admin = create_test_user(is_superuser=True)
+        admin = create_test_user(db_session, is_superuser=True)
         db_session.add(admin)
         db_session.commit()
 
@@ -339,12 +339,12 @@ class TestUserService:
     def test_cannot_delete_last_admin(self, service, db_session: Session) -> None:
         """TEST-USER-SERVICE-015: 最後のシステム管理者を削除できないことをテスト."""
         # Given: 唯一のシステム管理者
-        admin = create_test_user(is_superuser=True)
+        admin = create_test_user(db_session, is_superuser=True)
         db_session.add(admin)
         db_session.commit()
 
         # When/Then: 削除しようとして失敗
-        other_admin = create_test_user(is_superuser=True)
+        other_admin = create_test_user(db_session, is_superuser=True)
         db_session.add(other_admin)
         db_session.commit()
 
@@ -355,12 +355,12 @@ class TestUserService:
     def test_get_user_permissions(self, service, db_session: Session) -> None:
         """TEST-USER-SERVICE-016: ユーザーの実効権限取得をテスト."""
         # Given: 複数ロールを持つユーザー
-        org = create_test_organization()
-        user = create_test_user()
-        role1 = create_test_role(code="READER", permissions=["read:*"])
-        role2 = create_test_role(code="WRITER", permissions=["write:own", "delete:own"])
-        create_test_user_role(user=user, role=role1, organization=org)
-        create_test_user_role(user=user, role=role2, organization=org)
+        org = create_test_organization(db_session, )
+        user = create_test_user(db_session, )
+        role1 = create_test_role(db_session, code="READER", permissions=["read:*"])
+        role2 = create_test_role(db_session, code="WRITER", permissions=["write:own", "delete:own"])
+        create_test_user_role(db_session, user=user, role=role1, organization=org)
+        create_test_user_role(db_session, user=user, role=role2, organization=org)
         db_session.commit()
 
         # When: 実効権限取得
@@ -376,7 +376,7 @@ class TestUserService:
     def test_user_activity_logging(self, service, db_session: Session) -> None:
         """TEST-USER-SERVICE-017: ユーザー操作の監査ログ記録をテスト."""
         # Given: システム管理者
-        admin = create_test_user(is_superuser=True)
+        admin = create_test_user(db_session, is_superuser=True)
         db_session.add(admin)
         db_session.commit()
 
@@ -405,26 +405,26 @@ class TestUserService:
     def test_search_users_with_filters(self, service, db_session: Session) -> None:
         """TEST-USER-SERVICE-018: 複数フィルタでのユーザー検索をテスト."""
         # Given: 様々な条件のユーザー
-        org = create_test_organization()
-        dept = create_test_department(organization=org)
-        role1 = create_test_role(code="MANAGER")
-        role2 = create_test_role(code="USER")
+        org = create_test_organization(db_session, )
+        dept = create_test_department(db_session, organization=org)
+        role1 = create_test_role(db_session, code="MANAGER")
+        role2 = create_test_role(db_session, code="USER")
 
         # アクティブなマネージャー
-        active_manager = create_test_user(
+        active_manager = create_test_user(db_session, 
             email="active.manager@example.com", full_name="田中太郎"
         )
-        create_test_user_role(
+        create_test_user_role(db_session, 
             user=active_manager, role=role1, organization=org, department=dept
         )
 
         # 非アクティブなユーザー
-        inactive_user = create_test_user(
+        inactive_user = create_test_user(db_session, 
             email="inactive@example.com", full_name="山田花子", is_active=False
         )
-        create_test_user_role(user=inactive_user, role=role2, organization=org)
+        create_test_user_role(db_session, user=inactive_user, role=role2, organization=org)
 
-        admin = create_test_user(is_superuser=True)
+        admin = create_test_user(db_session, is_superuser=True)
         db_session.commit()
 
         # When: フィルタ付き検索
@@ -444,9 +444,9 @@ class TestUserService:
     def test_bulk_user_import(self, service, db_session: Session) -> None:
         """TEST-USER-SERVICE-019: 一括ユーザーインポートをテスト."""
         # Given: インポートデータ
-        org = create_test_organization()
-        role = create_test_role(code="USER")
-        admin = create_test_user(is_superuser=True)
+        org = create_test_organization(db_session, )
+        role = create_test_role(db_session, code="USER")
+        admin = create_test_user(db_session, is_superuser=True)
         db_session.add_all([org, role, admin])
         db_session.commit()
 
@@ -480,12 +480,12 @@ class TestUserService:
     def test_export_user_list(self, service, db_session: Session) -> None:
         """TEST-USER-SERVICE-020: ユーザーリストのエクスポートをテスト."""
         # Given: 複数のユーザー
-        org = create_test_organization()
-        admin = create_test_user(is_superuser=True)
+        org = create_test_organization(db_session, )
+        admin = create_test_user(db_session, is_superuser=True)
         for i in range(5):
-            user = create_test_user(email=f"export{i}@example.com")
-            role = create_test_role(code=f"ROLE{i}")
-            create_test_user_role(user=user, role=role, organization=org)
+            user = create_test_user(db_session, email=f"export{i}@example.com")
+            role = create_test_role(db_session, code=f"ROLE{i}")
+            create_test_user_role(db_session, user=user, role=role, organization=org)
         db_session.commit()
 
         # When: エクスポート
