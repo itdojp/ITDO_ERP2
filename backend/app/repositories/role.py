@@ -1,6 +1,6 @@
 """Role and UserRole repository implementation."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 from sqlalchemy import func, or_, select, update
@@ -154,7 +154,7 @@ class UserRoleRepository(BaseRepository[UserRole, UserRoleCreate, UserRoleUpdate
             query = query.where(self.model.is_active)
 
         if valid_only:
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             query = query.where(self.model.valid_from <= now)
             query = query.where(
                 or_(self.model.expires_at.is_(None), self.model.expires_at > now)
@@ -243,7 +243,7 @@ class UserRoleRepository(BaseRepository[UserRole, UserRoleCreate, UserRoleUpdate
             if not existing.is_active:
                 existing.is_active = True
                 existing.assigned_by = assigned_by
-                existing.assigned_at = datetime.utcnow()
+                existing.assigned_at = datetime.now(timezone.utc)
                 self.db.commit()
                 self.db.refresh(existing)
             return existing
@@ -301,7 +301,7 @@ class UserRoleRepository(BaseRepository[UserRole, UserRoleCreate, UserRoleUpdate
 
     def get_expiring_roles(self, days: int = 30) -> List[UserRole]:
         """Get roles expiring within specified days."""
-        future_date = datetime.utcnow() + timedelta(days=days)
+        future_date = datetime.now(timezone.utc) + timedelta(days=days)
 
         return list(
             self.db.scalars(
@@ -309,7 +309,7 @@ class UserRoleRepository(BaseRepository[UserRole, UserRoleCreate, UserRoleUpdate
                 .where(self.model.is_active)
                 .where(self.model.expires_at.is_not(None))
                 .where(self.model.expires_at <= future_date)
-                .where(self.model.expires_at > datetime.utcnow())
+                .where(self.model.expires_at > datetime.now(timezone.utc))
                 .options(
                     joinedload(self.model.user),
                     joinedload(self.model.role),
@@ -326,7 +326,7 @@ class UserRoleRepository(BaseRepository[UserRole, UserRoleCreate, UserRoleUpdate
         if user_role and user_role.approval_status == "pending":
             user_role.approval_status = "approved"
             user_role.approved_by = approved_by
-            user_role.approved_at = datetime.utcnow()
+            user_role.approved_at = datetime.now(timezone.utc)
             self.db.commit()
             self.db.refresh(user_role)
         return user_role

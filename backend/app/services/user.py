@@ -26,8 +26,8 @@ from app.services.audit import AuditLogger
 
 @dataclass
 class ExportData:
-    """Export data response object."""
-
+    """Export data container."""
+    
     content_type: str
     headers: List[str]
     rows: List[List[str]]
@@ -608,24 +608,23 @@ class UserService:
 
     def _generate_temp_password(self) -> str:
         """Generate temporary password."""
-        # Ensure password meets complexity requirements
-        # Must contain at least 3 of: uppercase, lowercase, digits, special chars
-        password_chars = []
+        # Ensure password meets validation requirements
+        # Must have at least 3 of: uppercase, lowercase, digit, special char
+        password_parts = [
+            random.choice(string.ascii_uppercase),  # At least 1 uppercase
+            random.choice(string.ascii_lowercase),  # At least 1 lowercase
+            random.choice(string.digits),  # At least 1 digit
+            random.choice("!@#$%"),  # At least 1 special char
+        ]
 
-        # Add at least one of each type
-        password_chars.append(random.choice(string.ascii_uppercase))
-        password_chars.append(random.choice(string.ascii_lowercase))
-        password_chars.append(random.choice(string.digits))
-        password_chars.append(random.choice("!@#$%"))
-
-        # Fill the rest randomly
+        # Fill remaining chars randomly
         all_chars = string.ascii_letters + string.digits + "!@#$%"
         for _ in range(8):  # Total length will be 12
-            password_chars.append(random.choice(all_chars))
+            password_parts.append(random.choice(all_chars))
 
         # Shuffle to avoid predictable pattern
-        random.shuffle(password_chars)
-        return "".join(password_chars)
+        random.shuffle(password_parts)
+        return "".join(password_parts)
 
     def _log_audit(
         self,

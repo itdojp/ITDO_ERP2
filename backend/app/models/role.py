@@ -1,6 +1,6 @@
 """Role and UserRole models implementation."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from sqlalchemy import (
@@ -308,12 +308,12 @@ class UserRole(AuditableModel):
         """Check if role assignment is expired."""
         if not self.expires_at:
             return False
-        return datetime.utcnow() > self.expires_at
+        return datetime.now(timezone.utc) > self.expires_at
 
     @property
     def is_valid(self) -> bool:
         """Check if role assignment is currently valid."""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         # Check if active
         if not self.is_active:
@@ -339,7 +339,7 @@ class UserRole(AuditableModel):
         if not self.expires_at:
             return None
 
-        delta = self.expires_at - datetime.utcnow()
+        delta = self.expires_at - datetime.now(timezone.utc)
         return delta.days
 
     def get_effective_permissions(self) -> Dict[str, Any]:
