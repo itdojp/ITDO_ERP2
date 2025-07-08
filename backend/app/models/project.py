@@ -53,9 +53,11 @@ class Project(SoftDeletableModel):
         "Department", lazy="joined"
     )
     owner: Mapped["User"] = relationship("User", foreign_keys=[owner_id], lazy="joined")
-    
+
     # Task relationship
-    tasks: Mapped[list["Task"]] = relationship("Task", back_populates="project", cascade="all, delete-orphan")
+    tasks: Mapped[list["Task"]] = relationship(
+        "Task", back_populates="project", cascade="all, delete-orphan"
+    )
 
     # Computed properties for dashboard
     @property

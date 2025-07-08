@@ -1,8 +1,6 @@
 """Security tests for Task Management functionality."""
 
-import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
 
 from app.models.user import User
 
@@ -22,7 +20,9 @@ class TestTaskSecurity:
         # Expected behavior after implementation:
         # assert response.status_code == 401  # Unauthorized
 
-    def test_cross_org_access(self, client: TestClient, test_user: User, user_token: str):
+    def test_cross_org_access(
+        self, client: TestClient, test_user: User, user_token: str
+    ):
         """Test TASK-S-002: 他組織のタスクアクセス."""
         # Arrange
         task_id = 1  # Task belonging to organization 1

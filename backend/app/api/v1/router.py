@@ -2,7 +2,15 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.api.v1 import auth, departments, organizations, roles, tasks, users, users_extended
+from app.api.v1 import (
+    auth,
+    departments,
+    organizations,
+    roles,
+    tasks,
+    users,
+    users_extended,
+)
 from app.core.database import get_db
 
 api_router = APIRouter()

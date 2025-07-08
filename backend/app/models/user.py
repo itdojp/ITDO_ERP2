@@ -63,7 +63,7 @@ class User(SoftDeletableModel):
     activity_logs: Mapped[List["UserActivityLog"]] = relationship(
         "UserActivityLog", back_populates="user", cascade="all, delete-orphan"
     )
-    
+
     # Task relationships
     assigned_tasks: Mapped[List["Task"]] = relationship(
         "Task", foreign_keys="Task.assignee_id", back_populates="assignee"

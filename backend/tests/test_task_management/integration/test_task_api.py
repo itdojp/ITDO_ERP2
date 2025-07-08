@@ -3,8 +3,6 @@
 from datetime import datetime, timedelta, timezone
 
 from fastapi.testclient import TestClient
-
-import pytest
 from sqlalchemy.orm import Session
 
 from app.models.user import User
@@ -13,7 +11,9 @@ from app.models.user import User
 class TestTaskAPI:
     """Integration test suite for Task API endpoints."""
 
-    def test_create_task_api(self, client: TestClient, test_user: User, user_token: str, db_session: Session):
+    def test_create_task_api(
+        self, client: TestClient, test_user: User, user_token: str, db_session: Session
+    ):
         """Test TASK-I-001: POST /api/v1/tasks."""
         # Arrange
         task_data = {
@@ -26,9 +26,7 @@ class TestTaskAPI:
 
         # Act
         headers = {"Authorization": f"Bearer {user_token}"}
-        response = client.post(
-            "/api/v1/tasks", json=task_data, headers=headers
-        )
+        response = client.post("/api/v1/tasks", json=task_data, headers=headers)
 
         # Assert
         # This will fail until API is implemented
