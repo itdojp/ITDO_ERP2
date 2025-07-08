@@ -146,31 +146,28 @@ jobs:
         DATABASE_URL: postgresql://itdo_user:itdo_password@localhost:5432/itdo_erp_test
         REDIS_URL: redis://localhost:6379
         SECRET_KEY: test-secret-key
+        PYTHONPATH: /home/runner/work/ITDO_ERP2/ITDO_ERP2/backend
       run: |
-        echo "Running selective backend tests for CI stability..."
+        echo "Running backend tests..."
         
-        # Install email-validator if missing
-        uv pip install email-validator || echo "email-validator installation attempted"
+        # Run core tests first
+        echo "Testing main application..."
+        uv run pytest tests/test_main.py -v --tb=short
         
-        # User management tests  
-        uv run pytest tests/integration/test_users_api.py -v --tb=short || echo "Basic user tests: exit code $?"
-        uv run pytest tests/integration/api/v1/test_users_extended.py -v --tb=short || echo "Extended user tests: exit code $?"
+        # Run unit tests
+        echo "Running unit tests..."
+        uv run pytest tests/unit/ -v --tb=short -x
         
-        # Core API tests (7 tests - all passing)
-        uv run pytest tests/integration/api/v1/test_core.py -v --tb=short || echo "Core API tests: exit code $?"
-        
-        # Department tests (35/36 tests passing - excluding type filter issue)
-        uv run pytest tests/integration/api/v1/test_departments.py \
+        # Run integration tests (excluding problematic test)
+        echo "Running integration tests..."
+        uv run pytest tests/integration/ \
           -k "not test_list_with_department_type_filter" \
-          -v --tb=short
+          -v --tb=short -x
         
-        # Organization tests (all passing)
-        uv run pytest tests/integration/api/v1/test_organizations.py -v --tb=short
-        
-        # Role tests (all passing)
-        uv run pytest tests/integration/api/v1/test_roles.py -v --tb=short
-        
-        echo "Selective test run completed successfully"
+        # Generate coverage report
+        echo "Generating coverage report..."
+        uv run pytest --cov=app --cov-report=xml --cov-report=term-missing \
+          -k "not test_list_with_department_type_filter"
     
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
