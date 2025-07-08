@@ -83,7 +83,9 @@ class TaskNotFound(BaseAPIException):
 class ProjectNotFound(BaseAPIException):
     """Raised when project is not found."""
     def __init__(self, project_id: Optional[int] = None):
-        detail = f"Project {project_id} not found" if project_id else "Project not found"
+        detail = (
+            f"Project {project_id} not found" if project_id else "Project not found"
+        )
         super().__init__(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=detail
@@ -103,7 +105,9 @@ class UserNotFound(BaseAPIException):
 class OrganizationNotFound(BaseAPIException):
     """Raised when organization is not found."""
     def __init__(self, org_id: Optional[int] = None):
-        detail = f"Organization {org_id} not found" if org_id else "Organization not found"
+        detail = (
+            f"Organization {org_id} not found" if org_id else "Organization not found"
+        )
         super().__init__(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=detail

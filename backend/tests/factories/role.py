@@ -183,7 +183,7 @@ class RoleFactory(BaseFactory):
             # Convert list of permissions to dict format
             permissions_list = kwargs['permissions']
             kwargs['permissions'] = {perm: True for perm in permissions_list}
-        
+
         return super().create(db_session, **kwargs)
 
     @classmethod

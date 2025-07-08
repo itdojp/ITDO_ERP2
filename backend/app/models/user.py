@@ -364,7 +364,7 @@ class User(SoftDeletableModel):
     def _flatten_permissions(self, permissions: Dict[str, Any]) -> List[str]:
         """Flatten nested permissions dictionary to list of strings."""
         result = []
-        
+
         def _extract_permissions(obj: Any, prefix: str = "") -> None:
             if isinstance(obj, dict):
                 for key, value in obj.items():
@@ -379,7 +379,7 @@ class User(SoftDeletableModel):
                         result.append(f"{prefix}.{item}" if prefix else item)
                     elif isinstance(item, dict):
                         _extract_permissions(item, prefix)
-        
+
         _extract_permissions(permissions)
         return result
 
