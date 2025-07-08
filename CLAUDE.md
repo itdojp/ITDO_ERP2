@@ -43,6 +43,12 @@ ITDO ERP System v2 - Modern ERP system with hybrid development environment.
 3. **uv Tool Usage**: Use `uv` for Python, not pip/activate
 4. **Type Safety**: No `any` types, strict type checking required
 5. **Issue-Driven Development**: All work starts from GitHub Issues
+6. **MANDATORY - Issue Assignment Protocol**: When starting work on an issue, you MUST follow these steps:
+   - Post issue assignment comment: `I'm starting work on this issue.`
+   - Create feature branch: `feature/issue-{number}-short-description` or `fix/issue-{number}-short-description`
+   - Create Draft PR immediately after first commit with title: `[WIP] #{issue-number}: {description}`
+   - Follow TDD approach: Write tests first, then implementation
+   - Update PR from Draft to Ready when implementation is complete
 
 ### Development Environment Setup
 ```bash
