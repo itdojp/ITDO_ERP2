@@ -8,9 +8,9 @@ from sqlalchemy.orm import Session
 
 from app.models.base import SoftDeletableModel
 
-fake = Faker('ja_JP')  # Japanese locale for more realistic test data
+fake = Faker("ja_JP")  # Japanese locale for more realistic test data
 
-T = TypeVar('T', bound=SoftDeletableModel)
+T = TypeVar("T", bound=SoftDeletableModel)
 
 
 class BaseFactory(ABC):
@@ -56,10 +56,10 @@ class BaseFactory(ABC):
         for i in range(count):
             instance_kwargs = kwargs.copy()
             # Add sequence number to make names unique
-            if 'name' in instance_kwargs:
-                instance_kwargs['name'] = f"{instance_kwargs['name']}{i}"
-            elif 'code' in instance_kwargs:
-                instance_kwargs['code'] = f"{instance_kwargs['code']}{i}"
+            if "name" in instance_kwargs:
+                instance_kwargs["name"] = f"{instance_kwargs['name']}{i}"
+            elif "code" in instance_kwargs:
+                instance_kwargs["code"] = f"{instance_kwargs['code']}{i}"
             instances.append(cls.create(db_session, **instance_kwargs))
         return instances
 
@@ -75,7 +75,7 @@ class BaseFactory(ABC):
         # By default, return a subset of create attributes
         defaults = cls._get_default_attributes()
         # Remove fields that shouldn't be updated
-        excluded_fields = {'id', 'created_at', 'created_by'}
+        excluded_fields = {"id", "created_at", "created_by"}
         return {k: v for k, v in defaults.items() if k not in excluded_fields}
 
 
@@ -91,16 +91,16 @@ from tests.factories.role import (
 from tests.factories.user import UserFactory, create_test_user
 
 __all__ = [
-    'BaseFactory',
-    'OrganizationFactory',
-    'DepartmentFactory',
-    'RoleFactory',
-    'PermissionFactory',
-    'UserFactory',
-    'create_test_user',
-    'create_test_organization',
-    'create_test_department',
-    'create_test_role',
-    'create_test_user_role',
-    'fake',
+    "BaseFactory",
+    "OrganizationFactory",
+    "DepartmentFactory",
+    "RoleFactory",
+    "PermissionFactory",
+    "UserFactory",
+    "create_test_user",
+    "create_test_organization",
+    "create_test_department",
+    "create_test_role",
+    "create_test_user_role",
+    "fake",
 ]

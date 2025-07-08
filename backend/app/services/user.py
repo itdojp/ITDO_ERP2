@@ -32,9 +32,7 @@ class UserService:
         self.repository = UserRepository(db)
         self.audit_logger = AuditLogger()
 
-    def create_user(
-        self, data: UserCreateExtended, creator: User, db: Session
-    ) -> User:
+    def create_user(self, data: UserCreateExtended, creator: User, db: Session) -> User:
         """Create a new user with organization and role assignment."""
         # Check permissions
         if not creator.is_superuser:
@@ -65,7 +63,11 @@ class UserService:
         from app.models.organization import Organization
         from app.models.role import Role
 
-        org = db.query(Organization).filter(Organization.id == data.organization_id).first()
+        org = (
+            db.query(Organization)
+            .filter(Organization.id == data.organization_id)
+            .first()
+        )
         if not org:
             raise NotFound("組織が見つかりません")
 
@@ -73,10 +75,15 @@ class UserService:
         department = None
         if data.department_id:
             from app.models.department import Department
-            department = db.query(Department).filter(
-                Department.id == data.department_id,
-                Department.organization_id == data.organization_id
-            ).first()
+
+            department = (
+                db.query(Department)
+                .filter(
+                    Department.id == data.department_id,
+                    Department.organization_id == data.organization_id,
+                )
+                .first()
+            )
             if not department:
                 raise NotFound("部門が見つかりません")
 
@@ -125,9 +132,11 @@ class UserService:
             searcher_org_ids = [o.id for o in searcher.get_organizations()]
 
             # Filter to users in same organizations
-            query = query.join(User.user_roles).filter(
-                UserRole.organization_id.in_(searcher_org_ids)
-            ).distinct()
+            query = (
+                query.join(User.user_roles)
+                .filter(UserRole.organization_id.in_(searcher_org_ids))
+                .distinct()
+            )
 
         # Apply filters
         if params.search:
@@ -246,8 +255,12 @@ class UserService:
             # Check if resetter is org admin for user's org
             user_orgs = [o.id for o in user.get_organizations()]
             resetter_admin_orgs = [
-                o.id for o in resetter.get_organizations()
-                if any(r.code == "ORG_ADMIN" for r in resetter.get_roles_in_organization(int(o.id)))
+                o.id
+                for o in resetter.get_organizations()
+                if any(
+                    r.code == "ORG_ADMIN"
+                    for r in resetter.get_roles_in_organization(int(o.id))
+                )
             ]
 
             if not any(org_id in resetter_admin_orgs for org_id in user_orgs):
@@ -295,6 +308,7 @@ class UserService:
 
         # Check role exists
         from app.models.role import Role
+
         role = db.query(Role).filter(Role.id == role_id).first()
         if not role:
             raise NotFound("ロールが見つかりません")
@@ -343,11 +357,15 @@ class UserService:
                 raise PermissionDenied("ロールを削除する権限がありません")
 
         # Find and remove role
-        user_role = db.query(UserRole).filter(
-            UserRole.user_id == user_id,
-            UserRole.role_id == role_id,
-            UserRole.organization_id == organization_id,
-        ).first()
+        user_role = (
+            db.query(UserRole)
+            .filter(
+                UserRole.user_id == user_id,
+                UserRole.role_id == role_id,
+                UserRole.organization_id == organization_id,
+            )
+            .first()
+        )
 
         if user_role:
             db.delete(user_role)
@@ -379,11 +397,11 @@ class UserService:
 
         # Check if last system admin
         if user.is_superuser:
-            admin_count = db.query(User).filter(
-                User.is_superuser,
-                User.is_active,
-                User.id != user.id
-            ).count()
+            admin_count = (
+                db.query(User)
+                .filter(User.is_superuser, User.is_active, User.id != user.id)
+                .count()
+            )
 
             if admin_count == 0:
                 raise BusinessLogicError("最後のシステム管理者は削除できません")
@@ -440,6 +458,7 @@ class UserService:
 
                 # Assign role
                 from app.models.role import UserRole
+
                 user_role = UserRole(
                     user_id=user.id,
                     role_id=role_id,
@@ -451,17 +470,16 @@ class UserService:
                 created_users.append(user)
 
             except Exception as e:
-                errors.append({
-                    "email": user_data.get("email"),
-                    "error": str(e)
-                })
+                errors.append({"email": user_data.get("email"), "error": str(e)})
 
         db.flush()
 
         return BulkImportResponse(
             success_count=len(created_users),
             error_count=len(errors),
-            created_users=[self._user_to_extended_response(u, db) for u in created_users],
+            created_users=[
+                self._user_to_extended_response(u, db) for u in created_users
+            ],
             errors=errors,
         )
 
@@ -476,22 +494,27 @@ class UserService:
                 raise PermissionDenied("ユーザーをエクスポートする権限がありません")
 
         # Get users
-        users = db.query(User).join(User.user_roles).filter(
-            UserRole.organization_id == organization_id
-        ).all()
+        users = (
+            db.query(User)
+            .join(User.user_roles)
+            .filter(UserRole.organization_id == organization_id)
+            .all()
+        )
 
         # Prepare data
         headers = ["email", "full_name", "phone", "is_active", "created_at"]
         rows = []
 
         for user in users:
-            rows.append([
-                user.email,
-                user.full_name,
-                user.phone or "",
-                "Yes" if user.is_active else "No",
-                user.created_at.isoformat(),
-            ])
+            rows.append(
+                [
+                    user.email,
+                    user.full_name,
+                    user.phone or "",
+                    "Yes" if user.is_active else "No",
+                    user.created_at.isoformat(),
+                ]
+            )
 
         return {
             "content_type": f"text/{format}",
@@ -499,7 +522,9 @@ class UserService:
             "rows": rows,
         }
 
-    def _user_to_extended_response(self, user: User, db: Session) -> UserResponseExtended:
+    def _user_to_extended_response(
+        self, user: User, db: Session
+    ) -> UserResponseExtended:
         """Convert user to extended response."""
         from app.schemas.department_basic import DepartmentBasic
         from app.schemas.organization_basic import OrganizationBasic
@@ -517,20 +542,16 @@ class UserService:
 
                 role_info = UserRoleInfo(
                     role=RoleBasic(
-                        id=int(role.id),
-                        code=str(role.code),
-                        name=str(role.name)
+                        id=int(role.id), code=str(role.code), name=str(role.name)
                     ),
                     organization=OrganizationBasic(
-                        id=int(org.id),
-                        code=str(org.code),
-                        name=str(org.name)
+                        id=int(org.id), code=str(org.code), name=str(org.name)
                     ),
                     department=DepartmentBasic(
-                        id=int(dept.id),
-                        code=str(dept.code),
-                        name=str(dept.name)
-                    ) if dept else None,
+                        id=int(dept.id), code=str(dept.code), name=str(dept.name)
+                    )
+                    if dept
+                    else None,
                     assigned_at=ur.assigned_at,
                     expires_at=ur.expires_at,
                 )
@@ -541,11 +562,7 @@ class UserService:
         for ur in user.user_roles:
             if ur.organization:
                 org = ur.organization
-                organizations_set.add((
-                    int(org.id),
-                    str(org.code),
-                    str(org.name)
-                ))
+                organizations_set.add((int(org.id), str(org.code), str(org.name)))
 
         organizations = [
             OrganizationBasic(id=org[0], code=org[1], name=org[2])
@@ -557,11 +574,7 @@ class UserService:
         for ur in user.user_roles:
             if ur.department:
                 dept = ur.department
-                departments_set.add((
-                    int(dept.id),
-                    str(dept.code),
-                    str(dept.name)
-                ))
+                departments_set.add((int(dept.id), str(dept.code), str(dept.name)))
 
         departments = [
             DepartmentBasic(id=dept[0], code=dept[1], name=dept[2])
@@ -587,7 +600,7 @@ class UserService:
         """Generate temporary password."""
         # Use a mix of letters, digits, and special chars
         chars = string.ascii_letters + string.digits + "!@#$%"
-        return ''.join(random.choice(chars) for _ in range(12))
+        return "".join(random.choice(chars) for _ in range(12))
 
     def _log_audit(
         self,
@@ -600,6 +613,7 @@ class UserService:
     ) -> None:
         """Log audit trail."""
         from app.services.audit import AuditLogger
+
         AuditLogger.log(
             action=action,
             resource_type=resource_type,

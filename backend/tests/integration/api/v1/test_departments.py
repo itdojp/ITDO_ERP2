@@ -17,7 +17,11 @@ from tests.conftest import create_auth_headers
 from tests.factories import DepartmentFactory, OrganizationFactory, UserFactory
 
 
-class TestDepartmentAPI(BaseAPITestCase[Department, DepartmentCreate, DepartmentUpdate, DepartmentResponse], SearchTestMixin, HierarchyTestMixin):
+class TestDepartmentAPI(
+    BaseAPITestCase[Department, DepartmentCreate, DepartmentUpdate, DepartmentResponse],
+    SearchTestMixin,
+    HierarchyTestMixin,
+):
     """Test cases for Department API endpoints."""
 
     @property
@@ -47,9 +51,9 @@ class TestDepartmentAPI(BaseAPITestCase[Department, DepartmentCreate, Department
 
     def create_test_instance(self, db_session: Session, **kwargs: Any) -> Department:
         """Create a test department instance with organization."""
-        if 'organization_id' not in kwargs:
+        if "organization_id" not in kwargs:
             organization = OrganizationFactory.create(db_session)
-            kwargs['organization_id'] = organization.id
+            kwargs["organization_id"] = organization.id
         return self.factory_class.create(db_session, **kwargs)
 
     def create_valid_payload(self, **overrides: Any) -> Dict[str, Any]:
@@ -58,10 +62,7 @@ class TestDepartmentAPI(BaseAPITestCase[Department, DepartmentCreate, Department
 
     # Override base test methods to inject organization
     def test_create_endpoint_success(
-        self,
-        client: TestClient,
-        test_organization: Organization,
-        admin_token: str
+        self, client: TestClient, test_organization: Organization, admin_token: str
     ) -> None:
         """Test successful create operation."""
         payload = self.create_valid_payload(organization_id=test_organization.id)
@@ -69,7 +70,7 @@ class TestDepartmentAPI(BaseAPITestCase[Department, DepartmentCreate, Department
         response = client.post(
             self.endpoint_prefix,
             json=payload,
-            headers=self.get_auth_headers(admin_token)
+            headers=self.get_auth_headers(admin_token),
         )
 
         assert response.status_code == 201
@@ -81,10 +82,7 @@ class TestDepartmentAPI(BaseAPITestCase[Department, DepartmentCreate, Department
         assert validated_data.id is not None
 
     def test_create_endpoint_forbidden(
-        self,
-        client: TestClient,
-        test_organization: Organization,
-        user_token: str
+        self, client: TestClient, test_organization: Organization, user_token: str
     ) -> None:
         """Test create operation with insufficient permissions."""
         payload = self.create_valid_payload(organization_id=test_organization.id)
@@ -92,7 +90,7 @@ class TestDepartmentAPI(BaseAPITestCase[Department, DepartmentCreate, Department
         response = client.post(
             self.endpoint_prefix,
             json=payload,
-            headers=self.get_auth_headers(user_token)
+            headers=self.get_auth_headers(user_token),
         )
 
         # Should be forbidden unless user has specific permissions
@@ -105,20 +103,17 @@ class TestDepartmentAPI(BaseAPITestCase[Department, DepartmentCreate, Department
         client: TestClient,
         test_organization: Organization,
         db_session: Session,
-        admin_token: str
+        admin_token: str,
     ) -> None:
         """Test department tree endpoint for an organization."""
         # Create department hierarchy
         tree_data = DepartmentFactory.create_department_tree(
-            db_session,
-            test_organization,
-            depth=3,
-            children_per_level=2
+            db_session, test_organization, depth=3, children_per_level=2
         )
 
         response = client.get(
             f"{self.endpoint_prefix}/organization/{test_organization.id}/tree",
-            headers=create_auth_headers(admin_token)
+            headers=create_auth_headers(admin_token),
         )
 
         assert response.status_code == 200
@@ -131,17 +126,15 @@ class TestDepartmentAPI(BaseAPITestCase[Department, DepartmentCreate, Department
         assert "id" in root_dept
         assert "name" in root_dept
         assert "children" in root_dept
-        assert len(root_dept["children"]) == tree_data['children_per_level']
+        assert len(root_dept["children"]) == tree_data["children_per_level"]
 
     def test_department_tree_nonexistent_organization(
-        self,
-        client: TestClient,
-        admin_token: str
+        self, client: TestClient, admin_token: str
     ) -> None:
         """Test department tree endpoint with non-existent organization."""
         response = client.get(
             f"{self.endpoint_prefix}/organization/99999/tree",
-            headers=create_auth_headers(admin_token)
+            headers=create_auth_headers(admin_token),
         )
 
         assert response.status_code == 404
@@ -151,11 +144,13 @@ class TestDepartmentAPI(BaseAPITestCase[Department, DepartmentCreate, Department
         client: TestClient,
         test_organization: Organization,
         db_session: Session,
-        admin_token: str
+        admin_token: str,
     ) -> None:
         """Test get department with users endpoint."""
         # Create department
-        department = DepartmentFactory.create_with_organization(db_session, test_organization)
+        department = DepartmentFactory.create_with_organization(
+            db_session, test_organization
+        )
 
         # Create users in the department
         [
@@ -165,7 +160,7 @@ class TestDepartmentAPI(BaseAPITestCase[Department, DepartmentCreate, Department
 
         response = client.get(
             f"{self.endpoint_prefix}/{department.id}/users",
-            headers=create_auth_headers(admin_token)
+            headers=create_auth_headers(admin_token),
         )
 
         assert response.status_code == 200
@@ -180,11 +175,13 @@ class TestDepartmentAPI(BaseAPITestCase[Department, DepartmentCreate, Department
         client: TestClient,
         test_organization: Organization,
         db_session: Session,
-        admin_token: str
+        admin_token: str,
     ) -> None:
         """Test get department users including sub-departments."""
         # Create parent department
-        parent = DepartmentFactory.create_with_organization(db_session, test_organization)
+        parent = DepartmentFactory.create_with_organization(
+            db_session, test_organization
+        )
 
         # Create child department
         child = DepartmentFactory.create_with_parent(db_session, parent)
@@ -196,7 +193,7 @@ class TestDepartmentAPI(BaseAPITestCase[Department, DepartmentCreate, Department
         # Test without sub-departments
         response = client.get(
             f"{self.endpoint_prefix}/{parent.id}/users?include_sub_departments=false",
-            headers=create_auth_headers(admin_token)
+            headers=create_auth_headers(admin_token),
         )
 
         assert response.status_code == 200
@@ -206,7 +203,7 @@ class TestDepartmentAPI(BaseAPITestCase[Department, DepartmentCreate, Department
         # Test with sub-departments
         response = client.get(
             f"{self.endpoint_prefix}/{parent.id}/users?include_sub_departments=true",
-            headers=create_auth_headers(admin_token)
+            headers=create_auth_headers(admin_token),
         )
 
         assert response.status_code == 200
@@ -218,11 +215,13 @@ class TestDepartmentAPI(BaseAPITestCase[Department, DepartmentCreate, Department
         client: TestClient,
         test_organization: Organization,
         db_session: Session,
-        admin_token: str
+        admin_token: str,
     ) -> None:
         """Test get sub-departments endpoint."""
         # Create parent department
-        parent = DepartmentFactory.create_with_organization(db_session, test_organization)
+        parent = DepartmentFactory.create_with_organization(
+            db_session, test_organization
+        )
 
         # Create child departments
         children = [
@@ -232,7 +231,7 @@ class TestDepartmentAPI(BaseAPITestCase[Department, DepartmentCreate, Department
 
         response = client.get(
             f"{self.endpoint_prefix}/{parent.id}/sub-departments",
-            headers=create_auth_headers(admin_token)
+            headers=create_auth_headers(admin_token),
         )
 
         assert response.status_code == 200
@@ -249,23 +248,20 @@ class TestDepartmentAPI(BaseAPITestCase[Department, DepartmentCreate, Department
         client: TestClient,
         test_organization: Organization,
         db_session: Session,
-        admin_token: str
+        admin_token: str,
     ) -> None:
         """Test get sub-departments with recursive option."""
         # Create department hierarchy
         tree_data = DepartmentFactory.create_department_tree(
-            db_session,
-            test_organization,
-            depth=3,
-            children_per_level=2
+            db_session, test_organization, depth=3, children_per_level=2
         )
 
-        root_dept = tree_data['roots'][0]
+        root_dept = tree_data["roots"][0]
 
         # Test non-recursive (direct children only)
         response = client.get(
             f"{self.endpoint_prefix}/{root_dept.id}/sub-departments?recursive=false",
-            headers=create_auth_headers(admin_token)
+            headers=create_auth_headers(admin_token),
         )
 
         assert response.status_code == 200
@@ -274,7 +270,7 @@ class TestDepartmentAPI(BaseAPITestCase[Department, DepartmentCreate, Department
         # Test recursive (all descendants)
         response = client.get(
             f"{self.endpoint_prefix}/{root_dept.id}/sub-departments?recursive=true",
-            headers=create_auth_headers(admin_token)
+            headers=create_auth_headers(admin_token),
         )
 
         assert response.status_code == 200
@@ -288,11 +284,13 @@ class TestDepartmentAPI(BaseAPITestCase[Department, DepartmentCreate, Department
         client: TestClient,
         test_organization: Organization,
         db_session: Session,
-        admin_token: str
+        admin_token: str,
     ) -> None:
         """Test reorder departments endpoint."""
         # Create departments with specific order
-        departments = DepartmentFactory.create_ordered_list(db_session, test_organization, count=5)
+        departments = DepartmentFactory.create_ordered_list(
+            db_session, test_organization, count=5
+        )
         original_order = [dept.id for dept in departments]
 
         # Reverse the order
@@ -301,7 +299,7 @@ class TestDepartmentAPI(BaseAPITestCase[Department, DepartmentCreate, Department
         response = client.put(
             f"{self.endpoint_prefix}/reorder",
             json=new_order,
-            headers=create_auth_headers(admin_token)
+            headers=create_auth_headers(admin_token),
         )
 
         assert response.status_code == 200
@@ -310,9 +308,7 @@ class TestDepartmentAPI(BaseAPITestCase[Department, DepartmentCreate, Department
         assert "5 departments" in data["message"]
 
     def test_reorder_departments_invalid_ids(
-        self,
-        client: TestClient,
-        admin_token: str
+        self, client: TestClient, admin_token: str
     ) -> None:
         """Test reorder departments with invalid department IDs."""
         invalid_ids = [99999, 99998, 99997]
@@ -320,7 +316,7 @@ class TestDepartmentAPI(BaseAPITestCase[Department, DepartmentCreate, Department
         response = client.put(
             f"{self.endpoint_prefix}/reorder",
             json=invalid_ids,
-            headers=create_auth_headers(admin_token)
+            headers=create_auth_headers(admin_token),
         )
 
         assert response.status_code == 400
@@ -332,23 +328,23 @@ class TestDepartmentAPI(BaseAPITestCase[Department, DepartmentCreate, Department
         client: TestClient,
         test_organization: Organization,
         db_session: Session,
-        admin_token: str
+        admin_token: str,
     ) -> None:
         """Test create department with parent department."""
         # Create parent department
-        parent = DepartmentFactory.create_with_organization(db_session, test_organization)
+        parent = DepartmentFactory.create_with_organization(
+            db_session, test_organization
+        )
 
         # Create child department
         payload = DepartmentFactory.build_dict(
             organization_id=test_organization.id,
             parent_id=parent.id,
-            name="Child Department"
+            name="Child Department",
         )
 
         response = client.post(
-            self.endpoint_prefix,
-            json=payload,
-            headers=create_auth_headers(admin_token)
+            self.endpoint_prefix, json=payload, headers=create_auth_headers(admin_token)
         )
 
         assert response.status_code == 201
@@ -361,7 +357,7 @@ class TestDepartmentAPI(BaseAPITestCase[Department, DepartmentCreate, Department
         client: TestClient,
         test_organization: Organization,
         db_session: Session,
-        admin_token: str
+        admin_token: str,
     ) -> None:
         """Test create department with invalid parent."""
         # Create department in different organization
@@ -372,13 +368,11 @@ class TestDepartmentAPI(BaseAPITestCase[Department, DepartmentCreate, Department
         payload = DepartmentFactory.build_dict(
             organization_id=test_organization.id,
             parent_id=other_dept.id,
-            name="Invalid Child"
+            name="Invalid Child",
         )
 
         response = client.post(
-            self.endpoint_prefix,
-            json=payload,
-            headers=create_auth_headers(admin_token)
+            self.endpoint_prefix, json=payload, headers=create_auth_headers(admin_token)
         )
 
         assert response.status_code == 400
@@ -390,11 +384,13 @@ class TestDepartmentAPI(BaseAPITestCase[Department, DepartmentCreate, Department
         client: TestClient,
         test_organization: Organization,
         db_session: Session,
-        admin_token: str
+        admin_token: str,
     ) -> None:
         """Test update department with parent validation."""
         # Create department
-        department = DepartmentFactory.create_with_organization(db_session, test_organization)
+        department = DepartmentFactory.create_with_organization(
+            db_session, test_organization
+        )
 
         # Try to make department its own parent
         payload = {"parent_id": department.id}
@@ -402,7 +398,7 @@ class TestDepartmentAPI(BaseAPITestCase[Department, DepartmentCreate, Department
         response = client.put(
             f"{self.endpoint_prefix}/{department.id}",
             json=payload,
-            headers=create_auth_headers(admin_token)
+            headers=create_auth_headers(admin_token),
         )
 
         assert response.status_code == 400
@@ -414,11 +410,13 @@ class TestDepartmentAPI(BaseAPITestCase[Department, DepartmentCreate, Department
         client: TestClient,
         test_organization: Organization,
         db_session: Session,
-        admin_token: str
+        admin_token: str,
     ) -> None:
         """Test delete department with active sub-departments."""
         # Create parent department
-        parent = DepartmentFactory.create_with_organization(db_session, test_organization)
+        parent = DepartmentFactory.create_with_organization(
+            db_session, test_organization
+        )
 
         # Create child department
         DepartmentFactory.create_with_parent(db_session, parent)
@@ -426,7 +424,7 @@ class TestDepartmentAPI(BaseAPITestCase[Department, DepartmentCreate, Department
         # Try to delete parent
         response = client.delete(
             f"{self.endpoint_prefix}/{parent.id}",
-            headers=create_auth_headers(admin_token)
+            headers=create_auth_headers(admin_token),
         )
 
         assert response.status_code == 409
@@ -438,26 +436,21 @@ class TestDepartmentAPI(BaseAPITestCase[Department, DepartmentCreate, Department
         client: TestClient,
         test_organization: Organization,
         db_session: Session,
-        admin_token: str
+        admin_token: str,
     ) -> None:
         """Test create department with duplicate code within organization."""
         # Create first department
         DepartmentFactory.create_with_organization(
-            db_session,
-            test_organization,
-            code="DUPLICATE"
+            db_session, test_organization, code="DUPLICATE"
         )
 
         # Try to create second department with same code in same organization
         payload = DepartmentFactory.build_dict(
-            organization_id=test_organization.id,
-            code="DUPLICATE"
+            organization_id=test_organization.id, code="DUPLICATE"
         )
 
         response = client.post(
-            self.endpoint_prefix,
-            json=payload,
-            headers=create_auth_headers(admin_token)
+            self.endpoint_prefix, json=payload, headers=create_auth_headers(admin_token)
         )
 
         assert response.status_code == 409
@@ -465,10 +458,7 @@ class TestDepartmentAPI(BaseAPITestCase[Department, DepartmentCreate, Department
         assert "DUPLICATE_CODE" in data.get("code", "")
 
     def test_create_with_same_code_different_organizations(
-        self,
-        client: TestClient,
-        db_session: Session,
-        admin_token: str
+        self, client: TestClient, db_session: Session, admin_token: str
     ) -> None:
         """Test create departments with same code in different organizations."""
         # Create two organizations
@@ -479,15 +469,10 @@ class TestDepartmentAPI(BaseAPITestCase[Department, DepartmentCreate, Department
         DepartmentFactory.create_with_organization(db_session, org1, code="SAME")
 
         # Create department with same code in second organization (should succeed)
-        payload = DepartmentFactory.build_dict(
-            organization_id=org2.id,
-            code="SAME"
-        )
+        payload = DepartmentFactory.build_dict(organization_id=org2.id, code="SAME")
 
         response = client.post(
-            self.endpoint_prefix,
-            json=payload,
-            headers=create_auth_headers(admin_token)
+            self.endpoint_prefix, json=payload, headers=create_auth_headers(admin_token)
         )
 
         assert response.status_code == 201
@@ -496,10 +481,7 @@ class TestDepartmentAPI(BaseAPITestCase[Department, DepartmentCreate, Department
         assert data["organization_id"] == org2.id
 
     def test_list_with_organization_filter(
-        self,
-        client: TestClient,
-        db_session: Session,
-        admin_token: str
+        self, client: TestClient, db_session: Session, admin_token: str
     ) -> None:
         """Test list departments with organization filter."""
         # Create two organizations with departments
@@ -512,7 +494,7 @@ class TestDepartmentAPI(BaseAPITestCase[Department, DepartmentCreate, Department
         # Filter by organization 1
         response = client.get(
             f"{self.endpoint_prefix}?organization_id={org1.id}",
-            headers=create_auth_headers(admin_token)
+            headers=create_auth_headers(admin_token),
         )
 
         assert response.status_code == 200
@@ -527,25 +509,21 @@ class TestDepartmentAPI(BaseAPITestCase[Department, DepartmentCreate, Department
         client: TestClient,
         test_organization: Organization,
         db_session: Session,
-        admin_token: str
+        admin_token: str,
     ) -> None:
         """Test list departments with department type filter."""
         # Create departments of different types
         DepartmentFactory.create_by_type(
-            db_session,
-            "operational",
-            organization_id=test_organization.id
+            db_session, "operational", organization_id=test_organization.id
         )
         DepartmentFactory.create_by_type(
-            db_session,
-            "support",
-            organization_id=test_organization.id
+            db_session, "support", organization_id=test_organization.id
         )
 
         # Filter by operational type
         response = client.get(
             f"{self.endpoint_prefix}?department_type=operational",
-            headers=create_auth_headers(admin_token)
+            headers=create_auth_headers(admin_token),
         )
 
         assert response.status_code == 200
@@ -560,26 +538,22 @@ class TestDepartmentValidation:
     """Test validation rules for Department API."""
 
     def test_create_without_organization(
-        self,
-        client: TestClient,
-        admin_token: str
+        self, client: TestClient, admin_token: str
     ) -> None:
         """Test create department without organization_id."""
         payload = DepartmentFactory.build_dict()
-        payload.pop('organization_id', None)  # Remove organization_id
+        payload.pop("organization_id", None)  # Remove organization_id
 
         response = client.post(
             "/api/v1/departments",
             json=payload,
-            headers=create_auth_headers(admin_token)
+            headers=create_auth_headers(admin_token),
         )
 
         assert response.status_code == 422
 
     def test_create_with_nonexistent_organization(
-        self,
-        client: TestClient,
-        admin_token: str
+        self, client: TestClient, admin_token: str
     ) -> None:
         """Test create department with non-existent organization."""
         payload = DepartmentFactory.build_dict(organization_id=99999)
@@ -587,7 +561,7 @@ class TestDepartmentValidation:
         response = client.post(
             "/api/v1/departments",
             json=payload,
-            headers=create_auth_headers(admin_token)
+            headers=create_auth_headers(admin_token),
         )
 
         assert response.status_code == 404
@@ -603,17 +577,18 @@ class TestDepartmentPermissions:
         client: TestClient,
         test_organization: Organization,
         db_session: Session,
-        user_token: str
+        user_token: str,
     ) -> None:
-        """Test that regular users cannot perform department operations without permissions."""
-        department = DepartmentFactory.create_with_organization(db_session, test_organization)
+        """Test that regular users cannot perform department operations
+        without permissions."""
+        department = DepartmentFactory.create_with_organization(
+            db_session, test_organization
+        )
 
         # Test create permission
         payload = DepartmentFactory.build_dict(organization_id=test_organization.id)
         response = client.post(
-            "/api/v1/departments",
-            json=payload,
-            headers=create_auth_headers(user_token)
+            "/api/v1/departments", json=payload, headers=create_auth_headers(user_token)
         )
         assert response.status_code == 403
 
@@ -622,14 +597,14 @@ class TestDepartmentPermissions:
         response = client.put(
             f"/api/v1/departments/{department.id}",
             json=update_payload,
-            headers=create_auth_headers(user_token)
+            headers=create_auth_headers(user_token),
         )
         assert response.status_code == 403
 
         # Test delete permission
         response = client.delete(
             f"/api/v1/departments/{department.id}",
-            headers=create_auth_headers(user_token)
+            headers=create_auth_headers(user_token),
         )
         assert response.status_code == 403
 
@@ -637,6 +612,6 @@ class TestDepartmentPermissions:
         response = client.put(
             "/api/v1/departments/reorder",
             json=[department.id],
-            headers=create_auth_headers(user_token)
+            headers=create_auth_headers(user_token),
         )
         assert response.status_code == 403

@@ -14,7 +14,11 @@ from tests.conftest import create_auth_headers
 from tests.factories import OrganizationFactory, RoleFactory, UserFactory
 
 
-class TestRoleAPI(BaseAPITestCase[Role, RoleCreate, RoleUpdate, RoleResponse], SearchTestMixin, HierarchyTestMixin):
+class TestRoleAPI(
+    BaseAPITestCase[Role, RoleCreate, RoleUpdate, RoleResponse],
+    SearchTestMixin,
+    HierarchyTestMixin,
+):
     """Test cases for Role API endpoints."""
 
     @property
@@ -44,15 +48,15 @@ class TestRoleAPI(BaseAPITestCase[Role, RoleCreate, RoleUpdate, RoleResponse], S
 
     def create_test_instance(self, db_session: Session, **kwargs: Any) -> Role:
         """Create a test role instance with organization."""
-        if 'organization_id' not in kwargs:
+        if "organization_id" not in kwargs:
             organization = OrganizationFactory.create(db_session)
-            kwargs['organization_id'] = organization.id
+            kwargs["organization_id"] = organization.id
         return self.factory_class.create(db_session, **kwargs)
 
     def create_valid_payload(self, **overrides: Any) -> Dict[str, Any]:
         """Create a valid payload for role creation."""
         # Ensure we have an organization_id
-        if 'organization_id' not in overrides:
+        if "organization_id" not in overrides:
             raise ValueError("organization_id must be provided for role creation")
         return self.factory_class.build_dict(**overrides)
 
@@ -63,7 +67,7 @@ class TestRoleAPI(BaseAPITestCase[Role, RoleCreate, RoleUpdate, RoleResponse], S
         client: TestClient,
         test_organization: Organization,
         db_session: Session,
-        admin_token: str
+        admin_token: str,
     ) -> None:
         """Test role tree endpoint for an organization."""
         # Create role hierarchy
@@ -71,7 +75,7 @@ class TestRoleAPI(BaseAPITestCase[Role, RoleCreate, RoleUpdate, RoleResponse], S
 
         response = client.get(
             f"{self.endpoint_prefix}/organization/{test_organization.id}/tree",
-            headers=create_auth_headers(admin_token)
+            headers=create_auth_headers(admin_token),
         )
 
         assert response.status_code == 200
@@ -91,14 +95,12 @@ class TestRoleAPI(BaseAPITestCase[Role, RoleCreate, RoleUpdate, RoleResponse], S
         assert len(admin_role["children"]) >= 1
 
     def test_role_tree_nonexistent_organization(
-        self,
-        client: TestClient,
-        admin_token: str
+        self, client: TestClient, admin_token: str
     ) -> None:
         """Test role tree endpoint with non-existent organization."""
         response = client.get(
             f"{self.endpoint_prefix}/organization/99999/tree",
-            headers=create_auth_headers(admin_token)
+            headers=create_auth_headers(admin_token),
         )
 
         assert response.status_code == 404
@@ -107,12 +109,12 @@ class TestRoleAPI(BaseAPITestCase[Role, RoleCreate, RoleUpdate, RoleResponse], S
         self,
         client: TestClient,
         test_permissions: Dict[str, list[Permission]],
-        admin_token: str
+        admin_token: str,
     ) -> None:
         """Test list all permissions endpoint."""
         response = client.get(
             f"{self.endpoint_prefix}/permissions",
-            headers=create_auth_headers(admin_token)
+            headers=create_auth_headers(admin_token),
         )
 
         assert response.status_code == 200
@@ -131,12 +133,12 @@ class TestRoleAPI(BaseAPITestCase[Role, RoleCreate, RoleUpdate, RoleResponse], S
         self,
         client: TestClient,
         test_permissions: Dict[str, list[Permission]],
-        admin_token: str
+        admin_token: str,
     ) -> None:
         """Test list permissions filtered by category."""
         response = client.get(
             f"{self.endpoint_prefix}/permissions?category=users",
-            headers=create_auth_headers(admin_token)
+            headers=create_auth_headers(admin_token),
         )
 
         assert response.status_code == 200
@@ -147,17 +149,14 @@ class TestRoleAPI(BaseAPITestCase[Role, RoleCreate, RoleUpdate, RoleResponse], S
         assert all(cat == "users" for cat in categories)
 
     def test_get_role_permissions(
-        self,
-        client: TestClient,
-        test_role_system: Dict[str, Any],
-        admin_token: str
+        self, client: TestClient, test_role_system: Dict[str, Any], admin_token: str
     ) -> None:
         """Test get role with permissions endpoint."""
-        admin_role = test_role_system['roles']['admin']
+        admin_role = test_role_system["roles"]["admin"]
 
         response = client.get(
             f"{self.endpoint_prefix}/{admin_role.id}/permissions",
-            headers=create_auth_headers(admin_token)
+            headers=create_auth_headers(admin_token),
         )
 
         assert response.status_code == 200
@@ -170,18 +169,15 @@ class TestRoleAPI(BaseAPITestCase[Role, RoleCreate, RoleUpdate, RoleResponse], S
         assert len(data["all_permission_codes"]) > 0
 
     def test_get_role_permissions_include_inherited(
-        self,
-        client: TestClient,
-        test_role_system: Dict[str, Any],
-        admin_token: str
+        self, client: TestClient, test_role_system: Dict[str, Any], admin_token: str
     ) -> None:
         """Test get role permissions with inherited permissions."""
-        user_role = test_role_system['roles']['user']
+        user_role = test_role_system["roles"]["user"]
 
         # Test with inherited permissions
         response = client.get(
             f"{self.endpoint_prefix}/{user_role.id}/permissions?include_inherited=true",
-            headers=create_auth_headers(admin_token)
+            headers=create_auth_headers(admin_token),
         )
 
         assert response.status_code == 200
@@ -190,14 +186,16 @@ class TestRoleAPI(BaseAPITestCase[Role, RoleCreate, RoleUpdate, RoleResponse], S
         # Test without inherited permissions
         response = client.get(
             f"{self.endpoint_prefix}/{user_role.id}/permissions?include_inherited=false",
-            headers=create_auth_headers(admin_token)
+            headers=create_auth_headers(admin_token),
         )
 
         assert response.status_code == 200
         data_without_inherited = response.json()
 
         # With inherited should have more or equal permissions
-        assert len(data_with_inherited["all_permission_codes"]) >= len(data_without_inherited["all_permission_codes"])
+        assert len(data_with_inherited["all_permission_codes"]) >= len(
+            data_without_inherited["all_permission_codes"]
+        )
 
     def test_update_role_permissions(
         self,
@@ -205,19 +203,19 @@ class TestRoleAPI(BaseAPITestCase[Role, RoleCreate, RoleUpdate, RoleResponse], S
         test_organization: Organization,
         test_permissions: Dict[str, list[Permission]],
         db_session: Session,
-        admin_token: str
+        admin_token: str,
     ) -> None:
         """Test update role permissions endpoint."""
         # Create a role
         role = RoleFactory.create_with_organization(db_session, test_organization)
 
         # Select some permissions
-        permission_codes = [perm.code for perm in test_permissions['users'][:3]]
+        permission_codes = [perm.code for perm in test_permissions["users"][:3]]
 
         response = client.put(
             f"{self.endpoint_prefix}/{role.id}/permissions",
             json=permission_codes,
-            headers=create_auth_headers(admin_token)
+            headers=create_auth_headers(admin_token),
         )
 
         assert response.status_code == 200
@@ -227,7 +225,7 @@ class TestRoleAPI(BaseAPITestCase[Role, RoleCreate, RoleUpdate, RoleResponse], S
         # Verify permissions were assigned
         permissions_response = client.get(
             f"{self.endpoint_prefix}/{role.id}/permissions",
-            headers=create_auth_headers(admin_token)
+            headers=create_auth_headers(admin_token),
         )
 
         permissions_data = permissions_response.json()
@@ -241,7 +239,7 @@ class TestRoleAPI(BaseAPITestCase[Role, RoleCreate, RoleUpdate, RoleResponse], S
         client: TestClient,
         test_organization: Organization,
         db_session: Session,
-        admin_token: str
+        admin_token: str,
     ) -> None:
         """Test update role permissions with invalid permission codes."""
         # Create a role
@@ -253,7 +251,7 @@ class TestRoleAPI(BaseAPITestCase[Role, RoleCreate, RoleUpdate, RoleResponse], S
         response = client.put(
             f"{self.endpoint_prefix}/{role.id}/permissions",
             json=invalid_codes,
-            headers=create_auth_headers(admin_token)
+            headers=create_auth_headers(admin_token),
         )
 
         assert response.status_code == 400
@@ -265,22 +263,19 @@ class TestRoleAPI(BaseAPITestCase[Role, RoleCreate, RoleUpdate, RoleResponse], S
         client: TestClient,
         test_organization: Organization,
         db_session: Session,
-        admin_token: str
+        admin_token: str,
     ) -> None:
         """Test assign role to user endpoint."""
         # Create role and user
         role = RoleFactory.create_with_organization(db_session, test_organization)
         user = UserFactory.create(db_session)
 
-        assignment_data = {
-            "user_id": user.id,
-            "role_id": role.id
-        }
+        assignment_data = {"user_id": user.id, "role_id": role.id}
 
         response = client.post(
             f"{self.endpoint_prefix}/assign",
             json=assignment_data,
-            headers=create_auth_headers(admin_token)
+            headers=create_auth_headers(admin_token),
         )
 
         assert response.status_code == 201
@@ -294,23 +289,20 @@ class TestRoleAPI(BaseAPITestCase[Role, RoleCreate, RoleUpdate, RoleResponse], S
         client: TestClient,
         test_organization: Organization,
         db_session: Session,
-        admin_token: str
+        admin_token: str,
     ) -> None:
         """Test assign role to user when assignment already exists."""
         # Create role and user
         role = RoleFactory.create_with_organization(db_session, test_organization)
         user = UserFactory.create(db_session)
 
-        assignment_data = {
-            "user_id": user.id,
-            "role_id": role.id
-        }
+        assignment_data = {"user_id": user.id, "role_id": role.id}
 
         # First assignment should succeed
         response = client.post(
             f"{self.endpoint_prefix}/assign",
             json=assignment_data,
-            headers=create_auth_headers(admin_token)
+            headers=create_auth_headers(admin_token),
         )
         assert response.status_code == 201
 
@@ -318,7 +310,7 @@ class TestRoleAPI(BaseAPITestCase[Role, RoleCreate, RoleUpdate, RoleResponse], S
         response = client.post(
             f"{self.endpoint_prefix}/assign",
             json=assignment_data,
-            headers=create_auth_headers(admin_token)
+            headers=create_auth_headers(admin_token),
         )
         assert response.status_code == 409
         data = response.json()
@@ -329,7 +321,7 @@ class TestRoleAPI(BaseAPITestCase[Role, RoleCreate, RoleUpdate, RoleResponse], S
         client: TestClient,
         test_organization: Organization,
         db_session: Session,
-        admin_token: str
+        admin_token: str,
     ) -> None:
         """Test remove role from user endpoint."""
         # Create role and user
@@ -337,22 +329,19 @@ class TestRoleAPI(BaseAPITestCase[Role, RoleCreate, RoleUpdate, RoleResponse], S
         user = UserFactory.create(db_session)
 
         # First assign the role
-        assignment_data = {
-            "user_id": user.id,
-            "role_id": role.id
-        }
+        assignment_data = {"user_id": user.id, "role_id": role.id}
 
         assign_response = client.post(
             f"{self.endpoint_prefix}/assign",
             json=assignment_data,
-            headers=create_auth_headers(admin_token)
+            headers=create_auth_headers(admin_token),
         )
         assert assign_response.status_code == 201
 
         # Then remove the role
         response = client.delete(
             f"{self.endpoint_prefix}/assign/{user.id}/{role.id}",
-            headers=create_auth_headers(admin_token)
+            headers=create_auth_headers(admin_token),
         )
 
         assert response.status_code == 200
@@ -360,14 +349,12 @@ class TestRoleAPI(BaseAPITestCase[Role, RoleCreate, RoleUpdate, RoleResponse], S
         assert data["success"] is True
 
     def test_remove_nonexistent_assignment(
-        self,
-        client: TestClient,
-        admin_token: str
+        self, client: TestClient, admin_token: str
     ) -> None:
         """Test remove role assignment that doesn't exist."""
         response = client.delete(
             f"{self.endpoint_prefix}/assign/99999/99999",
-            headers=create_auth_headers(admin_token)
+            headers=create_auth_headers(admin_token),
         )
 
         assert response.status_code == 404
@@ -379,30 +366,31 @@ class TestRoleAPI(BaseAPITestCase[Role, RoleCreate, RoleUpdate, RoleResponse], S
         client: TestClient,
         test_organization: Organization,
         db_session: Session,
-        admin_token: str
+        admin_token: str,
     ) -> None:
         """Test get user roles endpoint."""
         # Create roles and user
-        role1 = RoleFactory.create_with_organization(db_session, test_organization, name="Role 1")
-        role2 = RoleFactory.create_with_organization(db_session, test_organization, name="Role 2")
+        role1 = RoleFactory.create_with_organization(
+            db_session, test_organization, name="Role 1"
+        )
+        role2 = RoleFactory.create_with_organization(
+            db_session, test_organization, name="Role 2"
+        )
         user = UserFactory.create(db_session)
 
         # Assign both roles to user
         for role in [role1, role2]:
-            assignment_data = {
-                "user_id": user.id,
-                "role_id": role.id
-            }
+            assignment_data = {"user_id": user.id, "role_id": role.id}
             client.post(
                 f"{self.endpoint_prefix}/assign",
                 json=assignment_data,
-                headers=create_auth_headers(admin_token)
+                headers=create_auth_headers(admin_token),
             )
 
         # Get user roles
         response = client.get(
             f"{self.endpoint_prefix}/user/{user.id}",
-            headers=create_auth_headers(admin_token)
+            headers=create_auth_headers(admin_token),
         )
 
         assert response.status_code == 200
@@ -415,10 +403,7 @@ class TestRoleAPI(BaseAPITestCase[Role, RoleCreate, RoleUpdate, RoleResponse], S
         assert role2.id in role_ids
 
     def test_get_user_roles_with_organization_filter(
-        self,
-        client: TestClient,
-        db_session: Session,
-        admin_token: str
+        self, client: TestClient, db_session: Session, admin_token: str
     ) -> None:
         """Test get user roles filtered by organization."""
         # Create two organizations with roles
@@ -432,20 +417,17 @@ class TestRoleAPI(BaseAPITestCase[Role, RoleCreate, RoleUpdate, RoleResponse], S
 
         # Assign both roles to user
         for role in [role1, role2]:
-            assignment_data = {
-                "user_id": user.id,
-                "role_id": role.id
-            }
+            assignment_data = {"user_id": user.id, "role_id": role.id}
             client.post(
                 f"{self.endpoint_prefix}/assign",
                 json=assignment_data,
-                headers=create_auth_headers(admin_token)
+                headers=create_auth_headers(admin_token),
             )
 
         # Get user roles filtered by org1
         response = client.get(
             f"{self.endpoint_prefix}/user/{user.id}?organization_id={org1.id}",
-            headers=create_auth_headers(admin_token)
+            headers=create_auth_headers(admin_token),
         )
 
         assert response.status_code == 200
@@ -458,7 +440,7 @@ class TestRoleAPI(BaseAPITestCase[Role, RoleCreate, RoleUpdate, RoleResponse], S
         client: TestClient,
         test_organization: Organization,
         db_session: Session,
-        admin_token: str
+        admin_token: str,
     ) -> None:
         """Test create role with parent role."""
         # Create parent role
@@ -466,15 +448,11 @@ class TestRoleAPI(BaseAPITestCase[Role, RoleCreate, RoleUpdate, RoleResponse], S
 
         # Create child role
         payload = RoleFactory.build_dict(
-            organization_id=test_organization.id,
-            parent_id=parent.id,
-            name="Child Role"
+            organization_id=test_organization.id, parent_id=parent.id, name="Child Role"
         )
 
         response = client.post(
-            self.endpoint_prefix,
-            json=payload,
-            headers=create_auth_headers(admin_token)
+            self.endpoint_prefix, json=payload, headers=create_auth_headers(admin_token)
         )
 
         assert response.status_code == 201
@@ -487,7 +465,7 @@ class TestRoleAPI(BaseAPITestCase[Role, RoleCreate, RoleUpdate, RoleResponse], S
         client: TestClient,
         test_organization: Organization,
         db_session: Session,
-        admin_token: str
+        admin_token: str,
     ) -> None:
         """Test create role with invalid parent."""
         # Create role in different organization
@@ -498,13 +476,11 @@ class TestRoleAPI(BaseAPITestCase[Role, RoleCreate, RoleUpdate, RoleResponse], S
         payload = RoleFactory.build_dict(
             organization_id=test_organization.id,
             parent_id=other_role.id,
-            name="Invalid Child"
+            name="Invalid Child",
         )
 
         response = client.post(
-            self.endpoint_prefix,
-            json=payload,
-            headers=create_auth_headers(admin_token)
+            self.endpoint_prefix, json=payload, headers=create_auth_headers(admin_token)
         )
 
         assert response.status_code == 400
@@ -516,7 +492,7 @@ class TestRoleAPI(BaseAPITestCase[Role, RoleCreate, RoleUpdate, RoleResponse], S
         client: TestClient,
         test_organization: Organization,
         db_session: Session,
-        admin_token: str
+        admin_token: str,
     ) -> None:
         """Test update role with parent validation."""
         # Create role
@@ -528,7 +504,7 @@ class TestRoleAPI(BaseAPITestCase[Role, RoleCreate, RoleUpdate, RoleResponse], S
         response = client.put(
             f"{self.endpoint_prefix}/{role.id}",
             json=payload,
-            headers=create_auth_headers(admin_token)
+            headers=create_auth_headers(admin_token),
         )
 
         assert response.status_code == 400
@@ -540,7 +516,7 @@ class TestRoleAPI(BaseAPITestCase[Role, RoleCreate, RoleUpdate, RoleResponse], S
         client: TestClient,
         test_organization: Organization,
         db_session: Session,
-        admin_token: str
+        admin_token: str,
     ) -> None:
         """Test delete role that is assigned to users."""
         # Create role and user
@@ -548,20 +524,17 @@ class TestRoleAPI(BaseAPITestCase[Role, RoleCreate, RoleUpdate, RoleResponse], S
         user = UserFactory.create(db_session)
 
         # Assign role to user
-        assignment_data = {
-            "user_id": user.id,
-            "role_id": role.id
-        }
+        assignment_data = {"user_id": user.id, "role_id": role.id}
         client.post(
             f"{self.endpoint_prefix}/assign",
             json=assignment_data,
-            headers=create_auth_headers(admin_token)
+            headers=create_auth_headers(admin_token),
         )
 
         # Try to delete role
         response = client.delete(
             f"{self.endpoint_prefix}/{role.id}",
-            headers=create_auth_headers(admin_token)
+            headers=create_auth_headers(admin_token),
         )
 
         assert response.status_code == 409
@@ -573,26 +546,21 @@ class TestRoleAPI(BaseAPITestCase[Role, RoleCreate, RoleUpdate, RoleResponse], S
         client: TestClient,
         test_organization: Organization,
         db_session: Session,
-        admin_token: str
+        admin_token: str,
     ) -> None:
         """Test create role with duplicate name within organization."""
         # Create first role
         RoleFactory.create_with_organization(
-            db_session,
-            test_organization,
-            name="DUPLICATE"
+            db_session, test_organization, name="DUPLICATE"
         )
 
         # Try to create second role with same name in same organization
         payload = RoleFactory.build_dict(
-            organization_id=test_organization.id,
-            name="DUPLICATE"
+            organization_id=test_organization.id, name="DUPLICATE"
         )
 
         response = client.post(
-            self.endpoint_prefix,
-            json=payload,
-            headers=create_auth_headers(admin_token)
+            self.endpoint_prefix, json=payload, headers=create_auth_headers(admin_token)
         )
 
         assert response.status_code == 409
@@ -604,25 +572,21 @@ class TestRoleAPI(BaseAPITestCase[Role, RoleCreate, RoleUpdate, RoleResponse], S
         client: TestClient,
         test_organization: Organization,
         db_session: Session,
-        admin_token: str
+        admin_token: str,
     ) -> None:
         """Test list roles with role type filter."""
         # Create roles of different types
         RoleFactory.create_by_type(
-            db_session,
-            "system",
-            organization_id=test_organization.id
+            db_session, "system", organization_id=test_organization.id
         )
         RoleFactory.create_by_type(
-            db_session,
-            "custom",
-            organization_id=test_organization.id
+            db_session, "custom", organization_id=test_organization.id
         )
 
         # Filter by system type
         response = client.get(
             f"{self.endpoint_prefix}?role_type=system",
-            headers=create_auth_headers(admin_token)
+            headers=create_auth_headers(admin_token),
         )
 
         assert response.status_code == 200
@@ -641,18 +605,17 @@ class TestRolePermissions:
         client: TestClient,
         test_organization: Organization,
         db_session: Session,
-        user_token: str
+        user_token: str,
     ) -> None:
-        """Test that regular users cannot perform role operations without permissions."""
+        """Test that regular users cannot perform role operations without
+        permissions."""
         role = RoleFactory.create_with_organization(db_session, test_organization)
         user = UserFactory.create(db_session)
 
         # Test create permission
         payload = RoleFactory.build_dict(organization_id=test_organization.id)
         response = client.post(
-            "/api/v1/roles",
-            json=payload,
-            headers=create_auth_headers(user_token)
+            "/api/v1/roles", json=payload, headers=create_auth_headers(user_token)
         )
         assert response.status_code == 403
 
@@ -661,25 +624,21 @@ class TestRolePermissions:
         response = client.put(
             f"/api/v1/roles/{role.id}",
             json=update_payload,
-            headers=create_auth_headers(user_token)
+            headers=create_auth_headers(user_token),
         )
         assert response.status_code == 403
 
         # Test delete permission
         response = client.delete(
-            f"/api/v1/roles/{role.id}",
-            headers=create_auth_headers(user_token)
+            f"/api/v1/roles/{role.id}", headers=create_auth_headers(user_token)
         )
         assert response.status_code == 403
 
         # Test assign permission
-        assignment_data = {
-            "user_id": user.id,
-            "role_id": role.id
-        }
+        assignment_data = {"user_id": user.id, "role_id": role.id}
         response = client.post(
             "/api/v1/roles/assign",
             json=assignment_data,
-            headers=create_auth_headers(user_token)
+            headers=create_auth_headers(user_token),
         )
         assert response.status_code == 403

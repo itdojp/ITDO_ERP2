@@ -123,9 +123,7 @@ class TestUserManagementAPI:
         assert data["limit"] == 20
         assert data["total"] == 51  # 50 + admin
 
-    def test_user_search_filters(
-        self, client: TestClient, db_session: Session
-    ) -> None:
+    def test_user_search_filters(self, client: TestClient, db_session: Session) -> None:
         """TEST-API-USER-004: ユーザー検索フィルタAPIをテスト."""
         # Given: 様々な条件のユーザー
         admin = create_test_user(is_superuser=True)
@@ -193,9 +191,7 @@ class TestUserManagementAPI:
         assert "マネージャー" in role_names
         assert "アナリスト" in role_names
 
-    def test_update_user_profile(
-        self, client: TestClient, db_session: Session
-    ) -> None:
+    def test_update_user_profile(self, client: TestClient, db_session: Session) -> None:
         """TEST-API-USER-006: ユーザープロファイル更新APIをテスト."""
         # Given: ユーザー
         user = create_test_user(full_name="旧名前", phone="090-0000-0000")
@@ -221,9 +217,7 @@ class TestUserManagementAPI:
         assert data["phone"] == "090-1111-1111"
         assert data["profile_image_url"] == "https://example.com/avatar.jpg"
 
-    def test_change_password_api(
-        self, client: TestClient, db_session: Session
-    ) -> None:
+    def test_change_password_api(self, client: TestClient, db_session: Session) -> None:
         """TEST-API-USER-007: パスワード変更APIをテスト."""
         # Given: ユーザー
         user = create_test_user()
@@ -296,9 +290,7 @@ class TestUserManagementAPI:
         assert "temporary_password" in data
         assert len(data["temporary_password"]) >= 12
 
-    def test_assign_role_to_user(
-        self, client: TestClient, db_session: Session
-    ) -> None:
+    def test_assign_role_to_user(self, client: TestClient, db_session: Session) -> None:
         """TEST-API-USER-010: ユーザーへのロール割り当てAPIをテスト."""
         # Given: セットアップ
         org = create_test_organization()
@@ -381,9 +373,7 @@ class TestUserManagementAPI:
         assert "write:reports" in permissions
         assert "delete:own" in permissions
 
-    def test_soft_delete_user(
-        self, client: TestClient, db_session: Session
-    ) -> None:
+    def test_soft_delete_user(self, client: TestClient, db_session: Session) -> None:
         """TEST-API-USER-013: ユーザー論理削除APIをテスト."""
         # Given: ユーザーとシステム管理者
         user = create_test_user(is_active=True)
@@ -404,9 +394,7 @@ class TestUserManagementAPI:
         db_session.refresh(user)
         assert user.is_active is False
 
-    def test_cannot_delete_self(
-        self, client: TestClient, db_session: Session
-    ) -> None:
+    def test_cannot_delete_self(self, client: TestClient, db_session: Session) -> None:
         """TEST-API-USER-014: 自分自身を削除できないことをテスト."""
         # Given: システム管理者
         admin = create_test_user(is_superuser=True)
@@ -484,9 +472,7 @@ class TestUserManagementAPI:
         assert response.status_code == 403
         assert response.json()["code"] == "ACCESS_DENIED"
 
-    def test_bulk_user_import(
-        self, client: TestClient, db_session: Session
-    ) -> None:
+    def test_bulk_user_import(self, client: TestClient, db_session: Session) -> None:
         """TEST-API-USER-017: 一括ユーザーインポートAPIをテスト."""
         # Given: セットアップ
         admin = create_test_user(is_superuser=True)
@@ -525,9 +511,7 @@ class TestUserManagementAPI:
         assert data["error_count"] == 0
         assert len(data["created_users"]) == 2
 
-    def test_export_users_csv(
-        self, client: TestClient, db_session: Session
-    ) -> None:
+    def test_export_users_csv(self, client: TestClient, db_session: Session) -> None:
         """TEST-API-USER-018: ユーザーリストCSVエクスポートAPIをテスト."""
         # Given: 複数ユーザー
         admin = create_test_user(is_superuser=True)
@@ -554,9 +538,7 @@ class TestUserManagementAPI:
         assert response.headers["content-type"] == "text/csv; charset=utf-8"
         assert "attachment" in response.headers["content-disposition"]
 
-    def test_user_activity_log(
-        self, client: TestClient, db_session: Session
-    ) -> None:
+    def test_user_activity_log(self, client: TestClient, db_session: Session) -> None:
         """TEST-API-USER-019: ユーザー活動ログ取得APIをテスト."""
         # Given: ユーザー
         user = create_test_user()

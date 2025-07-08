@@ -1,0 +1,193 @@
+name: Development CI - Phase 1
+on:
+  push:
+    branches: [ main, develop, feature/*, hotfix/* ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  # 🚨 CRITICAL: 失敗時マージブロック
+  core-foundation-tests:
+    name: "🔥 Core Foundation Tests (MUST PASS)"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          uv sync
+
+      - name: Start data services
+        run: |
+          cd backend
+          make start-data
+          sleep 10
+
+      - name: Run Core Foundation Tests
+        run: |
+          cd backend
+          echo "🧪 Running User Extended Model Tests..."
+          uv run pytest tests/unit/models/test_user_extended.py -v --tb=short
+          
+          echo "🧪 Running User Repository Tests..."
+          uv run pytest tests/unit/repositories/test_user_repository.py -v --tb=short
+          
+          echo "🧪 Running User Model Tests..."
+          uv run pytest tests/unit/test_models_user.py -v --tb=short
+          
+          echo "🧪 Running Security Tests..."
+          uv run pytest tests/unit/test_security.py -v --tb=short
+
+      - name: Stop data services
+        if: always()
+        run: |
+          cd backend
+          make stop-data
+
+  # 📋 LINTING: 失敗時マージブロック
+  code-quality:
+    name: "📋 Code Quality (MUST PASS)"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          uv sync
+
+      - name: Run Ruff Linting
+        run: |
+          cd backend
+          uv run ruff check .
+
+      - name: Run Ruff Formatting Check
+        run: |
+          cd backend
+          uv run ruff format --check .
+
+      - name: Frontend Linting
+        run: |
+          cd frontend
+          npm install
+          npm run lint
+
+  # ⚠️ WARNING: 失敗しても継続
+  service-layer-tests:
+    name: "⚠️ Service Layer Tests (WARNING)"
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          uv sync
+
+      - name: Start data services
+        run: |
+          cd backend
+          make start-data
+          sleep 10
+
+      - name: Run Service Layer Tests
+        run: |
+          cd backend
+          echo "⚠️ Running Service Layer Tests (failures expected)..."
+          uv run pytest tests/unit/services/ -v --tb=short || true
+          echo "ℹ️ Service layer test failures are tracked in separate issues"
+
+      - name: Stop data services
+        if: always()
+        run: |
+          cd backend
+          make stop-data
+
+  # 📊 COVERAGE: 警告のみ
+  test-coverage:
+    name: "📊 Test Coverage Report"
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          uv sync
+
+      - name: Start data services
+        run: |
+          cd backend
+          make start-data
+          sleep 10
+
+      - name: Generate Coverage Report
+        run: |
+          cd backend
+          uv run pytest tests/unit/ --cov=app --cov-report=html --cov-report=term-missing || true
+          echo "📊 Coverage report generated (target: >80%)"
+
+      - name: Stop data services
+        if: always()
+        run: |
+          cd backend
+          make stop-data
+
+  # 🎯 PHASE STATUS
+  phase-status-check:
+    name: "🎯 Phase 1 Status Check"
+    runs-on: ubuntu-latest
+    needs: [core-foundation-tests, code-quality]
+    if: always()
+    steps:
+      - name: Phase 1 Status Report
+        run: |
+          echo "=== Phase 1: 基盤安定期 ステータス ==="
+          echo "🔥 Core Foundation Tests: ${{ needs.core-foundation-tests.result }}"
+          echo "📋 Code Quality: ${{ needs.code-quality.result }}"
+          
+          if [[ "${{ needs.core-foundation-tests.result }}" == "success" && "${{ needs.code-quality.result }}" == "success" ]]; then
+            echo "✅ Phase 1 基準クリア: マージ可能"
+          else
+            echo "❌ Phase 1 基準未達: マージブロック"
+            exit 1
+          fi

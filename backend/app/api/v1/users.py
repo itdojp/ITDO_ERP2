@@ -24,12 +24,12 @@ router = APIRouter(prefix="/users", tags=["Users"])
         400: {"model": ErrorResponse, "description": "Bad request"},
         403: {"model": ErrorResponse, "description": "Insufficient permissions"},
         409: {"model": ErrorResponse, "description": "User already exists"},
-    }
+    },
 )
 def create_user(
     user_data: UserCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_superuser)
+    current_user: User = Depends(get_current_superuser),
 ) -> Union[UserResponse, JSONResponse]:
     """Create a new user (admin only)."""
     try:
@@ -39,7 +39,7 @@ def create_user(
             email=user_data.email,
             password=user_data.password,
             full_name=user_data.full_name,
-            is_active=user_data.is_active
+            is_active=user_data.is_active,
         )
         db.commit()
         db.refresh(user)
@@ -53,8 +53,8 @@ def create_user(
             content=ErrorResponse(
                 detail="User with this email already exists",
                 code="USER001",
-                timestamp=datetime.utcnow()
-            ).model_dump()
+                timestamp=datetime.utcnow(),
+            ).model_dump(),
         )
 
 
@@ -63,10 +63,10 @@ def create_user(
     response_model=UserResponse,
     responses={
         401: {"model": ErrorResponse, "description": "Not authenticated"},
-    }
+    },
 )
 def get_current_user_info(
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(get_current_active_user),
 ) -> UserResponse:
     """Get current user information."""
     return UserResponse.model_validate(current_user)

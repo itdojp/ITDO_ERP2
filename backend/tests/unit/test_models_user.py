@@ -17,7 +17,7 @@ class TestUserModel:
         user_data = {
             "email": "test@example.com",
             "password": "SecurePassword123!",
-            "full_name": "Test User"
+            "full_name": "Test User",
         }
 
         # When: Creating user
@@ -25,7 +25,7 @@ class TestUserModel:
             db_session,
             email=user_data["email"],
             password=user_data["password"],
-            full_name=user_data["full_name"]
+            full_name=user_data["full_name"],
         )
 
         # Then: User should be created with correct attributes
@@ -48,7 +48,7 @@ class TestUserModel:
             db_session,
             email="minimal@example.com",
             password="Password123!",
-            full_name="Minimal"
+            full_name="Minimal",
         )
 
         # Then: Default values should be set
@@ -63,7 +63,7 @@ class TestUserModel:
             email="admin@example.com",
             password="AdminPass123!",
             full_name="Admin User",
-            is_superuser=True
+            is_superuser=True,
         )
 
         # Then: User should be superuser
@@ -76,7 +76,7 @@ class TestUserModel:
             db_session,
             email="existing@example.com",
             password="Password123!",
-            full_name="Existing User"
+            full_name="Existing User",
         )
         db_session.commit()
 
@@ -86,7 +86,7 @@ class TestUserModel:
                 db_session,
                 email="existing@example.com",
                 password="Password456!",
-                full_name="Duplicate User"
+                full_name="Duplicate User",
             )
             db_session.commit()
 
@@ -97,7 +97,7 @@ class TestUserModel:
             db_session,
             email="findme@example.com",
             password="Password123!",
-            full_name="Find Me"
+            full_name="Find Me",
         )
         db_session.commit()
 
@@ -124,7 +124,7 @@ class TestUserModel:
             db_session,
             email="auth@example.com",
             password="AuthPass123!",
-            full_name="Auth User"
+            full_name="Auth User",
         )
         db_session.commit()
 
@@ -142,7 +142,7 @@ class TestUserModel:
             db_session,
             email="auth2@example.com",
             password="CorrectPass123!",
-            full_name="Auth User"
+            full_name="Auth User",
         )
         db_session.commit()
 
@@ -160,7 +160,7 @@ class TestUserModel:
             email="inactive@example.com",
             password="InactivePass123!",
             full_name="Inactive User",
-            is_active=False
+            is_active=False,
         )
         db_session.commit()
 
@@ -177,7 +177,7 @@ class TestUserModel:
             db_session,
             email="update@example.com",
             password="Password123!",
-            full_name="Original Name"
+            full_name="Original Name",
         )
         db_session.commit()
 
