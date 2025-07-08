@@ -1,39 +1,19 @@
 """Security tests for Task Management functionality."""
 
+import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
-from app.core.database import get_db
-from app.main import app
-from tests.conftest import create_test_jwt_token, create_test_user, get_test_db
+from app.models.user import User
 
 
 class TestTaskSecurity:
     """Security test suite for Task functionality."""
 
-    def setup_method(self):
-        """Set up test fixtures."""
-        self.client = TestClient(app)
-        app.dependency_overrides[get_db] = get_test_db
-
-        # Create test users with different permissions
-        self.regular_user = create_test_user()
-        self.admin_user = create_test_user(email="admin@example.com", is_superuser=True)
-        self.other_org_user = create_test_user(
-            email="other@example.com", organization_id=2
-        )
-
-        self.regular_token = create_test_jwt_token(self.regular_user)
-        self.admin_token = create_test_jwt_token(self.admin_user)
-        self.other_org_token = create_test_jwt_token(self.other_org_user)
-
-    def teardown_method(self):
-        """Clean up after tests."""
-        app.dependency_overrides.clear()
-
-    def test_unauthorized_access(self):
+    def test_unauthorized_access(self, client: TestClient):
         """Test TASK-S-001: 認証なしでアクセス."""
         # Act
-        response = self.client.get("/api/v1/tasks")
+        response = client.get("/api/v1/tasks")
 
         # Assert
         # This will fail until API is implemented
@@ -42,14 +22,14 @@ class TestTaskSecurity:
         # Expected behavior after implementation:
         # assert response.status_code == 401  # Unauthorized
 
-    def test_cross_org_access(self):
+    def test_cross_org_access(self, client: TestClient, test_user: User, user_token: str):
         """Test TASK-S-002: 他組織のタスクアクセス."""
         # Arrange
         task_id = 1  # Task belonging to organization 1
-        headers = {"Authorization": f"Bearer {self.other_org_token}"}
+        headers = {"Authorization": f"Bearer {user_token}"}
 
         # Act
-        response = self.client.get(f"/api/v1/tasks/{task_id}", headers=headers)
+        response = client.get(f"/api/v1/tasks/{task_id}", headers=headers)
 
         # Assert
         # This will fail until API is implemented
@@ -58,14 +38,14 @@ class TestTaskSecurity:
         # Expected behavior after implementation:
         # assert response.status_code == 403  # Forbidden
 
-    def test_sql_injection(self):
+    def test_sql_injection(self, client: TestClient, user_token: str):
         """Test TASK-S-003: SQLインジェクション防止."""
         # Arrange
         malicious_id = "1; DROP TABLE tasks; --"
-        headers = {"Authorization": f"Bearer {self.regular_token}"}
+        headers = {"Authorization": f"Bearer {user_token}"}
 
         # Act
-        response = self.client.get(f"/api/v1/tasks/{malicious_id}", headers=headers)
+        response = client.get(f"/api/v1/tasks/{malicious_id}", headers=headers)
 
         # Assert
         # This will fail until API is implemented

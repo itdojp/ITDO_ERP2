@@ -12,6 +12,7 @@ from app.types import DepartmentId, OrganizationId, UserId
 if TYPE_CHECKING:
     from app.models.department import Department
     from app.models.organization import Organization
+    from app.models.task import Task
     from app.models.user import User
 
 
@@ -52,6 +53,9 @@ class Project(SoftDeletableModel):
         "Department", lazy="joined"
     )
     owner: Mapped["User"] = relationship("User", foreign_keys=[owner_id], lazy="joined")
+    
+    # Task relationship
+    tasks: Mapped[list["Task"]] = relationship("Task", back_populates="project", cascade="all, delete-orphan")
 
     # Computed properties for dashboard
     @property

@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from app.models.department import Department
     from app.models.organization import Organization
     from app.models.role import Role, UserRole
+    from app.models.task import Task
     from app.models.user_activity_log import UserActivityLog
     from app.models.user_session import UserSession
 
@@ -61,6 +62,14 @@ class User(SoftDeletableModel):
     )
     activity_logs: Mapped[List["UserActivityLog"]] = relationship(
         "UserActivityLog", back_populates="user", cascade="all, delete-orphan"
+    )
+    
+    # Task relationships
+    assigned_tasks: Mapped[List["Task"]] = relationship(
+        "Task", foreign_keys="Task.assignee_id", back_populates="assignee"
+    )
+    reported_tasks: Mapped[List["Task"]] = relationship(
+        "Task", foreign_keys="Task.reporter_id", back_populates="reporter"
     )
 
     @classmethod

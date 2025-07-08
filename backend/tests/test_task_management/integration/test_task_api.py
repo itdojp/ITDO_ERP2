@@ -4,29 +4,16 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi.testclient import TestClient
 
-from app.core.database import get_db
-from app.main import app
-from tests.conftest import create_test_jwt_token, create_test_user, get_test_db
+import pytest
+from sqlalchemy.orm import Session
+
+from app.models.user import User
 
 
 class TestTaskAPI:
     """Integration test suite for Task API endpoints."""
 
-    def setup_method(self):
-        """Set up test fixtures."""
-        self.client = TestClient(app)
-        app.dependency_overrides[get_db] = get_test_db
-
-        # Create test user and token
-        self.test_user = create_test_user()
-        self.test_token = create_test_jwt_token(self.test_user)
-        self.headers = {"Authorization": f"Bearer {self.test_token}"}
-
-    def teardown_method(self):
-        """Clean up after tests."""
-        app.dependency_overrides.clear()
-
-    def test_create_task_api(self):
+    def test_create_task_api(self, client: TestClient, test_user: User, user_token: str, db_session: Session):
         """Test TASK-I-001: POST /api/v1/tasks."""
         # Arrange
         task_data = {
@@ -38,8 +25,9 @@ class TestTaskAPI:
         }
 
         # Act
-        response = self.client.post(
-            "/api/v1/tasks", json=task_data, headers=self.headers
+        headers = {"Authorization": f"Bearer {user_token}"}
+        response = client.post(
+            "/api/v1/tasks", json=task_data, headers=headers
         )
 
         # Assert
