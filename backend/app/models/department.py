@@ -9,6 +9,7 @@ from app.models.base import SoftDeletableModel
 from app.types import DepartmentId, OrganizationId, UserId
 
 if TYPE_CHECKING:
+    from app.models.department_collaboration import DepartmentCollaboration
     from app.models.organization import Organization
     from app.models.user import User
 
@@ -114,6 +115,30 @@ class Department(SoftDeletableModel):
         nullable=False,
         comment="Display order within the same level",
     )
+    
+    # Hierarchical structure fields
+    path: Mapped[str] = mapped_column(
+        String(500),
+        nullable=False,
+        default="",
+        index=True,
+        comment="Materialized path for hierarchical queries",
+    )
+    depth: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+        index=True,
+        comment="Depth in hierarchy (0 for root)",
+    )
+
+    # Permission inheritance
+    inherit_permissions: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=True,
+        comment="Whether to inherit permissions from parent departments",
+    )
 
     # Additional fields
     description: Mapped[Optional[str]] = mapped_column(
@@ -143,6 +168,21 @@ class Department(SoftDeletableModel):
         secondaryjoin="UserRole.user_id == User.id",
         viewonly=True,
         lazy="dynamic",
+    )
+    
+    # Collaboration relationships
+    collaborations_initiated: Mapped[List["DepartmentCollaboration"]] = relationship(
+        "DepartmentCollaboration",
+        foreign_keys="DepartmentCollaboration.department_a_id",
+        back_populates="department_a",
+        lazy="select",
+    )
+    
+    collaborations_received: Mapped[List["DepartmentCollaboration"]] = relationship(
+        "DepartmentCollaboration",
+        foreign_keys="DepartmentCollaboration.department_b_id",
+        back_populates="department_b",
+        lazy="select",
     )
 
     def __repr__(self) -> str:
@@ -213,3 +253,112 @@ class Department(SoftDeletableModel):
                 unique_users.append(user)
 
         return unique_users
+    
+    def update_path(self) -> None:
+        """Update the materialized path based on parent."""
+        if self.parent_id is None:
+            self.path = str(self.id)
+            self.depth = 0
+        else:
+            if self.parent:
+                self.path = f"{self.parent.path}.{self.id}"
+                self.depth = self.parent.depth + 1
+            else:
+                # Fallback if parent not loaded
+                from sqlalchemy import select
+                from sqlalchemy.orm import object_session
+                
+                session = object_session(self)
+                if session:
+                    parent = session.scalar(
+                        select(Department).where(Department.id == self.parent_id)
+                    )
+                    if parent:
+                        self.path = f"{parent.path}.{self.id}"
+                        self.depth = parent.depth + 1
+    
+    def update_subtree_paths(self) -> None:
+        """Update paths for all descendants after a move."""
+        from sqlalchemy import select, text
+        from sqlalchemy.orm import object_session
+        
+        session = object_session(self)
+        if not session:
+            return
+        
+        # First, get the old path before we updated it
+        # We need to find all descendants based on the old path pattern
+        # Since we already updated self.path, we need to reconstruct the old path
+        
+        # Get all departments that have this department in their path
+        # This query finds all descendants
+        descendants = session.scalars(
+            select(Department)
+            .where(Department.path.contains(str(self.id)))
+            .where(Department.id != self.id)
+            .order_by(Department.depth, Department.id)
+        ).all()
+        
+        # Update each descendant's path and depth
+        for desc in descendants:
+            # Check if this department is actually in the descendant's path
+            path_parts = desc.path.split(".")
+            if str(self.id) in path_parts:
+                # Find the position of self.id in the path
+                self_index = path_parts.index(str(self.id))
+                
+                # Rebuild the path with the new prefix
+                # Get the parts after self.id in the descendant's path
+                parts_after_self = path_parts[self_index + 1:]
+                
+                # The new path is self's new path + the parts after self
+                if parts_after_self:
+                    desc.path = f"{self.path}.{'.'.join(parts_after_self)}"
+                else:
+                    # This descendant is a direct child of self
+                    desc.path = self.path
+                
+                desc.depth = desc.path.count(".")
+    
+    def get_ancestors_ids(self) -> List[int]:
+        """Get list of ancestor IDs from the path."""
+        if not self.path:
+            return []
+        
+        path_parts = self.path.split(".")
+        # Exclude self (last element)
+        return [int(id_str) for id_str in path_parts[:-1]]
+    
+    def is_ancestor_of(self, department_id: int) -> bool:
+        """Check if this department is an ancestor of the given department."""
+        from sqlalchemy import select
+        from sqlalchemy.orm import object_session
+        
+        session = object_session(self)
+        if not session:
+            return False
+        
+        other = session.scalar(
+            select(Department).where(Department.id == department_id)
+        )
+        if not other:
+            return False
+        
+        return other.path.startswith(f"{self.path}.")
+    
+    def is_descendant_of(self, department_id: int) -> bool:
+        """Check if this department is a descendant of the given department."""
+        from sqlalchemy import select
+        from sqlalchemy.orm import object_session
+        
+        session = object_session(self)
+        if not session:
+            return False
+        
+        other = session.scalar(
+            select(Department).where(Department.id == department_id)
+        )
+        if not other:
+            return False
+        
+        return self.path.startswith(f"{other.path}.")

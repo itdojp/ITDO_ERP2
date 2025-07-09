@@ -1,12 +1,17 @@
 """Department service implementation."""
 
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import BusinessLogicError
 from app.models.department import Department
-from app.models.role import UserRole
+from app.models.department_collaboration import DepartmentCollaboration
+from app.models.department_task import DepartmentTask
+from app.models.role import UserRole, RolePermission
+from app.models.task import Task
 from app.models.user import User
 from app.repositories.department import DepartmentRepository
 from app.schemas.department import (
@@ -93,6 +98,14 @@ class DepartmentService:
                 f"Department code '{department_data.code}' "
                 "already exists in this organization"
             )
+        
+        # Check depth limit if creating under a parent
+        if department_data.parent_id:
+            parent = self.repository.get(department_data.parent_id)
+            if parent and hasattr(parent, 'depth') and parent.depth >= 4:
+                raise BusinessLogicError(
+                    "Cannot exceed maximum depth of 5 levels"
+                )
 
         # Add audit fields
         data = department_data.model_dump()
@@ -101,7 +114,16 @@ class DepartmentService:
             data["updated_by"] = created_by
 
         # Create department
-        return self.repository.create(DepartmentCreate(**data))
+        department = self.repository.create(DepartmentCreate(**data))
+        
+        # Flush to get the ID
+        self.db.flush()
+        
+        # Set hierarchical path and depth
+        department.update_path()
+        self.db.commit()
+        
+        return department
 
     def update_department(
         self,
@@ -149,6 +171,9 @@ class DepartmentService:
         department = self.repository.get(department_id)
         if not department:
             return False
+        
+        # Validate deletion
+        self.validate_department_deletion(department_id)
 
         # Perform soft delete
         department.soft_delete(deleted_by=deleted_by)
@@ -387,3 +412,786 @@ class DepartmentService:
                 return True
 
         return False
+    
+    def move_department(
+        self, department_id: DepartmentId, new_parent_id: Optional[DepartmentId]
+    ) -> Department:
+        """Move department to a new parent with circular reference prevention."""
+        department = self.repository.get(department_id)
+        if not department:
+            raise ValueError(f"Department {department_id} not found")
+        
+        # Check if moving to self
+        if new_parent_id == department_id:
+            raise BusinessLogicError("Department cannot be its own parent")
+        
+        # Check for circular reference
+        if new_parent_id:
+            new_parent = self.repository.get(new_parent_id)
+            if not new_parent:
+                raise ValueError(f"Parent department {new_parent_id} not found")
+            
+            # Check if new parent is a descendant of the department
+            if new_parent.path.startswith(f"{department.path}."):
+                raise BusinessLogicError(
+                    "Cannot create circular reference: target parent is a descendant"
+                )
+            
+            # Check depth limit (max 5 levels = depth 4)
+            if new_parent.depth >= 4:
+                raise BusinessLogicError(
+                    "Cannot exceed maximum depth of 5 levels"
+                )
+        
+        # Update parent
+        old_path = department.path
+        department.parent_id = new_parent_id
+        department.update_path()
+        
+        # Update all descendants
+        department.update_subtree_paths()
+        
+        self.db.commit()
+        return department
+    
+    def get_ancestors(self, department_id: DepartmentId) -> List[Department]:
+        """Get all ancestor departments from root to parent."""
+        department = self.repository.get(department_id)
+        if not department:
+            return []
+        
+        ancestor_ids = department.get_ancestors_ids()
+        if not ancestor_ids:
+            return []
+        
+        # Get ancestors ordered by depth
+        ancestors = (
+            self.db.query(Department)
+            .filter(Department.id.in_(ancestor_ids))
+            .order_by(Department.depth)
+            .all()
+        )
+        
+        return ancestors
+    
+    def get_descendants(
+        self, department_id: DepartmentId, recursive: bool = True
+    ) -> List[Department]:
+        """Get descendant departments."""
+        department = self.repository.get(department_id)
+        if not department:
+            return []
+        
+        if not recursive:
+            # Direct children only
+            return self.get_direct_sub_departments(department_id)
+        
+        # All descendants using path
+        descendants = (
+            self.db.query(Department)
+            .filter(
+                Department.path.like(f"{department.path}.%"),
+                ~Department.is_deleted
+            )
+            .order_by(Department.depth, Department.display_order)
+            .all()
+        )
+        
+        return descendants
+    
+    def get_subtree(self, department_id: DepartmentId) -> List[Department]:
+        """Get department and all its descendants."""
+        department = self.repository.get(department_id)
+        if not department:
+            return []
+        
+        # Get self and all descendants
+        subtree = (
+            self.db.query(Department)
+            .filter(
+                or_(
+                    Department.id == department_id,
+                    Department.path.like(f"{department.path}.%")
+                ),
+                ~Department.is_deleted
+            )
+            .order_by(Department.depth, Department.display_order)
+            .all()
+        )
+        
+        return subtree
+    
+    def get_departments_at_depth(
+        self, depth: int, organization_id: OrganizationId
+    ) -> List[Department]:
+        """Get all departments at a specific depth level."""
+        departments = (
+            self.db.query(Department)
+            .filter(
+                Department.organization_id == organization_id,
+                Department.depth == depth,
+                ~Department.is_deleted
+            )
+            .order_by(Department.display_order, Department.name)
+            .all()
+        )
+        
+        return departments
+    
+    def validate_department_deletion(self, department_id: DepartmentId) -> None:
+        """Validate if department can be deleted."""
+        department = self.repository.get(department_id)
+        if not department:
+            raise ValueError(f"Department {department_id} not found")
+        
+        # Check for active sub-departments
+        if self.has_sub_departments(department_id):
+            raise BusinessLogicError(
+                "Cannot delete department that has active sub-departments"
+            )
+
+    # Permission Inheritance Methods
+    
+    def get_user_department_permissions(
+        self, user_id: UserId, department_id: DepartmentId
+    ) -> List[str]:
+        """Get permissions for user in specific department."""
+        # Get user roles for the department
+        user_roles = (
+            self.db.query(UserRole)
+            .filter(
+                UserRole.user_id == user_id,
+                UserRole.department_id == department_id,
+                UserRole.is_active
+            )
+            .all()
+        )
+        
+        permissions = []
+        for user_role in user_roles:
+            if user_role.role:
+                # Get permissions from role
+                role_permissions = (
+                    self.db.query(RolePermission)
+                    .filter(RolePermission.role_id == user_role.role_id)
+                    .all()
+                )
+                for role_perm in role_permissions:
+                    if role_perm.permission:
+                        permissions.append(role_perm.permission.code)
+        
+        return list(set(permissions))  # Remove duplicates
+    
+    def get_user_effective_permissions(
+        self, user_id: UserId, department_id: DepartmentId, use_most_specific: bool = False
+    ) -> List[str]:
+        """Get effective permissions for user considering inheritance."""
+        department = self.repository.get(department_id)
+        if not department:
+            return []
+        
+        # Get direct permissions for the department
+        permissions = set(self.get_user_department_permissions(user_id, department_id))
+        
+        # If inheritance is enabled, get permissions from parent departments
+        if department.inherit_permissions and not use_most_specific:
+            inheritance_chain = self.get_permission_inheritance_chain(department_id)
+            for dept in inheritance_chain:
+                if dept.id != department_id:  # Don't double-count current department
+                    parent_permissions = self.get_user_department_permissions(user_id, dept.id)
+                    permissions.update(parent_permissions)
+        
+        return list(permissions)
+    
+    def user_has_permission_for_department(
+        self, user_id: UserId, permission: str, department_id: DepartmentId
+    ) -> bool:
+        """Check if user has specific permission for department."""
+        effective_permissions = self.get_user_effective_permissions(user_id, department_id)
+        return permission in effective_permissions
+    
+    def get_permission_inheritance_chain(self, department_id: DepartmentId) -> List[Department]:
+        """Get the chain of departments for permission inheritance."""
+        department = self.repository.get(department_id)
+        if not department:
+            return []
+        
+        chain = [department]
+        
+        # If inheritance is disabled, return only the current department
+        if not department.inherit_permissions:
+            return chain
+        
+        # Get all ancestors through the path
+        if hasattr(department, 'path') and department.path:
+            ancestor_ids = [int(id_str) for id_str in department.path.split('.')[:-1]]
+            
+            if ancestor_ids:
+                ancestors = (
+                    self.db.query(Department)
+                    .filter(Department.id.in_(ancestor_ids))
+                    .order_by(Department.depth)
+                    .all()
+                )
+                
+                # Only include ancestors that have inheritance enabled
+                for ancestor in ancestors:
+                    if ancestor.inherit_permissions:
+                        chain.insert(0, ancestor)
+                    else:
+                        # If inheritance is broken at any level, stop
+                        break
+        
+        return chain
+
+    # Inter-Department Collaboration Methods
+    
+    def create_collaboration_agreement(
+        self,
+        department_a_id: DepartmentId,
+        department_b_id: DepartmentId,
+        collaboration_type: str,
+        description: str = None,
+        created_by: UserId = None,
+        effective_from: datetime = None,
+        effective_until: datetime = None,
+    ) -> DepartmentCollaboration:
+        """Create a collaboration agreement between two departments."""
+        # Validate departments exist
+        dept_a = self.repository.get(department_a_id)
+        dept_b = self.repository.get(department_b_id)
+        
+        if not dept_a:
+            raise ValueError(f"Department {department_a_id} not found")
+        if not dept_b:
+            raise ValueError(f"Department {department_b_id} not found")
+        
+        # Prevent self-collaboration
+        if department_a_id == department_b_id:
+            raise BusinessLogicError("Department cannot collaborate with itself")
+        
+        # Check if collaboration already exists
+        existing = (
+            self.db.query(DepartmentCollaboration)
+            .filter(
+                or_(
+                    and_(
+                        DepartmentCollaboration.department_a_id == department_a_id,
+                        DepartmentCollaboration.department_b_id == department_b_id,
+                    ),
+                    and_(
+                        DepartmentCollaboration.department_a_id == department_b_id,
+                        DepartmentCollaboration.department_b_id == department_a_id,
+                    ),
+                ),
+                DepartmentCollaboration.is_active == True,
+                ~DepartmentCollaboration.is_deleted,
+            )
+            .first()
+        )
+        
+        if existing:
+            raise BusinessLogicError(
+                "Active collaboration agreement already exists between these departments"
+            )
+        
+        # Create collaboration agreement
+        collaboration = DepartmentCollaboration(
+            department_a_id=department_a_id,
+            department_b_id=department_b_id,
+            collaboration_type=collaboration_type,
+            description=description,
+            effective_from=effective_from,
+            effective_until=effective_until,
+            approval_status="approved",  # Auto-approve for simplicity
+            created_by=created_by,
+            updated_by=created_by,
+        )
+        
+        self.db.add(collaboration)
+        self.db.commit()
+        
+        return collaboration
+    
+    def get_collaboration_agreements(self, department_id: DepartmentId) -> List[DepartmentCollaboration]:
+        """Get all collaboration agreements for a department."""
+        agreements = (
+            self.db.query(DepartmentCollaboration)
+            .filter(
+                or_(
+                    DepartmentCollaboration.department_a_id == department_id,
+                    DepartmentCollaboration.department_b_id == department_id,
+                ),
+                ~DepartmentCollaboration.is_deleted,
+            )
+            .all()
+        )
+        
+        return agreements
+    
+    def get_collaborating_departments(self, department_id: DepartmentId) -> List[Department]:
+        """Get all departments that have active collaboration with given department."""
+        agreements = (
+            self.db.query(DepartmentCollaboration)
+            .filter(
+                or_(
+                    DepartmentCollaboration.department_a_id == department_id,
+                    DepartmentCollaboration.department_b_id == department_id,
+                ),
+                DepartmentCollaboration.is_active == True,
+                ~DepartmentCollaboration.is_deleted,
+            )
+            .all()
+        )
+        
+        collaborating_dept_ids = []
+        for agreement in agreements:
+            other_dept_id = agreement.get_other_department_id(department_id)
+            if other_dept_id:
+                collaborating_dept_ids.append(other_dept_id)
+        
+        # Get the department objects
+        if collaborating_dept_ids:
+            departments = (
+                self.db.query(Department)
+                .filter(Department.id.in_(collaborating_dept_ids))
+                .all()
+            )
+            return departments
+        
+        return []
+    
+    def can_departments_collaborate(
+        self, department_a_id: DepartmentId, department_b_id: DepartmentId
+    ) -> bool:
+        """Check if two departments can collaborate (have active agreement)."""
+        agreement = (
+            self.db.query(DepartmentCollaboration)
+            .filter(
+                or_(
+                    and_(
+                        DepartmentCollaboration.department_a_id == department_a_id,
+                        DepartmentCollaboration.department_b_id == department_b_id,
+                    ),
+                    and_(
+                        DepartmentCollaboration.department_a_id == department_b_id,
+                        DepartmentCollaboration.department_b_id == department_a_id,
+                    ),
+                ),
+                DepartmentCollaboration.is_active == True,
+                ~DepartmentCollaboration.is_deleted,
+            )
+            .first()
+        )
+        
+        return agreement is not None
+    
+    def get_cross_department_permissions(
+        self, user_id: UserId, source_department_id: DepartmentId, target_department_id: DepartmentId
+    ) -> List[str]:
+        """Get permissions user has in target department through collaboration."""
+        # Check if departments can collaborate
+        if not self.can_departments_collaborate(source_department_id, target_department_id):
+            return []
+        
+        # Get user's permissions in source department
+        source_permissions = self.get_user_department_permissions(user_id, source_department_id)
+        
+        # For full collaboration, return all permissions
+        # For specific collaboration types, filter permissions
+        agreement = (
+            self.db.query(DepartmentCollaboration)
+            .filter(
+                or_(
+                    and_(
+                        DepartmentCollaboration.department_a_id == source_department_id,
+                        DepartmentCollaboration.department_b_id == target_department_id,
+                    ),
+                    and_(
+                        DepartmentCollaboration.department_a_id == target_department_id,
+                        DepartmentCollaboration.department_b_id == source_department_id,
+                    ),
+                ),
+                DepartmentCollaboration.is_active == True,
+                ~DepartmentCollaboration.is_deleted,
+            )
+            .first()
+        )
+        
+        if not agreement:
+            return []
+        
+        # Filter permissions based on collaboration type
+        if agreement.collaboration_type == "full_access":
+            return source_permissions
+        elif agreement.collaboration_type == "project_sharing":
+            return [p for p in source_permissions if "project" in p.lower()]
+        elif agreement.collaboration_type == "data_sharing":
+            return [p for p in source_permissions if any(
+                word in p.lower() for word in ["view", "read", "report"]
+            )]
+        else:
+            # For other collaboration types, return limited permissions
+            return [p for p in source_permissions if "view" in p.lower()]
+    
+    def activate_collaboration_agreement(
+        self, agreement_id: int, updated_by: UserId = None
+    ) -> DepartmentCollaboration:
+        """Activate a collaboration agreement."""
+        agreement = self.db.query(DepartmentCollaboration).filter(
+            DepartmentCollaboration.id == agreement_id
+        ).first()
+        
+        if not agreement:
+            raise ValueError(f"Collaboration agreement {agreement_id} not found")
+        
+        agreement.is_active = True
+        agreement.updated_by = updated_by
+        self.db.commit()
+        
+        return agreement
+    
+    def deactivate_collaboration_agreement(
+        self, agreement_id: int, updated_by: UserId = None
+    ) -> DepartmentCollaboration:
+        """Deactivate a collaboration agreement."""
+        agreement = self.db.query(DepartmentCollaboration).filter(
+            DepartmentCollaboration.id == agreement_id
+        ).first()
+        
+        if not agreement:
+            raise ValueError(f"Collaboration agreement {agreement_id} not found")
+        
+        agreement.is_active = False
+        agreement.updated_by = updated_by
+        self.db.commit()
+        
+        return agreement
+
+    # Task Management Integration Methods
+    
+    def assign_task_to_department(
+        self,
+        task_id: int,
+        department_id: DepartmentId,
+        assignment_type: str = "department",
+        visibility_scope: str = "department",
+        assigned_by: UserId = None,
+        notes: str = None,
+    ) -> DepartmentTask:
+        """Assign a task to a department."""
+        # Validate task exists
+        task = self.db.query(Task).filter(Task.id == task_id).first()
+        if not task:
+            raise ValueError(f"Task {task_id} not found")
+        
+        # Validate department exists
+        department = self.repository.get(department_id)
+        if not department:
+            raise ValueError(f"Department {department_id} not found")
+        
+        # Check if assignment already exists
+        existing = (
+            self.db.query(DepartmentTask)
+            .filter(
+                DepartmentTask.task_id == task_id,
+                DepartmentTask.department_id == department_id,
+                DepartmentTask.is_active == True,
+                ~DepartmentTask.is_deleted,
+            )
+            .first()
+        )
+        
+        if existing:
+            raise BusinessLogicError(
+                f"Task {task_id} is already assigned to department {department_id}"
+            )
+        
+        # Create assignment
+        assignment = DepartmentTask(
+            task_id=task_id,
+            department_id=department_id,
+            assignment_type=assignment_type,
+            visibility_scope=visibility_scope,
+            assignment_notes=notes,
+            created_by=assigned_by,
+            updated_by=assigned_by,
+        )
+        
+        self.db.add(assignment)
+        self.db.commit()
+        
+        return assignment
+    
+    def get_department_tasks(
+        self,
+        department_id: DepartmentId,
+        include_inherited: bool = True,
+        include_delegated: bool = True,
+        status_filter: List[str] = None,
+        priority_filter: List[str] = None,
+    ) -> List[Task]:
+        """Get all tasks assigned to a department."""
+        department = self.repository.get(department_id)
+        if not department:
+            return []
+        
+        # Start with direct assignments
+        query = (
+            self.db.query(Task)
+            .join(DepartmentTask)
+            .filter(
+                DepartmentTask.department_id == department_id,
+                DepartmentTask.is_active == True,
+                ~DepartmentTask.is_deleted,
+                ~Task.is_deleted,
+            )
+        )
+        
+        # Build assignment type filter
+        assignment_types = ["department"]
+        if include_inherited:
+            assignment_types.append("inherited")
+        if include_delegated:
+            assignment_types.append("delegated")
+        
+        query = query.filter(DepartmentTask.assignment_type.in_(assignment_types))
+        
+        # Apply task filters
+        if status_filter:
+            query = query.filter(Task.status.in_(status_filter))
+        
+        if priority_filter:
+            query = query.filter(Task.priority.in_(priority_filter))
+        
+        tasks = query.distinct().all()
+        
+        # If including inherited tasks, get tasks from parent departments
+        if include_inherited and department.inherit_permissions:
+            ancestors = self.get_ancestors(department_id)
+            for ancestor in ancestors:
+                if ancestor.inherit_permissions:
+                    parent_tasks = self._get_inheritable_tasks(ancestor.id, status_filter, priority_filter)
+                    # Create inherited assignments if not already exist
+                    for task in parent_tasks:
+                        if not self._has_department_task_assignment(task.id, department_id):
+                            self._create_inherited_assignment(task.id, department_id, ancestor.id)
+                            tasks.append(task)
+        
+        return tasks
+    
+    def delegate_task(
+        self,
+        task_id: int,
+        from_department_id: DepartmentId,
+        to_department_id: DepartmentId,
+        delegated_by: UserId,
+        notes: str = None,
+    ) -> DepartmentTask:
+        """Delegate a task from one department to another."""
+        # Validate departments
+        from_dept = self.repository.get(from_department_id)
+        to_dept = self.repository.get(to_department_id)
+        
+        if not from_dept:
+            raise ValueError(f"Source department {from_department_id} not found")
+        if not to_dept:
+            raise ValueError(f"Target department {to_department_id} not found")
+        
+        # Check if source department has the task
+        source_assignment = (
+            self.db.query(DepartmentTask)
+            .filter(
+                DepartmentTask.task_id == task_id,
+                DepartmentTask.department_id == from_department_id,
+                DepartmentTask.is_active == True,
+                ~DepartmentTask.is_deleted,
+            )
+            .first()
+        )
+        
+        if not source_assignment:
+            raise BusinessLogicError(
+                f"Task {task_id} is not assigned to department {from_department_id}"
+            )
+        
+        # Check if departments can collaborate or if it's within hierarchy
+        can_delegate = (
+            self.can_departments_collaborate(from_department_id, to_department_id) or
+            to_dept.is_descendant_of(from_department_id) or
+            to_dept.is_ancestor_of(from_department_id)
+        )
+        
+        if not can_delegate:
+            raise BusinessLogicError(
+                "Departments must have collaboration agreement or be in same hierarchy to delegate tasks"
+            )
+        
+        # Create delegation assignment
+        delegation = DepartmentTask(
+            task_id=task_id,
+            department_id=to_department_id,
+            assignment_type="delegated",
+            visibility_scope=source_assignment.visibility_scope,
+            delegated_from_department_id=from_department_id,
+            delegated_by=delegated_by,
+            assignment_notes=notes,
+            created_by=delegated_by,
+            updated_by=delegated_by,
+        )
+        
+        self.db.add(delegation)
+        self.db.commit()
+        
+        return delegation
+    
+    def get_task_assignments_for_department(
+        self, department_id: DepartmentId
+    ) -> List[DepartmentTask]:
+        """Get all task assignments for a department."""
+        assignments = (
+            self.db.query(DepartmentTask)
+            .filter(
+                DepartmentTask.department_id == department_id,
+                DepartmentTask.is_active == True,
+                ~DepartmentTask.is_deleted,
+            )
+            .all()
+        )
+        
+        return assignments
+    
+    def remove_task_from_department(
+        self, task_id: int, department_id: DepartmentId, removed_by: UserId = None
+    ) -> bool:
+        """Remove task assignment from department."""
+        assignment = (
+            self.db.query(DepartmentTask)
+            .filter(
+                DepartmentTask.task_id == task_id,
+                DepartmentTask.department_id == department_id,
+                DepartmentTask.is_active == True,
+                ~DepartmentTask.is_deleted,
+            )
+            .first()
+        )
+        
+        if not assignment:
+            return False
+        
+        # Soft delete the assignment
+        assignment.soft_delete(deleted_by=removed_by)
+        self.db.commit()
+        
+        return True
+    
+    def get_department_task_statistics(self, department_id: DepartmentId) -> Dict[str, Any]:
+        """Get task statistics for a department."""
+        assignments = self.get_task_assignments_for_department(department_id)
+        
+        if not assignments:
+            return {
+                "total_tasks": 0,
+                "by_status": {},
+                "by_priority": {},
+                "by_assignment_type": {},
+                "overdue_tasks": 0,
+            }
+        
+        task_ids = [a.task_id for a in assignments]
+        tasks = (
+            self.db.query(Task)
+            .filter(Task.id.in_(task_ids), ~Task.is_deleted)
+            .all()
+        )
+        
+        # Calculate statistics
+        total_tasks = len(tasks)
+        by_status = {}
+        by_priority = {}
+        by_assignment_type = {}
+        overdue_tasks = 0
+        
+        now = datetime.utcnow()
+        
+        for task in tasks:
+            # Status statistics
+            status = task.status
+            by_status[status] = by_status.get(status, 0) + 1
+            
+            # Priority statistics
+            priority = task.priority
+            by_priority[priority] = by_priority.get(priority, 0) + 1
+            
+            # Check if overdue
+            if task.due_date and task.due_date < now and task.status not in ["completed", "cancelled"]:
+                overdue_tasks += 1
+        
+        # Assignment type statistics
+        for assignment in assignments:
+            assignment_type = assignment.assignment_type
+            by_assignment_type[assignment_type] = by_assignment_type.get(assignment_type, 0) + 1
+        
+        return {
+            "total_tasks": total_tasks,
+            "by_status": by_status,
+            "by_priority": by_priority,
+            "by_assignment_type": by_assignment_type,
+            "overdue_tasks": overdue_tasks,
+        }
+    
+    def _get_inheritable_tasks(
+        self, department_id: DepartmentId, status_filter: List[str] = None, priority_filter: List[str] = None
+    ) -> List[Task]:
+        """Get tasks from a department that can be inherited."""
+        query = (
+            self.db.query(Task)
+            .join(DepartmentTask)
+            .filter(
+                DepartmentTask.department_id == department_id,
+                DepartmentTask.is_active == True,
+                DepartmentTask.visibility_scope.in_(["department", "organization"]),
+                ~DepartmentTask.is_deleted,
+                ~Task.is_deleted,
+            )
+        )
+        
+        if status_filter:
+            query = query.filter(Task.status.in_(status_filter))
+        
+        if priority_filter:
+            query = query.filter(Task.priority.in_(priority_filter))
+        
+        return query.all()
+    
+    def _has_department_task_assignment(self, task_id: int, department_id: DepartmentId) -> bool:
+        """Check if department already has an assignment for the task."""
+        assignment = (
+            self.db.query(DepartmentTask)
+            .filter(
+                DepartmentTask.task_id == task_id,
+                DepartmentTask.department_id == department_id,
+                DepartmentTask.is_active == True,
+                ~DepartmentTask.is_deleted,
+            )
+            .first()
+        )
+        
+        return assignment is not None
+    
+    def _create_inherited_assignment(
+        self, task_id: int, department_id: DepartmentId, inherited_from_id: DepartmentId
+    ) -> DepartmentTask:
+        """Create an inherited task assignment."""
+        assignment = DepartmentTask(
+            task_id=task_id,
+            department_id=department_id,
+            assignment_type="inherited",
+            visibility_scope="department",
+            assignment_notes=f"Inherited from department {inherited_from_id}",
+        )
+        
+        self.db.add(assignment)
+        self.db.flush()  # Don't commit yet, let the caller decide
+        
+        return assignment

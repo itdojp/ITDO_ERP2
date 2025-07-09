@@ -15,7 +15,7 @@ from app.core.security import create_access_token
 from app.main import app
 
 # Import all models to ensure they are registered with SQLAlchemy
-from app.models import Department, Organization, Permission, Role, User
+from app.models import Department, DepartmentTask, Organization, Permission, Role, Task, User
 from app.models.base import Base
 from tests.factories import (
     DepartmentFactory,
@@ -73,7 +73,10 @@ def db_session() -> Generator[Session, None, None]:
                     "audit_logs",
                     "project_members",
                     "project_milestones",
+                    "department_tasks",  # Added for department-task relationships
+                    "tasks",  # Added for task management cleanup
                     "projects",
+                    "department_collaborations",  # Added for collaboration cleanup
                     "users",
                     "roles",
                     "permissions",

@@ -22,6 +22,8 @@ UserId = int
 OrganizationId = int
 DepartmentId = int
 RoleId = int
+TaskId = int
+ProjectId = int
 ProductId = int
 CustomerId = int
 SupplierId = int
@@ -104,6 +106,8 @@ __all__ = [
     "OrganizationId",
     "DepartmentId",
     "RoleId",
+    "TaskId",
+    "ProjectId",
     "ProductId",
     "CustomerId",
     "SupplierId",

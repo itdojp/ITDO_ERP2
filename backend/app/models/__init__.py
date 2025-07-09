@@ -2,6 +2,8 @@
 
 from app.models.audit import AuditLog
 from app.models.department import Department
+from app.models.department_collaboration import DepartmentCollaboration
+from app.models.department_task import DepartmentTask
 from app.models.organization import Organization
 from app.models.password_history import PasswordHistory
 from app.models.permission import Permission
@@ -18,6 +20,8 @@ __all__ = [
     "User",
     "Organization",
     "Department",
+    "DepartmentCollaboration",
+    "DepartmentTask",
     "Role",
     "UserRole",
     "RolePermission",

@@ -9,6 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import SoftDeletableModel
 
 if TYPE_CHECKING:
+    from app.models.department_task import DepartmentTask
     from app.models.project import Project
     from app.models.user import User
 
@@ -52,6 +53,9 @@ class Task(SoftDeletableModel):
     )
     subtasks: Mapped[list["Task"]] = relationship(
         "Task", back_populates="parent_task", cascade="all, delete-orphan"
+    )
+    department_assignments: Mapped[list["DepartmentTask"]] = relationship(
+        "DepartmentTask", back_populates="task", cascade="all, delete-orphan"
     )
 
     def __repr__(self) -> str:
