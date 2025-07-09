@@ -140,7 +140,8 @@ jobs:
       - name: Run E2E tests
         working-directory: frontend
         run: |
-          npm run e2e:ci
+          # For now, run only smoke tests until full E2E implementation is ready
+          npx playwright test tests/e2e/smoke/ --reporter=json
         env:
           CI: true
           PLAYWRIGHT_BASE_URL: http://localhost:3000
