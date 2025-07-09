@@ -53,7 +53,7 @@ class Project(SoftDeletableModel):
         "Department", lazy="joined"
     )
     owner: Mapped["User"] = relationship("User", foreign_keys=[owner_id], lazy="joined")
-    
+
     # Task relationship
     tasks: Mapped[List["Task"]] = relationship(
         "Task", back_populates="project", cascade="all, delete-orphan"

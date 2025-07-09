@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, List, Optional, Union
 
 from pydantic import AnyHttpUrl, AnyUrl, PostgresDsn, field_validator
 from pydantic_settings import BaseSettings
@@ -34,12 +34,13 @@ class Settings(BaseSettings):
     def assemble_db_connection(cls, v: Optional[str], info) -> Any:
         if isinstance(v, str):
             return v
-        values = info.data if hasattr(info, 'data') else {}
+        values = info.data if hasattr(info, "data") else {}
         return (
             f"postgresql://{values.get('POSTGRES_USER', 'itdo_user')}:"
             f"{values.get('POSTGRES_PASSWORD', 'itdo_password')}@"
             f"{values.get('POSTGRES_SERVER', 'localhost')}:"
-            f"{values.get('POSTGRES_PORT', 5432)}/{values.get('POSTGRES_DB', 'itdo_erp')}"
+            f"{values.get('POSTGRES_PORT', 5432)}/"
+            f"{values.get('POSTGRES_DB', 'itdo_erp')}"
         )
 
     # Redis設定
@@ -62,10 +63,7 @@ class Settings(BaseSettings):
     # 開発環境フラグ
     DEBUG: bool = False
 
-    model_config = {
-        "env_file": ".env",
-        "case_sensitive": True
-    }
+    model_config = {"env_file": ".env", "case_sensitive": True}
 
 
 settings = Settings()

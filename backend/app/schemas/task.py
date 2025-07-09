@@ -14,20 +14,26 @@ class TaskBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=200, description="Task title")
     description: Optional[str] = Field(None, description="Task description")
     status: TaskStatus = Field(default=TaskStatus.TODO, description="Task status")
-    priority: TaskPriority = Field(default=TaskPriority.MEDIUM, description="Task priority")
+    priority: TaskPriority = Field(
+        default=TaskPriority.MEDIUM, description="Task priority"
+    )
     estimated_hours: Optional[float] = Field(None, ge=0, description="Estimated hours")
     actual_hours: Optional[float] = Field(None, ge=0, description="Actual hours spent")
     start_date: Optional[datetime] = Field(None, description="Task start date")
     due_date: Optional[datetime] = Field(None, description="Task due date")
-    progress_percentage: int = Field(default=0, ge=0, le=100, description="Progress percentage")
-    tags: Optional[str] = Field(None, max_length=500, description="Comma-separated tags")
+    progress_percentage: int = Field(
+        default=0, ge=0, le=100, description="Progress percentage"
+    )
+    tags: Optional[str] = Field(
+        None, max_length=500, description="Comma-separated tags"
+    )
 
     @field_validator("due_date", mode="before")
     @classmethod
     def validate_due_date(cls, v, info):
         """Validate due date is not in the past."""
-        if v and hasattr(info, 'data'):
-            start_date = info.data.get('start_date')
+        if v and hasattr(info, "data"):
+            start_date = info.data.get("start_date")
             if start_date and v < start_date:
                 raise ValueError("Due date cannot be before start date")
         return v
@@ -71,7 +77,9 @@ class TaskStatusUpdate(BaseModel):
 class TaskProgressUpdate(BaseModel):
     """Schema for updating task progress."""
 
-    progress_percentage: int = Field(..., ge=0, le=100, description="Progress percentage")
+    progress_percentage: int = Field(
+        ..., ge=0, le=100, description="Progress percentage"
+    )
 
 
 class UserBasic(BaseModel):
@@ -129,16 +137,16 @@ class TaskResponse(TaskBase):
     completed_at: Optional[datetime]
     created_at: datetime
     updated_at: datetime
-    
+
     # Computed properties
     is_overdue: bool
     is_blocked: bool
-    
+
     # Related objects
     project: ProjectBasic
     creator: UserBasic
     assignee: Optional[UserBasic]
-    
+
     # Dependencies (optional, for detailed view)
     dependencies: Optional[List[TaskDependencyResponse]] = None
     task_history: Optional[List[TaskHistoryResponse]] = None
@@ -169,7 +177,9 @@ class TaskDependencyCreate(BaseModel):
 class TaskDependencyDelete(BaseModel):
     """Schema for deleting task dependency."""
 
-    depends_on_task_id: int = Field(..., description="Task ID to remove dependency from")
+    depends_on_task_id: int = Field(
+        ..., description="Task ID to remove dependency from"
+    )
 
 
 class TaskSearchParams(BaseModel):
@@ -187,11 +197,11 @@ class TaskSearchParams(BaseModel):
     due_date_from: Optional[datetime] = None
     due_date_to: Optional[datetime] = None
     created_by: Optional[int] = None
-    
+
     # Pagination
     page: int = Field(default=1, ge=1)
     limit: int = Field(default=20, ge=1, le=100)
-    
+
     # Sorting
     sort_by: str = Field(default="created_at", description="Field to sort by")
     sort_order: str = Field(default="desc", pattern="^(asc|desc)$")
@@ -208,11 +218,11 @@ class TaskStatistics(BaseModel):
     cancelled_tasks: int
     blocked_tasks: int
     overdue_tasks: int
-    
+
     # Progress statistics
     avg_progress: float
     completion_rate: float
-    
+
     # Time statistics
     avg_estimated_hours: Optional[float]
     avg_actual_hours: Optional[float]
@@ -225,7 +235,7 @@ class TaskBulkAction(BaseModel):
 
     task_ids: List[int] = Field(..., min_length=1, description="List of task IDs")
     action: str = Field(..., description="Action to perform")
-    
+
     # Action-specific parameters
     status: Optional[TaskStatus] = None
     assigned_to: Optional[int] = None

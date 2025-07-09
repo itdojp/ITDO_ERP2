@@ -5,14 +5,15 @@ from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from sqlalchemy import (
-    Boolean,
     DateTime,
-    Enum as SQLEnum,
     ForeignKey,
     Integer,
     String,
     Text,
     func,
+)
+from sqlalchemy import (
+    Enum as SQLEnum,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -59,7 +60,7 @@ class Task(SoftDeletableModel):
     # Basic task information
     title: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    
+
     # Status and priority
     status: Mapped[TaskStatus] = mapped_column(
         SQLEnum(TaskStatus), nullable=False, default=TaskStatus.TODO, index=True
@@ -82,7 +83,7 @@ class Task(SoftDeletableModel):
     # Time tracking
     estimated_hours: Mapped[Optional[float]] = mapped_column(nullable=True)
     actual_hours: Mapped[Optional[float]] = mapped_column(nullable=True)
-    
+
     # Dates
     start_date: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
@@ -95,9 +96,7 @@ class Task(SoftDeletableModel):
     )
 
     # Progress tracking
-    progress_percentage: Mapped[int] = mapped_column(
-        Integer, nullable=False, default=0
-    )
+    progress_percentage: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     # Tags for categorization
     tags: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
@@ -110,18 +109,18 @@ class Task(SoftDeletableModel):
     creator: Mapped["User"] = relationship(
         "User", foreign_keys=[created_by], back_populates="created_tasks"
     )
-    
+
     # Task dependencies (self-referential many-to-many)
     dependencies: Mapped[List["TaskDependency"]] = relationship(
-        "TaskDependency", 
+        "TaskDependency",
         foreign_keys="TaskDependency.task_id",
         back_populates="task",
-        cascade="all, delete-orphan"
+        cascade="all, delete-orphan",
     )
     dependent_tasks: Mapped[List["TaskDependency"]] = relationship(
         "TaskDependency",
-        foreign_keys="TaskDependency.depends_on_task_id", 
-        back_populates="depends_on_task"
+        foreign_keys="TaskDependency.depends_on_task_id",
+        back_populates="depends_on_task",
     )
 
     # Task history/audit
@@ -144,7 +143,8 @@ class Task(SoftDeletableModel):
     def is_blocked(self) -> bool:
         """Check if task is blocked by dependencies."""
         return self.status == TaskStatus.BLOCKED or any(
-            dep.depends_on_task.status not in [TaskStatus.COMPLETED, TaskStatus.CANCELLED]
+            dep.depends_on_task.status
+            not in [TaskStatus.COMPLETED, TaskStatus.CANCELLED]
             for dep in self.dependencies
             if dep.dependency_type == DependencyType.DEPENDS_ON
         )
@@ -153,7 +153,8 @@ class Task(SoftDeletableModel):
     def blocking_tasks(self) -> List["Task"]:
         """Get tasks that this task blocks."""
         return [
-            dep.task for dep in self.dependent_tasks
+            dep.task
+            for dep in self.dependent_tasks
             if dep.dependency_type == DependencyType.BLOCKS
         ]
 
@@ -161,7 +162,8 @@ class Task(SoftDeletableModel):
     def dependent_on_tasks(self) -> List["Task"]:
         """Get tasks that this task depends on."""
         return [
-            dep.depends_on_task for dep in self.dependencies
+            dep.depends_on_task
+            for dep in self.dependencies
             if dep.dependency_type == DependencyType.DEPENDS_ON
         ]
 
@@ -169,134 +171,125 @@ class Task(SoftDeletableModel):
         """Check if task can be started (no blocking dependencies)."""
         if self.status != TaskStatus.TODO:
             return False
-        
+
         blocking_deps = [
-            dep for dep in self.dependencies
+            dep
+            for dep in self.dependencies
             if dep.dependency_type == DependencyType.DEPENDS_ON
         ]
-        
+
         return all(
-            dep.depends_on_task.status == TaskStatus.COMPLETED
-            for dep in blocking_deps
+            dep.depends_on_task.status == TaskStatus.COMPLETED for dep in blocking_deps
         )
 
     def complete_task(self, completed_by: int) -> None:
         """Mark task as completed."""
         if self.status == TaskStatus.COMPLETED:
             return
-            
+
         self.status = TaskStatus.COMPLETED
         self.completed_at = datetime.now(timezone.utc)
         self.progress_percentage = 100
-        
+
         # Record in history
         self._add_history_entry(
-            "task_completed",
-            {"completed_by": completed_by},
-            completed_by
+            "task_completed", {"completed_by": completed_by}, completed_by
         )
 
     def assign_task(self, assignee_id: int, assigned_by: int) -> None:
         """Assign task to a user."""
         old_assignee = self.assigned_to
         self.assigned_to = assignee_id
-        
+
         # Record in history
         self._add_history_entry(
             "task_assigned",
             {
                 "old_assignee": old_assignee,
                 "new_assignee": assignee_id,
-                "assigned_by": assigned_by
+                "assigned_by": assigned_by,
             },
-            assigned_by
+            assigned_by,
         )
 
     def update_status(self, new_status: TaskStatus, updated_by: int) -> None:
         """Update task status with validation."""
         if not self._validate_status_transition(self.status, new_status):
-            raise ValueError(f"Invalid status transition from {self.status} to {new_status}")
-        
+            raise ValueError(
+                f"Invalid status transition from {self.status} to {new_status}"
+            )
+
         old_status = self.status
         self.status = new_status
-        
+
         # Auto-update completion time
         if new_status == TaskStatus.COMPLETED:
             self.completed_at = datetime.now(timezone.utc)
             self.progress_percentage = 100
         elif old_status == TaskStatus.COMPLETED:
             self.completed_at = None
-        
+
         # Record in history
         self._add_history_entry(
             "status_changed",
-            {
-                "old_status": old_status.value,
-                "new_status": new_status.value
-            },
-            updated_by
+            {"old_status": old_status.value, "new_status": new_status.value},
+            updated_by,
         )
 
     def update_progress(self, percentage: int, updated_by: int) -> None:
         """Update task progress percentage."""
         if not 0 <= percentage <= 100:
             raise ValueError("Progress percentage must be between 0 and 100")
-        
+
         old_progress = self.progress_percentage
         self.progress_percentage = percentage
-        
+
         # Auto-update status based on progress
         if percentage == 100 and self.status != TaskStatus.COMPLETED:
             self.status = TaskStatus.COMPLETED
             self.completed_at = datetime.now(timezone.utc)
         elif percentage > 0 and self.status == TaskStatus.TODO:
             self.status = TaskStatus.IN_PROGRESS
-        
+
         # Record in history
         self._add_history_entry(
             "progress_updated",
-            {
-                "old_progress": old_progress,
-                "new_progress": percentage
-            },
-            updated_by
+            {"old_progress": old_progress, "new_progress": percentage},
+            updated_by,
         )
 
     def add_dependency(
-        self, 
-        depends_on_task_id: int, 
-        dependency_type: DependencyType,
-        created_by: int
+        self, depends_on_task_id: int, dependency_type: DependencyType, created_by: int
     ) -> "TaskDependency":
         """Add a dependency to another task."""
         # Prevent self-dependency
         if depends_on_task_id == self.id:
             raise ValueError("Task cannot depend on itself")
-        
+
         # Check for circular dependencies (simplified check)
         if self._would_create_circular_dependency(depends_on_task_id):
             raise ValueError("Circular dependency detected")
-        
+
         # Create dependency
         dependency = TaskDependency(
             task_id=self.id,
             depends_on_task_id=depends_on_task_id,
             dependency_type=dependency_type,
-            created_by=created_by
+            created_by=created_by,
         )
-        
+
         self.dependencies.append(dependency)
-        
+
         # Record in history
         self._add_history_entry(
             "dependency_added",
             {
                 "depends_on_task_id": depends_on_task_id,
-                "dependency_type": dependency_type.value
+                "dependency_type": dependency_type.value,
             },
-            created_by
+            created_by,
         )
-        
+
         return dependency
 
     def get_tags_list(self) -> List[str]:
@@ -310,28 +303,33 @@ class Task(SoftDeletableModel):
         self.tags = ", ".join(tags) if tags else None
 
     def _validate_status_transition(
-        self, 
-        from_status: TaskStatus, 
-        to_status: TaskStatus
+        self, from_status: TaskStatus, to_status: TaskStatus
     ) -> bool:
         """Validate if status transition is allowed."""
         # Define allowed transitions
         allowed_transitions = {
             TaskStatus.TODO: [TaskStatus.IN_PROGRESS, TaskStatus.CANCELLED],
             TaskStatus.IN_PROGRESS: [
-                TaskStatus.TODO, TaskStatus.IN_REVIEW, 
-                TaskStatus.COMPLETED, TaskStatus.BLOCKED, TaskStatus.CANCELLED
+                TaskStatus.TODO,
+                TaskStatus.IN_REVIEW,
+                TaskStatus.COMPLETED,
+                TaskStatus.BLOCKED,
+                TaskStatus.CANCELLED,
             ],
             TaskStatus.IN_REVIEW: [
-                TaskStatus.IN_PROGRESS, TaskStatus.COMPLETED, TaskStatus.CANCELLED
+                TaskStatus.IN_PROGRESS,
+                TaskStatus.COMPLETED,
+                TaskStatus.CANCELLED,
             ],
             TaskStatus.COMPLETED: [TaskStatus.IN_PROGRESS],  # Reopen
             TaskStatus.CANCELLED: [TaskStatus.TODO, TaskStatus.IN_PROGRESS],
             TaskStatus.BLOCKED: [
-                TaskStatus.TODO, TaskStatus.IN_PROGRESS, TaskStatus.CANCELLED
+                TaskStatus.TODO,
+                TaskStatus.IN_PROGRESS,
+                TaskStatus.CANCELLED,
             ],
         }
-        
+
         return to_status in allowed_transitions.get(from_status, [])
 
     def _would_create_circular_dependency(self, depends_on_task_id: int) -> bool:
@@ -339,15 +337,12 @@ class Task(SoftDeletableModel):
         # Simple implementation - could be enhanced with graph traversal
         # For now, just check direct circular dependency
         existing_deps = [dep.depends_on_task_id for dep in self.dependencies]
-        
+
         # If the task we want to depend on already depends on this task
         return self.id in existing_deps or depends_on_task_id in existing_deps
 
     def _add_history_entry(
-        self, 
-        action: str, 
-        details: Dict[str, Any], 
-        user_id: int
+        self, action: str, details: Dict[str, Any], user_id: int
     ) -> None:
         """Add entry to task history."""
         history_entry = TaskHistory(
@@ -355,7 +350,7 @@ class Task(SoftDeletableModel):
             action=action,
             details=details,
             changed_by=user_id,
-            changed_at=datetime.now(timezone.utc)
+            changed_at=datetime.now(timezone.utc),
         )
         self.task_history.append(history_entry)
 
@@ -369,17 +364,17 @@ class TaskDependency(SoftDeletableModel):
     task_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("tasks.id"), nullable=False, index=True
     )
-    
+
     # The task that this task depends on
     depends_on_task_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("tasks.id"), nullable=False, index=True
     )
-    
+
     # Type of dependency
     dependency_type: Mapped[DependencyType] = mapped_column(
         SQLEnum(DependencyType), nullable=False, default=DependencyType.DEPENDS_ON
     )
-    
+
     # Who created this dependency
     created_by: Mapped[int] = mapped_column(
         Integer, ForeignKey("users.id"), nullable=False
@@ -408,18 +403,18 @@ class TaskHistory(SoftDeletableModel):
     task_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("tasks.id"), nullable=False, index=True
     )
-    
+
     # Action performed
     action: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
-    
+
     # Detailed information about the change (JSON)
     details: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    
+
     # Who made the change
     changed_by: Mapped[int] = mapped_column(
         Integer, ForeignKey("users.id"), nullable=False, index=True
     )
-    
+
     # When the change was made
     changed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=func.now(), index=True

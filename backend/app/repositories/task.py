@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from sqlalchemy import and_, func, or_, text
 from sqlalchemy.orm import Session, joinedload
 
-from app.models.task import Task, TaskDependency, TaskHistory, TaskStatus, TaskPriority
+from app.models.task import Task, TaskDependency, TaskHistory, TaskStatus
 from app.repositories.base import BaseRepository
 from app.schemas.task import TaskSearchParams
 
@@ -19,10 +19,7 @@ class TaskRepository(BaseRepository[Task]):
         super().__init__(Task, db)
 
     def get_by_project(
-        self, 
-        project_id: int, 
-        skip: int = 0, 
-        limit: int = 100
+        self, project_id: int, skip: int = 0, limit: int = 100
     ) -> Tuple[List[Task], int]:
         """Get tasks by project with pagination."""
         query = (
@@ -31,40 +28,34 @@ class TaskRepository(BaseRepository[Task]):
             .options(
                 joinedload(Task.assignee),
                 joinedload(Task.creator),
-                joinedload(Task.project)
+                joinedload(Task.project),
             )
         )
-        
+
         total = query.count()
         tasks = query.offset(skip).limit(limit).all()
-        
+
         return tasks, total
 
     def get_by_assignee(
-        self, 
-        assignee_id: int, 
-        skip: int = 0, 
-        limit: int = 100
+        self, assignee_id: int, skip: int = 0, limit: int = 100
     ) -> Tuple[List[Task], int]:
         """Get tasks assigned to a user."""
         query = (
             self.db.query(Task)
             .filter(Task.assigned_to == assignee_id, ~Task.is_deleted)
-            .options(
-                joinedload(Task.project),
-                joinedload(Task.creator)
-            )
+            .options(joinedload(Task.project), joinedload(Task.creator))
         )
-        
+
         total = query.count()
         tasks = query.offset(skip).limit(limit).all()
-        
+
         return tasks, total
 
     def search_tasks(
-        self, 
+        self,
         params: TaskSearchParams,
-        accessible_project_ids: Optional[List[int]] = None
+        accessible_project_ids: Optional[List[int]] = None,
     ) -> Tuple[List[Task], int]:
         """Search tasks with filters and pagination."""
         query = (
@@ -73,7 +64,7 @@ class TaskRepository(BaseRepository[Task]):
             .options(
                 joinedload(Task.assignee),
                 joinedload(Task.creator),
-                joinedload(Task.project)
+                joinedload(Task.project),
             )
         )
 
@@ -104,7 +95,7 @@ class TaskRepository(BaseRepository[Task]):
                     and_(
                         Task.due_date.isnot(None),
                         Task.due_date < now,
-                        Task.status != TaskStatus.COMPLETED
+                        Task.status != TaskStatus.COMPLETED,
                     )
                 )
             else:
@@ -112,7 +103,7 @@ class TaskRepository(BaseRepository[Task]):
                     or_(
                         Task.due_date.is_(None),
                         Task.due_date >= now,
-                        Task.status == TaskStatus.COMPLETED
+                        Task.status == TaskStatus.COMPLETED,
                     )
                 )
 
@@ -125,10 +116,7 @@ class TaskRepository(BaseRepository[Task]):
         if params.search:
             search_term = f"%{params.search}%"
             query = query.filter(
-                or_(
-                    Task.title.ilike(search_term),
-                    Task.description.ilike(search_term)
-                )
+                or_(Task.title.ilike(search_term), Task.description.ilike(search_term))
             )
 
         # Date range filters
@@ -174,19 +162,11 @@ class TaskRepository(BaseRepository[Task]):
 
         return tasks, total
 
-    def get_overdue_tasks(
-        self, 
-        project_id: Optional[int] = None
-    ) -> List[Task]:
+    def get_overdue_tasks(self, project_id: Optional[int] = None) -> List[Task]:
         """Get all overdue tasks."""
         now = datetime.now(timezone.utc)
-        query = (
-            self.db.query(Task)
-            .filter(
-                Task.due_date < now,
-                Task.status != TaskStatus.COMPLETED,
-                ~Task.is_deleted
-            )
+        query = self.db.query(Task).filter(
+            Task.due_date < now, Task.status != TaskStatus.COMPLETED, ~Task.is_deleted
         )
 
         if project_id:
@@ -194,14 +174,10 @@ class TaskRepository(BaseRepository[Task]):
 
         return query.all()
 
-    def get_blocked_tasks(
-        self, 
-        project_id: Optional[int] = None
-    ) -> List[Task]:
+    def get_blocked_tasks(self, project_id: Optional[int] = None) -> List[Task]:
         """Get all blocked tasks."""
-        query = (
-            self.db.query(Task)
-            .filter(Task.status == TaskStatus.BLOCKED, ~Task.is_deleted)
+        query = self.db.query(Task).filter(
+            Task.status == TaskStatus.BLOCKED, ~Task.is_deleted
         )
 
         if project_id:
@@ -210,9 +186,7 @@ class TaskRepository(BaseRepository[Task]):
         return query.all()
 
     def get_task_statistics(
-        self, 
-        project_id: Optional[int] = None,
-        assignee_id: Optional[int] = None
+        self, project_id: Optional[int] = None, assignee_id: Optional[int] = None
     ) -> Dict[str, Any]:
         """Get task statistics."""
         query = self.db.query(Task).filter(~Task.is_deleted)
@@ -230,66 +204,63 @@ class TaskRepository(BaseRepository[Task]):
             .all()
         )
 
-        # Get priority counts
-        priority_counts = (
-            query.with_entities(Task.priority, func.count(Task.id))
-            .group_by(Task.priority)
-            .all()
-        )
+        # Get priority counts (for future use)
+        # priority_counts = (
+        #     query.with_entities(Task.priority, func.count(Task.id))
+        #     .group_by(Task.priority)
+        #     .all()
+        # )
 
         # Get overdue count
         now = datetime.now(timezone.utc)
-        overdue_count = (
-            query.filter(
-                Task.due_date < now,
-                Task.status != TaskStatus.COMPLETED
-            ).count()
-        )
+        overdue_count = query.filter(
+            Task.due_date < now, Task.status != TaskStatus.COMPLETED
+        ).count()
 
         # Get progress statistics
-        progress_stats = (
-            query.with_entities(
-                func.avg(Task.progress_percentage),
-                func.avg(Task.estimated_hours),
-                func.avg(Task.actual_hours),
-                func.sum(Task.estimated_hours),
-                func.sum(Task.actual_hours)
-            ).first()
-        )
+        progress_stats = query.with_entities(
+            func.avg(Task.progress_percentage),
+            func.avg(Task.estimated_hours),
+            func.avg(Task.actual_hours),
+            func.sum(Task.estimated_hours),
+            func.sum(Task.actual_hours),
+        ).first()
 
         # Compile statistics
         total_tasks = sum(count for _, count in status_counts)
         completed_tasks = sum(
-            count for status, count in status_counts 
-            if status == TaskStatus.COMPLETED
+            count for status, count in status_counts if status == TaskStatus.COMPLETED
         )
 
         return {
             "total_tasks": total_tasks,
             "todo_tasks": sum(
-                count for status, count in status_counts 
-                if status == TaskStatus.TODO
+                count for status, count in status_counts if status == TaskStatus.TODO
             ),
             "in_progress_tasks": sum(
-                count for status, count in status_counts 
+                count
+                for status, count in status_counts
                 if status == TaskStatus.IN_PROGRESS
             ),
             "in_review_tasks": sum(
-                count for status, count in status_counts 
+                count
+                for status, count in status_counts
                 if status == TaskStatus.IN_REVIEW
             ),
             "completed_tasks": completed_tasks,
             "cancelled_tasks": sum(
-                count for status, count in status_counts 
+                count
+                for status, count in status_counts
                 if status == TaskStatus.CANCELLED
             ),
             "blocked_tasks": sum(
-                count for status, count in status_counts 
-                if status == TaskStatus.BLOCKED
+                count for status, count in status_counts if status == TaskStatus.BLOCKED
             ),
             "overdue_tasks": overdue_count,
             "avg_progress": float(progress_stats[0] or 0),
-            "completion_rate": (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0,
+            "completion_rate": (completed_tasks / total_tasks * 100)
+            if total_tasks > 0
+            else 0,
             "avg_estimated_hours": float(progress_stats[1] or 0),
             "avg_actual_hours": float(progress_stats[2] or 0),
             "total_estimated_hours": float(progress_stats[3] or 0),
@@ -302,20 +273,18 @@ class TaskRepository(BaseRepository[Task]):
             self.db.query(Task)
             .filter(Task.id == task_id, ~Task.is_deleted)
             .options(
-                joinedload(Task.dependencies).joinedload(TaskDependency.depends_on_task),
+                joinedload(Task.dependencies).joinedload(
+                    TaskDependency.depends_on_task
+                ),
                 joinedload(Task.dependent_tasks).joinedload(TaskDependency.task),
                 joinedload(Task.assignee),
                 joinedload(Task.creator),
-                joinedload(Task.project)
+                joinedload(Task.project),
             )
             .first()
         )
 
-    def get_with_history(
-        self, 
-        task_id: int, 
-        limit: int = 50
-    ) -> Optional[Task]:
+    def get_with_history(self, task_id: int, limit: int = 50) -> Optional[Task]:
         """Get task with history."""
         task = (
             self.db.query(Task)
@@ -323,7 +292,7 @@ class TaskRepository(BaseRepository[Task]):
             .options(
                 joinedload(Task.assignee),
                 joinedload(Task.creator),
-                joinedload(Task.project)
+                joinedload(Task.project),
             )
             .first()
         )
@@ -342,35 +311,31 @@ class TaskRepository(BaseRepository[Task]):
         return task
 
     def create_dependency(
-        self, 
-        task_id: int, 
-        depends_on_task_id: int, 
+        self,
+        task_id: int,
+        depends_on_task_id: int,
         dependency_type: str,
-        created_by: int
+        created_by: int,
     ) -> TaskDependency:
         """Create a task dependency."""
         dependency = TaskDependency(
             task_id=task_id,
             depends_on_task_id=depends_on_task_id,
             dependency_type=dependency_type,
-            created_by=created_by
+            created_by=created_by,
         )
-        
+
         self.db.add(dependency)
         self.db.flush()
         return dependency
 
-    def remove_dependency(
-        self, 
-        task_id: int, 
-        depends_on_task_id: int
-    ) -> bool:
+    def remove_dependency(self, task_id: int, depends_on_task_id: int) -> bool:
         """Remove a task dependency."""
         dependency = (
             self.db.query(TaskDependency)
             .filter(
                 TaskDependency.task_id == task_id,
-                TaskDependency.depends_on_task_id == depends_on_task_id
+                TaskDependency.depends_on_task_id == depends_on_task_id,
             )
             .first()
         )
@@ -390,11 +355,7 @@ class TaskRepository(BaseRepository[Task]):
             .all()
         )
 
-    def check_circular_dependency(
-        self, 
-        task_id: int, 
-        depends_on_task_id: int
-    ) -> bool:
+    def check_circular_dependency(self, task_id: int, depends_on_task_id: int) -> bool:
         """Check if adding dependency would create circular dependency."""
         # Use recursive CTE to check for circular dependencies
         recursive_query = text("""
@@ -420,38 +381,32 @@ class TaskRepository(BaseRepository[Task]):
         """)
 
         result = self.db.execute(
-            recursive_query, 
-            {"task_id": task_id, "depends_on_task_id": depends_on_task_id}
+            recursive_query,
+            {"task_id": task_id, "depends_on_task_id": depends_on_task_id},
         ).fetchone()
 
         return result.circular_count > 0 if result else False
 
     def get_tasks_by_status(
-        self, 
+        self,
         status: TaskStatus,
         project_id: Optional[int] = None,
         skip: int = 0,
-        limit: int = 100
+        limit: int = 100,
     ) -> Tuple[List[Task], int]:
         """Get tasks by status."""
-        query = (
-            self.db.query(Task)
-            .filter(Task.status == status, ~Task.is_deleted)
-        )
+        query = self.db.query(Task).filter(Task.status == status, ~Task.is_deleted)
 
         if project_id:
             query = query.filter(Task.project_id == project_id)
 
         total = query.count()
         tasks = query.offset(skip).limit(limit).all()
-        
+
         return tasks, total
 
     def bulk_update_status(
-        self, 
-        task_ids: List[int], 
-        new_status: TaskStatus,
-        updated_by: int
+        self, task_ids: List[int], new_status: TaskStatus, updated_by: int
     ) -> int:
         """Bulk update task status."""
         updated_count = (
@@ -461,9 +416,9 @@ class TaskRepository(BaseRepository[Task]):
                 {
                     "status": new_status,
                     "updated_at": datetime.now(timezone.utc),
-                    "updated_by": updated_by
+                    "updated_by": updated_by,
                 },
-                synchronize_session=False
+                synchronize_session=False,
             )
         )
 
@@ -474,7 +429,7 @@ class TaskRepository(BaseRepository[Task]):
                 action="bulk_status_update",
                 details=f'{{"new_status": "{new_status.value}"}}',
                 changed_by=updated_by,
-                changed_at=datetime.now(timezone.utc)
+                changed_at=datetime.now(timezone.utc),
             )
             self.db.add(history)
 
