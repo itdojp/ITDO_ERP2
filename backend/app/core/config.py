@@ -95,6 +95,9 @@ class Settings(BaseSettings):
     # 開発環境フラグ
     DEBUG: bool = False
     ENVIRONMENT: str = "development"
+    TESTING: bool = False
+    LOG_LEVEL: str = "INFO"
+    API_V1_PREFIX: str = "/api/v1"
 
     model_config = {"env_file": ".env", "case_sensitive": True}
 
