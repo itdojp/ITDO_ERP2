@@ -1,6 +1,6 @@
 """Project model implementation with enhanced features."""
 
-from datetime import date
+from datetime import date, datetime
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
@@ -141,7 +141,7 @@ class Project(SoftDeletableModel):
     progress_percentage: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0, comment="Progress percentage (0-100)"
     )
-    completion_date: Mapped[Optional[DateTime]] = mapped_column(
+    completion_date: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True, comment="Completion date"
     )
 

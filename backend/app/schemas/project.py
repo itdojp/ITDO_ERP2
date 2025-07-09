@@ -19,7 +19,7 @@ class ProjectBase(BaseModel):
     status: str = Field(ProjectStatus.PLANNING.value, description="Project status")
     priority: str = Field(ProjectPriority.MEDIUM.value, description="Project priority")
     project_type: str = Field(ProjectType.INTERNAL.value, description="Project type")
-    start_date: date = Field(..., description="Project start date")
+    start_date: Optional[date] = Field(None, description="Project start date")
     end_date: Optional[date] = Field(None, description="Planned end date")
     budget: Optional[Decimal] = Field(None, ge=0, description="Total budget")
     estimated_hours: Optional[float] = Field(None, ge=0, description="Estimated hours")
@@ -65,6 +65,7 @@ class ProjectCreate(ProjectBase):
     organization_id: int = Field(..., description="Organization ID")
     department_id: Optional[int] = Field(None, description="Department ID")
     manager_id: Optional[int] = Field(None, description="Project manager ID")
+    start_date: date = Field(..., description="Project start date")
 
 
 class ProjectUpdate(BaseModel):
@@ -169,7 +170,7 @@ class ProjectResponse(ProjectBase):
     member_count: int
     task_count: int
     progress_percentage: float
-
+    
     # Extended fields
     department_id: Optional[int]
     owner_id: int

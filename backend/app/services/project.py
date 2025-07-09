@@ -1,6 +1,7 @@
 """Project service implementation with comprehensive CRUD operations."""
 
 from datetime import date, datetime, timezone
+from decimal import Decimal
 from typing import Any, Dict, List, Optional, Tuple
 
 from sqlalchemy import and_, or_
@@ -927,7 +928,7 @@ class ProjectService:
             project_type=project.project_type,
             start_date=project.start_date,
             end_date=project.end_date,
-            budget=project.budget,
+            budget=Decimal(str(project.budget)) if project.budget is not None else None,
             estimated_hours=project.estimated_hours,
             is_public=project.is_public,
             tags=project.tags,
@@ -944,7 +945,7 @@ class ProjectService:
             manager_id=project.manager_id,
             actual_start_date=project.actual_start_date,
             actual_end_date=project.actual_end_date,
-            spent_budget=project.spent_budget,
+            spent_budget=Decimal(str(project.spent_budget)) if project.spent_budget is not None else None,
             actual_hours=project.actual_hours,
             completion_date=project.completion_date,
             is_active=project.is_active,
