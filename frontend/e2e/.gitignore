@@ -1,0 +1,24 @@
+# Playwright test artifacts
+test-results/
+playwright-report/
+playwright/.cache/
+results.xml
+
+# Screenshots and videos
+screenshots/
+videos/
+
+# Trace files
+trace/
+
+# Environment files
+.env.local
+.env.test
+
+# Auth state
+auth/
+.auth/
+
+# Temporary files
+tmp/
+temp/
