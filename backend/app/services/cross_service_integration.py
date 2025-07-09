@@ -1,7 +1,7 @@
 """Cross-service integration for permission system."""
 
 import asyncio
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from sqlalchemy.orm import Session
 
@@ -39,7 +39,7 @@ class CrossServiceIntegrator:
         transferred_by: Optional[UserId] = None,
     ) -> Dict[str, Any]:
         """Handle user organization change with permission updates."""
-        results = {
+        results: Dict[str, Any] = {
             "user_id": user_id,
             "old_organization_id": old_organization_id,
             "new_organization_id": new_organization_id,
@@ -88,7 +88,7 @@ class CrossServiceIntegrator:
         # Deactivate old roles
         for user_role in old_roles:
             user_role.is_active = False
-            results["roles_removed"] += 1
+            results["roles_removed"] = results["roles_removed"] + 1
 
         # Create new role assignments
         for old_user_role, new_role in transferable_roles:
@@ -103,7 +103,7 @@ class CrossServiceIntegrator:
                 notes=f"Transferred from org {old_organization_id}",
             )
             self.db.add(new_user_role)
-            results["roles_transferred"] += 1
+            results["roles_transferred"] = results["roles_transferred"] + 1
 
         # Add default role if no roles transferred
         if not transferable_roles:
@@ -124,7 +124,7 @@ class CrossServiceIntegrator:
                     notes="Default role assigned during organization transfer",
                 )
                 self.db.add(default_user_role)
-                results["roles_added"] += 1
+                results["roles_added"] = results["roles_added"] + 1
 
         # Commit changes
         self.db.commit()
@@ -149,7 +149,7 @@ class CrossServiceIntegrator:
         transferred_by: Optional[UserId] = None,
     ) -> Dict[str, Any]:
         """Handle user department transfer with permission inheritance."""
-        results = {
+        results: Dict[str, Any] = {
             "user_id": user_id,
             "old_department_id": old_department_id,
             "new_department_id": new_department_id,
@@ -176,7 +176,7 @@ class CrossServiceIntegrator:
             # Check if role is department-specific
             if user_role.role.role_type == "department":
                 user_role.department_id = new_department_id
-                results["roles_updated"] += 1
+                results["roles_updated"] = results["roles_updated"] + 1
 
         # Check for department-specific roles to inherit
         dept_roles = self.db.query(Role).filter(
@@ -206,7 +206,7 @@ class CrossServiceIntegrator:
                     notes="Inherited from department transfer",
                 )
                 self.db.add(new_user_role)
-                results["permissions_inherited"] += 1
+                results["permissions_inherited"] = results["permissions_inherited"] + 1
 
         self.db.commit()
 
@@ -221,7 +221,7 @@ class CrossServiceIntegrator:
         self, organization_id: OrganizationId, changed_by: Optional[UserId] = None
     ) -> Dict[str, Any]:
         """Handle organization hierarchy changes and recalculate permissions."""
-        results = {
+        results: Dict[str, Any] = {
             "organization_id": organization_id,
             "users_affected": 0,
             "roles_recalculated": 0,
@@ -253,9 +253,9 @@ class CrossServiceIntegrator:
                     await self.permission_service.invalidate_user_permission_cache(
                         user.id, organization_id
                     )
-                    results["roles_recalculated"] += 1
+                    results["roles_recalculated"] = results["roles_recalculated"] + 1
 
-            results["users_affected"] += 1
+            results["users_affected"] = results["users_affected"] + 1
 
         # Invalidate organization cache
         await self.permission_service.invalidate_organization_cache(organization_id)
@@ -347,7 +347,7 @@ class CrossServiceIntegrator:
         )
 
         # Build base query constraints
-        constraints = {
+        constraints: Dict[str, Any] = {
             "organization_id": organization_id,
         }
 
@@ -384,7 +384,7 @@ class CrossServiceIntegrator:
         role_changes: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Bulk update permissions for multiple users."""
-        results = {
+        results: Dict[str, Any] = {
             "operation": operation,
             "total_users": len(user_ids),
             "successful": 0,
@@ -412,10 +412,10 @@ class CrossServiceIntegrator:
             completed = await asyncio.gather(*tasks, return_exceptions=True)
             for result in completed:
                 if isinstance(result, Exception):
-                    results["failed"] += 1
+                    results["failed"] = results["failed"] + 1
                     results["errors"].append(str(result))
                 else:
-                    results["successful"] += 1
+                    results["successful"] = results["successful"] + 1
 
         return results
 
@@ -465,7 +465,7 @@ class CrossServiceIntegrator:
 
     def get_service_integration_health(self) -> Dict[str, Any]:
         """Get health status of cross-service integration."""
-        health = {
+        health: Dict[str, Any] = {
             "status": "healthy",
             "services": {},
             "cache_status": "unknown",
