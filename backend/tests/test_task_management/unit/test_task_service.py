@@ -82,14 +82,15 @@ class TestTaskService:
         mock_task.estimated_hours = None
         mock_task.actual_hours = None
         
-        # Mock permission service
+        # Mock permission service and audit logger
         with patch('app.services.task.permission_service') as mock_permission:
             mock_permission.require_permission.return_value = None  # Allow permissions
             
-            # Act
-            with patch.object(self.service, '_task_to_response') as mock_response:
-                mock_response.return_value = MagicMock()
-                result = self.service.create_task(task_data, self.test_user, self.db)
+            with patch('app.services.task.AuditLogger.log') as mock_audit_log:
+                # Act
+                with patch.object(self.service, '_task_to_response') as mock_response:
+                    mock_response.return_value = MagicMock()
+                    result = self.service.create_task(task_data, self.test_user, self.db)
         
         # Assert
         self.db.add.assert_called_once()
@@ -206,14 +207,15 @@ class TestTaskService:
         mock_task.reporter_id = self.test_user.id  # User owns task
         self.db.query.return_value.filter.return_value.first.return_value = mock_task
         
-        # Mock permission service
+        # Mock permission service and audit logger
         with patch('app.services.task.permission_service') as mock_permission:
             mock_permission.has_permission.return_value = False  # No general permission, but has owner access
             
-            # Act
-            with patch.object(self.service, '_task_to_response') as mock_response:
-                mock_response.return_value = MagicMock()
-                result = self.service.update_task(task_id, update_data, self.test_user, self.db)
+            with patch('app.services.task.AuditLogger.log') as mock_audit_log:
+                # Act
+                with patch.object(self.service, '_task_to_response') as mock_response:
+                    mock_response.return_value = MagicMock()
+                    result = self.service.update_task(task_id, update_data, self.test_user, self.db)
         
         # Assert
         assert mock_task.title == update_data.title
@@ -267,12 +269,13 @@ class TestTaskService:
         mock_task.reporter_id = self.test_user.id  # User owns task (creator)
         self.db.query.return_value.filter.return_value.first.return_value = mock_task
         
-        # Mock permission service
+        # Mock permission service and audit logger
         with patch('app.services.task.permission_service') as mock_permission:
             mock_permission.has_permission.return_value = False  # No general permission, but is creator
             
-            # Act
-            result = self.service.delete_task(task_id, self.test_user, self.db)
+            with patch('app.services.task.AuditLogger.log') as mock_audit_log:
+                # Act
+                result = self.service.delete_task(task_id, self.test_user, self.db)
         
         # Assert
         assert result is True
@@ -286,15 +289,29 @@ class TestTaskService:
         # Arrange
         task_id = 1
         
-        # Mock existing task
+        # Mock existing task owned by user
         mock_task = MagicMock(spec=Task)
         mock_task.id = task_id
+        mock_task.title = "Test Task"
+        mock_task.description = "Test Description"
+        mock_task.status = "not_started"
+        mock_task.priority = "medium"
+        mock_task.project_id = 1
+        mock_task.assignee_id = None
+        mock_task.due_date = None
+        mock_task.estimated_hours = None
+        mock_task.reporter_id = self.test_user.id  # User owns task (creator)
         self.db.query.return_value.filter.return_value.first.return_value = mock_task
         
-        # Note: Current implementation doesn't check for dependencies
-        # This test documents expected behavior for future implementation
-        # Act
-        result = self.service.delete_task(task_id, self.test_user, self.db)
+        # Mock permission service and audit logger
+        with patch('app.services.task.permission_service') as mock_permission:
+            mock_permission.has_permission.return_value = False  # No general permission, but is creator
+            
+            with patch('app.services.task.AuditLogger.log') as mock_audit_log:
+                # Note: Current implementation doesn't check for dependencies
+                # This test documents expected behavior for future implementation
+                # Act
+                result = self.service.delete_task(task_id, self.test_user, self.db)
         
         # Assert - currently allows deletion
         assert result is True
@@ -603,18 +620,20 @@ class TestTaskAssignment:
         # Mock existing task
         mock_task = MagicMock(spec=Task)
         mock_task.id = task_id
-        self.db.query.return_value.filter.return_value.first.return_value = mock_task
+        mock_task.reporter_id = self.test_user.id  # User is creator
+        mock_task.assignee_id = None  # Currently unassigned
         
         # Mock assignee user
         mock_assignee = MagicMock(spec=User)
         mock_assignee.id = assignee_id
-        # Need to mock nested query for User lookup
-        user_query = MagicMock()
-        user_query.filter.return_value.first.return_value = mock_assignee
+        mock_assignee.organization_id = self.test_user.organization_id
         
-        # First call returns task query, second call returns user query
+        # Mock queries
         task_query = MagicMock()
         task_query.filter.return_value.first.return_value = mock_task
+        
+        user_query = MagicMock()
+        user_query.filter.return_value.first.return_value = mock_assignee
         
         call_count = 0
         def query_side_effect(model):
@@ -627,10 +646,15 @@ class TestTaskAssignment:
         
         self.db.query.side_effect = query_side_effect
         
-        # Act
-        with patch.object(self.service, '_task_to_response') as mock_response:
-            mock_response.return_value = MagicMock()
-            result = self.service.assign_user(task_id, assignee_id, self.test_user, self.db)
+        # Mock permission service and audit logger
+        with patch('app.services.task.permission_service') as mock_permission:
+            mock_permission.has_permission.return_value = False  # No general permission, but is creator
+            
+            with patch('app.services.task.AuditLogger.log') as mock_audit_log:
+                # Act
+                with patch.object(self.service, '_task_to_response') as mock_response:
+                    mock_response.return_value = MagicMock()
+                    result = self.service.assign_user(task_id, assignee_id, self.test_user, self.db)
         
         # Assert
         assert mock_task.assignee_id == assignee_id
@@ -680,18 +704,19 @@ class TestTaskAssignment:
         # Mock existing task
         mock_task = MagicMock(spec=Task)
         mock_task.id = task_id
-        self.db.query.return_value.filter.return_value.first.return_value = mock_task
+        mock_task.reporter_id = self.test_user.id  # User is creator
         
         # Mock assignee user from different org
         mock_assignee = MagicMock(spec=User)
         mock_assignee.id = assignee_id
         mock_assignee.organization_id = 2  # Different org
-        user_query = MagicMock()
-        user_query.filter.return_value.first.return_value = mock_assignee
         
-        # First call returns task query, second call returns user query
+        # Mock queries
         task_query = MagicMock()
         task_query.filter.return_value.first.return_value = mock_task
+        
+        user_query = MagicMock()
+        user_query.filter.return_value.first.return_value = mock_assignee
         
         call_count = 0
         def query_side_effect(model):
@@ -704,15 +729,14 @@ class TestTaskAssignment:
         
         self.db.query.side_effect = query_side_effect
 
-        # Act & Assert
-        # Note: Current implementation doesn't check organization
-        with patch.object(self.service, '_task_to_response') as mock_response:
-            mock_response.return_value = MagicMock()
-            result = self.service.assign_user(task_id, assignee_id, self.test_user, self.db)
-        
-        # Currently allows assignment across orgs
-        assert mock_task.assignee_id == assignee_id
-        # TODO: Should raise PermissionDenied when org check is implemented
+        # Mock permission service
+        with patch('app.services.task.permission_service') as mock_permission:
+            mock_permission.has_permission.return_value = False  # No general permission, but is creator
+            
+            # Act & Assert
+            # Implementation now checks organization and should raise PermissionDenied
+            with pytest.raises(PermissionDenied, match="Cannot assign task to user from different organization"):
+                self.service.assign_user(task_id, assignee_id, self.test_user, self.db)
 
     def test_unassign_user_success(self):
         """Test TASK-U-019: 担当者解除成功."""
@@ -744,10 +768,13 @@ class TestTaskAssignment:
         # Mock task
         mock_task = MagicMock(spec=Task)
         mock_task.id = task_id
+        mock_task.reporter_id = self.test_user.id  # User is creator
+        mock_task.assignee_id = None
         
         # Mock assignee user
         mock_assignee = MagicMock(spec=User)
         mock_assignee.id = assignee_ids[0]  # First assignee
+        mock_assignee.organization_id = self.test_user.organization_id
         
         # Mock queries
         task_query = MagicMock()
@@ -767,12 +794,17 @@ class TestTaskAssignment:
         
         self.db.query.side_effect = query_side_effect
         
-        # Act
-        with patch.object(self.service, '_task_to_response') as mock_response:
-            mock_response.return_value = MagicMock()
-            result = self.service.bulk_assign_users(
-                task_id=task_id, assignee_ids=assignee_ids, user=self.test_user, db=self.db
-            )
+        # Mock permission service and audit logger
+        with patch('app.services.task.permission_service') as mock_permission:
+            mock_permission.has_permission.return_value = False  # No general permission, but is creator
+            
+            with patch('app.services.task.AuditLogger.log') as mock_audit_log:
+                # Act
+                with patch.object(self.service, '_task_to_response') as mock_response:
+                    mock_response.return_value = MagicMock()
+                    result = self.service.bulk_assign_users(
+                        task_id=task_id, assignee_ids=assignee_ids, user=self.test_user, db=self.db
+                    )
         
         # Assert - bulk_assign_users only assigns first user
         assert mock_task.assignee_id == 2  # First assignee
