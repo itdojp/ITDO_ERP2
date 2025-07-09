@@ -456,4 +456,547 @@ def get_sub_departments(
     else:
         sub_departments = service.get_direct_sub_departments(department_id)
 
-    return [DepartmentBasic.model_validate(dept.to_dict()) for dept in sub_departments]
+    return [DepartmentBasic.model_validate(dept, from_attributes=True) for dept in sub_departments]
+
+
+@router.get(
+    "/{department_id}/tree",
+    response_model=DepartmentTree,
+    responses={
+        401: {"model": ErrorResponse, "description": "Unauthorized"},
+        404: {"model": ErrorResponse, "description": "Department not found"},
+    },
+)
+def get_department_subtree(
+    department_id: int = Path(..., description="Department ID"),
+    max_depth: Optional[int] = Query(None, description="Maximum depth to retrieve"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> DepartmentTree:
+    """Get department subtree starting from specified department."""
+    service = DepartmentService(db)
+    
+    department = service.get_department(department_id)
+    if not department:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Department not found"
+        )
+    
+    # Build subtree recursively
+    def build_subtree(dept_id: int, current_depth: int = 0) -> DepartmentTree:
+        dept = service.get_department(dept_id)
+        if not dept:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, 
+                detail=f"Department {dept_id} not found"
+            )
+        
+        children = []
+        if max_depth is None or current_depth < max_depth:
+            sub_depts = service.get_direct_sub_departments(dept_id)
+            for sub in sub_depts:
+                children.append(build_subtree(sub.id, current_depth + 1))
+        
+        manager_name = None
+        if dept.manager_id:
+            manager = db.query(User).filter(User.id == dept.manager_id).first()
+            if manager:
+                manager_name = manager.full_name
+        
+        return DepartmentTree(
+            id=dept.id,
+            code=dept.code,
+            name=dept.name,
+            name_en=dept.name_en,
+            is_active=dept.is_active,
+            level=current_depth,
+            parent_id=dept.parent_id,
+            manager_id=dept.manager_id,
+            manager_name=manager_name,
+            user_count=service.get_department_user_count(dept.id),
+            children=children,
+        )
+    
+    return build_subtree(department_id)
+
+
+@router.get(
+    "/{department_id}/children",
+    response_model=List[DepartmentBasic],
+    responses={
+        401: {"model": ErrorResponse, "description": "Unauthorized"},
+        404: {"model": ErrorResponse, "description": "Department not found"},
+    },
+)
+def get_direct_children(
+    department_id: int = Path(..., description="Department ID"),
+    active_only: bool = Query(True, description="Only return active departments"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> List[DepartmentBasic]:
+    """Get direct children of a department (one level only)."""
+    service = DepartmentService(db)
+    
+    department = service.get_department(department_id)
+    if not department:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Department not found"
+        )
+    
+    children = service.get_direct_sub_departments(department_id)
+    
+    if active_only:
+        children = [child for child in children if child.is_active]
+    
+    return [DepartmentBasic.model_validate(child, from_attributes=True) for child in children]
+
+
+@router.post(
+    "/{department_id}/move",
+    response_model=DepartmentResponse,
+    responses={
+        401: {"model": ErrorResponse, "description": "Unauthorized"},
+        403: {"model": ErrorResponse, "description": "Insufficient permissions"},
+        404: {"model": ErrorResponse, "description": "Department not found"},
+        400: {"model": ErrorResponse, "description": "Invalid move operation"},
+    },
+)
+def move_department(
+    department_id: int = Path(..., description="Department ID to move"),
+    new_parent_id: Optional[int] = Body(None, description="New parent department ID (null for root)"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> Union[DepartmentResponse, JSONResponse]:
+    """Move department to a new parent in the hierarchy."""
+    service = DepartmentService(db)
+    
+    # Check if department exists
+    department = service.get_department(department_id)
+    if not department:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Department not found"
+        )
+    
+    # Check permissions
+    if not current_user.is_superuser:
+        if not service.user_has_permission(
+            current_user.id, "departments.update", department.organization_id
+        ):
+            return JSONResponse(
+                status_code=status.HTTP_403_FORBIDDEN,
+                content=ErrorResponse(
+                    detail="Insufficient permissions to move department",
+                    code="PERMISSION_DENIED"
+                ).model_dump(),
+            )
+    
+    # If new parent is specified, verify it exists and is in same organization
+    if new_parent_id is not None:
+        new_parent = service.get_department(new_parent_id)
+        if not new_parent:
+            return JSONResponse(
+                status_code=status.HTTP_404_NOT_FOUND,
+                content=ErrorResponse(
+                    detail="New parent department not found",
+                    code="PARENT_NOT_FOUND"
+                ).model_dump(),
+            )
+        
+        if new_parent.organization_id != department.organization_id:
+            return JSONResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                content=ErrorResponse(
+                    detail="Cannot move department to different organization",
+                    code="CROSS_ORG_MOVE"
+                ).model_dump(),
+            )
+    
+    try:
+        # Perform the move
+        updated_department = service.move_department(department_id, new_parent_id)
+        return service.get_department_response(updated_department)
+    except ValueError as e:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content=ErrorResponse(
+                detail=str(e),
+                code="INVALID_MOVE"
+            ).model_dump(),
+        )
+    except Exception as e:
+        if "circular reference" in str(e).lower():
+            return JSONResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                content=ErrorResponse(
+                    detail="Cannot create circular reference in hierarchy",
+                    code="CIRCULAR_REFERENCE"
+                ).model_dump(),
+            )
+        elif "maximum depth" in str(e).lower():
+            return JSONResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                content=ErrorResponse(
+                    detail="Maximum hierarchy depth exceeded",
+                    code="MAX_DEPTH_EXCEEDED"
+                ).model_dump(),
+            )
+        raise
+
+
+@router.get(
+    "/{department_id}/permissions",
+    response_model=Dict[str, List[str]],
+    responses={
+        401: {"model": ErrorResponse, "description": "Unauthorized"},
+        404: {"model": ErrorResponse, "description": "Department not found"},
+    },
+)
+def get_department_permissions(
+    department_id: int = Path(..., description="Department ID"),
+    user_id: Optional[int] = Query(None, description="Specific user ID to check permissions for"),
+    include_inherited: bool = Query(True, description="Include inherited permissions"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> Dict[str, List[str]]:
+    """Get permissions for a department, optionally for a specific user."""
+    service = DepartmentService(db)
+    
+    department = service.get_department(department_id)
+    if not department:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Department not found"
+        )
+    
+    # If no specific user is requested, return current user's permissions
+    target_user_id = user_id if user_id else current_user.id
+    
+    # Check if current user can view permissions
+    if not current_user.is_superuser and target_user_id != current_user.id:
+        if not service.user_has_permission(
+            current_user.id, "departments.view_permissions", department.organization_id
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Insufficient permissions to view department permissions"
+            )
+    
+    # Get permissions
+    direct_permissions = service.get_user_department_permissions(target_user_id, department_id)
+    
+    result = {
+        "direct_permissions": direct_permissions,
+    }
+    
+    if include_inherited:
+        effective_permissions = service.get_user_effective_permissions(
+            target_user_id, department_id
+        )
+        inherited_permissions = list(set(effective_permissions) - set(direct_permissions))
+        result["inherited_permissions"] = inherited_permissions
+        result["effective_permissions"] = effective_permissions
+        
+        # Get inheritance chain
+        inheritance_chain = service.get_permission_inheritance_chain(department_id)
+        result["inheritance_chain"] = [
+            {"id": dept.id, "name": dept.name, "depth": dept.depth}
+            for dept in inheritance_chain
+        ]
+    
+    return result
+
+
+# Department-Task Integration Endpoints
+
+@router.get(
+    "/{department_id}/tasks",
+    response_model=List[Dict[str, Any]],
+    responses={
+        401: {"model": ErrorResponse, "description": "Unauthorized"},
+        404: {"model": ErrorResponse, "description": "Department not found"},
+    },
+)
+def get_department_tasks(
+    department_id: int = Path(..., description="Department ID"),
+    include_inherited: bool = Query(True, description="Include inherited tasks"),
+    include_delegated: bool = Query(True, description="Include delegated tasks"),
+    status: Optional[List[str]] = Query(None, description="Filter by task status"),
+    priority: Optional[List[str]] = Query(None, description="Filter by task priority"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> List[Dict[str, Any]]:
+    """Get all tasks assigned to a department."""
+    service = DepartmentService(db)
+    
+    department = service.get_department(department_id)
+    if not department:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Department not found"
+        )
+    
+    # Get tasks
+    tasks = service.get_department_tasks(
+        department_id,
+        include_inherited=include_inherited,
+        include_delegated=include_delegated,
+        status_filter=status,
+        priority_filter=priority,
+    )
+    
+    # Format response with task details and assignment info
+    result = []
+    for task in tasks:
+        # Get assignment details
+        assignments = [
+            a for a in task.department_assignments 
+            if a.department_id == department_id and a.is_active
+        ]
+        
+        assignment_info = None
+        if assignments:
+            assignment = assignments[0]
+            assignment_info = {
+                "assignment_type": assignment.assignment_type,
+                "visibility_scope": assignment.visibility_scope,
+                "assigned_at": assignment.assigned_at.isoformat() if assignment.assigned_at else None,
+                "delegated_from": assignment.delegated_from_department_id,
+            }
+        
+        result.append({
+            "id": task.id,
+            "title": task.title,
+            "description": task.description,
+            "status": task.status,
+            "priority": task.priority,
+            "due_date": task.due_date.isoformat() if task.due_date else None,
+            "project_id": task.project_id,
+            "assignee_id": task.assignee_id,
+            "reporter_id": task.reporter_id,
+            "assignment_info": assignment_info,
+        })
+    
+    return result
+
+
+@router.post(
+    "/{department_id}/tasks/{task_id}",
+    response_model=Dict[str, str],
+    responses={
+        401: {"model": ErrorResponse, "description": "Unauthorized"},
+        403: {"model": ErrorResponse, "description": "Insufficient permissions"},
+        404: {"model": ErrorResponse, "description": "Department or task not found"},
+        400: {"model": ErrorResponse, "description": "Invalid assignment"},
+    },
+)
+def assign_task_to_department(
+    department_id: int = Path(..., description="Department ID"),
+    task_id: int = Path(..., description="Task ID"),
+    assignment_type: str = Body("department", description="Assignment type"),
+    visibility_scope: str = Body("department", description="Visibility scope"),
+    notes: Optional[str] = Body(None, description="Assignment notes"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> Union[Dict[str, str], JSONResponse]:
+    """Assign a task to a department."""
+    service = DepartmentService(db)
+    
+    department = service.get_department(department_id)
+    if not department:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Department not found"
+        )
+    
+    # Check permissions
+    if not current_user.is_superuser:
+        if not service.user_has_permission(
+            current_user.id, "tasks.assign", department.organization_id
+        ):
+            return JSONResponse(
+                status_code=status.HTTP_403_FORBIDDEN,
+                content=ErrorResponse(
+                    detail="Insufficient permissions to assign tasks",
+                    code="PERMISSION_DENIED"
+                ).model_dump(),
+            )
+    
+    try:
+        assignment = service.assign_task_to_department(
+            task_id=task_id,
+            department_id=department_id,
+            assignment_type=assignment_type,
+            visibility_scope=visibility_scope,
+            assigned_by=current_user.id,
+            notes=notes,
+        )
+        return {"message": "Task assigned successfully", "assignment_id": str(assignment.id)}
+    except ValueError as e:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content=ErrorResponse(detail=str(e), code="NOT_FOUND").model_dump(),
+        )
+    except Exception as e:
+        if "already assigned" in str(e).lower():
+            return JSONResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                content=ErrorResponse(
+                    detail="Task is already assigned to this department",
+                    code="ALREADY_ASSIGNED"
+                ).model_dump(),
+            )
+        raise
+
+
+@router.post(
+    "/{department_id}/tasks/{task_id}/delegate",
+    response_model=Dict[str, str],
+    responses={
+        401: {"model": ErrorResponse, "description": "Unauthorized"},
+        403: {"model": ErrorResponse, "description": "Insufficient permissions"},
+        404: {"model": ErrorResponse, "description": "Department or task not found"},
+        400: {"model": ErrorResponse, "description": "Invalid delegation"},
+    },
+)
+def delegate_task_to_department(
+    department_id: int = Path(..., description="Source department ID"),
+    task_id: int = Path(..., description="Task ID"),
+    to_department_id: int = Body(..., description="Target department ID"),
+    notes: Optional[str] = Body(None, description="Delegation notes"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> Union[Dict[str, str], JSONResponse]:
+    """Delegate a task from one department to another."""
+    service = DepartmentService(db)
+    
+    # Verify source department
+    source_dept = service.get_department(department_id)
+    if not source_dept:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Source department not found"
+        )
+    
+    # Check permissions
+    if not current_user.is_superuser:
+        if not service.user_has_permission(
+            current_user.id, "tasks.delegate", source_dept.organization_id
+        ):
+            return JSONResponse(
+                status_code=status.HTTP_403_FORBIDDEN,
+                content=ErrorResponse(
+                    detail="Insufficient permissions to delegate tasks",
+                    code="PERMISSION_DENIED"
+                ).model_dump(),
+            )
+    
+    try:
+        delegation = service.delegate_task(
+            task_id=task_id,
+            from_department_id=department_id,
+            to_department_id=to_department_id,
+            delegated_by=current_user.id,
+            notes=notes,
+        )
+        return {
+            "message": "Task delegated successfully",
+            "delegation_id": str(delegation.id)
+        }
+    except ValueError as e:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content=ErrorResponse(detail=str(e), code="NOT_FOUND").model_dump(),
+        )
+    except Exception as e:
+        if "not assigned" in str(e).lower():
+            return JSONResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                content=ErrorResponse(
+                    detail="Task is not assigned to the source department",
+                    code="NOT_ASSIGNED"
+                ).model_dump(),
+            )
+        elif "collaboration" in str(e).lower() or "hierarchy" in str(e).lower():
+            return JSONResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                content=ErrorResponse(
+                    detail=str(e),
+                    code="INVALID_DELEGATION"
+                ).model_dump(),
+            )
+        raise
+
+
+@router.delete(
+    "/{department_id}/tasks/{task_id}",
+    response_model=DeleteResponse,
+    responses={
+        401: {"model": ErrorResponse, "description": "Unauthorized"},
+        403: {"model": ErrorResponse, "description": "Insufficient permissions"},
+        404: {"model": ErrorResponse, "description": "Department or task not found"},
+    },
+)
+def remove_task_from_department(
+    department_id: int = Path(..., description="Department ID"),
+    task_id: int = Path(..., description="Task ID"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> Union[DeleteResponse, JSONResponse]:
+    """Remove task assignment from department."""
+    service = DepartmentService(db)
+    
+    department = service.get_department(department_id)
+    if not department:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Department not found"
+        )
+    
+    # Check permissions
+    if not current_user.is_superuser:
+        if not service.user_has_permission(
+            current_user.id, "tasks.unassign", department.organization_id
+        ):
+            return JSONResponse(
+                status_code=status.HTTP_403_FORBIDDEN,
+                content=ErrorResponse(
+                    detail="Insufficient permissions to remove task assignments",
+                    code="PERMISSION_DENIED"
+                ).model_dump(),
+            )
+    
+    success = service.remove_task_from_department(task_id, department_id, current_user.id)
+    
+    if not success:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content=ErrorResponse(
+                detail="Task assignment not found",
+                code="ASSIGNMENT_NOT_FOUND"
+            ).model_dump(),
+        )
+    
+    return DeleteResponse(
+        deleted=True,
+        message="Task assignment removed successfully"
+    )
+
+
+@router.get(
+    "/{department_id}/task-statistics",
+    response_model=Dict[str, Any],
+    responses={
+        401: {"model": ErrorResponse, "description": "Unauthorized"},
+        404: {"model": ErrorResponse, "description": "Department not found"},
+    },
+)
+def get_department_task_statistics(
+    department_id: int = Path(..., description="Department ID"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> Dict[str, Any]:
+    """Get task statistics for a department."""
+    service = DepartmentService(db)
+    
+    department = service.get_department(department_id)
+    if not department:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Department not found"
+        )
+    
+    return service.get_department_task_statistics(department_id)

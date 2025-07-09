@@ -565,7 +565,7 @@ class TaskService:
             id=task.id,
             title=task.title,
             description=task.description,
-            project=project_info,
+            project_id=task.project_id,
             parent_task_id=task.parent_task_id,
             status=status,
             priority=priority,
@@ -576,5 +576,8 @@ class TaskService:
             tags=[],  # TODO: Implement tags
             created_at=task.created_at,
             updated_at=task.updated_at,
-            created_by=created_by,
+            created_by=task.reporter_id if task.reporter_id else task.created_by,
+            updated_by=task.updated_by,
+            organization_id=task.project.organization_id if task.project else 1,
+            project=project_info,
         )

@@ -1,5 +1,6 @@
 """Organization repository implementation."""
 
+import json
 from typing import Any, Dict, List, Optional
 
 from sqlalchemy import func, or_, select
@@ -53,25 +54,19 @@ class OrganizationRepository(
 
     def get_all_subsidiaries(self, parent_id: OrganizationId) -> List[Organization]:
         """Get all subsidiaries recursively."""
-        # Use CTE for recursive query
-        org_cte = (
-            select(self.model)
-            .where(self.model.parent_id == parent_id)
-            .cte(recursive=True)
-        )
-        org_alias = org_cte.alias()
-
-        org_cte = org_cte.union_all(
-            select(self.model).where(self.model.parent_id.in_(select(org_alias.c.id)))
-        )
-
-        return list(
-            self.db.scalars(
-                select(self.model)
-                .join(org_cte, self.model.id == org_cte.c.id)
-                .where(~self.model.is_deleted)
-            )
-        )
+        # Simple recursive approach without CTE
+        result = []
+        to_process = [parent_id]
+        
+        while to_process:
+            current_parent = to_process.pop(0)
+            subsidiaries = self.get_subsidiaries(current_parent)
+            
+            for sub in subsidiaries:
+                result.append(sub)
+                to_process.append(sub.id)
+        
+        return result
 
     def get_root_organizations(self) -> List[Organization]:
         """Get organizations without parent (root level)."""
@@ -148,12 +143,41 @@ class OrganizationRepository(
         count = self.db.scalar(query) or 0
         return count == 0
 
+    def create(self, obj_in: OrganizationCreate) -> Organization:
+        """Create organization with JSON conversion for settings."""
+        obj_data = obj_in.model_dump()
+        # Convert settings dict to JSON string for database
+        if "settings" in obj_data and isinstance(obj_data["settings"], dict):
+            obj_data["settings"] = json.dumps(obj_data["settings"])
+        
+        db_obj = self.model(**obj_data)
+        self.db.add(db_obj)
+        self.db.commit()
+        self.db.refresh(db_obj)
+        return db_obj
+
+    def update(self, id: int, obj_in: OrganizationUpdate) -> Optional[Organization]:
+        """Update organization with JSON conversion for settings."""
+        db_obj = self.get(id)
+        if not db_obj:
+            return None
+            
+        obj_data = obj_in.model_dump(exclude_unset=True)
+        # Convert settings dict to JSON string for database
+        if "settings" in obj_data and isinstance(obj_data["settings"], dict):
+            obj_data["settings"] = json.dumps(obj_data["settings"])
+            
+        for field, value in obj_data.items():
+            setattr(db_obj, field, value)
+            
+        self.db.commit()
+        self.db.refresh(db_obj)
+        return db_obj
+
     def update_settings(
         self, id: int, settings: Dict[str, Any]
     ) -> Optional[Organization]:
         """Update organization settings."""
-        import json
-
         org = self.get(id)
         if org:
             org.settings = json.dumps(settings)

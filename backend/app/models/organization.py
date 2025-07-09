@@ -165,6 +165,11 @@ class Organization(SoftDeletableModel):
     def is_parent(self) -> bool:
         """Check if this organization has subsidiaries."""
         return len(self.subsidiaries) > 0
+    
+    @property
+    def subsidiary_count(self) -> int:
+        """Get the number of direct subsidiaries."""
+        return len(self.subsidiaries)
 
     def get_all_subsidiaries(self) -> List["Organization"]:
         """Get all subsidiaries recursively."""

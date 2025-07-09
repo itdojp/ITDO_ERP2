@@ -549,6 +549,23 @@ class DepartmentService:
             raise BusinessLogicError(
                 "Cannot delete department that has active sub-departments"
             )
+        
+        # Check for active users
+        active_users = self.get_department_user_count(department_id)
+        if active_users > 0:
+            raise BusinessLogicError(
+                f"Cannot delete department with {active_users} active users. "
+                "Please reassign users before deletion."
+            )
+        
+        # Check for active task assignments
+        task_assignments = self.get_task_assignments_for_department(department_id)
+        active_assignments = [a for a in task_assignments if a.is_active]
+        if active_assignments:
+            raise BusinessLogicError(
+                f"Cannot delete department with {len(active_assignments)} active task assignments. "
+                "Please remove or reassign tasks before deletion."
+            )
 
     # Permission Inheritance Methods
     
@@ -1195,3 +1212,252 @@ class DepartmentService:
         self.db.flush()  # Don't commit yet, let the caller decide
         
         return assignment
+
+    def cascade_delete_department(self, department_id: DepartmentId, deleted_by: UserId) -> bool:
+        """Cascade delete department and handle sub-departments."""
+        department = self.get_department(department_id)
+        if not department:
+            return False
+        
+        # Get all sub-departments
+        sub_departments = self.get_all_sub_departments(department_id)
+        
+        # Delete sub-departments first (deepest first)
+        for sub_dept in reversed(sub_departments):
+            # Remove task assignments
+            self.db.query(DepartmentTask).filter(
+                DepartmentTask.department_id == sub_dept.id,
+                DepartmentTask.is_active == True
+            ).update({"is_active": False, "updated_by": deleted_by})
+            
+            # Soft delete sub-department
+            sub_dept.is_deleted = True
+            sub_dept.deleted_by = deleted_by
+            sub_dept.deleted_at = datetime.utcnow()
+        
+        # Remove task assignments from main department
+        self.db.query(DepartmentTask).filter(
+            DepartmentTask.department_id == department_id,
+            DepartmentTask.is_active == True
+        ).update({"is_active": False, "updated_by": deleted_by})
+        
+        # Delete main department
+        department.is_deleted = True
+        department.deleted_by = deleted_by
+        department.deleted_at = datetime.utcnow()
+        
+        self.db.commit()
+        return True
+
+    def promote_sub_departments(self, department_id: DepartmentId, promoted_by: UserId) -> List[Department]:
+        """Promote sub-departments to parent level when deleting a department."""
+        department = self.get_department(department_id)
+        if not department:
+            return []
+        
+        # Get direct sub-departments
+        sub_departments = self.get_direct_sub_departments(department_id)
+        
+        # Promote each sub-department to parent level
+        for sub_dept in sub_departments:
+            sub_dept.parent_id = department.parent_id
+            sub_dept.updated_by = promoted_by
+            sub_dept.updated_at = datetime.utcnow()
+            
+            # Update materialized path if using it
+            if hasattr(sub_dept, 'path'):
+                if department.parent_id:
+                    parent = self.get_department(department.parent_id)
+                    sub_dept.path = f"{parent.path}.{sub_dept.id}"
+                else:
+                    sub_dept.path = str(sub_dept.id)
+        
+        self.db.commit()
+        return sub_departments
+
+    def get_department_health_status(self, department_id: DepartmentId) -> Dict[str, Any]:
+        """Get comprehensive health status of a department."""
+        department = self.get_department(department_id)
+        if not department:
+            return {"status": "not_found"}
+        
+        # Get basic metrics
+        user_count = self.get_department_user_count(department_id)
+        task_stats = self.get_department_task_statistics(department_id)
+        sub_dept_count = len(self.get_direct_sub_departments(department_id))
+        
+        # Calculate health metrics
+        health_score = 100
+        issues = []
+        
+        # Check for inactive manager
+        if department.manager_id:
+            manager = self.db.query(User).filter(User.id == department.manager_id).first()
+            if not manager or not manager.is_active:
+                health_score -= 20
+                issues.append("inactive_manager")
+        else:
+            health_score -= 10
+            issues.append("no_manager")
+        
+        # Check for overdue tasks
+        if task_stats.get("overdue_tasks", 0) > 0:
+            overdue_ratio = task_stats["overdue_tasks"] / max(task_stats.get("total_tasks", 1), 1)
+            health_score -= min(30, int(overdue_ratio * 100))
+            issues.append("overdue_tasks")
+        
+        # Check for inactive status
+        if not department.is_active:
+            health_score -= 50
+            issues.append("inactive_department")
+        
+        # Check for empty department
+        if user_count == 0:
+            health_score -= 15
+            issues.append("no_users")
+        
+        # Determine status
+        if health_score >= 80:
+            status = "healthy"
+        elif health_score >= 60:
+            status = "warning"
+        elif health_score >= 40:
+            status = "critical"
+        else:
+            status = "unhealthy"
+        
+        return {
+            "status": status,
+            "health_score": max(0, health_score),
+            "issues": issues,
+            "metrics": {
+                "user_count": user_count,
+                "sub_department_count": sub_dept_count,
+                "total_tasks": task_stats.get("total_tasks", 0),
+                "overdue_tasks": task_stats.get("overdue_tasks", 0),
+            }
+        }
+
+    def bulk_update_department_status(
+        self, department_ids: List[DepartmentId], is_active: bool, updated_by: UserId
+    ) -> Dict[str, Any]:
+        """Bulk update status for multiple departments."""
+        results = {"success": [], "failed": [], "skipped": []}
+        
+        for dept_id in department_ids:
+            department = self.get_department(dept_id)
+            if not department:
+                results["failed"].append({"id": dept_id, "reason": "not_found"})
+                continue
+            
+            # Skip if already in desired state
+            if department.is_active == is_active:
+                results["skipped"].append({"id": dept_id, "reason": "already_in_state"})
+                continue
+            
+            # Check if deactivation is allowed
+            if not is_active:
+                # Check for active users
+                if self.get_department_user_count(dept_id) > 0:
+                    results["failed"].append({"id": dept_id, "reason": "has_active_users"})
+                    continue
+                
+                # Check for active tasks
+                task_stats = self.get_department_task_statistics(dept_id)
+                if task_stats.get("total_tasks", 0) > 0:
+                    results["failed"].append({"id": dept_id, "reason": "has_active_tasks"})
+                    continue
+            
+            # Update status
+            department.is_active = is_active
+            department.updated_by = updated_by
+            department.updated_at = datetime.utcnow()
+            
+            results["success"].append({"id": dept_id, "name": department.name})
+        
+        self.db.commit()
+        return results
+
+    def validate_department_hierarchy(self, organization_id: OrganizationId) -> Dict[str, Any]:
+        """Validate department hierarchy integrity for an organization."""
+        issues = []
+        
+        # Get all departments for organization
+        departments = self.db.query(Department).filter(
+            Department.organization_id == organization_id,
+            ~Department.is_deleted
+        ).all()
+        
+        dept_dict = {dept.id: dept for dept in departments}
+        
+        # Check for circular references
+        for dept in departments:
+            if dept.parent_id:
+                visited = set()
+                current = dept
+                while current.parent_id:
+                    if current.parent_id in visited:
+                        issues.append({
+                            "type": "circular_reference",
+                            "department_id": dept.id,
+                            "department_name": dept.name
+                        })
+                        break
+                    visited.add(current.id)
+                    current = dept_dict.get(current.parent_id)
+                    if not current:
+                        issues.append({
+                            "type": "missing_parent",
+                            "department_id": dept.id,
+                            "department_name": dept.name,
+                            "parent_id": dept.parent_id
+                        })
+                        break
+        
+        # Check for orphaned departments
+        for dept in departments:
+            if dept.parent_id and dept.parent_id not in dept_dict:
+                issues.append({
+                    "type": "orphaned_department",
+                    "department_id": dept.id,
+                    "department_name": dept.name,
+                    "missing_parent_id": dept.parent_id
+                })
+        
+        # Check for depth violations
+        MAX_DEPTH = 10
+        for dept in departments:
+            if not dept.parent_id:  # Root department
+                depth = self._calculate_depth(dept, dept_dict)
+                if depth > MAX_DEPTH:
+                    issues.append({
+                        "type": "max_depth_exceeded",
+                        "department_id": dept.id,
+                        "department_name": dept.name,
+                        "depth": depth
+                    })
+        
+        return {
+            "is_valid": len(issues) == 0,
+            "issues": issues,
+            "total_departments": len(departments),
+            "total_issues": len(issues)
+        }
+
+    def _calculate_depth(self, department: Department, dept_dict: Dict[int, Department]) -> int:
+        """Calculate maximum depth of department hierarchy."""
+        max_depth = 0
+        
+        def calculate_subtree_depth(dept: Department, current_depth: int) -> int:
+            children = [d for d in dept_dict.values() if d.parent_id == dept.id]
+            if not children:
+                return current_depth
+            
+            max_child_depth = current_depth
+            for child in children:
+                child_depth = calculate_subtree_depth(child, current_depth + 1)
+                max_child_depth = max(max_child_depth, child_depth)
+            
+            return max_child_depth
+        
+        return calculate_subtree_depth(department, 1)

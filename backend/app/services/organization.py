@@ -1,5 +1,6 @@
 """Organization service implementation."""
 
+import json
 from typing import Any, Dict, List, Optional, Tuple
 
 from sqlalchemy.orm import Session
@@ -202,15 +203,8 @@ class OrganizationService:
         # Get counts
         subsidiary_count = len(self.repository.get_subsidiaries(organization.id))
 
-        # Build response
-        data = organization.to_dict()
-        data["parent"] = organization.parent.to_dict() if organization.parent else None
-        data["full_address"] = organization.full_address
-        data["is_subsidiary"] = organization.is_subsidiary
-        data["is_parent"] = organization.is_parent
-        data["subsidiary_count"] = subsidiary_count
-
-        return OrganizationResponse.model_validate(data)
+        # Build response using from_attributes to trigger field validators
+        return OrganizationResponse.model_validate(organization, from_attributes=True)
 
     def get_organization_tree(self) -> List[OrganizationTree]:
         """Get organization hierarchy tree."""

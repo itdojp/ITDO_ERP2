@@ -38,13 +38,11 @@ class OrganizationFactory(BaseFactory):
             "capital": fake.random_int(min=1000000, max=100000000),
             "employee_count": fake.random_int(min=1, max=1000),
             "is_active": True,
-            "settings": json.dumps(
-                {
-                    "fiscal_year_start": "04-01",
-                    "timezone": "Asia/Tokyo",
-                    "currency": "JPY",
-                }
-            ),
+            "settings": {
+                "fiscal_year_start": "04-01",
+                "timezone": "Asia/Tokyo",
+                "currency": "JPY",
+            },
         }
 
     @classmethod
@@ -59,6 +57,15 @@ class OrganizationFactory(BaseFactory):
             "employee_count": fake.random_int(min=1, max=1000),
             "is_active": fake.boolean(),
         }
+
+    @classmethod
+    def build(cls, **kwargs: Any) -> Any:
+        """Build a model instance without saving to database."""
+        attributes = cls.build_dict(**kwargs)
+        # Convert settings dict to JSON string for the model
+        if "settings" in attributes and isinstance(attributes["settings"], dict):
+            attributes["settings"] = json.dumps(attributes["settings"])
+        return cls.model_class(**attributes)
 
     @classmethod
     def create_with_parent(cls, db_session, parent_id: int, **kwargs) -> Organization:

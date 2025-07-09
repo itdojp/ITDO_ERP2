@@ -92,27 +92,26 @@ class ProjectInfo(BaseModel):
     name: str
 
 
-class TaskResponse(BaseModel):
+class TaskResponse(TaskBase):
     """Task response schema."""
 
     id: int
-    title: str
-    description: Optional[str]
-    project: ProjectInfo
-    parent_task_id: Optional[int]
     status: TaskStatus
-    priority: TaskPriority
-    due_date: Optional[datetime]
-    estimated_hours: Optional[float]
-    actual_hours: Optional[float]
-    assignees: List[UserInfo]
-    tags: List[str]
+    actual_hours: Optional[float] = None
+    assignees: Optional[List[UserInfo]] = []
+    tags: Optional[List[str]] = []
     created_at: datetime
-    updated_at: datetime
-    created_by: UserInfo
+    updated_at: Optional[datetime] = None
+    created_by: int
+    updated_by: Optional[int] = None
+    organization_id: int
+    project: Optional[ProjectInfo] = None
 
     class Config:
         from_attributes = True
+        json_encoders = {
+            datetime: lambda v: v.isoformat() if v else None
+        }
 
 
 class TaskListResponse(BaseModel):
