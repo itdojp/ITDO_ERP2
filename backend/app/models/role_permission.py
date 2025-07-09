@@ -1,5 +1,6 @@
 """RolePermission join table for RBAC system."""
 
+from datetime import datetime
 from enum import Enum
 from typing import TYPE_CHECKING, Optional, Any
 
@@ -95,7 +96,7 @@ class RolePermission(BaseModel):
     )
 
     # Expiration
-    expires_at: Mapped[Optional[DateTime]] = mapped_column(
+    expires_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
         comment="When this permission expires",

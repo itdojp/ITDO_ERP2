@@ -58,7 +58,7 @@ class ProjectMember(AuditableModel):
 
     def has_permission(self, permission: str) -> bool:
         """Check if member has specific permission."""
-        return self.permissions and permission in self.permissions
+        return bool(self.permissions and permission in self.permissions)
 
     def add_permission(self, permission: str) -> None:
         """Add permission to member."""

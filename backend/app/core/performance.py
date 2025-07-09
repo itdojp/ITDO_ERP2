@@ -2,7 +2,7 @@
 
 import time
 from contextlib import contextmanager
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, Generator, List, Optional, Set
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session, joinedload, selectinload
@@ -21,7 +21,7 @@ class PerformanceOptimizer:
         self._query_cache: Dict[str, Any] = {}
 
     @contextmanager
-    def measure_time(self, operation_name: str):
+    def measure_time(self, operation_name: str) -> Generator[None, None, None]:
         """Context manager to measure operation time."""
         start_time = time.time()
         try:
@@ -51,7 +51,7 @@ class PerformanceOptimizer:
             user_roles = query.all()
 
             # Group by user_id
-            result = {}
+            result: Dict[UserId, List[UserRole]] = {}
             for user_role in user_roles:
                 if user_role.user_id not in result:
                     result[user_role.user_id] = []
@@ -92,7 +92,7 @@ class PerformanceOptimizer:
                 AND p.is_active = true
             """)
 
-            result = {}
+            result: Dict[int, Set[str]] = {}
             for row in self.db.execute(sql, {"role_ids": role_ids}):
                 role_id, permission_code = row
                 if role_id not in result:
@@ -151,7 +151,7 @@ class PerformanceOptimizer:
 
             users = query.all()
 
-            result = {
+            result: Dict[str, Any] = {
                 "users": [],
                 "total": len(users),
                 "with_permissions": include_permissions,
@@ -216,7 +216,7 @@ class PerformanceOptimizer:
                 SELECT * FROM role_hierarchy ORDER BY path_string
             """)
 
-            result = {
+            result: Dict[str, Any] = {
                 "hierarchy": [],
                 "max_depth": 0,
                 "total_roles": 0,

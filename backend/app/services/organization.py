@@ -482,7 +482,7 @@ class OrganizationService(OrganizationServiceInterface, DepartmentIntegrationMix
         org = self.get_organization(organization_id)
         return org is not None and org.is_active
 
-    def get_organization_settings(self, organization_id: OrganizationId) -> Dict[str, Any]:
+    def get_organization_settings_dict(self, organization_id: OrganizationId) -> Dict[str, Any]:
         """Get organization settings for department configuration."""
         org = self.get_organization(organization_id)
         if not org:
@@ -832,7 +832,7 @@ class OrganizationService(OrganizationServiceInterface, DepartmentIntegrationMix
         self.db.commit()
         self.db.refresh(org)
 
-        return self.get_organization_settings(organization_id)
+        return self.get_organization_settings_dict(organization_id)
 
     def create_permission_template(
         self,

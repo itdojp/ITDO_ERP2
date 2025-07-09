@@ -21,7 +21,7 @@ class OrganizationServiceInterface(ABC):
         pass
 
     @abstractmethod
-    def get_organization_settings(self, organization_id: OrganizationId) -> Dict[str, Any]:
+    def get_organization_settings_dict(self, organization_id: OrganizationId) -> Dict[str, Any]:
         """Get organization settings for department configuration."""
         pass
 
