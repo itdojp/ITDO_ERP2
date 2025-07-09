@@ -91,8 +91,8 @@ class TestTaskServicePermissions:
 
         # When/Then
         # Users should only be able to assign tasks within their department scope
-        user1_depts = user1.get_departments(org.id)
-        user2_depts = user2.get_departments(org.id)
+        _user1_depts = user1.get_departments(org.id)
+        _user2_depts = user2.get_departments(org.id)
 
         # Departments should be different (if multiple departments exist)
         if dept1.id != dept2.id:

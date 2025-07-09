@@ -391,7 +391,10 @@ class TaskDependency(SoftDeletableModel):
 
     def __repr__(self) -> str:
         """String representation."""
-        return f"<TaskDependency(task_id={self.task_id}, depends_on={self.depends_on_task_id}, type={self.dependency_type})>"
+        return (
+            f"<TaskDependency(task_id={self.task_id}, "
+            f"depends_on={self.depends_on_task_id}, type={self.dependency_type})>"
+        )
 
 
 class TaskHistory(SoftDeletableModel):
@@ -426,4 +429,7 @@ class TaskHistory(SoftDeletableModel):
 
     def __repr__(self) -> str:
         """String representation."""
-        return f"<TaskHistory(task_id={self.task_id}, action='{self.action}', changed_by={self.changed_by})>"
+        return (
+            f"<TaskHistory(task_id={self.task_id}, action='{self.action}', "
+            f"changed_by={self.changed_by})>"
+        )

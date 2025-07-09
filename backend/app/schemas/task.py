@@ -275,3 +275,18 @@ class TaskExportParams(BaseModel):
     include_dependencies: bool = Field(default=False)
     date_from: Optional[datetime] = None
     date_to: Optional[datetime] = None
+
+
+class BulkStatusUpdate(BaseModel):
+    """Schema for bulk status updates."""
+
+    task_ids: List[int] = Field(..., min_length=1, description="List of task IDs")
+    status: TaskStatus = Field(..., description="New status for tasks")
+
+
+class BulkUpdateResponse(BaseModel):
+    """Response for bulk operations."""
+
+    success_count: int
+    error_count: int
+    errors: List[str]

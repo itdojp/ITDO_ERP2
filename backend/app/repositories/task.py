@@ -362,12 +362,12 @@ class TaskRepository(BaseRepository[Task]):
             WITH RECURSIVE dependency_path AS (
                 -- Base case: direct dependencies
                 SELECT task_id, depends_on_task_id, 1 as depth
-                FROM task_dependencies 
+                FROM task_dependencies
                 WHERE task_id = :depends_on_task_id
                 AND is_deleted = false
-                
+
                 UNION ALL
-                
+
                 -- Recursive case: follow the dependency chain
                 SELECT td.task_id, td.depends_on_task_id, dp.depth + 1
                 FROM task_dependencies td

@@ -122,7 +122,7 @@ class TestOrganizationDepartmentIntegration:
         # Given
         system = complete_test_system
         org = system["organization"]
-        dept = list(system["departments"]["root_department"].children)[0]
+        _dept = list(system["departments"]["root_department"].children)[0]
         admin_user = system["users"]["org_admin"]
 
         # When - Check user permissions in department context
