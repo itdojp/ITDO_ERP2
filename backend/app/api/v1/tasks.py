@@ -1,8 +1,9 @@
 """Task API endpoints."""
 
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import status as http_status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
@@ -31,7 +32,7 @@ router = APIRouter(prefix="/tasks", tags=["tasks"])
 @router.post(
     "",
     response_model=TaskResponse,
-    status_code=status.HTTP_201_CREATED,
+    status_code=http_status.HTTP_201_CREATED,
     responses={
         400: {"model": ErrorResponse, "description": "Invalid request data"},
         401: {"model": ErrorResponse, "description": "Unauthorized"},
@@ -43,7 +44,7 @@ def create_task(
     task_data: TaskCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-):
+) -> TaskResponse:
     """Create a new task."""
     service = TaskService(db)
     
@@ -55,12 +56,12 @@ def create_task(
         )
     except ValueError as e:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=http_status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         )
     except PermissionError as e:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=http_status.HTTP_403_FORBIDDEN,
             detail=str(e),
         )
 
@@ -86,7 +87,7 @@ def list_tasks(
     per_page: int = Query(50, ge=1, le=100, description="Items per page"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-):
+) -> PaginatedTaskResponse:
     """List tasks with filtering and pagination."""
     service = TaskService(db)
     
@@ -120,7 +121,7 @@ def list_tasks(
         )
     except PermissionError as e:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=http_status.HTTP_403_FORBIDDEN,
             detail=str(e),
         )
 
@@ -139,7 +140,7 @@ def search_tasks(
     limit: int = Query(20, ge=1, le=100, description="Maximum results"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-):
+) -> List[TaskResponse]:
     """Search tasks by title and description."""
     service = TaskService(db)
     
@@ -164,7 +165,7 @@ def get_task(
     task_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-):
+) -> TaskResponse:
     """Get a task by ID."""
     service = TaskService(db)
     
@@ -177,14 +178,14 @@ def get_task(
         
         if not task:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
+                status_code=http_status.HTTP_404_NOT_FOUND,
                 detail="Task not found",
             )
         
         return task
     except PermissionError as e:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=http_status.HTTP_403_FORBIDDEN,
             detail=str(e),
         )
 
@@ -204,7 +205,7 @@ def update_task(
     task_data: TaskUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-):
+) -> TaskResponse:
     """Update a task."""
     service = TaskService(db)
     
@@ -217,12 +218,12 @@ def update_task(
         )
     except ValueError as e:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=http_status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         )
     except PermissionError as e:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=http_status.HTTP_403_FORBIDDEN,
             detail=str(e),
         )
 
@@ -240,7 +241,7 @@ def delete_task(
     task_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-):
+) -> DeleteResponse:
     """Delete a task."""
     service = TaskService(db)
     
@@ -254,16 +255,16 @@ def delete_task(
         return DeleteResponse(
             success=success,
             message="Task deleted successfully",
-            deleted_id=task_id,
+            id=task_id,
         )
     except ValueError as e:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=http_status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         )
     except PermissionError as e:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=http_status.HTTP_403_FORBIDDEN,
             detail=str(e),
         )
 
@@ -281,7 +282,7 @@ def get_task_statistics(
     task_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-):
+) -> TaskStatistics:
     """Get task statistics."""
     service = TaskService(db)
     
@@ -292,12 +293,12 @@ def get_task_statistics(
         )
     except ValueError as e:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail=str(e),
         )
     except PermissionError as e:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=http_status.HTTP_403_FORBIDDEN,
             detail=str(e),
         )
 
@@ -317,7 +318,7 @@ def transition_task_status(
     transition: TaskStatusTransition,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-):
+) -> TaskResponse:
     """Transition task status."""
     service = TaskService(db)
     
@@ -329,19 +330,19 @@ def transition_task_status(
         )
     except ValueError as e:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=http_status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         )
     except PermissionError as e:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=http_status.HTTP_403_FORBIDDEN,
             detail=str(e),
         )
 
 
 @router.post(
     "/bulk",
-    response_model=dict,
+    response_model=Dict[str, Any],
     responses={
         400: {"model": ErrorResponse, "description": "Invalid bulk operation"},
         401: {"model": ErrorResponse, "description": "Unauthorized"},
@@ -352,7 +353,7 @@ def bulk_update_tasks(
     bulk_operation: TaskBulkOperation,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-):
+) -> Dict[str, Any]:
     """Bulk update tasks."""
     service = TaskService(db)
     
@@ -363,12 +364,12 @@ def bulk_update_tasks(
         )
     except ValueError as e:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=http_status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         )
     except PermissionError as e:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=http_status.HTTP_403_FORBIDDEN,
             detail=str(e),
         )
 
@@ -386,7 +387,7 @@ def get_task_dependencies(
     task_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-):
+) -> List[TaskResponse]:
     """Get task dependencies."""
     service = TaskService(db)
     
@@ -397,12 +398,12 @@ def get_task_dependencies(
         )
     except ValueError as e:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail=str(e),
         )
     except PermissionError as e:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=http_status.HTTP_403_FORBIDDEN,
             detail=str(e),
         )
 
@@ -420,7 +421,7 @@ def get_task_subtasks(
     task_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-):
+) -> List[TaskResponse]:
     """Get task subtasks."""
     service = TaskService(db)
     
@@ -431,12 +432,12 @@ def get_task_subtasks(
         )
     except ValueError as e:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail=str(e),
         )
     except PermissionError as e:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=http_status.HTTP_403_FORBIDDEN,
             detail=str(e),
         )
 
@@ -456,7 +457,7 @@ def assign_task(
     assignment: TaskAssignment,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-):
+) -> TaskResponse:
     """Assign task to a user."""
     service = TaskService(db)
     
@@ -470,19 +471,19 @@ def assign_task(
         )
     except ValueError as e:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=http_status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         )
     except PermissionError as e:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=http_status.HTTP_403_FORBIDDEN,
             detail=str(e),
         )
 
 
 @router.post(
     "/{task_id}/time",
-    response_model=dict,
+    response_model=Dict[str, Any],
     responses={
         400: {"model": ErrorResponse, "description": "Invalid time entry"},
         401: {"model": ErrorResponse, "description": "Unauthorized"},
@@ -495,7 +496,7 @@ def log_time(
     time_entry: TaskTimeEntry,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-):
+) -> Dict[str, Any]:
     """Log time spent on a task."""
     service = TaskService(db)
     
@@ -504,7 +505,7 @@ def log_time(
         task = service.get_task(task_id, current_user.id)
         if not task:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
+                status_code=http_status.HTTP_404_NOT_FOUND,
                 detail="Task not found",
             )
         
@@ -527,19 +528,19 @@ def log_time(
         }
     except ValueError as e:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=http_status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         )
     except PermissionError as e:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=http_status.HTTP_403_FORBIDDEN,
             detail=str(e),
         )
 
 
 @router.post(
     "/{task_id}/comments",
-    response_model=dict,
+    response_model=Dict[str, Any],
     responses={
         400: {"model": ErrorResponse, "description": "Invalid comment"},
         401: {"model": ErrorResponse, "description": "Unauthorized"},
@@ -552,7 +553,7 @@ def add_comment(
     comment: TaskComment,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-):
+) -> Dict[str, Any]:
     """Add a comment to a task."""
     service = TaskService(db)
     
@@ -561,7 +562,7 @@ def add_comment(
         task = service.get_task(task_id, current_user.id)
         if not task:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
+                status_code=http_status.HTTP_404_NOT_FOUND,
                 detail="Task not found",
             )
         
@@ -574,11 +575,11 @@ def add_comment(
         }
     except ValueError as e:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=http_status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         )
     except PermissionError as e:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=http_status.HTTP_403_FORBIDDEN,
             detail=str(e),
         )

@@ -130,8 +130,8 @@ class PermissionValidationMixin:
         self, permissions: List["PermissionInfo"]
     ) -> List[Dict[str, Any]]:
         """Check for permission conflicts (allow vs deny)."""
-        conflicts = []
-        permission_map = {}
+        conflicts: List[Dict[str, Any]] = []
+        permission_map: Dict[str, List[PermissionInfo]] = {}
 
         for perm in permissions:
             key = f"{perm.permission}:{perm.scope.value}:{perm.resource_id or 'global'}"
@@ -390,8 +390,8 @@ class PermissionChangedEvent(RoleEvent):
     def __init__(
         self,
         role_id: int,
-        added_permissions: List[str] = None,
-        removed_permissions: List[str] = None
+        added_permissions: Optional[List[str]] = None,
+        removed_permissions: Optional[List[str]] = None
     ):
         super().__init__("permission_changed", role_id)
         self.added_permissions = added_permissions or []
@@ -467,7 +467,7 @@ def get_effective_permissions(role_assignments: List[RoleAssignment]) -> List[Pe
     """Get effective permissions from role assignments."""
     # This would be implemented in the actual Role Service
     # Returns consolidated permissions considering precedence and conflicts
-    pass
+    return []
 
 
 def validate_role_assignment(

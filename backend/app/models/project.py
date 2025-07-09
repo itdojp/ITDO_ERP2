@@ -302,28 +302,28 @@ class Project(SoftDeletableModel):
             TaskStatus.IN_PROGRESS.value,
             TaskStatus.IN_REVIEW.value,
             TaskStatus.BLOCKED.value,
-        ] and t.is_active])
+        ] and not t.is_deleted])
 
     def get_completed_tasks_count(self) -> int:
         """Get count of completed tasks."""
         from app.models.task import TaskStatus
-        return len([t for t in self.tasks if t.status == TaskStatus.DONE.value and t.is_active])
+        return len([t for t in self.tasks if t.status == TaskStatus.DONE.value and not t.is_deleted])
 
     def get_total_tasks_count(self) -> int:
         """Get count of total tasks."""
-        return len([t for t in self.tasks if t.is_active])
+        return len([t for t in self.tasks if not t.is_deleted])
 
     def get_overdue_tasks_count(self) -> int:
         """Get count of overdue tasks."""
-        return len([t for t in self.tasks if t.is_overdue and t.is_active])
+        return len([t for t in self.tasks if t.is_overdue and not t.is_deleted])
 
     def get_tasks_by_status(self, status: str) -> List["Task"]:
         """Get tasks by status."""
-        return [t for t in self.tasks if t.status == status and t.is_active]
+        return [t for t in self.tasks if t.status == status and not t.is_deleted]
 
     def get_tasks_by_assignee(self, assignee_id: int) -> List["Task"]:
         """Get tasks by assignee."""
-        return [t for t in self.tasks if t.assignee_id == assignee_id and t.is_active]
+        return [t for t in self.tasks if t.assignee_id == assignee_id and not t.is_deleted]
 
     def get_task_completion_rate(self) -> float:
         """Get task completion rate as percentage."""

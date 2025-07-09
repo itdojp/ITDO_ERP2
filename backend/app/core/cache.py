@@ -20,7 +20,7 @@ class CacheManager:
     async def connect(self) -> None:
         """Connect to Redis if not already connected."""
         if not self.redis_client and not self._is_connected:
-            self.redis_client = await redis.from_url(
+            self.redis_client = await redis.from_url(  # type: ignore
                 settings.REDIS_URL,
                 encoding="utf-8",
                 decode_responses=True,
@@ -80,7 +80,7 @@ class CacheManager:
 
         try:
             result = await self.redis_client.delete(key)
-            return result > 0
+            return bool(result > 0)
         except Exception:
             return False
 
@@ -95,7 +95,7 @@ class CacheManager:
                 keys.append(key)
 
             if keys:
-                return await self.redis_client.delete(*keys)
+                return int(await self.redis_client.delete(*keys))
             return 0
         except Exception:
             return 0
@@ -106,7 +106,7 @@ class CacheManager:
             return False
 
         try:
-            return await self.redis_client.exists(key) > 0
+            return bool(await self.redis_client.exists(key) > 0)
         except Exception:
             return False
 
@@ -116,7 +116,7 @@ class CacheManager:
             return False
 
         try:
-            return await self.redis_client.expire(key, seconds)
+            return bool(await self.redis_client.expire(key, seconds))
         except Exception:
             return False
 
@@ -126,7 +126,7 @@ class CacheManager:
             return -1
 
         try:
-            return await self.redis_client.ttl(key)
+            return int(await self.redis_client.ttl(key))
         except Exception:
             return -1
 

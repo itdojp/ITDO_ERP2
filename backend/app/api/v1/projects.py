@@ -1,6 +1,6 @@
 """Project API endpoints."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
@@ -109,8 +109,8 @@ def list_projects(
         )
     except PermissionError as e:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=str(e)
+            status_code=403,  # HTTP_403_FORBIDDEN
+            detail=str(e) if str(e) else "Insufficient permissions"
         )
 
 
@@ -491,7 +491,7 @@ def get_project_budget_utilization(
 ) -> Dict[str, float]:
     """Get project budget utilization."""
     try:
-        budget_info = project_service.get_budget_utilization(project_id)
+        budget_info = cast(Dict[str, float], project_service.get_budget_utilization(project_id))
         return budget_info
     except ValueError as e:
         raise HTTPException(

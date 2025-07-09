@@ -15,6 +15,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    select,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -157,8 +158,8 @@ class Task(SoftDeletableModel):
     tags: Mapped[Optional[List[str]]] = mapped_column(
         JSON, nullable=True, default=list, comment="Task tags"
     )
-    labels: Mapped[Optional[List[str]]] = mapped_column(
-        JSON, nullable=True, default=list, comment="Task labels"
+    labels: Mapped[Optional[Dict[str, str]]] = mapped_column(
+        JSON, nullable=True, default=dict, comment="Task labels"
     )
     custom_fields: Mapped[Optional[Dict[str, Any]]] = mapped_column(
         JSON, nullable=True, default=dict, comment="Custom fields"
@@ -270,20 +271,36 @@ class Task(SoftDeletableModel):
         if not self.depends_on:
             return []
 
-        return self.project.tasks.filter(
+        from sqlalchemy.orm import Session
+        
+        session = Session.object_session(self)
+        if not session:
+            return []
+            
+        stmt = select(Task).where(
             Task.id.in_(self.depends_on),
-            Task.is_active == True
-        ).all()
+            Task.project_id == self.project_id,
+            Task.deleted_at.is_(None)
+        )
+        return list(session.execute(stmt).scalars().all())
 
     def get_blocked_tasks(self) -> List["Task"]:
         """Get tasks blocked by this task."""
         if not self.blocks:
             return []
 
-        return self.project.tasks.filter(
+        from sqlalchemy.orm import Session
+        
+        session = Session.object_session(self)
+        if not session:
+            return []
+            
+        stmt = select(Task).where(
             Task.id.in_(self.blocks),
-            Task.is_active == True
-        ).all()
+            Task.project_id == self.project_id,
+            Task.deleted_at.is_(None)
+        )
+        return list(session.execute(stmt).scalars().all())
 
     def can_start(self) -> bool:
         """Check if task can be started (all dependencies completed)."""
@@ -339,13 +356,13 @@ class Task(SoftDeletableModel):
 
     def set_label(self, key: str, value: str) -> None:
         """Set a label on this task."""
-        if not self.labels:
+        if self.labels is None:
             self.labels = {}
         self.labels[key] = value
 
     def remove_label(self, key: str) -> None:
         """Remove a label from this task."""
-        if self.labels and key in self.labels:
+        if self.labels is not None and key in self.labels:
             del self.labels[key]
 
     def update_progress(self, percentage: int) -> None:

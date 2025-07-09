@@ -287,7 +287,7 @@ class Role(SoftDeletableModel):
             return False
 
         # Check for circular inheritance
-        current = parent_role
+        current: Optional["Role"] = parent_role
         while current:
             if current.id == self.id:
                 return False

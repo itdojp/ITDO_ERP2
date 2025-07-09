@@ -1,7 +1,7 @@
 """RolePermission join table for RBAC system."""
 
 from enum import Enum
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Any
 
 from sqlalchemy import (
     Boolean,
@@ -58,7 +58,7 @@ class RolePermission(BaseModel):
     )
 
     # Scope constraints (JSON field for flexibility)
-    scope_constraints: Mapped[Optional[dict]] = mapped_column(
+    scope_constraints: Mapped[Optional[dict[str, Any]]] = mapped_column(
         String,  # Will be JSON in actual implementation
         nullable=True,
         comment="JSON constraints for permission scope",
@@ -158,7 +158,7 @@ class RolePermission(BaseModel):
     @property
     def is_expired(self) -> bool:
         """Check if this permission grant has expired."""
-        if not self.expires_at:
+        if self.expires_at is None:
             return False
         from datetime import datetime, timezone
         return datetime.now(timezone.utc) > self.expires_at

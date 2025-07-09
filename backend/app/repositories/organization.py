@@ -56,7 +56,7 @@ class OrganizationRepository(
         # Use a simpler recursive approach
         result = []
 
-        def get_children(pid: OrganizationId):
+        def get_children(pid: OrganizationId) -> None:
             children = self.get_subsidiaries(pid)
             for child in children:
                 result.append(child)
@@ -164,7 +164,7 @@ class OrganizationRepository(
 
     def get_hierarchy_path(self, org_id: OrganizationId) -> List[Organization]:
         """Get full hierarchy path from root to organization."""
-        path = []
+        path: List[Organization] = []
         current_org = self.get(org_id)
 
         while current_org:

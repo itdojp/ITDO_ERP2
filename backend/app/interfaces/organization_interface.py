@@ -55,13 +55,19 @@ class OrganizationServiceInterface(ABC):
 class DepartmentIntegrationMixin:
     """Mixin providing department-specific organization methods."""
 
+    # Type hint to indicate this mixin expects to be mixed with OrganizationServiceInterface
+    def get_organization(self, organization_id: OrganizationId) -> Optional[Organization]:
+        """This method should be provided by the class using this mixin."""
+        raise NotImplementedError("This method must be implemented by the class using this mixin")
+
     def get_department_code_prefix(self, organization_id: OrganizationId) -> str:
         """Get department code prefix from organization settings."""
         org = self.get_organization(organization_id)
         if not org or not org.settings:
             return "DEPT-"
 
-        return org.settings.get("department_code_prefix", "DEPT-")
+        prefix = org.settings.get("department_code_prefix", "DEPT-")
+        return str(prefix)
 
     def get_organization_currency(self, organization_id: OrganizationId) -> str:
         """Get default currency from organization settings."""
@@ -69,7 +75,8 @@ class DepartmentIntegrationMixin:
         if not org or not org.settings:
             return "JPY"
 
-        return org.settings.get("default_currency", "JPY")
+        currency = org.settings.get("default_currency", "JPY")
+        return str(currency)
 
     def get_fiscal_year_start(self, organization_id: OrganizationId) -> str:
         """Get fiscal year start from organization settings."""
@@ -77,7 +84,8 @@ class DepartmentIntegrationMixin:
         if not org or not org.settings:
             return "04-01"
 
-        return org.settings.get("fiscal_year_start", "04-01")
+        fiscal_start = org.settings.get("fiscal_year_start", "04-01")
+        return str(fiscal_start)
 
     def should_auto_approve_departments(self, organization_id: OrganizationId) -> bool:
         """Check if departments should be auto-approved in this organization."""
@@ -85,7 +93,8 @@ class DepartmentIntegrationMixin:
         if not org or not org.settings:
             return False
 
-        return org.settings.get("auto_approve_departments", False)
+        auto_approve = org.settings.get("auto_approve_departments", False)
+        return bool(auto_approve)
 
     def get_max_department_hierarchy_depth(self, organization_id: OrganizationId) -> int:
         """Get maximum allowed department hierarchy depth."""
@@ -93,7 +102,8 @@ class DepartmentIntegrationMixin:
         if not org or not org.settings:
             return 5  # Default depth limit
 
-        return org.settings.get("max_department_depth", 5)
+        max_depth = org.settings.get("max_department_depth", 5)
+        return int(max_depth)
 
     def validate_department_budget_limit(
         self, organization_id: OrganizationId, budget: Optional[int]
@@ -110,7 +120,7 @@ class DepartmentIntegrationMixin:
         if max_budget is None:
             return True
 
-        return budget <= max_budget
+        return budget <= int(max_budget)
 
     def get_organization_timezone(self, organization_id: OrganizationId) -> str:
         """Get organization timezone."""
@@ -118,7 +128,8 @@ class DepartmentIntegrationMixin:
         if not org or not org.settings:
             return "Asia/Tokyo"
 
-        return org.settings.get("time_zone", "Asia/Tokyo")
+        timezone = org.settings.get("time_zone", "Asia/Tokyo")
+        return str(timezone)
 
     def can_create_department(
         self, organization_id: OrganizationId, current_depth: int = 0
@@ -133,7 +144,8 @@ class DepartmentIntegrationMixin:
         if not org or not org.settings:
             return "manual"
 
-        return org.settings.get("department_approval_workflow", "manual")
+        workflow = org.settings.get("department_approval_workflow", "manual")
+        return str(workflow)
 
     def notify_department_created(
         self, organization_id: OrganizationId, department_data: Dict[str, Any]
@@ -184,22 +196,26 @@ class OrganizationInfo:
     @property
     def department_code_prefix(self) -> str:
         """Get department code prefix."""
-        return self.settings.get("department_code_prefix", "DEPT-")
+        prefix = self.settings.get("department_code_prefix", "DEPT-")
+        return str(prefix)
 
     @property
     def default_currency(self) -> str:
         """Get default currency."""
-        return self.settings.get("default_currency", "JPY")
+        currency = self.settings.get("default_currency", "JPY")
+        return str(currency)
 
     @property
     def fiscal_year_start(self) -> str:
         """Get fiscal year start."""
-        return self.settings.get("fiscal_year_start", "04-01")
+        start = self.settings.get("fiscal_year_start", "04-01")
+        return str(start)
 
     @property
     def auto_approve_departments(self) -> bool:
         """Check if departments are auto-approved."""
-        return self.settings.get("auto_approve_departments", False)
+        auto_approve = self.settings.get("auto_approve_departments", False)
+        return bool(auto_approve)
 
 
 class OrganizationConstraints:
@@ -300,7 +316,7 @@ class OrganizationStructureChangedEvent(OrganizationEvent):
         self,
         organization_id: OrganizationId,
         change_type: str,
-        affected_departments: List[int] = None
+        affected_departments: Optional[List[int]] = None
     ):
         super().__init__(organization_id, "organization_structure_changed")
         self.change_type = change_type  # "parent_changed", "activated", "deactivated"

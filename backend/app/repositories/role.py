@@ -140,6 +140,224 @@ class RoleRepository(BaseRepository[Role, RoleCreate, RoleUpdate]):
 
         return self.create(role_create)
 
+    def get_roles_by_organization(self, organization_id: OrganizationId) -> List[Role]:
+        """Get all roles for a specific organization."""
+        return list(
+            self.db.scalars(
+                select(self.model)
+                .where(self.model.organization_id == organization_id)
+                .where(~self.model.is_deleted)
+                .order_by(self.model.display_order, self.model.name)
+            )
+        )
+    
+    def count_role_users(self, role_id: RoleId) -> int:
+        """Count active users with this role."""
+        return self.db.scalar(
+            select(func.count(UserRole.id)).where(
+                and_(UserRole.role_id == role_id, UserRole.is_active)
+            )
+        ) or 0
+
+    def get_permissions_for_role(
+        self, role_id: RoleId, include_inherited: bool = True
+    ) -> List[Any]:
+        """Get all permissions for a role, optionally including inherited ones."""
+        from app.models.permission import Permission
+        from app.models.role_permission import RolePermission
+
+        role = self.get_with_parent(role_id)
+        if not role:
+            return []
+
+        permissions = set()
+
+        # Get direct permissions
+        direct_perms = list(
+            self.db.scalars(
+                select(Permission)
+                .join(RolePermission, Permission.id == RolePermission.permission_id)
+                .where(RolePermission.role_id == role_id)
+                .where(RolePermission.is_active == True)
+                .where(Permission.is_active == True)
+            )
+        )
+        permissions.update(direct_perms)
+
+        # Get inherited permissions if requested
+        if include_inherited and role.parent_id:
+            parent_perms = self.get_permissions_for_role(role.parent_id, True)
+            permissions.update(parent_perms)
+
+        return list(permissions)
+
+    def get_effective_permissions(
+        self,
+        role_id: RoleId,
+        organization_id: Optional[OrganizationId] = None,
+        department_id: Optional[DepartmentId] = None
+    ) -> Set[str]:
+        """Get effective permission codes considering inheritance and scope."""
+        role = self.get(role_id)
+        if not role:
+            return set()
+
+        # Use the role model's method which handles all the logic
+        return role.get_effective_permissions(organization_id, department_id)
+
+    def check_permission(
+        self,
+        role_id: RoleId,
+        permission_code: str,
+        organization_id: Optional[OrganizationId] = None,
+        department_id: Optional[DepartmentId] = None,
+    ) -> bool:
+        """Check if role has a specific permission."""
+        role = self.get(role_id)
+        if not role:
+            return False
+
+        return role.has_effective_permission(
+            permission_code, organization_id, department_id
+        )
+
+    def assign_permissions_to_role(
+        self,
+        role_id: RoleId,
+        permission_ids: List[int],
+        granted_by: Optional[UserId] = None,
+        effect: str = "allow",
+        organization_id: Optional[OrganizationId] = None,
+        department_id: Optional[DepartmentId] = None,
+    ) -> List[Any]:
+        """Assign multiple permissions to a role."""
+        from app.models.role_permission import RolePermission
+
+        role = self.get(role_id)
+        if not role:
+            raise ValueError(f"Role {role_id} not found")
+
+        # Get existing role permissions to avoid duplicates
+        existing = self.db.scalars(
+            select(RolePermission).where(
+                and_(
+                    RolePermission.role_id == role_id,
+                    RolePermission.permission_id.in_(permission_ids),
+                    RolePermission.organization_id == organization_id,
+                    RolePermission.department_id == department_id,
+                )
+            )
+        ).all()
+
+        existing_permission_ids = {rp.permission_id for rp in existing}
+        new_permissions = []
+
+        # Create new role permissions
+        for permission_id in permission_ids:
+            if permission_id not in existing_permission_ids:
+                rp = RolePermission(
+                    role_id=role_id,
+                    permission_id=permission_id,
+                    effect=effect,
+                    granted_by=granted_by,
+                    organization_id=organization_id,
+                    department_id=department_id,
+                    is_active=True,
+                )
+                self.db.add(rp)
+                new_permissions.append(rp)
+
+        self.db.flush()
+        return new_permissions
+
+    def bulk_permission_operations(
+        self, operations: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """Perform bulk permission operations."""
+        from app.models.role_permission import RolePermission
+
+        results: Dict[str, Any] = {
+            "added": 0,
+            "removed": 0,
+            "updated": 0,
+            "errors": [],
+        }
+
+        for op in operations:
+            try:
+                operation_type = op.get("type")
+                role_id = op.get("role_id")
+                permission_ids = op.get("permission_ids", [])
+
+                if operation_type == "add" and role_id is not None:
+                    new_perms = self.assign_permissions_to_role(
+                        role_id=role_id,
+                        permission_ids=permission_ids,
+                        granted_by=op.get("granted_by"),
+                        effect=op.get("effect", "allow"),
+                        organization_id=op.get("organization_id"),
+                        department_id=op.get("department_id"),
+                    )
+                    results["added"] += len(new_perms)
+
+                elif operation_type == "remove":
+                    # Remove permissions
+                    query = select(RolePermission).where(
+                        and_(
+                            RolePermission.role_id == role_id,
+                            RolePermission.permission_id.in_(permission_ids),
+                        )
+                    )
+
+                    if op.get("organization_id") is not None:
+                        query = query.where(
+                            RolePermission.organization_id == op.get("organization_id")
+                        )
+                    if op.get("department_id") is not None:
+                        query = query.where(
+                            RolePermission.department_id == op.get("department_id")
+                        )
+
+                    role_permissions = self.db.scalars(query).all()
+                    count = len(role_permissions)
+
+                    for rp in role_permissions:
+                        self.db.delete(rp)
+
+                    results["removed"] += count
+
+                elif operation_type == "update":
+                    # Update effect or other properties
+                    query = select(RolePermission).where(
+                        and_(
+                            RolePermission.role_id == role_id,
+                            RolePermission.permission_id.in_(permission_ids),
+                        )
+                    )
+
+                    role_permissions = self.db.scalars(query).all()
+                    count = 0
+
+                    updates = op.get("updates", {})
+                    for rp in role_permissions:
+                        if "effect" in updates:
+                            rp.effect = updates["effect"]
+                        if "is_active" in updates:
+                            rp.is_active = updates["is_active"]
+                        if "priority" in updates:
+                            rp.priority = updates["priority"]
+                        if "expires_at" in updates:
+                            rp.expires_at = updates["expires_at"]
+                        count += 1
+
+                    results["updated"] += count
+
+            except Exception as e:
+                results["errors"].append({"operation": op, "error": str(e)})
+
+        self.db.flush()
+        return results
+
 
 class UserRoleRepository(BaseRepository[UserRole, UserRoleCreate, UserRoleUpdate]):
     """Repository for user role assignment operations."""
@@ -330,223 +548,3 @@ class UserRoleRepository(BaseRepository[UserRole, UserRoleCreate, UserRoleUpdate
             self.db.commit()
             self.db.refresh(user_role)
         return user_role
-
-    # Phase 2: Enhanced Repository Methods
-
-    def get_roles_by_organization(self, organization_id: OrganizationId) -> List[Role]:
-        """Get all roles for a specific organization."""
-        return list(
-            self.db.scalars(
-                select(self.model)
-                .where(self.model.organization_id == organization_id)
-                .where(~self.model.is_deleted)
-                .order_by(self.model.display_order, self.model.name)
-            )
-        )
-
-    def count_role_users(self, role_id: RoleId) -> int:
-        """Count active users with this role."""
-        return self.db.scalar(
-            select(func.count(UserRole.id)).where(
-                and_(UserRole.role_id == role_id, UserRole.is_active)
-            )
-        ) or 0
-
-    def get_permissions_for_role(
-        self, role_id: RoleId, include_inherited: bool = True
-    ) -> List[Any]:
-        """Get all permissions for a role, optionally including inherited ones."""
-        from app.models.permission import Permission
-        from app.models.role_permission import RolePermission
-
-        role = self.get_with_parent(role_id)
-        if not role:
-            return []
-
-        permissions = set()
-
-        # Get direct permissions
-        direct_perms = list(
-            self.db.scalars(
-                select(Permission)
-                .join(RolePermission, Permission.id == RolePermission.permission_id)
-                .where(RolePermission.role_id == role_id)
-                .where(RolePermission.is_active == True)
-                .where(Permission.is_active == True)
-            )
-        )
-        permissions.update(direct_perms)
-
-        # Get inherited permissions if requested
-        if include_inherited and role.parent_id:
-            parent_perms = self.get_permissions_for_role(role.parent_id, True)
-            permissions.update(parent_perms)
-
-        return list(permissions)
-
-    def get_effective_permissions(
-        self,
-        role_id: RoleId,
-        organization_id: Optional[OrganizationId] = None,
-        department_id: Optional[DepartmentId] = None
-    ) -> Set[str]:
-        """Get effective permission codes considering inheritance and scope."""
-        role = self.get(role_id)
-        if not role:
-            return set()
-
-        # Use the role model's method which handles all the logic
-        return role.get_effective_permissions(organization_id, department_id)
-
-    def check_permission(
-        self,
-        role_id: RoleId,
-        permission_code: str,
-        organization_id: Optional[OrganizationId] = None,
-        department_id: Optional[DepartmentId] = None,
-    ) -> bool:
-        """Check if role has a specific permission."""
-        role = self.get(role_id)
-        if not role:
-            return False
-
-        return role.has_effective_permission(
-            permission_code, organization_id, department_id
-        )
-
-    def assign_permissions_to_role(
-        self,
-        role_id: RoleId,
-        permission_ids: List[int],
-        granted_by: Optional[UserId] = None,
-        effect: str = "allow",
-        organization_id: Optional[OrganizationId] = None,
-        department_id: Optional[DepartmentId] = None,
-    ) -> List[Any]:
-        """Assign multiple permissions to a role."""
-        from app.models.role_permission import RolePermission
-
-        role = self.get(role_id)
-        if not role:
-            raise ValueError(f"Role {role_id} not found")
-
-        # Get existing role permissions to avoid duplicates
-        existing = self.db.scalars(
-            select(RolePermission).where(
-                and_(
-                    RolePermission.role_id == role_id,
-                    RolePermission.permission_id.in_(permission_ids),
-                    RolePermission.organization_id == organization_id,
-                    RolePermission.department_id == department_id,
-                )
-            )
-        ).all()
-
-        existing_permission_ids = {rp.permission_id for rp in existing}
-        new_permissions = []
-
-        # Create new role permissions
-        for permission_id in permission_ids:
-            if permission_id not in existing_permission_ids:
-                rp = RolePermission(
-                    role_id=role_id,
-                    permission_id=permission_id,
-                    effect=effect,
-                    granted_by=granted_by,
-                    organization_id=organization_id,
-                    department_id=department_id,
-                    is_active=True,
-                )
-                self.db.add(rp)
-                new_permissions.append(rp)
-
-        self.db.flush()
-        return new_permissions
-
-    def bulk_permission_operations(
-        self, operations: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
-        """Perform bulk permission operations."""
-        from app.models.role_permission import RolePermission
-
-        results = {
-            "added": 0,
-            "removed": 0,
-            "updated": 0,
-            "errors": [],
-        }
-
-        for op in operations:
-            try:
-                operation_type = op.get("type")
-                role_id = op.get("role_id")
-                permission_ids = op.get("permission_ids", [])
-
-                if operation_type == "add":
-                    new_perms = self.assign_permissions_to_role(
-                        role_id=role_id,
-                        permission_ids=permission_ids,
-                        granted_by=op.get("granted_by"),
-                        effect=op.get("effect", "allow"),
-                        organization_id=op.get("organization_id"),
-                        department_id=op.get("department_id"),
-                    )
-                    results["added"] += len(new_perms)
-
-                elif operation_type == "remove":
-                    # Remove permissions
-                    query = select(RolePermission).where(
-                        and_(
-                            RolePermission.role_id == role_id,
-                            RolePermission.permission_id.in_(permission_ids),
-                        )
-                    )
-
-                    if op.get("organization_id") is not None:
-                        query = query.where(
-                            RolePermission.organization_id == op.get("organization_id")
-                        )
-                    if op.get("department_id") is not None:
-                        query = query.where(
-                            RolePermission.department_id == op.get("department_id")
-                        )
-
-                    role_permissions = self.db.scalars(query).all()
-                    count = len(role_permissions)
-
-                    for rp in role_permissions:
-                        self.db.delete(rp)
-
-                    results["removed"] += count
-
-                elif operation_type == "update":
-                    # Update effect or other properties
-                    query = select(RolePermission).where(
-                        and_(
-                            RolePermission.role_id == role_id,
-                            RolePermission.permission_id.in_(permission_ids),
-                        )
-                    )
-
-                    role_permissions = self.db.scalars(query).all()
-                    count = 0
-
-                    updates = op.get("updates", {})
-                    for rp in role_permissions:
-                        if "effect" in updates:
-                            rp.effect = updates["effect"]
-                        if "is_active" in updates:
-                            rp.is_active = updates["is_active"]
-                        if "priority" in updates:
-                            rp.priority = updates["priority"]
-                        if "expires_at" in updates:
-                            rp.expires_at = updates["expires_at"]
-                        count += 1
-
-                    results["updated"] += count
-
-            except Exception as e:
-                results["errors"].append({"operation": op, "error": str(e)})
-
-        self.db.flush()
-        return results
