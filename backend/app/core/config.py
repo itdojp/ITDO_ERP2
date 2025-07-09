@@ -18,33 +18,40 @@ class Settings(BaseSettings):
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> Union[List[str], str]:
-        # Handle None or empty values gracefully
-        if v is None:
-            return []
+        # Return default if None or empty
+        if v is None or v == "":
+            return ["http://localhost:3000", "http://127.0.0.1:3000"]
 
         if isinstance(v, str):
-            # Skip empty strings
-            if not v.strip():
-                return []
+            # Skip empty strings after stripping
+            v_stripped = v.strip()
+            if not v_stripped:
+                return ["http://localhost:3000", "http://127.0.0.1:3000"]
 
             # Handle JSON array format like '["http://localhost:3000"]'
-            if v.strip().startswith("[") and v.strip().endswith("]"):
+            if v_stripped.startswith("[") and v_stripped.endswith("]"):
                 try:
                     import json
 
-                    parsed = json.loads(v.strip())
-                    return parsed if isinstance(parsed, list) else []
-                except (json.JSONDecodeError, TypeError):
-                    # If JSON parsing fails, treat as comma-separated
+                    parsed = json.loads(v_stripped)
+                    if isinstance(parsed, list):
+                        return parsed
+                except (json.JSONDecodeError, TypeError, ValueError):
+                    # If JSON parsing fails, fall back to comma-separated
                     pass
 
             # Handle comma-separated format
-            return [i.strip() for i in v.split(",") if i.strip()]
+            origins = [
+                origin.strip() for origin in v_stripped.split(",") if origin.strip()
+            ]
+            default_origins = ["http://localhost:3000", "http://127.0.0.1:3000"]
+            return origins if origins else default_origins
+
         elif isinstance(v, list):
             return v
 
-        # Fallback for any other type
-        return []
+        # Fallback to default values
+        return ["http://localhost:3000", "http://127.0.0.1:3000"]
 
     # データベース設定
     POSTGRES_SERVER: str = "localhost"

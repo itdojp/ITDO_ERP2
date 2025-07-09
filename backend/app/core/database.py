@@ -11,8 +11,13 @@ engine = create_engine(str(settings.DATABASE_URL))
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Async engine and session
-async_engine = create_async_engine(str(settings.DATABASE_URL).replace("postgresql://", "postgresql+asyncpg://"))
-AsyncSessionLocal = async_sessionmaker(async_engine, class_=AsyncSession, expire_on_commit=False)
+async_database_url = str(settings.DATABASE_URL).replace(
+    "postgresql://", "postgresql+asyncpg://"
+)
+async_engine = create_async_engine(async_database_url)
+AsyncSessionLocal = async_sessionmaker(
+    async_engine, class_=AsyncSession, expire_on_commit=False
+)
 
 
 class Base(DeclarativeBase):
