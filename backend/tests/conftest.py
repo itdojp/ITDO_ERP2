@@ -17,6 +17,8 @@ from app.main import app
 # Import all models to ensure they are registered with SQLAlchemy
 from app.models import Department, Organization, Permission, Role, User
 from app.models.base import Base
+from app.models.project import Project
+from app.models.task import Task
 from tests.factories import (
     DepartmentFactory,
     OrganizationFactory,
@@ -71,6 +73,7 @@ def db_session() -> Generator[Session, None, None]:
                     "user_sessions",
                     "user_activity_logs",
                     "audit_logs",
+                    "tasks",  # Tasks must be deleted before projects
                     "project_members",
                     "project_milestones",
                     "projects",
