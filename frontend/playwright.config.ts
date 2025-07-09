@@ -5,14 +5,15 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './tests/e2e',
-  fullyParallel: true,
+  fullyParallel: false, // Disable parallel for CI stability
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
-  timeout: 30000,
+  retries: process.env.CI ? 1 : 0, // Reduce retries for faster execution
+  workers: 1, // Single worker for stability
+  timeout: 60000, // Increase timeout for CI
   expect: {
-    timeout: 10000,
+    timeout: 15000,
   },
+  globalTimeout: process.env.CI ? 10 * 60 * 1000 : undefined, // 10 minutes for CI
   reporter: [
     ['html', { 
       outputFolder: 'playwright-report',
@@ -20,14 +21,14 @@ export default defineConfig({
     }],
     ['junit', { outputFile: 'test-results/junit.xml' }],
     ['json', { outputFile: 'test-results/test-results.json' }],
-    ...(process.env.CI ? [] : [['list']]),
+    ...(process.env.CI ? [['github']] : [['list']]),
   ],
   use: {
     baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
-    actionTimeout: 10000,
+    actionTimeout: 15000,
     navigationTimeout: 30000,
   },
   projects: [

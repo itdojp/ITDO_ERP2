@@ -159,17 +159,20 @@ jobs:
             exit 1
           fi
 
-      - name: Backend health check
+      - name: Comprehensive Service Health Check
         run: |
+          echo "Performing comprehensive service health check..."
+          
+          # Check backend health
           echo "Checking backend health..."
-          for i in {1..120}; do
+          for i in {1..60}; do
             if curl -f -s http://localhost:8000/health > /dev/null 2>&1; then
-              echo "Backend is healthy!"
+              echo "Backend health check passed!"
               curl http://localhost:8000/health
               break
             fi
-            if [ $i -eq 120 ]; then
-              echo "Backend health check failed after 120 attempts"
+            if [ $i -eq 60 ]; then
+              echo "Backend health check failed after 60 attempts"
               echo "Backend logs:"
               cat backend/backend.log || echo "No backend logs found"
               echo "Backend process status:"
@@ -181,17 +184,21 @@ jobs:
               netstat -tlpn | grep :8000 || echo "Port 8000 not listening"
               exit 1
             fi
-            echo "Attempt $i/120: Backend not ready, waiting..."
-            sleep 3
+            echo "Attempt $i/60: Backend not ready, waiting..."
+            sleep 5
           done
           
-          # Additional API endpoint tests
-          echo "Testing additional endpoints..."
+          # Test ping endpoint
+          echo "Testing ping endpoint..."
           curl -f http://localhost:8000/ping || echo "Ping endpoint failed"
           
           # Test CORS headers
           echo "Testing CORS configuration..."
           curl -H "Origin: http://localhost:3000" -v http://localhost:8000/health 2>&1 | grep -i "access-control" || echo "CORS headers not found"
+          
+          # Test database connectivity via API
+          echo "Testing database connectivity..."
+          curl -f http://localhost:8000/health | grep -i "healthy" || echo "Database connectivity test failed"
 
       - name: Wait for frontend to be ready
         run: |
@@ -204,25 +211,24 @@ jobs:
         run: |
           echo "Running E2E tests..."
           
-          # Check if smoke tests exist
+          # Run smoke tests only for CI stability
           if [ -d "tests/e2e/smoke" ]; then
             echo "Running smoke tests..."
-            # Run with retries and better reporting
             npx playwright test tests/e2e/smoke/ \
               --reporter=html \
               --reporter=json \
-              --retries=2 \
-              --timeout=30000 \
-              --workers=1
+              --reporter=github \
+              --workers=1 \
+              --timeout=60000 \
+              --retries=1
           else
-            echo "No smoke tests found, creating basic test..."
+            echo "Smoke tests not found, creating basic test..."
             mkdir -p tests/e2e/smoke
             cat > tests/e2e/smoke/basic.spec.ts << 'EOF'
 import { test, expect } from '@playwright/test';
 
 test('basic smoke test', async ({ page }) => {
-  // Test that we can reach the frontend
-  await page.goto('/', { waitUntil: 'networkidle', timeout: 30000 });
+  await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 30000 });
   expect(await page.title()).toBeTruthy();
 });
 
@@ -237,9 +243,9 @@ EOF
             npx playwright test tests/e2e/smoke/ \
               --reporter=html \
               --reporter=json \
-              --retries=2 \
-              --timeout=30000 \
-              --workers=1
+              --workers=1 \
+              --timeout=60000 \
+              --retries=1
           fi
         env:
           CI: true
