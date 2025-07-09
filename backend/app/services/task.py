@@ -9,6 +9,7 @@ from app.core.exceptions import BusinessLogicError, NotFound, PermissionDenied
 from app.models.project import Project
 from app.models.task import Task
 from app.models.user import User
+from app.services.audit import AuditLogger
 from app.services.permission import permission_service
 from app.schemas.task import (
     BulkStatusUpdate,
@@ -24,6 +25,44 @@ from app.schemas.task import (
 
 class TaskService:
     """Service for managing tasks."""
+
+    def _log_task_change(
+        self,
+        action: str,
+        task: Task,
+        user: User,
+        db: Session,
+        old_values: Optional[Dict[str, Any]] = None,
+        new_values: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """Log task changes to audit log."""
+        changes = {}
+        
+        if old_values and new_values:
+            # Record specific field changes
+            for field, new_value in new_values.items():
+                old_value = old_values.get(field)
+                if old_value != new_value:
+                    changes[field] = {
+                        "old": old_value,
+                        "new": new_value
+                    }
+        elif new_values:
+            # For creation, record all values
+            changes = {"created": new_values}
+        elif old_values:
+            # For deletion, record deleted values
+            changes = {"deleted": old_values}
+            
+        AuditLogger.log(
+            action=action,
+            resource_type="task",
+            resource_id=task.id,
+            user=user,
+            changes=changes,
+            db=db,
+            organization_id=getattr(user, 'organization_id', None),
+        )
 
     def create_task(
         self, task_data: TaskCreate, user: User, db: Session
@@ -63,6 +102,24 @@ class TaskService:
         db.add(task)
         db.commit()
         db.refresh(task)
+
+        # Log task creation
+        self._log_task_change(
+            action="create",
+            task=task,
+            user=user,
+            db=db,
+            new_values={
+                "title": task.title,
+                "description": task.description,
+                "status": task.status,
+                "priority": task.priority,
+                "project_id": task.project_id,
+                "assignee_id": task.assignee_id,
+                "due_date": task.due_date.isoformat() if task.due_date else None,
+                "estimated_hours": task.estimated_hours,
+            }
+        )
 
         return self._task_to_response(task)
 
@@ -114,8 +171,20 @@ class TaskService:
         if not has_general_permission and not is_task_owner:
             raise PermissionDenied("No permission to update this task")
 
+        # Capture old values for audit log
+        old_values = {
+            "title": task.title,
+            "description": task.description,
+            "status": task.status,
+            "priority": task.priority,
+            "assignee_id": task.assignee_id,
+            "due_date": task.due_date.isoformat() if task.due_date else None,
+            "estimated_hours": task.estimated_hours,
+        }
+
         # Update fields
-        for field, value in update_data.model_dump(exclude_unset=True).items():
+        update_dict = update_data.model_dump(exclude_unset=True)
+        for field, value in update_dict.items():
             setattr(task, field, value)
 
         task.updated_by = user.id
@@ -123,6 +192,27 @@ class TaskService:
 
         db.commit()
         db.refresh(task)
+
+        # Capture new values for audit log
+        new_values = {
+            "title": task.title,
+            "description": task.description,
+            "status": task.status,
+            "priority": task.priority,
+            "assignee_id": task.assignee_id,
+            "due_date": task.due_date.isoformat() if task.due_date else None,
+            "estimated_hours": task.estimated_hours,
+        }
+
+        # Log task update
+        self._log_task_change(
+            action="update",
+            task=task,
+            user=user,
+            db=db,
+            old_values=old_values,
+            new_values=new_values,
+        )
 
         return self._task_to_response(task)
 
@@ -142,12 +232,34 @@ class TaskService:
         if not has_delete_permission and not is_task_creator:
             raise PermissionDenied("No permission to delete this task")
 
+        # Capture task values before deletion for audit log
+        old_values = {
+            "title": task.title,
+            "description": task.description,
+            "status": task.status,
+            "priority": task.priority,
+            "project_id": task.project_id,
+            "assignee_id": task.assignee_id,
+            "due_date": task.due_date.isoformat() if task.due_date else None,
+            "estimated_hours": task.estimated_hours,
+        }
+
         # Soft delete
         task.deleted_at = datetime.utcnow()
         task.deleted_by = user.id
         task.is_deleted = True
 
         db.commit()
+
+        # Log task deletion
+        self._log_task_change(
+            action="delete",
+            task=task,
+            user=user,
+            db=db,
+            old_values=old_values,
+        )
+
         return True
 
     def list_tasks(
@@ -238,6 +350,9 @@ class TaskService:
         if not has_general_permission and not is_task_owner:
             raise PermissionDenied("No permission to update this task status")
 
+        # Capture old status for audit log
+        old_status = task.status
+
         # Update status
         task.status = status_update.status.value
         if status_update.status.value == "completed":
@@ -249,22 +364,70 @@ class TaskService:
         db.commit()
         db.refresh(task)
 
+        # Log status change
+        self._log_task_change(
+            action="update_status",
+            task=task,
+            user=user,
+            db=db,
+            old_values={"status": old_status},
+            new_values={"status": status_update.status.value},
+        )
+
         return self._task_to_response(task)
 
     def get_task_history(
         self, task_id: int, user: User, db: Session
     ) -> TaskHistoryResponse:
         """Get task change history."""
-        # For now, return empty history
-        # TODO: Implement actual audit log retrieval
         task = db.query(Task).filter(Task.id == task_id).first()
         if not task:
             raise NotFound("Task not found")
 
-        if not user.is_active:
-            raise PermissionDenied("User is not active")
+        # Check task view permissions
+        # User can view history of tasks they created or are assigned to (owner-based access)
+        # or if they have general task.view permission
+        has_general_permission = permission_service.has_permission(
+            user, "task.view", organization_id=user.organization_id, db=db
+        )
+        is_task_owner = (task.reporter_id == user.id or task.assignee_id == user.id)
+        
+        if not has_general_permission and not is_task_owner:
+            raise PermissionDenied("No access to this task history")
 
-        return TaskHistoryResponse(items=[], total=0)
+        # Get audit logs for this task
+        from app.models.audit import AuditLog
+        
+        audit_logs = (
+            db.query(AuditLog)
+            .filter(
+                AuditLog.resource_type == "task",
+                AuditLog.resource_id == task_id
+            )
+            .order_by(AuditLog.created_at.desc())
+            .all()
+        )
+
+        # Convert audit logs to history items
+        from app.schemas.task import TaskHistoryItem
+        
+        history_items = []
+        for log in audit_logs:
+            # Get user info for the log
+            log_user = db.query(User).filter(User.id == log.user_id).first()
+            user_name = log_user.full_name if log_user else "Unknown User"
+            
+            history_items.append(
+                TaskHistoryItem(
+                    id=log.id,
+                    action=log.action,
+                    user_name=user_name,
+                    timestamp=log.created_at,
+                    changes=log.changes or {},
+                )
+            )
+
+        return TaskHistoryResponse(items=history_items, total=len(history_items))
 
     def assign_user(
         self, task_id: int, assignee_id: int, user: User, db: Session
@@ -296,12 +459,25 @@ class TaskService:
             if assignee.organization_id != user.organization_id:
                 raise PermissionDenied("Cannot assign task to user from different organization")
 
+        # Capture old assignee for audit log
+        old_assignee_id = task.assignee_id
+
         task.assignee_id = assignee_id
         task.updated_by = user.id
         task.updated_at = datetime.utcnow()
 
         db.commit()
         db.refresh(task)
+
+        # Log assignment change
+        self._log_task_change(
+            action="assign_user",
+            task=task,
+            user=user,
+            db=db,
+            old_values={"assignee_id": old_assignee_id},
+            new_values={"assignee_id": assignee_id},
+        )
 
         return self._task_to_response(task)
 
@@ -326,12 +502,25 @@ class TaskService:
         if task.assignee_id != assignee_id:
             raise BusinessLogicError("User is not assigned to this task")
 
+        # Capture old assignee for audit log
+        old_assignee_id = task.assignee_id
+
         task.assignee_id = None
         task.updated_by = user.id
         task.updated_at = datetime.utcnow()
 
         db.commit()
         db.refresh(task)
+
+        # Log unassignment change
+        self._log_task_change(
+            action="unassign_user",
+            task=task,
+            user=user,
+            db=db,
+            old_values={"assignee_id": old_assignee_id},
+            new_values={"assignee_id": None},
+        )
 
         return self._task_to_response(task)
 
