@@ -1,0 +1,124 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  e2e-tests:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: itdo_user
+          POSTGRES_PASSWORD: itdo_password
+          POSTGRES_DB: itdo_erp_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/uv
+            backend/.venv
+            frontend/node_modules
+            ~/.cache/ms-playwright
+          key: ${{ runner.os }}-deps-${{ hashFiles('**/package-lock.json', '**/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-deps-
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: |
+          uv sync
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: |
+          npm ci
+
+      - name: Install Playwright browsers
+        working-directory: frontend
+        run: |
+          npx playwright install --with-deps
+
+      - name: Setup test environment
+        working-directory: backend
+        run: |
+          cp .env.example .env
+          echo "DATABASE_URL=postgresql://itdo_user:itdo_password@localhost:5432/itdo_erp_test" >> .env
+          echo "REDIS_URL=redis://localhost:6379/0" >> .env
+          echo "SECRET_KEY=test-secret-key" >> .env
+          echo "ENVIRONMENT=test" >> .env
+
+      - name: Run database migrations
+        working-directory: backend
+        run: |
+          uv run alembic upgrade head
+
+      - name: Run E2E tests
+        working-directory: frontend
+        run: |
+          npm run e2e
+        env:
+          CI: true
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: |
+            frontend/e2e/playwright-report/
+            frontend/e2e/test-results/
+          retention-days: 30
+
+      - name: Upload screenshots
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: screenshots
+          path: frontend/e2e/screenshots/
+          retention-days: 7

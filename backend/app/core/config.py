@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional, Union
 
-from pydantic import AnyHttpUrl, AnyUrl, PostgresDsn, validator
+from pydantic import AnyHttpUrl, AnyUrl, PostgresDsn, field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     # CORS設定
     BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = []
 
-    @validator("BACKEND_CORS_ORIGINS", pre=True)
+    @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> Union[List[str], str]:
         if isinstance(v, str) and not v.startswith("["):
@@ -29,16 +29,17 @@ class Settings(BaseSettings):
     POSTGRES_PORT: int = 5432
     DATABASE_URL: Optional[Union[PostgresDsn, AnyUrl]] = None
 
-    @validator("DATABASE_URL", pre=True)
+    @field_validator("DATABASE_URL", mode="before")
     @classmethod
-    def assemble_db_connection(cls, v: Optional[str], values: Dict[str, Any]) -> Any:
+    def assemble_db_connection(cls, v: Optional[str], info) -> Any:
         if isinstance(v, str):
             return v
+        values = info.data if hasattr(info, 'data') else {}
         return (
-            f"postgresql://{values.get('POSTGRES_USER')}:"
-            f"{values.get('POSTGRES_PASSWORD')}@"
-            f"{values.get('POSTGRES_SERVER')}:"
-            f"{values.get('POSTGRES_PORT')}/{values.get('POSTGRES_DB')}"
+            f"postgresql://{values.get('POSTGRES_USER', 'itdo_user')}:"
+            f"{values.get('POSTGRES_PASSWORD', 'itdo_password')}@"
+            f"{values.get('POSTGRES_SERVER', 'localhost')}:"
+            f"{values.get('POSTGRES_PORT', 5432)}/{values.get('POSTGRES_DB', 'itdo_erp')}"
         )
 
     # Redis設定
@@ -61,9 +62,10 @@ class Settings(BaseSettings):
     # 開発環境フラグ
     DEBUG: bool = False
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    model_config = {
+        "env_file": ".env",
+        "case_sensitive": True
+    }
 
 
 settings = Settings()

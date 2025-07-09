@@ -9,6 +9,7 @@ from app.models.project import Project
 from app.models.project_member import ProjectMember
 from app.models.project_milestone import ProjectMilestone
 from app.models.role import Role, RolePermission, UserRole
+from app.models.task import Task, TaskDependency, TaskHistory
 from app.models.user import User
 from app.models.user_activity_log import UserActivityLog
 from app.models.user_session import UserSession
@@ -28,4 +29,7 @@ __all__ = [
     "Project",
     "ProjectMember",
     "ProjectMilestone",
+    "Task",
+    "TaskDependency",
+    "TaskHistory",
 ]
