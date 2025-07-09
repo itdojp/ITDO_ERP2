@@ -98,10 +98,21 @@ jobs:
       - name: Wait for services
         run: |
           echo "Waiting for PostgreSQL..."
-          timeout 30 bash -c 'until nc -z localhost 5432; do sleep 1; done'
+          timeout 60 bash -c 'until nc -z localhost 5432; do echo "PostgreSQL not ready, waiting..."; sleep 2; done'
+          echo "PostgreSQL is ready!"
+          
           echo "Waiting for Redis..."
-          timeout 30 bash -c 'until nc -z localhost 6379; do sleep 1; done'
-          echo "Services are ready!"
+          timeout 60 bash -c 'until nc -z localhost 6379; do echo "Redis not ready, waiting..."; sleep 2; done'
+          echo "Redis is ready!"
+          
+          # Additional health checks
+          echo "Testing PostgreSQL connection..."
+          PGPASSWORD=itdo_password psql -h localhost -U itdo_user -d itdo_erp_test -c "SELECT 1;" || echo "PostgreSQL connection test failed"
+          
+          echo "Testing Redis connection..."
+          redis-cli -h localhost ping || echo "Redis connection test failed"
+          
+          echo "All services are ready!"
 
       - name: Run database migrations
         working-directory: backend
@@ -116,33 +127,57 @@ jobs:
       - name: Start backend service
         working-directory: backend
         run: |
-          uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+          echo "Starting backend service..."
+          nohup uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 > backend.log 2>&1 &
           BACKEND_PID=$!
           echo "Backend PID: $BACKEND_PID"
           echo $BACKEND_PID > backend.pid
-          sleep 10
+          
+          # Wait a bit for startup
+          sleep 15
+          
+          # Check if process is still running
+          if kill -0 $BACKEND_PID 2>/dev/null; then
+            echo "Backend process is running"
+          else
+            echo "Backend process died! Log contents:"
+            cat backend.log
+            exit 1
+          fi
 
       - name: Backend health check
         run: |
           echo "Checking backend health..."
-          for i in {1..30}; do
-            if curl -f http://localhost:8000/health; then
+          for i in {1..60}; do
+            if curl -f -s http://localhost:8000/health > /dev/null 2>&1; then
               echo "Backend is healthy!"
+              curl http://localhost:8000/health
               break
             fi
-            if [ $i -eq 30 ]; then
-              echo "Backend health check failed"
+            if [ $i -eq 60 ]; then
+              echo "Backend health check failed after 60 attempts"
+              echo "Backend logs:"
+              cat backend/backend.log || echo "No backend logs found"
+              echo "Backend process status:"
+              if [ -f backend/backend.pid ]; then
+                BACKEND_PID=$(cat backend/backend.pid)
+                ps aux | grep $BACKEND_PID || echo "Backend process not found"
+              fi
               exit 1
             fi
+            echo "Attempt $i/60: Backend not ready, waiting..."
             sleep 2
           done
 
       - name: Run E2E tests
         working-directory: frontend
         run: |
-          # For now, run only smoke tests until full E2E implementation is ready
+          echo "Running E2E tests..."
+          
+          # Check if smoke tests exist
           if [ -d "tests/e2e/smoke" ]; then
-            npx playwright test tests/e2e/smoke/ --reporter=json
+            echo "Running smoke tests..."
+            npx playwright test tests/e2e/smoke/ --reporter=html --reporter=json
           else
             echo "No smoke tests found, creating basic test..."
             mkdir -p tests/e2e/smoke
@@ -150,11 +185,20 @@ jobs:
 import { test, expect } from '@playwright/test';
 
 test('basic smoke test', async ({ page }) => {
-  // Just verify playwright is working
-  expect(1).toBe(1);
+  // Test that we can reach the frontend
+  await page.goto('/');
+  expect(await page.title()).toBeTruthy();
+});
+
+test('backend API health check', async ({ request }) => {
+  const response = await request.get('http://localhost:8000/health');
+  expect(response.ok()).toBeTruthy();
+  const data = await response.json();
+  expect(data.status).toBe('healthy');
 });
 EOF
-            npx playwright test tests/e2e/smoke/ --reporter=json
+            echo "Running basic smoke tests..."
+            npx playwright test tests/e2e/smoke/ --reporter=html --reporter=json
           fi
         env:
           CI: true
