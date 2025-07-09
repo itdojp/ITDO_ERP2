@@ -54,6 +54,7 @@ class TestOrganizationAPI(
         # Convert settings from JSON string to dict for API
         if "settings" in payload and isinstance(payload["settings"], str):
             import json
+
             payload["settings"] = json.loads(payload["settings"])
         return payload
 

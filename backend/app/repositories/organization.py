@@ -156,7 +156,7 @@ class OrganizationRepository(
         # Convert settings dict to JSON string for database
         if "settings" in obj_data and isinstance(obj_data["settings"], dict):
             obj_data["settings"] = json.dumps(obj_data["settings"])
-        
+
         db_obj = self.model(**obj_data)
         self.db.add(db_obj)
         self.db.commit()
@@ -171,18 +171,16 @@ class OrganizationRepository(
         # Convert settings dict to JSON string for database if present
         if "settings" in obj_data and isinstance(obj_data["settings"], dict):
             obj_data["settings"] = json.dumps(obj_data["settings"])
-        
+
         # Remove None values to avoid overwriting with NULL
         obj_data = {k: v for k, v in obj_data.items() if v is not None}
-        
+
         if obj_data:
             self.db.execute(
-                update(self.model)
-                .where(self.model.id == id)
-                .values(**obj_data)
+                update(self.model).where(self.model.id == id).values(**obj_data)
             )
             self.db.commit()
-        
+
         return self.get(id)
 
     def update_settings(
