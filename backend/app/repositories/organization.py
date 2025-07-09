@@ -53,25 +53,17 @@ class OrganizationRepository(
 
     def get_all_subsidiaries(self, parent_id: OrganizationId) -> List[Organization]:
         """Get all subsidiaries recursively."""
-        # Use CTE for recursive query
-        org_cte = (
-            select(self.model)
-            .where(self.model.parent_id == parent_id)
-            .cte(recursive=True)
-        )
-        org_alias = org_cte.alias()
+        # Use a simpler recursive approach
+        result = []
 
-        org_cte = org_cte.union_all(
-            select(self.model).where(self.model.parent_id.in_(select(org_alias.c.id)))
-        )
+        def get_children(pid: OrganizationId):
+            children = self.get_subsidiaries(pid)
+            for child in children:
+                result.append(child)
+                get_children(child.id)
 
-        return list(
-            self.db.scalars(
-                select(self.model)
-                .join(org_cte, self.model.id == org_cte.c.id)
-                .where(~self.model.is_deleted)
-            )
-        )
+        get_children(parent_id)
+        return result
 
     def get_root_organizations(self) -> List[Organization]:
         """Get organizations without parent (root level)."""
@@ -152,11 +144,172 @@ class OrganizationRepository(
         self, id: int, settings: Dict[str, Any]
     ) -> Optional[Organization]:
         """Update organization settings."""
-        import json
-
         org = self.get(id)
         if org:
-            org.settings = json.dumps(settings)
+            org.settings = settings  # Now directly assigns dict, thanks to JSON column type
             self.db.commit()
             self.db.refresh(org)
         return org
+
+    def get_by_tenant_id(self, tenant_id: str) -> List[Organization]:
+        """Get organizations by tenant ID from settings."""
+        return list(
+            self.db.scalars(
+                select(self.model)
+                .where(self.model.settings.op('->>')('tenant_id') == tenant_id)
+                .where(~self.model.is_deleted)
+                .order_by(self.model.name)
+            )
+        )
+
+    def get_hierarchy_path(self, org_id: OrganizationId) -> List[Organization]:
+        """Get full hierarchy path from root to organization."""
+        path = []
+        current_org = self.get(org_id)
+
+        while current_org:
+            path.insert(0, current_org)  # Insert at beginning to build path from root
+            if current_org.parent_id:
+                current_org = self.get(current_org.parent_id)
+            else:
+                break
+
+        return path
+
+    def get_organization_depth(self, org_id: OrganizationId) -> int:
+        """Get organization depth in hierarchy (root = 0)."""
+        return len(self.get_hierarchy_path(org_id)) - 1
+
+    def get_max_hierarchy_depth(self) -> int:
+        """Get maximum hierarchy depth in the system."""
+        # Use recursive CTE to calculate depth efficiently
+        from sqlalchemy import text
+
+        result = self.db.execute(text("""
+            WITH RECURSIVE org_hierarchy AS (
+                -- Base case: root organizations (depth 0)
+                SELECT id, parent_id, 0 as depth
+                FROM organizations 
+                WHERE parent_id IS NULL AND is_deleted = false
+                
+                UNION ALL
+                
+                -- Recursive case: children organizations
+                SELECT o.id, o.parent_id, h.depth + 1
+                FROM organizations o
+                INNER JOIN org_hierarchy h ON o.parent_id = h.id
+                WHERE o.is_deleted = false
+            )
+            SELECT COALESCE(MAX(depth), 0) as max_depth FROM org_hierarchy
+        """)).scalar()
+
+        return result or 0
+
+    def bulk_update_status(self, org_ids: List[int], is_active: bool) -> int:
+        """Bulk update organization status."""
+        from sqlalchemy import update
+
+        result = self.db.execute(
+            update(self.model)
+            .where(self.model.id.in_(org_ids))
+            .where(~self.model.is_deleted)
+            .values(is_active=is_active)
+        )
+        self.db.commit()
+        return result.rowcount
+
+    def get_organizations_by_criteria(
+        self,
+        tenant_id: Optional[str] = None,
+        industry: Optional[str] = None,
+        is_active: Optional[bool] = None,
+        has_subsidiaries: Optional[bool] = None,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> List[Organization]:
+        """Get organizations by multiple criteria with tenant isolation."""
+        query = select(self.model).where(~self.model.is_deleted)
+
+        if tenant_id:
+            query = query.where(
+                self.model.settings.op('->>')('tenant_id') == tenant_id
+            )
+
+        if industry:
+            query = query.where(self.model.industry == industry)
+
+        if is_active is not None:
+            query = query.where(self.model.is_active == is_active)
+
+        if has_subsidiaries is not None:
+            if has_subsidiaries:
+                # Organizations that have subsidiaries
+                subquery = select(self.model.id).where(
+                    self.model.parent_id.isnot(None)
+                ).where(~self.model.is_deleted).distinct()
+                query = query.where(self.model.id.in_(subquery))
+            else:
+                # Organizations that don't have subsidiaries
+                subquery = select(self.model.id).where(
+                    self.model.parent_id.isnot(None)
+                ).where(~self.model.is_deleted)
+                query = query.where(~self.model.id.in_(subquery))
+
+        return list(
+            self.db.scalars(
+                query.order_by(self.model.name).offset(skip).limit(limit)
+            )
+        )
+
+    def get_subsidiary_tree(self, parent_id: OrganizationId) -> Dict[str, Any]:
+        """Get complete subsidiary tree as nested structure."""
+        def build_tree(org_id: OrganizationId) -> Dict[str, Any]:
+            org = self.get(org_id)
+            if not org:
+                return {}
+
+            children = self.get_subsidiaries(org_id)
+            return {
+                "id": org.id,
+                "code": org.code,
+                "name": org.name,
+                "is_active": org.is_active,
+                "children": [build_tree(child.id) for child in children]
+            }
+
+        return build_tree(parent_id)
+
+    def validate_parent_assignment(
+        self, org_id: OrganizationId, new_parent_id: OrganizationId
+    ) -> bool:
+        """Validate if parent assignment would create circular reference."""
+        if org_id == new_parent_id:
+            return False
+
+        # Check if new_parent_id is already a descendant of org_id
+        descendants = self.get_all_subsidiaries(org_id)
+        descendant_ids = [desc.id for desc in descendants]
+
+        return new_parent_id not in descendant_ids
+
+    def get_organizations_requiring_attention(self) -> List[Organization]:
+        """Get organizations that may need attention (inactive with active children, etc.)."""
+        # Organizations that are inactive but have active subsidiaries
+        inactive_orgs = list(
+            self.db.scalars(
+                select(self.model)
+                .where(~self.model.is_active)
+                .where(~self.model.is_deleted)
+            )
+        )
+
+        result = []
+        for org in inactive_orgs:
+            active_children = [
+                child for child in self.get_subsidiaries(org.id)
+                if child.is_active
+            ]
+            if active_children:
+                result.append(org)
+
+        return result

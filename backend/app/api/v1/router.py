@@ -2,7 +2,16 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.api.v1 import auth, departments, organizations, roles, users, users_extended
+from app.api.v1 import (
+    auth,
+    departments,
+    organizations,
+    projects,
+    roles,
+    tasks,
+    users,
+    users_extended,
+)
 from app.core.database import get_db
 
 api_router = APIRouter()
@@ -14,6 +23,8 @@ api_router.include_router(users_extended.router)
 api_router.include_router(organizations.router)
 api_router.include_router(departments.router)
 api_router.include_router(roles.router)
+api_router.include_router(projects.router)
+api_router.include_router(tasks.router)
 
 
 @api_router.get("/ping")

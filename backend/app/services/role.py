@@ -14,7 +14,8 @@ from app.core.exceptions import (
 )
 from app.models.organization import Organization
 from app.models.permission import Permission
-from app.models.role import Role, RolePermission, UserRole
+from app.models.role import Role, UserRole
+from app.models.role_permission import RolePermission
 from app.repositories.role import RoleRepository
 from app.schemas.role import (
     BulkRoleAssignment,
@@ -477,3 +478,181 @@ class RoleService:
     def get_user_role_response(self, user_role: UserRole) -> UserRoleResponse:
         """Get user role response."""
         return UserRoleResponse.model_validate(user_role, from_attributes=True)
+
+    # Phase 2: Enhanced Role Management Methods
+
+    def clone_role(self, role_id: RoleId, new_code: str, new_name: str, created_by: UserId) -> Role:
+        """Clone an existing role with a new code and name."""
+        # Get the source role
+        source_role = self.get_role(role_id)
+        if not source_role:
+            raise NotFound(f"Role {role_id} not found")  # noqa: N818
+
+        # Check if new code already exists
+        if self.repository.get_by_code(new_code):
+            raise AlreadyExists(f"Role with code '{new_code}' already exists")
+
+        # Create new role with same properties
+        create_data: Dict[str, Any] = {
+            "code": new_code,
+            "name": new_name,
+            "name_en": source_role.name_en,
+            "description": f"Cloned from {source_role.name}",
+            "role_type": source_role.role_type,
+            "is_active": True,
+            "display_order": source_role.display_order
+        }
+
+        if source_role.organization_id:
+            create_data["organization_id"] = source_role.organization_id
+        if source_role.parent_id:
+            create_data["parent_id"] = source_role.parent_id
+
+        role_data = RoleCreate(**create_data)
+
+        new_role = self.create_role(role_data, created_by)
+
+        # Copy permissions
+        permissions = self.get_role_permissions(role_id)
+        for perm in permissions:
+            # Add permission to role through RolePermission
+            role_perm = RolePermission(
+                role_id=new_role.id,
+                permission_id=perm.id,
+                granted_by=created_by
+            )
+            self.db.add(role_perm)
+
+        self.db.commit()
+
+        return new_role
+
+    def bulk_assign_permissions(self, role_id: RoleId, permission_ids: List[int], created_by: UserId) -> Role:
+        """Bulk assign permissions to a role."""
+        role = self.get_role(role_id)
+        if not role:
+            raise NotFound(f"Role {role_id} not found")  # noqa: N818
+
+        # Remove existing permissions
+        self.db.query(RolePermission).filter(RolePermission.role_id == role_id).delete()
+
+        # Add new permissions
+        for perm_id in permission_ids:
+            role_perm = RolePermission(
+                role_id=role_id,
+                permission_id=perm_id,
+                created_by=created_by,
+                updated_by=created_by
+            )
+            self.db.add(role_perm)
+
+        self.db.commit()
+        return role
+
+    def get_effective_permissions(self, user_id: UserId, organization_id: Optional[OrganizationId] = None) -> List[Permission]:
+        """Get all effective permissions for a user across all their roles."""
+        query = select(Permission).distinct().join(
+            RolePermission, Permission.id == RolePermission.permission_id
+        ).join(
+            Role, RolePermission.role_id == Role.id
+        ).join(
+            UserRole, Role.id == UserRole.role_id
+        ).where(
+            and_(
+                UserRole.user_id == user_id,
+                UserRole.is_active,
+                Role.is_active,
+                ~Role.is_deleted
+            )
+        )
+
+        if organization_id:
+            query = query.where(
+                or_(
+                    UserRole.organization_id == organization_id,
+                    UserRole.organization_id.is_(None)
+                )
+            )
+
+        return list(self.db.scalars(query))
+
+    def validate_role_hierarchy(self, role_id: RoleId, parent_id: Optional[RoleId]) -> bool:
+        """Validate role hierarchy to prevent circular references."""
+        if not parent_id:
+            return True
+
+        if role_id == parent_id:
+            raise ValidationError("Role cannot be its own parent")
+
+        # Check for circular reference
+        current_id: Optional[RoleId] = parent_id
+        while current_id:
+            parent_role = self.get_role(current_id)
+            if not parent_role:
+                break
+            if parent_role.id == role_id:
+                raise ValidationError("Circular reference detected in role hierarchy")
+            current_id = parent_role.parent_id
+
+        return True
+
+    def get_role_statistics(self, role_id: RoleId) -> Dict[str, Any]:
+        """Get detailed statistics for a role."""
+        role = self.get_role(role_id)
+        if not role:
+            raise NotFound(f"Role {role_id} not found")  # noqa: N818
+
+        # Get counts
+        user_count = self.db.scalar(
+            select(func.count(UserRole.id)).where(
+                and_(UserRole.role_id == role_id, UserRole.is_active)
+            )
+        ) or 0
+
+        permission_count = self.db.scalar(
+            select(func.count(RolePermission.id)).where(
+                RolePermission.role_id == role_id
+            )
+        ) or 0
+
+        # Get child roles count
+        child_count = self.db.scalar(
+            select(func.count(Role.id)).where(
+                and_(Role.parent_id == role_id, ~Role.is_deleted)
+            )
+        ) or 0
+
+        return {
+            "user_count": user_count,
+            "permission_count": permission_count,
+            "child_role_count": child_count,
+            "is_system_role": role.is_system,
+            "role_type": role.role_type,
+            "created_days_ago": (datetime.utcnow() - role.created_at).days if role.created_at else 0
+        }
+
+    def export_role_permissions(self, role_id: RoleId) -> Dict[str, Any]:
+        """Export role configuration including all permissions."""
+        role = self.get_role(role_id)
+        if not role:
+            raise NotFound(f"Role {role_id} not found")  # noqa: N818
+
+        role_with_perms = self.get_role_with_permissions(role)
+
+        return {
+            "role": {
+                "code": role_with_perms.code,
+                "name": role_with_perms.name,
+                "description": role_with_perms.description,
+                "role_type": role_with_perms.role_type,
+                "is_system": role_with_perms.is_system
+            },
+            "permissions": [
+                {
+                    "code": perm.code,
+                    "name": perm.name
+                }
+                for perm in role_with_perms.permission_list
+            ],
+            "exported_at": datetime.utcnow().isoformat()
+        }

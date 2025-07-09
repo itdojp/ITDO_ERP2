@@ -1,8 +1,9 @@
 """Organization model implementation."""
 
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from sqlalchemy import Boolean, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, ForeignKey, Index, Integer, String, Text
+from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import SoftDeletableModel
@@ -101,8 +102,8 @@ class Organization(SoftDeletableModel):
     )
 
     # Settings (JSON)
-    settings: Mapped[Optional[str]] = mapped_column(
-        Text, nullable=True, comment="Organization-specific settings in JSON format"
+    settings: Mapped[Optional[Dict[str, Any]]] = mapped_column(
+        JSON, nullable=True, default=dict, comment="Organization-specific settings"
     )
 
     # Additional information
@@ -182,3 +183,27 @@ class Organization(SoftDeletableModel):
             path.insert(0, current.parent)
             current = current.parent
         return path
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert model to dictionary, ensuring JSON fields are properly handled."""
+        data = super().to_dict()
+        # Ensure settings is not None
+        if data.get("settings") is None:
+            data["settings"] = {}
+        # Handle case where it's still a string (SQLite or PostgreSQL text representation)
+        elif isinstance(data.get("settings"), str):
+            import json
+            try:
+                data["settings"] = json.loads(data["settings"])
+            except (json.JSONDecodeError, TypeError):
+                data["settings"] = {}
+        return data
+
+    # Table configuration
+    __table_args__ = (
+        Index("idx_organization_code", "code"),
+        Index("idx_organization_name", "name"),
+        Index("idx_organization_parent", "parent_id"),
+        Index("idx_organization_active", "is_active"),
+        {"comment": "Organizations (companies/business entities)"},
+    )

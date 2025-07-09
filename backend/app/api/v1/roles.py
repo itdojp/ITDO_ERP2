@@ -8,10 +8,13 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_active_user, get_db
+from app.core.exceptions import AlreadyExists, NotFound
 from app.models.user import User
 from app.schemas.common import DeleteResponse, ErrorResponse, PaginatedResponse
 from app.schemas.role import (
+    BulkPermissionAssignment,
     PermissionBasic,
+    RoleCloneRequest,
     RoleCreate,
     RoleResponse,
     RoleSummary,
@@ -590,3 +593,183 @@ def get_user_roles(
     user_role_responses = service.get_user_roles(user_id)
 
     return user_role_responses  # Already UserRoleResponse objects
+
+
+# Phase 2: Enhanced Role Management Endpoints
+
+@router.post(
+    "/{role_id}/clone",
+    response_model=RoleResponse,
+    status_code=status.HTTP_201_CREATED,
+    responses={
+        401: {"model": ErrorResponse, "description": "Unauthorized"},
+        403: {"model": ErrorResponse, "description": "Insufficient permissions"},
+        404: {"model": ErrorResponse, "description": "Role not found"},
+        409: {"model": ErrorResponse, "description": "Role code already exists"},
+    },
+)
+def clone_role(
+    role_id: int = Path(..., description="Role ID to clone"),
+    clone_request: RoleCloneRequest = Body(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> Union[RoleResponse, JSONResponse]:
+    """Clone an existing role with a new code and name."""
+    # Check permissions
+    if not current_user.is_superuser:
+        service = RoleService(db)
+        if not service.user_has_permission(current_user.id, "roles.create"):
+            return JSONResponse(
+                status_code=status.HTTP_403_FORBIDDEN,
+                content=ErrorResponse(
+                    detail="Insufficient permissions to clone roles",
+                    code="PERMISSION_DENIED",
+                ).model_dump(),
+            )
+
+    try:
+        service = RoleService(db)
+        new_role = service.clone_role(role_id, clone_request.new_code, clone_request.new_name, current_user.id)
+        return service.get_role_response(new_role)
+    except AlreadyExists as e:
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content=ErrorResponse(
+                detail=str(e), code="DUPLICATE_CODE"
+            ).model_dump(),
+        )
+    except NotFound as e:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content=ErrorResponse(
+                detail=str(e), code="NOT_FOUND"
+            ).model_dump(),
+        )
+
+
+@router.put(
+    "/{role_id}/permissions/bulk",
+    response_model=RoleResponse,
+    responses={
+        401: {"model": ErrorResponse, "description": "Unauthorized"},
+        403: {"model": ErrorResponse, "description": "Insufficient permissions"},
+        404: {"model": ErrorResponse, "description": "Role not found"},
+    },
+)
+def bulk_assign_permissions(
+    role_id: int = Path(..., description="Role ID"),
+    assignment: BulkPermissionAssignment = Body(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> Union[RoleResponse, JSONResponse]:
+    """Bulk assign permissions to a role (replaces existing permissions)."""
+    # Check permissions
+    if not current_user.is_superuser:
+        service = RoleService(db)
+        if not service.user_has_permission(current_user.id, "roles.permissions.manage"):
+            return JSONResponse(
+                status_code=status.HTTP_403_FORBIDDEN,
+                content=ErrorResponse(
+                    detail="Insufficient permissions to manage role permissions",
+                    code="PERMISSION_DENIED",
+                ).model_dump(),
+            )
+
+    try:
+        service = RoleService(db)
+        role = service.bulk_assign_permissions(role_id, assignment.permission_ids, current_user.id)
+        return service.get_role_response(role)
+    except NotFound as e:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content=ErrorResponse(
+                detail=str(e), code="NOT_FOUND"
+            ).model_dump(),
+        )
+
+
+@router.get(
+    "/{role_id}/statistics",
+    response_model=Dict[str, Any],
+    responses={
+        401: {"model": ErrorResponse, "description": "Unauthorized"},
+        404: {"model": ErrorResponse, "description": "Role not found"},
+    },
+)
+def get_role_statistics(
+    role_id: int = Path(..., description="Role ID"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> Dict[str, Any]:
+    """Get detailed statistics for a role."""
+    service = RoleService(db)
+
+    try:
+        statistics = service.get_role_statistics(role_id)
+        return statistics
+    except NotFound as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+
+
+@router.get(
+    "/user/{user_id}/effective-permissions",
+    response_model=List[PermissionBasic],
+    responses={
+        401: {"model": ErrorResponse, "description": "Unauthorized"},
+        404: {"model": ErrorResponse, "description": "User not found"},
+    },
+)
+def get_user_effective_permissions(
+    user_id: UserId = Path(..., description="User ID"),
+    organization_id: Optional[OrganizationId] = Query(
+        None, description="Filter by organization context"
+    ),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> List[PermissionBasic]:
+    """Get all effective permissions for a user across all their roles."""
+    # Check if user can view other user's permissions
+    if user_id != current_user.id and not current_user.is_superuser:
+        service = RoleService(db)
+        if not service.user_has_permission(current_user.id, "users.permissions.view"):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Insufficient permissions to view user permissions"
+            )
+
+    service = RoleService(db)
+    permissions = service.get_effective_permissions(user_id, organization_id)
+
+    return [
+        PermissionBasic.model_validate(perm, from_attributes=True)
+        for perm in permissions
+    ]
+
+
+@router.get(
+    "/{role_id}/export",
+    response_model=Dict[str, Any],
+    responses={
+        401: {"model": ErrorResponse, "description": "Unauthorized"},
+        404: {"model": ErrorResponse, "description": "Role not found"},
+    },
+)
+def export_role_configuration(
+    role_id: int = Path(..., description="Role ID"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> Dict[str, Any]:
+    """Export role configuration including all permissions."""
+    service = RoleService(db)
+
+    try:
+        export_data = service.export_role_permissions(role_id)
+        return export_data
+    except NotFound as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )

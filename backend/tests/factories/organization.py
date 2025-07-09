@@ -1,9 +1,9 @@
 """Factory for Organization model."""
 
-import json
 from typing import Any, Dict
 
 from app.models.organization import Organization
+from app.schemas.organization import OrganizationCreate
 from tests.factories import BaseFactory, fake
 
 
@@ -38,13 +38,11 @@ class OrganizationFactory(BaseFactory):
             "capital": fake.random_int(min=1000000, max=100000000),
             "employee_count": fake.random_int(min=1, max=1000),
             "is_active": True,
-            "settings": json.dumps(
-                {
-                    "fiscal_year_start": "04-01",
-                    "timezone": "Asia/Tokyo",
-                    "currency": "JPY",
-                }
-            ),
+            "settings": {
+                "fiscal_year_start": "04-01",
+                "timezone": "Asia/Tokyo",
+                "currency": "JPY",
+            },
         }
 
     @classmethod
@@ -128,6 +126,17 @@ class OrganizationFactory(BaseFactory):
         }
         minimal_attrs.update(kwargs)
         return cls.create(db_session, **minimal_attrs)
+
+    @classmethod
+    def build_create_schema(cls, **kwargs) -> OrganizationCreate:
+        """Build an OrganizationCreate schema instance."""
+        attrs = cls.build_dict(**kwargs)
+        # Remove fields that are not in OrganizationCreate schema
+        create_attrs = {
+            k: v for k, v in attrs.items() 
+            if k not in ['id', 'created_at', 'updated_at', 'created_by', 'updated_by', 'deleted_at', 'deleted_by', 'is_deleted']
+        }
+        return OrganizationCreate(**create_attrs)
 
 
 # Helper function for backward compatibility

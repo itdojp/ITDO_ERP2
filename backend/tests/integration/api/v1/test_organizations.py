@@ -288,6 +288,100 @@ class TestOrganizationAPI(
             headers=create_auth_headers(user_token),
         )
         assert response.status_code == 403
+    
+    def test_get_organization_by_code(
+        self, client: TestClient, db_session: Session, admin_token: str
+    ) -> None:
+        """Test get organization by code endpoint."""
+        # Create organization with specific code
+        org = OrganizationFactory.create(db_session, code="TEST-ORG-001")
+        
+        response = client.get(
+            f"{self.endpoint_prefix}/code/TEST-ORG-001",
+            headers=create_auth_headers(admin_token),
+        )
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data["id"] == org.id
+        assert data["code"] == "TEST-ORG-001"
+    
+    def test_get_organization_by_code_not_found(
+        self, client: TestClient, admin_token: str
+    ) -> None:
+        """Test get organization by code when not found."""
+        response = client.get(
+            f"{self.endpoint_prefix}/code/NONEXISTENT",
+            headers=create_auth_headers(admin_token),
+        )
+        
+        assert response.status_code == 404
+        data = response.json()
+        assert "not found" in data["detail"].lower()
+    
+    def test_get_organization_statistics(
+        self, client: TestClient, db_session: Session, admin_token: str
+    ) -> None:
+        """Test get organization statistics endpoint."""
+        # Create organization with subsidiaries
+        parent = OrganizationFactory.create(db_session, name="Parent Company")
+        
+        # Create subsidiaries
+        for i in range(3):
+            OrganizationFactory.create_with_parent(
+                db_session, parent.id, name=f"Subsidiary {i+1}"
+            )
+        
+        response = client.get(
+            f"{self.endpoint_prefix}/{parent.id}/statistics",
+            headers=create_auth_headers(admin_token),
+        )
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert "department_count" in data
+        assert "user_count" in data
+        assert "active_subsidiaries" in data
+        assert "total_subsidiaries" in data
+        assert "hierarchy_depth" in data
+        assert data["active_subsidiaries"] == 3
+        assert data["total_subsidiaries"] == 3
+    
+    def test_update_organization_settings(
+        self, client: TestClient, db_session: Session, admin_token: str
+    ) -> None:
+        """Test update organization settings endpoint."""
+        org = OrganizationFactory.create(db_session)
+        
+        settings = {
+            "fiscal_year_start": "04-01",
+            "default_currency": "JPY",
+            "time_zone": "Asia/Tokyo",
+            "custom_fields": {
+                "department_code_prefix": "DEPT-",
+                "employee_id_format": "EMP-{:06d}"
+            }
+        }
+        
+        response = client.put(
+            f"{self.endpoint_prefix}/{org.id}/settings",
+            json=settings,
+            headers=create_auth_headers(admin_token),
+        )
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data["settings"] == settings
+        
+        # Verify settings are persisted
+        response = client.get(
+            f"{self.endpoint_prefix}/{org.id}",
+            headers=create_auth_headers(admin_token),
+        )
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert data["settings"] == settings
 
 
 class TestOrganizationValidation:

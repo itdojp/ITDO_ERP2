@@ -82,12 +82,14 @@ class BaseFactory(ABC):
 # Re-export factory classes
 from tests.factories.department import DepartmentFactory, create_test_department
 from tests.factories.organization import OrganizationFactory, create_test_organization
+from tests.factories.project import ProjectFactory, ProjectMemberFactory, ProjectMilestoneFactory
 from tests.factories.role import (
     PermissionFactory,
     RoleFactory,
     create_test_role,
     create_test_user_role,
 )
+from tests.factories.task import TaskFactory
 from tests.factories.user import UserFactory, create_test_user
 
 __all__ = [
@@ -97,6 +99,9 @@ __all__ = [
     "RoleFactory",
     "PermissionFactory",
     "UserFactory",
+    "ProjectFactory",
+    "ProjectMemberFactory",
+    "ProjectMilestoneFactory",
     "create_test_user",
     "create_test_organization",
     "create_test_department",

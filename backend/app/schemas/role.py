@@ -242,5 +242,20 @@ class UserRoleAssignment(BaseModel):
     expires_at: Optional[datetime] = None
 
 
+# Phase 2: Enhanced Role Schemas
+
+class RoleCloneRequest(BaseModel):
+    """Request schema for cloning a role."""
+
+    new_code: str = Field(..., min_length=1, max_length=50, description="New role code")
+    new_name: str = Field(..., min_length=1, max_length=200, description="New role name")
+
+
+class BulkPermissionAssignment(BaseModel):
+    """Request schema for bulk permission assignment."""
+
+    permission_ids: List[int] = Field(..., min_length=1, description="List of permission IDs")
+
+
 # Update forward references
 RoleTree.model_rebuild()

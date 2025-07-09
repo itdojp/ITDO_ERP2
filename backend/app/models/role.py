@@ -1,14 +1,14 @@
 """Role and UserRole models implementation."""
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from enum import Enum
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
 
 from sqlalchemy import (
     JSON,
     Boolean,
     DateTime,
     ForeignKey,
-    Index,
     Integer,
     String,
     Text,
@@ -17,14 +17,35 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import AuditableModel, BaseModel, SoftDeletableModel
+from app.models.base import AuditableModel, SoftDeletableModel
 from app.types import DepartmentId, OrganizationId, RoleId, UserId
 
 if TYPE_CHECKING:
     from app.models.department import Department
     from app.models.organization import Organization
-    from app.models.permission import Permission
+    from app.models.role_permission import RolePermission
     from app.models.user import User
+
+
+class RoleType(str, Enum):
+    """Role type enumeration."""
+
+    SYSTEM = "system"  # Built-in system roles
+    ORGANIZATION = "organization"  # Organization-specific roles
+    DEPARTMENT = "department"  # Department-specific roles
+    PROJECT = "project"  # Project-specific roles
+    CUSTOM = "custom"  # User-defined custom roles
+
+
+class SystemRole(str, Enum):
+    """System-defined role codes."""
+
+    SUPER_ADMIN = "system.super_admin"
+    ORG_ADMIN = "system.org_admin"
+    DEPT_MANAGER = "system.dept_manager"
+    PROJECT_MANAGER = "system.project_manager"
+    USER = "system.user"
+    VIEWER = "system.viewer"
 
 
 class Role(SoftDeletableModel):
@@ -152,6 +173,46 @@ class Role(SoftDeletableModel):
 
         return all_permissions
 
+    def get_effective_permissions(
+        self, organization_id: Optional[int] = None, department_id: Optional[int] = None
+    ) -> Set[str]:
+        """Get effective permissions from RolePermission relationships."""
+        permissions = set()
+
+        # Get permissions from parent roles recursively
+        if self.parent:
+            permissions.update(
+                self.parent.get_effective_permissions(organization_id, department_id)
+            )
+
+        # Process role permissions
+        for rp in self.role_permissions:
+            if not rp.is_valid:  # Skip inactive or expired permissions
+                continue
+
+            # Check scope matching
+            if not rp.matches_scope(organization_id, department_id):
+                continue
+
+            # Handle permission effect
+            if rp.permission and rp.permission.is_active:
+                permission_code = rp.permission.code
+
+                if rp.is_allow:
+                    permissions.add(permission_code)
+                    # Add wildcard permission if it's a category permission
+                    if permission_code.endswith(".all"):
+                        category = permission_code.split(".")[0]
+                        permissions.add(f"{category}.*")
+                elif rp.is_deny:
+                    # Remove permission and any wildcards
+                    permissions.discard(permission_code)
+                    if "." in permission_code:
+                        category = permission_code.split(".")[0]
+                        permissions.discard(f"{category}.*")
+
+        return permissions
+
     def has_permission(self, permission: str) -> bool:
         """Check if role has a specific permission."""
         all_permissions = self.get_all_permissions()
@@ -167,9 +228,89 @@ class Role(SoftDeletableModel):
 
         return bool(current)
 
+    def has_effective_permission(
+        self,
+        permission_code: str,
+        organization_id: Optional[int] = None,
+        department_id: Optional[int] = None,
+    ) -> bool:
+        """Check if role has effective permission considering scope."""
+        permissions = self.get_effective_permissions(organization_id, department_id)
+
+        # Direct permission check
+        if permission_code in permissions:
+            return True
+
+        # Wildcard permission check
+        if "." in permission_code:
+            category = permission_code.split(".")[0]
+            if f"{category}.*" in permissions or f"{category}.all" in permissions:
+                return True
+
+        # Admin override
+        if "admin.all" in permissions or "admin.*" in permissions:
+            return True
+
+        return False
+
     def get_users_count(self) -> int:
         """Get count of users with this role."""
         return len([ur for ur in self.user_roles if ur.is_active])
+
+    def get_permission_priority(self) -> int:
+        """Get permission priority based on role type and hierarchy."""
+        # System roles have highest priority
+        if self.is_system:
+            return 1000
+
+        # Priority based on role type
+        type_priorities = {
+            RoleType.ORGANIZATION.value: 500,
+            RoleType.DEPARTMENT.value: 300,
+            RoleType.PROJECT.value: 200,
+            RoleType.CUSTOM.value: 100,
+        }
+
+        base_priority = type_priorities.get(self.role_type, 0)
+
+        # Add depth to priority (deeper roles have lower priority)
+        return base_priority - self.depth
+
+    def can_inherit_from(self, parent_role: "Role") -> bool:
+        """Check if this role can inherit from another role."""
+        # Cannot inherit from self
+        if self.id == parent_role.id:
+            return False
+
+        # System roles cannot inherit
+        if self.is_system:
+            return False
+
+        # Check for circular inheritance
+        current = parent_role
+        while current:
+            if current.id == self.id:
+                return False
+            current = current.parent
+
+        # Check role type compatibility
+        if self.role_type == RoleType.DEPARTMENT.value:
+            # Department roles can only inherit from org or dept roles
+            return parent_role.role_type in [
+                RoleType.ORGANIZATION.value,
+                RoleType.DEPARTMENT.value,
+            ]
+
+        return True
+
+    @property
+    def is_organization_admin(self) -> bool:
+        """Check if this is an organization admin role."""
+        return (
+            self.code == SystemRole.ORG_ADMIN.value
+            or self.role_type == RoleType.ORGANIZATION.value
+            and "admin" in self.code.lower()
+        )
 
 
 class UserRole(AuditableModel):
@@ -350,50 +491,3 @@ class UserRole(AuditableModel):
         return self.role.get_all_permissions()
 
 
-class RolePermission(BaseModel):
-    """Association table between roles and permissions."""
-
-    __tablename__ = "role_permissions"
-
-    role_id: Mapped[RoleId] = mapped_column(
-        Integer, ForeignKey("roles.id"), primary_key=True, comment="Role ID"
-    )
-    permission_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("permissions.id"), primary_key=True, comment="Permission ID"
-    )
-
-    # Additional metadata
-    granted_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        nullable=False,
-        comment="When permission was granted",
-    )
-    granted_by: Mapped[Optional[UserId]] = mapped_column(
-        Integer,
-        ForeignKey("users.id"),
-        nullable=True,
-        comment="User who granted the permission",
-    )
-
-    # Relationships
-    role: Mapped["Role"] = relationship(
-        "Role", back_populates="role_permissions", lazy="joined"
-    )
-    permission: Mapped["Permission"] = relationship(
-        "Permission", back_populates="role_permissions", lazy="joined"
-    )
-
-    # Indexes and constraints
-    __table_args__ = (
-        UniqueConstraint("role_id", "permission_id", name="uq_role_permissions"),
-        Index("ix_role_permissions_role_id", "role_id"),
-        Index("ix_role_permissions_permission_id", "permission_id"),
-    )
-
-    def __repr__(self) -> str:
-        """String representation."""
-        return (
-            f"<RolePermission(role_id={self.role_id}, "
-            f"permission_id={self.permission_id})>"
-        )

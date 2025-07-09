@@ -4,7 +4,8 @@ from typing import Any, Dict, List
 
 from app.models.organization import Organization
 from app.models.permission import Permission
-from app.models.role import Role, RolePermission
+from app.models.role import Role
+from app.models.role_permission import RolePermission
 from tests.factories import BaseFactory, fake
 
 from .organization import OrganizationFactory

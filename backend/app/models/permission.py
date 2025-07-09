@@ -8,7 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import BaseModel
 
 if TYPE_CHECKING:
-    from app.models.role import RolePermission
+    from app.models.role_permission import RolePermission
 
 
 class Permission(BaseModel):
