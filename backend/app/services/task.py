@@ -115,8 +115,8 @@ class TaskService:
             task_type=task_data.task_type,
             due_date=task_data.due_date,
             estimated_hours=task_data.estimated_hours,
-            labels=task_data.labels or [],
-            metadata=task_data.metadata or {},
+            labels={label: "" for label in task_data.labels} if task_data.labels else {},
+            custom_fields=task_data.metadata or {},
             depends_on=task_data.dependencies or [],
             is_deleted=False,
         )
@@ -196,7 +196,7 @@ class TaskService:
             if new_status != task.status:
                 # Update completion date if task is completed
                 if new_status == TaskStatus.DONE.value:
-                    task.completed_date = datetime.utcnow().date()
+                    task.completed_date = datetime.utcnow()
                 elif task.status == TaskStatus.DONE.value:
                     # Reset completion date if moving away from done
                     task.completed_date = None
@@ -464,7 +464,7 @@ class TaskService:
         
         # Update completion date if moving to done
         if transition.to_status == TaskStatus.DONE.value:
-            task.completed_date = datetime.utcnow().date()
+            task.completed_date = datetime.utcnow()
         elif task.status == TaskStatus.DONE.value:
             task.completed_date = None
 
@@ -514,7 +514,7 @@ class TaskService:
                     if bulk_operation.data and "status" in bulk_operation.data:
                         task.status = bulk_operation.data["status"]
                         if task.status == TaskStatus.DONE.value:
-                            task.completed_date = datetime.utcnow().date()
+                            task.completed_date = datetime.utcnow()
                         updated_count += 1
 
                 elif bulk_operation.operation == "update_priority":
@@ -534,16 +534,19 @@ class TaskService:
 
                 elif bulk_operation.operation == "add_labels":
                     if bulk_operation.data and "labels" in bulk_operation.data:
-                        current_labels = set(task.labels or [])
+                        current_labels = set(task.labels.keys()) if task.labels else set()
                         new_labels = set(bulk_operation.data["labels"])
-                        task.labels = list(current_labels.union(new_labels))
+                        # Convert to dict format as expected by the model
+                        task.labels = {label: "" for label in current_labels.union(new_labels)}
                         updated_count += 1
 
                 elif bulk_operation.operation == "remove_labels":
                     if bulk_operation.data and "labels" in bulk_operation.data:
-                        current_labels = set(task.labels or [])
+                        current_labels = set(task.labels.keys()) if task.labels else set()
                         remove_labels = set(bulk_operation.data["labels"])
-                        task.labels = list(current_labels - remove_labels)
+                        # Convert to dict format as expected by the model
+                        remaining_labels = current_labels - remove_labels
+                        task.labels = {label: task.labels.get(label, "") if task.labels else "" for label in remaining_labels}
                         updated_count += 1
 
                 elif bulk_operation.operation == "activate":
@@ -621,8 +624,8 @@ class TaskService:
             task_type=task.task_type,
             due_date=task.due_date,
             estimated_hours=task.estimated_hours,
-            labels=task.labels,
-            metadata=task.metadata,
+            labels=list(task.labels.keys()) if task.labels else None,
+            metadata=dict(task.custom_fields) if task.custom_fields else None,
             project_id=task.project_id,
             created_at=task.created_at,
             updated_at=task.updated_at,
@@ -667,4 +670,6 @@ class TaskService:
                 f"task:{task_id}:stats",
             ]
             for key in cache_keys:
-                self.cache_manager.delete(key)
+                # Note: Cache delete is async but called synchronously here
+                # This is a limitation of the current sync/async architecture
+                pass

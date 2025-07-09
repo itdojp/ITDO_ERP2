@@ -1,7 +1,7 @@
 """Permission checker with caching support."""
 
 import json
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Union
 
 from sqlalchemy.orm import Session
 
@@ -103,7 +103,7 @@ class PermissionChecker:
             # Try to get from cache
             cached = await self.cache_manager.get(cache_key)
             if cached is not None:
-                return cached == "1"
+                return bool(cached == "1")
 
         # Check permission
         has_permission = self.permission_service.check_user_permission(
@@ -195,7 +195,7 @@ class PermissionChecker:
         )
 
         # Build matrix
-        matrix = {}
+        matrix: Dict[str, Dict[str, bool]] = {}
         for perm in permissions:
             if perm.category not in matrix:
                 matrix[perm.category] = {}
@@ -265,10 +265,10 @@ class PermissionChecker:
         if organization_id:
             user_roles = user_roles.filter(UserRole.organization_id == organization_id)
 
-        user_roles = user_roles.all()
+        user_roles_result = user_roles.all()
 
         # Build summary
-        summary = {
+        summary: Dict[str, Any] = {
             "user_id": user_id,
             "user_email": user.email,
             "is_superuser": user.is_superuser,
@@ -284,17 +284,20 @@ class PermissionChecker:
                     "department_id": ur.department_id,
                     "is_primary": ur.is_primary,
                 }
-                for ur in user_roles
+                for ur in user_roles_result
             ],
             "permission_categories": {},
         }
 
         # Group permissions by category
+        permission_categories: Dict[str, List[str]] = {}
         for perm in permissions:
             if "." in perm:
                 category = perm.split(".")[0]
-                if category not in summary["permission_categories"]:
-                    summary["permission_categories"][category] = []
-                summary["permission_categories"][category].append(perm)
+                if category not in permission_categories:
+                    permission_categories[category] = []
+                permission_categories[category].append(perm)
+        
+        summary["permission_categories"] = permission_categories
 
         return summary
