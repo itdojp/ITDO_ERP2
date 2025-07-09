@@ -57,7 +57,9 @@ class TestTaskAuditLog:
                     mock_response.return_value = MagicMock()
                     
                     # Act
-                    result = self.service.create_task(task_data, self.test_user, self.db)
+                    result = self.service.create_task(
+                        task_data, self.test_user, self.db
+                    )
         
         # Assert audit log was called
         mock_audit_logger.log.assert_called_once()
@@ -73,7 +75,9 @@ class TestTaskAuditLog:
         """Test that task updates log field changes."""
         # Arrange
         task_id = 1
-        update_data = TaskUpdate(title="Updated Task", description="Updated description")
+        update_data = TaskUpdate(
+            title="Updated Task", description="Updated description"
+        )
         
         # Mock existing task
         mock_task = MagicMock(spec=Task)
@@ -99,7 +103,9 @@ class TestTaskAuditLog:
                     mock_response.return_value = MagicMock()
                     
                     # Act
-                    result = self.service.update_task(task_id, update_data, self.test_user, self.db)
+                    result = self.service.update_task(
+                        task_id, update_data, self.test_user, self.db
+                    )
         
         # Assert audit log was called
         mock_audit_logger.log.assert_called_once()
@@ -197,7 +203,9 @@ class TestTaskAuditLog:
                     mock_response.return_value = MagicMock()
                     
                     # Act
-                    result = self.service.assign_user(task_id, assignee_id, self.test_user, self.db)
+                    result = self.service.assign_user(
+                        task_id, assignee_id, self.test_user, self.db
+                    )
         
         # Assert audit log was called
         mock_audit_logger.log.assert_called_once()

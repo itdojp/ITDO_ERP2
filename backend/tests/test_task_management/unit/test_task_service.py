@@ -90,7 +90,9 @@ class TestTaskService:
                 # Act
                 with patch.object(self.service, '_task_to_response') as mock_response:
                     mock_response.return_value = MagicMock()
-                    result = self.service.create_task(task_data, self.test_user, self.db)
+                    result = self.service.create_task(
+                        task_data, self.test_user, self.db
+                    )
         
         # Assert
         self.db.add.assert_called_once()
@@ -135,7 +137,9 @@ class TestTaskService:
 
         # Mock permission service to deny permission
         with patch('app.services.task.permission_service') as mock_permission:
-            mock_permission.require_permission.side_effect = PermissionDenied("No permission")
+            mock_permission.require_permission.side_effect = PermissionDenied(
+                "No permission"
+            )
             
             # Act & Assert
             with pytest.raises(PermissionDenied):
@@ -215,7 +219,9 @@ class TestTaskService:
                 # Act
                 with patch.object(self.service, '_task_to_response') as mock_response:
                     mock_response.return_value = MagicMock()
-                    result = self.service.update_task(task_id, update_data, self.test_user, self.db)
+                    result = self.service.update_task(
+                        task_id, update_data, self.test_user, self.db
+                    )
         
         # Assert
         assert mock_task.title == update_data.title
@@ -247,8 +253,12 @@ class TestTaskService:
             mock_permission.has_permission.return_value = False  # No general permission
             
             # Act & Assert
-            with pytest.raises(PermissionDenied, match="No permission to update this task"):
-                self.service.update_task(task_id, update_data, unauthorized_user, self.db)
+            with pytest.raises(
+                PermissionDenied, match="No permission to update this task"
+            ):
+                self.service.update_task(
+                    task_id, update_data, unauthorized_user, self.db
+                )
 
     def test_delete_task_success(self):
         """Test TASK-U-008: タスク削除成功."""

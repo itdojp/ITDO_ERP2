@@ -55,7 +55,9 @@ class TestTaskPermissions:
 
         # Mock permission service to deny permission
         with patch('app.services.task.permission_service') as mock_permission:
-            mock_permission.require_permission.side_effect = PermissionDenied("No permission")
+            mock_permission.require_permission.side_effect = PermissionDenied(
+                "No permission"
+            )
             
             # Act & Assert
             with pytest.raises(PermissionDenied):
@@ -91,7 +93,7 @@ class TestTaskPermissions:
                 assert result is not None
 
     def test_get_task_owner_access(self):
-        """Test that task owners can view their tasks even without general permission."""
+        """Test that task owners can view their tasks without general permission."""
         # Arrange
         task_id = 1
         
@@ -169,7 +171,9 @@ class TestTaskPermissions:
                     mock_response.return_value = MagicMock()
                     
                     # Act
-                    result = self.service.update_task(task_id, update_data, self.regular_user, self.db)
+                    result = self.service.update_task(
+                        task_id, update_data, self.regular_user, self.db
+                    )
                 
                 # Assert
                 assert result is not None
@@ -191,7 +195,9 @@ class TestTaskPermissions:
             mock_permission.has_permission.return_value = False
             
             # Act & Assert
-            with pytest.raises(PermissionDenied, match="No permission to delete this task"):
+            with pytest.raises(
+                PermissionDenied, match="No permission to delete this task"
+            ):
                 self.service.delete_task(task_id, self.regular_user, self.db)
 
     def test_assign_task_creator_permission(self):
@@ -238,7 +244,9 @@ class TestTaskPermissions:
                     mock_response.return_value = MagicMock()
                     
                     # Act
-                    result = self.service.assign_user(task_id, assignee_id, self.regular_user, self.db)
+                    result = self.service.assign_user(
+                        task_id, assignee_id, self.regular_user, self.db
+                    )
                 
                 # Assert
                 assert result is not None
@@ -280,7 +288,9 @@ class TestTaskPermissions:
         mock_query.options.return_value = mock_query
         mock_query.filter.return_value = mock_query
         mock_query.count.return_value = 1  # Only owned task
-        mock_query.offset.return_value.limit.return_value.all.return_value = [mock_task1]
+        mock_query.offset.return_value.limit.return_value.all.return_value = [
+            mock_task1
+        ]
         self.db.query.return_value = mock_query
 
         # Mock permission service to deny general permission
