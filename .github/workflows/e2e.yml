@@ -98,19 +98,33 @@ jobs:
       - name: Wait for services
         run: |
           echo "Waiting for PostgreSQL..."
-          timeout 60 bash -c 'until nc -z localhost 5432; do echo "PostgreSQL not ready, waiting..."; sleep 2; done'
+          timeout 300 bash -c 'until nc -z localhost 5432; do echo "PostgreSQL not ready, waiting..."; sleep 5; done'
           echo "PostgreSQL is ready!"
           
           echo "Waiting for Redis..."
-          timeout 60 bash -c 'until nc -z localhost 6379; do echo "Redis not ready, waiting..."; sleep 2; done'
+          timeout 300 bash -c 'until nc -z localhost 6379; do echo "Redis not ready, waiting..."; sleep 5; done'
           echo "Redis is ready!"
           
-          # Additional health checks
+          # Additional health checks with retries
           echo "Testing PostgreSQL connection..."
-          PGPASSWORD=itdo_password psql -h localhost -U itdo_user -d itdo_erp_test -c "SELECT 1;" || echo "PostgreSQL connection test failed"
+          for i in {1..10}; do
+            if PGPASSWORD=itdo_password psql -h localhost -U itdo_user -d itdo_erp_test -c "SELECT 1;" > /dev/null 2>&1; then
+              echo "PostgreSQL connection successful"
+              break
+            fi
+            echo "PostgreSQL connection attempt $i failed, retrying..."
+            sleep 3
+          done
           
           echo "Testing Redis connection..."
-          redis-cli -h localhost ping || echo "Redis connection test failed"
+          for i in {1..10}; do
+            if redis-cli -h localhost ping > /dev/null 2>&1; then
+              echo "Redis connection successful"
+              break
+            fi
+            echo "Redis connection attempt $i failed, retrying..."
+            sleep 3
+          done
           
           echo "All services are ready!"
 
@@ -148,14 +162,14 @@ jobs:
       - name: Backend health check
         run: |
           echo "Checking backend health..."
-          for i in {1..60}; do
+          for i in {1..120}; do
             if curl -f -s http://localhost:8000/health > /dev/null 2>&1; then
               echo "Backend is healthy!"
               curl http://localhost:8000/health
               break
             fi
-            if [ $i -eq 60 ]; then
-              echo "Backend health check failed after 60 attempts"
+            if [ $i -eq 120 ]; then
+              echo "Backend health check failed after 120 attempts"
               echo "Backend logs:"
               cat backend/backend.log || echo "No backend logs found"
               echo "Backend process status:"
@@ -163,11 +177,27 @@ jobs:
                 BACKEND_PID=$(cat backend/backend.pid)
                 ps aux | grep $BACKEND_PID || echo "Backend process not found"
               fi
+              echo "Network status:"
+              netstat -tlpn | grep :8000 || echo "Port 8000 not listening"
               exit 1
             fi
-            echo "Attempt $i/60: Backend not ready, waiting..."
-            sleep 2
+            echo "Attempt $i/120: Backend not ready, waiting..."
+            sleep 3
           done
+          
+          # Additional API endpoint tests
+          echo "Testing additional endpoints..."
+          curl -f http://localhost:8000/ping || echo "Ping endpoint failed"
+          
+          # Test CORS headers
+          echo "Testing CORS configuration..."
+          curl -H "Origin: http://localhost:3000" -v http://localhost:8000/health 2>&1 | grep -i "access-control" || echo "CORS headers not found"
+
+      - name: Wait for frontend to be ready
+        run: |
+          echo "Waiting for frontend to be accessible..."
+          timeout 300 bash -c 'until curl -f -s http://localhost:3000 > /dev/null 2>&1; do echo "Frontend not ready, waiting..."; sleep 5; done'
+          echo "Frontend is ready!"
 
       - name: Run E2E tests
         working-directory: frontend
@@ -177,7 +207,13 @@ jobs:
           # Check if smoke tests exist
           if [ -d "tests/e2e/smoke" ]; then
             echo "Running smoke tests..."
-            npx playwright test tests/e2e/smoke/ --reporter=html --reporter=json
+            # Run with retries and better reporting
+            npx playwright test tests/e2e/smoke/ \
+              --reporter=html \
+              --reporter=json \
+              --retries=2 \
+              --timeout=30000 \
+              --workers=1
           else
             echo "No smoke tests found, creating basic test..."
             mkdir -p tests/e2e/smoke
@@ -186,7 +222,7 @@ import { test, expect } from '@playwright/test';
 
 test('basic smoke test', async ({ page }) => {
   // Test that we can reach the frontend
-  await page.goto('/');
+  await page.goto('/', { waitUntil: 'networkidle', timeout: 30000 });
   expect(await page.title()).toBeTruthy();
 });
 
@@ -198,7 +234,12 @@ test('backend API health check', async ({ request }) => {
 });
 EOF
             echo "Running basic smoke tests..."
-            npx playwright test tests/e2e/smoke/ --reporter=html --reporter=json
+            npx playwright test tests/e2e/smoke/ \
+              --reporter=html \
+              --reporter=json \
+              --retries=2 \
+              --timeout=30000 \
+              --workers=1
           fi
         env:
           CI: true

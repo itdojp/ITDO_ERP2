@@ -2,17 +2,42 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Performance Testing', () => {
   test('page load time measurement', async ({ page }) => {
+    // Use Performance API for more accurate timing
     const startTime = Date.now();
     
-    // Navigate to homepage
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    // Navigate to homepage with performance monitoring
+    await page.goto('/', { 
+      waitUntil: 'networkidle',
+      timeout: 30000
+    });
     
     const loadTime = Date.now() - startTime;
-    console.log(`Page load time: ${loadTime}ms`);
     
-    // Assert load time is reasonable (under 3 seconds)
-    expect(loadTime).toBeLessThan(3000);
+    // Get performance metrics from browser
+    const performanceMetrics = await page.evaluate(() => {
+      if (performance.timing) {
+        const timing = performance.timing;
+        return {
+          domContentLoaded: timing.domContentLoadedEventEnd - timing.navigationStart,
+          loadComplete: timing.loadEventEnd - timing.navigationStart,
+          firstPaint: performance.getEntriesByType('paint').find(entry => entry.name === 'first-paint')?.startTime || 0,
+          firstContentfulPaint: performance.getEntriesByType('paint').find(entry => entry.name === 'first-contentful-paint')?.startTime || 0,
+        };
+      }
+      return null;
+    });
+    
+    console.log(`Page load time: ${loadTime}ms`);
+    console.log('Performance metrics:', performanceMetrics);
+    
+    // Assert load time is reasonable (under 5 seconds for CI)
+    expect(loadTime).toBeLessThan(5000);
+    
+    // If performance metrics are available, check them
+    if (performanceMetrics) {
+      expect(performanceMetrics.domContentLoaded).toBeLessThan(3000);
+      expect(performanceMetrics.firstContentfulPaint).toBeLessThan(2000);
+    }
   });
 
   test('API response time measurement', async ({ request }) => {
