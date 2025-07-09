@@ -16,14 +16,20 @@ class Settings(BaseSettings):
     @classmethod
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> Union[List[str], str]:
         if isinstance(v, str):
+            # Skip empty strings
+            if not v.strip():
+                return []
+            
             # Handle JSON array format like '["http://localhost:3000"]'
-            if v.startswith("[") and v.endswith("]"):
+            if v.strip().startswith("[") and v.strip().endswith("]"):
                 try:
                     import json
-
-                    return json.loads(v)
-                except json.JSONDecodeError:
+                    parsed = json.loads(v.strip())
+                    return parsed if isinstance(parsed, list) else []
+                except (json.JSONDecodeError, TypeError):
+                    # If JSON parsing fails, treat as comma-separated
                     pass
+            
             # Handle comma-separated format
             return [i.strip() for i in v.split(",") if i.strip()]
         elif isinstance(v, list):
