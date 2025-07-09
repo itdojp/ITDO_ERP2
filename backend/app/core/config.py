@@ -21,27 +21,28 @@ class Settings(BaseSettings):
         # Handle None or empty values gracefully
         if v is None:
             return []
-        
+
         if isinstance(v, str):
             # Skip empty strings
             if not v.strip():
                 return []
-            
+
             # Handle JSON array format like '["http://localhost:3000"]'
             if v.strip().startswith("[") and v.strip().endswith("]"):
                 try:
                     import json
+
                     parsed = json.loads(v.strip())
                     return parsed if isinstance(parsed, list) else []
                 except (json.JSONDecodeError, TypeError):
                     # If JSON parsing fails, treat as comma-separated
                     pass
-            
+
             # Handle comma-separated format
             return [i.strip() for i in v.split(",") if i.strip()]
         elif isinstance(v, list):
             return v
-        
+
         # Fallback for any other type
         return []
 
