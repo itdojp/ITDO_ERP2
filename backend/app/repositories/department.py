@@ -194,3 +194,100 @@ class DepartmentRepository(
             .options(joinedload(self.model.parent))
             .where(self.model.id == id)
         )
+
+    def get_tree(
+        self, organization_id: OrganizationId, parent_id: Optional[DepartmentId] = None
+    ) -> List[Department]:
+        """Get department tree structure."""
+        query = select(self.model).where(self.model.organization_id == organization_id)
+        
+        if parent_id is None:
+            # Get root departments
+            query = query.where(self.model.parent_id.is_(None))
+        else:
+            # Get departments under specific parent
+            query = query.where(self.model.path.like(f"%{parent_id}%"))
+        
+        query = query.where(~self.model.is_deleted)
+        query = query.order_by(self.model.depth, self.model.display_order, self.model.name)
+        
+        return list(self.db.scalars(query))
+
+    def get_children(
+        self, parent_id: DepartmentId, recursive: bool = False
+    ) -> List[Department]:
+        """Get child departments."""
+        if not recursive:
+            # Direct children only
+            return self.get_sub_departments(parent_id)
+        
+        # All descendants
+        parent = self.get(parent_id)
+        if not parent or not parent.path:
+            return []
+        
+        query = select(self.model).where(
+            self.model.path.like(f"{parent.path}.%")
+        )
+        query = query.where(~self.model.is_deleted)
+        query = query.order_by(self.model.depth, self.model.display_order)
+        
+        return list(self.db.scalars(query))
+
+    def move_department(
+        self, department_id: DepartmentId, new_parent_id: Optional[DepartmentId]
+    ) -> bool:
+        """Move department to new parent."""
+        dept = self.get(department_id)
+        if not dept:
+            return False
+        
+        # Prevent moving to self or descendant
+        if new_parent_id:
+            new_parent = self.get(new_parent_id)
+            if not new_parent:
+                return False
+            
+            # Check if new parent is a descendant
+            if new_parent.path and str(department_id) in new_parent.path:
+                return False
+        
+        # Update parent
+        dept.parent_id = new_parent_id
+        dept.update_path()
+        
+        # Update all descendants' paths
+        dept.update_subtree_paths()
+        
+        self.db.commit()
+        return True
+
+    def get_ancestors(self, department_id: DepartmentId) -> List[Department]:
+        """Get all ancestor departments from root to parent."""
+        dept = self.get(department_id)
+        if not dept or not dept.path:
+            return []
+        
+        ancestor_ids = [int(id_str) for id_str in dept.path.split(".")[:-1]]
+        if not ancestor_ids:
+            return []
+        
+        query = select(self.model).where(self.model.id.in_(ancestor_ids))
+        query = query.order_by(self.model.depth)
+        
+        return list(self.db.scalars(query))
+
+    def get_siblings(self, department_id: DepartmentId) -> List[Department]:
+        """Get sibling departments (same parent)."""
+        dept = self.get(department_id)
+        if not dept:
+            return []
+        
+        query = select(self.model).where(
+            self.model.parent_id == dept.parent_id
+        )
+        query = query.where(self.model.id != department_id)
+        query = query.where(~self.model.is_deleted)
+        query = query.order_by(self.model.display_order, self.model.name)
+        
+        return list(self.db.scalars(query))
