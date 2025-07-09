@@ -57,7 +57,7 @@ class TestTaskCompleteWorkflow:
         self.unauthorized_user.organization_id = 2  # Different organization
 
     def test_complete_task_workflow_with_permissions_and_audit(self):
-        """Test TASK-WORKFLOW-001: Complete task lifecycle with permission checks and audit logging."""
+        """Test TASK-WORKFLOW-001: Complete task lifecycle with permissions and audit logs."""
         # Arrange
         task_data = TaskCreate(
             title="Integration Test Task",
@@ -134,7 +134,9 @@ class TestTaskCompleteWorkflow:
 
                     # 2. Status Update (with audit logging)
                     status_update = TaskStatusUpdate(status=TaskStatus.IN_PROGRESS)
-                    result = self.service.update_task_status(1, status_update, self.admin_user, self.db)
+                    result = self.service.update_task_status(
+                        1, status_update, self.admin_user, self.db
+                    )
                     assert result is not None
                     mock_audit_log.assert_called()  # Status change logged
 
@@ -201,7 +203,9 @@ class TestTaskCompleteWorkflow:
             elif call_count == 2:
                 # Audit log lookup
                 audit_query = MagicMock()
-                audit_query.filter.return_value.order_by.return_value.all.return_value = [mock_audit_log]
+                audit_query.filter.return_value.order_by.return_value.all.return_value = [
+                    mock_audit_log
+                ]
                 return audit_query
             else:
                 # User lookup for audit log
@@ -265,7 +269,9 @@ class TestTaskCompleteWorkflow:
 
             # Act & Assert
             # Should prevent cross-organization assignment
-            with pytest.raises(PermissionDenied, match="Cannot assign task to user from different organization"):
+            with pytest.raises(
+                PermissionDenied, match="Cannot assign task to user from different organization"
+            ):
                 self.service.assign_user(task_id, assignee_id, self.admin_user, self.db)
 
     def test_owner_based_access_permissions(self):
@@ -276,7 +282,7 @@ class TestTaskCompleteWorkflow:
         # Mock task owned by regular user
         mock_task = MagicMock(spec=Task)
         mock_task.id = task_id
-        mock_task.title = "User's Task"
+        mock_task.title = "User Task"  # Removed apostrophe to avoid quote issues
         mock_task.reporter_id = self.regular_user.id  # User owns this task
         mock_task.assignee_id = None
         mock_task.project = MagicMock(spec=Project)
@@ -318,9 +324,12 @@ class TestTaskCompleteWorkflow:
 
                     # 1. Create Task
                     mock_project = MagicMock(spec=Project)
-                    self.db.query.return_value.filter.return_value.first.return_value = mock_project
+                    project_query = self.db.query.return_value
+                    project_query.filter.return_value.first.return_value = mock_project
 
-                    task_data = TaskCreate(title="Test", project_id=1, priority=TaskPriority.MEDIUM)
+                    task_data = TaskCreate(
+                        title="Test", project_id=1, priority=TaskPriority.MEDIUM
+                    )
                     try:
                         self.service.create_task(task_data, self.manager_user, self.db)
                         operations_tested.append("create_task")
