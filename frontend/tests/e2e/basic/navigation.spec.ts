@@ -32,7 +32,6 @@ test.describe('Basic Navigation', () => {
   test('page responds to browser navigation', async ({ page }) => {
     // Go to home
     await page.goto('/');
-    const firstUrl = page.url();
     
     // Navigate to a different path
     await page.goto('/about');
@@ -50,11 +49,6 @@ test.describe('Basic Navigation', () => {
   test('application handles route changes without full reload', async ({ page }) => {
     await page.goto('/');
     
-    // Get initial page instance ID (if React/Vue app)
-    const initialTimestamp = await page.evaluate(() => {
-      return (window as any).__APP_INITIALIZED__ || Date.now();
-    });
-    
     // Try to navigate via link click (if any exist)
     const link = await page.locator('a[href^="/"]').first();
     if (await link.isVisible({ timeout: 5000 }).catch(() => false)) {
@@ -63,7 +57,7 @@ test.describe('Basic Navigation', () => {
       
       // Check if it's still the same app instance (SPA behavior)
       const afterClickTimestamp = await page.evaluate(() => {
-        return (window as any).__APP_INITIALIZED__ || Date.now();
+        return (window as Window & { __APP_INITIALIZED__?: number }).__APP_INITIALIZED__ || Date.now();
       });
       
       // In SPA, the timestamp would be the same

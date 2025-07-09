@@ -40,10 +40,13 @@ export default defineConfig({
       name: 'firefox',
       use: { ...devices['Desktop Firefox'] },
     },
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
+    // WebKitはCI環境では依存関係の問題でスキップ
+    ...(process.env.CI ? [] : [
+      {
+        name: 'webkit',
+        use: { ...devices['Desktop Safari'] },
+      },
+    ]),
   ],
   webServer: {
     command: 'npm run dev',

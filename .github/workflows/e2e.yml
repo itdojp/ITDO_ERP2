@@ -153,9 +153,22 @@ jobs:
           echo "Backend PID: $BACKEND_PID"
           echo $BACKEND_PID > backend.pid
           
-          # Wait for backend to start
+          # Wait for backend to start with improved health check
           echo "Waiting for backend service to be ready..."
-          ../scripts/wait-for-services.sh --include-backend
+          for i in {1..60}; do
+            if curl -f -s http://localhost:8000/health > /dev/null 2>&1; then
+              echo "Backend is ready!"
+              break
+            fi
+            if [ $i -eq 60 ]; then
+              echo "Backend failed to start after 60 attempts"
+              echo "Backend logs:"
+              cat backend.log
+              exit 1
+            fi
+            echo "Attempt $i/60: Backend not ready, waiting..."
+            sleep 5
+          done
           
           # Show startup logs
           echo "Backend startup logs:"
@@ -215,12 +228,18 @@ jobs:
           for i in {1..60}; do
             if curl -f -s http://localhost:3000 > /dev/null 2>&1; then
               echo "Frontend is ready!"
-              break
+              # Additional check for content
+              if curl -s http://localhost:3000 | grep -q "html\|HTML"; then
+                echo "Frontend is serving HTML content!"
+                break
+              fi
             fi
             if [ $i -eq 60 ]; then
               echo "Frontend failed to start after 60 attempts"
               echo "Frontend logs:"
               cat frontend.log || echo "No frontend logs found"
+              echo "Port status:"
+              netstat -tlpn | grep :3000 || echo "Port 3000 not listening"
               exit 1
             fi
             echo "Attempt $i/60: Frontend not ready, waiting..."
@@ -235,40 +254,16 @@ jobs:
         run: |
           echo "Running E2E tests with enhanced CI configuration..."
           
-          # Set CI-specific environment variables
-          export CI=true
-          export PLAYWRIGHT_BASE_URL=http://localhost:3000
-          export VITE_API_URL=http://localhost:8000
-          export VITE_API_BASE_URL=http://localhost:8000/api/v1
-          
-          # Run critical path tests first
-          if [ -d "tests/e2e/critical" ]; then
-            echo "Running critical path tests..."
-            npx playwright test tests/e2e/critical/ \
-              --reporter=html \
-              --reporter=json \
-              --reporter=github \
-              --workers=1 \
-              --timeout=120000 \
-              --retries=2 \
-              --max-failures=3
-            
-            if [ $? -ne 0 ]; then
-              echo "Critical tests failed, but continuing with smoke tests for debugging..."
-            fi
-          fi
-          
-          # Run smoke tests
-          echo "Running smoke tests..."
-          npx playwright test tests/e2e/smoke/ \
+          # Run all E2E tests with CI optimizations
+          npx playwright test \
             --reporter=html \
             --reporter=json \
             --reporter=github \
             --workers=1 \
             --timeout=120000 \
             --retries=2 \
-            --max-failures=5 \
-            || echo "Some smoke tests failed, but continuing to collect artifacts..."
+            --max-failures=10 \
+            || echo "Some E2E tests failed, but continuing to collect artifacts..."
         env:
           CI: true
           PLAYWRIGHT_BASE_URL: http://localhost:3000

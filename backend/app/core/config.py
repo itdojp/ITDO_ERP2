@@ -1,6 +1,7 @@
 from typing import Any, List, Optional, Union
+import json
 
-from pydantic import AnyHttpUrl, AnyUrl, PostgresDsn, field_validator
+from pydantic import AnyHttpUrl, AnyUrl, PostgresDsn, Field, field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -9,49 +10,44 @@ class Settings(BaseSettings):
     VERSION: str = "0.1.0"
     API_V1_STR: str = "/api/v1"
 
-    # CORS設定
-    BACKEND_CORS_ORIGINS: List[str] = [
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ]
+    # CORS設定 - Field使用でデフォルト値を明示的に設定
+    BACKEND_CORS_ORIGINS: List[str] = Field(
+        default=["http://localhost:3000", "http://127.0.0.1:3000"]
+    )
 
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
-    def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
-        # Return default if None or empty
-        if v is None or v == "":
-            return ["http://localhost:3000", "http://127.0.0.1:3000"]
-
+    def assemble_cors_origins(cls, v: Union[str, List[str], None]) -> List[str]:
+        # デフォルト値
+        default_origins = ["http://localhost:3000", "http://127.0.0.1:3000"]
+        
+        # None または空の場合
+        if v is None:
+            return default_origins
+            
         if isinstance(v, str):
-            # Skip empty strings after stripping
             v_stripped = v.strip()
             if not v_stripped:
-                return ["http://localhost:3000", "http://127.0.0.1:3000"]
+                return default_origins
 
-            # Handle JSON array format like '["http://localhost:3000"]'
+            # JSON配列形式の処理
             if v_stripped.startswith("[") and v_stripped.endswith("]"):
                 try:
-                    import json
-
                     parsed = json.loads(v_stripped)
                     if isinstance(parsed, list):
-                        return parsed
+                        return [str(origin) for origin in parsed if origin]
                 except (json.JSONDecodeError, TypeError, ValueError):
-                    # If JSON parsing fails, fall back to comma-separated
                     pass
 
-            # Handle comma-separated format
-            origins = [
-                origin.strip() for origin in v_stripped.split(",") if origin.strip()
-            ]
-            default_origins = ["http://localhost:3000", "http://127.0.0.1:3000"]
+            # カンマ区切り形式の処理
+            origins = [origin.strip() for origin in v_stripped.split(",") if origin.strip()]
             return origins if origins else default_origins
 
         elif isinstance(v, list):
-            return v
+            return [str(origin) for origin in v if origin]
 
-        # Fallback to default values
-        return ["http://localhost:3000", "http://127.0.0.1:3000"]
+        # フォールバック
+        return default_origins
 
     # データベース設定
     POSTGRES_SERVER: str = "localhost"

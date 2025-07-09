@@ -221,7 +221,7 @@ jobs:
     
     strategy:
       matrix:
-        browser: [chromium, firefox, webkit]
+        browser: [chromium, firefox]
     
     steps:
     - uses: actions/checkout@v4
