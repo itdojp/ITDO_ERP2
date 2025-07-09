@@ -96,7 +96,7 @@ def get_role(
             db=db,
             organization_id=organization_id,
         )
-        return RoleResponse.from_orm(role)
+        return RoleResponse.model_validate(role)
     except Exception as e:
         if "見つかりません" in str(e):
             return JSONResponse(
@@ -146,7 +146,7 @@ def create_role(
             db=db,
             organization_id=organization_id,
         )
-        return RoleResponse.from_orm(role)
+        return RoleResponse.model_validate(role)
     except ValueError as e:
         if "既に存在します" in str(e):
             return JSONResponse(
@@ -199,7 +199,7 @@ def update_role(
             db=db,
             organization_id=organization_id,
         )
-        return RoleResponse.from_orm(role)
+        return RoleResponse.model_validate(role)
     except Exception as e:
         if "見つかりません" in str(e):
             return JSONResponse(
@@ -363,7 +363,7 @@ def update_role_permissions(
             db=db,
             organization_id=organization_id,
         )
-        return RoleResponse.from_orm(role)
+        return RoleResponse.model_validate(role)
     except Exception as e:
         if "見つかりません" in str(e):
             return JSONResponse(
@@ -416,7 +416,7 @@ def assign_role_to_user(
             department_id=assignment_data.department_id,
             expires_at=assignment_data.expires_at,
         )
-        return UserRoleResponse.from_orm(user_role)
+        return UserRoleResponse.model_validate(user_role)
     except ValueError as e:
         if "既に存在します" in str(e):
             return JSONResponse(

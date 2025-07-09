@@ -135,7 +135,7 @@ class TestRoleServiceBasic:
         
         # Then: Should return the assigned role
         assert len(user_roles) == 1
-        assert user_roles[0].role.code == "VIEWER_ROLE"
+        assert user_roles[0].role_id == role.id
 
     def test_check_user_permission(
         self,
@@ -174,6 +174,7 @@ class TestRoleServiceBasic:
         has_read = service.check_user_permission(
             user_id=test_user.id,
             permission="read:articles",
+            requester=test_admin,
             db=db_session,
             organization_id=test_organization.id,
         )
@@ -181,6 +182,7 @@ class TestRoleServiceBasic:
         has_admin = service.check_user_permission(
             user_id=test_user.id,
             permission="admin:system",
+            requester=test_admin,
             db=db_session,
             organization_id=test_organization.id,
         )

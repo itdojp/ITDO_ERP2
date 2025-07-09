@@ -1,6 +1,6 @@
 """Role service implementation."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional, Tuple
 
 from sqlalchemy import and_, or_
@@ -187,13 +187,13 @@ class RoleService:
             query = query.filter(
                 or_(
                     UserRole.expires_at.is_(None),
-                    UserRole.expires_at > datetime.utcnow(),
+                    UserRole.expires_at > datetime.now(timezone.utc),
                 )
             )
 
         user_roles = query.all()
 
-        return [UserRoleResponse.from_orm(ur) for ur in user_roles]
+        return [UserRoleResponse.model_validate(ur) for ur in user_roles]
 
     def remove_role_from_user(
         self,
@@ -411,7 +411,7 @@ class RoleService:
         # Build query
         query = (
             db.query(User)
-            .join(UserRole)
+            .join(UserRole, User.id == UserRole.user_id)
             .filter(
                 and_(
                     UserRole.role_id == role_id,
@@ -427,7 +427,7 @@ class RoleService:
             query = query.filter(
                 or_(
                     UserRole.expires_at.is_(None),
-                    UserRole.expires_at > datetime.utcnow(),
+                    UserRole.expires_at > datetime.now(timezone.utc),
                 )
             )
 
@@ -473,7 +473,7 @@ class RoleService:
         items = query.order_by(Role.name).offset(offset).limit(limit).all()
 
         return RoleList(
-            items=[RoleResponse.from_orm(role) for role in items],
+            items=[RoleResponse.model_validate(role) for role in items],
             total=total,
             page=page,
             limit=limit,
@@ -556,7 +556,7 @@ class RoleService:
             .filter(
                 or_(
                     UserRole.expires_at.is_(None),
-                    UserRole.expires_at > datetime.utcnow(),
+                    UserRole.expires_at > datetime.now(timezone.utc),
                 )
             )
             .first()
