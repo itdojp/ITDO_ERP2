@@ -2,7 +2,7 @@
 
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.orm import joinedload
 
 from app.models.organization import Organization
@@ -147,6 +147,43 @@ class OrganizationRepository(
             query = query.where(self.model.id != exclude_id)
         count = self.db.scalar(query) or 0
         return count == 0
+
+    def create(self, obj_in: OrganizationCreate) -> Organization:
+        """Create a new organization with JSON settings conversion."""
+        import json
+
+        obj_data = obj_in.model_dump()
+        # Convert settings dict to JSON string for database
+        if "settings" in obj_data and isinstance(obj_data["settings"], dict):
+            obj_data["settings"] = json.dumps(obj_data["settings"])
+        
+        db_obj = self.model(**obj_data)
+        self.db.add(db_obj)
+        self.db.commit()
+        self.db.refresh(db_obj)
+        return db_obj
+
+    def update(self, id: int, obj_in: OrganizationUpdate) -> Optional[Organization]:
+        """Update an organization with JSON settings conversion."""
+        import json
+
+        obj_data = obj_in.model_dump(exclude_unset=True)
+        # Convert settings dict to JSON string for database if present
+        if "settings" in obj_data and isinstance(obj_data["settings"], dict):
+            obj_data["settings"] = json.dumps(obj_data["settings"])
+        
+        # Remove None values to avoid overwriting with NULL
+        obj_data = {k: v for k, v in obj_data.items() if v is not None}
+        
+        if obj_data:
+            self.db.execute(
+                update(self.model)
+                .where(self.model.id == id)
+                .values(**obj_data)
+            )
+            self.db.commit()
+        
+        return self.get(id)
 
     def update_settings(
         self, id: int, settings: Dict[str, Any]
