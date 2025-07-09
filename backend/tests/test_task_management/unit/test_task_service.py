@@ -86,11 +86,11 @@ class TestTaskService:
         with patch("app.services.task.permission_service") as mock_permission:
             mock_permission.require_permission.return_value = None  # Allow permissions
 
-            with patch("app.services.task.AuditLogger.log") as mock_audit_log:
+            with patch("app.services.task.AuditLogger.log"):
                 # Act
                 with patch.object(self.service, "_task_to_response") as mock_response:
                     mock_response.return_value = MagicMock()
-                    result = self.service.create_task(
+                    self.service.create_task(
                         task_data, self.test_user, self.db
                     )
 
@@ -170,7 +170,7 @@ class TestTaskService:
             # Act
             with patch.object(self.service, "_task_to_response") as mock_response:
                 mock_response.return_value = MagicMock()
-                result = self.service.get_task(task_id, self.test_user, self.db)
+                self.service.get_task(task_id, self.test_user, self.db)
 
         # Assert
         self.db.query.assert_called_with(Task)
@@ -213,11 +213,11 @@ class TestTaskService:
         with patch("app.services.task.permission_service") as mock_permission:
             mock_permission.has_permission.return_value = False  # No general permission
 
-            with patch("app.services.task.AuditLogger.log") as mock_audit_log:
+            with patch("app.services.task.AuditLogger.log"):
                 # Act
                 with patch.object(self.service, "_task_to_response") as mock_response:
                     mock_response.return_value = MagicMock()
-                    result = self.service.update_task(
+                    self.service.update_task(
                         task_id, update_data, self.test_user, self.db
                     )
 
@@ -281,7 +281,7 @@ class TestTaskService:
         with patch("app.services.task.permission_service") as mock_permission:
             mock_permission.has_permission.return_value = False  # No general permission
 
-            with patch("app.services.task.AuditLogger.log") as mock_audit_log:
+            with patch("app.services.task.AuditLogger.log"):
                 # Act
                 result = self.service.delete_task(task_id, self.test_user, self.db)
 
@@ -315,7 +315,7 @@ class TestTaskService:
         with patch("app.services.task.permission_service") as mock_permission:
             mock_permission.has_permission.return_value = False  # No general permission
 
-            with patch("app.services.task.AuditLogger.log") as mock_audit_log:
+            with patch("app.services.task.AuditLogger.log"):
                 # Note: Current implementation doesn't check for dependencies
                 # This test documents expected behavior for future implementation
                 # Act
@@ -522,7 +522,7 @@ class TestTaskStatusManagement:
         # Act
         with patch.object(self.service, "_task_to_response") as mock_response:
             mock_response.return_value = MagicMock()
-            result = self.service.update_task_status(
+            self.service.update_task_status(
                 task_id, status_update, self.test_user, self.db
             )
 
@@ -550,7 +550,7 @@ class TestTaskStatusManagement:
         # Act
         with patch.object(self.service, "_task_to_response") as mock_response:
             mock_response.return_value = MagicMock()
-            result = self.service.update_task_status(
+            self.service.update_task_status(
                 task_id, status_update, self.test_user, self.db
             )
 
@@ -655,11 +655,11 @@ class TestTaskAssignment:
         with patch("app.services.task.permission_service") as mock_permission:
             mock_permission.has_permission.return_value = False  # No general permission
 
-            with patch("app.services.task.AuditLogger.log") as mock_audit_log:
+            with patch("app.services.task.AuditLogger.log"):
                 # Act
                 with patch.object(self.service, "_task_to_response") as mock_response:
                     mock_response.return_value = MagicMock()
-                    result = self.service.assign_user(
+                    self.service.assign_user(
                         task_id, assignee_id, self.test_user, self.db
                     )
 
@@ -764,7 +764,7 @@ class TestTaskAssignment:
         # Act
         with patch.object(self.service, "_task_to_response") as mock_response:
             mock_response.return_value = MagicMock()
-            result = self.service.unassign_user(task_id, 2, self.test_user, self.db)
+            self.service.unassign_user(task_id, 2, self.test_user, self.db)
 
         # Assert
         assert mock_task.assignee_id is None
@@ -811,11 +811,11 @@ class TestTaskAssignment:
         with patch("app.services.task.permission_service") as mock_permission:
             mock_permission.has_permission.return_value = False  # No general permission
 
-            with patch("app.services.task.AuditLogger.log") as mock_audit_log:
+            with patch("app.services.task.AuditLogger.log"):
                 # Act
                 with patch.object(self.service, "_task_to_response") as mock_response:
                     mock_response.return_value = MagicMock()
-                    result = self.service.bulk_assign_users(
+                    self.service.bulk_assign_users(
                         task_id=task_id,
                         assignee_ids=assignee_ids,
                         user=self.test_user,
@@ -855,7 +855,7 @@ class TestTaskDueDateAndPriority:
         # Act
         with patch.object(self.service, "_task_to_response") as mock_response:
             mock_response.return_value = MagicMock()
-            result = self.service.set_due_date(
+            self.service.set_due_date(
                 task_id, due_date, self.test_user, self.db
             )
 
@@ -879,7 +879,7 @@ class TestTaskDueDateAndPriority:
         # Note: Current implementation doesn't validate past dates
         with patch.object(self.service, "_task_to_response") as mock_response:
             mock_response.return_value = MagicMock()
-            result = self.service.set_due_date(
+            self.service.set_due_date(
                 task_id, due_date, self.test_user, self.db
             )
 
@@ -942,7 +942,7 @@ class TestTaskDueDateAndPriority:
         # Act
         with patch.object(self.service, "_task_to_response") as mock_response:
             mock_response.return_value = MagicMock()
-            result = self.service.set_priority(
+            self.service.set_priority(
                 task_id, priority, self.test_user, self.db
             )
 
@@ -989,7 +989,7 @@ class TestTaskDependencies:
         # Act
         with patch.object(self.service, "_task_to_response") as mock_response:
             mock_response.return_value = MagicMock()
-            result = self.service.add_dependency(
+            self.service.add_dependency(
                 task_id, depends_on_id, self.test_user, self.db
             )
 
@@ -1025,7 +1025,7 @@ class TestTaskDependencies:
         # Note: Current implementation doesn't check for circular dependencies
         with patch.object(self.service, "_task_to_response") as mock_response:
             mock_response.return_value = MagicMock()
-            result = self.service.add_dependency(
+            self.service.add_dependency(
                 task_id, depends_on_id, self.test_user, self.db
             )
 
@@ -1069,7 +1069,7 @@ class TestTaskDependencies:
         # Act
         with patch.object(self.service, "_task_to_response") as mock_response:
             mock_response.return_value = MagicMock()
-            result = self.service.remove_dependency(task_id, 1, self.test_user, self.db)
+            self.service.remove_dependency(task_id, 1, self.test_user, self.db)
 
         # Assert
         assert mock_task.parent_task_id is None

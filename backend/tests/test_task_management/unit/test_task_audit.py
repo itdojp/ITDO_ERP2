@@ -58,7 +58,7 @@ class TestTaskAuditLog:
                     mock_response.return_value = MagicMock()
 
                     # Act
-                    result = self.service.create_task(
+                    self.service.create_task(
                         task_data, self.test_user, self.db
                     )
 
@@ -104,7 +104,7 @@ class TestTaskAuditLog:
                     mock_response.return_value = MagicMock()
 
                     # Act
-                    result = self.service.update_task(
+                    self.service.update_task(
                         task_id, update_data, self.test_user, self.db
                     )
 
@@ -148,7 +148,7 @@ class TestTaskAuditLog:
             # Mock AuditLogger
             with patch("app.services.task.AuditLogger") as mock_audit_logger:
                 # Act
-                result = self.service.delete_task(task_id, self.test_user, self.db)
+                self.service.delete_task(task_id, self.test_user, self.db)
 
         # Assert audit log was called
         mock_audit_logger.log.assert_called_once()
@@ -205,7 +205,7 @@ class TestTaskAuditLog:
                     mock_response.return_value = MagicMock()
 
                     # Act
-                    result = self.service.assign_user(
+                    self.service.assign_user(
                         task_id, assignee_id, self.test_user, self.db
                     )
 

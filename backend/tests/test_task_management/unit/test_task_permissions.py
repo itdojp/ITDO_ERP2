@@ -166,7 +166,7 @@ class TestTaskPermissions:
         with patch("app.services.task.permission_service") as mock_permission:
             mock_permission.has_permission.return_value = False  # No general permission
 
-            with patch("app.services.task.AuditLogger.log") as mock_audit_log:
+            with patch("app.services.task.AuditLogger.log"):
                 with patch.object(self.service, "_task_to_response") as mock_response:
                     mock_response.return_value = MagicMock()
 
@@ -240,7 +240,7 @@ class TestTaskPermissions:
         with patch("app.services.task.permission_service") as mock_permission:
             mock_permission.has_permission.return_value = False  # No general permission
 
-            with patch("app.services.task.AuditLogger.log") as mock_audit_log:
+            with patch("app.services.task.AuditLogger.log"):
                 with patch.object(self.service, "_task_to_response") as mock_response:
                     mock_response.return_value = MagicMock()
 
