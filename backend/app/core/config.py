@@ -20,6 +20,7 @@ class Settings(BaseSettings):
             if v.startswith("[") and v.endswith("]"):
                 try:
                     import json
+
                     return json.loads(v)
                 except json.JSONDecodeError:
                     pass
