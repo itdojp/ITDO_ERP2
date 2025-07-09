@@ -3,14 +3,14 @@ import { test, expect } from '@playwright/test';
 test.describe('Concurrent Users Testing', () => {
   test('multiple simultaneous API calls', async ({ request }) => {
     const concurrentRequests = 10;
-    const promises: Promise<any>[] = [];
+    const promises: Promise<{ status: number; data: { status: string }; duration: number }>[] = [];
 
     // Create multiple simultaneous requests
     for (let i = 0; i < concurrentRequests; i++) {
       promises.push(
         request.get('http://localhost:8000/health').then(async (response) => ({
           status: response.status(),
-          data: await response.json(),
+          data: await response.json() as { status: string },
           duration: Date.now(),
         }))
       );
@@ -23,7 +23,7 @@ test.describe('Concurrent Users Testing', () => {
     console.log(`${concurrentRequests} concurrent requests completed in ${totalTime}ms`);
 
     // All requests should succeed
-    results.forEach((result, index) => {
+    results.forEach((result) => {
       expect(result.status).toBe(200);
       expect(result.data.status).toBe('healthy');
     });
@@ -46,9 +46,9 @@ test.describe('Concurrent Users Testing', () => {
       }
 
       // Navigate all pages simultaneously
-      const navigationPromises = pages.map((page, index) => 
+      const navigationPromises = pages.map((page) => 
         page.goto('/').then(() => ({
-          pageIndex: index,
+          pageIndex: Math.random(), // Simple unique identifier
           title: page.title(),
         }))
       );
@@ -96,6 +96,7 @@ test.describe('Concurrent Users Testing', () => {
 
     // Take initial memory measurement
     const initialMemory = await page.evaluate(() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (performance as any).memory?.usedJSHeapSize || 0;
     });
 
@@ -106,7 +107,9 @@ test.describe('Concurrent Users Testing', () => {
       
       // Force garbage collection if available
       await page.evaluate(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if ((window as any).gc) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (window as any).gc();
         }
       });
@@ -114,6 +117,7 @@ test.describe('Concurrent Users Testing', () => {
 
     // Take final memory measurement
     const finalMemory = await page.evaluate(() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (performance as any).memory?.usedJSHeapSize || 0;
     });
 

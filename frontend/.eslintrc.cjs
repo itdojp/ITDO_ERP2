@@ -27,6 +27,14 @@ module.exports = {
     'no-unused-vars': 'off',
     'no-console': 'warn',
   },
+  overrides: [
+    {
+      files: ['tests/e2e/**/*.ts', 'tests/e2e/**/*.tsx'],
+      rules: {
+        'no-console': 'off', // Allow console in E2E tests for debugging
+      },
+    },
+  ],
   settings: {
     react: {
       version: 'detect'

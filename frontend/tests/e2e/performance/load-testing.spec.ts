@@ -42,7 +42,9 @@ test.describe('Performance Testing', () => {
     // Measure memory usage
     const metrics = await page.evaluate(() => {
       return {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         usedJSHeapSize: (performance as any).memory?.usedJSHeapSize || 0,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         totalJSHeapSize: (performance as any).memory?.totalJSHeapSize || 0,
       };
     });
