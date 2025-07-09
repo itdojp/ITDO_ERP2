@@ -40,36 +40,37 @@ class TestTaskAuditLog:
             project_id=1,
             priority=TaskPriority.MEDIUM,
         )
-        
+
         # Mock project exists
         from app.models.project import Project
+
         mock_project = MagicMock(spec=Project)
         mock_project.id = 1
         self.db.query.return_value.filter.return_value.first.return_value = mock_project
-        
+
         # Mock permission service
-        with patch('app.services.task.permission_service') as mock_permission:
+        with patch("app.services.task.permission_service") as mock_permission:
             mock_permission.require_permission.return_value = None
-            
+
             # Mock AuditLogger
-            with patch('app.services.task.AuditLogger') as mock_audit_logger:
-                with patch.object(self.service, '_task_to_response') as mock_response:
+            with patch("app.services.task.AuditLogger") as mock_audit_logger:
+                with patch.object(self.service, "_task_to_response") as mock_response:
                     mock_response.return_value = MagicMock()
-                    
+
                     # Act
                     result = self.service.create_task(
                         task_data, self.test_user, self.db
                     )
-        
+
         # Assert audit log was called
         mock_audit_logger.log.assert_called_once()
         call_args = mock_audit_logger.log.call_args
-        assert call_args[1]['action'] == 'create'
-        assert call_args[1]['resource_type'] == 'task'
+        assert call_args[1]["action"] == "create"
+        assert call_args[1]["resource_type"] == "task"
         # The resource_id will be the ID of whatever task object was created
-        assert call_args[1]['user'] == self.test_user
-        assert 'created' in call_args[1]['changes']
-        assert 'title' in call_args[1]['changes']['created']
+        assert call_args[1]["user"] == self.test_user
+        assert "created" in call_args[1]["changes"]
+        assert "title" in call_args[1]["changes"]["created"]
 
     def test_update_task_logs_changes(self):
         """Test that task updates log field changes."""
@@ -78,7 +79,7 @@ class TestTaskAuditLog:
         update_data = TaskUpdate(
             title="Updated Task", description="Updated description"
         )
-        
+
         # Mock existing task
         mock_task = MagicMock(spec=Task)
         mock_task.id = task_id
@@ -94,38 +95,38 @@ class TestTaskAuditLog:
         self.db.query.return_value.filter.return_value.first.return_value = mock_task
 
         # Mock permission service
-        with patch('app.services.task.permission_service') as mock_permission:
+        with patch("app.services.task.permission_service") as mock_permission:
             mock_permission.has_permission.return_value = False  # Owner access
-            
+
             # Mock AuditLogger
-            with patch('app.services.task.AuditLogger') as mock_audit_logger:
-                with patch.object(self.service, '_task_to_response') as mock_response:
+            with patch("app.services.task.AuditLogger") as mock_audit_logger:
+                with patch.object(self.service, "_task_to_response") as mock_response:
                     mock_response.return_value = MagicMock()
-                    
+
                     # Act
                     result = self.service.update_task(
                         task_id, update_data, self.test_user, self.db
                     )
-        
+
         # Assert audit log was called
         mock_audit_logger.log.assert_called_once()
         call_args = mock_audit_logger.log.call_args
-        assert call_args[1]['action'] == 'update'
-        assert call_args[1]['resource_type'] == 'task'
-        assert call_args[1]['resource_id'] == mock_task.id
-        assert call_args[1]['user'] == self.test_user
-        
+        assert call_args[1]["action"] == "update"
+        assert call_args[1]["resource_type"] == "task"
+        assert call_args[1]["resource_id"] == mock_task.id
+        assert call_args[1]["user"] == self.test_user
+
         # Check that changes are recorded
-        changes = call_args[1]['changes']
-        assert 'title' in changes
-        assert changes['title']['old'] == "Old Task"
-        assert changes['title']['new'] == "Updated Task"
+        changes = call_args[1]["changes"]
+        assert "title" in changes
+        assert changes["title"]["old"] == "Old Task"
+        assert changes["title"]["new"] == "Updated Task"
 
     def test_delete_task_logs_deletion(self):
         """Test that task deletion creates audit log entry."""
         # Arrange
         task_id = 1
-        
+
         # Mock existing task
         mock_task = MagicMock(spec=Task)
         mock_task.id = task_id
@@ -141,48 +142,49 @@ class TestTaskAuditLog:
         self.db.query.return_value.filter.return_value.first.return_value = mock_task
 
         # Mock permission service
-        with patch('app.services.task.permission_service') as mock_permission:
+        with patch("app.services.task.permission_service") as mock_permission:
             mock_permission.has_permission.return_value = False  # Creator access
-            
+
             # Mock AuditLogger
-            with patch('app.services.task.AuditLogger') as mock_audit_logger:
+            with patch("app.services.task.AuditLogger") as mock_audit_logger:
                 # Act
                 result = self.service.delete_task(task_id, self.test_user, self.db)
-        
+
         # Assert audit log was called
         mock_audit_logger.log.assert_called_once()
         call_args = mock_audit_logger.log.call_args
-        assert call_args[1]['action'] == 'delete'
-        assert call_args[1]['resource_type'] == 'task'
-        assert call_args[1]['resource_id'] == mock_task.id
-        assert call_args[1]['user'] == self.test_user
-        assert 'deleted' in call_args[1]['changes']
+        assert call_args[1]["action"] == "delete"
+        assert call_args[1]["resource_type"] == "task"
+        assert call_args[1]["resource_id"] == mock_task.id
+        assert call_args[1]["user"] == self.test_user
+        assert "deleted" in call_args[1]["changes"]
 
     def test_assign_user_logs_assignment(self):
         """Test that user assignment creates audit log entry."""
         # Arrange
         task_id = 1
         assignee_id = 2
-        
+
         # Mock existing task
         mock_task = MagicMock(spec=Task)
         mock_task.id = task_id
         mock_task.assignee_id = None  # Currently unassigned
         mock_task.reporter_id = self.test_user.id
-        
+
         # Mock assignee user
         mock_assignee = MagicMock(spec=User)
         mock_assignee.id = assignee_id
         mock_assignee.organization_id = self.test_user.organization_id
-        
+
         # Mock queries
         task_query = MagicMock()
         task_query.filter.return_value.first.return_value = mock_task
-        
+
         user_query = MagicMock()
         user_query.filter.return_value.first.return_value = mock_assignee
-        
+
         call_count = 0
+
         def query_side_effect(model):
             nonlocal call_count
             call_count += 1
@@ -190,48 +192,48 @@ class TestTaskAuditLog:
                 return task_query
             else:
                 return user_query
-        
+
         self.db.query.side_effect = query_side_effect
 
         # Mock permission service
-        with patch('app.services.task.permission_service') as mock_permission:
+        with patch("app.services.task.permission_service") as mock_permission:
             mock_permission.has_permission.return_value = False  # Creator access
-            
+
             # Mock AuditLogger
-            with patch('app.services.task.AuditLogger') as mock_audit_logger:
-                with patch.object(self.service, '_task_to_response') as mock_response:
+            with patch("app.services.task.AuditLogger") as mock_audit_logger:
+                with patch.object(self.service, "_task_to_response") as mock_response:
                     mock_response.return_value = MagicMock()
-                    
+
                     # Act
                     result = self.service.assign_user(
                         task_id, assignee_id, self.test_user, self.db
                     )
-        
+
         # Assert audit log was called
         mock_audit_logger.log.assert_called_once()
         call_args = mock_audit_logger.log.call_args
-        assert call_args[1]['action'] == 'assign_user'
-        assert call_args[1]['resource_type'] == 'task'
-        assert call_args[1]['resource_id'] == mock_task.id
-        assert call_args[1]['user'] == self.test_user
-        
+        assert call_args[1]["action"] == "assign_user"
+        assert call_args[1]["resource_type"] == "task"
+        assert call_args[1]["resource_id"] == mock_task.id
+        assert call_args[1]["user"] == self.test_user
+
         # Check assignment change
-        changes = call_args[1]['changes']
-        assert 'assignee_id' in changes
-        assert changes['assignee_id']['old'] is None
-        assert changes['assignee_id']['new'] == assignee_id
+        changes = call_args[1]["changes"]
+        assert "assignee_id" in changes
+        assert changes["assignee_id"]["old"] is None
+        assert changes["assignee_id"]["new"] == assignee_id
 
     def test_get_task_history_returns_audit_logs(self):
         """Test that get_task_history returns audit log entries."""
         # Arrange
         task_id = 1
-        
+
         # Mock existing task owned by user
         mock_task = MagicMock(spec=Task)
         mock_task.id = task_id
         mock_task.reporter_id = self.test_user.id
         mock_task.assignee_id = None
-        
+
         # Mock audit logs
         mock_audit_log = MagicMock(spec=AuditLog)
         mock_audit_log.id = 1
@@ -239,13 +241,14 @@ class TestTaskAuditLog:
         mock_audit_log.user_id = self.test_user.id
         mock_audit_log.created_at = datetime.now(timezone.utc)
         mock_audit_log.changes = {"created": {"title": "Test Task"}}
-        
+
         # Mock log user
         mock_log_user = MagicMock(spec=User)
         mock_log_user.full_name = "Test User"
-        
+
         # Mock queries
         call_count = 0
+
         def query_side_effect(model):
             nonlocal call_count
             call_count += 1
@@ -257,27 +260,28 @@ class TestTaskAuditLog:
             elif call_count == 2:
                 # Second call for AuditLog
                 audit_query = MagicMock()
-                audit_query.filter.return_value.order_by.return_value.all.return_value = [mock_audit_log]
+                audit_chain = audit_query.filter.return_value.order_by.return_value
+                audit_chain.all.return_value = [mock_audit_log]
                 return audit_query
             else:
                 # Third call for User (log user)
                 user_query = MagicMock()
                 user_query.filter.return_value.first.return_value = mock_log_user
                 return user_query
-        
+
         self.db.query.side_effect = query_side_effect
 
         # Mock permission service
-        with patch('app.services.task.permission_service') as mock_permission:
+        with patch("app.services.task.permission_service") as mock_permission:
             mock_permission.has_permission.return_value = False  # Owner access
-            
+
             # Act
             result = self.service.get_task_history(task_id, self.test_user, self.db)
-        
+
         # Assert
         assert result.total == 1
         assert len(result.items) == 1
-        
+
         history_item = result.items[0]
         assert history_item.id == mock_audit_log.id
         assert history_item.action == "create"
@@ -289,21 +293,23 @@ class TestTaskAuditLog:
         """Test that get_task_history checks permissions."""
         # Arrange
         task_id = 1
-        
+
         # Mock existing task NOT owned by user
         mock_task = MagicMock(spec=Task)
         mock_task.id = task_id
         mock_task.reporter_id = 999  # Different user
         mock_task.assignee_id = None
-        
+
         task_query = MagicMock()
         task_query.filter.return_value.first.return_value = mock_task
         self.db.query.return_value = task_query
 
         # Mock permission service
-        with patch('app.services.task.permission_service') as mock_permission:
+        with patch("app.services.task.permission_service") as mock_permission:
             mock_permission.has_permission.return_value = False  # No general permission
-            
+
             # Act & Assert
-            with pytest.raises(PermissionDenied, match="No access to this task history"):
+            with pytest.raises(
+                PermissionDenied, match="No access to this task history"
+            ):
                 self.service.get_task_history(task_id, self.test_user, self.db)

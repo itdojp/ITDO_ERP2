@@ -185,7 +185,8 @@ class Department(SoftDeletableModel):
     @property
     def current_headcount(self) -> int:
         """Get current number of users in the department."""
-        return self.users.filter_by(is_active=True).count()  # type: ignore[no-any-return]
+        # type: ignore[no-any-return]
+        return self.users.filter_by(is_active=True).count()
 
     @property
     def is_over_headcount(self) -> bool:

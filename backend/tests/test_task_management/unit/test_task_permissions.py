@@ -47,18 +47,18 @@ class TestTaskPermissions:
             project_id=1,
             priority=TaskPriority.MEDIUM,
         )
-        
+
         # Mock project exists
         mock_project = MagicMock(spec=Project)
         mock_project.id = 1
         self.db.query.return_value.filter.return_value.first.return_value = mock_project
 
         # Mock permission service to deny permission
-        with patch('app.services.task.permission_service') as mock_permission:
+        with patch("app.services.task.permission_service") as mock_permission:
             mock_permission.require_permission.side_effect = PermissionDenied(
                 "No permission"
             )
-            
+
             # Act & Assert
             with pytest.raises(PermissionDenied):
                 self.service.create_task(task_data, self.regular_user, self.db)
@@ -71,23 +71,23 @@ class TestTaskPermissions:
             project_id=1,
             priority=TaskPriority.MEDIUM,
         )
-        
+
         # Mock project exists
         mock_project = MagicMock(spec=Project)
         mock_project.id = 1
         self.db.query.return_value.filter.return_value.first.return_value = mock_project
 
         # Mock permission service
-        with patch('app.services.task.permission_service') as mock_permission:
+        with patch("app.services.task.permission_service") as mock_permission:
             mock_permission.require_permission.return_value = None  # No exception
-            
+
             # Mock task creation
-            with patch.object(self.service, '_task_to_response') as mock_response:
+            with patch.object(self.service, "_task_to_response") as mock_response:
                 mock_response.return_value = MagicMock()
-                
+
                 # Act
                 result = self.service.create_task(task_data, self.admin_user, self.db)
-                
+
                 # Assert
                 mock_permission.require_permission.assert_called()
                 assert result is not None
@@ -96,27 +96,27 @@ class TestTaskPermissions:
         """Test that task owners can view their tasks without general permission."""
         # Arrange
         task_id = 1
-        
+
         # Mock task owned by user
         mock_task = MagicMock(spec=Task)
         mock_task.id = task_id
         mock_task.reporter_id = self.regular_user.id
         mock_task.assignee_id = None
-        
+
         mock_query = MagicMock()
         mock_query.filter.return_value.first.return_value = mock_task
         self.db.query.return_value.options.return_value = mock_query
 
         # Mock permission service to deny general permission but allow owner access
-        with patch('app.services.task.permission_service') as mock_permission:
+        with patch("app.services.task.permission_service") as mock_permission:
             mock_permission.has_permission.return_value = False  # No general permission
-            
-            with patch.object(self.service, '_task_to_response') as mock_response:
+
+            with patch.object(self.service, "_task_to_response") as mock_response:
                 mock_response.return_value = MagicMock()
-                
+
                 # Act
                 result = self.service.get_task(task_id, self.regular_user, self.db)
-                
+
                 # Assert
                 assert result is not None
 
@@ -124,21 +124,21 @@ class TestTaskPermissions:
         """Test that users cannot view tasks they don't own without permission."""
         # Arrange
         task_id = 1
-        
+
         # Mock task NOT owned by user
         mock_task = MagicMock(spec=Task)
         mock_task.id = task_id
         mock_task.reporter_id = 999  # Different user
         mock_task.assignee_id = None
-        
+
         mock_query = MagicMock()
         mock_query.filter.return_value.first.return_value = mock_task
         self.db.query.return_value.options.return_value = mock_query
 
         # Mock permission service to deny permission
-        with patch('app.services.task.permission_service') as mock_permission:
+        with patch("app.services.task.permission_service") as mock_permission:
             mock_permission.has_permission.return_value = False
-            
+
             # Act & Assert
             with pytest.raises(PermissionDenied, match="No access to this task"):
                 self.service.get_task(task_id, self.regular_user, self.db)
@@ -148,7 +148,7 @@ class TestTaskPermissions:
         # Arrange
         task_id = 1
         update_data = TaskUpdate(title="Updated Task")
-        
+
         # Mock task owned by user
         mock_task = MagicMock(spec=Task)
         mock_task.id = task_id
@@ -163,18 +163,18 @@ class TestTaskPermissions:
         self.db.query.return_value.filter.return_value.first.return_value = mock_task
 
         # Mock permission service to deny general permission but allow owner access
-        with patch('app.services.task.permission_service') as mock_permission:
+        with patch("app.services.task.permission_service") as mock_permission:
             mock_permission.has_permission.return_value = False  # No general permission
-            
-            with patch('app.services.task.AuditLogger.log') as mock_audit_log:
-                with patch.object(self.service, '_task_to_response') as mock_response:
+
+            with patch("app.services.task.AuditLogger.log") as mock_audit_log:
+                with patch.object(self.service, "_task_to_response") as mock_response:
                     mock_response.return_value = MagicMock()
-                    
+
                     # Act
                     result = self.service.update_task(
                         task_id, update_data, self.regular_user, self.db
                     )
-                
+
                 # Assert
                 assert result is not None
                 assert mock_task.title == "Updated Task"
@@ -183,7 +183,7 @@ class TestTaskPermissions:
         """Test that users cannot delete tasks without permission."""
         # Arrange
         task_id = 1
-        
+
         # Mock task NOT owned by user
         mock_task = MagicMock(spec=Task)
         mock_task.id = task_id
@@ -191,9 +191,9 @@ class TestTaskPermissions:
         self.db.query.return_value.filter.return_value.first.return_value = mock_task
 
         # Mock permission service to deny permission
-        with patch('app.services.task.permission_service') as mock_permission:
+        with patch("app.services.task.permission_service") as mock_permission:
             mock_permission.has_permission.return_value = False
-            
+
             # Act & Assert
             with pytest.raises(
                 PermissionDenied, match="No permission to delete this task"
@@ -205,26 +205,27 @@ class TestTaskPermissions:
         # Arrange
         task_id = 1
         assignee_id = 3
-        
+
         # Mock task created by user
         mock_task = MagicMock(spec=Task)
         mock_task.id = task_id
         mock_task.reporter_id = self.regular_user.id
         mock_task.assignee_id = None  # Currently unassigned
-        
+
         # Mock assignee user
         mock_assignee = MagicMock(spec=User)
         mock_assignee.id = assignee_id
         mock_assignee.organization_id = self.regular_user.organization_id
-        
+
         # Mock queries
         task_query = MagicMock()
         task_query.filter.return_value.first.return_value = mock_task
-        
+
         user_query = MagicMock()
         user_query.filter.return_value.first.return_value = mock_assignee
-        
+
         call_count = 0
+
         def query_side_effect(model):
             nonlocal call_count
             call_count += 1
@@ -232,22 +233,22 @@ class TestTaskPermissions:
                 return task_query
             else:
                 return user_query
-        
+
         self.db.query.side_effect = query_side_effect
 
         # Mock permission service to deny general permission but allow creator access
-        with patch('app.services.task.permission_service') as mock_permission:
+        with patch("app.services.task.permission_service") as mock_permission:
             mock_permission.has_permission.return_value = False  # No general permission
-            
-            with patch('app.services.task.AuditLogger.log') as mock_audit_log:
-                with patch.object(self.service, '_task_to_response') as mock_response:
+
+            with patch("app.services.task.AuditLogger.log") as mock_audit_log:
+                with patch.object(self.service, "_task_to_response") as mock_response:
                     mock_response.return_value = MagicMock()
-                    
+
                     # Act
                     result = self.service.assign_user(
                         task_id, assignee_id, self.regular_user, self.db
                     )
-                
+
                 # Assert
                 assert result is not None
                 assert mock_task.assignee_id == assignee_id
@@ -256,7 +257,7 @@ class TestTaskPermissions:
         """Test that task listing respects permission-based filtering."""
         # Arrange
         filters = {}
-        
+
         # Mock tasks - mix of owned and not owned
         mock_task1 = MagicMock(spec=Task)
         mock_task1.id = 1
@@ -278,12 +279,12 @@ class TestTaskPermissions:
         mock_task1.project.name = "Test Project"
         mock_task1.assignee = None
         mock_task1.reporter = self.regular_user
-        
+
         mock_task2 = MagicMock(spec=Task)
         mock_task2.id = 2
         mock_task2.reporter_id = 999  # Not owned
         mock_task2.assignee_id = None
-        
+
         mock_query = MagicMock()
         mock_query.options.return_value = mock_query
         mock_query.filter.return_value = mock_query
@@ -294,12 +295,12 @@ class TestTaskPermissions:
         self.db.query.return_value = mock_query
 
         # Mock permission service to deny general permission
-        with patch('app.services.task.permission_service') as mock_permission:
+        with patch("app.services.task.permission_service") as mock_permission:
             mock_permission.has_permission.return_value = False
-            
+
             # Act
             result = self.service.list_tasks(filters, self.regular_user, self.db)
-            
+
             # Assert
             # Should only return tasks owned by user
             assert result.total == 1

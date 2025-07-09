@@ -57,7 +57,7 @@ class TestTaskCompleteWorkflow:
         self.unauthorized_user.organization_id = 2  # Different organization
 
     def test_complete_task_workflow_with_permissions_and_audit(self):
-        """Test TASK-WORKFLOW-001: Complete task lifecycle with permissions and audit logs."""
+        """Test TASK-WORKFLOW-001: Complete task lifecycle with permissions audit."""
         # Arrange
         task_data = TaskCreate(
             title="Integration Test Task",
@@ -86,6 +86,7 @@ class TestTaskCompleteWorkflow:
 
         # Mock queries
         call_count = 0
+
         def query_side_effect(model):
             nonlocal call_count
             call_count += 1
@@ -103,18 +104,20 @@ class TestTaskCompleteWorkflow:
         self.db.query.side_effect = query_side_effect
 
         # Mock permission service (admin has all permissions)
-        with patch('app.services.task.permission_service') as mock_permission:
+        with patch("app.services.task.permission_service") as mock_permission:
             mock_permission.require_permission.return_value = None
             mock_permission.has_permission.return_value = True
 
-            with patch('app.services.task.AuditLogger.log') as mock_audit_log:
-                with patch.object(self.service, '_task_to_response') as mock_response:
+            with patch("app.services.task.AuditLogger.log") as mock_audit_log:
+                with patch.object(self.service, "_task_to_response") as mock_response:
                     mock_response.return_value = MagicMock()
 
                     # Act & Assert
 
                     # 1. Task Creation (with permission check)
-                    result = self.service.create_task(task_data, self.admin_user, self.db)
+                    result = self.service.create_task(
+                        task_data, self.admin_user, self.db
+                    )
                     assert result is not None
                     mock_audit_log.assert_called()  # Audit log created
 
@@ -129,7 +132,9 @@ class TestTaskCompleteWorkflow:
                     mock_task_for_status.assignee_id = None
 
                     status_query = MagicMock()
-                    status_query.filter.return_value.first.return_value = mock_task_for_status
+                    status_query.filter.return_value.first.return_value = (
+                        mock_task_for_status
+                    )
                     self.db.query.return_value = status_query
 
                     # 2. Status Update (with audit logging)
@@ -160,7 +165,7 @@ class TestTaskCompleteWorkflow:
         self.db.query.return_value.options.return_value = mock_query
 
         # Mock permission service to deny access
-        with patch('app.services.task.permission_service') as mock_permission:
+        with patch("app.services.task.permission_service") as mock_permission:
             mock_permission.has_permission.return_value = False
 
             # Act & Assert
@@ -192,6 +197,7 @@ class TestTaskCompleteWorkflow:
 
         # Mock queries
         call_count = 0
+
         def query_side_effect(model):
             nonlocal call_count
             call_count += 1
@@ -203,9 +209,8 @@ class TestTaskCompleteWorkflow:
             elif call_count == 2:
                 # Audit log lookup
                 audit_query = MagicMock()
-                audit_query.filter.return_value.order_by.return_value.all.return_value = [
-                    mock_audit_log
-                ]
+                audit_chain = audit_query.filter.return_value.order_by.return_value
+                audit_chain.all.return_value = [mock_audit_log]
                 return audit_query
             else:
                 # User lookup for audit log
@@ -216,7 +221,7 @@ class TestTaskCompleteWorkflow:
         self.db.query.side_effect = query_side_effect
 
         # Mock permission service (owner access)
-        with patch('app.services.task.permission_service') as mock_permission:
+        with patch("app.services.task.permission_service") as mock_permission:
             mock_permission.has_permission.return_value = False  # No general permission
 
             # Act
@@ -253,6 +258,7 @@ class TestTaskCompleteWorkflow:
         user_query.filter.return_value.first.return_value = mock_other_user
 
         call_count = 0
+
         def query_side_effect(model):
             nonlocal call_count
             call_count += 1
@@ -264,13 +270,14 @@ class TestTaskCompleteWorkflow:
         self.db.query.side_effect = query_side_effect
 
         # Mock permission service
-        with patch('app.services.task.permission_service') as mock_permission:
+        with patch("app.services.task.permission_service") as mock_permission:
             mock_permission.has_permission.return_value = True  # Admin has permission
 
             # Act & Assert
             # Should prevent cross-organization assignment
             with pytest.raises(
-                PermissionDenied, match="Cannot assign task to user from different organization"
+                PermissionDenied,
+                match="Cannot assign task to user from different organization",
             ):
                 self.service.assign_user(task_id, assignee_id, self.admin_user, self.db)
 
@@ -294,10 +301,10 @@ class TestTaskCompleteWorkflow:
         self.db.query.return_value.options.return_value = mock_query
 
         # Mock permission service to deny general permission
-        with patch('app.services.task.permission_service') as mock_permission:
-            mock_permission.has_permission.return_value = False  # No general task.view permission
+        with patch("app.services.task.permission_service") as mock_permission:
+            mock_permission.has_permission.return_value = False  # No general task.view
 
-            with patch.object(self.service, '_task_to_response') as mock_response:
+            with patch.object(self.service, "_task_to_response") as mock_response:
                 mock_response.return_value = MagicMock()
 
                 # Act
@@ -308,16 +315,16 @@ class TestTaskCompleteWorkflow:
                 mock_response.assert_called_once_with(mock_task)
 
     def test_permission_system_integration(self):
-        """Test TASK-WORKFLOW-006: Permission system integration across all operations."""
+        """Test TASK-WORKFLOW-006: Permission system integration across operations."""
         operations_tested = []
 
         # Mock permission service to track calls
-        with patch('app.services.task.permission_service') as mock_permission:
+        with patch("app.services.task.permission_service") as mock_permission:
             mock_permission.require_permission.return_value = None
             mock_permission.has_permission.return_value = True
 
-            with patch('app.services.task.AuditLogger.log'):
-                with patch.object(self.service, '_task_to_response') as mock_response:
+            with patch("app.services.task.AuditLogger.log"):
+                with patch.object(self.service, "_task_to_response") as mock_response:
                     mock_response.return_value = MagicMock()
 
                     # Test various operations with permission checks
@@ -351,5 +358,8 @@ class TestTaskCompleteWorkflow:
                         pass
 
                     # Assert permission system was invoked
-                    assert mock_permission.require_permission.called or mock_permission.has_permission.called
+                    assert (
+                        mock_permission.require_permission.called
+                        or mock_permission.has_permission.called
+                    )
                     assert len(operations_tested) >= 1  # At least one operation tested
