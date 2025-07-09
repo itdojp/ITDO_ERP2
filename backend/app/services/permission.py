@@ -153,9 +153,7 @@ class PermissionService:
         if user.is_superuser:
             if db is None:
                 return []
-            all_permissions = (
-                db.query(Permission).filter(Permission.is_active).all()
-            )
+            all_permissions = db.query(Permission).filter(Permission.is_active).all()
             return [p.code for p in all_permissions]
 
         if db is None:

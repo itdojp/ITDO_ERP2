@@ -90,9 +90,7 @@ class TestTaskService:
                 # Act
                 with patch.object(self.service, "_task_to_response") as mock_response:
                     mock_response.return_value = MagicMock()
-                    self.service.create_task(
-                        task_data, self.test_user, self.db
-                    )
+                    self.service.create_task(task_data, self.test_user, self.db)
 
         # Assert
         self.db.add.assert_called_once()
@@ -855,9 +853,7 @@ class TestTaskDueDateAndPriority:
         # Act
         with patch.object(self.service, "_task_to_response") as mock_response:
             mock_response.return_value = MagicMock()
-            self.service.set_due_date(
-                task_id, due_date, self.test_user, self.db
-            )
+            self.service.set_due_date(task_id, due_date, self.test_user, self.db)
 
         # Assert
         assert mock_task.due_date == due_date
@@ -879,9 +875,7 @@ class TestTaskDueDateAndPriority:
         # Note: Current implementation doesn't validate past dates
         with patch.object(self.service, "_task_to_response") as mock_response:
             mock_response.return_value = MagicMock()
-            self.service.set_due_date(
-                task_id, due_date, self.test_user, self.db
-            )
+            self.service.set_due_date(task_id, due_date, self.test_user, self.db)
 
         # Assert - currently allows past dates
         assert mock_task.due_date == due_date
@@ -942,9 +936,7 @@ class TestTaskDueDateAndPriority:
         # Act
         with patch.object(self.service, "_task_to_response") as mock_response:
             mock_response.return_value = MagicMock()
-            self.service.set_priority(
-                task_id, priority, self.test_user, self.db
-            )
+            self.service.set_priority(task_id, priority, self.test_user, self.db)
 
         # Assert
         assert mock_task.priority == priority.value
@@ -989,9 +981,7 @@ class TestTaskDependencies:
         # Act
         with patch.object(self.service, "_task_to_response") as mock_response:
             mock_response.return_value = MagicMock()
-            self.service.add_dependency(
-                task_id, depends_on_id, self.test_user, self.db
-            )
+            self.service.add_dependency(task_id, depends_on_id, self.test_user, self.db)
 
         # Assert
         assert mock_task.parent_task_id == depends_on_id
@@ -1025,9 +1015,7 @@ class TestTaskDependencies:
         # Note: Current implementation doesn't check for circular dependencies
         with patch.object(self.service, "_task_to_response") as mock_response:
             mock_response.return_value = MagicMock()
-            self.service.add_dependency(
-                task_id, depends_on_id, self.test_user, self.db
-            )
+            self.service.add_dependency(task_id, depends_on_id, self.test_user, self.db)
 
         # Assert - currently allows circular dependencies
         assert mock_task1.parent_task_id == depends_on_id

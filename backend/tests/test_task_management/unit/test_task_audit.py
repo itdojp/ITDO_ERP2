@@ -58,9 +58,7 @@ class TestTaskAuditLog:
                     mock_response.return_value = MagicMock()
 
                     # Act
-                    self.service.create_task(
-                        task_data, self.test_user, self.db
-                    )
+                    self.service.create_task(task_data, self.test_user, self.db)
 
         # Assert audit log was called
         mock_audit_logger.log.assert_called_once()
