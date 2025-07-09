@@ -1,7 +1,7 @@
-import { test as base, expect } from '@playwright/test';
+import { test as base, expect, Page } from '@playwright/test';
 
 type AuthFixtures = {
-  authenticatedPage: any;
+  authenticatedPage: Page;
 };
 
 export const test = base.extend<AuthFixtures>({
