@@ -41,7 +41,7 @@ def setup_test_data():
         org = Organization(
             name="Test Organization",
             code="TEST_ORG",
-            description="Test organization for E2E tests"
+            description="Test organization for E2E tests",
         )
         session.add(org)
         session.flush()
@@ -51,7 +51,7 @@ def setup_test_data():
             name="Test Department",
             code="TEST_DEPT",
             organization_id=org.id,
-            description="Test department for E2E tests"
+            description="Test department for E2E tests",
         )
         session.add(dept)
         session.flush()
@@ -62,14 +62,18 @@ def setup_test_data():
             code="admin",
             description="Administrator role",
             permissions=[
-                "user:read", "user:write", "user:delete", "org:read", "org:write"
-            ]
+                "user:read",
+                "user:write",
+                "user:delete",
+                "org:read",
+                "org:write",
+            ],
         )
         user_role = Role(
             name="User",
             code="user",
             description="Standard user role",
-            permissions=["user:read"]
+            permissions=["user:read"],
         )
         session.add_all([admin_role, user_role])
         session.flush()
@@ -82,7 +86,7 @@ def setup_test_data():
             is_active=True,
             is_superuser=False,
             department_id=dept.id,
-            password_changed_at=datetime.now(timezone.utc)
+            password_changed_at=datetime.now(timezone.utc),
         )
 
         admin_user = User(
@@ -92,7 +96,7 @@ def setup_test_data():
             is_active=True,
             is_superuser=True,
             department_id=dept.id,
-            password_changed_at=datetime.now(timezone.utc)
+            password_changed_at=datetime.now(timezone.utc),
         )
 
         session.add_all([test_user, admin_user])
@@ -104,14 +108,14 @@ def setup_test_data():
             role_id=user_role.id,
             organization_id=org.id,
             department_id=dept.id,
-            assigned_by=admin_user.id
+            assigned_by=admin_user.id,
         )
 
         admin_user_role = UserRole(
             user_id=admin_user.id,
             role_id=admin_role.id,
             organization_id=org.id,
-            assigned_by=admin_user.id
+            assigned_by=admin_user.id,
         )
 
         session.add_all([test_user_role, admin_user_role])
@@ -126,7 +130,7 @@ def setup_test_data():
             department_id=dept.id,
             owner_id=admin_user.id,
             status="planning",
-            priority="medium"
+            priority="medium",
         )
         session.add(project)
         session.flush()
@@ -140,7 +144,7 @@ def setup_test_data():
                 created_by=admin_user.id,
                 assigned_to=test_user.id,
                 status=TaskStatus.TODO,
-                priority=TaskPriority.MEDIUM
+                priority=TaskPriority.MEDIUM,
             ),
             Task(
                 title="Test Task 2",
@@ -149,7 +153,7 @@ def setup_test_data():
                 created_by=admin_user.id,
                 assigned_to=test_user.id,
                 status=TaskStatus.IN_PROGRESS,
-                priority=TaskPriority.HIGH
+                priority=TaskPriority.HIGH,
             ),
             Task(
                 title="Test Task 3",
@@ -157,8 +161,8 @@ def setup_test_data():
                 project_id=project.id,
                 created_by=admin_user.id,
                 status=TaskStatus.COMPLETED,
-                priority=TaskPriority.LOW
-            )
+                priority=TaskPriority.LOW,
+            ),
         ]
         session.add_all(tasks)
 
@@ -181,4 +185,3 @@ def setup_test_data():
 
 if __name__ == "__main__":
     setup_test_data()
-
