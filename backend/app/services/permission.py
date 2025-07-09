@@ -3,7 +3,7 @@
 import asyncio
 import json
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 from sqlalchemy.orm import Session
 
@@ -66,7 +66,7 @@ class PermissionService:
         """Get permissions grouped by category."""
         permissions = self.db.query(Permission).filter(Permission.is_active == True).all()
 
-        grouped = {}
+        grouped: Dict[str, List[Permission]] = {}
         for perm in permissions:
             if perm.category not in grouped:
                 grouped[perm.category] = []
@@ -172,11 +172,11 @@ class PermissionService:
         if organization_id:
             user_roles = user_roles.filter(UserRole.organization_id == organization_id)
 
-        user_roles = user_roles.all()
+        user_roles_list = user_roles.all()
 
         # Collect permissions from all roles
         permissions = set()
-        for user_role in user_roles:
+        for user_role in user_roles_list:
             if user_role.is_valid:
                 role_permissions = self.role_repository.get_effective_permissions(
                     user_role.role_id, organization_id, department_id
@@ -217,10 +217,10 @@ class PermissionService:
                 RolePermission.department_id == department_id
             )
 
-        role_permissions = role_permissions.all()
+        role_permissions_list = role_permissions.all()
 
-        result = []
-        for rp in role_permissions:
+        result: List[Dict[str, Any]] = []
+        for rp in role_permissions_list:
             if rp.permission and rp.permission.is_active:
                 result.append({
                     "permission_id": rp.permission_id,
@@ -247,7 +247,7 @@ class PermissionService:
         organization_id: Optional[OrganizationId] = None,
         department_id: Optional[int] = None,
         priority: int = 0,
-        expires_at: Optional[str] = None,
+        expires_at: Optional[Union[str, datetime]] = None,
     ) -> RolePermission:
         """Assign a permission to a role."""
         # Validate role exists
@@ -274,7 +274,10 @@ class PermissionService:
             existing.granted_by = granted_by
             existing.is_active = True
             existing.priority = priority
-            existing.expires_at = expires_at
+            if expires_at is not None:
+                existing.expires_at = datetime.fromisoformat(expires_at) if isinstance(expires_at, str) else expires_at
+            else:
+                existing.expires_at = None
             self.db.commit()
             self.db.refresh(existing)
             return existing
@@ -289,7 +292,7 @@ class PermissionService:
             department_id=department_id,
             is_active=True,
             priority=priority,
-            expires_at=expires_at,
+            expires_at=datetime.fromisoformat(expires_at) if isinstance(expires_at, str) else expires_at if expires_at else None,
         )
 
         self.db.add(role_permission)
@@ -328,7 +331,7 @@ class PermissionService:
         system_permissions = self.db.query(Permission).filter(Permission.is_system == True).count()
 
         # Count by category
-        category_counts = {}
+        category_counts: Dict[str, int] = {}
         categories = self.db.query(Permission.category).distinct().all()
         for (category,) in categories:
             count = self.db.query(Permission).filter(Permission.category == category).count()
@@ -439,7 +442,7 @@ class PermissionService:
         if not force_refresh:
             cached = await self.cache_manager.get(cache_key)
             if cached:
-                return json.loads(cached)
+                return json.loads(cached)  # type: ignore
 
         # Generate matrix
         matrix = self.generate_permission_matrix(organization_id)
@@ -479,7 +482,7 @@ class PermissionService:
         ).all()
 
         # Build matrix
-        matrix = {
+        matrix: Dict[str, Dict[str, Any]] = {
             "roles": {},
             "permissions": {},
             "categories": {},
@@ -704,7 +707,7 @@ class PermissionService:
 
         elif condition_type == "custom":
             # Custom condition evaluation
-            return condition.get("result", False)
+            return bool(condition.get("result", False))
 
         return True
 
@@ -712,7 +715,7 @@ class PermissionService:
         self, role_id: RoleId
     ) -> List[Dict[str, Any]]:
         """Get the complete permission inheritance chain for a role."""
-        chain = []
+        chain: List[Dict[str, Any]] = []
         current_role = self.db.get(Role, role_id)
 
         while current_role:
@@ -747,7 +750,7 @@ class PermissionService:
         }
 
         if role.is_system:
-            results["error"] = "Cannot optimize system roles"
+            results["error"] = "Cannot optimize system roles"  # type: ignore
             return results
 
         # Get direct permissions

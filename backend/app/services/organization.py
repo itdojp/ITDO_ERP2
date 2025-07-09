@@ -53,7 +53,7 @@ class OrganizationService(OrganizationServiceInterface, DepartmentIntegrationMix
         total = self.repository.get_count(filters=filters)
         return organizations, total
 
-    def get_organization_hierarchy(
+    def get_organization_hierarchy_tree(
         self, organization_id: OrganizationId
     ) -> OrganizationTree:
         """Get organization hierarchy tree."""
@@ -75,8 +75,7 @@ class OrganizationService(OrganizationServiceInterface, DepartmentIntegrationMix
                 parent_id=org.parent_id,
                 is_active=org.is_active,
                 children=children,
-                level=len(org.get_hierarchy_path()) - 1,
-                path="/".join([o.code for o in org.get_hierarchy_path()])
+                level=len(org.get_hierarchy_path()) - 1
             )
 
         return build_tree(org)
@@ -422,7 +421,7 @@ class OrganizationService(OrganizationServiceInterface, DepartmentIntegrationMix
         # In a real implementation, this would check actual permissions
         try:
             user = self.db.get(User, user_id)
-            return user and user.is_superuser
+            return user is not None and user.is_superuser
         except Exception:
             return False
 
@@ -564,7 +563,7 @@ class OrganizationService(OrganizationServiceInterface, DepartmentIntegrationMix
         self, organization_data: OrganizationCreate, parent_id: Optional[OrganizationId] = None
     ) -> Dict[str, List[str]]:
         """Validate organization data against business constraints."""
-        errors = {}
+        errors: Dict[str, List[str]] = {}
 
         # Validate code uniqueness
         if not self.repository.validate_unique_code(organization_data.code):
@@ -714,10 +713,10 @@ class OrganizationService(OrganizationServiceInterface, DepartmentIntegrationMix
         return recommendations
 
     def bulk_organization_operations(
-        self, operation: str, organization_ids: List[OrganizationId], **kwargs
+        self, operation: str, organization_ids: List[OrganizationId], **kwargs: Any
     ) -> Dict[str, Any]:
         """Perform bulk operations on organizations."""
-        results = {
+        results: Dict[str, Any] = {
             "operation": operation,
             "total_requested": len(organization_ids),
             "successful": [],
@@ -832,7 +831,7 @@ class OrganizationService(OrganizationServiceInterface, DepartmentIntegrationMix
         self.db.commit()
         self.db.refresh(org)
 
-        return self.get_organization_settings_dict(organization_id)
+        return self.get_organization_settings(organization_id)
 
     def create_permission_template(
         self,
@@ -1026,9 +1025,10 @@ class OrganizationService(OrganizationServiceInterface, DepartmentIntegrationMix
         policies = self._get_organization_policies(organization_id)
 
         # Include inherited policies
-        if include_inherited and self.get_organization(organization_id).parent_id:
+        org = self.get_organization(organization_id)
+        if include_inherited and org and org.parent_id:
             parent_policies = self.get_organization_policies(
-                self.get_organization(organization_id).parent_id,
+                org.parent_id,
                 policy_type=policy_type,
                 include_inherited=True,
             )
@@ -1125,11 +1125,13 @@ class OrganizationService(OrganizationServiceInterface, DepartmentIntegrationMix
         settings_response = self.get_organization_settings(organization_id)
 
         # Navigate through setting path
-        value = settings_response.effective_settings
+        value: Any = settings_response.effective_settings
         for part in setting_path.split("."):
             if isinstance(value, dict):
                 value = value.get(part)
             else:
+                return None
+            if value is None:
                 return None
 
         return value
@@ -1163,13 +1165,14 @@ class OrganizationService(OrganizationServiceInterface, DepartmentIntegrationMix
             }
 
         # Create the subsidiary
-        subsidiary = self.repository.create(subsidiary_dict)
+        subsidiary = self.repository.create(OrganizationCreate(**subsidiary_dict))
         
         # Copy permission templates from parent
         parent_templates = self._get_permission_templates(parent_id)
         for template in parent_templates:
-            if template.get("inheritable", True):
-                new_template = template.copy()
+            template_dict = template.model_dump()
+            if template_dict.get("inheritable", True):
+                new_template = template_dict.copy()
                 new_template["organization_id"] = subsidiary.id
                 new_template["id"] = None  # Generate new ID
                 self._save_permission_template(subsidiary.id, new_template)

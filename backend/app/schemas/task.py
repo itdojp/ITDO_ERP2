@@ -2,7 +2,7 @@
 
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Type
 
 from pydantic import BaseModel, ConfigDict, Field, validator
 
@@ -24,28 +24,28 @@ class TaskBase(BaseModel):
     metadata: Optional[Dict[str, Any]] = Field(None, description="Additional metadata")
 
     @validator("status")
-    def validate_status(cls, v):
+    def validate_status(cls: Type["TaskBase"], v: Any) -> str:
         """Validate task status."""
         valid_statuses = [status.value for status in TaskStatus]
         if v not in valid_statuses:
             raise ValueError(f"Invalid status. Must be one of: {valid_statuses}")
-        return v
+        return str(v)
 
     @validator("priority")
-    def validate_priority(cls, v):
+    def validate_priority(cls: Type["TaskBase"], v: Any) -> str:
         """Validate task priority."""
         valid_priorities = [priority.value for priority in TaskPriority]
         if v not in valid_priorities:
             raise ValueError(f"Invalid priority. Must be one of: {valid_priorities}")
-        return v
+        return str(v)
 
     @validator("task_type")
-    def validate_task_type(cls, v):
+    def validate_task_type(cls: Type["TaskBase"], v: Any) -> str:
         """Validate task type."""
         valid_types = [task_type.value for task_type in TaskType]
         if v not in valid_types:
             raise ValueError(f"Invalid task type. Must be one of: {valid_types}")
-        return v
+        return str(v)
 
 
 class TaskCreate(TaskBase):
@@ -83,31 +83,34 @@ class TaskUpdate(BaseModel):
     is_active: Optional[bool] = Field(None)
 
     @validator("status")
-    def validate_status(cls, v):
+    def validate_status(cls: Type["TaskUpdate"], v: Any) -> Optional[str]:
         """Validate task status."""
         if v is not None:
             valid_statuses = [status.value for status in TaskStatus]
             if v not in valid_statuses:
                 raise ValueError(f"Invalid status. Must be one of: {valid_statuses}")
-        return v
+            return str(v)
+        return None
 
     @validator("priority")
-    def validate_priority(cls, v):
+    def validate_priority(cls: Type["TaskUpdate"], v: Any) -> Optional[str]:
         """Validate task priority."""
         if v is not None:
             valid_priorities = [priority.value for priority in TaskPriority]
             if v not in valid_priorities:
                 raise ValueError(f"Invalid priority. Must be one of: {valid_priorities}")
-        return v
+            return str(v)
+        return None
 
     @validator("task_type")
-    def validate_task_type(cls, v):
+    def validate_task_type(cls: Type["TaskUpdate"], v: Any) -> Optional[str]:
         """Validate task type."""
         if v is not None:
             valid_types = [task_type.value for task_type in TaskType]
             if v not in valid_types:
                 raise ValueError(f"Invalid task type. Must be one of: {valid_types}")
-        return v
+            return str(v)
+        return None
 
     model_config = ConfigDict(extra="forbid")
 
@@ -202,7 +205,7 @@ class TaskBulkOperation(BaseModel):
     data: Optional[Dict[str, Any]] = Field(None, description="Operation data")
 
     @validator("operation")
-    def validate_operation(cls, v):
+    def validate_operation(cls: Type["TaskBulkOperation"], v: Any) -> str:
         """Validate bulk operation."""
         valid_operations = [
             "update_status",
@@ -218,7 +221,7 @@ class TaskBulkOperation(BaseModel):
         ]
         if v not in valid_operations:
             raise ValueError(f"Invalid operation. Must be one of: {valid_operations}")
-        return v
+        return str(v)
 
     model_config = ConfigDict(extra="forbid")
 
@@ -232,12 +235,12 @@ class TaskStatusTransition(BaseModel):
     notes: Optional[str] = Field(None, description="Additional notes")
 
     @validator("from_status", "to_status")
-    def validate_status(cls, v):
+    def validate_status(cls: Type["TaskStatusTransition"], v: Any) -> str:
         """Validate status values."""
         valid_statuses = [status.value for status in TaskStatus]
         if v not in valid_statuses:
             raise ValueError(f"Invalid status. Must be one of: {valid_statuses}")
-        return v
+        return str(v)
 
     model_config = ConfigDict(extra="forbid")
 

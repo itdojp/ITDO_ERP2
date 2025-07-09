@@ -28,7 +28,7 @@ class ProjectBase(BaseModel):
     settings: Optional[Dict[str, Any]] = Field(None, description="Project settings")
 
     @validator("status")
-    def validate_status(cls, v):
+    def validate_status(cls, v: str) -> str:
         """Validate project status."""
         valid_statuses = [status.value for status in ProjectStatus]
         if v not in valid_statuses:
@@ -36,7 +36,7 @@ class ProjectBase(BaseModel):
         return v
 
     @validator("priority")
-    def validate_priority(cls, v):
+    def validate_priority(cls, v: str) -> str:
         """Validate project priority."""
         valid_priorities = [priority.value for priority in ProjectPriority]
         if v not in valid_priorities:
@@ -44,7 +44,7 @@ class ProjectBase(BaseModel):
         return v
 
     @validator("project_type")
-    def validate_project_type(cls, v):
+    def validate_project_type(cls, v: str) -> str:
         """Validate project type."""
         valid_types = [ptype.value for ptype in ProjectType]
         if v not in valid_types:
@@ -52,7 +52,7 @@ class ProjectBase(BaseModel):
         return v
 
     @validator("end_date")
-    def validate_end_date(cls, v, values):
+    def validate_end_date(cls, v: Optional[date], values: Dict[str, Any]) -> Optional[date]:
         """Validate end date is after start date."""
         if v and values.get("start_date") and v < values["start_date"]:
             raise ValueError("End date must be after start date")
@@ -92,7 +92,7 @@ class ProjectUpdate(BaseModel):
     project_metadata: Optional[Dict[str, Any]] = Field(None)
 
     @validator("status")
-    def validate_status(cls, v):
+    def validate_status(cls, v: Optional[str]) -> Optional[str]:
         """Validate project status."""
         if v is not None:
             valid_statuses = [status.value for status in ProjectStatus]
@@ -101,7 +101,7 @@ class ProjectUpdate(BaseModel):
         return v
 
     @validator("priority")
-    def validate_priority(cls, v):
+    def validate_priority(cls, v: Optional[str]) -> Optional[str]:
         """Validate project priority."""
         if v is not None:
             valid_priorities = [priority.value for priority in ProjectPriority]
@@ -110,7 +110,7 @@ class ProjectUpdate(BaseModel):
         return v
 
     @validator("project_type")
-    def validate_project_type(cls, v):
+    def validate_project_type(cls, v: Optional[str]) -> Optional[str]:
         """Validate project type."""
         if v is not None:
             valid_types = [ptype.value for ptype in ProjectType]
@@ -274,12 +274,12 @@ class ProjectFilter(BaseModel):
 class ProjectBulkOperation(BaseModel):
     """Schema for bulk project operations."""
 
-    project_ids: List[int] = Field(..., min_items=1, description="List of project IDs")
+    project_ids: List[int] = Field(..., min_length=1, description="List of project IDs")
     operation: str = Field(..., description="Operation to perform")
     data: Optional[Dict[str, Any]] = Field(None, description="Operation data")
 
     @validator("operation")
-    def validate_operation(cls, v):
+    def validate_operation(cls, v: str) -> str:
         """Validate bulk operation."""
         valid_operations = [
             "archive",
@@ -308,7 +308,7 @@ class ProjectStatusTransition(BaseModel):
     notes: Optional[str] = Field(None, description="Additional notes")
 
     @validator("from_status", "to_status")
-    def validate_status(cls, v):
+    def validate_status(cls, v: str) -> str:
         """Validate status values."""
         valid_statuses = [status.value for status in ProjectStatus]
         if v not in valid_statuses:
