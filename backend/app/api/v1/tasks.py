@@ -157,3 +157,113 @@ def update_task_status(
             status_code=status.HTTP_501_NOT_IMPLEMENTED,
             detail="Status update not implemented yet",
         )
+
+
+# CRITICAL: Department Integration Endpoints for Phase 3
+
+@router.post("/department/{department_id}", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
+def create_department_task(
+    department_id: int,
+    task_data: TaskCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> TaskResponse:
+    """Create a new task assigned to a department."""
+    service = TaskService()
+    try:
+        return service.create_department_task(
+            task_data=task_data, user=current_user, db=db, department_id=department_id
+        )
+    except NotFound as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except PermissionDenied as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create department task: {str(e)}",
+        )
+
+
+@router.get("/department/{department_id}", response_model=TaskListResponse)
+def get_department_tasks(
+    department_id: int,
+    include_subdepartments: bool = Query(True, description="Include subdepartment tasks"),
+    status: Optional[str] = Query(None, description="Filter by status"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> TaskListResponse:
+    """Get tasks for a department with hierarchical support."""
+    service = TaskService()
+    try:
+        return service.get_department_tasks(
+            department_id=department_id,
+            user=current_user,
+            db=db,
+            include_subdepartments=include_subdepartments,
+            status_filter=status,
+            page=page,
+            page_size=page_size,
+        )
+    except NotFound as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except PermissionDenied as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get department tasks: {str(e)}",
+        )
+
+
+@router.put("/{task_id}/assign-department/{department_id}", response_model=TaskResponse)
+def assign_task_to_department(
+    task_id: int,
+    department_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> TaskResponse:
+    """Assign an existing task to a department."""
+    service = TaskService()
+    try:
+        return service.assign_task_to_department(
+            task_id=task_id, department_id=department_id, user=current_user, db=db
+        )
+    except NotFound as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except PermissionDenied as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to assign task to department: {str(e)}",
+        )
+
+
+@router.get("/by-visibility/{visibility_scope}", response_model=TaskListResponse)
+def get_tasks_by_visibility(
+    visibility_scope: str,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> TaskListResponse:
+    """Get tasks based on visibility scope."""
+    service = TaskService()
+    try:
+        return service.get_tasks_by_visibility(
+            user=current_user,
+            db=db,
+            visibility_scope=visibility_scope,
+            page=page,
+            page_size=page_size,
+        )
+    except PermissionDenied as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get tasks by visibility: {str(e)}",
+        )

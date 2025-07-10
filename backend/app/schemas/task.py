@@ -43,6 +43,9 @@ class TaskCreate(TaskBase):
 
     assignee_ids: Optional[List[int]] = Field(None, description="List of assignee IDs")
     tags: Optional[List[str]] = Field(None, description="Task tags")
+    # CRITICAL: Department integration fields for Phase 3
+    department_id: Optional[int] = Field(None, description="Department ID for task assignment")
+    department_visibility: str = Field(default="department_hierarchy", description="Visibility scope")
 
 
 class TaskUpdate(BaseModel):
@@ -92,6 +95,17 @@ class ProjectInfo(BaseModel):
     name: str
 
 
+class DepartmentBasic(BaseModel):
+    """Department basic information for task responses."""
+
+    id: int
+    name: str
+    code: str
+
+    class Config:
+        from_attributes = True
+
+
 class TaskResponse(BaseModel):
     """Task response schema."""
 
@@ -110,6 +124,10 @@ class TaskResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     created_by: UserInfo
+    # CRITICAL: Department integration fields for Phase 3
+    department_id: Optional[int] = None
+    department_visibility: str = "department_hierarchy"
+    department: Optional[DepartmentBasic] = None
 
     class Config:
         from_attributes = True

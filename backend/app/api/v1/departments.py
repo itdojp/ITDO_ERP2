@@ -19,7 +19,9 @@ from app.schemas.department import (
     DepartmentUpdate,
     DepartmentWithUsers,
 )
+from app.schemas.task import TaskListResponse
 from app.services.department import DepartmentService
+from app.services.task import TaskService
 from app.types import OrganizationId
 
 router = APIRouter(prefix="/departments", tags=["departments"])
@@ -457,3 +459,49 @@ def get_sub_departments(
         sub_departments = service.get_direct_sub_departments(department_id)
 
     return [DepartmentBasic.model_validate(dept.to_dict()) for dept in sub_departments]
+
+
+# CRITICAL: Task Integration Endpoints for Phase 3
+
+@router.get(
+    "/{department_id}/tasks",
+    response_model=TaskListResponse,
+    responses={
+        401: {"model": ErrorResponse, "description": "Unauthorized"},
+        404: {"model": ErrorResponse, "description": "Department not found"},
+    },
+)
+def get_department_tasks_via_department_endpoint(
+    department_id: int = Path(..., description="Department ID"),
+    include_subdepartments: bool = Query(True, description="Include subdepartment tasks"),
+    status: Optional[str] = Query(None, description="Filter by status"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> TaskListResponse:
+    """Get tasks for a department via department endpoint."""
+    department_service = DepartmentService(db)
+    task_service = TaskService()
+
+    # Check if department exists
+    if not department_service.get_department(department_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Department not found"
+        )
+
+    try:
+        return task_service.get_department_tasks(
+            department_id=department_id,
+            user=current_user,
+            db=db,
+            include_subdepartments=include_subdepartments,
+            status_filter=status,
+            page=page,
+            page_size=page_size,
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get department tasks: {str(e)}",
+        )

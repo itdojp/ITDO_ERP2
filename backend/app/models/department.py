@@ -10,6 +10,7 @@ from app.types import DepartmentId, OrganizationId, UserId
 
 if TYPE_CHECKING:
     from app.models.organization import Organization
+    from app.models.task import Task
     from app.models.user import User
 
 
@@ -143,6 +144,14 @@ class Department(SoftDeletableModel):
         secondaryjoin="UserRole.user_id == User.id",
         viewonly=True,
         lazy="dynamic",
+    )
+    
+    # CRITICAL: Task relationship for hierarchical task management
+    tasks: Mapped[List["Task"]] = relationship(
+        "Task",
+        back_populates="department",
+        cascade="save-update",
+        lazy="dynamic"
     )
 
     def __repr__(self) -> str:
