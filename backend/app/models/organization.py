@@ -46,9 +46,9 @@ class Organization(Base):
     created_by: Optional[int] = Column(Integer, ForeignKey("users.id"))
     updated_by: Optional[int] = Column(Integer, ForeignKey("users.id"))
 
-    # Relationships - temporarily remove back_populates to avoid circular dependencies
-    departments = relationship("Department")
-    # user_roles = relationship("UserRole", back_populates="organization")
+    # Relationships
+    departments = relationship("Department", back_populates="organization")
+    user_roles = relationship("UserRole", back_populates="organization")
     creator = relationship("User", foreign_keys=[created_by])
     updater = relationship("User", foreign_keys=[updated_by])
 

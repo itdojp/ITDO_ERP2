@@ -47,10 +47,9 @@ class AuditLog(BaseModel):
 
     # Relationships
     user = relationship("User", foreign_keys=[user_id], lazy="joined")
-    # Temporarily comment out to avoid circular dependency issues
-    # organization = relationship(
-    #     "Organization", foreign_keys=[organization_id], lazy="select"
-    # )
+    organization = relationship(
+        "Organization", foreign_keys=[organization_id], lazy="select"
+    )
 
     def calculate_checksum(self) -> str:
         """Calculate checksum for audit log integrity."""

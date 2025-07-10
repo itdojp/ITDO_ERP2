@@ -50,10 +50,10 @@ class User(SoftDeletableModel):
     locked_until: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     password_must_change: Mapped[bool] = mapped_column(Boolean, default=False)
 
-    # Relationships - temporarily disabled to fix circular dependencies
-    # user_roles = relationship(
-    #     "UserRole", back_populates="user", foreign_keys="UserRole.user_id", lazy="select"
-    # )
+    # Relationships
+    user_roles = relationship(
+        "UserRole", foreign_keys="UserRole.user_id", lazy="select"
+    )
     password_history: Mapped[List["PasswordHistory"]] = relationship(
         "PasswordHistory", back_populates="user", cascade="all, delete-orphan"
     )
@@ -333,64 +333,56 @@ class User(SoftDeletableModel):
 
     def get_organizations(self) -> List["Organization"]:
         """Get user's organizations."""
-        # Temporarily return empty list until relationships are fixed
-        return []
-        # return list(set(ur.organization for ur in self.user_roles if ur.organization))
+        return list(set(ur.organization for ur in self.user_roles if ur.organization))
 
     def get_departments(self, organization_id: int) -> List["Department"]:
         """Get user's departments in organization."""
-        # Temporarily return empty list until relationships are fixed
-        return []
-        # return [
-        #     ur.department
-        #     for ur in self.user_roles
-        #     if ur.organization_id == organization_id and ur.department
-        # ]
+        return [
+            ur.department
+            for ur in self.user_roles
+            if ur.organization_id == organization_id and ur.department
+        ]
 
     def get_roles_in_organization(self, organization_id: int) -> List["Role"]:
         """Get user's roles in organization."""
-        # Temporarily return empty list until relationships are fixed
-        return []
-        # return [
-        #     ur.role
-        #     for ur in self.user_roles
-        #     if ur.organization_id == organization_id and ur.role
-        # ]
+        return [
+            ur.role
+            for ur in self.user_roles
+            if ur.organization_id == organization_id and ur.role
+        ]
 
     def get_effective_permissions(self, organization_id: int) -> List[str]:
         """Get user's effective permissions in organization."""
-        # Temporarily return empty list until relationships are fixed
-        return []
-        # permissions: set[str] = set()
-        #
-        # for user_role in self.user_roles:
-        #     if (
-        #         user_role.organization_id == organization_id
-        #         and not user_role.is_expired
-        #     ):
-        #         # Handle permissions stored as JSON
-        #         if user_role.role and user_role.role.permissions:
-        #             # If permissions is a list, add all items
-        #             if isinstance(user_role.role.permissions, list):
-        #                 permissions.update(user_role.role.permissions)
-        #             # If permissions is a dict, extract permission codes
-        #             elif isinstance(user_role.role.permissions, dict):
-        #                 # Handle various dict structures
-        #                 if "codes" in user_role.role.permissions:
-        #                     permissions.update(user_role.role.permissions["codes"])
-        #                 elif "permissions" in user_role.role.permissions:
-        #                     permissions.update(
-        #                         user_role.role.permissions["permissions"]
-        #                     )
-        #                 else:
-        #                     # Try to extract values that look like permission codes
-        #                     for key, value in user_role.role.permissions.items():
-        #                         if isinstance(value, list):
-        #                             permissions.update(value)
-        #                         elif isinstance(value, str) and ":" in value:
-        #                             permissions.add(value)
-        #
-        # return list(permissions)
+        permissions: set[str] = set()
+
+        for user_role in self.user_roles:
+            if (
+                user_role.organization_id == organization_id
+                and not user_role.is_expired
+            ):
+                # Handle permissions stored as JSON
+                if user_role.role and user_role.role.permissions:
+                    # If permissions is a list, add all items
+                    if isinstance(user_role.role.permissions, list):
+                        permissions.update(user_role.role.permissions)
+                    # If permissions is a dict, extract permission codes
+                    elif isinstance(user_role.role.permissions, dict):
+                        # Handle various dict structures
+                        if "codes" in user_role.role.permissions:
+                            permissions.update(user_role.role.permissions["codes"])
+                        elif "permissions" in user_role.role.permissions:
+                            permissions.update(
+                                user_role.role.permissions["permissions"]
+                            )
+                        else:
+                            # Try to extract values that look like permission codes
+                            for key, value in user_role.role.permissions.items():
+                                if isinstance(value, list):
+                                    permissions.update(value)
+                                elif isinstance(value, str) and ":" in value:
+                                    permissions.add(value)
+
+        return list(permissions)
 
     def has_permission(self, permission: str, organization_id: int) -> bool:
         """Check if user has specific permission in organization."""
@@ -398,41 +390,35 @@ class User(SoftDeletableModel):
 
     def has_role(self, role_code: str, organization_id: int) -> bool:
         """Check if user has a specific role in an organization."""
-        # Temporarily return False until relationships are fixed
+        for user_role in self.user_roles:
+            if (
+                user_role.organization_id == organization_id
+                and user_role.role.code == role_code
+                and not user_role.is_expired
+            ):
+                return True
         return False
-        # for user_role in self.user_roles:
-        #     if (
-        #         user_role.organization_id == organization_id
-        #         and user_role.role.code == role_code
-        #         and not user_role.is_expired
-        #     ):
-        #         return True
-        # return False
 
     def has_role_in_department(self, role_code: str, department_id: int) -> bool:
         """Check if user has role in department."""
-        # Temporarily return False until relationships are fixed
+        for user_role in self.user_roles:
+            if (
+                user_role.department_id == department_id
+                and user_role.role.code == role_code
+                and not user_role.is_expired
+            ):
+                return True
         return False
-        # for user_role in self.user_roles:
-        #     if (
-        #         user_role.department_id == department_id
-        #         and user_role.role.code == role_code
-        #         and not user_role.is_expired
-        #     ):
-        #         return True
-        # return False
 
     def has_permission_in_department(self, permission: str, department_id: int) -> bool:
         """Check if user has permission in department."""
-        # Temporarily return False until relationships are fixed
+        for user_role in self.user_roles:
+            if user_role.department_id == department_id and not user_role.is_expired:
+                # TODO: Implement role permission checking
+                # if user_role.role.has_permission(permission):
+                #     return True
+                pass
         return False
-        # for user_role in self.user_roles:
-        #     if user_role.department_id == department_id and not user_role.is_expired:
-        #         # TODO: Implement role permission checking
-        #         # if user_role.role.has_permission(permission):
-        #         #     return True
-        #         pass
-        # return False
 
     def can_access_user(self, target_user: "User") -> bool:
         """Check if user can access another user's data."""

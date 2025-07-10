@@ -47,9 +47,9 @@ class Project(SoftDeletableModel):
     total_budget: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     actual_cost: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
 
-    # Relationships - temporarily disabled to avoid circular dependency
-    # organization = relationship("Organization", lazy="select")
-    # department = relationship("Department", lazy="select")
+    # Relationships
+    organization = relationship("Organization", lazy="select")
+    department = relationship("Department", lazy="select")
     owner: Mapped["User"] = relationship("User", foreign_keys=[owner_id], lazy="joined")
 
     # Task relationship
