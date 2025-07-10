@@ -61,34 +61,295 @@ async def get_user(user_id: int) -> UserResponse:
 ```
 
 ### テスト
+
+#### 基本的なテスト構造
 ```python
 # テストファイル: test_{module_name}.py
 import pytest
-from httpx import AsyncClient
+from sqlalchemy.orm import Session
+from fastapi.testclient import TestClient
 
+class TestUserModel:
+    """Test User model functionality."""
+    
+    def test_create_user(self, db_session: Session) -> None:
+        """Test user creation."""
+        # Given: テストデータ
+        user_data = {
+            "email": "test@example.com",
+            "password": "SecurePassword123!",
+            "full_name": "Test User"
+        }
+        
+        # When: ユーザー作成
+        user = User.create(
+            db_session,
+            email=user_data["email"],
+            password=user_data["password"],
+            full_name=user_data["full_name"]
+        )
+        
+        # Then: 正しく作成される
+        assert user.email == "test@example.com"
+        assert user.full_name == "Test User"
+```
+
+#### 型アノテーションのルール
+
+##### 必須の型アノテーション
+```python
+# ✅ 良い例 - 最小限の型アノテーション
+def test_user_creation(self, db_session: Session) -> None:
+    """Test user creation functionality."""
+    pass
+
+def test_api_endpoint(self, client: TestClient, admin_token: str) -> None:
+    """Test API endpoint."""
+    pass
+
+@pytest.fixture
+def sample_user(self) -> User:
+    """Create sample user for testing."""
+    return User(email="test@example.com")
+```
+
+##### 型アノテーションのガイドライン
+- **関数の引数**: 必須（Session, TestClient, str等）
+- **戻り値**: None を明示的に指定
+- **fixture**: 戻り値の型を必ず指定
+- **複雑な型**: Any を使用して簡潔に
+
+#### 統合テスト
+```python
 @pytest.mark.asyncio
-async def test_get_user_success(client: AsyncClient):
+async def test_get_user_success(client: TestClient, user_token: str) -> None:
     # Arrange
     user_id = 1
     
     # Act
-    response = await client.get(f"/api/v1/users/{user_id}")
+    response = client.get(
+        f"/api/v1/users/{user_id}",
+        headers={"Authorization": f"Bearer {user_token}"}
+    )
     
     # Assert
     assert response.status_code == 200
     assert response.json()["id"] == user_id
 
 @pytest.mark.asyncio
-async def test_get_user_not_found(client: AsyncClient):
+async def test_get_user_not_found(client: TestClient, admin_token: str) -> None:
     # Arrange
     user_id = 999
     
     # Act
-    response = await client.get(f"/api/v1/users/{user_id}")
+    response = client.get(
+        f"/api/v1/users/{user_id}",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
     
     # Assert
     assert response.status_code == 404
     assert "not found" in response.json()["detail"].lower()
+```
+
+### SQLAlchemy モデル定義
+
+#### バージョンの統一
+- **新規プロジェクト**: SQLAlchemy 2.0スタイル（Mapped型）を使用
+- **既存プロジェクト**: 段階的に2.0スタイルへ移行
+- **混在する場合**: 明確にコメントで示す
+
+#### SQLAlchemy 2.0スタイル（推奨）
+```python
+from sqlalchemy.orm import Mapped, mapped_column
+
+class User(Base):
+    __tablename__ = "users"
+    
+    id: Mapped[int] = mapped_column(primary_key=True)
+    email: Mapped[str] = mapped_column(unique=True)
+    is_active: Mapped[bool] = mapped_column(default=True)
+```
+
+#### SQLAlchemy 1.xスタイル（レガシー）
+```python
+from sqlalchemy import Column, Integer, String, Boolean
+
+class User(Base):
+    __tablename__ = "users"
+    
+    id = Column(Integer, primary_key=True)
+    email = Column(String, unique=True)
+    is_active = Column(Boolean, default=True)
+```
+
+#### バージョン混在時の対処
+```python
+# SQLAlchemy 1.xモデルの属性アクセス時
+role_id = int(role.id)  # type: ignore[arg-type]
+role_name = str(role.name)  # type: ignore[arg-type]
+```
+
+### ORM↔スキーマ変換
+
+#### 明示的な変換（推奨）
+ORMオブジェクトからPydanticスキーマへの変換は明示的に行う：
+
+```python
+# ✅ 良い例 - 明示的な変換
+from app.schemas.user import UserResponse
+
+def get_user_response(user: User) -> UserResponse:
+    return UserResponse(
+        id=user.id,
+        email=user.email,
+        name=user.name
+    )
+
+# ❌ 悪い例 - 暗黙的な変換に依存
+def get_user_response(user: User) -> UserResponse:
+    return UserResponse.from_orm(user)  # 型チェックで警告
+```
+
+#### 複雑なネストされた変換
+```python
+# ✅ 良い例 - ネストされたオブジェクトも明示的に変換
+role_info = UserRoleInfo(
+    role=RoleBasic(
+        id=ur.role.id,
+        code=ur.role.code,
+        name=ur.role.name
+    ),
+    organization=OrganizationBasic(
+        id=ur.organization.id,
+        code=ur.organization.code,
+        name=ur.organization.name
+    )
+)
+```
+
+#### Pydanticのfrom_attributes使用時の注意
+```python
+class UserResponse(BaseModel):
+    # from_attributes=Trueは実行時には動作するが、
+    # 型チェックでは認識されない場合がある
+    class Config:
+        from_attributes = True
+```
+
+### 型チェック（mypy）設定
+
+#### 基本方針
+- **新規プロジェクト**: `strict = true`を推奨
+- **既存プロジェクト**: 段階的に厳格度を上げる
+- **テストファイル**: 型エラーを無視する設定を許可
+
+#### pyproject.toml設定例
+```toml
+[tool.mypy]
+python_version = "3.13"
+strict = true
+
+# テストファイルの型エラーを無視
+[[tool.mypy.overrides]]
+module = "tests.*"
+ignore_errors = true
+```
+
+### type: ignoreコメントの使用規則
+
+#### 使用可能なケース（優先順位順）
+
+1. **外部ライブラリの型定義不備**
+   ```python
+   # FastAPIの既知の型定義問題
+   app.add_exception_handler(ValidationError, handler)  # type: ignore[arg-type]
+   ```
+
+2. **SQLAlchemyバージョン混在**
+   ```python
+   # SQLAlchemy 1.x Column型への対処
+   user_id = int(user.id)  # type: ignore[arg-type]
+   ```
+
+3. **段階的な型安全性向上の過程**
+   ```python
+   # TODO: モデルをSQLAlchemy 2.0スタイルに移行後削除
+   org_name = str(org.name)  # type: ignore[arg-type]
+   ```
+
+#### 必須ルール
+- 具体的なエラーコードを指定（例: [arg-type]）
+- 理由をコメントで説明
+- 可能な限りTODOコメントで将来の削除計画を示す
+
+### 型チェックエラーの管理戦略
+
+#### エラー分類ファイルの作成
+大規模な型エラーが発生した場合は`.mypy-ignore.md`を作成：
+
+```markdown
+# Mypy Type Checking Error Classification
+
+## 🔴 高優先度（早急に修正必要）
+- 実行時エラーの可能性があるもの
+- None型の属性アクセス
+- 不正な戻り値型
+
+## 🟡 中優先度（将来的に修正推奨）
+- 型安全性は損なわれるが動作するもの
+- ORM↔スキーマ変換の型不一致
+
+## 🟢 低優先度（安全に無視可能）
+- テスト関数の型アノテーション
+- 外部ライブラリの型定義問題
+```
+
+#### 修正の追跡
+- 修正したエラーは取り消し線で記録
+- 新たに追加したtype: ignoreコメントは別途記録
+
+### プロジェクト初期設定の推奨事項
+
+#### 新規プロジェクトの型チェック設定
+
+##### 推奨されるpyproject.toml設定
+```toml
+[tool.mypy]
+python_version = "3.13"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+
+# プロジェクト初期は段階的に厳格化
+[[tool.mypy.overrides]]
+module = "tests.*"
+ignore_errors = true
+
+# SQLAlchemy プラグイン（2.0使用時）
+plugins = ["sqlalchemy.ext.mypy.plugin"]
+```
+
+##### 既存プロジェクトへの導入
+1. まず`mypy --no-error-summary`で現状把握
+2. `.mypy-ignore.md`でエラー分類
+3. 高優先度から順次修正
+4. CI/CDでは`continue-on-error: true`から開始
+
+### CI/CDパイプラインでの型チェック
+
+#### 段階的な型安全性向上
+1. **Phase 1**: 高優先度エラーのみをビルド失敗条件とする
+2. **Phase 2**: 中優先度エラーを警告として扱う
+3. **Phase 3**: エラー数の推移を追跡し、段階的に削減
+
+#### 設定例
+```yaml
+# .github/workflows/ci.yml
+- name: Type Check
+  run: |
+    uv run mypy . --strict
+  continue-on-error: true  # 一時的にエラーを許容
 ```
 
 ## TypeScript（Frontend）規約
@@ -386,6 +647,7 @@ export const UserManagement = memo(() => {
 
 ### 自動チェック項目
 - [ ] 型チェック（mypy --strict / tsc --noEmit）
+- [ ] テストコードの型チェック（最小限のアノテーション必須）
 - [ ] リント（black, isort, eslint）
 - [ ] テスト（pytest / vitest）
 - [ ] セキュリティスキャン

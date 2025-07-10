@@ -2,6 +2,7 @@
 
 import pytest
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 
 from app.core.security import verify_password
 from app.models.user import User
@@ -10,7 +11,7 @@ from app.models.user import User
 class TestUserModel:
     """Test User model functionality."""
 
-    def test_create_user(self, db_session) -> None:
+    def test_create_user(self, db_session: Session) -> None:
         """Test user creation."""
         # Given: User data
         user_data = {
@@ -20,7 +21,12 @@ class TestUserModel:
         }
 
         # When: Creating user
-        user = User.create(db_session, **user_data)
+        user = User.create(
+            db_session,
+            email=user_data["email"],
+            password=user_data["password"],
+            full_name=user_data["full_name"],
+        )
 
         # Then: User should be created with correct attributes
         assert user.id is not None
@@ -35,7 +41,7 @@ class TestUserModel:
         assert user.hashed_password != "SecurePassword123!"
         assert verify_password("SecurePassword123!", user.hashed_password)
 
-    def test_create_user_minimal(self, db_session) -> None:
+    def test_create_user_minimal(self, db_session: Session) -> None:
         """Test user creation with minimal data."""
         # When: Creating user with minimal data
         user = User.create(
@@ -49,7 +55,7 @@ class TestUserModel:
         assert user.is_active is True
         assert user.is_superuser is False
 
-    def test_create_superuser(self, db_session) -> None:
+    def test_create_superuser(self, db_session: Session) -> None:
         """Test superuser creation."""
         # When: Creating superuser
         user = User.create(
@@ -63,7 +69,7 @@ class TestUserModel:
         # Then: User should be superuser
         assert user.is_superuser is True
 
-    def test_duplicate_email_raises_error(self, db_session) -> None:
+    def test_duplicate_email_raises_error(self, db_session: Session) -> None:
         """Test that duplicate emails are rejected."""
         # Given: Existing user
         User.create(
@@ -84,7 +90,7 @@ class TestUserModel:
             )
             db_session.commit()
 
-    def test_get_by_email(self, db_session) -> None:
+    def test_get_by_email(self, db_session: Session) -> None:
         """Test getting user by email."""
         # Given: Existing user
         created_user = User.create(
@@ -103,7 +109,7 @@ class TestUserModel:
         assert found_user.id == created_user.id
         assert found_user.email == "findme@example.com"
 
-    def test_get_by_email_not_found(self, db_session) -> None:
+    def test_get_by_email_not_found(self, db_session: Session) -> None:
         """Test getting non-existent user by email."""
         # When: Getting non-existent user
         user = User.get_by_email(db_session, "nonexistent@example.com")
@@ -111,7 +117,7 @@ class TestUserModel:
         # Then: Should return None
         assert user is None
 
-    def test_authenticate_success(self, db_session) -> None:
+    def test_authenticate_success(self, db_session: Session) -> None:
         """Test successful authentication."""
         # Given: Existing user
         User.create(
@@ -129,7 +135,7 @@ class TestUserModel:
         assert user is not None
         assert user.email == "auth@example.com"
 
-    def test_authenticate_wrong_password(self, db_session) -> None:
+    def test_authenticate_wrong_password(self, db_session: Session) -> None:
         """Test authentication with wrong password."""
         # Given: Existing user
         User.create(
@@ -146,7 +152,7 @@ class TestUserModel:
         # Then: Should return None
         assert user is None
 
-    def test_authenticate_inactive_user(self, db_session) -> None:
+    def test_authenticate_inactive_user(self, db_session: Session) -> None:
         """Test authentication with inactive user."""
         # Given: Inactive user
         User.create(
@@ -164,7 +170,7 @@ class TestUserModel:
         # Then: Should return None
         assert user is None
 
-    def test_update_user(self, db_session) -> None:
+    def test_update_user(self, db_session: Session) -> None:
         """Test user update."""
         # Given: Existing user
         user = User.create(

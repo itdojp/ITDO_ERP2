@@ -25,19 +25,31 @@ class AuthorizationError(Exception):
     pass
 
 
-class PermissionDenied(Exception):
-    """Raised when user lacks required permissions."""
+class BusinessLogicError(Exception):
+    """Raised when business logic validation fails."""
 
     pass
 
 
-class NotFound(Exception):
+class NotFound(Exception):  # noqa: N818
     """Raised when a resource is not found."""
 
     pass
 
 
-class BusinessLogicError(Exception):
-    """Raised when business logic validation fails."""
+class PermissionDenied(Exception):  # noqa: N818
+    """Raised when user lacks permission for an action."""
+
+    pass
+
+
+class AlreadyExists(Exception):  # noqa: N818
+    """Raised when attempting to create a resource that already exists."""
+
+    pass
+
+
+class ValidationError(Exception):
+    """Raised when validation fails."""
 
     pass

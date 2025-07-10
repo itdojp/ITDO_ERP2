@@ -2,8 +2,8 @@
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
-from app.core.security import create_access_token
 from app.models.user import User
 
 
@@ -11,7 +11,7 @@ class TestUsersAPI:
     """Test users API endpoints."""
 
     def test_create_user_as_admin(
-        self, client: TestClient, admin_token: str, db_session
+        self, client: TestClient, admin_token: str, db_session: Session
     ) -> None:
         """Test user creation by admin."""
         # When: Creating user as admin
@@ -36,7 +36,7 @@ class TestUsersAPI:
         assert "hashed_password" not in data  # Should not expose password
 
     def test_create_user_duplicate_email(
-        self, client: TestClient, admin_token: str, test_user
+        self, client: TestClient, admin_token: str, test_user: User
     ) -> None:
         """Test creating user with duplicate email."""
         # When: Creating user with existing email

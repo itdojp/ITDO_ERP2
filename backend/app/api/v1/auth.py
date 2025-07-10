@@ -1,8 +1,8 @@
 """Authentication endpoints."""
 
-from datetime import datetime
+from typing import Union
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
@@ -22,7 +22,9 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
         401: {"model": ErrorResponse, "description": "Authentication failed"},
     },
 )
-def login(request: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
+def login(
+    request: LoginRequest, db: Session = Depends(get_db)
+) -> Union[TokenResponse, JSONResponse]:
     """User login endpoint."""
     # Authenticate user
     user = AuthService.authenticate_user(db, request.email, request.password)
@@ -32,7 +34,6 @@ def login(request: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse
             content=ErrorResponse(
                 detail="Invalid authentication credentials",
                 code="AUTH001",
-                timestamp=datetime.utcnow(),
             ).model_dump(),
         )
 
@@ -49,7 +50,7 @@ def login(request: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse
 )
 def refresh_token(
     request: RefreshRequest, db: Session = Depends(get_db)
-) -> TokenResponse:
+) -> Union[TokenResponse, JSONResponse]:
     """Refresh access token."""
     # Refresh tokens
     tokens = AuthService.refresh_tokens(db, request.refresh_token)
@@ -70,7 +71,6 @@ def refresh_token(
             content=ErrorResponse(
                 detail="Invalid or expired refresh token",
                 code=error_code,
-                timestamp=datetime.utcnow(),
             ).model_dump(),
         )
 

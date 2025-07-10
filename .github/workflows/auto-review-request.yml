@@ -1,16 +1,20 @@
 name: Auto Review Request
 
+# Note: This workflow is now supplementary to GitHub's native CODEOWNERS feature
+# CODEOWNERS file (.github/CODEOWNERS) provides automatic reviewer assignment
+# This workflow handles additional labeling and PR management tasks
+
 on:
   pull_request:
     types: [opened, ready_for_review]
 
 jobs:
-  auto-assign-reviewers:
+  auto-pr-setup:
     runs-on: ubuntu-latest
     if: github.event.pull_request.draft == false
     
     steps:
-    - name: Add reviewers and labels
+    - name: Auto-assign labels and setup PR
       uses: actions/github-script@v7
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -19,38 +23,10 @@ jobs:
           const prNumber = context.payload.pull_request.number;
           const prAuthor = context.payload.pull_request.user.login;
           
-          // チームメンバーリスト（作成者以外）
-          const teamMembers = [
-            // ここにチームメンバーのGitHubユーザー名を追加
-            // 'member1', 'member2', 'member3'
-          ];
-          
-          // 作成者以外のメンバーを取得
-          const availableReviewers = teamMembers.filter(member => member !== prAuthor);
-          
-          // ランダムに1人選択（メンバーがいる場合）
-          let selectedReviewer = null;
-          if (availableReviewers.length > 0) {
-            selectedReviewer = availableReviewers[Math.floor(Math.random() * availableReviewers.length)];
-          }
+          // Note: Reviewers are now automatically assigned via CODEOWNERS file
+          // This section focuses on automatic labeling and PR management
           
           try {
-            // レビュワーを追加
-            const reviewers = [];
-            if (selectedReviewer) {
-              reviewers.push(selectedReviewer);
-            }
-            
-            if (reviewers.length > 0) {
-              await github.rest.pulls.requestReviewers({
-                owner,
-                repo,
-                pull_number: prNumber,
-                reviewers: reviewers
-              });
-              
-              console.log(`Added reviewers: ${reviewers.join(', ')}`);
-            }
             
             // 変更ファイルに基づいてラベルを追加
             const { data: files } = await github.rest.pulls.listFiles({
@@ -89,15 +65,19 @@ jobs:
             }
             
             // 成功コメントを追加
-            const comment = `🤖 **自動レビュー設定完了**
+            const comment = `🤖 **PR自動設定完了**
             
-${selectedReviewer ? `✅ レビュワー追加: @${selectedReviewer}` : '⚠️ 利用可能なレビュワーがいません'}
+✅ レビュワー: CODEOWNERSファイルに基づいて自動割り当て
 ${labels.length > 0 ? `✅ ラベル追加: ${labels.join(', ')}` : ''}
 
 **次のステップ:**
-1. Copilot Agentによる自動レビューをお待ちください
-2. レビュー指摘事項があれば修正してください
+1. CODEOWNERSで指定されたレビュワーによるレビューをお待ちください
+2. レビュー指摘事項があれば修正してください  
 3. 全てのチェックが通ったらマージ可能です
+
+**CODEOWNERSについて:**
+- ファイル変更に基づいて適切なチームメンバーが自動的にレビュワーとして割り当てられます
+- 詳細は [CODEOWNERS ファイル](/.github/CODEOWNERS) をご確認ください
 
 ---
 *このコメントは GitHub Actions により自動生成されました*`;
@@ -113,11 +93,14 @@ ${labels.length > 0 ? `✅ ラベル追加: ${labels.join(', ')}` : ''}
             console.error('Error in auto-review-request:', error);
             
             // エラーコメントを追加
-            const errorComment = `❌ **自動レビュー設定でエラーが発生しました**
+            const errorComment = `❌ **PR自動設定でエラーが発生しました**
             
 エラー内容: ${error.message}
 
-手動でレビュワーを追加してください。
+**対処方法:**
+- CODEOWNERSファイルに基づくレビュワー割り当ては正常に動作します
+- ラベルの自動追加でエラーが発生しました
+- 必要に応じて手動でラベルを追加してください
 
 ---
 *このコメントは GitHub Actions により自動生成されました*`;

@@ -1,9 +1,8 @@
 """Error response schemas."""
 
 from datetime import datetime
-from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
 
 
 class ErrorResponse(BaseModel):
@@ -14,3 +13,8 @@ class ErrorResponse(BaseModel):
     timestamp: datetime = Field(
         default_factory=datetime.utcnow, description="Error timestamp"
     )
+
+    @field_serializer("timestamp")
+    def serialize_timestamp(self, timestamp: datetime) -> str:
+        """Serialize timestamp as ISO format string."""
+        return timestamp.isoformat()

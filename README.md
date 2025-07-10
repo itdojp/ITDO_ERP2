@@ -38,6 +38,33 @@ cd frontend && npm run dev
 - **データ層**: 常にコンテナで実行（PostgreSQL, Redis, Keycloak）
 - **開発層**: ローカル実行推奨（高速な開発イテレーション）
 
+## CI/CD Pipeline
+
+GitHub Actionsによる包括的な品質保証：
+
+### 🛡️ セキュリティ & 品質チェック
+- **Python セキュリティスキャン**: bandit、safety による脆弱性検査
+- **Node.js セキュリティ監査**: npm audit による依存関係チェック  
+- **コンテナセキュリティ**: Trivy による脆弱性スキャン
+- **OWASP ZAP**: 動的セキュリティテスト（本番デプロイ時）
+
+### 🔍 コード品質保証
+- **Python型チェック**: mypy strict mode による厳格な型検査
+- **TypeScript型チェック**: tsc による型安全性検証
+- **ESLint**: TypeScript + React のコード品質チェック
+- **型カバレッジ**: 95%以上の型アノテーション率を維持
+
+### 🧪 テスト実行
+- **バックエンドテスト**: pytest によるユニット・統合テスト
+- **フロントエンドテスト**: Vitest + React Testing Library
+- **E2Eテスト**: 本番環境での総合テスト
+
+### 📊 品質メトリクス
+- **テストカバレッジ**: 目標 >80%
+- **型安全性**: SQLAlchemy 2.0 + 厳格な型チェック
+- **セキュリティ**: ゼロ既知脆弱性を維持
+- **パフォーマンス**: API応答時間 <200ms
+
 ## Documentation
 
 - [Claude Code Usage Guide](docs/claude-code-usage-guide.md) - Claude Code使用方法

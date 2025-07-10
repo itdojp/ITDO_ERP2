@@ -3,10 +3,9 @@
 import time
 from datetime import timedelta
 
-import pytest
 from fastapi.testclient import TestClient
 
-from app.core.security import create_access_token, create_refresh_token
+from app.core.security import create_refresh_token
 from app.models.user import User
 
 
@@ -56,7 +55,7 @@ class TestAuthAPI:
     def test_login_inactive_user(self, client: TestClient, db_session) -> None:
         """Test login with inactive user."""
         # Given: Inactive user
-        user = User.create(
+        User.create(
             db_session,
             email="inactive@example.com",
             password="InactivePass123!",

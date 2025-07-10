@@ -1,8 +1,8 @@
 """User management endpoints."""
 
-from datetime import datetime
+from typing import Union
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -29,7 +29,7 @@ def create_user(
     user_data: UserCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_superuser),
-) -> UserResponse:
+) -> Union[UserResponse, JSONResponse]:
     """Create a new user (admin only)."""
     try:
         # Create user
@@ -52,7 +52,6 @@ def create_user(
             content=ErrorResponse(
                 detail="User with this email already exists",
                 code="USER001",
-                timestamp=datetime.utcnow(),
             ).model_dump(),
         )
 

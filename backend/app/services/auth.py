@@ -1,7 +1,6 @@
 """Authentication service."""
 
-from datetime import timedelta
-from typing import Optional, Tuple
+from typing import Optional
 
 from sqlalchemy.orm import Session
 

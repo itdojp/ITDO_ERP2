@@ -1,7 +1,5 @@
 """API error handlers."""
 
-from datetime import datetime
-
 from fastapi import Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -16,11 +14,10 @@ async def validation_exception_handler(
     """Handle validation errors."""
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content={
-            "detail": exc.errors(),
-            "code": "VALIDATION_ERROR",
-            "timestamp": datetime.utcnow().isoformat(),
-        },
+        content=ErrorResponse(
+            detail=str(exc.errors()),
+            code="VALIDATION_ERROR",
+        ).model_dump(),
     )
 
 
@@ -33,6 +30,5 @@ async def integrity_error_handler(
         content=ErrorResponse(
             detail="Database integrity error",
             code="DATABASE_ERROR",
-            timestamp=datetime.utcnow(),
         ).model_dump(),
     )
