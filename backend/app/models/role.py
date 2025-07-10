@@ -233,8 +233,7 @@ class UserRole(Base):
             "user_id",
             "role_id",
             "organization_id",
-            "department_id",
-            name="uix_user_role_org_dept",
+            name="uix_user_role_org",
         ),
     )
 

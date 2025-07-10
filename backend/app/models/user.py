@@ -54,7 +54,7 @@ class User(SoftDeletableModel):
 
     # Relationships
     user_roles = relationship(
-        "UserRole", foreign_keys="UserRole.user_id", lazy="select"
+        "UserRole", foreign_keys="UserRole.user_id", lazy="select", cascade="all, delete-orphan"
     )
     password_history: Mapped[List["PasswordHistory"]] = relationship(
         "PasswordHistory", back_populates="user", cascade="all, delete-orphan"

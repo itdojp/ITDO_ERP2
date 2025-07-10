@@ -13,6 +13,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    UniqueConstraint,
     func,
 )
 from sqlalchemy.orm import Session, relationship
@@ -54,6 +55,9 @@ class Department(Base):
     cost_center_code: Optional[str] = Column(String(50))
     display_order: int = Column(Integer, default=0, nullable=False)
     description: Optional[str] = Column(Text)
+    level: int = Column(Integer, default=1, nullable=False)
+    path: str = Column(String(1000), default="", nullable=False)
+    sort_order: int = Column(Integer, default=0, nullable=False)
     is_deleted: bool = Column(Boolean, default=False, nullable=False)
     deleted_at: Optional[datetime] = Column(DateTime(timezone=True))
     deleted_by: Optional[int] = Column(Integer, ForeignKey("users.id"))
@@ -67,8 +71,13 @@ class Department(Base):
     # Relationships
     organization = relationship("Organization", back_populates="departments")
     parent = relationship("Department", remote_side=[id], back_populates="children")
-    children = relationship("Department", back_populates="parent")
+    children = relationship("Department", back_populates="parent", cascade="all, delete-orphan")
     user_roles = relationship("UserRole", back_populates="department")
+    
+    # Constraints
+    __table_args__ = (
+        UniqueConstraint('organization_id', 'code', name='uq_department_org_code'),
+    )
 
     @classmethod
     def create(
@@ -188,8 +197,6 @@ class Department(Base):
                 "id",
                 "created_at",
                 "created_by",
-                "path",
-                "level",
             ]:
                 setattr(self, key, value)
 
@@ -203,6 +210,25 @@ class Department(Base):
         self.updated_by = deleted_by
         db.add(self)
         db.flush()
+        
+    def validate_hierarchy(self) -> None:
+        """Validate department hierarchy constraints."""
+        if self.level > 2:
+            raise ValueError("部門階層は2階層まで")
+            
+    def update_path(self) -> None:
+        """Update department path based on ID."""
+        if not self.parent_id:
+            self.path = str(self.id)
+        else:
+            # This should be called within a session context
+            pass
+            
+    def get_full_path_name(self) -> str:
+        """Get full path name including parent names."""
+        if not self.parent:
+            return self.name
+        return f"{self.parent.name} / {self.name}"
 
     def __repr__(self) -> str:
         return f"<Department(id={self.id}, code={self.code}, name={self.name})>"

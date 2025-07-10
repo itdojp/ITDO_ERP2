@@ -121,8 +121,12 @@ class TestUserRoleModel:
     def test_assign_role_to_user(self, db_session) -> None:
         """TEST-ROLE-002: ユーザーにロールを付与できることを確認."""
         # Given: ユーザーと組織
-        user = UserFactory.create(db_session, )
-        org = OrganizationFactory.create(db_session, )
+        user = UserFactory.create(
+            db_session,
+        )
+        org = OrganizationFactory.create(
+            db_session,
+        )
         role = RoleFactory.create(db_session, code="ORG_ADMIN")
         db_session.commit()
 
@@ -146,10 +150,18 @@ class TestUserRoleModel:
     def test_prevent_duplicate_role_assignment(self, db_session) -> None:
         """TEST-ROLE-003: 同じロールの重複付与が防止されることを確認."""
         # Given: ロール付与済み
-        user = UserFactory.create(db_session, )
-        org = OrganizationFactory.create(db_session, )
-        role = RoleFactory.create(db_session, )
-        UserRoleFactory.create_with_relationships(db_session, user=user, role=role, organization=org)
+        user = UserFactory.create(
+            db_session,
+        )
+        org = OrganizationFactory.create(
+            db_session,
+        )
+        role = RoleFactory.create(
+            db_session,
+        )
+        UserRoleFactory.create_with_relationships(
+            db_session, user=user, role=role, organization=org
+        )
         db_session.commit()
 
         # When/Then: 同じロール付与で例外
@@ -162,8 +174,12 @@ class TestUserRoleModel:
     def test_department_level_role_assignment(self, db_session) -> None:
         """部門レベルでのロール付与が動作することを確認."""
         # Given: ユーザー、組織、部門
-        user = UserFactory.create(db_session, )
-        org = OrganizationFactory.create(db_session, )
+        user = UserFactory.create(
+            db_session,
+        )
+        org = OrganizationFactory.create(
+            db_session,
+        )
         dept = DepartmentFactory.create(db_session, organization=org)
         role = RoleFactory.create(db_session, code="DEPT_MANAGER")
         db_session.commit()
@@ -185,9 +201,15 @@ class TestUserRoleModel:
     def test_role_expiration(self, db_session) -> None:
         """ロールの有効期限が機能することを確認."""
         # Given: 期限付きロール
-        user = UserFactory.create(db_session, )
-        org = OrganizationFactory.create(db_session, )
-        role = RoleFactory.create(db_session, )
+        user = UserFactory.create(
+            db_session,
+        )
+        org = OrganizationFactory.create(
+            db_session,
+        )
+        role = RoleFactory.create(
+            db_session,
+        )
 
         # 期限切れロール
         expired_role = UserRole(
@@ -212,10 +234,14 @@ class TestUserRoleModel:
     def test_user_role_cascade_delete(self, db_session) -> None:
         """ユーザー削除時にロール付与も削除されることを確認."""
         # Given: ユーザーとロール付与
-        user = UserFactory.create(db_session, )
+        user = UserFactory.create(
+            db_session,
+        )
         org = OrganizationFactory.create(db_session)
         role = RoleFactory.create(db_session)
-        user_role = UserRoleFactory.create_with_relationships(db_session, user=user, role=role, organization=org)
+        user_role = UserRoleFactory.create_with_relationships(
+            db_session, user=user, role=role, organization=org
+        )
         db_session.commit()
         user_role_id = user_role.id
 
@@ -229,18 +255,28 @@ class TestUserRoleModel:
     def test_get_user_permissions(self, db_session) -> None:
         """ユーザーの権限が正しく取得できることを確認."""
         # Given: 複数ロールを持つユーザー
-        user = UserFactory.create(db_session, )
-        org = OrganizationFactory.create(db_session, )
-
-        # 組織管理者ロール
-        org_admin_role = RoleFactory.create(db_session, code="ORG_ADMIN", permissions=["org:*", "read:*"])
-        # プロジェクト管理者ロール
-        proj_admin_role = RoleFactory.create(db_session,
-            code="PROJ_ADMIN", permissions=["project:*", "task:*"]
+        user = UserFactory.create(
+            db_session,
+        )
+        org = OrganizationFactory.create(
+            db_session,
         )
 
-        UserRoleFactory.create_with_relationships(db_session, user=user, role=org_admin_role, organization=org)
-        UserRoleFactory.create_with_relationships(db_session, user=user, role=proj_admin_role, organization=org)
+        # 組織管理者ロール
+        org_admin_role = RoleFactory.create(
+            db_session, code="ORG_ADMIN", permissions=["org:*", "read:*"]
+        )
+        # プロジェクト管理者ロール
+        proj_admin_role = RoleFactory.create(
+            db_session, code="PROJ_ADMIN", permissions=["project:*", "task:*"]
+        )
+
+        UserRoleFactory.create_with_relationships(
+            db_session, user=user, role=org_admin_role, organization=org
+        )
+        UserRoleFactory.create_with_relationships(
+            db_session, user=user, role=proj_admin_role, organization=org
+        )
         db_session.commit()
 
         # When: ユーザーの権限取得
@@ -259,12 +295,16 @@ class TestUserRoleModel:
     def test_user_has_role_in_organization(self, db_session) -> None:
         """ユーザーが特定組織でロールを持つか確認できることを確認."""
         # Given: 2つの組織でロールを持つユーザー
-        user = UserFactory.create(db_session, )
+        user = UserFactory.create(
+            db_session,
+        )
         org1 = OrganizationFactory.create(db_session, code="ORG1")
         org2 = OrganizationFactory.create(db_session, code="ORG2")
         admin_role = RoleFactory.create(db_session, code="ORG_ADMIN")
 
-        UserRoleFactory.create_with_relationships(db_session, user=user, role=admin_role, organization=org1)
+        UserRoleFactory.create_with_relationships(
+            db_session, user=user, role=admin_role, organization=org1
+        )
         db_session.commit()
 
         # Then:
