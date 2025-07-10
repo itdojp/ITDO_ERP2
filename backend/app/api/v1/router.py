@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.api.v1 import (
     auth,
     departments,
+    integration,
     organizations,
     roles,
     tasks,
@@ -23,6 +24,7 @@ api_router.include_router(organizations.router)
 api_router.include_router(departments.router)
 api_router.include_router(roles.router)
 api_router.include_router(tasks.router, prefix="/tasks", tags=["tasks"])
+api_router.include_router(integration.router)
 
 
 @api_router.get("/ping")
