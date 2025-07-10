@@ -19,6 +19,14 @@ from app.main import app
 
 # Import all models to ensure they are registered with SQLAlchemy
 from app.models import Department, Organization, Permission, Role, User
+from app.models.audit import AuditLog
+from app.models.password_history import PasswordHistory
+from app.models.project import Project
+from app.models.project_member import ProjectMember
+from app.models.project_milestone import ProjectMilestone
+from app.models.task import Task
+from app.models.user_activity_log import UserActivityLog
+from app.models.user_session import UserSession
 from app.models.base import Base
 from tests.factories import (
     DepartmentFactory,

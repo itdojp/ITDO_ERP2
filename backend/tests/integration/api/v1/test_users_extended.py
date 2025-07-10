@@ -12,11 +12,10 @@ from sqlalchemy.orm import Session
 
 from app.core.security import create_access_token
 from tests.factories import (
-    create_test_department,
-    create_test_organization,
-    create_test_role,
-    create_test_user,
-    create_test_user_role,
+    DepartmentFactory,
+    OrganizationFactory,
+    RoleFactory,
+    UserFactory,
 )
 
 
@@ -28,11 +27,9 @@ class TestUserManagementAPI:
     ) -> None:
         """TEST-API-USER-001: 組織付きユーザー作成APIをテスト."""
         # Given: システム管理者と組織
-        admin = create_test_user(is_superuser=True)
-        org = create_test_organization()
-        role = create_test_role(code="USER")
-        db_session.add_all([admin, org, role])
-        db_session.commit()
+        admin = UserFactory.create_admin(db_session)
+        org = OrganizationFactory.create(db_session)
+        role = RoleFactory.create_with_organization(db_session, org, code="USER")
         admin_token = create_access_token({"sub": str(admin.id)})
 
         # When: ユーザー作成API呼び出し
