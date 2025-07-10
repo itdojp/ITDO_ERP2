@@ -1,8 +1,10 @@
 """Common schemas used across the API."""
 
-from typing import Any, Optional
+from typing import Any, Generic, Optional, TypeVar
 
 from pydantic import BaseModel
+
+T = TypeVar("T")
 
 
 class ErrorResponse(BaseModel):
@@ -20,10 +22,10 @@ class PaginationParams(BaseModel):
     limit: int = 100
 
 
-class PaginatedResponse(BaseModel):
+class PaginatedResponse(BaseModel, Generic[T]):
     """Paginated response wrapper."""
     
-    items: list[Any]
+    items: list[T]
     total: int
     skip: int
     limit: int

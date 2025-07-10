@@ -4,7 +4,7 @@ from typing import Any, Dict, List
 
 from app.models.organization import Organization
 from app.models.permission import Permission
-from app.models.role import Role, RolePermission
+from app.models.role import Role
 from tests.factories import BaseFactory, fake
 
 from .organization import OrganizationFactory
@@ -182,14 +182,16 @@ class RoleFactory(BaseFactory):
         """Create a role with specific permissions."""
         role = cls.create(db_session, **kwargs)
 
-        # Add permissions to role
+        # Add permissions to role (JSON format in current implementation)
+        permission_dict = {}
         for permission in permissions:
-            role_permission = RolePermission(
-                role_id=role.id,
-                permission_id=permission.id,
-                granted_by=kwargs.get("created_by"),
-            )
-            db_session.add(role_permission)
+            category = permission.category
+            if category not in permission_dict:
+                permission_dict[category] = {}
+            permission_dict[category][permission.code] = True
+        
+        # Update role permissions JSON
+        role.permissions = permission_dict
 
         db_session.commit()
         db_session.refresh(role)
@@ -323,12 +325,15 @@ class RoleFactory(BaseFactory):
         cls, db_session, role: Role, permissions: List[Permission]
     ):
         """Helper method to assign permissions to a role."""
+        permission_dict = {}
         for permission in permissions:
-            role_permission = RolePermission(
-                role_id=role.id, permission_id=permission.id
-            )
-            db_session.add(role_permission)
-
+            category = permission.category
+            if category not in permission_dict:
+                permission_dict[category] = {}
+            permission_dict[category][permission.code] = True
+        
+        # Update role permissions JSON
+        role.permissions = permission_dict
         db_session.commit()
 
     @classmethod

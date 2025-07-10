@@ -1,5 +1,7 @@
 """Department schemas."""
 
+from __future__ import annotations
+
 from datetime import datetime
 from typing import Optional
 
@@ -34,6 +36,17 @@ class DepartmentUpdate(BaseModel):
     sort_order: Optional[int] = Field(None, ge=0, description="並び順")
 
 
+class DepartmentBasic(BaseModel):
+    """Basic department schema for references."""
+    
+    id: int
+    code: str = Field(..., max_length=50, description="Department code")
+    name: str = Field(..., max_length=100, description="Department name")
+    
+    class Config:
+        from_attributes = True
+
+
 class DepartmentResponse(DepartmentBase):
     """Department response schema."""
 
@@ -48,6 +61,38 @@ class DepartmentResponse(DepartmentBase):
     created_by: Optional[int] = None
     updated_by: Optional[int] = None
 
+    class Config:
+        from_attributes = True
+
+
+class DepartmentSummary(BaseModel):
+    """Department summary schema."""
+    
+    id: int
+    code: str
+    name: str
+    user_count: int = 0
+    
+    class Config:
+        from_attributes = True
+
+
+class DepartmentTree(DepartmentBasic):
+    """Department tree schema with hierarchy."""
+    
+    children: list["DepartmentTree"] = []
+    level: int = 0
+    
+    class Config:
+        from_attributes = True
+
+
+class DepartmentWithUsers(DepartmentResponse):
+    """Department with user information."""
+    
+    user_count: int = 0
+    users: list = []
+    
     class Config:
         from_attributes = True
 
