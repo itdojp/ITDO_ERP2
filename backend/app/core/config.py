@@ -35,7 +35,9 @@ class Settings(BaseSettings):
 
             # Handle comma-separated values FIRST (before JSON)
             if "," in v_stripped and not v_stripped.startswith("["):
-                origins = [origin.strip() for origin in v_stripped.split(",") if origin.strip()]
+                origins = [
+                    origin.strip() for origin in v_stripped.split(",") if origin.strip()
+                ]
                 return origins if origins else default_origins
 
             # Try JSON parsing for array format
@@ -123,7 +125,7 @@ class Settings(BaseSettings):
         # Don't try to parse complex fields automatically
         json_schema_extra={
             "env_parse_none_str": "null",
-        }
+        },
     )
 
 

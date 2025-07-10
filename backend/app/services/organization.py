@@ -75,12 +75,6 @@ class OrganizationService:
         self, organization_data: OrganizationCreate, created_by: Optional[UserId] = None
     ) -> Organization:
         """Create a new organization."""
-        # Validate unique code
-        if not self.repository.validate_unique_code(organization_data.code):
-            raise ValueError(
-                f"Organization code '{organization_data.code}' already exists"
-            )
-
         # Add audit fields
         data = organization_data.model_dump()
         if created_by:
@@ -93,7 +87,7 @@ class OrganizationService:
         if data.get("settings") and isinstance(data["settings"], dict):
             data["settings"] = json.dumps(data["settings"])
 
-        # Create organization directly from data dict
+        # Create organization directly - let IntegrityError be handled by API layer
         return self.repository.create(data)
 
     def update_organization(
@@ -108,14 +102,7 @@ class OrganizationService:
         if not organization:
             return None
 
-        # Validate unique code if being changed
-        if organization_data.code and organization_data.code != organization.code:
-            if not self.repository.validate_unique_code(
-                organization_data.code, exclude_id=organization_id
-            ):
-                raise ValueError(
-                    f"Organization code '{organization_data.code}' already exists"
-                )
+        # Unique code validation is handled by database constraints and API layer
 
         # Add audit fields
         data = organization_data.model_dump(exclude_unset=True)

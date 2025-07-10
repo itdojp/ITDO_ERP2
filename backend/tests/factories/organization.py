@@ -16,7 +16,7 @@ class OrganizationFactory(BaseFactory):
     def _get_default_attributes(cls) -> Dict[str, Any]:
         """Get default attributes for creating Organization instances."""
         return {
-            "code": fake.bothify(text="ORG-####-???"),
+            "code": fake.unique.bothify(text="ORG-####-???"),  # Ensure unique codes
             "name": fake.company(),
             "name_en": fake.company(),
             "description": fake.catch_phrase(),
@@ -38,13 +38,15 @@ class OrganizationFactory(BaseFactory):
             "capital": fake.random_int(min=1000000, max=100000000),
             "employee_count": fake.random_int(min=1, max=1000),
             "is_active": True,
-            "settings": json.dumps({
-                "fiscal_year_start": "04-01",
-                "timezone": "Asia/Tokyo",
-                "currency": "JPY",
-            }),
+            "settings": json.dumps(
+                {
+                    "fiscal_year_start": "04-01",
+                    "timezone": "Asia/Tokyo",
+                    "currency": "JPY",
+                }
+            ),
         }
-    
+
     @classmethod
     def build_dict(cls, **kwargs: Any) -> Dict[str, Any]:
         """Build a dictionary of attributes for API creation (with dict settings)."""
@@ -57,7 +59,7 @@ class OrganizationFactory(BaseFactory):
         }
         defaults.update(kwargs)
         return defaults
-    
+
     @classmethod
     def build(cls, **kwargs: Any) -> Organization:
         """Build an organization instance with JSON settings for database."""
