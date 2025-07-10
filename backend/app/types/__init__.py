@@ -5,7 +5,7 @@ the application.
 """
 
 from datetime import datetime
-from typing import Any, Dict, Optional, Protocol, TypeVar, runtime_checkable
+from typing import Any, Protocol, TypeVar, runtime_checkable
 
 from pydantic import BaseModel
 from sqlalchemy.orm import Session

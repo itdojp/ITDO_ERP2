@@ -1,7 +1,7 @@
 """Factory classes for creating test data."""
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Type, TypeVar
+from typing import Any, TypeVar
 
 from faker import Faker
 from sqlalchemy.orm import Session
