@@ -1,7 +1,7 @@
 from typing import Any, List, Optional, Union
 import json
 
-from pydantic import AnyHttpUrl, AnyUrl, PostgresDsn, Field, field_validator
+from pydantic import AnyUrl, PostgresDsn, Field, field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -10,9 +10,9 @@ class Settings(BaseSettings):
     VERSION: str = "0.1.0"
     API_V1_STR: str = "/api/v1"
 
-    # CORS設定 - Field使用でデフォルト値を明示的に設定
+    # CORS設定 - default_factoryで動的デフォルト値設定
     BACKEND_CORS_ORIGINS: List[str] = Field(
-        default=["http://localhost:3000", "http://127.0.0.1:3000"]
+        default_factory=lambda: ["http://localhost:3000", "http://127.0.0.1:3000"]
     )
 
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
@@ -21,32 +21,39 @@ class Settings(BaseSettings):
         # デフォルト値
         default_origins = ["http://localhost:3000", "http://127.0.0.1:3000"]
         
-        # None または空の場合
-        if v is None:
+        # None または空の場合は即座にデフォルトを返す
+        if v is None or v == "":
             return default_origins
             
         if isinstance(v, str):
             v_stripped = v.strip()
+            # 空文字列チェックを最初に行う
             if not v_stripped:
                 return default_origins
 
-            # JSON配列形式の処理
+            # JSON配列形式の処理（最初の文字が[の場合のみ）
             if v_stripped.startswith("[") and v_stripped.endswith("]"):
                 try:
                     parsed = json.loads(v_stripped)
-                    if isinstance(parsed, list):
+                    if isinstance(parsed, list) and len(parsed) > 0:
                         return [str(origin) for origin in parsed if origin]
                 except (json.JSONDecodeError, TypeError, ValueError):
+                    # JSON解析失敗時はカンマ区切りにフォールバック
                     pass
 
             # カンマ区切り形式の処理
-            origins = [origin.strip() for origin in v_stripped.split(",") if origin.strip()]
-            return origins if origins else default_origins
+            if "," in v_stripped:
+                origins = [origin.strip() for origin in v_stripped.split(",") if origin.strip()]
+                return origins if origins else default_origins
+            
+            # 単一のURL
+            if v_stripped:
+                return [v_stripped]
 
-        elif isinstance(v, list):
+        elif isinstance(v, list) and len(v) > 0:
             return [str(origin) for origin in v if origin]
 
-        # フォールバック
+        # 全てのケースでフォールバック
         return default_origins
 
     # データベース設定
