@@ -84,31 +84,26 @@ jobs:
         run: |
           npx playwright install --with-deps
 
-      - name: Setup test environment
+      - name: Setup backend environment
         working-directory: backend
         run: |
-          cp .env.example .env
-          cat > .env << 'EOF'
-          # Test Environment Configuration
-          DATABASE_URL=postgresql://itdo_user:itdo_password@localhost:5432/itdo_erp_test
-          REDIS_URL=redis://localhost:6379/0
-          SECRET_KEY=test-secret-key-for-ci
-          ENVIRONMENT=test
-          BACKEND_CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
-          API_V1_PREFIX=/api/v1
-          
-          # Keycloak settings (empty for test)
-          KEYCLOAK_CLIENT_SECRET=test-secret
-          
-          # Logging configuration
-          LOG_LEVEL=INFO
-          
-          # Test specific settings
-          TESTING=true
-          EOF
+          echo "Creating backend environment configuration..."
+          rm -f .env
+          echo "DATABASE_URL=postgresql://itdo_user:itdo_password@localhost:5432/itdo_erp_test" > .env
+          echo "ENVIRONMENT=test" >> .env
+          echo "TESTING=true" >> .env
+          echo "REDIS_URL=redis://localhost:6379/0" >> .env
+          echo "SECRET_KEY=test-secret-key-for-ci" >> .env
+          echo "BACKEND_CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000" >> .env
+          echo "API_V1_PREFIX=/api/v1" >> .env
+          echo "KEYCLOAK_CLIENT_SECRET=test-secret" >> .env
+          echo "LOG_LEVEL=INFO" >> .env
           
           echo "Environment file created:"
           cat .env
+          
+          echo "Testing database configuration:"
+          uv run python -c "from app.core.config import settings; print(f'Database URL: {settings.DATABASE_URL}'); print(f'Environment: {settings.ENVIRONMENT}'); print(f'Testing: {settings.TESTING}')"
 
       - name: Wait for services
         run: |

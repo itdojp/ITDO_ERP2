@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import List, Optional
 
 from pydantic import BaseModel, Field, field_validator
+from pydantic_core import ValidationInfo
 
 from app.models.task import DependencyType, TaskPriority, TaskStatus
 
@@ -30,7 +31,7 @@ class TaskBase(BaseModel):
 
     @field_validator("due_date", mode="before")
     @classmethod
-    def validate_due_date(cls, v, info):
+    def validate_due_date(cls, v: Optional[datetime], info: ValidationInfo) -> Optional[datetime]:
         """Validate due date is not in the past."""
         if v and hasattr(info, "data"):
             start_date = info.data.get("start_date")

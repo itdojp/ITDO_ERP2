@@ -2,6 +2,7 @@ import json
 from typing import Any, List, Optional, Union
 
 from pydantic import AnyUrl, Field, PostgresDsn, field_validator
+from pydantic_core import ValidationInfo
 from pydantic_settings import BaseSettings
 
 
@@ -68,7 +69,7 @@ class Settings(BaseSettings):
     POSTGRES_DB: str = "itdo_erp"
     POSTGRES_PORT: int = 5432
     DATABASE_URL: Optional[Union[PostgresDsn, AnyUrl]] = None
-    
+
     # Test environment overrides
     @property
     def postgres_db_name(self) -> str:
@@ -79,13 +80,14 @@ class Settings(BaseSettings):
 
     @field_validator("DATABASE_URL", mode="before")
     @classmethod
-    def assemble_db_connection(cls, v: Optional[str], info) -> Any:
+    def assemble_db_connection(cls, v: Optional[str], info: ValidationInfo) -> Any:
         if isinstance(v, str):
             return v
         values = info.data if hasattr(info, "data") else {}
         # Use test database for test environment
         env = values.get("ENVIRONMENT", "development")
-        db_name = "itdo_erp_test" if env in ("test", "testing") or values.get("TESTING") else "itdo_erp"
+        is_test_env = env in ("test", "testing") or values.get("TESTING")
+        db_name = "itdo_erp_test" if is_test_env else "itdo_erp"
         return (
             f"postgresql://{values.get('POSTGRES_USER', 'itdo_user')}:"
             f"{values.get('POSTGRES_PASSWORD', 'itdo_password')}@"
