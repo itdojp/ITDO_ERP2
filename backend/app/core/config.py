@@ -10,9 +10,9 @@ class Settings(BaseSettings):
     VERSION: str = "0.1.0"
     API_V1_STR: str = "/api/v1"
 
-    # CORS設定 - default_factoryで動的デフォルト値設定
-    BACKEND_CORS_ORIGINS: List[str] = Field(
-        default_factory=lambda: ["http://localhost:3000", "http://127.0.0.1:3000"]
+    # CORS設定 - 文字列フィールドとして定義してvalidatorで処理
+    BACKEND_CORS_ORIGINS: str = Field(
+        default="http://localhost:3000,http://127.0.0.1:3000"
     )
 
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
@@ -57,6 +57,11 @@ class Settings(BaseSettings):
         
         # その他の型の場合はデフォルトを返す
         return default_origins
+
+    @property
+    def cors_origins_list(self) -> List[str]:
+        """CORS origins as a list for use in middleware."""
+        return self.assemble_cors_origins(self.BACKEND_CORS_ORIGINS)
 
     # データベース設定
     POSTGRES_SERVER: str = "localhost"
