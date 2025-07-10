@@ -1,4 +1,4 @@
-import { TestResult, TestCase, TestInfo } from '@playwright/test/reporter';
+import { TestCase } from '@playwright/test/reporter';
 
 export interface TestResults {
   tests: TestCase[];
@@ -136,7 +136,7 @@ export class IntegrationTestReporter {
       const routes: Set<string> = new Set();
       results.tests.forEach(test => {
         // Extract routes mentioned in test titles or file paths
-        const routeMatches = test.title.match(/\/[a-zA-Z0-9\/\-_]+/g) || [];
+        const routeMatches = test.title.match(/\/[a-zA-Z0-9/\-_]+/g) || [];
         routeMatches.forEach(route => routes.add(route));
       });
       return Array.from(routes);
@@ -172,7 +172,7 @@ export class IntegrationTestReporter {
     const endpoints: Set<string> = new Set();
     results.tests.forEach(test => {
       // Extract API endpoints from test content
-      const apiMatches = test.title.match(/\/api\/[a-zA-Z0-9\/\-_]+/g) || [];
+      const apiMatches = test.title.match(/\/api\/[a-zA-Z0-9/\-_]+/g) || [];
       apiMatches.forEach(endpoint => endpoints.add(endpoint));
     });
     return Array.from(endpoints);

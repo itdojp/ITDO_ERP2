@@ -284,7 +284,7 @@ test.describe('Phase 3: Cross-Service Workflow E2E Tests', () => {
         // Memory usage simulation
         const memoryInfo = await page.evaluate(() => {
           if ('memory' in performance) {
-            return (performance as any).memory?.usedJSHeapSize || 0;
+            return (performance as unknown as { memory?: { usedJSHeapSize?: number } }).memory?.usedJSHeapSize || 0;
           }
           return Math.random() * 50000000 + 10000000; // Mock memory usage
         });
