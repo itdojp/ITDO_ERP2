@@ -1,10 +1,8 @@
 """CRITICAL: Task-Department Integration Tests for Phase 3."""
 
-import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.models.department import Department
 from app.models.organization import Organization
 from app.models.project import Project
 from app.models.task import Task
@@ -16,16 +14,16 @@ class TestCriticalTaskDepartmentIntegration:
     """Critical integration tests for Task-Department functionality."""
 
     def test_create_task_in_department(
-        self, client: TestClient, db_session: Session, test_user: User, 
-        test_organization: Organization
+        self,
+        client: TestClient,
+        db_session: Session,
+        test_user: User,
+        test_organization: Organization,
     ):
         """CRITICAL: Test creating a task assigned to a department."""
         # Create department using factory (proper fields)
         department = DepartmentFactory.create_with_organization(
-            db_session, 
-            test_organization, 
-            name="Engineering",
-            code="ENG"
+            db_session, test_organization, name="Engineering", code="ENG"
         )
 
         # Create project with correct field name (owner_id not manager_id)
@@ -40,6 +38,7 @@ class TestCriticalTaskDepartmentIntegration:
 
         # Create auth headers
         from app.core.security import create_access_token
+
         token = create_access_token(
             data={"sub": str(test_user.id), "email": test_user.email}
         )
@@ -62,7 +61,7 @@ class TestCriticalTaskDepartmentIntegration:
 
         assert response.status_code == 201
         task_response = response.json()
-        
+
         # Verify department assignment
         assert task_response["department_id"] == department.id
         assert task_response["department_visibility"] == "department_hierarchy"
@@ -76,24 +75,21 @@ class TestCriticalTaskDepartmentIntegration:
         assert task.department_visibility == "department_hierarchy"
 
     def test_get_department_tasks_with_hierarchy(
-        self, client: TestClient, db_session: Session, test_user: User,
-        test_organization: Organization
+        self,
+        client: TestClient,
+        db_session: Session,
+        test_user: User,
+        test_organization: Organization,
     ):
         """CRITICAL: Test retrieving department tasks with hierarchical support."""
         # Create parent department using factory
         parent_dept = DepartmentFactory.create_with_organization(
-            db_session,
-            test_organization,
-            name="Technology",
-            code="TECH"
+            db_session, test_organization, name="Technology", code="TECH"
         )
 
         # Create child department using factory with proper hierarchy
         child_dept = DepartmentFactory.create_with_parent(
-            db_session,
-            parent_dept,
-            name="Software Engineering",
-            code="SE"
+            db_session, parent_dept, name="Software Engineering", code="SE"
         )
 
         # Create project with correct field name
@@ -118,7 +114,7 @@ class TestCriticalTaskDepartmentIntegration:
             priority="medium",
             created_by=test_user.id,
         )
-        
+
         child_task = Task(
             title="Child Department Task",
             description="Task in child department",
@@ -130,12 +126,13 @@ class TestCriticalTaskDepartmentIntegration:
             priority="high",
             created_by=test_user.id,
         )
-        
+
         db_session.add_all([parent_task, child_task])
         db_session.commit()
 
         # Create auth headers
         from app.core.security import create_access_token
+
         token = create_access_token(
             data={"sub": str(test_user.id), "email": test_user.email}
         )
@@ -149,11 +146,11 @@ class TestCriticalTaskDepartmentIntegration:
 
         assert response.status_code == 200
         task_list = response.json()
-        
+
         # Should get both parent and child tasks
         assert task_list["total"] == 2
         assert len(task_list["items"]) == 2
-        
+
         # Verify task details
         task_titles = [task["title"] for task in task_list["items"]]
         assert "Parent Department Task" in task_titles
@@ -167,23 +164,23 @@ class TestCriticalTaskDepartmentIntegration:
 
         assert response.status_code == 200
         task_list = response.json()
-        
+
         # Should get only parent task
         assert task_list["total"] == 1
         assert len(task_list["items"]) == 1
         assert task_list["items"][0]["title"] == "Parent Department Task"
 
     def test_assign_task_to_department(
-        self, client: TestClient, db_session: Session, test_user: User,
-        test_organization: Organization
+        self,
+        client: TestClient,
+        db_session: Session,
+        test_user: User,
+        test_organization: Organization,
     ):
         """CRITICAL: Test assigning an existing task to a department."""
         # Create department using factory
         department = DepartmentFactory.create_with_organization(
-            db_session,
-            test_organization,
-            name="Marketing",
-            code="MKT"
+            db_session, test_organization, name="Marketing", code="MKT"
         )
 
         # Create project with correct field name
@@ -194,6 +191,7 @@ class TestCriticalTaskDepartmentIntegration:
             owner_id=test_user.id,
         )
         db_session.add(project)
+        db_session.commit()
 
         # Create task without department
         task = Task(
@@ -210,6 +208,7 @@ class TestCriticalTaskDepartmentIntegration:
 
         # Create auth headers
         from app.core.security import create_access_token
+
         token = create_access_token(
             data={"sub": str(test_user.id), "email": test_user.email}
         )
@@ -235,16 +234,16 @@ class TestCriticalTaskDepartmentIntegration:
         assert task.department_visibility == "department_hierarchy"
 
     def test_department_tasks_via_department_endpoint(
-        self, client: TestClient, db_session: Session, test_user: User,
-        test_organization: Organization
+        self,
+        client: TestClient,
+        db_session: Session,
+        test_user: User,
+        test_organization: Organization,
     ):
         """CRITICAL: Test accessing department tasks via department endpoint."""
         # Create department using factory
         department = DepartmentFactory.create_with_organization(
-            db_session,
-            test_organization,
-            name="Sales",
-            code="SALES"
+            db_session, test_organization, name="Sales", code="SALES"
         )
 
         # Create project with correct field name
@@ -255,6 +254,7 @@ class TestCriticalTaskDepartmentIntegration:
             owner_id=test_user.id,
         )
         db_session.add(project)
+        db_session.commit()
 
         # Create department task
         task = Task(
@@ -273,6 +273,7 @@ class TestCriticalTaskDepartmentIntegration:
 
         # Create auth headers
         from app.core.security import create_access_token
+
         token = create_access_token(
             data={"sub": str(test_user.id), "email": test_user.email}
         )
@@ -286,27 +287,27 @@ class TestCriticalTaskDepartmentIntegration:
 
         assert response.status_code == 200
         task_list = response.json()
-        
+
         # Verify response
         assert task_list["total"] == 1
         assert len(task_list["items"]) == 1
-        
+
         task_response = task_list["items"][0]
         assert task_response["title"] == "Sales Task"
         assert task_response["department_id"] == department.id
         assert task_response["status"] == "in_progress"
 
     def test_tasks_by_visibility_scope(
-        self, client: TestClient, db_session: Session, test_user: User,
-        test_organization: Organization
+        self,
+        client: TestClient,
+        db_session: Session,
+        test_user: User,
+        test_organization: Organization,
     ):
         """CRITICAL: Test filtering tasks by visibility scope."""
         # Create department using factory
         department = DepartmentFactory.create_with_organization(
-            db_session,
-            test_organization,
-            name="HR",
-            code="HR"
+            db_session, test_organization, name="HR", code="HR"
         )
 
         # Create project with correct field name
@@ -317,6 +318,7 @@ class TestCriticalTaskDepartmentIntegration:
             owner_id=test_user.id,
         )
         db_session.add(project)
+        db_session.commit()
 
         # Create tasks with different visibility scopes
         dept_task = Task(
@@ -329,7 +331,7 @@ class TestCriticalTaskDepartmentIntegration:
             priority="medium",
             created_by=test_user.id,
         )
-        
+
         personal_task = Task(
             title="Personal Task",
             project_id=project.id,
@@ -340,12 +342,13 @@ class TestCriticalTaskDepartmentIntegration:
             priority="low",
             created_by=test_user.id,
         )
-        
+
         db_session.add_all([dept_task, personal_task])
         db_session.commit()
 
         # Create auth headers
         from app.core.security import create_access_token
+
         token = create_access_token(
             data={"sub": str(test_user.id), "email": test_user.email}
         )
@@ -359,7 +362,7 @@ class TestCriticalTaskDepartmentIntegration:
 
         assert response.status_code == 200
         task_list = response.json()
-        
+
         # Should get only department_hierarchy task
         assert task_list["total"] == 1
         assert task_list["items"][0]["title"] == "Department Visible Task"
@@ -373,7 +376,7 @@ class TestCriticalTaskDepartmentIntegration:
 
         assert response.status_code == 200
         task_list = response.json()
-        
+
         # Should get only personal task
         assert task_list["total"] == 1
         assert task_list["items"][0]["title"] == "Personal Task"
@@ -384,8 +387,11 @@ class TestTaskDepartmentIntegrationErrors:
     """Test error cases for Task-Department integration."""
 
     def test_create_task_nonexistent_department(
-        self, client: TestClient, db_session: Session, test_user: User,
-        test_organization: Organization
+        self,
+        client: TestClient,
+        db_session: Session,
+        test_user: User,
+        test_organization: Organization,
     ):
         """Test creating task with non-existent department."""
         # Create project with correct field name
@@ -400,6 +406,7 @@ class TestTaskDepartmentIntegrationErrors:
 
         # Create auth headers
         from app.core.security import create_access_token
+
         token = create_access_token(
             data={"sub": str(test_user.id), "email": test_user.email}
         )
@@ -422,8 +429,11 @@ class TestTaskDepartmentIntegrationErrors:
         assert "Department not found" in response.json()["detail"]
 
     def test_assign_task_to_nonexistent_department(
-        self, client: TestClient, db_session: Session, test_user: User,
-        test_organization: Organization
+        self,
+        client: TestClient,
+        db_session: Session,
+        test_user: User,
+        test_organization: Organization,
     ):
         """Test assigning task to non-existent department."""
         # Create project and task with correct field names
@@ -435,7 +445,7 @@ class TestTaskDepartmentIntegrationErrors:
         )
         db_session.add(project)
         db_session.commit()  # Commit project first to get ID
-        
+
         task = Task(
             title="Test Task",
             project_id=project.id,
@@ -449,6 +459,7 @@ class TestTaskDepartmentIntegrationErrors:
 
         # Create auth headers
         from app.core.security import create_access_token
+
         token = create_access_token(
             data={"sub": str(test_user.id), "email": test_user.email}
         )

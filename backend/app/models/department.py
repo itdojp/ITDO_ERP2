@@ -56,20 +56,20 @@ class Department(SoftDeletableModel):
         index=True,
         comment="Parent department ID for sub-departments",
     )
-    
+
     # CRITICAL: Materialized path fields for hierarchical queries
     path: Mapped[str] = mapped_column(
         String(1000),
         nullable=False,
         default="",
         index=True,
-        comment="Materialized path for efficient hierarchy queries"
+        comment="Materialized path for efficient hierarchy queries",
     )
     depth: Mapped[int] = mapped_column(
         Integer,
         nullable=False,
         default=0,
-        comment="Depth level in hierarchy (0 = root)"
+        comment="Depth level in hierarchy (0 = root)",
     )
 
     # Department head
@@ -160,13 +160,10 @@ class Department(SoftDeletableModel):
         viewonly=True,
         lazy="dynamic",
     )
-    
+
     # CRITICAL: Task relationship for hierarchical task management
     tasks: Mapped[List["Task"]] = relationship(
-        "Task",
-        back_populates="department",
-        cascade="save-update",
-        lazy="dynamic"
+        "Task", back_populates="department", cascade="save-update", lazy="dynamic"
     )
 
     def __repr__(self) -> str:

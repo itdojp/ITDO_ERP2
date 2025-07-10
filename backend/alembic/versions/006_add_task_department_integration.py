@@ -29,7 +29,7 @@ def upgrade() -> None:
             comment="Department assignment for hierarchical task management",
         ),
     )
-    
+
     # Add department_visibility column
     op.add_column(
         "tasks",
@@ -38,7 +38,8 @@ def upgrade() -> None:
             sa.String(length=50),
             nullable=False,
             server_default="department_hierarchy",
-            comment="Visibility scope: personal, department, department_hierarchy, organization",
+            comment="Visibility scope: personal, department, "
+            "department_hierarchy, organization",
         ),
     )
 
@@ -60,10 +61,10 @@ def downgrade() -> None:
     """Remove department integration from tasks table."""
     # Drop index
     op.drop_index("ix_tasks_department_id", table_name="tasks")
-    
+
     # Drop foreign key constraint
     op.drop_constraint("fk_tasks_department_id", "tasks", type_="foreignkey")
-    
+
     # Drop columns
     op.drop_column("tasks", "department_visibility")
     op.drop_column("tasks", "department_id")

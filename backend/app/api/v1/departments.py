@@ -463,6 +463,7 @@ def get_sub_departments(
 
 # CRITICAL: Task Integration Endpoints for Phase 3
 
+
 @router.get(
     "/{department_id}/tasks",
     response_model=TaskListResponse,
@@ -473,7 +474,9 @@ def get_sub_departments(
 )
 def get_department_tasks_via_department_endpoint(
     department_id: int = Path(..., description="Department ID"),
-    include_subdepartments: bool = Query(True, description="Include subdepartment tasks"),
+    include_subdepartments: bool = Query(
+        True, description="Include subdepartment tasks"
+    ),
     status: Optional[str] = Query(None, description="Filter by status"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),

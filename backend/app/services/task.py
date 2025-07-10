@@ -518,7 +518,13 @@ class TaskService:
 
     def _task_to_response(self, task: Task) -> TaskResponse:
         """Convert Task model to TaskResponse schema."""
-        from app.schemas.task import DepartmentBasic, ProjectInfo, TaskPriority, TaskStatus, UserInfo
+        from app.schemas.task import (
+            DepartmentBasic,
+            ProjectInfo,
+            TaskPriority,
+            TaskStatus,
+            UserInfo,
+        )
 
         # Convert status string to enum
         status_map = {

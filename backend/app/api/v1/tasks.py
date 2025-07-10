@@ -161,7 +161,12 @@ def update_task_status(
 
 # CRITICAL: Department Integration Endpoints for Phase 3
 
-@router.post("/department/{department_id}", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/department/{department_id}",
+    response_model=TaskResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 def create_department_task(
     department_id: int,
     task_data: TaskCreate,
@@ -188,7 +193,9 @@ def create_department_task(
 @router.get("/department/{department_id}", response_model=TaskListResponse)
 def get_department_tasks(
     department_id: int,
-    include_subdepartments: bool = Query(True, description="Include subdepartment tasks"),
+    include_subdepartments: bool = Query(
+        True, description="Include subdepartment tasks"
+    ),
     status: Optional[str] = Query(None, description="Filter by status"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),

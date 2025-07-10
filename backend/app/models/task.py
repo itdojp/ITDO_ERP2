@@ -30,20 +30,21 @@ class Task(SoftDeletableModel):
     assignee_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"))
     reporter_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     parent_task_id: Mapped[Optional[int]] = mapped_column(ForeignKey("tasks.id"))
-    
+
     # CRITICAL: Department integration fields for Phase 3
     department_id: Mapped[Optional[int]] = mapped_column(
         Integer,
         ForeignKey("departments.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
-        comment="Department assignment for hierarchical task management"
+        comment="Department assignment for hierarchical task management",
     )
     department_visibility: Mapped[str] = mapped_column(
         String(50),
         default="department_hierarchy",
         nullable=False,
-        comment="Visibility scope: personal, department, department_hierarchy, organization"
+        comment="Visibility scope: personal, department, "
+        "department_hierarchy, organization",
     )
 
     # Date fields
@@ -69,12 +70,10 @@ class Task(SoftDeletableModel):
     subtasks: Mapped[list["Task"]] = relationship(
         "Task", back_populates="parent_task", cascade="all, delete-orphan"
     )
-    
+
     # CRITICAL: Department relationship for hierarchical task management
     department: Mapped[Optional["Department"]] = relationship(
-        "Department",
-        back_populates="tasks",
-        lazy="select"
+        "Department", back_populates="tasks", lazy="select"
     )
 
     def __repr__(self) -> str:

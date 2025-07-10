@@ -44,8 +44,12 @@ class TaskCreate(TaskBase):
     assignee_ids: Optional[List[int]] = Field(None, description="List of assignee IDs")
     tags: Optional[List[str]] = Field(None, description="Task tags")
     # CRITICAL: Department integration fields for Phase 3
-    department_id: Optional[int] = Field(None, description="Department ID for task assignment")
-    department_visibility: str = Field(default="department_hierarchy", description="Visibility scope")
+    department_id: Optional[int] = Field(
+        None, description="Department ID for task assignment"
+    )
+    department_visibility: str = Field(
+        default="department_hierarchy", description="Visibility scope"
+    )
 
 
 class TaskUpdate(BaseModel):
