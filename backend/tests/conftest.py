@@ -65,6 +65,7 @@ def db_session() -> Generator[Session, None, None]:
 
                 # Simple approach: Delete in safe order
                 table_order = [
+                    "tasks",  # Delete tasks first (references projects and departments)
                     "user_roles",
                     "role_permissions",
                     "password_history",

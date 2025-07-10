@@ -56,6 +56,21 @@ class Department(SoftDeletableModel):
         index=True,
         comment="Parent department ID for sub-departments",
     )
+    
+    # CRITICAL: Materialized path fields for hierarchical queries
+    path: Mapped[str] = mapped_column(
+        String(1000),
+        nullable=False,
+        default="",
+        index=True,
+        comment="Materialized path for efficient hierarchy queries"
+    )
+    depth: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+        comment="Depth level in hierarchy (0 = root)"
+    )
 
     # Department head
     manager_id: Mapped[Optional[UserId]] = mapped_column(

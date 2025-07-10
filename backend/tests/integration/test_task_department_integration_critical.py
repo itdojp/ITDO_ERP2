@@ -1,7 +1,7 @@
 """CRITICAL: Task-Department Integration Tests for Phase 3."""
 
 import pytest
-from httpx import AsyncClient
+from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.models.department import Department
@@ -9,33 +9,31 @@ from app.models.organization import Organization
 from app.models.project import Project
 from app.models.task import Task
 from app.models.user import User
+from tests.factories import DepartmentFactory
 
 
-@pytest.mark.asyncio
 class TestCriticalTaskDepartmentIntegration:
     """Critical integration tests for Task-Department functionality."""
 
-    async def test_create_task_in_department(
-        self, client: AsyncClient, db_session: Session, test_user: User, 
+    def test_create_task_in_department(
+        self, client: TestClient, db_session: Session, test_user: User, 
         test_organization: Organization
     ):
         """CRITICAL: Test creating a task assigned to a department."""
-        # Create department
-        department = Department(
+        # Create department using factory (proper fields)
+        department = DepartmentFactory.create_with_organization(
+            db_session, 
+            test_organization, 
             name="Engineering",
-            code="ENG",
-            organization_id=test_organization.id,
-            path="1",
-            depth=0,
+            code="ENG"
         )
-        db_session.add(department)
 
-        # Create project
+        # Create project with correct field name (owner_id not manager_id)
         project = Project(
             name="Test Project",
             code="TEST-PROJ",
             organization_id=test_organization.id,
-            manager_id=test_user.id,
+            owner_id=test_user.id,
         )
         db_session.add(project)
         db_session.commit()
@@ -56,7 +54,7 @@ class TestCriticalTaskDepartmentIntegration:
         }
 
         # Create department task
-        response = await client.post(
+        response = client.post(
             f"/api/v1/tasks/department/{department.id}",
             json=task_data,
             headers=auth_headers,
@@ -77,39 +75,33 @@ class TestCriticalTaskDepartmentIntegration:
         assert task.department_id == department.id
         assert task.department_visibility == "department_hierarchy"
 
-    async def test_get_department_tasks_with_hierarchy(
-        self, client: AsyncClient, db_session: Session, test_user: User,
+    def test_get_department_tasks_with_hierarchy(
+        self, client: TestClient, db_session: Session, test_user: User,
         test_organization: Organization
     ):
         """CRITICAL: Test retrieving department tasks with hierarchical support."""
-        # Create parent department
-        parent_dept = Department(
+        # Create parent department using factory
+        parent_dept = DepartmentFactory.create_with_organization(
+            db_session,
+            test_organization,
             name="Technology",
-            code="TECH",
-            organization_id=test_organization.id,
-            path="1",
-            depth=0,
+            code="TECH"
         )
-        db_session.add(parent_dept)
-        db_session.flush()
 
-        # Create child department
-        child_dept = Department(
+        # Create child department using factory with proper hierarchy
+        child_dept = DepartmentFactory.create_with_parent(
+            db_session,
+            parent_dept,
             name="Software Engineering",
-            code="SE",
-            organization_id=test_organization.id,
-            parent_id=parent_dept.id,
-            path=f"{parent_dept.path}.{parent_dept.id}",
-            depth=1,
+            code="SE"
         )
-        db_session.add(child_dept)
 
-        # Create project
+        # Create project with correct field name
         project = Project(
             name="Test Project",
             code="TEST-PROJ",
             organization_id=test_organization.id,
-            manager_id=test_user.id,
+            owner_id=test_user.id,
         )
         db_session.add(project)
         db_session.commit()
@@ -150,7 +142,7 @@ class TestCriticalTaskDepartmentIntegration:
         auth_headers = {"Authorization": f"Bearer {token}"}
 
         # Test: Get parent department tasks (should include child department tasks)
-        response = await client.get(
+        response = client.get(
             f"/api/v1/tasks/department/{parent_dept.id}?include_subdepartments=true",
             headers=auth_headers,
         )
@@ -168,7 +160,7 @@ class TestCriticalTaskDepartmentIntegration:
         assert "Child Department Task" in task_titles
 
         # Test: Get only parent department tasks (exclude subdepartments)
-        response = await client.get(
+        response = client.get(
             f"/api/v1/tasks/department/{parent_dept.id}?include_subdepartments=false",
             headers=auth_headers,
         )
@@ -181,27 +173,25 @@ class TestCriticalTaskDepartmentIntegration:
         assert len(task_list["items"]) == 1
         assert task_list["items"][0]["title"] == "Parent Department Task"
 
-    async def test_assign_task_to_department(
-        self, client: AsyncClient, db_session: Session, test_user: User,
+    def test_assign_task_to_department(
+        self, client: TestClient, db_session: Session, test_user: User,
         test_organization: Organization
     ):
         """CRITICAL: Test assigning an existing task to a department."""
-        # Create department
-        department = Department(
+        # Create department using factory
+        department = DepartmentFactory.create_with_organization(
+            db_session,
+            test_organization,
             name="Marketing",
-            code="MKT",
-            organization_id=test_organization.id,
-            path="1",
-            depth=0,
+            code="MKT"
         )
-        db_session.add(department)
 
-        # Create project
+        # Create project with correct field name
         project = Project(
             name="Test Project",
             code="TEST-PROJ",
             organization_id=test_organization.id,
-            manager_id=test_user.id,
+            owner_id=test_user.id,
         )
         db_session.add(project)
 
@@ -226,7 +216,7 @@ class TestCriticalTaskDepartmentIntegration:
         auth_headers = {"Authorization": f"Bearer {token}"}
 
         # Assign task to department
-        response = await client.put(
+        response = client.put(
             f"/api/v1/tasks/{task.id}/assign-department/{department.id}",
             headers=auth_headers,
         )
@@ -244,27 +234,25 @@ class TestCriticalTaskDepartmentIntegration:
         assert task.department_id == department.id
         assert task.department_visibility == "department_hierarchy"
 
-    async def test_department_tasks_via_department_endpoint(
-        self, client: AsyncClient, db_session: Session, test_user: User,
+    def test_department_tasks_via_department_endpoint(
+        self, client: TestClient, db_session: Session, test_user: User,
         test_organization: Organization
     ):
         """CRITICAL: Test accessing department tasks via department endpoint."""
-        # Create department
-        department = Department(
+        # Create department using factory
+        department = DepartmentFactory.create_with_organization(
+            db_session,
+            test_organization,
             name="Sales",
-            code="SALES",
-            organization_id=test_organization.id,
-            path="1",
-            depth=0,
+            code="SALES"
         )
-        db_session.add(department)
 
-        # Create project
+        # Create project with correct field name
         project = Project(
             name="Sales Project",
             code="SALES-PROJ",
             organization_id=test_organization.id,
-            manager_id=test_user.id,
+            owner_id=test_user.id,
         )
         db_session.add(project)
 
@@ -291,7 +279,7 @@ class TestCriticalTaskDepartmentIntegration:
         auth_headers = {"Authorization": f"Bearer {token}"}
 
         # Get department tasks via department endpoint
-        response = await client.get(
+        response = client.get(
             f"/api/v1/departments/{department.id}/tasks",
             headers=auth_headers,
         )
@@ -308,27 +296,25 @@ class TestCriticalTaskDepartmentIntegration:
         assert task_response["department_id"] == department.id
         assert task_response["status"] == "in_progress"
 
-    async def test_tasks_by_visibility_scope(
-        self, client: AsyncClient, db_session: Session, test_user: User,
+    def test_tasks_by_visibility_scope(
+        self, client: TestClient, db_session: Session, test_user: User,
         test_organization: Organization
     ):
         """CRITICAL: Test filtering tasks by visibility scope."""
-        # Create department
-        department = Department(
+        # Create department using factory
+        department = DepartmentFactory.create_with_organization(
+            db_session,
+            test_organization,
             name="HR",
-            code="HR",
-            organization_id=test_organization.id,
-            path="1",
-            depth=0,
+            code="HR"
         )
-        db_session.add(department)
 
-        # Create project
+        # Create project with correct field name
         project = Project(
             name="HR Project",
             code="HR-PROJ",
             organization_id=test_organization.id,
-            manager_id=test_user.id,
+            owner_id=test_user.id,
         )
         db_session.add(project)
 
@@ -366,7 +352,7 @@ class TestCriticalTaskDepartmentIntegration:
         auth_headers = {"Authorization": f"Bearer {token}"}
 
         # Test: Get department_hierarchy tasks
-        response = await client.get(
+        response = client.get(
             "/api/v1/tasks/by-visibility/department_hierarchy",
             headers=auth_headers,
         )
@@ -380,7 +366,7 @@ class TestCriticalTaskDepartmentIntegration:
         assert task_list["items"][0]["department_visibility"] == "department_hierarchy"
 
         # Test: Get personal tasks
-        response = await client.get(
+        response = client.get(
             "/api/v1/tasks/by-visibility/personal",
             headers=auth_headers,
         )
@@ -394,21 +380,20 @@ class TestCriticalTaskDepartmentIntegration:
         assert task_list["items"][0]["department_visibility"] == "personal"
 
 
-@pytest.mark.asyncio
 class TestTaskDepartmentIntegrationErrors:
     """Test error cases for Task-Department integration."""
 
-    async def test_create_task_nonexistent_department(
-        self, client: AsyncClient, db_session: Session, test_user: User,
+    def test_create_task_nonexistent_department(
+        self, client: TestClient, db_session: Session, test_user: User,
         test_organization: Organization
     ):
         """Test creating task with non-existent department."""
-        # Create project
+        # Create project with correct field name
         project = Project(
             name="Test Project",
             code="TEST-PROJ",
             organization_id=test_organization.id,
-            manager_id=test_user.id,
+            owner_id=test_user.id,
         )
         db_session.add(project)
         db_session.commit()
@@ -427,7 +412,7 @@ class TestTaskDepartmentIntegrationErrors:
             "priority": "medium",
         }
 
-        response = await client.post(
+        response = client.post(
             "/api/v1/tasks/department/999",  # Non-existent department
             json=task_data,
             headers=auth_headers,
@@ -436,18 +421,21 @@ class TestTaskDepartmentIntegrationErrors:
         assert response.status_code == 404
         assert "Department not found" in response.json()["detail"]
 
-    async def test_assign_task_to_nonexistent_department(
-        self, client: AsyncClient, db_session: Session, test_user: User,
+    def test_assign_task_to_nonexistent_department(
+        self, client: TestClient, db_session: Session, test_user: User,
         test_organization: Organization
     ):
         """Test assigning task to non-existent department."""
-        # Create project and task
+        # Create project and task with correct field names
         project = Project(
             name="Test Project",
             code="TEST-PROJ",
             organization_id=test_organization.id,
-            manager_id=test_user.id,
+            owner_id=test_user.id,
         )
+        db_session.add(project)
+        db_session.commit()  # Commit project first to get ID
+        
         task = Task(
             title="Test Task",
             project_id=project.id,
@@ -456,7 +444,7 @@ class TestTaskDepartmentIntegrationErrors:
             priority="medium",
             created_by=test_user.id,
         )
-        db_session.add_all([project, task])
+        db_session.add(task)
         db_session.commit()
 
         # Create auth headers
@@ -467,7 +455,7 @@ class TestTaskDepartmentIntegrationErrors:
         auth_headers = {"Authorization": f"Bearer {token}"}
 
         # Try to assign task to non-existent department
-        response = await client.put(
+        response = client.put(
             f"/api/v1/tasks/{task.id}/assign-department/999",
             headers=auth_headers,
         )
