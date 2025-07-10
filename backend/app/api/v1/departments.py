@@ -42,9 +42,7 @@ def list_departments(
     ),
     search: str | None = Query(None, description="Search query"),
     active_only: bool = Query(True, description="Only return active departments"),
-    department_type: str | None = Query(
-        None, description="Filter by department type"
-    ),
+    department_type: str | None = Query(None, description="Filter by department type"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ) -> PaginatedResponse[DepartmentSummary]:

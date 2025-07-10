@@ -57,9 +57,7 @@ class Organization(SoftDeletableModel):
     prefecture: Mapped[str | None] = mapped_column(
         String(50), nullable=True, comment="Prefecture/State"
     )
-    city: Mapped[str | None] = mapped_column(
-        String(100), nullable=True, comment="City"
-    )
+    city: Mapped[str | None] = mapped_column(String(100), nullable=True, comment="City")
     address_line1: Mapped[str | None] = mapped_column(
         String(255), nullable=True, comment="Address line 1"
     )

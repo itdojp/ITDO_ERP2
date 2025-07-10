@@ -69,9 +69,7 @@ class PaginatedResponse(BaseModel, Generic[T]):
     total: int = Field(..., description="Total number of items")
     skip: int = Field(..., description="Number of items skipped")
     limit: int = Field(..., description="Maximum number of items returned")
-    has_more: bool | None = Field(
-        None, description="Whether more items are available"
-    )
+    has_more: bool | None = Field(None, description="Whether more items are available")
 
     def __init__(self, **data: Any) -> None:
         """Initialize paginated response with computed has_more field."""

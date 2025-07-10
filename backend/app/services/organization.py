@@ -25,9 +25,7 @@ class OrganizationService:
         self.db = db
         self.repository = OrganizationRepository(Organization, db)
 
-    def get_organization(
-        self, organization_id: OrganizationId
-    ) -> Organization | None:
+    def get_organization(self, organization_id: OrganizationId) -> Organization | None:
         """Get organization by ID."""
         return self.repository.get(organization_id)
 

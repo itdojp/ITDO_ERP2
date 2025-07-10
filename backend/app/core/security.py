@@ -38,9 +38,7 @@ def create_access_token(
         )
 
     # Add token metadata
-    to_encode.update(
-        {"exp": expire, "iat": datetime.now(UTC), "type": "access"}
-    )
+    to_encode.update({"exp": expire, "iat": datetime.now(UTC), "type": "access"})
 
     # Encode token
     encoded_jwt = jwt.encode(
@@ -59,14 +57,10 @@ def create_refresh_token(
     if expires_delta:
         expire = datetime.now(UTC) + expires_delta
     else:
-        expire = datetime.now(UTC) + timedelta(
-            days=settings.REFRESH_TOKEN_EXPIRE_DAYS
-        )
+        expire = datetime.now(UTC) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
 
     # Add token metadata
-    to_encode.update(
-        {"exp": expire, "iat": datetime.now(UTC), "type": "refresh"}
-    )
+    to_encode.update({"exp": expire, "iat": datetime.now(UTC), "type": "refresh"})
 
     # Encode token
     encoded_jwt = jwt.encode(

@@ -148,9 +148,7 @@ class OrganizationRepository(
         count = self.db.scalar(query) or 0
         return count == 0
 
-    def update_settings(
-        self, id: int, settings: dict[str, Any]
-    ) -> Organization | None:
+    def update_settings(self, id: int, settings: dict[str, Any]) -> Organization | None:
         """Update organization settings."""
         import json
 

@@ -1,6 +1,5 @@
 """Department schemas."""
 
-
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.common import AuditInfo, SoftDeleteInfo
@@ -47,9 +46,7 @@ class DepartmentContactInfo(BaseModel):
     email: str | None = Field(
         None, max_length=255, pattern=r"^[\w\.\-]+@[\w\.\-]+\.\w+$"
     )
-    location: str | None = Field(
-        None, max_length=255, description="Physical location"
-    )
+    location: str | None = Field(None, max_length=255, description="Physical location")
 
 
 class DepartmentOperationalInfo(BaseModel):
