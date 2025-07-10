@@ -1,5 +1,5 @@
-from typing import Any, List, Optional, Union
 import json
+from typing import Any, List, Optional, Union
 
 from pydantic import AnyUrl, PostgresDsn, Field, field_validator
 from pydantic_settings import BaseSettings
