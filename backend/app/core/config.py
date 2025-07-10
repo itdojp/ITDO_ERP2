@@ -18,42 +18,44 @@ class Settings(BaseSettings):
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: Union[str, List[str], None]) -> List[str]:
-        # デフォルト値
+        """
+        CORS origins parser with CI environment compatibility.
+        Handles None, empty strings, comma-separated values, and JSON arrays.
+        """
+        # デフォルト値を常に定義
         default_origins = ["http://localhost:3000", "http://127.0.0.1:3000"]
         
-        # None または空の場合は即座にデフォルトを返す
+        # Noneまたは空文字列の場合
         if v is None or v == "":
             return default_origins
             
+        # 既にリストの場合はそのまま使用
+        if isinstance(v, list):
+            if len(v) > 0:
+                return [str(origin).strip() for origin in v if origin]
+            return default_origins
+            
+        # 文字列の場合の処理
         if isinstance(v, str):
             v_stripped = v.strip()
-            # 空文字列チェックを最初に行う
+            
+            # 空文字列チェック
             if not v_stripped:
                 return default_origins
-
-            # JSON配列形式の処理（最初の文字が[の場合のみ）
-            if v_stripped.startswith("[") and v_stripped.endswith("]"):
-                try:
-                    parsed = json.loads(v_stripped)
-                    if isinstance(parsed, list) and len(parsed) > 0:
-                        return [str(origin) for origin in parsed if origin]
-                except (json.JSONDecodeError, TypeError, ValueError):
-                    # JSON解析失敗時はカンマ区切りにフォールバック
-                    pass
-
-            # カンマ区切り形式の処理
+            
+            # カンマ区切り形式を最初に処理（最も一般的）
             if "," in v_stripped:
-                origins = [origin.strip() for origin in v_stripped.split(",") if origin.strip()]
+                origins = []
+                for origin in v_stripped.split(","):
+                    cleaned = origin.strip()
+                    if cleaned:
+                        origins.append(cleaned)
                 return origins if origins else default_origins
             
-            # 単一のURL
-            if v_stripped:
-                return [v_stripped]
-
-        elif isinstance(v, list) and len(v) > 0:
-            return [str(origin) for origin in v if origin]
-
-        # 全てのケースでフォールバック
+            # 単一のURL（カンマなし）
+            return [v_stripped]
+        
+        # その他の型の場合はデフォルトを返す
         return default_origins
 
     # データベース設定
