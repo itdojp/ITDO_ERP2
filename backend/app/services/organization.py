@@ -87,8 +87,14 @@ class OrganizationService:
             data["created_by"] = created_by
             data["updated_by"] = created_by
 
-        # Create organization
-        return self.repository.create(OrganizationCreate(**data))
+        # Convert settings dict to JSON string for database storage
+        import json
+
+        if data.get("settings") and isinstance(data["settings"], dict):
+            data["settings"] = json.dumps(data["settings"])
+
+        # Create organization directly from data dict
+        return self.repository.create(data)
 
     def update_organization(
         self,
@@ -209,6 +215,17 @@ class OrganizationService:
         data["is_subsidiary"] = organization.is_subsidiary
         data["is_parent"] = organization.is_parent
         data["subsidiary_count"] = subsidiary_count
+
+        # Parse settings JSON string to dictionary
+        import json
+
+        if data.get("settings"):
+            try:
+                data["settings"] = json.loads(data["settings"])
+            except (json.JSONDecodeError, TypeError):
+                data["settings"] = {}
+        else:
+            data["settings"] = {}
 
         return OrganizationResponse.model_validate(data)
 

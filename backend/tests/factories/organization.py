@@ -38,14 +38,37 @@ class OrganizationFactory(BaseFactory):
             "capital": fake.random_int(min=1000000, max=100000000),
             "employee_count": fake.random_int(min=1, max=1000),
             "is_active": True,
-            "settings": json.dumps(
-                {
-                    "fiscal_year_start": "04-01",
-                    "timezone": "Asia/Tokyo",
-                    "currency": "JPY",
-                }
-            ),
+            "settings": json.dumps({
+                "fiscal_year_start": "04-01",
+                "timezone": "Asia/Tokyo",
+                "currency": "JPY",
+            }),
         }
+    
+    @classmethod
+    def build_dict(cls, **kwargs: Any) -> Dict[str, Any]:
+        """Build a dictionary of attributes for API creation (with dict settings)."""
+        defaults = cls._get_default_attributes()
+        # Convert settings back to dict for API usage
+        defaults["settings"] = {
+            "fiscal_year_start": "04-01",
+            "timezone": "Asia/Tokyo",
+            "currency": "JPY",
+        }
+        defaults.update(kwargs)
+        return defaults
+    
+    @classmethod
+    def build(cls, **kwargs: Any) -> Organization:
+        """Build an organization instance with JSON settings for database."""
+        # Get base attributes
+        attributes = cls._get_default_attributes()
+        # Apply any overrides
+        attributes.update(kwargs)
+        # Ensure settings is JSON string
+        if "settings" in attributes and isinstance(attributes["settings"], dict):
+            attributes["settings"] = json.dumps(attributes["settings"])
+        return cls.model_class(**attributes)
 
     @classmethod
     def _get_update_attributes(cls) -> Dict[str, Any]:

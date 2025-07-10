@@ -1,8 +1,7 @@
 import json
 from typing import Any, List, Optional, Union
 
-from pydantic import AnyUrl, Field, PostgresDsn, field_validator
-from pydantic_core import ValidationInfo
+from pydantic import AnyUrl, Field, PostgresDsn, ValidationInfo, field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -11,56 +10,47 @@ class Settings(BaseSettings):
     VERSION: str = "0.1.0"
     API_V1_STR: str = "/api/v1"
 
-    # CORS設定 - 文字列として保存してプロパティで処理
-    BACKEND_CORS_ORIGINS: str = Field(
-        default="http://localhost:3000,http://127.0.0.1:3000"
+    # CORS設定
+    BACKEND_CORS_ORIGINS: List[str] = Field(
+        default=["http://localhost:3000", "http://127.0.0.1:3000"]
     )
+
+    @field_validator("BACKEND_CORS_ORIGINS", mode="before")
+    @classmethod
+    def assemble_cors_origins(cls, v: Union[str, List[str], None]) -> List[str]:
+        """Parse CORS origins from string or list."""
+        if v is None:
+            return ["http://localhost:3000", "http://127.0.0.1:3000"]
+
+        if isinstance(v, list):
+            return v
+
+        # Handle string values
+        v_stripped = v.strip()
+        if not v_stripped:
+            return ["http://localhost:3000", "http://127.0.0.1:3000"]
+
+        # Try comma-separated first
+        if "," in v_stripped:
+            return [origin.strip() for origin in v_stripped.split(",") if origin.strip()]
+
+        # Try JSON parsing
+        try:
+            import json
+            parsed = json.loads(v_stripped)
+            if isinstance(parsed, list):
+                return parsed
+        except:
+            pass
+
+        # Single value
+        return [v_stripped]
 
     @property
     def cors_origins_list(self) -> List[str]:
         """CORS origins as a list for use in middleware."""
-        return self._parse_cors_origins(self.BACKEND_CORS_ORIGINS)
-
-    @classmethod
-    def _parse_cors_origins(cls, v: Union[str, List[str], None]) -> List[str]:
-        """
-        CORS origins parser with CI environment compatibility.
-        Prioritizes comma-separated values before JSON parsing.
-        """
-        default_origins = ["http://localhost:3000", "http://127.0.0.1:3000"]
-
-        if v is None or v == "":
-            return default_origins
-
-        if isinstance(v, str):
-            v_stripped = v.strip()
-            if not v_stripped:
-                return default_origins
-
-            # Handle comma-separated values FIRST (before JSON)
-            if "," in v_stripped and not v_stripped.startswith("["):
-                origins = [
-                    origin.strip() for origin in v_stripped.split(",") if origin.strip()
-                ]
-                return origins if origins else default_origins
-
-            # Then handle JSON arrays
-            if v_stripped.startswith("["):
-                try:
-                    parsed = json.loads(v_stripped)
-                    if isinstance(parsed, list) and len(parsed) > 0:
-                        return [str(origin) for origin in parsed if origin]
-                except (json.JSONDecodeError, TypeError, ValueError):
-                    pass
-
-            # Single URL
-            if v_stripped:
-                return [v_stripped]
-
-        elif isinstance(v, list) and len(v) > 0:
-            return [str(origin) for origin in v if origin]
-
-        return default_origins
+        # Since BACKEND_CORS_ORIGINS is now validated as a list, return it directly
+        return self.BACKEND_CORS_ORIGINS
 
     # データベース設定
     POSTGRES_SERVER: str = "localhost"
