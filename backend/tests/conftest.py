@@ -14,14 +14,22 @@ from app.core.database import get_db
 from app.core.security import create_access_token
 from app.main import app
 from app.models.base import Base
-from app.models.department import Department
 
 # Import all models to ensure they are registered with SQLAlchemy
 # Import in order to avoid circular dependencies
 from app.models.organization import Organization
-from app.models.permission import Permission
-from app.models.role import Role
+from app.models.department import Department
 from app.models.user import User
+from app.models.permission import Permission
+from app.models.role import Role, UserRole
+from app.models.audit import AuditLog
+from app.models.password_history import PasswordHistory
+from app.models.user_activity_log import UserActivityLog
+from app.models.user_session import UserSession
+from app.models.project import Project
+from app.models.project_member import ProjectMember
+from app.models.project_milestone import ProjectMilestone
+from app.models.task import Task
 from tests.factories import (
     DepartmentFactory,
     OrganizationFactory,

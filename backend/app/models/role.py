@@ -20,7 +20,9 @@ from sqlalchemy.orm import Session, relationship
 from app.core.database import Base
 
 if TYPE_CHECKING:
-    pass  # type: ignore
+    from app.models.department import Department
+    from app.models.organization import Organization
+    from app.models.user import User
 
 
 class Role(Base):
@@ -182,11 +184,11 @@ class UserRole(Base):
     assigned_at: datetime = Column(DateTime(timezone=True), server_default=func.now())
     expires_at: Optional[datetime] = Column(DateTime(timezone=True), nullable=True)
 
-    # Relationships
+    # Relationships - temporarily remove back_populates to avoid circular dependencies
     user = relationship("User", foreign_keys=[user_id])
     role = relationship("Role", back_populates="user_roles")
-    organization = relationship("Organization", back_populates="user_roles")
-    department = relationship("Department", back_populates="user_roles")
+    organization = relationship("Organization")
+    department = relationship("Department")
     assigned_by_user = relationship("User", foreign_keys=[assigned_by])
 
     __table_args__ = (

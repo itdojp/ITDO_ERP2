@@ -18,7 +18,9 @@ from sqlalchemy.orm import Session, relationship
 from app.core.database import Base
 
 if TYPE_CHECKING:
-    pass  # type: ignore
+    from app.models.organization import Organization
+    from app.models.role import UserRole
+    from app.models.user import User
 
 
 class Department(Base):
@@ -48,11 +50,11 @@ class Department(Base):
     created_by: Optional[int] = Column(Integer, ForeignKey("users.id"))
     updated_by: Optional[int] = Column(Integer, ForeignKey("users.id"))
 
-    # Relationships
-    organization = relationship("Organization", back_populates="departments")
+    # Relationships - temporarily remove back_populates to avoid circular dependencies
+    organization = relationship("Organization")
     parent = relationship("Department", remote_side=[id])
-    children = relationship("Department", back_populates="parent")
-    user_roles = relationship("UserRole", back_populates="department")
+    children = relationship("Department")
+    # user_roles = relationship("UserRole", back_populates="department")
 
     @classmethod
     def create(

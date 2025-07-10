@@ -10,6 +10,8 @@ from app.models.base import SoftDeletableModel
 from app.types import DepartmentId, OrganizationId, UserId
 
 if TYPE_CHECKING:
+    from app.models.department import Department
+    from app.models.organization import Organization
     from app.models.task import Task
     from app.models.user import User
 
@@ -45,15 +47,9 @@ class Project(SoftDeletableModel):
     total_budget: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     actual_cost: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
 
-    # Relationships
-    # NOTE: organization relationship temporarily disabled to avoid circular
-    # import issues
-    # organization: Mapped["Organization"] = relationship("Organization", lazy="joined")
-    # NOTE: department relationship temporarily disabled to avoid circular
-    # import issues
-    # department: Mapped[Optional["Department"]] = relationship(
-    #     "Department", lazy="joined"
-    # )
+    # Relationships - temporarily disabled to avoid circular dependency
+    # organization = relationship("Organization", lazy="select")
+    # department = relationship("Department", lazy="select")
     owner: Mapped["User"] = relationship("User", foreign_keys=[owner_id], lazy="joined")
 
     # Task relationship
