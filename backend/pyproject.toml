@@ -86,13 +86,13 @@ extend-exclude = [
 ]
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "N", "TCH"]
+select = ["E", "F", "W", "I", "N", "TC"]
 ignore = [
     "E402",  # Module level import not at top of file (needed for circular import prevention)
     "N805",  # First argument of a method should be named `self` (allow cls for classmethods)
-    "TCH001", # Move application import into a type-checking block
-    "TCH002", # Move third-party import into a type-checking block
-    "TCH003", # Move standard library import into a type-checking block
+    "TC001", # Move application import into a type-checking block
+    "TC002", # Move third-party import into a type-checking block
+    "TC003", # Move standard library import into a type-checking block
 ]
 
 [tool.ruff.lint.per-file-ignores]
