@@ -32,15 +32,31 @@ class Organization(Base):
 
     id: int = Column(Integer, primary_key=True, index=True)
     code: str = Column(String(50), unique=True, index=True, nullable=False)
-    name: str = Column(String(255), nullable=False)
-    name_kana: Optional[str] = Column(String(255))
-    postal_code: Optional[str] = Column(String(10))
-    address: Optional[str] = Column(Text)
+    name: str = Column(String(200), nullable=False)
+    name_kana: Optional[str] = Column(String(200))
+    name_en: Optional[str] = Column(String(200))
     phone: Optional[str] = Column(String(20))
+    fax: Optional[str] = Column(String(20))
     email: Optional[str] = Column(String(255))
     website: Optional[str] = Column(String(255))
-    fiscal_year_start: int = Column(Integer, default=4)  # 会計年度開始月
+    postal_code: Optional[str] = Column(String(10))
+    prefecture: Optional[str] = Column(String(50))
+    city: Optional[str] = Column(String(100))
+    address_line1: Optional[str] = Column(String(255))
+    address_line2: Optional[str] = Column(String(255))
+    business_type: Optional[str] = Column(String(100))
+    industry: Optional[str] = Column(String(100))
+    capital: Optional[int] = Column(Integer)
+    employee_count: Optional[int] = Column(Integer)
+    fiscal_year_end: Optional[str] = Column(String(5))
+    parent_id: Optional[int] = Column(Integer, ForeignKey("organizations.id"))
     is_active: bool = Column(Boolean, default=True)
+    settings: Optional[str] = Column(Text)
+    description: Optional[str] = Column(Text)
+    logo_url: Optional[str] = Column(String(255))
+    is_deleted: bool = Column(Boolean, default=False)
+    deleted_at: Optional[datetime] = Column(DateTime(timezone=True))
+    deleted_by: Optional[int] = Column(Integer, ForeignKey("users.id"))
     created_at: datetime = Column(DateTime(timezone=True), server_default=func.now())
     updated_at: datetime = Column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
@@ -51,8 +67,11 @@ class Organization(Base):
     # Relationships
     departments = relationship("Department", back_populates="organization")
     user_roles = relationship("UserRole", back_populates="organization")
+    roles = relationship("Role", back_populates="organization")
     creator = relationship("User", foreign_keys=[created_by])
     updater = relationship("User", foreign_keys=[updated_by])
+    parent = relationship("Organization", remote_side=[id])
+    children = relationship("Organization", back_populates="parent")
 
     @classmethod
     def create(
@@ -63,12 +82,22 @@ class Organization(Base):
         name: str,
         created_by: int,
         name_kana: Optional[str] = None,
+        name_en: Optional[str] = None,
         postal_code: Optional[str] = None,
-        address: Optional[str] = None,
+        prefecture: Optional[str] = None,
+        city: Optional[str] = None,
+        address_line1: Optional[str] = None,
+        address_line2: Optional[str] = None,
         phone: Optional[str] = None,
+        fax: Optional[str] = None,
         email: Optional[str] = None,
         website: Optional[str] = None,
-        fiscal_year_start: int = 4,
+        business_type: Optional[str] = None,
+        industry: Optional[str] = None,
+        capital: Optional[int] = None,
+        employee_count: Optional[int] = None,
+        fiscal_year_end: Optional[str] = None,
+        parent_id: Optional[int] = None,
         is_active: bool = True,
     ) -> "Organization":
         """Create a new organization."""
@@ -76,12 +105,22 @@ class Organization(Base):
             code=code,
             name=name,
             name_kana=name_kana,
+            name_en=name_en,
             postal_code=postal_code,
-            address=address,
+            prefecture=prefecture,
+            city=city,
+            address_line1=address_line1,
+            address_line2=address_line2,
             phone=phone,
+            fax=fax,
             email=email,
             website=website,
-            fiscal_year_start=fiscal_year_start,
+            business_type=business_type,
+            industry=industry,
+            capital=capital,
+            employee_count=employee_count,
+            fiscal_year_end=fiscal_year_end,
+            parent_id=parent_id,
             is_active=is_active,
             created_by=created_by,
         )

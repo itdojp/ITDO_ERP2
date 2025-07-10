@@ -31,20 +31,32 @@ class Department(Base):
     __tablename__ = "departments"
 
     id: int = Column(Integer, primary_key=True, index=True)
+    code: str = Column(String(50), nullable=False, index=True)
+    name: str = Column(String(200), nullable=False)
+    name_kana: Optional[str] = Column(String(200))
+    name_en: Optional[str] = Column(String(200))
+    short_name: Optional[str] = Column(String(50))
     organization_id: int = Column(
         Integer, ForeignKey("organizations.id"), nullable=False
     )
     parent_id: Optional[int] = Column(
         Integer, ForeignKey("departments.id"), nullable=True
     )
-    code: str = Column(String(50), nullable=False, index=True)
-    name: str = Column(String(255), nullable=False)
-    name_kana: Optional[str] = Column(String(255))
+    manager_id: Optional[int] = Column(Integer, ForeignKey("users.id"))
+    phone: Optional[str] = Column(String(20))
+    fax: Optional[str] = Column(String(20))
+    email: Optional[str] = Column(String(255))
+    location: Optional[str] = Column(String(255))
+    budget: Optional[int] = Column(Integer)
+    headcount_limit: Optional[int] = Column(Integer)
+    is_active: bool = Column(Boolean, default=True, nullable=False)
+    department_type: Optional[str] = Column(String(50))
+    cost_center_code: Optional[str] = Column(String(50))
+    display_order: int = Column(Integer, default=0, nullable=False)
     description: Optional[str] = Column(Text)
-    level: int = Column(Integer, default=1)  # 階層レベル
-    path: Optional[str] = Column(String(255))  # 階層パス (例: "1/2/3")
-    sort_order: int = Column(Integer, default=0)
-    is_active: bool = Column(Boolean, default=True)
+    is_deleted: bool = Column(Boolean, default=False, nullable=False)
+    deleted_at: Optional[datetime] = Column(DateTime(timezone=True))
+    deleted_by: Optional[int] = Column(Integer, ForeignKey("users.id"))
     created_at: datetime = Column(DateTime(timezone=True), server_default=func.now())
     updated_at: datetime = Column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()

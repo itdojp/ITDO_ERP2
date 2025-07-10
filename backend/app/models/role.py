@@ -34,11 +34,23 @@ class Role(Base):
 
     id: int = Column(Integer, primary_key=True, index=True)
     code: str = Column(String(50), unique=True, index=True, nullable=False)
-    name: str = Column(String(255), nullable=False)
+    name: str = Column(String(200), nullable=False)
+    name_en: Optional[str] = Column(String(200), nullable=True)
     description: Optional[str] = Column(Text)
+    role_type: str = Column(String(50), nullable=False, default="custom")
+    parent_id: Optional[int] = Column(Integer, ForeignKey("roles.id"))
+    organization_id: Optional[int] = Column(Integer, ForeignKey("organizations.id"))
     permissions: List[str] = Column(JSON, default=list)  # List of permission strings
     is_system: bool = Column(Boolean, default=False)  # System roles cannot be deleted
     is_active: bool = Column(Boolean, default=True)
+    display_order: int = Column(Integer, default=0)
+    icon: Optional[str] = Column(String(50))
+    color: Optional[str] = Column(String(7))
+    full_path: str = Column(String(500), default="")
+    depth: int = Column(Integer, default=0)
+    is_deleted: bool = Column(Boolean, default=False)
+    deleted_at: Optional[datetime] = Column(DateTime(timezone=True))
+    deleted_by: Optional[int] = Column(Integer, ForeignKey("users.id"))
     created_at: datetime = Column(DateTime(timezone=True), server_default=func.now())
     updated_at: datetime = Column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
@@ -48,6 +60,9 @@ class Role(Base):
 
     # Relationships
     user_roles = relationship("UserRole", back_populates="role")
+    organization = relationship("Organization", back_populates="roles")
+    parent = relationship("Role", remote_side=[id])
+    children = relationship("Role", back_populates="parent")
 
     @classmethod
     def init_system_roles(cls, db: Session) -> None:
@@ -99,6 +114,9 @@ class Role(Base):
         code: str,
         name: str,
         created_by: int,
+        role_type: str = "custom",
+        organization_id: Optional[int] = None,
+        parent_id: Optional[int] = None,
         description: Optional[str] = None,
         permissions: Optional[List[str]] = None,
         is_system: bool = False,
@@ -108,6 +126,9 @@ class Role(Base):
         role = cls(
             code=code,
             name=name,
+            role_type=role_type,
+            organization_id=organization_id,
+            parent_id=parent_id,
             description=description,
             permissions=permissions or [],
             is_system=is_system,
@@ -184,7 +205,21 @@ class UserRole(Base):
     )
     assigned_by: Optional[int] = Column(Integer, ForeignKey("users.id"))
     assigned_at: datetime = Column(DateTime(timezone=True), server_default=func.now())
+    valid_from: datetime = Column(DateTime(timezone=True), server_default=func.now())
     expires_at: Optional[datetime] = Column(DateTime(timezone=True), nullable=True)
+    valid_to: Optional[datetime] = Column(DateTime(timezone=True), nullable=True)
+    is_active: bool = Column(Boolean, default=True, nullable=False)
+    is_primary: bool = Column(Boolean, default=False, nullable=False)
+    notes: Optional[str] = Column(Text, nullable=True)
+    approval_status: Optional[str] = Column(String(50), nullable=True)
+    approved_by: Optional[int] = Column(Integer, ForeignKey("users.id"))
+    approved_at: Optional[datetime] = Column(DateTime(timezone=True), nullable=True)
+    created_at: datetime = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at: datetime = Column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+    created_by: Optional[int] = Column(Integer, ForeignKey("users.id"))
+    updated_by: Optional[int] = Column(Integer, ForeignKey("users.id"))
 
     # Relationships
     user = relationship("User", foreign_keys=[user_id])
@@ -214,6 +249,12 @@ class UserRole(Base):
         assigned_by: int,
         department_id: Optional[int] = None,
         expires_at: Optional[datetime] = None,
+        is_active: bool = True,
+        is_primary: bool = False,
+        notes: Optional[str] = None,
+        approval_status: Optional[str] = None,
+        approved_by: Optional[int] = None,
+        approved_at: Optional[datetime] = None,
     ) -> "UserRole":
         """Create a new user role assignment."""
         user_role = cls(
@@ -223,6 +264,12 @@ class UserRole(Base):
             department_id=department_id,
             assigned_by=assigned_by,
             expires_at=expires_at,
+            is_active=is_active,
+            is_primary=is_primary,
+            notes=notes,
+            approval_status=approval_status,
+            approved_by=approved_by,
+            approved_at=approved_at,
         )
 
         db.add(user_role)

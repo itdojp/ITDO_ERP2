@@ -17,7 +17,7 @@ class TestDepartmentModel:
     def test_create_department(self, db_session) -> None:
         """TEST-DEPT-001: 部門が正しく作成されることを確認."""
         # Given: 組織
-        org = OrganizationFactory()
+        org = OrganizationFactory.create(db_session, )
         db_session.commit()
 
         # When: 部門作成
@@ -49,8 +49,8 @@ class TestDepartmentModel:
     def test_create_child_department(self, db_session) -> None:
         """TEST-DEPT-002: 子部門が正しく作成されることを確認."""
         # Given: 親部門
-        org = OrganizationFactory()
-        parent = DepartmentFactory(
+        org = OrganizationFactory.create(db_session, )
+        parent = DepartmentFactory.create(db_session,
             organization=org, code="SALES", name="営業部", level=1
         )
         db_session.commit()
@@ -82,9 +82,9 @@ class TestDepartmentModel:
     def test_department_level_limit(self, db_session) -> None:
         """TEST-DEPT-003: 3階層目の部門作成が拒否されることを確認."""
         # Given: 2階層の部門
-        org = OrganizationFactory()
-        parent = DepartmentFactory(organization=org, level=1)
-        child = DepartmentFactory(organization=org, parent=parent, level=2)
+        org = OrganizationFactory.create(db_session, )
+        parent = DepartmentFactory.create(db_session, organization=org, level=1)
+        child = DepartmentFactory.create(db_session, organization=org, parent=parent, level=2)
         db_session.commit()
 
         # When/Then: 3階層目作成で例外
@@ -101,8 +101,8 @@ class TestDepartmentModel:
     def test_unique_department_code_per_organization(self, db_session) -> None:
         """組織内で部門コードが一意であることを確認."""
         # Given: 既存部門
-        org = OrganizationFactory()
-        DepartmentFactory(organization=org, code="HR")
+        org = OrganizationFactory.create(db_session, )
+        DepartmentFactory.create(db_session, organization=org, code="HR")
         db_session.commit()
 
         # When/Then: 同じ組織内で同じコード
@@ -115,12 +115,12 @@ class TestDepartmentModel:
     def test_department_code_unique_across_organizations(self, db_session) -> None:
         """異なる組織では同じ部門コードが使用可能なことを確認."""
         # Given: 組織1の部門
-        org1 = OrganizationFactory(code="ORG1")
-        dept1 = DepartmentFactory(organization=org1, code="HR")
+        org1 = OrganizationFactory.create(db_session, code="ORG1")
+        dept1 = DepartmentFactory.create(db_session, organization=org1, code="HR")
         db_session.commit()
 
         # When: 組織2で同じコード
-        org2 = OrganizationFactory(code="ORG2")
+        org2 = OrganizationFactory.create(db_session, code="ORG2")
         dept2 = Department(
             organization_id=org2.id, code="HR", name="人事部", level=1, path=""
         )
@@ -135,9 +135,9 @@ class TestDepartmentModel:
     def test_department_cascade_delete(self, db_session) -> None:
         """親部門削除時に子部門も削除されることを確認."""
         # Given: 親子関係の部門
-        org = OrganizationFactory()
-        parent = DepartmentFactory(organization=org, level=1)
-        child = DepartmentFactory(organization=org, parent=parent, level=2)
+        org = OrganizationFactory.create(db_session, )
+        parent = DepartmentFactory.create(db_session, organization=org, level=1)
+        child = DepartmentFactory.create(db_session, organization=org, parent=parent, level=2)
         db_session.commit()
         child_id = child.id
 
@@ -151,10 +151,10 @@ class TestDepartmentModel:
     def test_department_sort_order(self, db_session) -> None:
         """部門のソート順が正しく機能することを確認."""
         # Given: 複数部門
-        org = OrganizationFactory()
-        dept1 = DepartmentFactory(organization=org, sort_order=2)
-        dept2 = DepartmentFactory(organization=org, sort_order=1)
-        dept3 = DepartmentFactory(organization=org, sort_order=3)
+        org = OrganizationFactory.create(db_session, )
+        dept1 = DepartmentFactory.create(db_session, organization=org, sort_order=2)
+        dept2 = DepartmentFactory.create(db_session, organization=org, sort_order=1)
+        dept3 = DepartmentFactory.create(db_session, organization=org, sort_order=3)
         db_session.commit()
 
         # When: ソート順で取得
@@ -173,14 +173,14 @@ class TestDepartmentModel:
     def test_department_tree_structure(self, db_session) -> None:
         """部門の階層構造が正しく取得できることを確認."""
         # Given: 階層構造
-        org = OrganizationFactory()
-        sales = DepartmentFactory(
+        org = OrganizationFactory.create(db_session, )
+        sales = DepartmentFactory.create(db_session,
             organization=org, code="SALES", name="営業部", level=1
         )
-        DepartmentFactory(
+        DepartmentFactory.create(db_session,
             organization=org, parent=sales, code="TOKYO", name="東京営業所", level=2
         )
-        DepartmentFactory(
+        DepartmentFactory.create(db_session,
             organization=org, parent=sales, code="OSAKA", name="大阪営業所", level=2
         )
         db_session.commit()
@@ -197,8 +197,8 @@ class TestDepartmentModel:
     def test_department_path_update(self, db_session) -> None:
         """部門パスが正しく更新されることを確認."""
         # Given: 部門
-        org = OrganizationFactory()
-        dept = DepartmentFactory(organization=org, level=1)
+        org = OrganizationFactory.create(db_session, )
+        dept = DepartmentFactory.create(db_session, organization=org, level=1)
         db_session.commit()
 
         # When: パス更新
@@ -211,9 +211,9 @@ class TestDepartmentModel:
     def test_department_full_path_name(self, db_session) -> None:
         """部門のフルパス名が正しく生成されることを確認."""
         # Given: 階層構造
-        org = OrganizationFactory()
-        parent = DepartmentFactory(organization=org, name="営業部", level=1)
-        child = DepartmentFactory(
+        org = OrganizationFactory.create(db_session, )
+        parent = DepartmentFactory.create(db_session, organization=org, name="営業部", level=1)
+        child = DepartmentFactory.create(db_session,
             organization=org, parent=parent, name="東京営業所", level=2
         )
         db_session.commit()

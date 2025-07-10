@@ -140,14 +140,13 @@ class RoleFactory(BaseFactory):
             ),
             "description": fake.text(max_nb_chars=200),
             "role_type": fake.random_element(
-                elements=("system", "custom", "department", "project")
+                elements=("system", "custom", "department", "organization")
             ),
-            "is_active": True,
+            "permissions": [],  # List of permission strings
             "is_system": False,
-            "full_path": "",
-            "depth": 0,
-            "permissions": {},
-            "display_order": 0,
+            "is_active": True,
+            "created_by": None,  # Will be set in tests if needed
+            "updated_by": None,  # Will be set in tests if needed
         }
 
     @classmethod
@@ -169,33 +168,15 @@ class RoleFactory(BaseFactory):
         return cls.create(db_session, **kwargs)
 
     @classmethod
-    def create_with_parent(cls, db_session, parent_role: Role, **kwargs) -> Role:
-        """Create a role with a parent role."""
-        kwargs["parent_id"] = parent_role.id
-        kwargs["organization_id"] = parent_role.organization_id
-        return cls.create(db_session, **kwargs)
-
-    @classmethod
     def create_with_permissions(
         cls, db_session, permissions: List[Permission], **kwargs
     ) -> Role:
         """Create a role with specific permissions."""
-        role = cls.create(db_session, **kwargs)
+        # Convert permissions to list of permission codes
+        permission_codes = [perm.code for perm in permissions]
+        kwargs["permissions"] = permission_codes
 
-        # Add permissions to role (JSON format in current implementation)
-        permission_dict = {}
-        for permission in permissions:
-            category = permission.category
-            if category not in permission_dict:
-                permission_dict[category] = {}
-            permission_dict[category][permission.code] = True
-
-        # Update role permissions JSON
-        role.permissions = permission_dict
-
-        db_session.commit()
-        db_session.refresh(role)
-        return role
+        return cls.create(db_session, **kwargs)
 
     @classmethod
     def create_role_hierarchy(
@@ -208,34 +189,31 @@ class RoleFactory(BaseFactory):
             organization,
             name="システム管理者",
             description="すべての権限を持つ管理者ロール",
-            role_type="system",
+            is_system=True,
         )
 
         # Create manager roles
-        manager_role = cls.create_with_parent(
+        manager_role = cls.create(
             db_session,
-            admin_role,
             name="マネージャー",
             description="部門管理権限を持つロール",
-            role_type="department",
+            is_system=False,
         )
 
         # Create user roles
-        user_role = cls.create_with_parent(
+        user_role = cls.create(
             db_session,
-            manager_role,
             name="一般ユーザー",
             description="基本的な操作権限を持つロール",
-            role_type="custom",
+            is_system=False,
         )
 
         # Create viewer role
-        viewer_role = cls.create_with_parent(
+        viewer_role = cls.create(
             db_session,
-            user_role,
             name="閲覧者",
             description="読み取り専用権限を持つロール",
-            role_type="custom",
+            is_system=False,
         )
 
         return {
@@ -248,9 +226,9 @@ class RoleFactory(BaseFactory):
         }
 
     @classmethod
-    def create_by_type(cls, db_session, role_type: str, **kwargs) -> Role:
+    def create_by_type(cls, db_session, is_system: bool = False, **kwargs) -> Role:
         """Create a role of a specific type."""
-        kwargs["role_type"] = role_type
+        kwargs["is_system"] = is_system
         return cls.create(db_session, **kwargs)
 
     @classmethod
@@ -262,7 +240,6 @@ class RoleFactory(BaseFactory):
     @classmethod
     def create_system_role(cls, db_session, **kwargs) -> Role:
         """Create a system role."""
-        kwargs["role_type"] = "system"
         kwargs["is_system"] = True
         return cls.create(db_session, **kwargs)
 
@@ -325,30 +302,23 @@ class RoleFactory(BaseFactory):
         cls, db_session, role: Role, permissions: List[Permission]
     ):
         """Helper method to assign permissions to a role."""
-        permission_dict = {}
-        for permission in permissions:
-            category = permission.category
-            if category not in permission_dict:
-                permission_dict[category] = {}
-            permission_dict[category][permission.code] = True
+        # Convert permissions to list of permission codes
+        permission_codes = [permission.code for permission in permissions]
 
-        # Update role permissions JSON
-        role.permissions = permission_dict
+        # Update role permissions as list
+        role.permissions = permission_codes
         db_session.commit()
 
     @classmethod
-    def create_minimal(cls, db_session, organization_id: int, **kwargs) -> Role:
+    def create_minimal(cls, db_session, **kwargs) -> Role:
         """Create a role with minimal required fields."""
         minimal_attrs = {
             "code": fake.bothify(text="role.###.####"),
             "name": fake.word(),
-            "organization_id": organization_id,
+            "role_type": "custom",
             "is_active": True,
             "is_system": False,
-            "full_path": "",
-            "depth": 0,
-            "permissions": {},
-            "display_order": 0,
+            "permissions": [],
         }
         minimal_attrs.update(kwargs)
         return cls.create(db_session, **minimal_attrs)
@@ -392,7 +362,7 @@ class UserRoleFactory(BaseFactory):
     model_class = UserRole
 
     @classmethod
-    def get_default_attributes(cls) -> Dict[str, Any]:
+    def _get_default_attributes(cls) -> Dict[str, Any]:
         """Get default attributes for UserRole creation."""
         return {
             "user_id": 1,  # Will be overridden with actual user
@@ -404,6 +374,9 @@ class UserRoleFactory(BaseFactory):
             "expires_at": None,
             "is_primary": False,
             "notes": None,
+            "approval_status": None,
+            "approved_by": None,
+            "approved_at": None,
         }
 
     @classmethod
@@ -411,7 +384,7 @@ class UserRoleFactory(BaseFactory):
         cls, db_session, user, role, organization, department=None, **kwargs
     ) -> UserRole:
         """Create a UserRole with actual relationship objects."""
-        attributes = cls.get_default_attributes()
+        attributes = cls._get_default_attributes()
         attributes.update(
             {
                 "user_id": user.id,
