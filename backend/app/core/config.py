@@ -20,42 +20,39 @@ class Settings(BaseSettings):
     def assemble_cors_origins(cls, v: Union[str, List[str], None]) -> List[str]:
         """
         CORS origins parser with CI environment compatibility.
-        Handles None, empty strings, comma-separated values, and JSON arrays.
+        Prioritizes comma-separated values before JSON parsing.
         """
-        # デフォルト値を常に定義
         default_origins = ["http://localhost:3000", "http://127.0.0.1:3000"]
-        
-        # Noneまたは空文字列の場合
+
         if v is None or v == "":
             return default_origins
-            
-        # 既にリストの場合はそのまま使用
-        if isinstance(v, list):
-            if len(v) > 0:
-                return [str(origin).strip() for origin in v if origin]
-            return default_origins
-            
-        # 文字列の場合の処理
+
         if isinstance(v, str):
             v_stripped = v.strip()
-            
-            # 空文字列チェック
             if not v_stripped:
                 return default_origins
-            
-            # カンマ区切り形式を最初に処理（最も一般的）
-            if "," in v_stripped:
-                origins = []
-                for origin in v_stripped.split(","):
-                    cleaned = origin.strip()
-                    if cleaned:
-                        origins.append(cleaned)
+
+            # Handle comma-separated values FIRST (before JSON)
+            if "," in v_stripped and not v_stripped.startswith("["):
+                origins = [origin.strip() for origin in v_stripped.split(",") if origin.strip()]
                 return origins if origins else default_origins
-            
-            # 単一のURL（カンマなし）
-            return [v_stripped]
-        
-        # その他の型の場合はデフォルトを返す
+
+            # Then handle JSON arrays
+            if v_stripped.startswith("["):
+                try:
+                    parsed = json.loads(v_stripped)
+                    if isinstance(parsed, list) and len(parsed) > 0:
+                        return [str(origin) for origin in parsed if origin]
+                except (json.JSONDecodeError, TypeError, ValueError):
+                    pass
+
+            # Single URL
+            if v_stripped:
+                return [v_stripped]
+
+        elif isinstance(v, list) and len(v) > 0:
+            return [str(origin) for origin in v if origin]
+
         return default_origins
 
     @property
