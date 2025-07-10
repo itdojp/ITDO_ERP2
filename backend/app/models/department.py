@@ -115,7 +115,7 @@ class Department(Base):
         """Get all departments for an organization."""
         return (
             db.query(cls)
-            .filter(cls.organization_id == organization_id, cls.is_active == True)
+            .filter(cls.organization_id == organization_id, cls.is_active)
             .order_by(cls.sort_order, cls.code)
             .all()
         )
@@ -135,7 +135,7 @@ class Department(Base):
         """Get direct children departments."""
         return (
             db.query(Department)
-            .filter(Department.parent_id == self.id, Department.is_active == True)
+            .filter(Department.parent_id == self.id, Department.is_active)
             .order_by(Department.sort_order, Department.code)
             .all()
         )
@@ -144,9 +144,7 @@ class Department(Base):
         """Get all descendant departments."""
         return (
             db.query(Department)
-            .filter(
-                Department.path.like(f"{self.path}/%"), Department.is_active == True
-            )
+            .filter(Department.path.like(f"{self.path}/%"), Department.is_active)
             .order_by(Department.level, Department.sort_order, Department.code)
             .all()
         )

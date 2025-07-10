@@ -139,7 +139,7 @@ class TestMultiTenantSecurity:
     def test_data_leak_prevention(self, db_session: Session) -> None:
         """データ漏洩が防止されることを確認."""
         # Given: 機密情報を含む組織
-        org1 = create_test_organization(
+        create_test_organization(
             code="SECRET", name="機密組織", email="secret@example.com"
         )
         org2 = create_test_organization(code="PUBLIC", name="公開組織")
@@ -208,13 +208,13 @@ class TestMultiTenantSecurity:
 
         # 各組織で部門作成（監査ログ生成）
         dept_service = DepartmentService()
-        dept1 = dept_service.create_department(
+        dept_service.create_department(
             data={"code": "DEPT1", "name": "部門1"},
             organization_id=org1.id,
             user=admin1,
             db=db_session,
         )
-        dept2 = dept_service.create_department(
+        dept_service.create_department(
             data={"code": "DEPT2", "name": "部門2"},
             organization_id=org2.id,
             user=admin2,

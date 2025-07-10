@@ -170,8 +170,8 @@ class TestOrganizationService:
         """組織検索が正しく動作することを確認."""
         # Given: 複数組織
         org1 = create_test_organization(name="株式会社アルファ", code="ALPHA")
-        org2 = create_test_organization(name="ベータ商事", code="BETA")
-        org3 = create_test_organization(name="ガンマ工業", code="GAMMA")
+        create_test_organization(name="ベータ商事", code="BETA")
+        create_test_organization(name="ガンマ工業", code="GAMMA")
 
         admin = create_test_user(is_superuser=True)
         db_session.commit()

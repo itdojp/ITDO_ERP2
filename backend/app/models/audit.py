@@ -11,8 +11,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import BaseModel
 
 if TYPE_CHECKING:
-    from app.models.organization import Organization
-    from app.models.user import User
+    pass
 
 # Re-export for backwards compatibility
 from app.models.user_activity_log import UserActivityLog
@@ -47,7 +46,8 @@ class AuditLog(BaseModel):
 
     # Relationships
     user = relationship("User", foreign_keys=[user_id])
-    # NOTE: organization relationship temporarily disabled to avoid circular import issues
+    # NOTE: organization relationship temporarily disabled to avoid circular
+    # import issues
     # organization = relationship("Organization", foreign_keys=[organization_id])
 
     def calculate_checksum(self) -> str:

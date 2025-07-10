@@ -62,7 +62,7 @@ class OrganizationService:
         search: Optional[str] = None,
     ) -> OrganizationList:
         """Get organizations accessible by user."""
-        query = db.query(Organization).filter(Organization.is_active == True)
+        query = db.query(Organization).filter(Organization.is_active)
 
         # Apply search filter
         if search:

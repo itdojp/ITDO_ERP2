@@ -52,7 +52,7 @@ class DepartmentService:
         limit: int = 10,
     ) -> DepartmentList:
         """Get departments accessible by user."""
-        query = db.query(Department).filter(Department.is_active == True)
+        query = db.query(Department).filter(Department.is_active)
 
         # Filter by organization
         if organization_id:

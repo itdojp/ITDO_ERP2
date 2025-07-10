@@ -64,7 +64,7 @@ class TestRoleModel:
     def test_duplicate_role_code(self, db_session) -> None:
         """重複するロールコードが拒否されることを確認."""
         # Given: 既存ロール
-        role1 = RoleFactory(code="VIEWER")
+        RoleFactory(code="VIEWER")
         db_session.commit()
 
         # When/Then: 同じコードで作成
@@ -150,7 +150,7 @@ class TestUserRoleModel:
         user = UserFactory()
         org = OrganizationFactory()
         role = RoleFactory()
-        user_role1 = UserRoleFactory(user=user, role=role, organization=org)
+        UserRoleFactory(user=user, role=role, organization=org)
         db_session.commit()
 
         # When/Then: 同じロール付与で例外

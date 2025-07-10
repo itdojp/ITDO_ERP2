@@ -56,7 +56,9 @@ def check_user_permission(
                 ):
                     raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN,
-                        detail="Insufficient permissions to check other users' permissions",
+                        detail=(
+                            "Insufficient permissions to check other users' permissions"
+                        ),
                     )
 
             # Get target user
@@ -123,7 +125,10 @@ def get_user_permission_level(
                 ):
                     raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN,
-                        detail="Insufficient permissions to view other users' permission levels",
+                        detail=(
+                            "Insufficient permissions to view "
+                            "other users' permission levels"
+                        ),
                     )
 
             # Get target user
@@ -191,7 +196,9 @@ def get_user_all_permissions(
                 ):
                     raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN,
-                        detail="Insufficient permissions to view other users' permissions",
+                        detail=(
+                            "Insufficient permissions to view other users' permissions"
+                        ),
                     )
 
             # Get target user

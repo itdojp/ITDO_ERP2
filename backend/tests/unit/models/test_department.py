@@ -102,7 +102,7 @@ class TestDepartmentModel:
         """組織内で部門コードが一意であることを確認."""
         # Given: 既存部門
         org = OrganizationFactory()
-        dept1 = DepartmentFactory(organization=org, code="HR")
+        DepartmentFactory(organization=org, code="HR")
         db_session.commit()
 
         # When/Then: 同じ組織内で同じコード
@@ -177,10 +177,10 @@ class TestDepartmentModel:
         sales = DepartmentFactory(
             organization=org, code="SALES", name="営業部", level=1
         )
-        tokyo = DepartmentFactory(
+        DepartmentFactory(
             organization=org, parent=sales, code="TOKYO", name="東京営業所", level=2
         )
-        osaka = DepartmentFactory(
+        DepartmentFactory(
             organization=org, parent=sales, code="OSAKA", name="大阪営業所", level=2
         )
         db_session.commit()

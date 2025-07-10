@@ -95,7 +95,7 @@ class Organization(Base):
     @classmethod
     def get_active_organizations(cls, db: Session) -> List["Organization"]:
         """Get all active organizations."""
-        return db.query(cls).filter(cls.is_active == True).all()
+        return db.query(cls).filter(cls.is_active).all()
 
     def update(self, db: Session, updated_by: int, **kwargs: Any) -> None:
         """Update organization attributes."""

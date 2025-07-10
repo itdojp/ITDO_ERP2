@@ -24,7 +24,8 @@ def create_test_user(**kwargs) -> User:
 
     return User(
         email=defaults["email"],
-        hashed_password="$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW",  # "secret"
+        # hashed password for "secret"
+        hashed_password="$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW",
         full_name=defaults["full_name"],
         is_active=defaults["is_active"],
         is_superuser=defaults["is_superuser"],

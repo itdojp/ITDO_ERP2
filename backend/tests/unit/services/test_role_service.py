@@ -217,7 +217,7 @@ class TestRoleService:
     ):
         """Test getting user roles."""
         # Given: User with assigned role
-        user_role = UserRole.create(
+        UserRole.create(
             db=db_session,
             user_id=test_user.id,
             role_id=test_role.id,

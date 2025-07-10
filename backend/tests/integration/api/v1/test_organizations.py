@@ -100,8 +100,8 @@ class TestOrganizationAPI:
         """TEST-API-ORG-002: 組織一覧APIがフィルタリングされることを確認."""
         # Given: 複数組織と制限ユーザー
         org1 = create_test_organization(code="ORG1", name="組織1")
-        org2 = create_test_organization(code="ORG2", name="組織2")
-        org3 = create_test_organization(code="ORG3", name="組織3")
+        create_test_organization(code="ORG2", name="組織2")
+        create_test_organization(code="ORG3", name="組織3")
 
         user = create_test_user()
         role = create_test_role(code="ORG_ADMIN")
@@ -214,9 +214,9 @@ class TestOrganizationAPI:
     ) -> None:
         """組織検索APIが正しく動作することを確認."""
         # Given: 複数組織
-        org1 = create_test_organization(name="アルファ商事", code="ALPHA")
-        org2 = create_test_organization(name="ベータ工業", code="BETA")
-        org3 = create_test_organization(name="アルファシステム", code="ALPHASYS")
+        create_test_organization(name="アルファ商事", code="ALPHA")
+        create_test_organization(name="ベータ工業", code="BETA")
+        create_test_organization(name="アルファシステム", code="ALPHASYS")
 
         admin = create_test_user(is_superuser=True)
         db_session.commit()

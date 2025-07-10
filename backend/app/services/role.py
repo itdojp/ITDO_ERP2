@@ -461,10 +461,10 @@ class RoleService:
                 raise PermissionDenied("ロール情報の閲覧権限がありません")
 
         # Build query
-        query = db.query(Role).filter(Role.is_active == True)
+        query = db.query(Role).filter(Role.is_active)
 
         if not include_system:
-            query = query.filter(Role.is_system == False)
+            query = query.filter(~Role.is_system)
 
         if search:
             query = query.filter(
