@@ -10,14 +10,18 @@ class Settings(BaseSettings):
     VERSION: str = "0.1.0"
     API_V1_STR: str = "/api/v1"
 
-    # CORS設定 - 文字列フィールドとして定義してvalidatorで処理
+    # CORS設定 - 文字列として保存してプロパティで処理
     BACKEND_CORS_ORIGINS: str = Field(
         default="http://localhost:3000,http://127.0.0.1:3000"
     )
 
-    @field_validator("BACKEND_CORS_ORIGINS", mode="before")
+    @property
+    def cors_origins_list(self) -> List[str]:
+        """CORS origins as a list for use in middleware."""
+        return self._parse_cors_origins(self.BACKEND_CORS_ORIGINS)
+
     @classmethod
-    def assemble_cors_origins(cls, v: Union[str, List[str], None]) -> List[str]:
+    def _parse_cors_origins(cls, v: Union[str, List[str], None]) -> List[str]:
         """
         CORS origins parser with CI environment compatibility.
         Prioritizes comma-separated values before JSON parsing.
@@ -54,11 +58,6 @@ class Settings(BaseSettings):
             return [str(origin) for origin in v if origin]
 
         return default_origins
-
-    @property
-    def cors_origins_list(self) -> List[str]:
-        """CORS origins as a list for use in middleware."""
-        return self.assemble_cors_origins(self.BACKEND_CORS_ORIGINS)
 
     # データベース設定
     POSTGRES_SERVER: str = "localhost"
