@@ -1,8 +1,9 @@
 """Organization schemas."""
 
+import json
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.schemas.common import AuditInfo, SoftDeleteInfo
 
@@ -155,6 +156,17 @@ class OrganizationResponse(
     subsidiary_count: int = 0
 
     model_config = ConfigDict(from_attributes=True)
+
+    @field_validator("settings", mode="before")
+    @classmethod
+    def parse_settings_json(cls, v: Any) -> dict[str, Any]:
+        """Parse settings JSON string to dict."""
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except (json.JSONDecodeError, TypeError):
+                return {}
+        return v or {}
 
 
 class OrganizationTree(BaseModel):

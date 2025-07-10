@@ -131,6 +131,7 @@ class DepartmentSummary(DepartmentBasic):
     parent_name: str | None = None
     manager_id: int | None = None
     manager_name: str | None = None
+    department_type: str | None = None
     current_headcount: int = 0
     headcount_limit: int | None = None
     is_over_headcount: bool = False
