@@ -1,5 +1,7 @@
 """Role and UserRole models."""
 
+from __future__ import annotations
+
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, List, Optional
 
@@ -20,9 +22,9 @@ from sqlalchemy.orm import Session, relationship
 from app.core.database import Base
 
 if TYPE_CHECKING:
-    from app.models.department import Department
-    from app.models.organization import Organization
-    from app.models.user import User
+    from app.models.department import Department  # noqa: F401
+    from app.models.organization import Organization  # noqa: F401
+    from app.models.user import User  # noqa: F401
 
 
 class Role(Base):

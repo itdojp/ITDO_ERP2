@@ -1,5 +1,7 @@
 """Organization model."""
 
+from __future__ import annotations
+
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
@@ -18,9 +20,9 @@ from sqlalchemy.orm import Session, relationship
 from app.core.database import Base
 
 if TYPE_CHECKING:
-    from app.models.department import Department
-    from app.models.role import UserRole
-    from app.models.user import User
+    from app.models.department import Department  # noqa: F401
+    from app.models.role import UserRole  # noqa: F401
+    from app.models.user import User  # noqa: F401
 
 
 class Organization(Base):

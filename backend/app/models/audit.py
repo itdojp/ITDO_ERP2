@@ -1,5 +1,7 @@
 """Audit log models."""
 
+from __future__ import annotations
+
 import hashlib
 import json
 from datetime import datetime
@@ -11,8 +13,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import BaseModel
 
 if TYPE_CHECKING:
-    from app.models.organization import Organization
-    from app.models.user import User
+    from app.models.organization import Organization  # noqa: F401
+    from app.models.user import User  # noqa: F401
 
 # Re-export for backwards compatibility
 from app.models.user_activity_log import UserActivityLog

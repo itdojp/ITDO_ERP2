@@ -1,5 +1,7 @@
 """Project model implementation (stub for type checking)."""
 
+from __future__ import annotations
+
 from datetime import date
 from typing import TYPE_CHECKING, Optional
 
@@ -10,8 +12,8 @@ from app.models.base import SoftDeletableModel
 from app.types import DepartmentId, OrganizationId, UserId
 
 if TYPE_CHECKING:
-    from app.models.department import Department
-    from app.models.organization import Organization
+    from app.models.department import Department  # noqa: F401
+    from app.models.organization import Organization  # noqa: F401
     from app.models.task import Task
     from app.models.user import User
 

@@ -1,14 +1,14 @@
 """Permission model for RBAC system."""
 
-from typing import TYPE_CHECKING, Optional
+from typing import Optional
 
 from sqlalchemy import Boolean, Index, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import BaseModel
 
-if TYPE_CHECKING:
-    pass  # RolePermission model has been removed
+# if TYPE_CHECKING:
+#     pass  # RolePermission model has been removed
 
 
 class Permission(BaseModel):
