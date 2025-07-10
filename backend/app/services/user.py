@@ -4,7 +4,7 @@ import random
 import string
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
@@ -29,8 +29,8 @@ class ExportData:
     """Export data container."""
 
     content_type: str
-    headers: List[str]
-    rows: List[List[str]]
+    headers: list[str]
+    rows: list[list[str]]
 
 
 class UserService:
@@ -300,8 +300,8 @@ class UserService:
         organization_id: int,
         assigner: User,
         db: Session,
-        department_id: Optional[int] = None,
-        expires_at: Optional[datetime] = None,
+        department_id: int | None = None,
+        expires_at: datetime | None = None,
     ) -> UserRole:
         """Assign role to user."""
         # Get user
@@ -424,7 +424,7 @@ class UserService:
 
     def get_user_permissions(
         self, user_id: int, organization_id: int, db: Session
-    ) -> List[str]:
+    ) -> list[str]:
         """Get user's effective permissions in organization."""
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
@@ -434,7 +434,7 @@ class UserService:
 
     def bulk_import_users(
         self,
-        data: List[Dict[str, Any]],
+        data: list[dict[str, Any]],
         organization_id: int,
         role_id: int,
         importer: User,
@@ -632,7 +632,7 @@ class UserService:
         resource_type: str,
         resource_id: int,
         user: User,
-        changes: Dict[str, Any],
+        changes: dict[str, Any],
         db: Session,
     ) -> None:
         """Log audit trail."""

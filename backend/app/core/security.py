@@ -1,7 +1,7 @@
 """Security utilities for authentication and authorization."""
 
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Optional
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from jose import ExpiredSignatureError, JWTError, jwt
 from passlib.context import CryptContext
@@ -24,22 +24,22 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 
 def create_access_token(
-    data: Dict[str, Any], expires_delta: Optional[timedelta] = None
+    data: dict[str, Any], expires_delta: timedelta | None = None
 ) -> str:
     """Create a JWT access token."""
     to_encode = data.copy()
 
     # Set expiration
     if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
+        expire = datetime.now(UTC) + expires_delta
     else:
-        expire = datetime.now(timezone.utc) + timedelta(
+        expire = datetime.now(UTC) + timedelta(
             minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
         )
 
     # Add token metadata
     to_encode.update(
-        {"exp": expire, "iat": datetime.now(timezone.utc), "type": "access"}
+        {"exp": expire, "iat": datetime.now(UTC), "type": "access"}
     )
 
     # Encode token
@@ -50,22 +50,22 @@ def create_access_token(
 
 
 def create_refresh_token(
-    data: Dict[str, Any], expires_delta: Optional[timedelta] = None
+    data: dict[str, Any], expires_delta: timedelta | None = None
 ) -> str:
     """Create a JWT refresh token."""
     to_encode = data.copy()
 
     # Set expiration
     if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
+        expire = datetime.now(UTC) + expires_delta
     else:
-        expire = datetime.now(timezone.utc) + timedelta(
+        expire = datetime.now(UTC) + timedelta(
             days=settings.REFRESH_TOKEN_EXPIRE_DAYS
         )
 
     # Add token metadata
     to_encode.update(
-        {"exp": expire, "iat": datetime.now(timezone.utc), "type": "refresh"}
+        {"exp": expire, "iat": datetime.now(UTC), "type": "refresh"}
     )
 
     # Encode token
@@ -75,7 +75,7 @@ def create_refresh_token(
     return encoded_jwt
 
 
-def verify_token(token: str) -> Dict[str, Any]:
+def verify_token(token: str) -> dict[str, Any]:
     """Verify and decode a JWT token."""
     try:
         # Decode token

@@ -1,7 +1,7 @@
 """Common schemas used across the ITDO ERP System."""
 
 from datetime import datetime
-from typing import Any, Generic, List, Optional, TypeVar
+from typing import Any, Generic, TypeVar
 
 from pydantic import BaseModel, Field
 
@@ -13,8 +13,8 @@ class ErrorResponse(BaseModel):
     """Standard error response schema."""
 
     detail: str = Field(..., description="Error message")
-    code: Optional[str] = Field(None, description="Error code")
-    field: Optional[str] = Field(None, description="Field that caused the error")
+    code: str | None = Field(None, description="Error code")
+    field: str | None = Field(None, description="Field that caused the error")
 
     class Config:
         json_schema_extra = {
@@ -31,7 +31,7 @@ class SuccessResponse(BaseModel):
 
     success: bool = Field(True, description="Operation success status")
     message: str = Field(..., description="Success message")
-    data: Optional[Any] = Field(None, description="Additional data")
+    data: Any | None = Field(None, description="Additional data")
 
     class Config:
         json_schema_extra = {
@@ -48,8 +48,8 @@ class DeleteResponse(BaseModel):
 
     success: bool = Field(..., description="Deletion success status")
     message: str = Field(..., description="Deletion message")
-    id: Optional[int] = Field(None, description="ID of deleted item")
-    count: Optional[int] = Field(None, description="Number of deleted items")
+    id: int | None = Field(None, description="ID of deleted item")
+    count: int | None = Field(None, description="Number of deleted items")
 
     class Config:
         json_schema_extra = {
@@ -65,11 +65,11 @@ class DeleteResponse(BaseModel):
 class PaginatedResponse(BaseModel, Generic[T]):
     """Generic paginated response schema."""
 
-    items: List[T] = Field(..., description="List of items")
+    items: list[T] = Field(..., description="List of items")
     total: int = Field(..., description="Total number of items")
     skip: int = Field(..., description="Number of items skipped")
     limit: int = Field(..., description="Maximum number of items returned")
-    has_more: Optional[bool] = Field(
+    has_more: bool | None = Field(
         None, description="Whether more items are available"
     )
 
@@ -100,7 +100,7 @@ class HealthCheckResponse(BaseModel):
     timestamp: datetime = Field(..., description="Current timestamp")
     version: str = Field(..., description="API version")
     database: str = Field(..., description="Database connection status")
-    cache: Optional[str] = Field(None, description="Cache connection status")
+    cache: str | None = Field(None, description="Cache connection status")
 
     class Config:
         json_schema_extra = {
@@ -119,10 +119,10 @@ class BulkOperationResult(BaseModel):
 
     success_count: int = Field(..., description="Number of successful operations")
     error_count: int = Field(..., description="Number of failed operations")
-    errors: List[ErrorResponse] = Field(
+    errors: list[ErrorResponse] = Field(
         default_factory=list, description="List of errors"
     )
-    success_ids: List[int] = Field(
+    success_ids: list[int] = Field(
         default_factory=list, description="IDs of successful operations"
     )
 
@@ -167,11 +167,11 @@ class SortOption(BaseModel):
 class SearchRequest(BaseModel):
     """Advanced search request schema."""
 
-    query: Optional[str] = Field(None, description="Search query string")
-    filters: List[FilterOption] = Field(
+    query: str | None = Field(None, description="Search query string")
+    filters: list[FilterOption] = Field(
         default_factory=list, description="List of filters"
     )
-    sort: List[SortOption] = Field(
+    sort: list[SortOption] = Field(
         default_factory=list, description="List of sort options"
     )
     skip: int = Field(0, ge=0, description="Number of items to skip")
@@ -196,11 +196,11 @@ class AuditInfo(BaseModel):
     """Audit information for resources."""
 
     created_at: datetime = Field(..., description="Creation timestamp")
-    created_by: Optional[int] = Field(
+    created_by: int | None = Field(
         None, description="ID of user who created the resource"
     )
     updated_at: datetime = Field(..., description="Last update timestamp")
-    updated_by: Optional[int] = Field(
+    updated_by: int | None = Field(
         None, description="ID of user who last updated the resource"
     )
 
@@ -209,8 +209,8 @@ class SoftDeleteInfo(BaseModel):
     """Soft delete information for resources."""
 
     is_deleted: bool = Field(..., description="Whether the resource is soft deleted")
-    deleted_at: Optional[datetime] = Field(None, description="Deletion timestamp")
-    deleted_by: Optional[int] = Field(
+    deleted_at: datetime | None = Field(None, description="Deletion timestamp")
+    deleted_by: int | None = Field(
         None, description="ID of user who deleted the resource"
     )
 

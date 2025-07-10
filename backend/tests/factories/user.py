@@ -1,6 +1,6 @@
 """Factory for User model."""
 
-from typing import Any, Dict
+from typing import Any
 
 from sqlalchemy.orm import Session
 
@@ -14,7 +14,7 @@ class UserFactory(BaseFactory):
     model_class = User  # Model class for this factory
 
     @classmethod
-    def _get_default_attributes(cls) -> Dict[str, Any]:
+    def _get_default_attributes(cls) -> dict[str, Any]:
         """Get default attributes for creating User instances."""
         return {
             "email": fake.unique.email(),
@@ -27,7 +27,7 @@ class UserFactory(BaseFactory):
         }
 
     @classmethod
-    def _get_update_attributes(cls) -> Dict[str, Any]:
+    def _get_update_attributes(cls) -> dict[str, Any]:
         """Get default attributes for updating User instances."""
         return {
             "full_name": fake.name(),

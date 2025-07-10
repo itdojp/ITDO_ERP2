@@ -1,6 +1,5 @@
 """User management endpoints."""
 
-from typing import Union
 
 from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
@@ -29,7 +28,7 @@ def create_user(
     user_data: UserCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_superuser),
-) -> Union[UserResponse, JSONResponse]:
+) -> UserResponse | JSONResponse:
     """Create a new user (admin only)."""
     try:
         # Create user

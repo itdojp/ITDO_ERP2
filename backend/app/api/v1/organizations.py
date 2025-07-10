@@ -1,6 +1,6 @@
 """Organization API endpoints."""
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from fastapi.responses import JSONResponse
@@ -33,9 +33,9 @@ router = APIRouter(prefix="/organizations", tags=["organizations"])
 def list_organizations(
     skip: int = Query(0, ge=0, description="Number of items to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Number of items to return"),
-    search: Optional[str] = Query(None, description="Search query"),
+    search: str | None = Query(None, description="Search query"),
     active_only: bool = Query(True, description="Only return active organizations"),
-    industry: Optional[str] = Query(None, description="Filter by industry"),
+    industry: str | None = Query(None, description="Filter by industry"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ) -> PaginatedResponse[OrganizationSummary]:
@@ -43,7 +43,7 @@ def list_organizations(
     service = OrganizationService(db)
 
     # Build filters
-    filters: Dict[str, Any] = {}
+    filters: dict[str, Any] = {}
     if active_only:
         filters["is_active"] = True
     if industry:
@@ -65,14 +65,14 @@ def list_organizations(
 
 @router.get(
     "/tree",
-    response_model=List[OrganizationTree],
+    response_model=list[OrganizationTree],
     responses={
         401: {"model": ErrorResponse, "description": "Unauthorized"},
     },
 )
 def get_organization_tree(
     db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)
-) -> List[OrganizationTree]:
+) -> list[OrganizationTree]:
     """Get organization hierarchy tree."""
     service = OrganizationService(db)
     return service.get_organization_tree()
@@ -120,7 +120,7 @@ def create_organization(
     organization_data: OrganizationCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> Union[OrganizationResponse, JSONResponse]:
+) -> OrganizationResponse | JSONResponse:
     """Create a new organization (requires admin role)."""
     # Check permissions
     if not current_user.is_superuser:
@@ -175,7 +175,7 @@ def update_organization(
     organization_data: OrganizationUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> Union[OrganizationResponse, JSONResponse]:
+) -> OrganizationResponse | JSONResponse:
     """Update organization details."""
     # Check permissions
     if not current_user.is_superuser:
@@ -239,7 +239,7 @@ def delete_organization(
     organization_id: int = Path(..., description="Organization ID"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> Union[DeleteResponse, JSONResponse]:
+) -> DeleteResponse | JSONResponse:
     """Delete (soft delete) an organization."""
     # Check permissions
     if not current_user.is_superuser:
@@ -284,7 +284,7 @@ def delete_organization(
 
 @router.get(
     "/{organization_id}/subsidiaries",
-    response_model=List[OrganizationBasic],
+    response_model=list[OrganizationBasic],
     responses={
         401: {"model": ErrorResponse, "description": "Unauthorized"},
         404: {"model": ErrorResponse, "description": "Organization not found"},
@@ -295,7 +295,7 @@ def get_subsidiaries(
     recursive: bool = Query(False, description="Get all subsidiaries recursively"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> List[OrganizationBasic]:
+) -> list[OrganizationBasic]:
     """Get subsidiaries of an organization."""
     service = OrganizationService(db)
 
@@ -326,7 +326,7 @@ def activate_organization(
     organization_id: int = Path(..., description="Organization ID"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> Union[OrganizationResponse, JSONResponse]:
+) -> OrganizationResponse | JSONResponse:
     """Activate an inactive organization."""
     # Check permissions
     if not current_user.is_superuser:
@@ -369,7 +369,7 @@ def deactivate_organization(
     organization_id: int = Path(..., description="Organization ID"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> Union[OrganizationResponse, JSONResponse]:
+) -> OrganizationResponse | JSONResponse:
     """Deactivate an active organization."""
     # Check permissions
     if not current_user.is_superuser:

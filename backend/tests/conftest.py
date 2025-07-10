@@ -2,7 +2,8 @@
 
 # Use PostgreSQL for integration tests (same as development)
 import os
-from typing import Any, Dict, Generator
+from collections.abc import Generator
+from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
@@ -44,7 +45,7 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engin
 
 
 @pytest.fixture
-def db_session() -> Generator[Session, None, None]:
+def db_session() -> Generator[Session]:
     """Create a clean database session for each test."""
     # Create tables
     Base.metadata.create_all(bind=engine)
@@ -89,10 +90,10 @@ def db_session() -> Generator[Session, None, None]:
 
 
 @pytest.fixture
-def client(db_session: Session) -> Generator[TestClient, None, None]:
+def client(db_session: Session) -> Generator[TestClient]:
     """Create a test client with overridden database dependency."""
 
-    def override_get_db() -> Generator[Session, None, None]:
+    def override_get_db() -> Generator[Session]:
         try:
             yield db_session
         finally:
@@ -145,7 +146,7 @@ def test_manager(db_session: Session) -> User:
 
 
 @pytest.fixture
-def test_users_set(db_session: Session) -> Dict[str, User]:
+def test_users_set(db_session: Session) -> dict[str, User]:
     """Create a complete set of test users."""
     return UserFactory.create_test_users_set(db_session)
 
@@ -197,7 +198,7 @@ def test_organization(db_session: Session) -> Organization:
 
 
 @pytest.fixture
-def test_organization_tree(db_session: Session) -> Dict[str, Any]:
+def test_organization_tree(db_session: Session) -> dict[str, Any]:
     """Create an organization tree structure."""
     return OrganizationFactory.create_subsidiary_tree(
         db_session, depth=2, children_per_level=2
@@ -218,7 +219,7 @@ def test_department(db_session: Session, test_organization: Organization) -> Dep
 @pytest.fixture
 def test_department_tree(
     db_session: Session, test_organization: Organization
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Create a department tree structure."""
     return DepartmentFactory.create_department_tree(
         db_session, test_organization, depth=3, children_per_level=2
@@ -237,13 +238,13 @@ def test_role(db_session: Session, test_organization: Organization) -> Role:
 
 
 @pytest.fixture
-def test_permissions(db_session: Session) -> Dict[str, list[Permission]]:
+def test_permissions(db_session: Session) -> dict[str, list[Permission]]:
     """Create standard permissions."""
     return PermissionFactory.create_standard_permissions(db_session)
 
 
 @pytest.fixture
-def test_role_system(db_session: Session) -> Dict[str, Any]:
+def test_role_system(db_session: Session) -> dict[str, Any]:
     """Create a complete role system with permissions."""
     return RoleFactory.create_complete_role_system(db_session)
 
@@ -252,7 +253,7 @@ def test_role_system(db_session: Session) -> Dict[str, Any]:
 
 
 @pytest.fixture
-def complete_test_system(db_session: Session) -> Dict[str, Any]:
+def complete_test_system(db_session: Session) -> dict[str, Any]:
     """Create a complete test system with all entities."""
     # Create role system (includes organization and permissions)
     role_system = RoleFactory.create_complete_role_system(db_session)
@@ -292,7 +293,7 @@ def setup_test_environment(monkeypatch: Any) -> None:
 # Utility Functions for Tests
 
 
-def create_auth_headers(token: str) -> Dict[str, str]:
+def create_auth_headers(token: str) -> dict[str, str]:
     """Create authorization headers with bearer token."""
     return {"Authorization": f"Bearer {token}"}
 

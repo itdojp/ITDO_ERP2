@@ -1,7 +1,7 @@
 """Task management service."""
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from sqlalchemy.orm import Session, joinedload
 
@@ -130,12 +130,12 @@ class TaskService:
 
     def list_tasks(
         self,
-        filters: Dict[str, Any],
+        filters: dict[str, Any],
         user: User,
         db: Session,
         page: int = 1,
         page_size: int = 20,
-        sort_by: Optional[str] = None,
+        sort_by: str | None = None,
         sort_order: str = "asc",
     ) -> TaskListResponse:
         """List tasks with filters and pagination."""
@@ -278,7 +278,7 @@ class TaskService:
         return self._task_to_response(task)
 
     def bulk_assign_users(
-        self, task_id: int, assignee_ids: List[int], user: User, db: Session
+        self, task_id: int, assignee_ids: list[int], user: User, db: Session
     ) -> TaskResponse:
         """Assign multiple users to a task."""
         # For now, assign the first user only (single assignee model)
@@ -370,7 +370,7 @@ class TaskService:
 
     def add_dependency(
         self, task_id: int, depends_on: int, user: User, db: Session
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Add task dependency."""
         # For now, use parent_task_id for simple hierarchy
         task = db.query(Task).filter(Task.id == task_id).first()
@@ -396,7 +396,7 @@ class TaskService:
 
         return {"task_id": task_id, "depends_on": depends_on, "status": "added"}
 
-    def get_dependencies(self, task_id: int, user: User, db: Session) -> Dict[str, Any]:
+    def get_dependencies(self, task_id: int, user: User, db: Session) -> dict[str, Any]:
         """Get task dependencies."""
         task = db.query(Task).filter(Task.id == task_id).first()
         if not task:
@@ -650,7 +650,7 @@ class TaskService:
         user: User,
         db: Session,
         include_subdepartments: bool = True,
-        status_filter: Optional[str] = None,
+        status_filter: str | None = None,
         page: int = 1,
         page_size: int = 20,
     ) -> TaskListResponse:

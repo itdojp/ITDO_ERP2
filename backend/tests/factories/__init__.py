@@ -16,17 +16,17 @@ T = TypeVar("T", bound=SoftDeletableModel)
 class BaseFactory(ABC):
     """Base factory class for creating test model instances."""
 
-    model_class: Type[T]  # Abstract class variable to be overridden in subclasses
+    model_class: type[T]  # Abstract class variable to be overridden in subclasses
 
     @classmethod
-    def build_dict(cls, **kwargs: Any) -> Dict[str, Any]:
+    def build_dict(cls, **kwargs: Any) -> dict[str, Any]:
         """Build a dictionary of attributes for model creation."""
         defaults = cls._get_default_attributes()
         defaults.update(kwargs)
         return defaults
 
     @classmethod
-    def build_update_dict(cls, **kwargs: Any) -> Dict[str, Any]:
+    def build_update_dict(cls, **kwargs: Any) -> dict[str, Any]:
         """Build a dictionary of attributes for model updates."""
         # For updates, we typically want a subset of fields
         defaults = cls._get_update_attributes()
@@ -65,12 +65,12 @@ class BaseFactory(ABC):
 
     @classmethod
     @abstractmethod
-    def _get_default_attributes(cls) -> Dict[str, Any]:
+    def _get_default_attributes(cls) -> dict[str, Any]:
         """Get default attributes for creating instances."""
         pass
 
     @classmethod
-    def _get_update_attributes(cls) -> Dict[str, Any]:
+    def _get_update_attributes(cls) -> dict[str, Any]:
         """Get default attributes for updating instances."""
         # By default, return a subset of create attributes
         defaults = cls._get_default_attributes()

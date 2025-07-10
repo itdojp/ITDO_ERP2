@@ -1,6 +1,5 @@
 """Task management API endpoints."""
 
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
@@ -43,13 +42,13 @@ def create_task(
 
 @router.get("", response_model=TaskListResponse)
 def list_tasks(
-    project_id: Optional[int] = Query(None),
-    status: Optional[str] = Query(None),
-    priority: Optional[str] = Query(None),
-    assignee_id: Optional[int] = Query(None),
+    project_id: int | None = Query(None),
+    status: str | None = Query(None),
+    priority: str | None = Query(None),
+    assignee_id: int | None = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    sort_by: Optional[str] = Query(None),
+    sort_by: str | None = Query(None),
     sort_order: str = Query("asc", pattern="^(asc|desc)$"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
@@ -196,7 +195,7 @@ def get_department_tasks(
     include_subdepartments: bool = Query(
         True, description="Include subdepartment tasks"
     ),
-    status: Optional[str] = Query(None, description="Filter by status"),
+    status: str | None = Query(None, description="Filter by status"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),

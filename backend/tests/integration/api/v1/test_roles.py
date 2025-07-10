@@ -1,6 +1,6 @@
 """Integration tests for Role API endpoints."""
 
-from typing import Any, Dict
+from typing import Any
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
@@ -53,7 +53,7 @@ class TestRoleAPI(
             kwargs["organization_id"] = organization.id
         return self.factory_class.create(db_session, **kwargs)
 
-    def create_valid_payload(self, **overrides: Any) -> Dict[str, Any]:
+    def create_valid_payload(self, **overrides: Any) -> dict[str, Any]:
         """Create a valid payload for role creation."""
         # Ensure we have an organization_id
         if "organization_id" not in overrides:
@@ -108,7 +108,7 @@ class TestRoleAPI(
     def test_list_all_permissions(
         self,
         client: TestClient,
-        test_permissions: Dict[str, list[Permission]],
+        test_permissions: dict[str, list[Permission]],
         admin_token: str,
     ) -> None:
         """Test list all permissions endpoint."""
@@ -132,7 +132,7 @@ class TestRoleAPI(
     def test_list_permissions_by_category(
         self,
         client: TestClient,
-        test_permissions: Dict[str, list[Permission]],
+        test_permissions: dict[str, list[Permission]],
         admin_token: str,
     ) -> None:
         """Test list permissions filtered by category."""
@@ -149,7 +149,7 @@ class TestRoleAPI(
         assert all(cat == "users" for cat in categories)
 
     def test_get_role_permissions(
-        self, client: TestClient, test_role_system: Dict[str, Any], admin_token: str
+        self, client: TestClient, test_role_system: dict[str, Any], admin_token: str
     ) -> None:
         """Test get role with permissions endpoint."""
         admin_role = test_role_system["roles"]["admin"]
@@ -169,7 +169,7 @@ class TestRoleAPI(
         assert len(data["all_permission_codes"]) > 0
 
     def test_get_role_permissions_include_inherited(
-        self, client: TestClient, test_role_system: Dict[str, Any], admin_token: str
+        self, client: TestClient, test_role_system: dict[str, Any], admin_token: str
     ) -> None:
         """Test get role permissions with inherited permissions."""
         user_role = test_role_system["roles"]["user"]
@@ -201,7 +201,7 @@ class TestRoleAPI(
         self,
         client: TestClient,
         test_organization: Organization,
-        test_permissions: Dict[str, list[Permission]],
+        test_permissions: dict[str, list[Permission]],
         db_session: Session,
         admin_token: str,
     ) -> None:

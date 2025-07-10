@@ -1,6 +1,6 @@
 """Department API endpoints."""
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, status
 from fastapi.responses import JSONResponse
@@ -37,12 +37,12 @@ router = APIRouter(prefix="/departments", tags=["departments"])
 def list_departments(
     skip: int = Query(0, ge=0, description="Number of items to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Number of items to return"),
-    organization_id: Optional[OrganizationId] = Query(
+    organization_id: OrganizationId | None = Query(
         None, description="Filter by organization"
     ),
-    search: Optional[str] = Query(None, description="Search query"),
+    search: str | None = Query(None, description="Search query"),
     active_only: bool = Query(True, description="Only return active departments"),
-    department_type: Optional[str] = Query(
+    department_type: str | None = Query(
         None, description="Filter by department type"
     ),
     db: Session = Depends(get_db),
@@ -52,7 +52,7 @@ def list_departments(
     service = DepartmentService(db)
 
     # Build filters
-    filters: Dict[str, Any] = {}
+    filters: dict[str, Any] = {}
     if organization_id:
         filters["organization_id"] = organization_id
     if active_only:
@@ -76,7 +76,7 @@ def list_departments(
 
 @router.get(
     "/organization/{organization_id}/tree",
-    response_model=List[DepartmentTree],
+    response_model=list[DepartmentTree],
     responses={
         401: {"model": ErrorResponse, "description": "Unauthorized"},
         404: {"model": ErrorResponse, "description": "Organization not found"},
@@ -86,7 +86,7 @@ def get_department_tree(
     organization_id: OrganizationId = Path(..., description="Organization ID"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> List[DepartmentTree]:
+) -> list[DepartmentTree]:
     """Get department hierarchy tree for an organization."""
     service = DepartmentService(db)
 
@@ -104,7 +104,7 @@ def get_department_tree(
 
 @router.put(
     "/reorder",
-    response_model=Dict[str, str],
+    response_model=dict[str, str],
     responses={
         401: {"model": ErrorResponse, "description": "Unauthorized"},
         403: {"model": ErrorResponse, "description": "Insufficient permissions"},
@@ -112,12 +112,12 @@ def get_department_tree(
     },
 )
 def reorder_departments(
-    department_ids: List[int] = Body(
+    department_ids: list[int] = Body(
         ..., description="List of department IDs in new order"
     ),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> Union[Dict[str, str], JSONResponse]:
+) -> dict[str, str] | JSONResponse:
     """Update display order for multiple departments."""
     if not department_ids:
         return JSONResponse(
@@ -230,7 +230,7 @@ def create_department(
     department_data: DepartmentCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> Union[DepartmentResponse, JSONResponse]:
+) -> DepartmentResponse | JSONResponse:
     """Create a new department."""
     # Check permissions
     service = DepartmentService(db)
@@ -306,7 +306,7 @@ def update_department(
     department_data: DepartmentUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> Union[DepartmentResponse, JSONResponse]:
+) -> DepartmentResponse | JSONResponse:
     """Update department details."""
     service = DepartmentService(db)
     department = service.get_department(department_id)
@@ -386,7 +386,7 @@ def delete_department(
     department_id: int = Path(..., description="Department ID"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> Union[DeleteResponse, JSONResponse]:
+) -> DeleteResponse | JSONResponse:
     """Delete (soft delete) a department."""
     service = DepartmentService(db)
     department = service.get_department(department_id)
@@ -432,7 +432,7 @@ def delete_department(
 
 @router.get(
     "/{department_id}/sub-departments",
-    response_model=List[DepartmentBasic],
+    response_model=list[DepartmentBasic],
     responses={
         401: {"model": ErrorResponse, "description": "Unauthorized"},
         404: {"model": ErrorResponse, "description": "Department not found"},
@@ -443,7 +443,7 @@ def get_sub_departments(
     recursive: bool = Query(False, description="Get all sub-departments recursively"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> List[DepartmentBasic]:
+) -> list[DepartmentBasic]:
     """Get sub-departments of a department."""
     service = DepartmentService(db)
 
@@ -477,7 +477,7 @@ def get_department_tasks_via_department_endpoint(
     include_subdepartments: bool = Query(
         True, description="Include subdepartment tasks"
     ),
-    status: Optional[str] = Query(None, description="Filter by status"),
+    status: str | None = Query(None, description="Filter by status"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),

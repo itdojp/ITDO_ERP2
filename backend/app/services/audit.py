@@ -1,6 +1,6 @@
 """Audit logging service."""
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 from sqlalchemy.orm import Session
 
@@ -17,11 +17,11 @@ class AuditLogger:
         resource_type: str,
         resource_id: int,
         user: User,
-        changes: Dict[str, Any],
+        changes: dict[str, Any],
         db: Session,
-        organization_id: Optional[int] = None,
-        ip_address: Optional[str] = None,
-        user_agent: Optional[str] = None,
+        organization_id: int | None = None,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
     ) -> AuditLog:
         """Log an audit entry."""
         # Create audit log
@@ -52,12 +52,12 @@ class AuditService:
         self,
         user: User,
         db: Session,
-        organization_id: Optional[int] = None,
-        resource_type: Optional[str] = None,
-        action: Optional[str] = None,
+        organization_id: int | None = None,
+        resource_type: str | None = None,
+        action: str | None = None,
         page: int = 1,
         limit: int = 20,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Get audit logs with filtering."""
         query = db.query(AuditLog)
 

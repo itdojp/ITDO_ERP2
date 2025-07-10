@@ -1,6 +1,6 @@
 """Department service implementation."""
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
@@ -28,13 +28,13 @@ class DepartmentService:
         self.db = db
         self.repository = DepartmentRepository(Department, db)
 
-    def get_department(self, department_id: DepartmentId) -> Optional[Department]:
+    def get_department(self, department_id: DepartmentId) -> Department | None:
         """Get department by ID."""
         return self.repository.get(department_id)
 
     def list_departments(
-        self, skip: int = 0, limit: int = 100, filters: Optional[Dict[str, Any]] = None
-    ) -> Tuple[List[Department], int]:
+        self, skip: int = 0, limit: int = 100, filters: dict[str, Any] | None = None
+    ) -> tuple[list[Department], int]:
         """List departments with pagination."""
         departments = self.repository.get_multi(skip=skip, limit=limit, filters=filters)
         total = self.repository.get_count(filters=filters)
@@ -45,8 +45,8 @@ class DepartmentService:
         query: str,
         skip: int = 0,
         limit: int = 100,
-        organization_id: Optional[OrganizationId] = None,
-    ) -> Tuple[List[Department], int]:
+        organization_id: OrganizationId | None = None,
+    ) -> tuple[list[Department], int]:
         """Search departments by name."""
         # Build search conditions
         search_condition = or_(
@@ -74,7 +74,7 @@ class DepartmentService:
         return paginated_results, total
 
     def create_department(
-        self, department_data: DepartmentCreate, created_by: Optional[UserId] = None
+        self, department_data: DepartmentCreate, created_by: UserId | None = None
     ) -> Department:
         """Create a new department."""
         # Validate unique code within organization
@@ -107,8 +107,8 @@ class DepartmentService:
         self,
         department_id: DepartmentId,
         department_data: DepartmentUpdate,
-        updated_by: Optional[UserId] = None,
-    ) -> Optional[Department]:
+        updated_by: UserId | None = None,
+    ) -> Department | None:
         """Update department details."""
         # Check if department exists
         department = self.repository.get(department_id)
@@ -143,7 +143,7 @@ class DepartmentService:
         return self.repository.update(department_id, DepartmentUpdate(**data))
 
     def delete_department(
-        self, department_id: DepartmentId, deleted_by: Optional[UserId] = None
+        self, department_id: DepartmentId, deleted_by: UserId | None = None
     ) -> bool:
         """Soft delete a department."""
         department = self.repository.get(department_id)
@@ -157,7 +157,7 @@ class DepartmentService:
 
     def get_department_tree(
         self, organization_id: OrganizationId
-    ) -> List[DepartmentTree]:
+    ) -> list[DepartmentTree]:
         """Get department hierarchy tree for an organization."""
         # Get root departments
         roots = (
@@ -307,7 +307,7 @@ class DepartmentService:
             total_users=len(user_basics),
         )
 
-    def get_direct_sub_departments(self, parent_id: DepartmentId) -> List[Department]:
+    def get_direct_sub_departments(self, parent_id: DepartmentId) -> list[Department]:
         """Get direct sub-departments."""
         return (
             self.db.query(Department)
@@ -316,7 +316,7 @@ class DepartmentService:
             .all()
         )
 
-    def get_all_sub_departments(self, parent_id: DepartmentId) -> List[Department]:
+    def get_all_sub_departments(self, parent_id: DepartmentId) -> list[Department]:
         """Get all sub-departments recursively."""
         result = []
 
@@ -358,7 +358,7 @@ class DepartmentService:
             .count()
         )
 
-    def update_display_order(self, department_ids: List[DepartmentId]) -> None:
+    def update_display_order(self, department_ids: list[DepartmentId]) -> None:
         """Update display order for departments."""
         for i, dept_id in enumerate(department_ids):
             dept = self.repository.get(dept_id)

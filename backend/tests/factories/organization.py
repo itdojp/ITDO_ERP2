@@ -1,7 +1,7 @@
 """Factory for Organization model."""
 
 import json
-from typing import Any, Dict
+from typing import Any
 
 from app.models.organization import Organization
 from tests.factories import BaseFactory, fake
@@ -13,7 +13,7 @@ class OrganizationFactory(BaseFactory):
     model_class = Organization  # Model class for this factory
 
     @classmethod
-    def _get_default_attributes(cls) -> Dict[str, Any]:
+    def _get_default_attributes(cls) -> dict[str, Any]:
         """Get default attributes for creating Organization instances."""
         return {
             "code": fake.bothify(text="ORG-####-???"),
@@ -48,7 +48,7 @@ class OrganizationFactory(BaseFactory):
         }
 
     @classmethod
-    def _get_update_attributes(cls) -> Dict[str, Any]:
+    def _get_update_attributes(cls) -> dict[str, Any]:
         """Get default attributes for updating Organization instances."""
         return {
             "name": fake.company(),

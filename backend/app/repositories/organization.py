@@ -1,6 +1,6 @@
 """Organization repository implementation."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import joinedload
@@ -16,11 +16,11 @@ class OrganizationRepository(
 ):
     """Repository for organization operations."""
 
-    def get_by_code(self, code: str) -> Optional[Organization]:
+    def get_by_code(self, code: str) -> Organization | None:
         """Get organization by code."""
         return self.db.scalar(select(self.model).where(self.model.code == code))
 
-    def get_active(self, skip: int = 0, limit: int = 100) -> List[Organization]:
+    def get_active(self, skip: int = 0, limit: int = 100) -> list[Organization]:
         """Get active organizations."""
         return list(
             self.db.scalars(
@@ -32,7 +32,7 @@ class OrganizationRepository(
             )
         )
 
-    def get_with_parent(self, id: int) -> Optional[Organization]:
+    def get_with_parent(self, id: int) -> Organization | None:
         """Get organization with parent loaded."""
         return self.db.scalar(
             select(self.model)
@@ -40,7 +40,7 @@ class OrganizationRepository(
             .where(self.model.id == id)
         )
 
-    def get_subsidiaries(self, parent_id: OrganizationId) -> List[Organization]:
+    def get_subsidiaries(self, parent_id: OrganizationId) -> list[Organization]:
         """Get direct subsidiaries of an organization."""
         return list(
             self.db.scalars(
@@ -51,7 +51,7 @@ class OrganizationRepository(
             )
         )
 
-    def get_all_subsidiaries(self, parent_id: OrganizationId) -> List[Organization]:
+    def get_all_subsidiaries(self, parent_id: OrganizationId) -> list[Organization]:
         """Get all subsidiaries recursively."""
         # Use CTE for recursive query
         org_cte = (
@@ -73,7 +73,7 @@ class OrganizationRepository(
             )
         )
 
-    def get_root_organizations(self) -> List[Organization]:
+    def get_root_organizations(self) -> list[Organization]:
         """Get organizations without parent (root level)."""
         return list(
             self.db.scalars(
@@ -84,7 +84,7 @@ class OrganizationRepository(
             )
         )
 
-    def search_by_name(self, query: str) -> List[Organization]:
+    def search_by_name(self, query: str) -> list[Organization]:
         """Search organizations by name (including kana and English)."""
         search_term = f"%{query}%"
         return list(
@@ -103,7 +103,7 @@ class OrganizationRepository(
             )
         )
 
-    def get_by_industry(self, industry: str) -> List[Organization]:
+    def get_by_industry(self, industry: str) -> list[Organization]:
         """Get organizations by industry."""
         return list(
             self.db.scalars(
@@ -140,7 +140,7 @@ class OrganizationRepository(
             or 0
         )
 
-    def validate_unique_code(self, code: str, exclude_id: Optional[int] = None) -> bool:
+    def validate_unique_code(self, code: str, exclude_id: int | None = None) -> bool:
         """Validate if organization code is unique."""
         query = select(func.count(self.model.id)).where(self.model.code == code)
         if exclude_id:
@@ -149,8 +149,8 @@ class OrganizationRepository(
         return count == 0
 
     def update_settings(
-        self, id: int, settings: Dict[str, Any]
-    ) -> Optional[Organization]:
+        self, id: int, settings: dict[str, Any]
+    ) -> Organization | None:
         """Update organization settings."""
         import json
 

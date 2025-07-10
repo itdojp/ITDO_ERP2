@@ -1,6 +1,5 @@
 """Authentication service."""
 
-from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -15,7 +14,7 @@ class AuthService:
     """Authentication service."""
 
     @staticmethod
-    def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
+    def authenticate_user(db: Session, email: str, password: str) -> User | None:
         """Authenticate user and return user object."""
         return User.authenticate(db, email, password)
 
@@ -42,7 +41,7 @@ class AuthService:
         )
 
     @staticmethod
-    def refresh_tokens(db: Session, refresh_token: str) -> Optional[TokenResponse]:
+    def refresh_tokens(db: Session, refresh_token: str) -> TokenResponse | None:
         """Refresh tokens using refresh token."""
         try:
             # Verify refresh token
@@ -68,7 +67,7 @@ class AuthService:
             return None
 
     @staticmethod
-    def get_current_user(db: Session, token: str) -> Optional[User]:
+    def get_current_user(db: Session, token: str) -> User | None:
         """Get current user from access token."""
         try:
             # Verify token

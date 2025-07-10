@@ -1,7 +1,6 @@
 """User repository with type-safe CRUD operations."""
 
-from datetime import datetime, timedelta, timezone
-from typing import List, Optional
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session, selectinload
@@ -36,17 +35,17 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
 
         return user
 
-    def get_by_email(self, email: str) -> Optional[User]:
+    def get_by_email(self, email: str) -> User | None:
         """Get user by email address."""
         return self.db.scalar(select(User).where(User.email == email))
 
-    def get_active(self, id: int) -> Optional[User]:
+    def get_active(self, id: int) -> User | None:
         """Get active user by ID."""
         return self.db.scalar(
             select(User).where(and_(User.id == id, User.is_active, ~User.is_deleted))
         )
 
-    def get_with_relationships(self, id: int) -> Optional[User]:
+    def get_with_relationships(self, id: int) -> User | None:
         """Get user with all relationships loaded."""
         return self.db.scalar(
             select(User)
@@ -61,13 +60,13 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
 
     def search_users(
         self,
-        query: Optional[str] = None,
-        organization_id: Optional[int] = None,
-        department_id: Optional[int] = None,
-        is_active: Optional[bool] = None,
+        query: str | None = None,
+        organization_id: int | None = None,
+        department_id: int | None = None,
+        is_active: bool | None = None,
         skip: int = 0,
         limit: int = 100,
-    ) -> tuple[List[User], int]:
+    ) -> tuple[list[User], int]:
         """Search users with filters."""
         stmt = select(User).where(~User.is_deleted)
 
@@ -115,22 +114,22 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
 
         return results, total_count
 
-    def get_locked_users(self) -> List[User]:
+    def get_locked_users(self) -> list[User]:
         """Get all locked users."""
         return list(
             self.db.scalars(
                 select(User).where(
                     and_(
                         User.locked_until.is_not(None),
-                        User.locked_until > datetime.now(timezone.utc),
+                        User.locked_until > datetime.now(UTC),
                     )
                 )
             )
         )
 
-    def get_users_with_expired_passwords(self, days: int = 90) -> List[User]:
+    def get_users_with_expired_passwords(self, days: int = 90) -> list[User]:
         """Get users with expired passwords."""
-        expiry_date = datetime.now(timezone.utc) - timedelta(days=days)
+        expiry_date = datetime.now(UTC) - timedelta(days=days)
         return list(
             self.db.scalars(
                 select(User).where(
@@ -143,9 +142,9 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
             )
         )
 
-    def get_inactive_users(self, days: int = 30) -> List[User]:
+    def get_inactive_users(self, days: int = 30) -> list[User]:
         """Get users who haven't logged in for specified days."""
-        cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
+        cutoff_date = datetime.now(UTC) - timedelta(days=days)
         return list(
             self.db.scalars(
                 select(User).where(
@@ -168,11 +167,11 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
         self.db.execute(
             update(User)
             .where(User.id == user_id)
-            .values(last_login_at=datetime.now(timezone.utc))
+            .values(last_login_at=datetime.now(UTC))
         )
         self.db.commit()
 
-    def increment_failed_login(self, email: str) -> Optional[User]:
+    def increment_failed_login(self, email: str) -> User | None:
         """Increment failed login attempts and lock if necessary."""
         user = self.get_by_email(email)
         if not user:
@@ -182,7 +181,7 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
 
         # Lock after 5 attempts
         if user.failed_login_attempts >= 5:
-            user.locked_until = datetime.now(timezone.utc) + timedelta(minutes=30)
+            user.locked_until = datetime.now(UTC) + timedelta(minutes=30)
 
         self.db.commit()
         return user
@@ -200,7 +199,7 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
         count = self.db.scalar(select(func.count(User.id)).where(User.email == email))
         return bool(count and count > 0)
 
-    def get_superusers(self) -> List[User]:
+    def get_superusers(self) -> list[User]:
         """Get all superuser accounts."""
         return list(
             self.db.scalars(
