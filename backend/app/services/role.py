@@ -477,3 +477,96 @@ class RoleService:
     def get_user_role_response(self, user_role: UserRole) -> UserRoleResponse:
         """Get user role response."""
         return UserRoleResponse.model_validate(user_role, from_attributes=True)
+
+    # Additional methods for integration service
+
+    def get_organization_roles(self, organization_id: OrganizationId) -> List[Role]:
+        """Get all roles for a specific organization."""
+        return list(
+            self.db.scalars(
+                select(Role)
+                .where(Role.organization_id == organization_id)
+                .where(~Role.is_deleted)
+                .order_by(Role.display_order, Role.name)
+            )
+        )
+
+    def get_role_by_code(self, code: str) -> Optional[Role]:
+        """Get role by code."""
+        return self.db.scalar(
+            select(Role).where(Role.code == code).where(~Role.is_deleted)
+        )
+
+    def assign_user_role(
+        self,
+        user_id: UserId,
+        role_id: RoleId,
+        organization_id: OrganizationId,
+        assigned_by: UserId,
+        department_id: Optional[int] = None,
+        expires_at: Optional[datetime] = None,
+    ) -> UserRole:
+        """Assign role to user in organization context."""
+        # Check if assignment already exists
+        existing = self.db.scalar(
+            select(UserRole).where(
+                and_(
+                    UserRole.user_id == user_id,
+                    UserRole.role_id == role_id,
+                    UserRole.organization_id == organization_id,
+                    UserRole.department_id == department_id,
+                    UserRole.is_active,
+                )
+            )
+        )
+
+        if existing:
+            return existing
+
+        # Create new assignment
+        user_role = UserRole(
+            user_id=user_id,
+            role_id=role_id,
+            organization_id=organization_id,
+            department_id=department_id,
+            assigned_by=assigned_by,
+            expires_at=expires_at,
+            is_active=True,
+            created_by=assigned_by,
+        )
+
+        self.db.add(user_role)
+        self.db.commit()
+        self.db.refresh(user_role)
+        return user_role
+
+    def deactivate_user_role(self, user_role_id: int, deactivated_by: UserId) -> bool:
+        """Deactivate a user role assignment."""
+        user_role = self.db.get(UserRole, user_role_id)
+        if not user_role:
+            return False
+
+        user_role.is_active = False
+        user_role.updated_by = deactivated_by
+        user_role.updated_at = datetime.now(timezone.utc)
+
+        self.db.commit()
+        return True
+
+    def get_users_with_role(
+        self, role_id: RoleId, organization_id: Optional[OrganizationId] = None
+    ) -> List[Any]:
+        """Get all users with specific role."""
+        from app.models.user import User
+
+        query = (
+            select(User)
+            .join(UserRole, User.id == UserRole.user_id)
+            .where(UserRole.role_id == role_id)
+            .where(UserRole.is_active)
+        )
+
+        if organization_id:
+            query = query.where(UserRole.organization_id == organization_id)
+
+        return list(self.db.scalars(query))

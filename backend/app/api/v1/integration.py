@@ -9,11 +9,15 @@ from app.core.dependencies import get_current_active_user, get_db
 from app.models.user import User
 from app.schemas.organization import OrganizationCreate
 from app.schemas.role import RoleResponse
+from app.schemas.task import TaskCreate, TaskResponse
+from app.services.integration_service import (
+    CompleteOrganizationSetup,
+    ERPIntegrationService,
+)
 from app.services.organization_role_integration import (
     OrganizationRoleIntegrationService,
-    OrganizationWithRoles,
 )
-from app.types import OrganizationId, UserId
+from app.types import UserId
 
 router = APIRouter(prefix="/integration", tags=["integration"])
 
@@ -350,3 +354,135 @@ async def get_organization_access_matrix(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get access matrix: {str(e)}",
         )
+
+
+# New ERP Integration Endpoints
+
+
+def get_integration_service(db: Session = Depends(get_db)) -> ERPIntegrationService:
+    """Get ERP integration service."""
+    return ERPIntegrationService(db)
+
+
+@router.post("/setup-organization")
+async def setup_complete_organization(
+    setup_data: Dict[str, Any],
+    current_user: User = Depends(get_current_active_user),
+    integration_service: ERPIntegrationService = Depends(get_integration_service),
+) -> Dict[str, Any]:
+    """Complete organization setup (Organization + Roles + Departments)."""
+    try:
+        # Convert to setup object
+        org_create = OrganizationCreate(**setup_data["organization"])
+        complete_setup = CompleteOrganizationSetup(
+            organization=org_create,
+            departments=setup_data.get("departments", []),
+            custom_roles=setup_data.get("custom_roles", []),
+        )
+
+        # Setup organization
+        result = await integration_service.setup_complete_organization(
+            complete_setup, current_user.id
+        )
+
+        return {
+            "organization": {
+                "id": result.organization.id,
+                "code": result.organization.code,
+                "name": result.organization.name,
+                "is_active": result.organization.is_active,
+            },
+            "roles": [
+                {
+                    "id": role.id,
+                    "code": role.code,
+                    "name": role.name,
+                    "role_type": role.role_type,
+                }
+                for role in result.roles
+            ],
+            "departments": [
+                {
+                    "id": dept.id if hasattr(dept, "id") else None,
+                    "name": dept.name if hasattr(dept, "name") else str(dept),
+                }
+                for dept in result.departments
+            ],
+            "admin_assignments": [
+                {
+                    "role_id": role.id,
+                    "role_name": role.name,
+                }
+                for role in result.admin_assignments
+            ],
+            "status": "completed",
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to setup organization: {str(e)}",
+        )
+
+
+@router.post("/departments/{department_id}/tasks")
+async def create_department_task_with_permissions(
+    department_id: int,
+    task_data: TaskCreate,
+    current_user: User = Depends(get_current_active_user),
+    integration_service: ERPIntegrationService = Depends(get_integration_service),
+) -> TaskResponse:
+    """Create task in department with permission checks."""
+    try:
+        task = await integration_service.create_department_task_with_permissions(
+            task_data, department_id, current_user.id
+        )
+
+        return TaskResponse.model_validate(task, from_attributes=True)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to create task: {str(e)}",
+        )
+
+
+@router.get("/organizations/{org_id}/structure")
+async def get_complete_organization_structure(
+    org_id: int,
+    current_user: User = Depends(get_current_active_user),
+    integration_service: ERPIntegrationService = Depends(get_integration_service),
+) -> Dict[str, Any]:
+    """Get complete organization structure (Departments + Roles + Tasks)."""
+    try:
+        return await integration_service.get_complete_structure(org_id, current_user.id)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get organization structure: {str(e)}",
+        )
+
+
+@router.get("/organizations/{org_id}/permissions-matrix")
+async def get_organization_permissions_matrix(
+    org_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+) -> Dict[str, Any]:
+    """Get comprehensive permissions matrix for organization."""
+    try:
+        # Use existing organization-role integration service for permission matrix
+        service = OrganizationRoleIntegrationService(db)
+        return service.get_organization_access_matrix(org_id)
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get permissions matrix: {str(e)}",
+        )
+

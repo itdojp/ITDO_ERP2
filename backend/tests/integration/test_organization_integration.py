@@ -4,8 +4,6 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.models.organization import Organization
-from app.models.role import Role, UserRole
 from app.models.user import User
 from app.services.organization_role_integration import (
     OrganizationRoleIntegrationService,
@@ -16,16 +14,20 @@ class TestOrganizationIntegration:
     """Test suite for organization-role integration."""
 
     @pytest.fixture
-    def integration_service(self, db_session: Session) -> OrganizationRoleIntegrationService:
+    def integration_service(
+        self, db_session: Session
+    ) -> OrganizationRoleIntegrationService:
         """Create integration service instance."""
         return OrganizationRoleIntegrationService(db_session)
 
     @pytest.fixture
     def test_user(self, db_session: Session) -> User:
         """Create test user."""
+        from app.core.security import hash_password
+
         user = User(
             email="test@example.com",
-            username="testuser",
+            hashed_password=hash_password("testpassword"),
             full_name="Test User",
             is_active=True,
             is_superuser=True,
@@ -104,6 +106,7 @@ class TestOrganizationIntegration:
             code="TEST002",
             name="Test Org 2",
             is_active=True,
+            settings=None,  # Avoid dict serialization issue
         )
 
         organization = await integration_service.create_organization_with_default_roles(
@@ -140,6 +143,7 @@ class TestOrganizationIntegration:
             code="SOURCE001",
             name="Source Organization",
             is_active=True,
+            settings=None,
         )
 
         source_org = await integration_service.create_organization_with_default_roles(
@@ -151,6 +155,7 @@ class TestOrganizationIntegration:
             code="TARGET001",
             name="Target Organization",
             is_active=True,
+            settings=None,
         )
 
         target_org = integration_service.clone_organization_structure(
@@ -162,8 +167,12 @@ class TestOrganizationIntegration:
         assert target_org.code == "TARGET001"
 
         # Verify roles were cloned
-        source_roles = integration_service.role_service.get_organization_roles(source_org.id)
-        target_roles = integration_service.role_service.get_organization_roles(target_org.id)
+        source_roles = integration_service.role_service.get_organization_roles(
+            source_org.id
+        )
+        target_roles = integration_service.role_service.get_organization_roles(
+            target_org.id
+        )
 
         # Should have similar number of roles (excluding system roles)
         source_custom_roles = [r for r in source_roles if not r.is_system]
@@ -180,8 +189,12 @@ class TestOrganizationIntegration:
         from app.schemas.organization import OrganizationCreate
 
         # Create two organizations
-        org1_data = OrganizationCreate(code="ORG001", name="Organization 1", is_active=True)
-        org2_data = OrganizationCreate(code="ORG002", name="Organization 2", is_active=True)
+        org1_data = OrganizationCreate(
+            code="ORG001", name="Organization 1", is_active=True, settings=None
+        )
+        org2_data = OrganizationCreate(
+            code="ORG002", name="Organization 2", is_active=True, settings=None
+        )
 
         org1 = await integration_service.create_organization_with_default_roles(
             org1_data, test_user.id
@@ -191,9 +204,11 @@ class TestOrganizationIntegration:
         )
 
         # Create another user for transfer
+        from app.core.security import hash_password
+
         transfer_user = User(
             email="transfer@example.com",
-            username="transferuser",
+            hashed_password=hash_password("transferpassword"),
             full_name="Transfer User",
             is_active=True,
         )
@@ -260,6 +275,7 @@ class TestOrganizationIntegration:
             code="PARENT001",
             name="Parent Organization",
             is_active=True,
+            settings=None,
         )
 
         parent_org = await integration_service.create_organization_with_default_roles(
@@ -272,9 +288,10 @@ class TestOrganizationIntegration:
             name="Child Organization",
             parent_id=parent_org.id,
             is_active=True,
+            settings=None,
         )
 
-        child_org = await integration_service.create_organization_with_default_roles(
+        await integration_service.create_organization_with_default_roles(
             child_data, test_user.id
         )
 
@@ -311,6 +328,7 @@ class TestOrganizationIntegration:
             code="BULK001",
             name="Bulk Test Organization",
             is_active=True,
+            settings=None,
         )
 
         organization = await integration_service.create_organization_with_default_roles(
@@ -318,11 +336,13 @@ class TestOrganizationIntegration:
         )
 
         # Create additional users
+        from app.core.security import hash_password
+
         users = []
         for i in range(3):
             user = User(
                 email=f"bulk{i}@example.com",
-                username=f"bulkuser{i}",
+                hashed_password=hash_password(f"bulkpassword{i}"),
                 full_name=f"Bulk User {i}",
                 is_active=True,
             )
@@ -334,7 +354,9 @@ class TestOrganizationIntegration:
             db_session.refresh(user)
 
         # Get organization roles
-        org_roles = integration_service.role_service.get_organization_roles(organization.id)
+        org_roles = integration_service.role_service.get_organization_roles(
+            organization.id
+        )
         member_role = next((r for r in org_roles if "member" in r.code), None)
         assert member_role is not None
 
@@ -378,6 +400,7 @@ class TestOrganizationIntegration:
             code="MATRIX001",
             name="Matrix Test Organization",
             is_active=True,
+            settings=None,
         )
 
         organization = await integration_service.create_organization_with_default_roles(
@@ -385,7 +408,9 @@ class TestOrganizationIntegration:
         )
 
         # Get access matrix
-        access_matrix = integration_service.get_organization_access_matrix(organization.id)
+        access_matrix = integration_service.get_organization_access_matrix(
+            organization.id
+        )
 
         # Verify matrix structure
         assert "organization_id" in access_matrix
@@ -410,3 +435,4 @@ class TestOrganizationIntegration:
         summary = access_matrix["summary"]
         assert summary["total_roles"] >= 4
         assert summary["total_users"] >= 1  # At least the test user
+

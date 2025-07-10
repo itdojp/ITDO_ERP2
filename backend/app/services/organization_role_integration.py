@@ -6,11 +6,11 @@ from sqlalchemy.orm import Session
 
 from app.models.organization import Organization
 from app.models.role import Role, UserRole
-from app.schemas.organization import OrganizationCreate, OrganizationResponse
-from app.schemas.role import RoleCreate, RoleResponse
+from app.schemas.organization import OrganizationCreate
+from app.schemas.role import RoleCreate
 from app.services.organization import OrganizationService
 from app.services.role import RoleService
-from app.types import OrganizationId, RoleId, UserId
+from app.types import OrganizationId, UserId
 
 
 class OrganizationWithRoles:
@@ -43,7 +43,9 @@ class OrganizationRoleIntegrationService:
     ) -> Organization:
         """Create organization with default role structure."""
         # Create the organization
-        organization = self.org_service.create_organization(org_data, created_by=user_id)
+        organization = self.org_service.create_organization(
+            org_data, created_by=user_id
+        )
 
         # Default roles for new organization
         default_roles = [
@@ -362,3 +364,4 @@ class OrganizationRoleIntegrationService:
                 ),
             },
         }
+
