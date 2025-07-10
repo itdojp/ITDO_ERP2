@@ -140,6 +140,17 @@ def create_organization(
             organization_data, created_by=current_user.id
         )
         return service.get_organization_response(organization)
+    except ValueError as e:
+        # Handle duplicate code validation error
+        if "already exists" in str(e):
+            return JSONResponse(
+                status_code=status.HTTP_409_CONFLICT,
+                content=ErrorResponse(
+                    detail=str(e),
+                    code="DUPLICATE_CODE",
+                ).model_dump(),
+            )
+        raise
     except IntegrityError as e:
         db.rollback()
         if "organizations_code_key" in str(e):
@@ -206,6 +217,17 @@ def update_organization(
             )
 
         return service.get_organization_response(organization)
+    except ValueError as e:
+        # Handle duplicate code validation error
+        if "already exists" in str(e):
+            return JSONResponse(
+                status_code=status.HTTP_409_CONFLICT,
+                content=ErrorResponse(
+                    detail=str(e),
+                    code="DUPLICATE_CODE",
+                ).model_dump(),
+            )
+        raise
     except IntegrityError as e:
         db.rollback()
         if "organizations_code_key" in str(e):
