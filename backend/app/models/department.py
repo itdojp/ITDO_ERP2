@@ -71,12 +71,14 @@ class Department(Base):
     # Relationships
     organization = relationship("Organization", back_populates="departments")
     parent = relationship("Department", remote_side=[id], back_populates="children")
-    children = relationship("Department", back_populates="parent", cascade="all, delete-orphan")
+    children = relationship(
+        "Department", back_populates="parent", cascade="all, delete-orphan"
+    )
     user_roles = relationship("UserRole", back_populates="department")
-    
+
     # Constraints
     __table_args__ = (
-        UniqueConstraint('organization_id', 'code', name='uq_department_org_code'),
+        UniqueConstraint("organization_id", "code", name="uq_department_org_code"),
     )
 
     @classmethod
@@ -210,12 +212,12 @@ class Department(Base):
         self.updated_by = deleted_by
         db.add(self)
         db.flush()
-        
+
     def validate_hierarchy(self) -> None:
         """Validate department hierarchy constraints."""
         if self.level > 2:
             raise ValueError("部門階層は2階層まで")
-            
+
     def update_path(self) -> None:
         """Update department path based on ID."""
         if not self.parent_id:
@@ -223,7 +225,7 @@ class Department(Base):
         else:
             # This should be called within a session context
             pass
-            
+
     def get_full_path_name(self) -> str:
         """Get full path name including parent names."""
         if not self.parent:
