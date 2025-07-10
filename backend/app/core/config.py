@@ -2,7 +2,7 @@ import json
 from typing import Any, List, Optional, Union
 
 from pydantic import AnyUrl, Field, PostgresDsn, ValidationInfo, field_validator
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -11,45 +11,52 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
 
     # CORS設定
-    BACKEND_CORS_ORIGINS: List[str] = Field(
-        default=["http://localhost:3000", "http://127.0.0.1:3000"]
+    BACKEND_CORS_ORIGINS: Any = Field(
+        default="http://localhost:3000,http://127.0.0.1:3000"
     )
 
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: Union[str, List[str], None]) -> List[str]:
         """Parse CORS origins from string or list."""
+        default_origins = ["http://localhost:3000", "http://127.0.0.1:3000"]
+
         if v is None:
-            return ["http://localhost:3000", "http://127.0.0.1:3000"]
+            return default_origins
 
         if isinstance(v, list):
             return v
 
         # Handle string values
-        v_stripped = v.strip()
-        if not v_stripped:
-            return ["http://localhost:3000", "http://127.0.0.1:3000"]
+        if isinstance(v, str):
+            v_stripped = v.strip()
+            if not v_stripped:
+                return default_origins
 
-        # Try comma-separated first
-        if "," in v_stripped:
-            return [origin.strip() for origin in v_stripped.split(",") if origin.strip()]
+            # Handle comma-separated values FIRST (before JSON)
+            if "," in v_stripped and not v_stripped.startswith("["):
+                origins = [origin.strip() for origin in v_stripped.split(",") if origin.strip()]
+                return origins if origins else default_origins
 
-        # Try JSON parsing
-        try:
-            import json
-            parsed = json.loads(v_stripped)
-            if isinstance(parsed, list):
-                return parsed
-        except:
-            pass
+            # Try JSON parsing for array format
+            if v_stripped.startswith("["):
+                try:
+                    parsed = json.loads(v_stripped)
+                    if isinstance(parsed, list):
+                        return parsed
+                except json.JSONDecodeError:
+                    pass
 
-        # Single value
-        return [v_stripped]
+            # Single value
+            return [v_stripped]
+
+        # For any other type, return default
+        return default_origins
 
     @property
     def cors_origins_list(self) -> List[str]:
         """CORS origins as a list for use in middleware."""
-        # Since BACKEND_CORS_ORIGINS is now validated as a list, return it directly
+        # The validator ensures BACKEND_CORS_ORIGINS is always a list
         return self.BACKEND_CORS_ORIGINS
 
     # データベース設定
@@ -110,7 +117,14 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     API_V1_PREFIX: str = "/api/v1"
 
-    model_config = {"env_file": ".env", "case_sensitive": True}
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=True,
+        # Don't try to parse complex fields automatically
+        json_schema_extra={
+            "env_parse_none_str": "null",
+        }
+    )
 
 
 settings = Settings()
