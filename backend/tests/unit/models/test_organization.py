@@ -10,7 +10,6 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 
 from app.models.organization import Organization
-from app.models.user import User
 from tests.factories import create_test_organization, create_test_user
 
 
@@ -116,7 +115,9 @@ class TestOrganizationModel:
         # Invalid fiscal year start
         with pytest.raises(ValueError):
             org = Organization(
-                code="INVALID", name="無効な組織", fiscal_year_start=13  # 1-12の範囲外
+                code="INVALID",
+                name="無効な組織",
+                fiscal_year_start=13,  # 1-12の範囲外
             )
             org.validate()
 

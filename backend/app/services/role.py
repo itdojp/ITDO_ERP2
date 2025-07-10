@@ -1,7 +1,7 @@
 """Role service implementation."""
 
 from datetime import datetime, timezone
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
@@ -14,7 +14,6 @@ from app.schemas.role import (
     RoleList,
     RoleResponse,
     RoleUpdate,
-    UserRoleCreate,
     UserRoleResponse,
 )
 
@@ -31,22 +30,24 @@ class RoleService:
     ) -> Role:
         """
         Create a new role.
-        
+
         Args:
             data: Role creation data
             user: User creating the role
             db: Database session
             organization_id: Organization context (for permission check)
-            
+
         Returns:
             Created role
-            
+
         Raises:
             PermissionDenied: If user lacks permission to create roles
         """
         # Check permissions
         if not user.is_superuser:
-            if organization_id and not user.has_permission("role:create", organization_id):
+            if organization_id and not user.has_permission(
+                "role:create", organization_id
+            ):
                 raise PermissionDenied("ロール作成権限がありません")
             elif not organization_id and not user.is_superuser:
                 raise PermissionDenied("システムロール作成には管理者権限が必要です")
@@ -80,7 +81,7 @@ class RoleService:
     ) -> UserRole:
         """
         Assign a role to a user within an organization/department context.
-        
+
         Args:
             user_id: ID of user to assign role to
             role_id: ID of role to assign
@@ -89,10 +90,10 @@ class RoleService:
             db: Database session
             department_id: Optional department context
             expires_at: Optional expiration date
-            
+
         Returns:
             Created user role assignment
-            
+
         Raises:
             NotFound: If user or role not found
             PermissionDenied: If assigner lacks permission
@@ -152,17 +153,17 @@ class RoleService:
     ) -> List[UserRoleResponse]:
         """
         Get roles assigned to a user.
-        
+
         Args:
             user_id: ID of user to get roles for
             requester: User requesting the information
             db: Database session
             organization_id: Optional organization filter
             include_expired: Whether to include expired roles
-            
+
         Returns:
             List of user role assignments
-            
+
         Raises:
             NotFound: If user not found
             PermissionDenied: If requester lacks permission
@@ -174,7 +175,9 @@ class RoleService:
 
         # Check permissions
         if not requester.is_superuser and requester.id != user_id:
-            if organization_id and not requester.has_permission("role:read", organization_id):
+            if organization_id and not requester.has_permission(
+                "role:read", organization_id
+            ):
                 raise PermissionDenied("ロール情報の閲覧権限がありません")
 
         # Build query
@@ -206,7 +209,7 @@ class RoleService:
     ) -> bool:
         """
         Remove a role assignment from a user.
-        
+
         Args:
             user_id: ID of user to remove role from
             role_id: ID of role to remove
@@ -214,10 +217,10 @@ class RoleService:
             remover: User performing the removal
             db: Database session
             department_id: Optional department context
-            
+
         Returns:
             True if role was removed, False if not found
-            
+
         Raises:
             PermissionDenied: If remover lacks permission
         """
@@ -258,16 +261,16 @@ class RoleService:
     ) -> List[str]:
         """
         Get permissions for a specific role.
-        
+
         Args:
             role_id: ID of role to get permissions for
             requester: User requesting the information
             db: Database session
             organization_id: Optional organization context for permission check
-            
+
         Returns:
             List of permissions
-            
+
         Raises:
             NotFound: If role not found
             PermissionDenied: If requester lacks permission
@@ -279,7 +282,9 @@ class RoleService:
 
         # Check permissions
         if not requester.is_superuser:
-            if organization_id and not requester.has_permission("role:read", organization_id):
+            if organization_id and not requester.has_permission(
+                "role:read", organization_id
+            ):
                 raise PermissionDenied("ロール情報の閲覧権限がありません")
 
         return role.permissions or []
@@ -294,17 +299,17 @@ class RoleService:
     ) -> Role:
         """
         Update permissions for a role.
-        
+
         Args:
             role_id: ID of role to update
             permissions: New list of permissions
             updater: User performing the update
             db: Database session
             organization_id: Optional organization context for permission check
-            
+
         Returns:
             Updated role
-            
+
         Raises:
             NotFound: If role not found
             PermissionDenied: If updater lacks permission
@@ -320,7 +325,9 @@ class RoleService:
 
         # Check permissions
         if not updater.is_superuser:
-            if organization_id and not updater.has_permission("role:update", organization_id):
+            if organization_id and not updater.has_permission(
+                "role:update", organization_id
+            ):
                 raise PermissionDenied("ロール更新権限がありません")
 
         # Update permissions
@@ -342,7 +349,7 @@ class RoleService:
     ) -> bool:
         """
         Check if a user has a specific permission in a given context.
-        
+
         Args:
             user_id: ID of user to check
             permission: Permission to check for
@@ -350,10 +357,10 @@ class RoleService:
             requester: User requesting the check
             db: Database session
             department_id: Optional department context
-            
+
         Returns:
             True if user has permission, False otherwise
-            
+
         Raises:
             NotFound: If user not found
             PermissionDenied: If requester lacks permission to check
@@ -382,7 +389,7 @@ class RoleService:
     ) -> List[User]:
         """
         Get all users that have a specific role.
-        
+
         Args:
             role_id: ID of role to search for
             organization_id: Organization context
@@ -390,10 +397,10 @@ class RoleService:
             db: Database session
             department_id: Optional department context
             include_expired: Whether to include expired assignments
-            
+
         Returns:
             List of users with the role
-            
+
         Raises:
             NotFound: If role not found
             PermissionDenied: If requester lacks permission
@@ -448,7 +455,9 @@ class RoleService:
         """Get roles with pagination and filtering."""
         # Check permissions
         if not requester.is_superuser:
-            if organization_id and not requester.has_permission("role:read", organization_id):
+            if organization_id and not requester.has_permission(
+                "role:read", organization_id
+            ):
                 raise PermissionDenied("ロール情報の閲覧権限がありません")
 
         # Build query
@@ -489,7 +498,9 @@ class RoleService:
         """Get role by ID."""
         # Check permissions
         if not requester.is_superuser:
-            if organization_id and not requester.has_permission("role:read", organization_id):
+            if organization_id and not requester.has_permission(
+                "role:read", organization_id
+            ):
                 raise PermissionDenied("ロール情報の閲覧権限がありません")
 
         role = db.query(Role).filter(Role.id == role_id).first()
@@ -518,7 +529,9 @@ class RoleService:
 
         # Check permissions
         if not updater.is_superuser:
-            if organization_id and not updater.has_permission("role:update", organization_id):
+            if organization_id and not updater.has_permission(
+                "role:update", organization_id
+            ):
                 raise PermissionDenied("ロール更新権限がありません")
 
         # Update role
@@ -546,7 +559,9 @@ class RoleService:
 
         # Check permissions
         if not deleter.is_superuser:
-            if organization_id and not deleter.has_permission("role:delete", organization_id):
+            if organization_id and not deleter.has_permission(
+                "role:delete", organization_id
+            ):
                 raise PermissionDenied("ロール削除権限がありません")
 
         # Check if role is assigned to any users
@@ -563,7 +578,9 @@ class RoleService:
         )
 
         if active_assignments:
-            raise ValueError("このロールは現在ユーザーに割り当てられているため削除できません")
+            raise ValueError(
+                "このロールは現在ユーザーに割り当てられているため削除できません"
+            )
 
         # Soft delete
         role.delete()

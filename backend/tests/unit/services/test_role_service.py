@@ -431,7 +431,9 @@ class TestRoleService:
         db_session.commit()
 
         # When/Then: Updating system role permissions should raise PermissionDenied
-        with pytest.raises(PermissionDenied, match="システムロールの権限は変更できません"):
+        with pytest.raises(
+            PermissionDenied, match="システムロールの権限は変更できません"
+        ):
             role_service.update_role_permissions(
                 role_id=system_role.id,
                 permissions=["read:only"],
@@ -474,7 +476,9 @@ class TestRoleService:
 
         # Then: Should return True
         assert has_permission is True
-        test_user.has_permission.assert_called_once_with("read:test", test_organization.id)
+        test_user.has_permission.assert_called_once_with(
+            "read:test", test_organization.id
+        )
 
     def test_get_users_with_role_success(
         self,
@@ -695,7 +699,9 @@ class TestRoleService:
         db_session.commit()
 
         # When/Then: Deleting role with active assignments should raise ValueError
-        with pytest.raises(ValueError, match="現在ユーザーに割り当てられているため削除できません"):
+        with pytest.raises(
+            ValueError, match="現在ユーザーに割り当てられているため削除できません"
+        ):
             role_service.delete_role(
                 role_id=test_role.id,
                 deleter=test_admin,

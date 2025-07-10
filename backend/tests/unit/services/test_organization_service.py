@@ -4,11 +4,11 @@ Organization service unit tests.
 Following TDD approach - Red phase: Writing tests before implementation.
 """
 
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
 
-from app.core.exceptions import BusinessLogicError, NotFound, PermissionDenied
+from app.core.exceptions import PermissionDenied
 from app.schemas.organization import OrganizationCreate, OrganizationUpdate
 from app.services.organization import OrganizationService
 from tests.factories import (

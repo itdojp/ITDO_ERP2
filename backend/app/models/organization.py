@@ -1,7 +1,7 @@
 """Organization model."""
 
 from datetime import datetime
-from typing import List, Optional, TYPE_CHECKING, Dict, Any
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from sqlalchemy import (
     Boolean,
@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session, relationship
 from app.core.database import Base
 
 if TYPE_CHECKING:
-    from app.models.user import User  # type: ignore
+    pass  # type: ignore
 
 
 class Organization(Base):

@@ -85,6 +85,7 @@ from tests.factories.organization import OrganizationFactory, create_test_organi
 from tests.factories.role import (
     PermissionFactory,
     RoleFactory,
+    UserRoleFactory,
     create_test_role,
     create_test_user_role,
 )
@@ -95,6 +96,7 @@ __all__ = [
     "OrganizationFactory",
     "DepartmentFactory",
     "RoleFactory",
+    "UserRoleFactory",
     "PermissionFactory",
     "UserFactory",
     "create_test_user",

@@ -1,19 +1,15 @@
 """Department service."""
 
-from typing import List, Optional
+from typing import Optional
 
-from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import NotFound, PermissionDenied
 from app.models.department import Department
-from app.models.organization import Organization
 from app.models.user import User
 from app.schemas.department import (
-    DepartmentCreate,
     DepartmentList,
     DepartmentResponse,
-    DepartmentUpdate,
 )
 
 

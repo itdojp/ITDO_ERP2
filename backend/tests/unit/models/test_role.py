@@ -9,10 +9,7 @@ from datetime import datetime, timedelta
 import pytest
 from sqlalchemy.exc import IntegrityError
 
-from app.models.department import Department
-from app.models.organization import Organization
 from app.models.role import Role, UserRole
-from app.models.user import User
 from tests.factories import (
     DepartmentFactory,
     OrganizationFactory,

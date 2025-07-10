@@ -1,7 +1,7 @@
 """Role and UserRole models."""
 
 from datetime import datetime
-from typing import List, Optional, TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, List, Optional
 
 from sqlalchemy import (
     JSON,
@@ -20,9 +20,7 @@ from sqlalchemy.orm import Session, relationship
 from app.core.database import Base
 
 if TYPE_CHECKING:
-    from app.models.user import User  # type: ignore
-    from app.models.organization import Organization  # type: ignore
-    from app.models.department import Department  # type: ignore
+    pass  # type: ignore
 
 
 class Role(Base):
@@ -174,8 +172,12 @@ class UserRole(Base):
     id: int = Column(Integer, primary_key=True, index=True)
     user_id: int = Column(Integer, ForeignKey("users.id"), nullable=False)
     role_id: int = Column(Integer, ForeignKey("roles.id"), nullable=False)
-    organization_id: int = Column(Integer, ForeignKey("organizations.id"), nullable=False)
-    department_id: Optional[int] = Column(Integer, ForeignKey("departments.id"), nullable=True)
+    organization_id: int = Column(
+        Integer, ForeignKey("organizations.id"), nullable=False
+    )
+    department_id: Optional[int] = Column(
+        Integer, ForeignKey("departments.id"), nullable=True
+    )
     assigned_by: Optional[int] = Column(Integer, ForeignKey("users.id"))
     assigned_at: datetime = Column(DateTime(timezone=True), server_default=func.now())
     expires_at: Optional[datetime] = Column(DateTime(timezone=True), nullable=True)

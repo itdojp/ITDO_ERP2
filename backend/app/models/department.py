@@ -1,7 +1,7 @@
 """Department model."""
 
 from datetime import datetime
-from typing import List, Optional, TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, List, Optional
 
 from sqlalchemy import (
     Boolean,
@@ -18,8 +18,7 @@ from sqlalchemy.orm import Session, relationship
 from app.core.database import Base
 
 if TYPE_CHECKING:
-    from app.models.organization import Organization  # type: ignore
-    from app.models.user import User  # type: ignore
+    pass  # type: ignore
 
 
 class Department(Base):
@@ -28,8 +27,12 @@ class Department(Base):
     __tablename__ = "departments"
 
     id: int = Column(Integer, primary_key=True, index=True)
-    organization_id: int = Column(Integer, ForeignKey("organizations.id"), nullable=False)
-    parent_id: Optional[int] = Column(Integer, ForeignKey("departments.id"), nullable=True)
+    organization_id: int = Column(
+        Integer, ForeignKey("organizations.id"), nullable=False
+    )
+    parent_id: Optional[int] = Column(
+        Integer, ForeignKey("departments.id"), nullable=True
+    )
     code: str = Column(String(50), nullable=False, index=True)
     name: str = Column(String(255), nullable=False)
     name_kana: Optional[str] = Column(String(255))

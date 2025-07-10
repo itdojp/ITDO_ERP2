@@ -48,10 +48,10 @@ class Project(SoftDeletableModel):
     actual_cost: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
 
     # Relationships
-    organization: Mapped["Organization"] = relationship("Organization", lazy="joined")
-    department: Mapped[Optional["Department"]] = relationship(
-        "Department", lazy="joined"
-    )
+    # NOTE: organization relationship temporarily disabled to avoid circular import issues
+    # organization: Mapped["Organization"] = relationship("Organization", lazy="joined")
+    # NOTE: department relationship temporarily disabled to avoid circular import issues
+    # department: Mapped[Optional["Department"]] = relationship("Department", lazy="joined")
     owner: Mapped["User"] = relationship("User", foreign_keys=[owner_id], lazy="joined")
 
     # Task relationship

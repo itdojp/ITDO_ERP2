@@ -51,9 +51,10 @@ class User(SoftDeletableModel):
     password_must_change: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Relationships
-    user_roles: Mapped[List["UserRole"]] = relationship(
-        "UserRole", back_populates="user", foreign_keys="UserRole.user_id"
-    )
+    # NOTE: user_roles relationship temporarily disabled to avoid circular import issues
+    # user_roles: Mapped[List["UserRole"]] = relationship(
+    #     "UserRole", back_populates="user", foreign_keys="UserRole.user_id"
+    # )
     password_history: Mapped[List["PasswordHistory"]] = relationship(
         "PasswordHistory", back_populates="user", cascade="all, delete-orphan"
     )

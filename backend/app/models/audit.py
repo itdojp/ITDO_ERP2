@@ -46,10 +46,9 @@ class AuditLog(BaseModel):
     )
 
     # Relationships
-    user: Mapped["User"] = relationship("User", foreign_keys=[user_id])
-    organization: Mapped[Optional["Organization"]] = relationship(
-        "Organization", foreign_keys=[organization_id]
-    )
+    user = relationship("User", foreign_keys=[user_id])
+    # NOTE: organization relationship temporarily disabled to avoid circular import issues
+    # organization = relationship("Organization", foreign_keys=[organization_id])
 
     def calculate_checksum(self) -> str:
         """Calculate checksum for audit log integrity."""

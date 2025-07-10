@@ -1,13 +1,12 @@
 """Organization service."""
 
-from typing import List, Optional, Any
+from typing import Optional
 
-from sqlalchemy import and_, or_
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import NotFound, PermissionDenied
 from app.models.organization import Organization
-from app.models.role import UserRole
 from app.models.user import User
 from app.schemas.organization import (
     OrganizationCreate,

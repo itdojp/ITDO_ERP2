@@ -1,7 +1,6 @@
 """Unit tests for Permission Matrix."""
 
 from datetime import datetime, timedelta
-from unittest.mock import Mock
 
 import pytest
 from sqlalchemy.orm import Session
@@ -88,57 +87,69 @@ class TestPermissionMatrix:
         assert hierarchy[2] == PermissionLevel.MANAGER
         assert hierarchy[3] == PermissionLevel.ADMIN
 
-    def test_get_permissions_for_level_viewer(self, permission_matrix: PermissionMatrix):
+    def test_get_permissions_for_level_viewer(
+        self, permission_matrix: PermissionMatrix
+    ):
         """Test getting permissions for viewer level."""
         # When: Getting viewer permissions
-        permissions = permission_matrix.get_permissions_for_level(PermissionLevel.VIEWER)
+        permissions = permission_matrix.get_permissions_for_level(
+            PermissionLevel.VIEWER
+        )
 
         # Then: Should contain only viewer permissions
         assert "read:own_profile" in permissions
         assert "read:organization_basic" in permissions
         assert "read:department_basic" in permissions
         assert "read:public_announcements" in permissions
-        
+
         # Should not contain higher level permissions
         assert "write:own_profile" not in permissions
         assert "admin:system" not in permissions
 
-    def test_get_permissions_for_level_member(self, permission_matrix: PermissionMatrix):
+    def test_get_permissions_for_level_member(
+        self, permission_matrix: PermissionMatrix
+    ):
         """Test getting permissions for member level."""
         # When: Getting member permissions
-        permissions = permission_matrix.get_permissions_for_level(PermissionLevel.MEMBER)
+        permissions = permission_matrix.get_permissions_for_level(
+            PermissionLevel.MEMBER
+        )
 
         # Then: Should contain viewer + member permissions
         # Viewer permissions
         assert "read:own_profile" in permissions
         assert "read:organization_basic" in permissions
-        
+
         # Member permissions
         assert "write:own_profile" in permissions
         assert "write:own_timesheet" in permissions
         assert "read:team_members" in permissions
-        
+
         # Should not contain higher level permissions
         assert "admin:system" not in permissions
         assert "write:all_organizations" not in permissions
 
-    def test_get_permissions_for_level_manager(self, permission_matrix: PermissionMatrix):
+    def test_get_permissions_for_level_manager(
+        self, permission_matrix: PermissionMatrix
+    ):
         """Test getting permissions for manager level."""
         # When: Getting manager permissions
-        permissions = permission_matrix.get_permissions_for_level(PermissionLevel.MANAGER)
+        permissions = permission_matrix.get_permissions_for_level(
+            PermissionLevel.MANAGER
+        )
 
         # Then: Should contain viewer + member + manager permissions
         # Viewer permissions
         assert "read:own_profile" in permissions
-        
+
         # Member permissions
         assert "write:own_profile" in permissions
-        
+
         # Manager permissions
         assert "read:team_performance" in permissions
         assert "write:team_assignments" in permissions
         assert "read:user_profiles" in permissions
-        
+
         # Should not contain admin permissions
         assert "admin:system" not in permissions
 
@@ -150,19 +161,21 @@ class TestPermissionMatrix:
         # Then: Should contain all permissions
         # Viewer permissions
         assert "read:own_profile" in permissions
-        
+
         # Member permissions
         assert "write:own_profile" in permissions
-        
+
         # Manager permissions
         assert "read:team_performance" in permissions
-        
+
         # Admin permissions
         assert "admin:system" in permissions
         assert "read:all_organizations" in permissions
         assert "write:all_organizations" in permissions
 
-    def test_get_context_permissions_organization(self, permission_matrix: PermissionMatrix):
+    def test_get_context_permissions_organization(
+        self, permission_matrix: PermissionMatrix
+    ):
         """Test getting context-specific permissions for organization."""
         # When: Getting organization context permissions for manager
         permissions = permission_matrix.get_context_permissions(
@@ -174,11 +187,13 @@ class TestPermissionMatrix:
         assert "org:read:members" in permissions
         assert "org:read:reports" in permissions
         assert "org:write:members" in permissions
-        
+
         # Should not contain admin permissions
         assert "org:admin:all" not in permissions
 
-    def test_get_context_permissions_department(self, permission_matrix: PermissionMatrix):
+    def test_get_context_permissions_department(
+        self, permission_matrix: PermissionMatrix
+    ):
         """Test getting context-specific permissions for department."""
         # When: Getting department context permissions for member
         permissions = permission_matrix.get_context_permissions(
@@ -189,7 +204,7 @@ class TestPermissionMatrix:
         assert "dept:read:basic" in permissions
         assert "dept:read:members" in permissions
         assert "dept:read:tasks" in permissions
-        
+
         # Should not contain manager permissions
         assert "dept:write:members" not in permissions
         assert "dept:admin:all" not in permissions
@@ -214,7 +229,9 @@ class TestPermissionMatrix:
         # Then: Should return False
         assert has_perm is False
 
-    def test_has_permission_context_permission(self, permission_matrix: PermissionMatrix):
+    def test_has_permission_context_permission(
+        self, permission_matrix: PermissionMatrix
+    ):
         """Test checking context-specific permission."""
         # When: Checking context permission
         has_perm = permission_matrix.has_permission(
@@ -228,9 +245,7 @@ class TestPermissionMatrix:
         """Test wildcard permission checking."""
         # Given: Mock permission matrix with wildcard permissions
         pm = PermissionMatrix()
-        pm._permission_cache = {
-            "admin": {"read:*", "write:*", "admin:*"}
-        }
+        pm._permission_cache = {"admin": {"read:*", "write:*", "admin:*"}}
 
         # When: Checking specific permission against wildcard
         has_perm = pm.has_permission(PermissionLevel.ADMIN, "read:specific_resource")
@@ -273,7 +288,7 @@ class TestPermissionMatrix:
             organization_id=test_organization.id,
             assigned_by=test_admin.id,
         )
-        
+
         # Add member role
         UserRole.create(
             db=db_session,
@@ -403,10 +418,10 @@ class TestPermissionMatrix:
         assert "contexts" in all_perms
         assert "organization" in all_perms["contexts"]
         assert "department" in all_perms["contexts"]
-        
+
         # Check base permissions
         assert "read:team_performance" in all_perms["base"]
-        
+
         # Check context permissions
         assert "org:read:reports" in all_perms["contexts"]["organization"]
         assert "dept:write:members" in all_perms["contexts"]["department"]
@@ -430,11 +445,11 @@ class TestPermissionMatrix:
         assert "viewer_only" in differences
         assert "member_only" in differences
         assert "common" in differences
-        
+
         # Member should have additional permissions
         assert len(differences["member_only"]) > 0
         assert "write:own_profile" in differences["member_only"]
-        
+
         # Common permissions should include viewer permissions
         assert "read:own_profile" in differences["common"]
 
@@ -448,17 +463,17 @@ class TestPermissionMatrix:
         assert "levels" in report
         assert "validation" in report
         assert "total_permissions" in report
-        
+
         # Check hierarchy
         assert report["hierarchy"] == ["viewer", "member", "manager", "admin"]
-        
+
         # Check levels
         assert "viewer" in report["levels"]
         assert "admin" in report["levels"]
-        
+
         # Check validation
         assert report["validation"] is True
-        
+
         # Check total permissions
         assert report["total_permissions"] > 0
 
@@ -511,9 +526,15 @@ class TestPermissionMatrix:
     def test_permission_inheritance(self, permission_matrix: PermissionMatrix):
         """Test that higher levels inherit permissions from lower levels."""
         # Given: Different permission levels
-        viewer_perms = permission_matrix.get_permissions_for_level(PermissionLevel.VIEWER)
-        member_perms = permission_matrix.get_permissions_for_level(PermissionLevel.MEMBER)
-        manager_perms = permission_matrix.get_permissions_for_level(PermissionLevel.MANAGER)
+        viewer_perms = permission_matrix.get_permissions_for_level(
+            PermissionLevel.VIEWER
+        )
+        member_perms = permission_matrix.get_permissions_for_level(
+            PermissionLevel.MEMBER
+        )
+        manager_perms = permission_matrix.get_permissions_for_level(
+            PermissionLevel.MANAGER
+        )
         admin_perms = permission_matrix.get_permissions_for_level(PermissionLevel.ADMIN)
 
         # Then: Higher levels should contain all lower level permissions

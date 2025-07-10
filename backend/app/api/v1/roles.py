@@ -1,11 +1,9 @@
 """Role Management API endpoints."""
 
-from datetime import datetime
-from typing import List, Optional
+from typing import Dict, List, Optional, Union
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from fastapi.responses import JSONResponse
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_active_user, get_db
@@ -40,10 +38,10 @@ def list_roles(
     organization_id: Optional[int] = Query(None, description="Organization context"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> RoleList:
+) -> Union[RoleList, JSONResponse]:
     """
     List roles with pagination and filtering.
-    
+
     Returns a paginated list of roles with optional search and filtering.
     """
     try:
@@ -62,8 +60,7 @@ def list_roles(
             status_code=status.HTTP_403_FORBIDDEN,
             content=ErrorResponse(
                 detail=str(e),
-                code="PERMISSION_DENIED",
-                timestamp=datetime.utcnow(),
+                error_code="PERMISSION_DENIED",
             ).model_dump(),
         )
 
@@ -82,10 +79,10 @@ def get_role(
     organization_id: Optional[int] = Query(None, description="Organization context"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> RoleResponse:
+) -> Union[RoleResponse, JSONResponse]:
     """
     Get role details by ID.
-    
+
     Returns detailed information about a specific role.
     """
     try:
@@ -103,16 +100,14 @@ def get_role(
                 status_code=status.HTTP_404_NOT_FOUND,
                 content=ErrorResponse(
                     detail=str(e),
-                    code="NOT_FOUND",
-                    timestamp=datetime.utcnow(),
+                    error_code="NOT_FOUND",
                 ).model_dump(),
             )
         return JSONResponse(
             status_code=status.HTTP_403_FORBIDDEN,
             content=ErrorResponse(
                 detail=str(e),
-                code="PERMISSION_DENIED",
-                timestamp=datetime.utcnow(),
+                error_code="PERMISSION_DENIED",
             ).model_dump(),
         )
 
@@ -132,10 +127,10 @@ def create_role(
     organization_id: Optional[int] = Query(None, description="Organization context"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> RoleResponse:
+) -> Union[RoleResponse, JSONResponse]:
     """
     Create a new role.
-    
+
     Creates a new role with the specified permissions and metadata.
     """
     try:
@@ -153,8 +148,7 @@ def create_role(
                 status_code=status.HTTP_409_CONFLICT,
                 content=ErrorResponse(
                     detail=str(e),
-                    code="DUPLICATE_CODE",
-                    timestamp=datetime.utcnow(),
+                    error_code="DUPLICATE_CODE",
                 ).model_dump(),
             )
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -163,8 +157,7 @@ def create_role(
             status_code=status.HTTP_403_FORBIDDEN,
             content=ErrorResponse(
                 detail=str(e),
-                code="PERMISSION_DENIED",
-                timestamp=datetime.utcnow(),
+                error_code="PERMISSION_DENIED",
             ).model_dump(),
         )
 
@@ -179,15 +172,15 @@ def create_role(
     },
 )
 def update_role(
+    role_data: RoleUpdate,
     role_id: int = Path(..., description="Role ID"),
-    role_data: RoleUpdate = ...,
     organization_id: Optional[int] = Query(None, description="Organization context"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> RoleResponse:
+) -> Union[RoleResponse, JSONResponse]:
     """
     Update role details.
-    
+
     Updates role information including name, description, and permissions.
     """
     try:
@@ -206,16 +199,14 @@ def update_role(
                 status_code=status.HTTP_404_NOT_FOUND,
                 content=ErrorResponse(
                     detail=str(e),
-                    code="NOT_FOUND",
-                    timestamp=datetime.utcnow(),
+                    error_code="NOT_FOUND",
                 ).model_dump(),
             )
         return JSONResponse(
             status_code=status.HTTP_403_FORBIDDEN,
             content=ErrorResponse(
                 detail=str(e),
-                code="PERMISSION_DENIED",
-                timestamp=datetime.utcnow(),
+                error_code="PERMISSION_DENIED",
             ).model_dump(),
         )
 
@@ -235,11 +226,12 @@ def delete_role(
     organization_id: Optional[int] = Query(None, description="Organization context"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> DeleteResponse:
+) -> Union[DeleteResponse, JSONResponse]:
     """
     Delete a role.
-    
-    Performs soft delete on the role. Cannot delete system roles or roles with active assignments.
+
+    Performs soft delete on the role. Cannot delete system roles or roles with
+    active assignments.
     """
     try:
         service = RoleService()
@@ -252,7 +244,6 @@ def delete_role(
         return DeleteResponse(
             success=success,
             message="Role deleted successfully",
-            id=role_id,
         )
     except ValueError as e:
         if "削除できません" in str(e):
@@ -260,8 +251,7 @@ def delete_role(
                 status_code=status.HTTP_409_CONFLICT,
                 content=ErrorResponse(
                     detail=str(e),
-                    code="CANNOT_DELETE",
-                    timestamp=datetime.utcnow(),
+                    error_code="CANNOT_DELETE",
                 ).model_dump(),
             )
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -271,16 +261,14 @@ def delete_role(
                 status_code=status.HTTP_404_NOT_FOUND,
                 content=ErrorResponse(
                     detail=str(e),
-                    code="NOT_FOUND",
-                    timestamp=datetime.utcnow(),
+                    error_code="NOT_FOUND",
                 ).model_dump(),
             )
         return JSONResponse(
             status_code=status.HTTP_403_FORBIDDEN,
             content=ErrorResponse(
                 detail=str(e),
-                code="PERMISSION_DENIED",
-                timestamp=datetime.utcnow(),
+                error_code="PERMISSION_DENIED",
             ).model_dump(),
         )
 
@@ -299,10 +287,10 @@ def get_role_permissions(
     organization_id: Optional[int] = Query(None, description="Organization context"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> List[str]:
+) -> Union[List[str], JSONResponse]:
     """
     Get permissions for a specific role.
-    
+
     Returns the list of permissions granted to the role.
     """
     try:
@@ -319,16 +307,14 @@ def get_role_permissions(
                 status_code=status.HTTP_404_NOT_FOUND,
                 content=ErrorResponse(
                     detail=str(e),
-                    code="NOT_FOUND",
-                    timestamp=datetime.utcnow(),
+                    error_code="NOT_FOUND",
                 ).model_dump(),
             )
         return JSONResponse(
             status_code=status.HTTP_403_FORBIDDEN,
             content=ErrorResponse(
                 detail=str(e),
-                code="PERMISSION_DENIED",
-                timestamp=datetime.utcnow(),
+                error_code="PERMISSION_DENIED",
             ).model_dump(),
         )
 
@@ -343,15 +329,15 @@ def get_role_permissions(
     },
 )
 def update_role_permissions(
+    permissions: List[str],
     role_id: int = Path(..., description="Role ID"),
-    permissions: List[str] = ...,
     organization_id: Optional[int] = Query(None, description="Organization context"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> RoleResponse:
+) -> Union[RoleResponse, JSONResponse]:
     """
     Update permissions for a role.
-    
+
     Updates the list of permissions granted to the role.
     """
     try:
@@ -370,16 +356,14 @@ def update_role_permissions(
                 status_code=status.HTTP_404_NOT_FOUND,
                 content=ErrorResponse(
                     detail=str(e),
-                    code="NOT_FOUND",
-                    timestamp=datetime.utcnow(),
+                    error_code="NOT_FOUND",
                 ).model_dump(),
             )
         return JSONResponse(
             status_code=status.HTTP_403_FORBIDDEN,
             content=ErrorResponse(
                 detail=str(e),
-                code="PERMISSION_DENIED",
-                timestamp=datetime.utcnow(),
+                error_code="PERMISSION_DENIED",
             ).model_dump(),
         )
 
@@ -399,10 +383,10 @@ def assign_role_to_user(
     assignment_data: UserRoleCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> UserRoleResponse:
+) -> Union[UserRoleResponse, JSONResponse]:
     """
     Assign a role to a user.
-    
+
     Creates a new role assignment for a user within an organization/department context.
     """
     try:
@@ -423,8 +407,7 @@ def assign_role_to_user(
                 status_code=status.HTTP_409_CONFLICT,
                 content=ErrorResponse(
                     detail=str(e),
-                    code="DUPLICATE_ASSIGNMENT",
-                    timestamp=datetime.utcnow(),
+                    error_code="DUPLICATE_ASSIGNMENT",
                 ).model_dump(),
             )
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -434,16 +417,14 @@ def assign_role_to_user(
                 status_code=status.HTTP_404_NOT_FOUND,
                 content=ErrorResponse(
                     detail=str(e),
-                    code="NOT_FOUND",
-                    timestamp=datetime.utcnow(),
+                    error_code="NOT_FOUND",
                 ).model_dump(),
             )
         return JSONResponse(
             status_code=status.HTTP_403_FORBIDDEN,
             content=ErrorResponse(
                 detail=str(e),
-                code="PERMISSION_DENIED",
-                timestamp=datetime.utcnow(),
+                error_code="PERMISSION_DENIED",
             ).model_dump(),
         )
 
@@ -463,11 +444,12 @@ def get_user_roles(
     include_expired: bool = Query(False, description="Include expired assignments"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> List[UserRoleResponse]:
+) -> Union[List[UserRoleResponse], JSONResponse]:
     """
     Get roles assigned to a user.
-    
-    Returns all role assignments for a specific user, optionally filtered by organization.
+
+    Returns all role assignments for a specific user, optionally filtered by
+    organization.
     """
     try:
         service = RoleService()
@@ -484,16 +466,14 @@ def get_user_roles(
                 status_code=status.HTTP_404_NOT_FOUND,
                 content=ErrorResponse(
                     detail=str(e),
-                    code="NOT_FOUND",
-                    timestamp=datetime.utcnow(),
+                    error_code="NOT_FOUND",
                 ).model_dump(),
             )
         return JSONResponse(
             status_code=status.HTTP_403_FORBIDDEN,
             content=ErrorResponse(
                 detail=str(e),
-                code="PERMISSION_DENIED",
-                timestamp=datetime.utcnow(),
+                error_code="PERMISSION_DENIED",
             ).model_dump(),
         )
 
@@ -514,11 +494,12 @@ def remove_role_from_user(
     department_id: Optional[int] = Query(None, description="Department ID"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> DeleteResponse:
+) -> Union[DeleteResponse, JSONResponse]:
     """
     Remove a role assignment from a user.
-    
-    Removes a specific role assignment for a user within the given organization/department context.
+
+    Removes a specific role assignment for a user within the given
+    organization/department context.
     """
     try:
         service = RoleService()
@@ -530,36 +511,33 @@ def remove_role_from_user(
             db=db,
             department_id=department_id,
         )
-        
+
         if not success:
             return JSONResponse(
                 status_code=status.HTTP_404_NOT_FOUND,
                 content=ErrorResponse(
                     detail="Role assignment not found",
-                    code="NOT_FOUND",
-                    timestamp=datetime.utcnow(),
+                    error_code="NOT_FOUND",
                 ).model_dump(),
             )
-        
+
         return DeleteResponse(
             success=success,
             message="Role assignment removed successfully",
-            id=f"user_{user_id}_role_{role_id}",
         )
     except Exception as e:
         return JSONResponse(
             status_code=status.HTTP_403_FORBIDDEN,
             content=ErrorResponse(
                 detail=str(e),
-                code="PERMISSION_DENIED",
-                timestamp=datetime.utcnow(),
+                error_code="PERMISSION_DENIED",
             ).model_dump(),
         )
 
 
 @router.get(
     "/{role_id}/users",
-    response_model=List[dict],
+    response_model=List[Dict[str, Union[int, str, bool]]],
     responses={
         401: {"model": ErrorResponse, "description": "Unauthorized"},
         403: {"model": ErrorResponse, "description": "Insufficient permissions"},
@@ -573,11 +551,12 @@ def get_users_with_role(
     include_expired: bool = Query(False, description="Include expired assignments"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> List[dict]:
+) -> Union[List[Dict[str, Union[int, str, bool]]], JSONResponse]:
     """
     Get users with a specific role.
-    
-    Returns all users that have been assigned the specified role within the given context.
+
+    Returns all users that have been assigned the specified role within the
+    given context.
     """
     try:
         service = RoleService()
@@ -589,7 +568,7 @@ def get_users_with_role(
             department_id=department_id,
             include_expired=include_expired,
         )
-        
+
         return [
             {
                 "id": user.id,
@@ -605,23 +584,21 @@ def get_users_with_role(
                 status_code=status.HTTP_404_NOT_FOUND,
                 content=ErrorResponse(
                     detail=str(e),
-                    code="NOT_FOUND",
-                    timestamp=datetime.utcnow(),
+                    error_code="NOT_FOUND",
                 ).model_dump(),
             )
         return JSONResponse(
             status_code=status.HTTP_403_FORBIDDEN,
             content=ErrorResponse(
                 detail=str(e),
-                code="PERMISSION_DENIED",
-                timestamp=datetime.utcnow(),
+                error_code="PERMISSION_DENIED",
             ).model_dump(),
         )
 
 
 @router.post(
     "/check-permission",
-    response_model=dict,
+    response_model=Dict[str, Union[int, str, bool, None]],
     responses={
         401: {"model": ErrorResponse, "description": "Unauthorized"},
         403: {"model": ErrorResponse, "description": "Insufficient permissions"},
@@ -635,11 +612,12 @@ def check_user_permission(
     department_id: Optional[int] = Query(None, description="Department ID"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> dict:
+) -> Union[Dict[str, Union[int, str, bool, None]], JSONResponse]:
     """
     Check if a user has a specific permission.
-    
-    Validates whether a user has the specified permission within the given organization/department context.
+
+    Validates whether a user has the specified permission within the given
+    organization/department context.
     """
     try:
         service = RoleService()
@@ -651,7 +629,7 @@ def check_user_permission(
             db=db,
             department_id=department_id,
         )
-        
+
         return {
             "user_id": user_id,
             "permission": permission,
@@ -665,15 +643,13 @@ def check_user_permission(
                 status_code=status.HTTP_404_NOT_FOUND,
                 content=ErrorResponse(
                     detail=str(e),
-                    code="NOT_FOUND",
-                    timestamp=datetime.utcnow(),
+                    error_code="NOT_FOUND",
                 ).model_dump(),
             )
         return JSONResponse(
             status_code=status.HTTP_403_FORBIDDEN,
             content=ErrorResponse(
                 detail=str(e),
-                code="PERMISSION_DENIED",
-                timestamp=datetime.utcnow(),
+                error_code="PERMISSION_DENIED",
             ).model_dump(),
         )

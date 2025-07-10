@@ -62,7 +62,7 @@ class TestRoleManagementAPI:
         assert "total" in data
         assert data["total"] > 0
         assert len(data["items"]) > 0
-        
+
         # Check if our test role is in the list
         role_codes = [item["code"] for item in data["items"]]
         assert "TEST_ROLE" in role_codes
@@ -86,7 +86,7 @@ class TestRoleManagementAPI:
         assert response.status_code == 200
         data = response.json()
         assert len(data["items"]) > 0
-        
+
         # All returned roles should match the search
         for item in data["items"]:
             assert "Test" in item["name"] or "Test" in item["code"]

@@ -8,7 +8,6 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 
 from app.models.department import Department
-from app.models.organization import Organization
 from tests.factories import DepartmentFactory, OrganizationFactory
 
 

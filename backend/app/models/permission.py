@@ -8,7 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import BaseModel
 
 if TYPE_CHECKING:
-    from app.models.role import RolePermission
+    pass  # RolePermission model has been removed
 
 
 class Permission(BaseModel):
@@ -53,13 +53,7 @@ class Permission(BaseModel):
         comment="Whether this is a system permission",
     )
 
-    # Relationships
-    role_permissions: Mapped[List["RolePermission"]] = relationship(
-        "RolePermission",
-        back_populates="permission",
-        cascade="all, delete-orphan",
-        lazy="select",
-    )
+    # Relationships (RolePermission relationship removed due to model removal)
 
     # Indexes and constraints
     __table_args__ = (

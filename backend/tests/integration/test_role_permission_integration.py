@@ -110,28 +110,28 @@ class TestRolePermissionIntegration:
             "role_id": manager_role.id,
             "organization_id": test_organization.id,
         }
-        
+
         response = client.post(
             "/api/v1/roles/assignments",
             headers={"Authorization": f"Bearer {admin_token}"},
             json=assignment_data,
         )
         assert response.status_code == 201
-        
+
         # Step 2: Assign member role to member user
         assignment_data = {
             "user_id": test_member_user.id,
             "role_id": member_role.id,
             "organization_id": test_organization.id,
         }
-        
+
         response = client.post(
             "/api/v1/roles/assignments",
             headers={"Authorization": f"Bearer {admin_token}"},
             json=assignment_data,
         )
         assert response.status_code == 201
-        
+
         # Step 3: Check manager user has manager-level permissions
         response = client.get(
             "/api/v1/permissions/check",
@@ -145,7 +145,7 @@ class TestRolePermissionIntegration:
         assert response.status_code == 200
         data = response.json()
         assert data["has_permission"] is True
-        
+
         # Step 4: Check member user doesn't have manager-level permissions
         response = client.get(
             "/api/v1/permissions/check",
@@ -159,7 +159,7 @@ class TestRolePermissionIntegration:
         assert response.status_code == 200
         data = response.json()
         assert data["has_permission"] is False
-        
+
         # Step 5: Check permission levels
         response = client.get(
             "/api/v1/permissions/user/level",
@@ -172,7 +172,7 @@ class TestRolePermissionIntegration:
         assert response.status_code == 200
         data = response.json()
         assert data["permission_level"] == "manager"
-        
+
         response = client.get(
             "/api/v1/permissions/user/level",
             headers={"Authorization": f"Bearer {admin_token}"},
@@ -205,13 +205,13 @@ class TestRolePermissionIntegration:
             assigned_by=test_admin.id,
         )
         db_session.commit()
-        
+
         # When: Checking various permission levels
         viewer_permission = "read:own_profile"
         member_permission = "write:own_profile"
         manager_permission = "read:team_performance"
         admin_permission = "admin:system"
-        
+
         # Then: Manager should have viewer and member permissions (inherited)
         response = client.get(
             "/api/v1/permissions/check",
@@ -224,7 +224,7 @@ class TestRolePermissionIntegration:
         )
         assert response.status_code == 200
         assert response.json()["has_permission"] is True
-        
+
         response = client.get(
             "/api/v1/permissions/check",
             headers={"Authorization": f"Bearer {admin_token}"},
@@ -236,7 +236,7 @@ class TestRolePermissionIntegration:
         )
         assert response.status_code == 200
         assert response.json()["has_permission"] is True
-        
+
         response = client.get(
             "/api/v1/permissions/check",
             headers={"Authorization": f"Bearer {admin_token}"},
@@ -248,7 +248,7 @@ class TestRolePermissionIntegration:
         )
         assert response.status_code == 200
         assert response.json()["has_permission"] is True
-        
+
         # But should not have admin permissions
         response = client.get(
             "/api/v1/permissions/check",
@@ -282,7 +282,7 @@ class TestRolePermissionIntegration:
             assigned_by=test_admin.id,
         )
         db_session.commit()
-        
+
         # When: Checking organization context permissions
         response = client.get(
             "/api/v1/permissions/check",
@@ -294,11 +294,11 @@ class TestRolePermissionIntegration:
                 "context": "organization",
             },
         )
-        
+
         # Then: Should have organization context permissions
         assert response.status_code == 200
         assert response.json()["has_permission"] is True
-        
+
         # When: Checking department context permissions
         response = client.get(
             "/api/v1/permissions/check",
@@ -310,7 +310,7 @@ class TestRolePermissionIntegration:
                 "context": "department",
             },
         )
-        
+
         # Then: Should have department context permissions
         assert response.status_code == 200
         assert response.json()["has_permission"] is True
@@ -337,7 +337,7 @@ class TestRolePermissionIntegration:
             expires_at=expired_date,
         )
         db_session.commit()
-        
+
         # When: Checking permission level
         response = client.get(
             "/api/v1/permissions/user/level",
@@ -347,12 +347,12 @@ class TestRolePermissionIntegration:
                 "organization_id": test_organization.id,
             },
         )
-        
+
         # Then: Should fall back to default viewer level
         assert response.status_code == 200
         data = response.json()
         assert data["permission_level"] == "viewer"
-        
+
         # When: Checking manager permission
         response = client.get(
             "/api/v1/permissions/check",
@@ -363,7 +363,7 @@ class TestRolePermissionIntegration:
                 "organization_id": test_organization.id,
             },
         )
-        
+
         # Then: Should not have manager permission
         assert response.status_code == 200
         assert response.json()["has_permission"] is False
@@ -404,7 +404,7 @@ class TestRolePermissionIntegration:
             assigned_by=test_admin.id,
         )
         db_session.commit()
-        
+
         # When: Checking permission level
         response = client.get(
             "/api/v1/permissions/user/level",
@@ -414,12 +414,12 @@ class TestRolePermissionIntegration:
                 "organization_id": test_organization.id,
             },
         )
-        
+
         # Then: Should have highest level (admin)
         assert response.status_code == 200
         data = response.json()
         assert data["permission_level"] == "admin"
-        
+
         # When: Checking admin permission
         response = client.get(
             "/api/v1/permissions/check",
@@ -430,7 +430,7 @@ class TestRolePermissionIntegration:
                 "organization_id": test_organization.id,
             },
         )
-        
+
         # Then: Should have admin permission
         assert response.status_code == 200
         assert response.json()["has_permission"] is True
@@ -446,7 +446,7 @@ class TestRolePermissionIntegration:
             "/api/v1/permissions/matrix/validate",
             headers={"Authorization": f"Bearer {admin_token}"},
         )
-        
+
         # Then: Should be valid
         assert response.status_code == 200
         data = response.json()
@@ -465,7 +465,7 @@ class TestRolePermissionIntegration:
             "/api/v1/permissions/matrix/report",
             headers={"Authorization": f"Bearer {admin_token}"},
         )
-        
+
         # Then: Should return comprehensive report
         assert response.status_code == 200
         data = response.json()
@@ -473,13 +473,13 @@ class TestRolePermissionIntegration:
         assert "levels" in data
         assert "validation" in data
         assert "total_permissions" in data
-        
+
         # Should have all permission levels
         assert "viewer" in data["levels"]
         assert "member" in data["levels"]
         assert "manager" in data["levels"]
         assert "admin" in data["levels"]
-        
+
         # Should be valid
         assert data["validation"] is True
 
@@ -498,7 +498,7 @@ class TestRolePermissionIntegration:
                 "level2": "admin",
             },
         )
-        
+
         # Then: Should return comparison
         assert response.status_code == 200
         data = response.json()
@@ -508,7 +508,7 @@ class TestRolePermissionIntegration:
         assert "common" in data["differences"]
         assert "viewer_only" in data["differences"]
         assert "admin_only" in data["differences"]
-        
+
         # Admin should have more permissions
         assert len(data["differences"]["admin_only"]) > 0
 
@@ -532,7 +532,7 @@ class TestRolePermissionIntegration:
             assigned_by=test_admin.id,
         )
         db_session.commit()
-        
+
         # When: Getting all user permissions
         response = client.get(
             "/api/v1/permissions/user/permissions",
@@ -542,7 +542,7 @@ class TestRolePermissionIntegration:
                 "organization_id": test_organization.id,
             },
         )
-        
+
         # Then: Should return all permissions
         assert response.status_code == 200
         data = response.json()
@@ -551,7 +551,7 @@ class TestRolePermissionIntegration:
         assert "contexts" in data["permissions"]
         assert "organization" in data["permissions"]["contexts"]
         assert "department" in data["permissions"]["contexts"]
-        
+
         # Should have manager-level permissions
         assert "read:team_performance" in data["permissions"]["base"]
         assert "org:write:members" in data["permissions"]["contexts"]["organization"]
@@ -568,7 +568,7 @@ class TestRolePermissionIntegration:
         # Given: Role service and permission matrix
         role_service = RoleService()
         permission_matrix = get_permission_matrix()
-        
+
         # When: Assigning role via service
         user_role = role_service.assign_role_to_user(
             user_id=test_manager_user.id,
@@ -577,27 +577,27 @@ class TestRolePermissionIntegration:
             assigner=test_admin,
             db=db_session,
         )
-        
+
         # Then: Role assignment should be created
         assert user_role.user_id == test_manager_user.id
         assert user_role.role_id == manager_role.id
-        
+
         # When: Checking permission via matrix
         has_permission = permission_matrix.check_user_permission(
             test_manager_user,
             "read:team_performance",
             test_organization.id,
         )
-        
+
         # Then: Should have permission
         assert has_permission is True
-        
+
         # When: Getting effective level
         effective_level = permission_matrix.get_user_effective_level(
             test_manager_user,
             test_organization.id,
         )
-        
+
         # Then: Should be manager level
         assert effective_level == PermissionLevel.MANAGER
 
@@ -613,16 +613,16 @@ class TestRolePermissionIntegration:
             "/api/v1/permissions/matrix/report",
             headers={"Authorization": f"Bearer {user_token}"},
         )
-        
+
         # Then: Should be denied
         assert response.status_code == 403
-        
+
         # When: Non-admin tries to validate matrix
         response = client.post(
             "/api/v1/permissions/matrix/validate",
             headers={"Authorization": f"Bearer {user_token}"},
         )
-        
+
         # Then: Should be denied
         assert response.status_code == 403
 
@@ -647,7 +647,7 @@ class TestRolePermissionIntegration:
             assigned_by=test_admin.id,
         )
         db_session.commit()
-        
+
         # When: Checking permission with department context
         response = client.get(
             "/api/v1/permissions/check",
@@ -659,11 +659,11 @@ class TestRolePermissionIntegration:
                 "department_id": 1,
             },
         )
-        
+
         # Then: Should have permission in that department
         assert response.status_code == 200
         assert response.json()["has_permission"] is True
-        
+
         # When: Checking permission level with department context
         response = client.get(
             "/api/v1/permissions/user/level",
@@ -674,7 +674,7 @@ class TestRolePermissionIntegration:
                 "department_id": 1,
             },
         )
-        
+
         # Then: Should have manager level in that department
         assert response.status_code == 200
         data = response.json()

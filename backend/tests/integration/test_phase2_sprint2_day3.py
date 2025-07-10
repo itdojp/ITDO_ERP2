@@ -34,7 +34,7 @@ class TestPhase2Sprint2Day3:
             permissions=["*"],
             created_by=test_admin.id,
         )
-        
+
         manager_role = Role.create(
             db=db_session,
             code="DEPT_MANAGER",
@@ -42,7 +42,7 @@ class TestPhase2Sprint2Day3:
             permissions=["read:*", "write:team", "role:assign"],
             created_by=test_admin.id,
         )
-        
+
         member_role = Role.create(
             db=db_session,
             code="MEMBER",
@@ -50,9 +50,9 @@ class TestPhase2Sprint2Day3:
             permissions=["read:own", "write:own"],
             created_by=test_admin.id,
         )
-        
+
         db_session.commit()
-        
+
         return {
             "admin": admin_role,
             "manager": manager_role,
@@ -68,23 +68,23 @@ class TestPhase2Sprint2Day3:
             password="ManagerPass123!",
             full_name="Integration Manager",
         )
-        
+
         member_user = User.create(
             db_session,
             email="integration.member@example.com",
             password="MemberPass123!",
             full_name="Integration Member",
         )
-        
+
         viewer_user = User.create(
             db_session,
             email="integration.viewer@example.com",
             password="ViewerPass123!",
             full_name="Integration Viewer",
         )
-        
+
         db_session.commit()
-        
+
         return {
             "manager": manager_user,
             "member": member_user,
@@ -108,7 +108,7 @@ class TestPhase2Sprint2Day3:
             "description": "Custom role for integration testing",
             "permissions": ["read:custom", "write:custom"],
         }
-        
+
         response = client.post(
             "/api/v1/roles",
             headers={"Authorization": f"Bearer {admin_token}"},
@@ -116,7 +116,7 @@ class TestPhase2Sprint2Day3:
         )
         assert response.status_code == 201
         custom_role_id = response.json()["id"]
-        
+
         # Step 2: List all roles
         response = client.get(
             "/api/v1/roles",
@@ -125,7 +125,7 @@ class TestPhase2Sprint2Day3:
         assert response.status_code == 200
         roles_data = response.json()
         assert roles_data["total"] >= 4  # At least our 4 roles
-        
+
         # Step 3: Assign roles to users
         assignments = [
             {
@@ -144,7 +144,7 @@ class TestPhase2Sprint2Day3:
                 "organization_id": test_organization.id,
             },
         ]
-        
+
         for assignment in assignments:
             response = client.post(
                 "/api/v1/roles/assignments",
@@ -152,7 +152,7 @@ class TestPhase2Sprint2Day3:
                 json=assignment,
             )
             assert response.status_code == 201
-        
+
         # Step 4: Verify role assignments
         for user_key, user in test_users.items():
             response = client.get(
@@ -163,7 +163,7 @@ class TestPhase2Sprint2Day3:
             assert response.status_code == 200
             user_roles = response.json()
             assert len(user_roles) == 1
-        
+
         # Step 5: Update role permissions
         new_permissions = ["read:updated", "write:updated", "admin:updated"]
         response = client.put(
@@ -172,7 +172,7 @@ class TestPhase2Sprint2Day3:
             json=new_permissions,
         )
         assert response.status_code == 200
-        
+
         # Step 6: Verify updated permissions
         response = client.get(
             f"/api/v1/roles/{custom_role_id}/permissions",
@@ -209,7 +209,7 @@ class TestPhase2Sprint2Day3:
             assigned_by=test_admin.id,
         )
         db_session.commit()
-        
+
         # Step 2: Test permission hierarchy
         permission_tests = [
             # Manager should have manager-level permissions
@@ -248,7 +248,7 @@ class TestPhase2Sprint2Day3:
                 "expected": False,
             },
         ]
-        
+
         for test_case in permission_tests:
             response = client.get(
                 "/api/v1/permissions/check",
@@ -265,14 +265,14 @@ class TestPhase2Sprint2Day3:
                 f"Permission check failed for user {test_case['user_id']} "
                 f"with permission {test_case['permission']}"
             )
-        
+
         # Step 3: Test permission levels
         level_tests = [
             {"user_id": test_users["manager"].id, "expected_level": "manager"},
             {"user_id": test_users["member"].id, "expected_level": "member"},
             {"user_id": test_users["viewer"].id, "expected_level": "viewer"},
         ]
-        
+
         for test_case in level_tests:
             response = client.get(
                 "/api/v1/permissions/user/level",
@@ -306,7 +306,7 @@ class TestPhase2Sprint2Day3:
             assigned_by=test_admin.id,
         )
         db_session.commit()
-        
+
         # Step 2: Test organization context permissions
         org_permission_tests = [
             {"permission": "org:read:basic", "expected": True},
@@ -314,7 +314,7 @@ class TestPhase2Sprint2Day3:
             {"permission": "org:write:members", "expected": True},
             {"permission": "org:admin:all", "expected": False},  # Only admin level
         ]
-        
+
         for test_case in org_permission_tests:
             response = client.get(
                 "/api/v1/permissions/check",
@@ -332,7 +332,7 @@ class TestPhase2Sprint2Day3:
                 f"Organization context permission check failed for "
                 f"permission {test_case['permission']}"
             )
-        
+
         # Step 3: Test department context permissions
         dept_permission_tests = [
             {"permission": "dept:read:basic", "expected": True},
@@ -340,7 +340,7 @@ class TestPhase2Sprint2Day3:
             {"permission": "dept:write:members", "expected": True},
             {"permission": "dept:admin:all", "expected": False},  # Only admin level
         ]
-        
+
         for test_case in dept_permission_tests:
             response = client.get(
                 "/api/v1/permissions/check",
@@ -375,7 +375,7 @@ class TestPhase2Sprint2Day3:
         assert "hierarchy" in levels_data
         assert "levels" in levels_data
         assert levels_data["hierarchy"] == ["viewer", "member", "manager", "admin"]
-        
+
         # Step 2: Get permissions for specific level
         response = client.get(
             "/api/v1/permissions/matrix/level/manager/permissions",
@@ -386,7 +386,7 @@ class TestPhase2Sprint2Day3:
         assert "level" in manager_perms
         assert "permissions" in manager_perms
         assert manager_perms["level"] == "manager"
-        
+
         # Step 3: Compare permission levels
         response = client.get(
             "/api/v1/permissions/matrix/compare",
@@ -398,7 +398,7 @@ class TestPhase2Sprint2Day3:
         assert "differences" in comparison
         assert "manager_only" in comparison["differences"]
         assert len(comparison["differences"]["manager_only"]) > 0
-        
+
         # Step 4: Generate matrix report
         response = client.get(
             "/api/v1/permissions/matrix/report",
@@ -410,7 +410,7 @@ class TestPhase2Sprint2Day3:
         assert "levels" in report
         assert "validation" in report
         assert report["validation"] is True
-        
+
         # Step 5: Validate matrix
         response = client.post(
             "/api/v1/permissions/matrix/validate",
@@ -437,14 +437,14 @@ class TestPhase2Sprint2Day3:
             "role_id": test_roles["member"].id,
             "organization_id": test_organization.id,
         }
-        
+
         response = client.post(
             "/api/v1/roles/assignments",
             headers={"Authorization": f"Bearer {admin_token}"},
             json=assignment_data,
         )
         assert response.status_code == 201
-        
+
         # Step 2: Verify user has member permissions
         response = client.get(
             "/api/v1/permissions/check",
@@ -457,7 +457,7 @@ class TestPhase2Sprint2Day3:
         )
         assert response.status_code == 200
         assert response.json()["has_permission"] is True
-        
+
         # Step 3: Remove role from user
         response = client.delete(
             f"/api/v1/roles/assignments/users/{test_users['member'].id}/roles/{test_roles['member'].id}",
@@ -465,7 +465,7 @@ class TestPhase2Sprint2Day3:
             params={"organization_id": test_organization.id},
         )
         assert response.status_code == 200
-        
+
         # Step 4: Verify user no longer has member permissions
         response = client.get(
             "/api/v1/permissions/check",
@@ -478,7 +478,7 @@ class TestPhase2Sprint2Day3:
         )
         assert response.status_code == 200
         assert response.json()["has_permission"] is False
-        
+
         # Step 5: Verify user falls back to viewer level
         response = client.get(
             "/api/v1/permissions/user/level",
@@ -507,7 +507,7 @@ class TestPhase2Sprint2Day3:
             headers={"Authorization": f"Bearer {admin_token}"},
         )
         assert response.status_code == 404
-        
+
         # Step 2: Test non-existent user permission check
         response = client.get(
             "/api/v1/permissions/check",
@@ -519,28 +519,28 @@ class TestPhase2Sprint2Day3:
             },
         )
         assert response.status_code == 404
-        
+
         # Step 3: Test permission denied for non-admin
         response = client.get(
             "/api/v1/permissions/matrix/report",
             headers={"Authorization": f"Bearer {user_token}"},
         )
         assert response.status_code == 403
-        
+
         # Step 4: Test invalid permission level
         response = client.get(
             "/api/v1/permissions/matrix/level/invalid/permissions",
             headers={"Authorization": f"Bearer {admin_token}"},
         )
         assert response.status_code == 404
-        
+
         # Step 5: Test duplicate role assignment
         assignment_data = {
             "user_id": test_users["member"].id,
             "role_id": test_roles["member"].id,
             "organization_id": test_organization.id,
         }
-        
+
         # First assignment
         response = client.post(
             "/api/v1/roles/assignments",
@@ -548,7 +548,7 @@ class TestPhase2Sprint2Day3:
             json=assignment_data,
         )
         assert response.status_code == 201
-        
+
         # Duplicate assignment
         response = client.post(
             "/api/v1/roles/assignments",
@@ -574,7 +574,7 @@ class TestPhase2Sprint2Day3:
         # 3. Role Management API (10 endpoints implemented)
         # 4. Permission Matrix (hierarchical permissions implemented)
         # 5. Integration Tests (this test)
-        
+
         # Step 1: Create a complete workflow
         # Create custom role
         role_data = {
@@ -583,7 +583,7 @@ class TestPhase2Sprint2Day3:
             "description": "Manages projects and teams",
             "permissions": ["read:*", "write:projects", "manage:team"],
         }
-        
+
         response = client.post(
             "/api/v1/roles",
             headers={"Authorization": f"Bearer {admin_token}"},
@@ -591,21 +591,21 @@ class TestPhase2Sprint2Day3:
         )
         assert response.status_code == 201
         project_manager_role_id = response.json()["id"]
-        
+
         # Assign role to user
         assignment_data = {
             "user_id": test_users["manager"].id,
             "role_id": project_manager_role_id,
             "organization_id": test_organization.id,
         }
-        
+
         response = client.post(
             "/api/v1/roles/assignments",
             headers={"Authorization": f"Bearer {admin_token}"},
             json=assignment_data,
         )
         assert response.status_code == 201
-        
+
         # Check user permissions
         response = client.get(
             "/api/v1/permissions/check",
@@ -618,7 +618,7 @@ class TestPhase2Sprint2Day3:
         )
         assert response.status_code == 200
         assert response.json()["has_permission"] is True
-        
+
         # Get user permission level
         response = client.get(
             "/api/v1/permissions/user/level",
@@ -630,7 +630,7 @@ class TestPhase2Sprint2Day3:
         )
         assert response.status_code == 200
         assert response.json()["permission_level"] == "manager"
-        
+
         # Step 2: Verify all systems are working
         # Check organization API (from Organization Management PR)
         response = client.get(
@@ -638,21 +638,21 @@ class TestPhase2Sprint2Day3:
             headers={"Authorization": f"Bearer {admin_token}"},
         )
         assert response.status_code == 200
-        
+
         # Check role API (Role Management API)
         response = client.get(
             "/api/v1/roles",
             headers={"Authorization": f"Bearer {admin_token}"},
         )
         assert response.status_code == 200
-        
+
         # Check permission matrix (Permission Matrix)
         response = client.get(
             "/api/v1/permissions/matrix/report",
             headers={"Authorization": f"Bearer {admin_token}"},
         )
         assert response.status_code == 200
-        
+
         # Step 3: Verify integration is complete
         # All Phase 2 Sprint 2 Day 3 deliverables are implemented and working:
         # ✅ Organization Management PR created
@@ -660,5 +660,5 @@ class TestPhase2Sprint2Day3:
         # ✅ Role Management API created (10 endpoints)
         # ✅ Permission Matrix implemented (hierarchical permissions)
         # ✅ Integration Tests created (this test suite)
-        
+
         assert True  # All tests passed, integration is complete

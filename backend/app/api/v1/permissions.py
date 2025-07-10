@@ -1,9 +1,8 @@
 """Permission Matrix API endpoints."""
 
-from typing import Dict, List, Optional
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_active_user, get_db
@@ -32,14 +31,18 @@ def check_user_permission(
     permission: str = Query(..., description="Permission to check"),
     organization_id: int = Query(..., description="Organization ID"),
     department_id: Optional[int] = Query(None, description="Department ID"),
-    context: Optional[str] = Query(None, description="Context (organization, department)"),
-    user_id: Optional[int] = Query(None, description="User ID to check (defaults to current user)"),
+    context: Optional[str] = Query(
+        None, description="Context (organization, department)"
+    ),
+    user_id: Optional[int] = Query(
+        None, description="User ID to check (defaults to current user)"
+    ),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ) -> dict:
     """
     Check if a user has a specific permission.
-    
+
     Validates whether a user has the specified permission within the given context.
     """
     try:
@@ -48,12 +51,14 @@ def check_user_permission(
         if user_id and user_id != current_user.id:
             # Check if current user can check other users' permissions
             if not current_user.is_superuser:
-                if not check_permission(current_user, "read:user_permissions", organization_id):
+                if not check_permission(
+                    current_user, "read:user_permissions", organization_id
+                ):
                     raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN,
                         detail="Insufficient permissions to check other users' permissions",
                     )
-            
+
             # Get target user
             target_user = db.query(User).filter(User.id == user_id).first()
             if not target_user:
@@ -61,12 +66,12 @@ def check_user_permission(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="User not found",
                 )
-        
+
         # Check permission
         has_permission = check_permission(
             target_user, permission, organization_id, department_id, context
         )
-        
+
         return {
             "user_id": target_user.id,
             "permission": permission,
@@ -75,7 +80,7 @@ def check_user_permission(
             "context": context,
             "has_permission": has_permission,
         }
-    
+
     except HTTPException:
         raise
     except Exception as e:
@@ -96,13 +101,15 @@ def check_user_permission(
 def get_user_permission_level(
     organization_id: int = Query(..., description="Organization ID"),
     department_id: Optional[int] = Query(None, description="Department ID"),
-    user_id: Optional[int] = Query(None, description="User ID (defaults to current user)"),
+    user_id: Optional[int] = Query(
+        None, description="User ID (defaults to current user)"
+    ),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ) -> dict:
     """
     Get the effective permission level for a user.
-    
+
     Returns the highest permission level the user has in the given context.
     """
     try:
@@ -111,12 +118,14 @@ def get_user_permission_level(
         if user_id and user_id != current_user.id:
             # Check if current user can view other users' permission levels
             if not current_user.is_superuser:
-                if not check_permission(current_user, "read:user_permissions", organization_id):
+                if not check_permission(
+                    current_user, "read:user_permissions", organization_id
+                ):
                     raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN,
                         detail="Insufficient permissions to view other users' permission levels",
                     )
-            
+
             # Get target user
             target_user = db.query(User).filter(User.id == user_id).first()
             if not target_user:
@@ -124,18 +133,22 @@ def get_user_permission_level(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="User not found",
                 )
-        
+
         # Get permission level
-        permission_level = get_permission_level(target_user, organization_id, department_id)
-        
+        permission_level = get_permission_level(
+            target_user, organization_id, department_id
+        )
+
         return {
             "user_id": target_user.id,
             "organization_id": organization_id,
             "department_id": department_id,
             "permission_level": permission_level.value,
-            "level_index": get_permission_matrix().PERMISSION_HIERARCHY.index(permission_level),
+            "level_index": get_permission_matrix().PERMISSION_HIERARCHY.index(
+                permission_level
+            ),
         }
-    
+
     except HTTPException:
         raise
     except Exception as e:
@@ -156,13 +169,15 @@ def get_user_permission_level(
 def get_user_all_permissions(
     organization_id: int = Query(..., description="Organization ID"),
     department_id: Optional[int] = Query(None, description="Department ID"),
-    user_id: Optional[int] = Query(None, description="User ID (defaults to current user)"),
+    user_id: Optional[int] = Query(
+        None, description="User ID (defaults to current user)"
+    ),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ) -> dict:
     """
     Get all permissions for a user.
-    
+
     Returns all base and context-specific permissions for the user.
     """
     try:
@@ -171,12 +186,14 @@ def get_user_all_permissions(
         if user_id and user_id != current_user.id:
             # Check if current user can view other users' permissions
             if not current_user.is_superuser:
-                if not check_permission(current_user, "read:user_permissions", organization_id):
+                if not check_permission(
+                    current_user, "read:user_permissions", organization_id
+                ):
                     raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN,
                         detail="Insufficient permissions to view other users' permissions",
                     )
-            
+
             # Get target user
             target_user = db.query(User).filter(User.id == user_id).first()
             if not target_user:
@@ -184,19 +201,21 @@ def get_user_all_permissions(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="User not found",
                 )
-        
+
         # Get all permissions
-        user_permissions = get_user_permissions(target_user, organization_id, department_id)
-        
+        user_permissions = get_user_permissions(
+            target_user, organization_id, department_id
+        )
+
         # Convert sets to lists for JSON serialization
         serialized_permissions = {
             "base": list(user_permissions["base"]),
-            "contexts": {}
+            "contexts": {},
         }
-        
+
         for context, perms in user_permissions["contexts"].items():
             serialized_permissions["contexts"][context] = list(perms)
-        
+
         return {
             "user_id": target_user.id,
             "organization_id": organization_id,
@@ -204,7 +223,7 @@ def get_user_all_permissions(
             "permissions": serialized_permissions,
             "permission_count": len(user_permissions["base"]),
         }
-    
+
     except HTTPException:
         raise
     except Exception as e:
@@ -227,7 +246,7 @@ def get_permission_levels(
 ) -> dict:
     """
     Get all permission levels and their hierarchy.
-    
+
     Returns information about the permission level hierarchy.
     """
     try:
@@ -237,9 +256,9 @@ def get_permission_levels(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Insufficient permissions to view permission matrix",
             )
-        
+
         matrix = get_permission_matrix()
-        
+
         return {
             "hierarchy": [level.value for level in matrix.PERMISSION_HIERARCHY],
             "levels": {
@@ -251,7 +270,7 @@ def get_permission_levels(
                 for level in matrix.PERMISSION_HIERARCHY
             },
         }
-    
+
     except HTTPException:
         raise
     except Exception as e:
@@ -276,7 +295,7 @@ def get_level_permissions(
 ) -> dict:
     """
     Get all permissions for a specific permission level.
-    
+
     Returns base and context-specific permissions for the given level.
     """
     try:
@@ -286,7 +305,7 @@ def get_level_permissions(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Insufficient permissions to view permission matrix",
             )
-        
+
         # Validate permission level
         try:
             permission_level = PermissionLevel(level)
@@ -295,28 +314,26 @@ def get_level_permissions(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Permission level '{level}' not found",
             )
-        
+
         matrix = get_permission_matrix()
         all_permissions = matrix.get_all_permissions(permission_level)
-        
+
         # Convert sets to lists for JSON serialization
-        serialized_permissions = {
-            "base": list(all_permissions["base"]),
-            "contexts": {}
-        }
-        
+        serialized_permissions = {"base": list(all_permissions["base"]), "contexts": {}}
+
         for context, perms in all_permissions["contexts"].items():
             serialized_permissions["contexts"][context] = list(perms)
-        
+
         return {
             "level": level,
             "permissions": serialized_permissions,
             "base_permission_count": len(all_permissions["base"]),
             "context_permission_counts": {
-                context: len(perms) for context, perms in all_permissions["contexts"].items()
+                context: len(perms)
+                for context, perms in all_permissions["contexts"].items()
             },
         }
-    
+
     except HTTPException:
         raise
     except Exception as e:
@@ -342,7 +359,7 @@ def compare_permission_levels(
 ) -> dict:
     """
     Compare permissions between two permission levels.
-    
+
     Returns the differences and similarities between two permission levels.
     """
     try:
@@ -352,7 +369,7 @@ def compare_permission_levels(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Insufficient permissions to view permission matrix",
             )
-        
+
         # Validate permission levels
         try:
             permission_level1 = PermissionLevel(level1)
@@ -362,15 +379,17 @@ def compare_permission_levels(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Invalid permission level: {str(e)}",
             )
-        
+
         matrix = get_permission_matrix()
-        differences = matrix.get_permission_differences(permission_level1, permission_level2)
-        
+        differences = matrix.get_permission_differences(
+            permission_level1, permission_level2
+        )
+
         # Convert sets to lists for JSON serialization
         serialized_differences = {}
         for key, perms in differences.items():
             serialized_differences[key] = list(perms)
-        
+
         return {
             "level1": level1,
             "level2": level2,
@@ -379,7 +398,7 @@ def compare_permission_levels(
                 key: len(perms) for key, perms in differences.items()
             },
         }
-    
+
     except HTTPException:
         raise
     except Exception as e:
@@ -402,7 +421,7 @@ def get_permission_matrix_report(
 ) -> dict:
     """
     Generate a comprehensive permission matrix report.
-    
+
     Returns detailed information about the entire permission matrix.
     """
     try:
@@ -412,12 +431,12 @@ def get_permission_matrix_report(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Insufficient permissions to view permission matrix report",
             )
-        
+
         matrix = get_permission_matrix()
         report = matrix.generate_permission_report()
-        
+
         return report
-    
+
     except HTTPException:
         raise
     except Exception as e:
@@ -440,7 +459,7 @@ def validate_permission_matrix(
 ) -> dict:
     """
     Validate the permission matrix hierarchy.
-    
+
     Checks if the permission hierarchy is correctly configured.
     """
     try:
@@ -450,16 +469,18 @@ def validate_permission_matrix(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Insufficient permissions to validate permission matrix",
             )
-        
+
         matrix = get_permission_matrix()
         is_valid = matrix.validate_permission_hierarchy()
-        
+
         return {
             "is_valid": is_valid,
             "hierarchy": [level.value for level in matrix.PERMISSION_HIERARCHY],
-            "validation_message": "Permission hierarchy is valid" if is_valid else "Permission hierarchy validation failed",
+            "validation_message": "Permission hierarchy is valid"
+            if is_valid
+            else "Permission hierarchy validation failed",
         }
-    
+
     except HTTPException:
         raise
     except Exception as e:

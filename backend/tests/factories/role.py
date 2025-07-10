@@ -4,7 +4,7 @@ from typing import Any, Dict, List
 
 from app.models.organization import Organization
 from app.models.permission import Permission
-from app.models.role import Role
+from app.models.role import Role, UserRole
 from tests.factories import BaseFactory, fake
 
 from .organization import OrganizationFactory
@@ -189,7 +189,7 @@ class RoleFactory(BaseFactory):
             if category not in permission_dict:
                 permission_dict[category] = {}
             permission_dict[category][permission.code] = True
-        
+
         # Update role permissions JSON
         role.permissions = permission_dict
 
@@ -331,7 +331,7 @@ class RoleFactory(BaseFactory):
             if category not in permission_dict:
                 permission_dict[category] = {}
             permission_dict[category][permission.code] = True
-        
+
         # Update role permissions JSON
         role.permissions = permission_dict
         db_session.commit()
@@ -384,3 +384,42 @@ def create_test_user_role(
     db_session.refresh(user_role)
 
     return user_role
+
+
+class UserRoleFactory(BaseFactory):
+    """Factory for creating UserRole test instances."""
+
+    model_class = UserRole
+
+    @classmethod
+    def get_default_attributes(cls) -> Dict[str, Any]:
+        """Get default attributes for UserRole creation."""
+        return {
+            "user_id": 1,  # Will be overridden with actual user
+            "role_id": 1,  # Will be overridden with actual role
+            "organization_id": 1,  # Will be overridden with actual organization
+            "department_id": None,
+            "assigned_by": 1,
+            "is_active": True,
+            "expires_at": None,
+            "is_primary": False,
+            "notes": None,
+        }
+
+    @classmethod
+    def create_with_relationships(
+        cls, db_session, user, role, organization, department=None, **kwargs
+    ) -> UserRole:
+        """Create a UserRole with actual relationship objects."""
+        attributes = cls.get_default_attributes()
+        attributes.update(
+            {
+                "user_id": user.id,
+                "role_id": role.id,
+                "organization_id": organization.id,
+                "department_id": department.id if department else None,
+            }
+        )
+        attributes.update(kwargs)
+
+        return cls.create(db_session, **attributes)

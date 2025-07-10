@@ -4,7 +4,6 @@ import pytest
 from sqlalchemy.orm import Session
 
 from app.models.organization import Organization
-from app.models.role import Role
 from app.models.user import User
 from app.schemas.role import RoleCreate
 from app.services.role import RoleService
@@ -40,7 +39,7 @@ class TestRoleServiceBasic:
             description="Test role for integration testing",
             permissions=["read:test", "write:test"],
         )
-        
+
         # When: Creating role as superuser
         role = service.create_role(
             data=role_data,
@@ -48,7 +47,7 @@ class TestRoleServiceBasic:
             db=db_session,
             organization_id=test_organization.id,
         )
-        
+
         # Then: Role should be created successfully
         assert role.code == "TEST_ROLE"
         assert role.name == "Test Role"
@@ -70,14 +69,14 @@ class TestRoleServiceBasic:
             name="Member Role",
             permissions=["read:own", "write:own"],
         )
-        
+
         role = service.create_role(
             data=role_data,
             user=test_admin,
             db=db_session,
         )
         db_session.commit()
-        
+
         # When: Assigning role to user
         user_role = service.assign_role_to_user(
             user_id=test_user.id,
@@ -86,7 +85,7 @@ class TestRoleServiceBasic:
             assigner=test_admin,
             db=db_session,
         )
-        
+
         # Then: Role should be assigned
         assert user_role.user_id == test_user.id
         assert user_role.role_id == role.id
@@ -108,14 +107,14 @@ class TestRoleServiceBasic:
             name="Viewer Role",
             permissions=["read:public"],
         )
-        
+
         role = service.create_role(
             data=role_data,
             user=test_admin,
             db=db_session,
         )
         db_session.commit()
-        
+
         service.assign_role_to_user(
             user_id=test_user.id,
             role_id=role.id,
@@ -124,7 +123,7 @@ class TestRoleServiceBasic:
             db=db_session,
         )
         db_session.commit()
-        
+
         # When: Getting user roles
         user_roles = service.get_user_roles(
             user_id=test_user.id,
@@ -132,7 +131,7 @@ class TestRoleServiceBasic:
             db=db_session,
             organization_id=test_organization.id,
         )
-        
+
         # Then: Should return the assigned role
         assert len(user_roles) == 1
         assert user_roles[0].role_id == role.id
@@ -152,14 +151,14 @@ class TestRoleServiceBasic:
             name="Editor Role",
             permissions=["read:articles", "write:articles", "delete:own_articles"],
         )
-        
+
         role = service.create_role(
             data=role_data,
             user=test_admin,
             db=db_session,
         )
         db_session.commit()
-        
+
         # Assign role to user
         service.assign_role_to_user(
             user_id=test_user.id,
@@ -169,7 +168,7 @@ class TestRoleServiceBasic:
             db=db_session,
         )
         db_session.commit()
-        
+
         # When: Checking permissions
         has_read = service.check_user_permission(
             user_id=test_user.id,
@@ -178,7 +177,7 @@ class TestRoleServiceBasic:
             db=db_session,
             organization_id=test_organization.id,
         )
-        
+
         has_admin = service.check_user_permission(
             user_id=test_user.id,
             permission="admin:system",
@@ -186,7 +185,7 @@ class TestRoleServiceBasic:
             db=db_session,
             organization_id=test_organization.id,
         )
-        
+
         # Then: Should have assigned permissions but not admin
         assert has_read is True
         assert has_admin is False
