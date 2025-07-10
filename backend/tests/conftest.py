@@ -43,7 +43,14 @@ SQLALCHEMY_DATABASE_URL = os.getenv(
 )
 
 # For SQLite tests (unit tests)
-if "unit" in os.getenv("PYTEST_CURRENT_TEST", ""):
+# Check if running unit tests by environment variable or test path
+running_unit_tests = (
+    "unit" in os.getenv("PYTEST_CURRENT_TEST", "")
+    or "tests/unit" in os.getcwd()
+    or any("tests/unit" in arg for arg in __import__("sys").argv)
+)
+
+if running_unit_tests:
     SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
     engine = create_engine(
         SQLALCHEMY_DATABASE_URL,
