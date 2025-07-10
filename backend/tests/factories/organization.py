@@ -52,11 +52,11 @@ class OrganizationFactory(BaseFactory):
     def build(cls, **kwargs: Any) -> Any:
         """Build a model instance without saving to database."""
         attributes = cls.build_dict(**kwargs)
-        
+
         # Convert settings dict to JSON string for database model
         if "settings" in attributes and isinstance(attributes["settings"], dict):
             attributes["settings"] = json.dumps(attributes["settings"])
-        
+
         return cls.model_class(**attributes)
 
     @classmethod

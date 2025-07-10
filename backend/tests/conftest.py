@@ -2,7 +2,9 @@
 
 # Use PostgreSQL for integration tests (same as development)
 import os
+import uuid
 from collections.abc import Generator
+from datetime import datetime
 from typing import Any
 
 import pytest
@@ -44,6 +46,29 @@ else:
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
+@pytest.fixture(autouse=True)
+def isolate_test_data() -> dict[str, str]:
+    """各テストで独立したデータを使用"""
+    # 一意性を保証するテストデータ生成
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+    unique_id = str(uuid.uuid4())[:8]
+    return {
+        "unique_email": f"test_{timestamp}_{unique_id}@example.com",
+        "unique_code": f"TEST_{timestamp}_{unique_id}",
+        "unique_name": f"Test Organization {timestamp}",
+        "unique_id": unique_id,
+        "timestamp": timestamp,
+    }
+
+
+@pytest.fixture(autouse=True)
+def clean_test_database(db_session: Session) -> Generator[None]:
+    """テスト前に関連テーブルをクリア"""
+    yield  # テスト実行
+
+    # テスト後のクリーンアップは db_session fixture で処理される
+
+
 @pytest.fixture
 def db_session() -> Generator[Session]:
     """Create a clean database session for each test."""
@@ -54,19 +79,27 @@ def db_session() -> Generator[Session]:
     session = TestingSessionLocal()
 
     try:
+        # Start transaction for test isolation
+        session.begin()
         yield session
+    except Exception:
+        # Rollback on any exception
+        session.rollback()
+        raise
     finally:
+        # Always rollback to ensure clean state
+        session.rollback()
         session.close()
-        # Clean up test data using safe DELETE order in PostgreSQL
+
+        # Additional cleanup for PostgreSQL
         if "postgresql" in str(engine.url):
-            # For PostgreSQL, use DELETE in dependency order to avoid
-            # foreign key violations
+            # Use TRUNCATE for better performance and reset sequences
             with engine.begin() as conn:
                 from sqlalchemy import text
 
-                # Simple approach: Delete in safe order
+                # TRUNCATE in safe order
                 table_order = [
-                    "tasks",  # Delete tasks first (references projects and departments)
+                    "tasks",
                     "user_roles",
                     "role_permissions",
                     "password_history",
@@ -83,7 +116,9 @@ def db_session() -> Generator[Session]:
                     "organizations",
                 ]
                 for table in table_order:
-                    conn.execute(text(f'DELETE FROM "{table}"'))
+                    conn.execute(
+                        text(f'TRUNCATE TABLE "{table}" RESTART IDENTITY CASCADE')
+                    )
         else:
             # For SQLite, drop all tables
             Base.metadata.drop_all(bind=engine)

@@ -1,6 +1,9 @@
 """Task management API endpoints."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from typing import Any
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import status as http_status
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_active_user, get_db
@@ -18,7 +21,7 @@ from app.services.task import TaskService
 router = APIRouter()
 
 
-@router.post("", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=TaskResponse, status_code=http_status.HTTP_201_CREATED)
 def create_task(
     task_data: TaskCreate,
     db: Session = Depends(get_db),
@@ -29,12 +32,12 @@ def create_task(
     try:
         return service.create_task(task_data=task_data, user=current_user, db=db)
     except NotFound as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail=str(e))
     except PermissionDenied as e:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail=str(e))
     except Exception:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create task",
         )
 
@@ -55,7 +58,7 @@ def list_tasks(
     """List tasks with filters and pagination."""
     service = TaskService()
 
-    filters = {}
+    filters: dict[str, Any] = {}
     if project_id is not None:
         filters["project_id"] = project_id
     if status is not None:
@@ -77,7 +80,7 @@ def list_tasks(
         )
     except Exception:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to list tasks",
         )
 
@@ -93,9 +96,9 @@ def get_task(
     try:
         return service.get_task(task_id=task_id, user=current_user, db=db)
     except NotFound as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail=str(e))
     except PermissionDenied as e:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail=str(e))
 
 
 @router.put("/{task_id}", response_model=TaskResponse)
@@ -112,12 +115,12 @@ def update_task(
             task_id=task_id, update_data=update_data, user=current_user, db=db
         )
     except NotFound as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail=str(e))
     except PermissionDenied as e:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail=str(e))
 
 
-@router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{task_id}", status_code=http_status.HTTP_204_NO_CONTENT)
 def delete_task(
     task_id: int,
     db: Session = Depends(get_db),
@@ -128,9 +131,9 @@ def delete_task(
     try:
         service.delete_task(task_id=task_id, user=current_user, db=db)
     except NotFound as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail=str(e))
     except PermissionDenied as e:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail=str(e))
 
 
 @router.patch("/{task_id}/status", response_model=TaskResponse)
@@ -140,19 +143,19 @@ def update_task_status(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ) -> TaskResponse:
-    """Update task status."""
+    """Update task http_status."""
     service = TaskService()
     try:
         return service.update_task_status(
             task_id=task_id, status_update=status_update, user=current_user, db=db
         )
     except NotFound as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail=str(e))
     except PermissionDenied as e:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail=str(e))
     except NotImplementedError:
         raise HTTPException(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            status_code=http_status.HTTP_501_NOT_IMPLEMENTED,
             detail="Status update not implemented yet",
         )
 
@@ -163,7 +166,7 @@ def update_task_status(
 @router.post(
     "/department/{department_id}",
     response_model=TaskResponse,
-    status_code=status.HTTP_201_CREATED,
+    status_code=http_status.HTTP_201_CREATED,
 )
 def create_department_task(
     department_id: int,
@@ -178,12 +181,12 @@ def create_department_task(
             task_data=task_data, user=current_user, db=db, department_id=department_id
         )
     except NotFound as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail=str(e))
     except PermissionDenied as e:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail=str(e))
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to create department task: {str(e)}",
         )
 
@@ -213,12 +216,12 @@ def get_department_tasks(
             page_size=page_size,
         )
     except NotFound as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail=str(e))
     except PermissionDenied as e:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail=str(e))
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get department tasks: {str(e)}",
         )
 
@@ -237,12 +240,12 @@ def assign_task_to_department(
             task_id=task_id, department_id=department_id, user=current_user, db=db
         )
     except NotFound as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail=str(e))
     except PermissionDenied as e:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail=str(e))
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to assign task to department: {str(e)}",
         )
 
@@ -266,9 +269,9 @@ def get_tasks_by_visibility(
             page_size=page_size,
         )
     except PermissionDenied as e:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+        raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail=str(e))
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get tasks by visibility: {str(e)}",
         )
