@@ -68,6 +68,14 @@ class Settings(BaseSettings):
     POSTGRES_DB: str = "itdo_erp"
     POSTGRES_PORT: int = 5432
     DATABASE_URL: Optional[Union[PostgresDsn, AnyUrl]] = None
+    
+    # Test environment overrides
+    @property
+    def postgres_db_name(self) -> str:
+        """Get the correct database name based on environment."""
+        if self.ENVIRONMENT in ("test", "testing") or self.TESTING:
+            return "itdo_erp_test"
+        return self.POSTGRES_DB
 
     @field_validator("DATABASE_URL", mode="before")
     @classmethod
@@ -75,12 +83,15 @@ class Settings(BaseSettings):
         if isinstance(v, str):
             return v
         values = info.data if hasattr(info, "data") else {}
+        # Use test database for test environment
+        env = values.get("ENVIRONMENT", "development")
+        db_name = "itdo_erp_test" if env in ("test", "testing") or values.get("TESTING") else "itdo_erp"
         return (
             f"postgresql://{values.get('POSTGRES_USER', 'itdo_user')}:"
             f"{values.get('POSTGRES_PASSWORD', 'itdo_password')}@"
             f"{values.get('POSTGRES_SERVER', 'localhost')}:"
             f"{values.get('POSTGRES_PORT', 5432)}/"
-            f"{values.get('POSTGRES_DB', 'itdo_erp')}"
+            f"{db_name}"
         )
 
     # Redis設定
