@@ -1,7 +1,7 @@
 import json
 from typing import Any, List, Optional, Union
 
-from pydantic import AnyUrl, PostgresDsn, Field, field_validator
+from pydantic import AnyUrl, Field, PostgresDsn, field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -38,7 +38,9 @@ class Settings(BaseSettings):
 
             # Handle comma-separated values FIRST (before JSON)
             if "," in v_stripped and not v_stripped.startswith("["):
-                origins = [origin.strip() for origin in v_stripped.split(",") if origin.strip()]
+                origins = [
+                    origin.strip() for origin in v_stripped.split(",") if origin.strip()
+                ]
                 return origins if origins else default_origins
 
             # Then handle JSON arrays

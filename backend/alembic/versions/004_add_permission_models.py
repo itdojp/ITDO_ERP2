@@ -13,8 +13,8 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "004_add_permission_models"
-down_revision: Union[str, None] = "003_complete_type_safe_schema"
+revision: str = "004"
+down_revision: Union[str, None] = "003b"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
