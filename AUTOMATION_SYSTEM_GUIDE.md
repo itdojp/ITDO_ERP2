@@ -2,12 +2,18 @@
 
 ## 🔄 自動化システムの再起動方法
 
-### 1. 基本的な再起動（推奨）
+### 🚀 クイックスタート（最速）
+```bash
+# ワンライナーで即座に開始
+cd /mnt/c/work/ITDO_ERP2 && git pull origin main && source scripts/claude-code-automation/agent/agent-init-v2.sh CC01
+```
+
+### 1. 基本的な再起動（推奨 - v2使用）
 ```bash
 # エージェントIDに合わせて実行
-source scripts/claude-code-automation/agent/agent-init.sh CC01  # CC01の場合
-source scripts/claude-code-automation/agent/agent-init.sh CC02  # CC02の場合
-source scripts/claude-code-automation/agent/agent-init.sh CC03  # CC03の場合
+source scripts/claude-code-automation/agent/agent-init-v2.sh CC01  # CC01の場合
+source scripts/claude-code-automation/agent/agent-init-v2.sh CC02  # CC02の場合
+source scripts/claude-code-automation/agent/agent-init-v2.sh CC03  # CC03の場合
 ```
 
 ### 2. 完全リセット後の再起動
