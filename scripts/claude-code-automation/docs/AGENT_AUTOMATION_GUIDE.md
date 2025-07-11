@@ -248,7 +248,7 @@ alias fix-ci="./scripts/auto-fix-ci.sh"
 echo "📋 自動タスクチェックを開始します..."
 while true; do
     ./scripts/agent-work.sh
-    sleep 1800  # 30分待機
+    sleep 900   # 15分待機
 done &
 
 echo "✅ 初期化完了！"
