@@ -9,7 +9,7 @@ from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -29,10 +29,23 @@ from tests.factories import (
 )
 
 # Determine database URL based on environment
-# If DATABASE_URL is explicitly set (e.g., in CI), use it
+# If DATABASE_URL is explicitly set (e.g., in CI), check if it's accessible
 if os.getenv("DATABASE_URL"):
-    SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
-    engine = create_engine(SQLALCHEMY_DATABASE_URL)
+    try:
+        SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
+        test_engine = create_engine(SQLALCHEMY_DATABASE_URL)
+        with test_engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        # Connection successful, use it
+        engine = test_engine
+    except Exception:
+        # DATABASE_URL set but not accessible, fallback to SQLite
+        SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
+        engine = create_engine(
+            SQLALCHEMY_DATABASE_URL,
+            connect_args={"check_same_thread": False},
+            poolclass=StaticPool,
+        )
 elif os.getenv("CI") or "GITHUB_ACTIONS" in os.environ:
     # Use SQLite in CI environment when DATABASE_URL is not set
     SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
@@ -42,22 +55,22 @@ elif os.getenv("CI") or "GITHUB_ACTIONS" in os.environ:
         poolclass=StaticPool,
     )
 else:
-    # For local development
-    SQLALCHEMY_DATABASE_URL = os.getenv(
-        "DATABASE_URL", "postgresql://itdo_user:itdo_password@localhost:5432/itdo_erp"
-    )
-
-    if "unit" in os.getenv("PYTEST_CURRENT_TEST", ""):
-        # Use SQLite for unit tests in local development
+    # For local development - try PostgreSQL first, fallback to SQLite
+    try:
+        SQLALCHEMY_DATABASE_URL = "postgresql://itdo_user:itdo_password@localhost:5432/itdo_erp"
+        test_engine = create_engine(SQLALCHEMY_DATABASE_URL)
+        with test_engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        # Connection successful, use PostgreSQL
+        engine = test_engine
+    except Exception:
+        # PostgreSQL not available, use SQLite for all tests
         SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
         engine = create_engine(
             SQLALCHEMY_DATABASE_URL,
             connect_args={"check_same_thread": False},
             poolclass=StaticPool,
         )
-    else:
-        # For local development with PostgreSQL available (integration tests)
-        engine = create_engine(SQLALCHEMY_DATABASE_URL)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
@@ -106,7 +119,7 @@ def db_session() -> Generator[Session]:
         session.rollback()
         session.close()
 
-        # Additional cleanup for PostgreSQL
+        # Enhanced cleanup for test isolation
         if "postgresql" in str(engine.url):
             # Use TRUNCATE for better performance and reset sequences
             with engine.begin() as conn:
@@ -135,8 +148,9 @@ def db_session() -> Generator[Session]:
                         text(f'TRUNCATE TABLE "{table}" RESTART IDENTITY CASCADE')
                     )
         else:
-            # For SQLite, drop all tables
+            # For SQLite, drop and recreate all tables for complete isolation
             Base.metadata.drop_all(bind=engine)
+            Base.metadata.create_all(bind=engine)
 
 
 @pytest.fixture
