@@ -68,7 +68,7 @@ class OrganizationRepository(
             .where(~self.model.is_deleted)
             .cte(name="subsidiaries_cte", recursive=True)
         )
-        
+
         # Recursive part - join with the CTE directly
         recursive_part = (
             select(
@@ -83,7 +83,7 @@ class OrganizationRepository(
             .join(org_cte, self.model.parent_id == org_cte.c.id)
             .where(~self.model.is_deleted)
         )
-        
+
         org_cte = org_cte.union_all(recursive_part)
 
         # Final query to get the full organization objects
