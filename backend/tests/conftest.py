@@ -28,12 +28,8 @@ from tests.factories import (
     UserFactory,
 )
 
-SQLALCHEMY_DATABASE_URL = os.getenv(
-    "DATABASE_URL", "postgresql://itdo_user:itdo_password@localhost:5432/itdo_erp"
-)
-
-# Use SQLite for all tests in CI or when PostgreSQL is not available
-# This includes both unit and integration tests in CI environment
+# Determine database URL based on environment
+# Force SQLite for CI environment regardless of DATABASE_URL env var
 if os.getenv("CI") or "GITHUB_ACTIONS" in os.environ:
     # Always use SQLite in CI environment
     SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
@@ -42,17 +38,23 @@ if os.getenv("CI") or "GITHUB_ACTIONS" in os.environ:
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
-elif "unit" in os.getenv("PYTEST_CURRENT_TEST", ""):
-    # Use SQLite for unit tests in local development
-    SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
-    engine = create_engine(
-        SQLALCHEMY_DATABASE_URL,
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
 else:
-    # For local development with PostgreSQL available (integration tests)
-    engine = create_engine(SQLALCHEMY_DATABASE_URL)
+    # For local development
+    SQLALCHEMY_DATABASE_URL = os.getenv(
+        "DATABASE_URL", "postgresql://itdo_user:itdo_password@localhost:5432/itdo_erp"
+    )
+    
+    if "unit" in os.getenv("PYTEST_CURRENT_TEST", ""):
+        # Use SQLite for unit tests in local development
+        SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
+        engine = create_engine(
+            SQLALCHEMY_DATABASE_URL,
+            connect_args={"check_same_thread": False},
+            poolclass=StaticPool,
+        )
+    else:
+        # For local development with PostgreSQL available (integration tests)
+        engine = create_engine(SQLALCHEMY_DATABASE_URL)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
