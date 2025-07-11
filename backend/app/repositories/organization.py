@@ -54,23 +54,43 @@ class OrganizationRepository(
 
     def get_all_subsidiaries(self, parent_id: OrganizationId) -> list[Organization]:
         """Get all subsidiaries recursively."""
-        # Use CTE for recursive query
+        # Use CTE for recursive query - PostgreSQL requires proper CTE syntax
         org_cte = (
-            select(self.model)
+            select(
+                self.model.id,
+                self.model.code,
+                self.model.name,
+                self.model.parent_id,
+                self.model.is_active,
+                self.model.is_deleted
+            )
             .where(self.model.parent_id == parent_id)
-            .cte(recursive=True)
+            .where(~self.model.is_deleted)
+            .cte(name="subsidiaries_cte", recursive=True)
         )
-        org_alias = org_cte.alias()
-
-        org_cte = org_cte.union_all(
-            select(self.model).where(self.model.parent_id.in_(select(org_alias.c.id)))
+        
+        # Recursive part - join with the CTE directly
+        recursive_part = (
+            select(
+                self.model.id,
+                self.model.code,
+                self.model.name,
+                self.model.parent_id,
+                self.model.is_active,
+                self.model.is_deleted
+            )
+            .select_from(self.model)
+            .join(org_cte, self.model.parent_id == org_cte.c.id)
+            .where(~self.model.is_deleted)
         )
+        
+        org_cte = org_cte.union_all(recursive_part)
 
+        # Final query to get the full organization objects
         return list(
             self.db.scalars(
                 select(self.model)
                 .join(org_cte, self.model.id == org_cte.c.id)
-                .where(~self.model.is_deleted)
             )
         )
 
