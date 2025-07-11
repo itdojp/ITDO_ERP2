@@ -66,10 +66,10 @@ class User(SoftDeletableModel):
 
     # Task relationships
     assigned_tasks: Mapped[List["Task"]] = relationship(
-        "Task", foreign_keys="Task.assignee_id", back_populates="assignee"
+        "Task", foreign_keys="Task.assigned_to", back_populates="assignee"
     )
-    reported_tasks: Mapped[List["Task"]] = relationship(
-        "Task", foreign_keys="Task.reporter_id", back_populates="reporter"
+    created_tasks: Mapped[List["Task"]] = relationship(
+        "Task", foreign_keys="Task.created_by", back_populates="creator"
     )
 
     @classmethod

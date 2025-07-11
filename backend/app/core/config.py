@@ -1,7 +1,8 @@
-from typing import Any, Dict, List, Optional, Union
+import json
+from typing import Any, List, Optional, Union
 
-from pydantic import AnyHttpUrl, AnyUrl, PostgresDsn, validator
-from pydantic_settings import BaseSettings
+from pydantic import AnyUrl, Field, PostgresDsn, ValidationInfo, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -10,16 +11,55 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
 
     # CORS設定
-    BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = []
+    BACKEND_CORS_ORIGINS: Any = Field(
+        default="http://localhost:3000,http://127.0.0.1:3000"
+    )
 
-    @validator("BACKEND_CORS_ORIGINS", pre=True)
+    @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
-    def assemble_cors_origins(cls, v: Union[str, List[str]]) -> Union[List[str], str]:
-        if isinstance(v, str) and not v.startswith("["):
-            return [i.strip() for i in v.split(",")]
-        elif isinstance(v, (list, str)):
+    def assemble_cors_origins(cls, v: Union[str, List[str], None]) -> List[str]:
+        """Parse CORS origins from string or list."""
+        default_origins = ["http://localhost:3000", "http://127.0.0.1:3000"]
+
+        if v is None:
+            return default_origins
+
+        if isinstance(v, list):
             return v
-        raise ValueError(v)
+
+        # Handle string values
+        if isinstance(v, str):
+            v_stripped = v.strip()
+            if not v_stripped:
+                return default_origins
+
+            # Handle comma-separated values FIRST (before JSON)
+            if "," in v_stripped and not v_stripped.startswith("["):
+                origins = [
+                    origin.strip() for origin in v_stripped.split(",") if origin.strip()
+                ]
+                return origins if origins else default_origins
+
+            # Try JSON parsing for array format
+            if v_stripped.startswith("["):
+                try:
+                    parsed = json.loads(v_stripped)
+                    if isinstance(parsed, list):
+                        return parsed
+                except json.JSONDecodeError:
+                    pass
+
+            # Single value
+            return [v_stripped]
+
+        # For any other type, return default
+        return default_origins
+
+    @property
+    def cors_origins_list(self) -> List[str]:
+        """CORS origins as a list for use in middleware."""
+        # The validator ensures BACKEND_CORS_ORIGINS is always a list
+        return self.BACKEND_CORS_ORIGINS
 
     # データベース設定
     POSTGRES_SERVER: str = "localhost"
@@ -29,16 +69,30 @@ class Settings(BaseSettings):
     POSTGRES_PORT: int = 5432
     DATABASE_URL: Optional[Union[PostgresDsn, AnyUrl]] = None
 
-    @validator("DATABASE_URL", pre=True)
+    # Test environment overrides
+    @property
+    def postgres_db_name(self) -> str:
+        """Get the correct database name based on environment."""
+        if self.ENVIRONMENT in ("test", "testing") or self.TESTING:
+            return "itdo_erp_test"
+        return self.POSTGRES_DB
+
+    @field_validator("DATABASE_URL", mode="before")
     @classmethod
-    def assemble_db_connection(cls, v: Optional[str], values: Dict[str, Any]) -> Any:
+    def assemble_db_connection(cls, v: Optional[str], info: ValidationInfo) -> Any:
         if isinstance(v, str):
             return v
+        values = info.data if hasattr(info, "data") else {}
+        # Use test database for test environment
+        env = values.get("ENVIRONMENT", "development")
+        is_test_env = env in ("test", "testing") or values.get("TESTING")
+        db_name = "itdo_erp_test" if is_test_env else "itdo_erp"
         return (
-            f"postgresql://{values.get('POSTGRES_USER')}:"
-            f"{values.get('POSTGRES_PASSWORD')}@"
-            f"{values.get('POSTGRES_SERVER')}:"
-            f"{values.get('POSTGRES_PORT')}/{values.get('POSTGRES_DB')}"
+            f"postgresql://{values.get('POSTGRES_USER', 'itdo_user')}:"
+            f"{values.get('POSTGRES_PASSWORD', 'itdo_password')}@"
+            f"{values.get('POSTGRES_SERVER', 'localhost')}:"
+            f"{values.get('POSTGRES_PORT', 5432)}/"
+            f"{db_name}"
         )
 
     # Redis設定
@@ -60,10 +114,19 @@ class Settings(BaseSettings):
 
     # 開発環境フラグ
     DEBUG: bool = False
+    ENVIRONMENT: str = "development"
+    TESTING: bool = False
+    LOG_LEVEL: str = "INFO"
+    API_V1_PREFIX: str = "/api/v1"
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=True,
+        # Don't try to parse complex fields automatically
+        json_schema_extra={
+            "env_parse_none_str": "null",
+        },
+    )
 
 
 settings = Settings()

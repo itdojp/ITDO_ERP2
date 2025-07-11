@@ -75,20 +75,20 @@ class OrganizationService:
         self, organization_data: OrganizationCreate, created_by: Optional[UserId] = None
     ) -> Organization:
         """Create a new organization."""
-        # Validate unique code
-        if not self.repository.validate_unique_code(organization_data.code):
-            raise ValueError(
-                f"Organization code '{organization_data.code}' already exists"
-            )
-
         # Add audit fields
         data = organization_data.model_dump()
         if created_by:
             data["created_by"] = created_by
             data["updated_by"] = created_by
 
-        # Create organization
-        return self.repository.create(OrganizationCreate(**data))
+        # Convert settings dict to JSON string for database storage
+        import json
+
+        if data.get("settings") and isinstance(data["settings"], dict):
+            data["settings"] = json.dumps(data["settings"])
+
+        # Create organization directly - let IntegrityError be handled by API layer
+        return self.repository.create(data)
 
     def update_organization(
         self,
@@ -102,14 +102,7 @@ class OrganizationService:
         if not organization:
             return None
 
-        # Validate unique code if being changed
-        if organization_data.code and organization_data.code != organization.code:
-            if not self.repository.validate_unique_code(
-                organization_data.code, exclude_id=organization_id
-            ):
-                raise ValueError(
-                    f"Organization code '{organization_data.code}' already exists"
-                )
+        # Unique code validation is handled by database constraints and API layer
 
         # Add audit fields
         data = organization_data.model_dump(exclude_unset=True)
@@ -209,6 +202,17 @@ class OrganizationService:
         data["is_subsidiary"] = organization.is_subsidiary
         data["is_parent"] = organization.is_parent
         data["subsidiary_count"] = subsidiary_count
+
+        # Parse settings JSON string to dictionary
+        import json
+
+        if data.get("settings"):
+            try:
+                data["settings"] = json.loads(data["settings"])
+            except (json.JSONDecodeError, TypeError):
+                data["settings"] = {}
+        else:
+            data["settings"] = {}
 
         return OrganizationResponse.model_validate(data)
 

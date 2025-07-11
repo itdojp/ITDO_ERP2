@@ -140,6 +140,7 @@ class DepartmentSummary(DepartmentBasic):
     is_over_headcount: bool = False
     sub_department_count: int = 0
     user_count: int = 0
+    department_type: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
