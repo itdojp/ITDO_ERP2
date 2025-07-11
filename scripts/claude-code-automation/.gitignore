@@ -1,0 +1,27 @@
+# 将来の分離に備えた.gitignore
+
+# ログファイル
+*.log
+logs/
+
+# 一時ファイル
+*.tmp
+temp/
+
+# 設定ファイル（ローカル）
+config/local/
+*.local.conf
+
+# エージェント作業ディレクトリ
+work/
+
+# レポート（プライベート）
+reports/private/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

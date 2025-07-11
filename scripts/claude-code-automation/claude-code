@@ -1,0 +1,94 @@
+#!/bin/bash
+# Claude Code Automation 統合コマンド
+
+set -e
+
+# スクリプトのベースディレクトリ
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# 色定義
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+# ヘルプ表示
+show_help() {
+    cat << EOF
+${BLUE}Claude Code Automation Tool${NC}
+
+使用方法: claude-code [コマンド] [オプション]
+
+${YELLOW}PMコマンド:${NC}
+  tasks              タスクを配布
+  status             全エージェントの状態確認
+  report             本日の進捗レポート
+
+${YELLOW}エージェントコマンド:${NC}
+  init [CC01|CC02|CC03]    エージェント初期化
+  work                     自動作業実行
+  fix-ci [PR番号]          CI/CD自動修正
+
+${YELLOW}共通コマンド:${NC}
+  help               このヘルプを表示
+  version            バージョン情報
+
+${YELLOW}例:${NC}
+  claude-code tasks          # タスク配布（対話形式）
+  claude-code init CC01      # CC01として初期化
+  claude-code work           # 割り当てられたタスク実行
+  claude-code fix-ci 98      # PR #98のCI/CD修正
+
+EOF
+}
+
+# バージョン表示
+show_version() {
+    echo "Claude Code Automation Tool v0.1.0"
+    echo "Integrated with ITDO ERP2 Project"
+}
+
+# メインロジック
+case "${1:-help}" in
+    # PMコマンド
+    tasks)
+        exec "$SCRIPT_DIR/pm/distribute-tasks.sh" "${@:2}"
+        ;;
+    status)
+        exec "$SCRIPT_DIR/pm/agent-status.sh" "${@:2}"
+        ;;
+    report)
+        echo "=== 本日の進捗レポート ==="
+        gh issue list --label "claude-code-task" --state closed --search "closed:$(date +%Y-%m-%d)" || echo "本日完了したタスクはありません"
+        ;;
+    
+    # エージェントコマンド
+    init)
+        if [ -z "$2" ]; then
+            echo -e "${RED}エラー: エージェントIDを指定してください（CC01, CC02, CC03）${NC}"
+            exit 1
+        fi
+        # sourceが必要なため、指示を表示
+        echo -e "${YELLOW}以下のコマンドを実行してください:${NC}"
+        echo "source $SCRIPT_DIR/agent/agent-init.sh $2"
+        ;;
+    work)
+        exec "$SCRIPT_DIR/agent/agent-work.sh" "${@:2}"
+        ;;
+    fix-ci)
+        if [ -z "$2" ]; then
+            echo -e "${RED}エラー: PR番号を指定してください${NC}"
+            exit 1
+        fi
+        exec "$SCRIPT_DIR/agent/auto-fix-ci.sh" "$2"
+        ;;
+    
+    # 共通コマンド
+    version)
+        show_version
+        ;;
+    help|--help|-h|*)
+        show_help
+        ;;
+esac
