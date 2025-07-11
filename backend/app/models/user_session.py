@@ -1,6 +1,6 @@
 """User session model."""
 
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, func
@@ -53,7 +53,7 @@ class UserSession(BaseModel):
             return datetime.now() > self.expires_at
         else:
             # If expires_at is timezone-aware, compare with timezone-aware datetime
-            return datetime.now(UTC) > self.expires_at
+            return datetime.now() > self.expires_at
 
     def is_valid(self) -> bool:
         """Check if session is valid."""
