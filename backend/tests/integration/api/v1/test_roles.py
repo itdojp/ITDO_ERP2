@@ -81,6 +81,20 @@ class TestRoleAPI(
         validated_data = self.response_schema_class.model_validate(data)
         assert validated_data.name == payload["name"]
 
+    def test_create_endpoint_forbidden(
+        self, client: TestClient, user_token: str, test_organization: Organization
+    ) -> None:
+        """Test create operation with insufficient permissions."""
+        payload = self.create_valid_payload(organization_id=test_organization.id)
+
+        response = client.post(
+            self.endpoint_prefix,
+            json=payload,
+            headers=self.get_auth_headers(user_token),
+        )
+
+        assert response.status_code == 403
+
     # Role-specific test methods
 
     def test_role_tree_endpoint(
