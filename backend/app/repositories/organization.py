@@ -62,7 +62,7 @@ class OrganizationRepository(
                 self.model.name,
                 self.model.parent_id,
                 self.model.is_active,
-                self.model.is_deleted
+                self.model.is_deleted,
             )
             .where(self.model.parent_id == parent_id)
             .where(~self.model.is_deleted)
@@ -77,7 +77,7 @@ class OrganizationRepository(
                 self.model.name,
                 self.model.parent_id,
                 self.model.is_active,
-                self.model.is_deleted
+                self.model.is_deleted,
             )
             .select_from(self.model)
             .join(org_cte, self.model.parent_id == org_cte.c.id)
@@ -89,8 +89,7 @@ class OrganizationRepository(
         # Final query to get the full organization objects
         return list(
             self.db.scalars(
-                select(self.model)
-                .join(org_cte, self.model.id == org_cte.c.id)
+                select(self.model).join(org_cte, self.model.id == org_cte.c.id)
             )
         )
 
