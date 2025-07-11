@@ -67,12 +67,31 @@ export AGENT_PROMPT="[$AGENT_ID]"
 # プロンプト変更（オプション）
 PS1="🤖 $AGENT_ID \w $ "
 
+# 自動ポーリング設定（15分間隔）
+echo -e "\n${YELLOW}⏰ 自動タスクチェック設定${NC}"
+echo "  15分ごとに新しいタスクを自動確認します"
+
+# cronのような定期実行（バックグラウンド）
+if [ -z "$CLAUDE_NO_AUTO_POLLING" ]; then
+    (
+        while true; do
+            sleep 900  # 15分（900秒）
+            echo -e "\n${BLUE}[$(date '+%H:%M')] 定期タスクチェック${NC}"
+            "$SCRIPT_DIR/agent-work.sh" 2>/dev/null || true
+        done
+    ) &
+    POLLING_PID=$!
+    echo "  ✓ 自動ポーリング開始 (PID: $POLLING_PID)"
+    echo "  停止する場合: kill $POLLING_PID"
+fi
+
 # 完了メッセージ
 echo -e "\n${GREEN}✅ 初期化完了！${NC}"
 echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 echo "💡 ヒント:"
 echo "  - 'my-tasks' で自分のタスクを確認"
-echo "  - './scripts/agent-work.sh' で自動作業実行"
+echo "  - './scripts/claude-code-automation/agent/agent-work.sh' で即座に作業実行"
 echo "  - 'make agent-status' で全体状況確認"
+echo "  - 自動チェックは15分ごとに実行されます"
 echo ""
