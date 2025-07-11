@@ -1,0 +1,117 @@
+# PM自動化ルールエンジン設定
+# プロジェクト管理の判断基準とアクション定義
+
+rules:
+  # タスク割当ルール
+  task_assignment:
+    - name: "負荷分散"
+      condition: "agent.open_tasks < 3"
+      action: "assign_new_task"
+      
+    - name: "専門性考慮"
+      conditions:
+        - task_type: "backend"
+          preferred_agents: ["CC01", "CC02"]
+        - task_type: "frontend"
+          preferred_agents: ["CC02", "CC03"]
+        - task_type: "testing"
+          preferred_agents: ["CC03"]
+          
+  # 進捗監視ルール
+  progress_monitoring:
+    - name: "停滞検出"
+      condition: "hours_since_update > 12"
+      actions:
+        - "send_reminder"
+        - "check_blockers"
+        
+    - name: "CI失敗対応"
+      condition: "ci_status == 'FAILURE'"
+      actions:
+        - "analyze_error"
+        - "provide_solution"
+        - "assign_helper" # 必要に応じて他のエージェントを支援に
+        
+  # エスカレーションルール
+  escalation:
+    - name: "長期停滞"
+      condition: "hours_since_update > 24"
+      actions:
+        - "reassign_task"
+        - "create_urgent_issue"
+        
+    - name: "繰り返し失敗"
+      condition: "failure_count > 3"
+      actions:
+        - "pair_programming" # 2人のエージェントで対応
+        - "request_human_help"
+        
+  # 完了判定ルール
+  completion:
+    - name: "タスク完了"
+      conditions:
+        - "pr_merged == true"
+        - "tests_passing == true"
+        - "review_approved == true"
+      actions:
+        - "close_issue"
+        - "update_progress"
+        - "assign_next_task"
+        
+  # 優先度管理ルール
+  priority_management:
+    - name: "締切接近"
+      condition: "days_until_deadline < 2"
+      actions:
+        - "increase_priority"
+        - "focus_resources" # 他のタスクを一時停止
+        
+    - name: "ブロッカー対応"
+      condition: "is_blocking_others == true"
+      actions:
+        - "set_priority: highest"
+        - "assign_multiple_agents"
+
+# アクション定義
+actions:
+  send_reminder:
+    type: "github_comment"
+    template: "reminder_template.md"
+    
+  provide_solution:
+    type: "analyze_and_suggest"
+    methods:
+      - "search_similar_issues"
+      - "check_documentation"
+      - "generate_fix_suggestion"
+      
+  assign_helper:
+    type: "find_available_agent"
+    criteria:
+      - "lowest_workload"
+      - "relevant_expertise"
+      
+  pair_programming:
+    type: "collaborative_task"
+    setup:
+      - "create_shared_branch"
+      - "setup_live_share"
+      - "coordinate_schedule"
+
+# テンプレート
+templates:
+  daily_report:
+    title: "📊 日次進捗レポート - {date}"
+    sections:
+      - "completed_tasks"
+      - "in_progress"
+      - "blockers"
+      - "next_actions"
+      
+  weekly_summary:
+    title: "📈 週次サマリー - Week {week_number}"
+    metrics:
+      - "tasks_completed"
+      - "average_completion_time"
+      - "blocker_resolution_time"
+      - "agent_utilization"
