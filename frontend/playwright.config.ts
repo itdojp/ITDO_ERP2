@@ -48,10 +48,10 @@ export default defineConfig({
       },
     ]),
   ],
-  webServer: {
+  webServer: process.env.CI ? undefined : {
     command: 'npm run dev',
     port: 3000,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: true,
     timeout: 120 * 1000,
   },
 });
