@@ -256,7 +256,7 @@ class TestUserExtendedModel:
         # Given: パスワード変更から90日経過したユーザー
         user = create_test_user(db_session)
         db_session.add(user)
-        user.password_changed_at = datetime.now(UTC) - timedelta(days=91)
+        user.password_changed_at = datetime.now() - timedelta(days=91)
         db_session.commit()
 
         # When: パスワード期限チェック
