@@ -57,7 +57,9 @@ elif os.getenv("CI") or "GITHUB_ACTIONS" in os.environ:
 else:
     # For local development - try PostgreSQL first, fallback to SQLite
     try:
-        SQLALCHEMY_DATABASE_URL = "postgresql://itdo_user:itdo_password@localhost:5432/itdo_erp"
+        SQLALCHEMY_DATABASE_URL = (
+            "postgresql://itdo_user:itdo_password@localhost:5432/itdo_erp"
+        )
         test_engine = create_engine(SQLALCHEMY_DATABASE_URL)
         with test_engine.connect() as conn:
             conn.execute(text("SELECT 1"))
