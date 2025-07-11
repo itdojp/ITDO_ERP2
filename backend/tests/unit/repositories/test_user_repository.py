@@ -1,6 +1,6 @@
 """Unit tests for User repository."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
@@ -118,10 +118,10 @@ class TestUserRepository:
 
         # Create users with different lock states
         locked_user = UserFactory.create(
-            db_session, locked_until=datetime.now() + timedelta(minutes=30)
+            db_session, locked_until=datetime.now(timezone.utc) + timedelta(minutes=30)
         )
         UserFactory.create(
-            db_session, locked_until=datetime.now() - timedelta(minutes=1)
+            db_session, locked_until=datetime.now(timezone.utc) - timedelta(minutes=1)
         )
         UserFactory.create(db_session, locked_until=None)
 
@@ -137,11 +137,11 @@ class TestUserRepository:
         # Create users with different password ages
         old_password = UserFactory.create(
             db_session,
-            password_changed_at=datetime.now() - timedelta(days=100),
+            password_changed_at=datetime.now(timezone.utc) - timedelta(days=100),
         )
         UserFactory.create(
             db_session,
-            password_changed_at=datetime.now() - timedelta(days=30),
+            password_changed_at=datetime.now(timezone.utc) - timedelta(days=30),
         )
 
         expired_users = repository.get_users_with_expired_passwords(days=90)
@@ -168,7 +168,7 @@ class TestUserRepository:
         assert locked_user is not None
         assert locked_user.failed_login_attempts == 5
         assert locked_user.locked_until is not None
-        assert locked_user.locked_until > datetime.now()
+        assert locked_user.locked_until > datetime.now(timezone.utc)
 
     def test_reset_failed_login(self, db_session: Session) -> None:
         """Test resetting failed login attempts."""
@@ -176,7 +176,7 @@ class TestUserRepository:
         user = UserFactory.create(
             db_session,
             failed_login_attempts=5,
-            locked_until=datetime.now() + timedelta(minutes=30),
+            locked_until=datetime.now(timezone.utc) + timedelta(minutes=30),
         )
 
         repository.reset_failed_login(user.id)

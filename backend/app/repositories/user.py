@@ -1,6 +1,6 @@
 """User repository with type-safe CRUD operations."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session, selectinload
@@ -121,7 +121,7 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
                 select(User).where(
                     and_(
                         User.locked_until.is_not(None),
-                        User.locked_until > datetime.now(),
+                        User.locked_until > datetime.now(timezone.utc),
                     )
                 )
             )
@@ -129,7 +129,7 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
 
     def get_users_with_expired_passwords(self, days: int = 90) -> list[User]:
         """Get users with expired passwords."""
-        expiry_date = datetime.now() - timedelta(days=days)
+        expiry_date = datetime.now(timezone.utc) - timedelta(days=days)
         return list(
             self.db.scalars(
                 select(User).where(
@@ -144,7 +144,7 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
 
     def get_inactive_users(self, days: int = 30) -> list[User]:
         """Get users who haven't logged in for specified days."""
-        cutoff_date = datetime.now() - timedelta(days=days)
+        cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
         return list(
             self.db.scalars(
                 select(User).where(
@@ -165,7 +165,7 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
         from sqlalchemy import update
 
         self.db.execute(
-            update(User).where(User.id == user_id).values(last_login_at=datetime.now())
+            update(User).where(User.id == user_id).values(last_login_at=datetime.now(timezone.utc))
         )
         self.db.commit()
 
@@ -180,7 +180,7 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
         # Lock after 5 attempts
         if user.failed_login_attempts >= 5:
             # Use naive datetime for SQLite compatibility
-            user.locked_until = datetime.now() + timedelta(minutes=30)
+            user.locked_until = datetime.now(timezone.utc) + timedelta(minutes=30)
 
         self.db.commit()
         return user
