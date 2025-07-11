@@ -4,7 +4,7 @@ Extended User model unit tests.
 Following TDD approach - Red phase: Writing tests before implementation.
 """
 
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 
 import pytest
 from sqlalchemy.orm import Session
@@ -95,8 +95,8 @@ class TestUserExtendedModel:
         # Then: アカウントがロックされる
         assert user.is_locked()
         assert user.failed_login_attempts == 5
-        assert user.locked_until > datetime.now(UTC)
-        assert user.locked_until < datetime.now(UTC) + timedelta(minutes=35)
+        assert user.locked_until > datetime.now()
+        assert user.locked_until < datetime.now() + timedelta(minutes=35)
 
     def test_successful_login_resets_failed_attempts(self, db_session: Session) -> None:
         """TEST-USER-MODEL-005: 成功ログインで失敗回数リセットをテスト."""
@@ -165,7 +165,7 @@ class TestUserExtendedModel:
         # Then: セッションが記録される
         assert session.user_id == user.id
         assert session.ip_address == "192.168.1.1"
-        assert session.expires_at > datetime.now(UTC)
+        assert session.expires_at > datetime.now()
         assert len(user.active_sessions) == 1
 
     def test_concurrent_session_limit(self, db_session: Session) -> None:

@@ -34,9 +34,9 @@ SQLALCHEMY_DATABASE_URL = os.getenv(
 
 # Use SQLite for all tests in CI or when PostgreSQL is not available
 if (
-    "unit" in os.getenv("PYTEST_CURRENT_TEST", "") or
-    os.getenv("CI") or  # GitHub Actions CI environment
-    "GITHUB_ACTIONS" in os.environ  # Alternative CI detection
+    "unit" in os.getenv("PYTEST_CURRENT_TEST", "")
+    or os.getenv("CI")  # GitHub Actions CI environment
+    or "GITHUB_ACTIONS" in os.environ  # Alternative CI detection
 ):
     SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
     engine = create_engine(
