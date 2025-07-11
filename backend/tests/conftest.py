@@ -71,6 +71,7 @@ def db_session() -> Generator[Session, None, None]:
                     "user_sessions",
                     "user_activity_logs",
                     "audit_logs",
+                    "tasks",  # Tasks must be deleted before projects
                     "project_members",
                     "project_milestones",
                     "projects",
