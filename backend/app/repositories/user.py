@@ -165,7 +165,9 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
         from sqlalchemy import update
 
         self.db.execute(
-            update(User).where(User.id == user_id).values(last_login_at=datetime.now(timezone.utc))
+            update(User)
+            .where(User.id == user_id)
+            .values(last_login_at=datetime.now(timezone.utc))
         )
         self.db.commit()
 
