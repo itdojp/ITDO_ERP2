@@ -33,11 +33,17 @@ SQLALCHEMY_DATABASE_URL = os.getenv(
 )
 
 # Use SQLite for all tests in CI or when PostgreSQL is not available
-if (
-    "unit" in os.getenv("PYTEST_CURRENT_TEST", "")
-    or os.getenv("CI")  # GitHub Actions CI environment
-    or "GITHUB_ACTIONS" in os.environ  # Alternative CI detection
-):
+# This includes both unit and integration tests in CI environment
+if os.getenv("CI") or "GITHUB_ACTIONS" in os.environ:
+    # Always use SQLite in CI environment
+    SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
+    engine = create_engine(
+        SQLALCHEMY_DATABASE_URL,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+elif "unit" in os.getenv("PYTEST_CURRENT_TEST", ""):
+    # Use SQLite for unit tests in local development
     SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
     engine = create_engine(
         SQLALCHEMY_DATABASE_URL,
@@ -45,7 +51,7 @@ if (
         poolclass=StaticPool,
     )
 else:
-    # For local development with PostgreSQL available
+    # For local development with PostgreSQL available (integration tests)
     engine = create_engine(SQLALCHEMY_DATABASE_URL)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
