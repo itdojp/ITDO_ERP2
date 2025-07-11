@@ -43,7 +43,7 @@ else:
     SQLALCHEMY_DATABASE_URL = os.getenv(
         "DATABASE_URL", "postgresql://itdo_user:itdo_password@localhost:5432/itdo_erp"
     )
-    
+
     if "unit" in os.getenv("PYTEST_CURRENT_TEST", ""):
         # Use SQLite for unit tests in local development
         SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
