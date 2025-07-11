@@ -186,4 +186,4 @@ class TestUserModel:
 
         # Then: User should be updated
         assert user.full_name == "Updated Name"
-        assert user.updated_at > user.created_at
+        assert user.updated_at >= user.created_at  # >= because SQLite has lower precision

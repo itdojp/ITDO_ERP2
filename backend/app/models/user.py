@@ -201,12 +201,24 @@ class User(SoftDeletableModel):
         """Check if account is locked."""
         if not self.locked_until:
             return False
-        return datetime.now(UTC) < self.locked_until
+        # Handle both timezone-aware and naive datetimes
+        if self.locked_until.tzinfo is None:
+            # If locked_until is naive, compare with naive datetime
+            return datetime.now() < self.locked_until
+        else:
+            # If locked_until is timezone-aware, compare with timezone-aware datetime
+            return datetime.now(UTC) < self.locked_until
 
     def is_password_expired(self) -> bool:
         """Check if password has expired (90 days)."""
         expiry_date = self.password_changed_at + timedelta(days=90)
-        return datetime.now(UTC) > expiry_date
+        # Handle both timezone-aware and naive datetimes
+        if expiry_date.tzinfo is None:
+            # If expiry_date is naive, compare with naive datetime
+            return datetime.now() > expiry_date
+        else:
+            # If expiry_date is timezone-aware, compare with timezone-aware datetime
+            return datetime.now(UTC) > expiry_date
 
     def create_session(
         self,

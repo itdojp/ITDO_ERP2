@@ -47,7 +47,13 @@ class UserSession(BaseModel):
 
     def is_expired(self) -> bool:
         """Check if session is expired."""
-        return datetime.now(UTC) > self.expires_at
+        # Handle both timezone-aware and naive datetimes
+        if self.expires_at.tzinfo is None:
+            # If expires_at is naive, compare with naive datetime
+            return datetime.now() > self.expires_at
+        else:
+            # If expires_at is timezone-aware, compare with timezone-aware datetime
+            return datetime.now(UTC) > self.expires_at
 
     def is_valid(self) -> bool:
         """Check if session is valid."""
