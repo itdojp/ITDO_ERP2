@@ -60,6 +60,27 @@ class TestRoleAPI(
             raise ValueError("organization_id must be provided for role creation")
         return self.factory_class.build_dict(**overrides)
 
+    # Override base test method to provide organization_id
+    def test_create_endpoint_success(
+        self, client: TestClient, admin_token: str, test_organization: Organization
+    ) -> None:
+        """Test successful create operation."""
+        payload = self.create_valid_payload(organization_id=test_organization.id)
+
+        response = client.post(
+            self.endpoint_prefix,
+            json=payload,
+            headers=self.get_auth_headers(admin_token),
+        )
+
+        assert response.status_code == 201
+        data = response.json()
+        assert "id" in data
+
+        # Validate against response schema
+        validated_data = self.response_schema_class.model_validate(data)
+        assert validated_data.name == payload["name"]
+
     # Role-specific test methods
 
     def test_role_tree_endpoint(
