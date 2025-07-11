@@ -148,6 +148,8 @@ class User(SoftDeletableModel):
                     self.password_changed_at = datetime.now(timezone.utc)
                 setattr(self, key, value)
 
+        # Force update of updated_at timestamp
+        self.updated_at = datetime.now(timezone.utc)
         db.add(self)
         db.flush()
 

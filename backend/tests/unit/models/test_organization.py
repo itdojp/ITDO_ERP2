@@ -24,7 +24,7 @@ class TestOrganizationModel:
             "name": "株式会社ITDO",
             "name_kana": "カブシキガイシャアイティーディーオー",
             "postal_code": "100-0001",
-            "address": "東京都千代田区...",
+            "address_line1": "東京都千代田区...",
             "phone": "03-1234-5678",
             "email": "info@itdo.jp",
             "website": "https://itdo.jp",
