@@ -223,6 +223,31 @@ jobs:
       matrix:
         browser: [chromium, firefox]
     
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: itdo_user
+          POSTGRES_PASSWORD: itdo_password
+          POSTGRES_DB: itdo_erp_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    
     steps:
     - uses: actions/checkout@v4
     
@@ -242,16 +267,11 @@ jobs:
     - name: Set up Python
       run: uv python install 3.13
     
-    - name: Start services with Docker Compose
-      run: |
-        docker compose -f infra/compose-data.yaml up -d
-        sleep 30  # サービス起動待機
-    
     - name: Setup backend environment
       working-directory: backend
       run: |
         cp .env.example .env
-        echo "DATABASE_URL=postgresql://itdo_user:itdo_password@localhost:5432/itdo_erp" >> .env
+        echo "DATABASE_URL=postgresql://itdo_user:itdo_password@localhost:5432/itdo_erp_test" >> .env
         echo "ENVIRONMENT=test" >> .env
         echo "TESTING=true" >> .env
     
@@ -339,9 +359,6 @@ jobs:
         echo "=== Frontend logs ==="
         cat frontend/frontend.log || echo "No frontend logs found"
     
-    - name: Stop services
-      if: always()
-      run: docker compose -f infra/compose-data.yaml down
 
   # コンテナビルドジョブ（mainブランチのみ）
   build-containers:
