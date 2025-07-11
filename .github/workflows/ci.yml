@@ -247,12 +247,36 @@ jobs:
         docker compose -f infra/compose-data.yaml up -d
         sleep 30  # サービス起動待機
     
+    - name: Setup backend environment
+      working-directory: backend
+      run: |
+        cp .env.example .env
+        echo "DATABASE_URL=postgresql://itdo_user:itdo_password@localhost:5432/itdo_erp" >> .env
+        echo "ENVIRONMENT=test" >> .env
+        echo "TESTING=true" >> .env
+    
     - name: Start backend
       run: |
         cd backend
         uv sync --dev
-        uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 &
-        sleep 10
+        # Run database migrations
+        uv run alembic upgrade head || true
+        # Start the backend server
+        nohup uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 > backend.log 2>&1 &
+        # Wait for backend to be ready
+        for i in {1..30}; do
+          if curl -f -s http://localhost:8000/health > /dev/null 2>&1; then
+            echo "Backend is ready!"
+            break
+          fi
+          if [ $i -eq 30 ]; then
+            echo "Backend failed to start after 30 attempts"
+            cat backend.log
+            exit 1
+          fi
+          echo "Waiting for backend to start... (attempt $i/30)"
+          sleep 2
+        done
     
     - name: Install frontend dependencies
       working-directory: frontend
@@ -262,11 +286,32 @@ jobs:
       working-directory: frontend
       run: npx playwright install --with-deps ${{ matrix.browser }}
     
+    - name: Start frontend dev server
+      working-directory: frontend
+      run: |
+        nohup npm run dev > frontend.log 2>&1 &
+        # Wait for frontend to be ready
+        for i in {1..30}; do
+          if curl -f -s http://localhost:3000 > /dev/null 2>&1; then
+            echo "Frontend is ready!"
+            break
+          fi
+          if [ $i -eq 30 ]; then
+            echo "Frontend failed to start after 30 attempts"
+            cat frontend.log
+            exit 1
+          fi
+          echo "Waiting for frontend to start... (attempt $i/30)"
+          sleep 2
+        done
+    
     - name: Run E2E tests
       working-directory: frontend
       run: npm run test:e2e -- --project=${{ matrix.browser }}
       env:
         CI: true
+        VITE_API_URL: http://localhost:8000
+        VITE_API_BASE_URL: http://localhost:8000/api/v1
     
     - name: Upload E2E test results
       uses: actions/upload-artifact@v4
@@ -285,6 +330,14 @@ jobs:
         name: e2e-screenshots-${{ matrix.browser }}
         path: frontend/test-results/**/*.png
         retention-days: 7
+    
+    - name: Show logs on failure
+      if: failure()
+      run: |
+        echo "=== Backend logs ==="
+        cat backend/backend.log || echo "No backend logs found"
+        echo "=== Frontend logs ==="
+        cat frontend/frontend.log || echo "No frontend logs found"
     
     - name: Stop services
       if: always()
