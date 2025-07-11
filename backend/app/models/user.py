@@ -1,6 +1,6 @@
 """User model."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, Optional
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, desc, func
@@ -207,7 +207,7 @@ class User(SoftDeletableModel):
             return datetime.now() < self.locked_until
         else:
             # If locked_until is timezone-aware, compare with timezone-aware datetime
-            return datetime.now() < self.locked_until
+            return datetime.now(timezone.utc) < self.locked_until
 
     def is_password_expired(self) -> bool:
         """Check if password has expired (90 days)."""
@@ -218,7 +218,7 @@ class User(SoftDeletableModel):
             return datetime.now() > expiry_date
         else:
             # If expiry_date is timezone-aware, compare with timezone-aware datetime
-            return datetime.now() > expiry_date
+            return datetime.now(timezone.utc) > expiry_date
 
     def create_session(
         self,
