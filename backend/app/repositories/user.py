@@ -1,6 +1,6 @@
 """User repository with type-safe CRUD operations."""
 
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session, selectinload
@@ -165,9 +165,7 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
         from sqlalchemy import update
 
         self.db.execute(
-            update(User)
-            .where(User.id == user_id)
-            .values(last_login_at=datetime.now())
+            update(User).where(User.id == user_id).values(last_login_at=datetime.now())
         )
         self.db.commit()
 
