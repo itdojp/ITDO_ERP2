@@ -272,13 +272,23 @@ jobs:
       run: |
         cp .env.example .env
         echo "DATABASE_URL=postgresql://itdo_user:itdo_password@localhost:5432/itdo_erp_test" >> .env
+        echo "REDIS_URL=redis://localhost:6379/0" >> .env
         echo "ENVIRONMENT=test" >> .env
         echo "TESTING=true" >> .env
+        echo "SECRET_KEY=test-secret-key-for-ci" >> .env
+        echo "BACKEND_CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000" >> .env
     
     - name: Start backend
       run: |
         cd backend
         uv sync --dev
+        # Export environment variables for alembic
+        export DATABASE_URL=postgresql://itdo_user:itdo_password@localhost:5432/itdo_erp_test
+        export REDIS_URL=redis://localhost:6379/0
+        export ENVIRONMENT=test
+        export TESTING=true
+        export SECRET_KEY=test-secret-key-for-ci
+        export BACKEND_CORS_ORIGINS="http://localhost:3000,http://127.0.0.1:3000"
         # Run database migrations
         uv run alembic upgrade head || true
         # Start the backend server
