@@ -15,13 +15,13 @@ class TestRoleManagementAPI:
     """Test Role Management API endpoints."""
 
     @pytest.fixture
-    def test_organization(self, db_session: Session) -> Organization:
+    def test_organization(self, db_session: Session, test_admin: User) -> Organization:
         """Create test organization."""
         org = Organization.create(
             db=db_session,
             code="TEST_ORG",
             name="Test Organization",
-            created_by=1,
+            created_by=test_admin.id,
         )
         db_session.commit()
         return org
