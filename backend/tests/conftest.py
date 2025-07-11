@@ -29,9 +29,12 @@ from tests.factories import (
 )
 
 # Determine database URL based on environment
-# Force SQLite for CI environment regardless of DATABASE_URL env var
-if os.getenv("CI") or "GITHUB_ACTIONS" in os.environ:
-    # Always use SQLite in CI environment
+# If DATABASE_URL is explicitly set (e.g., in CI), use it
+if os.getenv("DATABASE_URL"):
+    SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
+    engine = create_engine(SQLALCHEMY_DATABASE_URL)
+elif os.getenv("CI") or "GITHUB_ACTIONS" in os.environ:
+    # Use SQLite in CI environment when DATABASE_URL is not set
     SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
     engine = create_engine(
         SQLALCHEMY_DATABASE_URL,
