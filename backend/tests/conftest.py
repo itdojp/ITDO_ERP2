@@ -69,14 +69,20 @@ print(f"DEBUG: HOME={os.getenv('HOME')}")
 print(f"DEBUG: DATABASE_URL={os.getenv('DATABASE_URL')}")
 print(f"DEBUG: FORCE_SQLITE_IN_TESTS={FORCE_SQLITE_IN_TESTS}")
 
-# Always create a fresh SQLite engine for tests
+# Use SQLite for tests
 print("DEBUG: Creating SQLite engine for tests")
-SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
+if os.getenv("DATABASE_URL") and "sqlite" in os.getenv("DATABASE_URL"):
+    # Use file-based SQLite if specified (for CI)
+    SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
+    engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
+else:
+    # Use in-memory SQLite for local tests
+    SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
+    engine = create_engine(
+        SQLALCHEMY_DATABASE_URL,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
 
 # Override the app's engine with our test engine
 database.engine = engine
