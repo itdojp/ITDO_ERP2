@@ -143,10 +143,13 @@ jobs:
     
     - name: Run selective backend tests
       env:
-        DATABASE_URL: postgresql://itdo_user:itdo_password@localhost:5432/itdo_erp_test
+        # DATABASE_URL is commented out to force SQLite in CI
+        # DATABASE_URL: postgresql://itdo_user:itdo_password@localhost:5432/itdo_erp_test
         REDIS_URL: redis://localhost:6379
         SECRET_KEY: test-secret-key
         PYTHONPATH: /home/runner/work/ITDO_ERP2/ITDO_ERP2/backend
+        CI: true
+        GITHUB_ACTIONS: true
       run: |
         echo "Running backend tests..."
         
