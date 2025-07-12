@@ -23,13 +23,14 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
+# Import all models BEFORE importing app to ensure they are registered
+from app.models import Department, Organization, Permission, Role, User
+from app.models.base import Base
+
+# Now import app components
 from app.core.database import get_db
 from app.core.security import create_access_token
 from app.main import app
-
-# Import all models to ensure they are registered with SQLAlchemy
-from app.models import Department, Organization, Permission, Role, User
-from app.models.base import Base
 from tests.factories import (
     DepartmentFactory,
     OrganizationFactory,
@@ -68,9 +69,17 @@ print(f"DEBUG: HOME={os.getenv('HOME')}")
 print(f"DEBUG: DATABASE_URL={os.getenv('DATABASE_URL')}")
 print(f"DEBUG: FORCE_SQLITE_IN_TESTS={FORCE_SQLITE_IN_TESTS}")
 
-if is_ci or FORCE_SQLITE_IN_TESTS:
-    # Always use SQLite in CI environment or when forced
-    print("DEBUG: Using SQLite (CI or forced)")
+# Import engine from app.core.database after environment variables are set
+from app.core.database import engine
+
+# For SQLite, we need special handling
+if "sqlite" in str(engine.url):
+    print("DEBUG: Using SQLite - applying special settings")
+    # SQLite is already configured, just ensure we use it
+    SQLALCHEMY_DATABASE_URL = str(engine.url)
+elif is_ci or FORCE_SQLITE_IN_TESTS:
+    # This case shouldn't happen since we set DATABASE_URL above
+    print("DEBUG: Fallback SQLite configuration")
     SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
     engine = create_engine(
         SQLALCHEMY_DATABASE_URL,
