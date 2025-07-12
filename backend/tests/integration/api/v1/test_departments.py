@@ -1,6 +1,6 @@
 """Integration tests for Department API endpoints."""
 
-from typing import Any, Dict
+from typing import Any
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
@@ -56,7 +56,7 @@ class TestDepartmentAPI(
             kwargs["organization_id"] = organization.id
         return self.factory_class.create(db_session, **kwargs)
 
-    def create_valid_payload(self, **overrides: Any) -> Dict[str, Any]:
+    def create_valid_payload(self, **overrides: Any) -> dict[str, Any]:
         """Create a valid payload for department creation."""
         return self.factory_class.build_dict(**overrides)
 

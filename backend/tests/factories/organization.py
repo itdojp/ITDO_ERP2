@@ -1,7 +1,8 @@
 """Factory for Organization model."""
 
 import json
-from typing import Any, Dict
+import uuid
+from typing import Any
 
 from app.models.organization import Organization
 from tests.factories import BaseFactory, fake
@@ -13,10 +14,12 @@ class OrganizationFactory(BaseFactory):
     model_class = Organization  # Model class for this factory
 
     @classmethod
-    def _get_default_attributes(cls) -> Dict[str, Any]:
+    def _get_default_attributes(cls) -> dict[str, Any]:
         """Get default attributes for creating Organization instances."""
+        # Use UUID for guaranteed uniqueness
+        unique_id = str(uuid.uuid4())[:8]
         return {
-            "code": fake.bothify(text="ORG-####-???"),
+            "code": f"ORG-{unique_id}",
             "name": fake.company(),
             "name_en": fake.company(),
             "description": fake.catch_phrase(),
@@ -33,22 +36,31 @@ class OrganizationFactory(BaseFactory):
             "address_line2": fake.building_name(),
             "phone": fake.phone_number(),
             "fax": fake.phone_number(),
-            "email": fake.company_email(),
+            "email": f"org-{unique_id}@example.com",
             "website": fake.url(),
             "capital": fake.random_int(min=1000000, max=100000000),
             "employee_count": fake.random_int(min=1, max=1000),
             "is_active": True,
-            "settings": json.dumps(
-                {
-                    "fiscal_year_start": "04-01",
-                    "timezone": "Asia/Tokyo",
-                    "currency": "JPY",
-                }
-            ),
+            "settings": {
+                "fiscal_year_start": "04-01",
+                "timezone": "Asia/Tokyo",
+                "currency": "JPY",
+            },
         }
 
     @classmethod
-    def _get_update_attributes(cls) -> Dict[str, Any]:
+    def build(cls, **kwargs: Any) -> Any:
+        """Build a model instance without saving to database."""
+        attributes = cls.build_dict(**kwargs)
+
+        # Convert settings dict to JSON string for database model
+        if "settings" in attributes and isinstance(attributes["settings"], dict):
+            attributes["settings"] = json.dumps(attributes["settings"])
+
+        return cls.model_class(**attributes)
+
+    @classmethod
+    def _get_update_attributes(cls) -> dict[str, Any]:
         """Get default attributes for updating Organization instances."""
         return {
             "name": fake.company(),
@@ -122,7 +134,7 @@ class OrganizationFactory(BaseFactory):
     def create_minimal(cls, db_session, **kwargs) -> Organization:
         """Create an organization with minimal required fields."""
         minimal_attrs = {
-            "code": fake.unique.company_suffix(),
+            "code": fake.unique.bothify(text="ORG-####-???"),
             "name": fake.company(),
             "is_active": True,
         }

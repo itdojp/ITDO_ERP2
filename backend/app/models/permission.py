@@ -1,6 +1,6 @@
 """Permission model for RBAC system."""
 
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, Index, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -31,7 +31,7 @@ class Permission(BaseModel):
     )
 
     # Detailed description
-    description: Mapped[Optional[str]] = mapped_column(
+    description: Mapped[str | None] = mapped_column(
         Text, nullable=True, comment="Permission description"
     )
 
@@ -54,7 +54,7 @@ class Permission(BaseModel):
     )
 
     # Relationships
-    role_permissions: Mapped[List["RolePermission"]] = relationship(
+    role_permissions: Mapped[list["RolePermission"]] = relationship(
         "RolePermission",
         back_populates="permission",
         cascade="all, delete-orphan",

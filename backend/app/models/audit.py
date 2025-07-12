@@ -3,7 +3,7 @@
 import hashlib
 import json
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -32,13 +32,13 @@ class AuditLog(BaseModel):
     action: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
     resource_type: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
     resource_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
-    organization_id: Mapped[Optional[int]] = mapped_column(
+    organization_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("organizations.id"), index=True
     )
-    changes: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
-    ip_address: Mapped[Optional[str]] = mapped_column(String(45))
-    user_agent: Mapped[Optional[str]] = mapped_column(Text)
-    checksum: Mapped[Optional[str]] = mapped_column(
+    changes: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    ip_address: Mapped[str | None] = mapped_column(String(45))
+    user_agent: Mapped[str | None] = mapped_column(Text)
+    checksum: Mapped[str | None] = mapped_column(
         String(64)
     )  # SHA-256 hash for integrity
     created_at: Mapped[datetime] = mapped_column(

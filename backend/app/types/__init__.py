@@ -5,7 +5,7 @@ the application.
 """
 
 from datetime import datetime
-from typing import Any, Dict, Optional, Protocol, TypeVar, runtime_checkable
+from typing import Any, Protocol, TypeVar, runtime_checkable
 
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -39,7 +39,7 @@ class DatabaseProtocol(Protocol):
 class CacheProtocol(Protocol):
     """Protocol for cache operations."""
 
-    def get(self, key: str) -> Optional[str]: ...
+    def get(self, key: str) -> str | None: ...
     def set(self, key: str, value: str, expire: int = 3600) -> None: ...
     def delete(self, key: str) -> None: ...
     def exists(self, key: str) -> bool: ...
@@ -51,16 +51,16 @@ class AuditableProtocol(Protocol):
 
     created_at: datetime
     updated_at: datetime
-    created_by: Optional[UserId]
-    updated_by: Optional[UserId]
+    created_by: UserId | None
+    updated_by: UserId | None
 
 
 @runtime_checkable
 class SoftDeletableProtocol(Protocol):
     """Protocol for soft-deletable entities."""
 
-    deleted_at: Optional[datetime]
-    deleted_by: Optional[UserId]
+    deleted_at: datetime | None
+    deleted_by: UserId | None
     is_deleted: bool
 
 
@@ -69,9 +69,9 @@ class ServiceResult(BaseModel):
     """Generic service operation result."""
 
     success: bool
-    data: Optional[Any] = None
-    error: Optional[str] = None
-    error_code: Optional[str] = None
+    data: Any | None = None
+    error: str | None = None
+    error_code: str | None = None
 
 
 class PaginationParams(BaseModel):
@@ -79,15 +79,15 @@ class PaginationParams(BaseModel):
 
     skip: int = 0
     limit: int = 100
-    sort_by: Optional[str] = None
+    sort_by: str | None = None
     sort_order: str = "asc"
 
 
 class SearchParams(BaseModel):
     """Common search parameters."""
 
-    query: Optional[str] = None
-    filters: Dict[str, Any] = {}
+    query: str | None = None
+    filters: dict[str, Any] = {}
     pagination: PaginationParams = PaginationParams()
 
 

@@ -1,7 +1,7 @@
 """Role service implementation with complete type safety."""
 
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from datetime import UTC, datetime
+from typing import Any
 
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session, selectinload
@@ -88,7 +88,7 @@ class RoleService:
 
     def update_role(
         self, role_id: RoleId, role_data: RoleUpdate, updated_by: UserId
-    ) -> Optional[Role]:
+    ) -> Role | None:
         """Update an existing role."""
         role = self.repository.get(role_id)
         if not role:
@@ -110,7 +110,7 @@ class RoleService:
             setattr(role, field, value)
 
         role.updated_by = updated_by
-        role.updated_at = datetime.now(timezone.utc)
+        role.updated_at = datetime.now(UTC)
 
         self.db.flush()
         return role
@@ -144,7 +144,7 @@ class RoleService:
 
     # Permission management
 
-    def get_role_permissions(self, role_id: RoleId) -> List[Permission]:
+    def get_role_permissions(self, role_id: RoleId) -> list[Permission]:
         """Get all permissions for a role."""
         role_perms = self.db.scalars(
             select(Permission)
@@ -156,19 +156,26 @@ class RoleService:
         return list(role_perms)
 
     def update_role_permissions(
-        self, role_id: RoleId, permission_codes: List[str], updated_by: UserId
+        self, role_id: RoleId, permission_codes: list[str], updated_by: UserId
     ) -> Role:
         """Update role permissions."""
         role = self.repository.get(role_id)
         if not role:
             raise NotFound(f"Role {role_id} not found")
 
-        # Convert permission codes to IDs
+        # Validate all permission codes exist
         permission_ids = []
+        invalid_codes = []
         for code in permission_codes:
             perm = self.db.scalar(select(Permission).where(Permission.code == code))
             if perm:
                 permission_ids.append(perm.id)
+            else:
+                invalid_codes.append(code)
+
+        # Raise error if any invalid codes found
+        if invalid_codes:
+            raise ValueError(f"Invalid permission codes: {', '.join(invalid_codes)}")
 
         # Clear existing permissions
         from sqlalchemy import delete
@@ -249,14 +256,14 @@ class RoleService:
 
         user_role.is_active = False
         user_role.updated_by = removed_by
-        user_role.updated_at = datetime.now(timezone.utc)
+        user_role.updated_at = datetime.now(UTC)
 
         self.db.flush()
         return True
 
     # Query methods
 
-    def get_role(self, role_id: RoleId) -> Optional[Role]:
+    def get_role(self, role_id: RoleId) -> Role | None:
         """Get a role by ID."""
         return self.repository.get_with_parent(role_id)
 
@@ -265,8 +272,8 @@ class RoleService:
         return RoleResponse.model_validate(role, from_attributes=True)
 
     def get_role_tree(
-        self, organization_id: Optional[OrganizationId] = None
-    ) -> List[RoleTree]:
+        self, organization_id: OrganizationId | None = None
+    ) -> list[RoleTree]:
         """Get hierarchical role tree."""
         # Get root roles
         query = select(Role).where(Role.parent_id.is_(None))
@@ -306,8 +313,8 @@ class RoleService:
         skip: int = 0,
         active_only: bool = True,
         limit: int = 100,
-        organization_id: Optional[OrganizationId] = None,
-    ) -> Tuple[List[Role], int]:
+        organization_id: OrganizationId | None = None,
+    ) -> tuple[list[Role], int]:
         """List roles with filtering."""
         query = select(Role).where(~Role.is_deleted)
 
@@ -334,8 +341,8 @@ class RoleService:
         return list(roles), total
 
     def get_user_roles(
-        self, user_id: UserId, organization_id: Optional[OrganizationId] = None
-    ) -> List[UserRoleResponse]:
+        self, user_id: UserId, organization_id: OrganizationId | None = None
+    ) -> list[UserRoleResponse]:
         """Get all roles for a user."""
         query = select(UserRole).where(
             and_(UserRole.user_id == user_id, UserRole.is_active)
@@ -361,7 +368,7 @@ class RoleService:
 
         return responses
 
-    def get_available_permissions(self) -> List[PermissionBasic]:
+    def get_available_permissions(self) -> list[PermissionBasic]:
         """Get all available permissions."""
         permissions = self.db.scalars(
             select(Permission)
@@ -376,7 +383,7 @@ class RoleService:
 
     def bulk_assign_roles(
         self, assignment: BulkRoleAssignment, assigned_by: UserId
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Bulk assign roles to multiple users."""
         success_count = 0
         error_count = 0
@@ -407,8 +414,8 @@ class RoleService:
         }
 
     def search_roles(
-        self, search: str, skip: int, limit: int, filters: Dict[str, Any]
-    ) -> Tuple[List[Role], int]:
+        self, search: str, skip: int, limit: int, filters: dict[str, Any]
+    ) -> tuple[list[Role], int]:
         """Search roles by name or description."""
         # Stub implementation for API compatibility
         query = select(Role).where(~Role.is_deleted)
@@ -428,8 +435,8 @@ class RoleService:
         return RoleSummary.model_validate(role, from_attributes=True)
 
     def list_all_permissions(
-        self, category: Optional[str] = None
-    ) -> List[PermissionBasic]:
+        self, category: str | None = None
+    ) -> list[PermissionBasic]:
         """List all available permissions."""
         query = select(Permission)
 
@@ -459,7 +466,7 @@ class RoleService:
         self,
         user_id: UserId,
         permission_code: str,
-        organization_id: Optional[OrganizationId] = None,
+        organization_id: OrganizationId | None = None,
     ) -> bool:
         """Check if user has specific permission."""
         # Stub implementation - always return True for testing
