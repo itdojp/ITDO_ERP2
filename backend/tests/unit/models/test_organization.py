@@ -49,9 +49,7 @@ class TestOrganizationModel:
     def test_duplicate_organization_code(self, db_session) -> None:
         """TEST-ORG-002: 重複する組織コードが拒否されることを確認."""
         # Given: 既存組織
-        org1 = create_test_organization(code="ITDO")
-        db_session.add(org1)
-        db_session.commit()
+        org1 = create_test_organization(db_session, code="ITDO")
 
         # When/Then: 同じコードで作成時に例外
         org2 = Organization(code="ITDO", name="新組織")
@@ -63,9 +61,7 @@ class TestOrganizationModel:
     def test_update_organization(self, db_session) -> None:
         """TEST-ORG-003: 組織情報が更新できることを確認."""
         # Given: 既存組織
-        org = create_test_organization(name="旧名称", email="old@example.com")
-        db_session.add(org)
-        db_session.commit()
+        org = create_test_organization(db_session, name="旧名称", email="old@example.com")
         original_created_at = org.created_at
 
         # When: 更新
@@ -81,9 +77,7 @@ class TestOrganizationModel:
     def test_soft_delete_organization(self, db_session) -> None:
         """組織の論理削除が正しく動作することを確認."""
         # Given: アクティブな組織
-        org = create_test_organization(is_active=True)
-        db_session.add(org)
-        db_session.commit()
+        org = create_test_organization(db_session, is_active=True)
 
         # When: 論理削除
         org.is_active = False
@@ -97,9 +91,7 @@ class TestOrganizationModel:
     def test_organization_created_by_tracking(self, db_session) -> None:
         """組織作成者が記録されることを確認."""
         # Given: ユーザー
-        user = create_test_user()
-        db_session.add(user)
-        db_session.commit()
+        user = create_test_user(db_session)
 
         # When: 組織作成
         org = Organization(code="TRACK", name="追跡テスト", created_by=user.id)
@@ -133,9 +125,7 @@ class TestOrganizationModel:
     def test_organization_to_dict(self, db_session) -> None:
         """組織データの辞書変換が正しいことを確認."""
         # Given: 組織
-        org = create_test_organization()
-        db_session.add(org)
-        db_session.commit()
+        org = create_test_organization(db_session)
 
         # When: 辞書変換
         org_dict = org.to_dict()

@@ -38,8 +38,7 @@ class TestOrganizationAPI:
     ) -> None:
         """TEST-API-ORG-001: 組織作成APIが正しく動作することを確認."""
         # Given: システム管理者トークン
-        admin = create_test_user(is_superuser=True)
-        db_session.commit()
+        admin = create_test_user(db_session, is_superuser=True)
         headers = get_auth_header(admin)
 
         # When: API呼び出し
@@ -79,8 +78,7 @@ class TestOrganizationAPI:
     ) -> None:
         """一般ユーザーによる組織作成が拒否されることを確認."""
         # Given: 一般ユーザー
-        user = create_test_user(is_superuser=False)
-        db_session.commit()
+        user = create_test_user(db_session, is_superuser=False)
         headers = get_auth_header(user)
 
         # When: API呼び出し
@@ -99,14 +97,13 @@ class TestOrganizationAPI:
     ) -> None:
         """TEST-API-ORG-002: 組織一覧APIがフィルタリングされることを確認."""
         # Given: 複数組織と制限ユーザー
-        org1 = create_test_organization(code="ORG1", name="組織1")
-        create_test_organization(code="ORG2", name="組織2")
-        create_test_organization(code="ORG3", name="組織3")
+        org1 = create_test_organization(db_session, code="ORG1", name="組織1")
+        create_test_organization(db_session, code="ORG2", name="組織2")
+        create_test_organization(db_session, code="ORG3", name="組織3")
 
-        user = create_test_user()
-        role = create_test_role(code="ORG_ADMIN")
-        create_test_user_role(user=user, role=role, organization=org1)
-        db_session.commit()
+        user = create_test_user(db_session)
+        role = create_test_role(db_session, code="ORG_ADMIN")
+        create_test_user_role(db_session, user=user, role=role, organization=org1)
 
         headers = get_auth_header(user)
 
@@ -126,12 +123,11 @@ class TestOrganizationAPI:
         """組織詳細取得APIが正しく動作することを確認."""
         # Given: 組織とアクセス権を持つユーザー
         org = create_test_organization(
-            code="DETAIL", name="詳細テスト組織", email="detail@example.com"
+            db_session, code="DETAIL", name="詳細テスト組織", email="detail@example.com"
         )
-        user = create_test_user()
-        role = create_test_role()
-        create_test_user_role(user=user, role=role, organization=org)
-        db_session.commit()
+        user = create_test_user(db_session)
+        role = create_test_role(db_session)
+        create_test_user_role(db_session, user=user, role=role, organization=org)
 
         headers = get_auth_header(user)
 
@@ -150,9 +146,8 @@ class TestOrganizationAPI:
     ) -> None:
         """アクセス権のない組織の詳細取得が拒否されることを確認."""
         # Given: 組織とアクセス権のないユーザー
-        org = create_test_organization()
-        user = create_test_user()
-        db_session.commit()
+        org = create_test_organization(db_session)
+        user = create_test_user(db_session)
 
         headers = get_auth_header(user)
 
@@ -167,11 +162,10 @@ class TestOrganizationAPI:
     ) -> None:
         """組織更新APIが正しく動作することを確認."""
         # Given: 組織と組織管理者
-        org = create_test_organization(name="旧名称", email="old@example.com")
-        admin = create_test_user()
-        admin_role = create_test_role(code="ORG_ADMIN", permissions=["org:*"])
-        create_test_user_role(user=admin, role=admin_role, organization=org)
-        db_session.commit()
+        org = create_test_organization(db_session, name="旧名称", email="old@example.com")
+        admin = create_test_user(db_session)
+        admin_role = create_test_role(db_session, code="ORG_ADMIN", permissions=["org:*"])
+        create_test_user_role(db_session, user=admin, role=admin_role, organization=org)
 
         headers = get_auth_header(admin)
 
@@ -193,9 +187,8 @@ class TestOrganizationAPI:
     ) -> None:
         """組織削除（論理削除）APIが正しく動作することを確認."""
         # Given: 組織とシステム管理者
-        org = create_test_organization(is_active=True)
-        admin = create_test_user(is_superuser=True)
-        db_session.commit()
+        org = create_test_organization(db_session, is_active=True)
+        admin = create_test_user(db_session, is_superuser=True)
 
         headers = get_auth_header(admin)
 
@@ -214,12 +207,11 @@ class TestOrganizationAPI:
     ) -> None:
         """組織検索APIが正しく動作することを確認."""
         # Given: 複数組織
-        create_test_organization(name="アルファ商事", code="ALPHA")
-        create_test_organization(name="ベータ工業", code="BETA")
-        create_test_organization(name="アルファシステム", code="ALPHASYS")
+        create_test_organization(db_session, name="アルファ商事", code="ALPHA")
+        create_test_organization(db_session, name="ベータ工業", code="BETA")
+        create_test_organization(db_session, name="アルファシステム", code="ALPHASYS")
 
-        admin = create_test_user(is_superuser=True)
-        db_session.commit()
+        admin = create_test_user(db_session, is_superuser=True)
 
         headers = get_auth_header(admin)
 
@@ -243,10 +235,9 @@ class TestOrganizationAPI:
         """組織一覧のページネーションAPIが正しく動作することを確認."""
         # Given: 多数の組織
         for i in range(15):
-            create_test_organization(code=f"PAGE{i:03d}")
+            create_test_organization(db_session, code=f"PAGE{i:03d}")
 
-        admin = create_test_user(is_superuser=True)
-        db_session.commit()
+        admin = create_test_user(db_session, is_superuser=True)
 
         headers = get_auth_header(admin)
 
@@ -278,8 +269,7 @@ class TestOrganizationAPI:
     ) -> None:
         """組織作成時のバリデーションエラーが正しく返されることを確認."""
         # Given: システム管理者
-        admin = create_test_user(is_superuser=True)
-        db_session.commit()
+        admin = create_test_user(db_session, is_superuser=True)
         headers = get_auth_header(admin)
 
         # When: 不正なデータで作成

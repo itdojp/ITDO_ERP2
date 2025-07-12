@@ -34,7 +34,7 @@ class OrganizationService:
             name=data.name,
             name_kana=data.name_kana,
             postal_code=data.postal_code,
-            address=data.address,
+            address_line1=data.address,
             phone=data.phone,
             email=data.email,
             website=data.website,
