@@ -61,11 +61,11 @@ class Permission(BaseModel):
         lazy="select",
     )
     roles: Mapped[list["Role"]] = relationship(
-        "Role", 
-        secondary="role_permissions", 
+        "Role",
+        secondary="role_permissions",
         back_populates="permissions",
         primaryjoin="Permission.id == RolePermission.permission_id",
-        secondaryjoin="RolePermission.role_id == Role.id"
+        secondaryjoin="RolePermission.role_id == Role.id",
     )
 
     # Indexes and constraints

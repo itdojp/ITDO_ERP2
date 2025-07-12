@@ -137,11 +137,11 @@ class Role(SoftDeletableModel):
 
     # Many-to-many relationships
     users: Mapped[list["User"]] = relationship(
-        "User", 
-        secondary="user_roles", 
+        "User",
+        secondary="user_roles",
         back_populates="roles",
         primaryjoin="Role.id == UserRole.role_id",
-        secondaryjoin="UserRole.user_id == User.id"
+        secondaryjoin="UserRole.user_id == User.id",
     )
     user_roles: Mapped[list["UserRole"]] = relationship(
         "UserRole", back_populates="role", cascade="all, delete-orphan"
@@ -374,8 +374,12 @@ class UserRole(AuditableModel):
         "User", back_populates="user_roles", foreign_keys=[user_id]
     )
     role: Mapped["Role"] = relationship("Role", back_populates="user_roles")
-    organization: Mapped["Organization"] = relationship("Organization", foreign_keys=[organization_id])
-    department: Mapped["Department | None"] = relationship("Department", foreign_keys=[department_id])
+    organization: Mapped["Organization"] = relationship(
+        "Organization", foreign_keys=[organization_id]
+    )
+    department: Mapped["Department | None"] = relationship(
+        "Department", foreign_keys=[department_id]
+    )
     assigner: Mapped["User | None"] = relationship("User", foreign_keys=[assigned_by])
 
     @property
