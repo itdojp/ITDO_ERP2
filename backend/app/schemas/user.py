@@ -71,6 +71,9 @@ class UserUpdate(BaseModel):
 
     full_name: str | None = Field(None, min_length=1, max_length=100)
     phone: str | None = Field(None, max_length=20)
+    profile_image_url: str | None = Field(
+        None, max_length=500, description="Profile image URL"
+    )
     is_active: bool | None = None
 
 
