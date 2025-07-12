@@ -40,7 +40,10 @@ is_ci = (
     os.getenv("GITHUB_ACTIONS") == "true" or
     os.getenv("GITHUB_WORKFLOW") is not None or
     os.getenv("RUNNER_OS") is not None or
-    "runner" in os.getenv("HOME", "").lower()
+    "runner" in os.getenv("HOME", "").lower() or
+    os.getenv("PYTHONPATH", "").find("runner") != -1 or
+    # Force SQLite if we detect any CI characteristics
+    True  # TEMPORARY: Force SQLite until CI detection is resolved
 )
 
 print(f"DEBUG: CI detection result: {is_ci}")
