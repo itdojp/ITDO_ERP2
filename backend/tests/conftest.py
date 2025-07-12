@@ -44,7 +44,7 @@ is_ci = (
 )
 
 print(f"DEBUG: CI detection result: {is_ci}")
-print(f"DEBUG: CI={os.getenv('CI')}")  
+print(f"DEBUG: CI={os.getenv('CI')}")
 print(f"DEBUG: GITHUB_ACTIONS={os.getenv('GITHUB_ACTIONS')}")
 print(f"DEBUG: GITHUB_WORKFLOW={os.getenv('GITHUB_WORKFLOW')}")
 print(f"DEBUG: RUNNER_OS={os.getenv('RUNNER_OS')}")
