@@ -10,6 +10,7 @@ from app.api.v1 import (
     tasks,
     users,
     users_extended,
+    user_profile,
 )
 from app.core.database import get_db
 
@@ -19,6 +20,7 @@ api_router = APIRouter()
 api_router.include_router(auth.router)
 api_router.include_router(users.router)
 api_router.include_router(users_extended.router)
+api_router.include_router(user_profile.router)
 api_router.include_router(
     organizations.router, prefix="/organizations", tags=["organizations"]
 )
