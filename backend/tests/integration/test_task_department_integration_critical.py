@@ -1,6 +1,7 @@
 """CRITICAL: Task-Department Integration Tests for Phase 3."""
 
 import os
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
@@ -72,7 +73,7 @@ class TestCriticalTaskDepartmentIntegration:
         if response.status_code != 201:
             print(f"Error response: {response.status_code}")
             print(f"Error content: {response.text}")
-            
+
         assert response.status_code == 201
         task_response = response.json()
 

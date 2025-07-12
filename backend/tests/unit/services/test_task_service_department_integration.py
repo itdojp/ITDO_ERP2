@@ -25,7 +25,7 @@ class TestTaskServiceDepartmentIntegration:
         """Test creating a task assigned to a department."""
         # Setup
         service = TaskService()
-        
+
         # Create department using factory
         department = DepartmentFactory.create_with_organization(
             db_session, test_organization, name="Engineering", code="ENG"
@@ -119,7 +119,7 @@ class TestTaskServiceDepartmentIntegration:
         """Test creating department task with non-existent project fails."""
         # Setup
         service = TaskService()
-        
+
         # Create department
         department = DepartmentFactory.create_with_organization(
             db_session, test_organization, name="Engineering", code="ENG"
@@ -150,7 +150,7 @@ class TestTaskServiceDepartmentIntegration:
         """Test assigning an existing task to a department."""
         # Setup
         service = TaskService()
-        
+
         # Create department
         department = DepartmentFactory.create_with_organization(
             db_session, test_organization, name="Marketing", code="MKT"
@@ -243,7 +243,7 @@ class TestTaskServiceDepartmentIntegration:
         """Test retrieving tasks for a department."""
         # Setup
         service = TaskService()
-        
+
         # Create department
         department = DepartmentFactory.create_with_organization(
             db_session, test_organization, name="Sales", code="SALES"

@@ -42,8 +42,6 @@ from app.models.organization import Organization
 from app.models.department import Department
 from app.models.role import Role
 from app.models.permission import Permission
-from app.models.task import Task
-from app.models.project import Project
 
 # Now import app components
 from app.core import database
@@ -86,7 +84,7 @@ elif "sqlite" in DATABASE_URL:
         # File-based SQLite
         # print(f"DEBUG: Using file-based SQLite: {DATABASE_URL}")
         engine = create_engine(
-            DATABASE_URL, 
+            DATABASE_URL,
             connect_args={"check_same_thread": False},
             poolclass=StaticPool,  # Use StaticPool for file-based SQLite too
         )
@@ -204,7 +202,7 @@ def db_session() -> Generator[Session]:
 @pytest.fixture
 def client(db_session: Session) -> Generator[TestClient]:
     """Create a test client with overridden database dependency."""
-    
+
     # Verify tables exist before creating client
     with engine.connect() as conn:
         inspector = inspect(conn)
@@ -222,13 +220,13 @@ def client(db_session: Session) -> Generator[TestClient]:
 
     # Override the database dependency to use our test session
     app.dependency_overrides[get_db] = override_get_db
-    
+
     # Also override the app's database engine to use our test engine
     from app.core import database as app_database
     original_engine = app_database.engine
     original_session_local = app_database.SessionLocal
-    
-    app_database.engine = engine  
+
+    app_database.engine = engine
     app_database.SessionLocal = TestingSessionLocal
 
     try:
