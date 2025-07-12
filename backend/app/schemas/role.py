@@ -13,13 +13,13 @@ from app.schemas.user import UserBasic
 
 class PermissionBasic(BaseModel):
     """Basic permission information."""
-    
+
     id: int
     code: str
     name: str
     category: str
     description: str | None = None
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -214,16 +214,6 @@ class RoleSummary(RoleBasic):
     model_config = ConfigDict(from_attributes=True)
 
 
-class PermissionBasic(BaseModel):
-    """Basic permission information."""
-
-    id: int
-    code: str
-    name: str
-    description: str | None = None
-    category: str | None = None
-
-    model_config = ConfigDict(from_attributes=True)
 
 
 class RoleWithPermissions(RoleResponse):
