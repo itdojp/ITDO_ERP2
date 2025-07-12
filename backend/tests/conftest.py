@@ -28,7 +28,7 @@ from app.models import Department, Organization, Permission, Role, User
 from app.models.base import Base
 
 # Now import app components
-from app.core.database import get_db
+from app.core import database
 from app.core.security import create_access_token
 from app.main import app
 from tests.factories import (
@@ -69,65 +69,20 @@ print(f"DEBUG: HOME={os.getenv('HOME')}")
 print(f"DEBUG: DATABASE_URL={os.getenv('DATABASE_URL')}")
 print(f"DEBUG: FORCE_SQLITE_IN_TESTS={FORCE_SQLITE_IN_TESTS}")
 
-# Import engine from app.core.database after environment variables are set
-from app.core.database import engine
+# Always create a fresh SQLite engine for tests
+print("DEBUG: Creating SQLite engine for tests")
+SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL,
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+)
 
-# For SQLite, we need special handling
-if "sqlite" in str(engine.url):
-    print("DEBUG: Using SQLite - applying special settings")
-    # SQLite is already configured, just ensure we use it
-    SQLALCHEMY_DATABASE_URL = str(engine.url)
-elif is_ci or FORCE_SQLITE_IN_TESTS:
-    # This case shouldn't happen since we set DATABASE_URL above
-    print("DEBUG: Fallback SQLite configuration")
-    SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
-    engine = create_engine(
-        SQLALCHEMY_DATABASE_URL,
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-elif os.getenv("DATABASE_URL"):
-    # DATABASE_URL is set in local development, check if accessible
-    print("DEBUG: DATABASE_URL is set, testing connection")
-    try:
-        SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
-        test_engine = create_engine(SQLALCHEMY_DATABASE_URL)
-        with test_engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
-        # Connection successful, use it
-        print("DEBUG: Using PostgreSQL from DATABASE_URL")
-        engine = test_engine
-    except Exception as e:
-        # DATABASE_URL set but not accessible, fallback to SQLite
-        print(f"DEBUG: PostgreSQL connection failed: {e}, falling back to SQLite")
-        SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
-        engine = create_engine(
-            SQLALCHEMY_DATABASE_URL,
-            connect_args={"check_same_thread": False},
-            poolclass=StaticPool,
-        )
-else:
-    # For local development - try PostgreSQL first, fallback to SQLite
-    print("DEBUG: No CI env or DATABASE_URL, trying local PostgreSQL")
-    try:
-        SQLALCHEMY_DATABASE_URL = (
-            "postgresql://itdo_user:itdo_password@localhost:5432/itdo_erp"
-        )
-        test_engine = create_engine(SQLALCHEMY_DATABASE_URL)
-        with test_engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
-        # Connection successful, use PostgreSQL
-        print("DEBUG: Using local PostgreSQL")
-        engine = test_engine
-    except Exception as e:
-        # PostgreSQL not available, use SQLite for all tests
-        print(f"DEBUG: Local PostgreSQL failed: {e}, using SQLite")
-        SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
-        engine = create_engine(
-            SQLALCHEMY_DATABASE_URL,
-            connect_args={"check_same_thread": False},
-            poolclass=StaticPool,
-        )
+# Override the app's engine with our test engine
+database.engine = engine
+database.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Create session factory with our test engine
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
@@ -220,7 +175,7 @@ def client(db_session: Session) -> Generator[TestClient]:
         finally:
             pass
 
-    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[database.get_db] = override_get_db
 
     with TestClient(app) as test_client:
         yield test_client
