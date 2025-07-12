@@ -1,6 +1,6 @@
 """Integration tests for Task API endpoints."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
@@ -21,7 +21,7 @@ class TestTaskAPI:
             "description": "タスクの説明",
             "project_id": 1,
             "priority": "medium",
-            "due_date": (datetime.now(timezone.utc) + timedelta(days=7)).isoformat(),
+            "due_date": (datetime.now(UTC) + timedelta(days=7)).isoformat(),
         }
 
         # Act
@@ -237,8 +237,8 @@ class TestTaskAPIFilters:
     def test_filter_by_due_date_range(self):
         """Test filtering tasks by due date range."""
         # Arrange
-        start_date = datetime.now(timezone.utc).isoformat()
-        end_date = (datetime.now(timezone.utc) + timedelta(days=7)).isoformat()
+        start_date = datetime.now(UTC).isoformat()
+        end_date = (datetime.now(UTC) + timedelta(days=7)).isoformat()
 
         # Act
         response = self.client.get(

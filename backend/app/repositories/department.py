@@ -1,6 +1,6 @@
 """Department repository implementation."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from sqlalchemy import func, or_, select, update
 from sqlalchemy.orm import joinedload
@@ -18,7 +18,7 @@ class DepartmentRepository(
 
     def get_by_code(
         self, code: str, organization_id: OrganizationId
-    ) -> Optional[Department]:
+    ) -> Department | None:
         """Get department by code within organization."""
         return self.db.scalar(
             select(self.model)
@@ -32,7 +32,7 @@ class DepartmentRepository(
         skip: int = 0,
         limit: int = 100,
         active_only: bool = True,
-    ) -> List[Department]:
+    ) -> list[Department]:
         """Get departments by organization."""
         query = select(self.model).where(self.model.organization_id == organization_id)
 
@@ -45,7 +45,7 @@ class DepartmentRepository(
 
         return list(self.db.scalars(query))
 
-    def get_root_departments(self, organization_id: OrganizationId) -> List[Department]:
+    def get_root_departments(self, organization_id: OrganizationId) -> list[Department]:
         """Get root departments (without parent) in organization."""
         return list(
             self.db.scalars(
@@ -57,7 +57,7 @@ class DepartmentRepository(
             )
         )
 
-    def get_sub_departments(self, parent_id: DepartmentId) -> List[Department]:
+    def get_sub_departments(self, parent_id: DepartmentId) -> list[Department]:
         """Get direct sub-departments."""
         return list(
             self.db.scalars(
@@ -68,7 +68,7 @@ class DepartmentRepository(
             )
         )
 
-    def get_by_manager(self, manager_id: UserId) -> List[Department]:
+    def get_by_manager(self, manager_id: UserId) -> list[Department]:
         """Get departments managed by a user."""
         return list(
             self.db.scalars(
@@ -79,7 +79,7 @@ class DepartmentRepository(
             )
         )
 
-    def get_with_relations(self, id: int) -> Optional[Department]:
+    def get_with_relations(self, id: int) -> Department | None:
         """Get department with all relations loaded."""
         return self.db.scalar(
             select(self.model)
@@ -92,8 +92,8 @@ class DepartmentRepository(
         )
 
     def search_by_name(
-        self, query: str, organization_id: Optional[OrganizationId] = None
-    ) -> List[Department]:
+        self, query: str, organization_id: OrganizationId | None = None
+    ) -> list[Department]:
         """Search departments by name."""
         search_term = f"%{query}%"
         q = select(self.model).where(
@@ -115,8 +115,8 @@ class DepartmentRepository(
         return list(self.db.scalars(q))
 
     def get_by_type(
-        self, department_type: str, organization_id: Optional[OrganizationId] = None
-    ) -> List[Department]:
+        self, department_type: str, organization_id: OrganizationId | None = None
+    ) -> list[Department]:
         """Get departments by type."""
         query = select(self.model).where(self.model.department_type == department_type)
 
@@ -128,7 +128,7 @@ class DepartmentRepository(
 
         return list(self.db.scalars(query))
 
-    def get_by_cost_center(self, cost_center_code: str) -> Optional[Department]:
+    def get_by_cost_center(self, cost_center_code: str) -> Department | None:
         """Get department by cost center code."""
         return self.db.scalar(
             select(self.model)
@@ -140,7 +140,7 @@ class DepartmentRepository(
         self,
         code: str,
         organization_id: OrganizationId,
-        exclude_id: Optional[int] = None,
+        exclude_id: int | None = None,
     ) -> bool:
         """Validate if department code is unique within organization."""
         query = select(func.count(self.model.id))
@@ -153,7 +153,7 @@ class DepartmentRepository(
         count = self.db.scalar(query) or 0
         return count == 0
 
-    def get_headcount_stats(self, department_id: DepartmentId) -> Dict[str, Any]:
+    def get_headcount_stats(self, department_id: DepartmentId) -> dict[str, Any]:
         """Get headcount statistics for department."""
         from app.models.role import UserRole
 
@@ -177,7 +177,7 @@ class DepartmentRepository(
             "is_over": current > limit if limit else False,
         }
 
-    def update_display_order(self, department_ids: List[DepartmentId]) -> None:
+    def update_display_order(self, department_ids: list[DepartmentId]) -> None:
         """Update display order for multiple departments."""
         for index, dept_id in enumerate(department_ids):
             self.db.execute(
@@ -187,7 +187,7 @@ class DepartmentRepository(
             )
         self.db.commit()
 
-    def get_with_parent(self, id: int) -> Optional[Department]:
+    def get_with_parent(self, id: int) -> Department | None:
         """Get department with parent loaded."""
         return self.db.scalar(
             select(self.model)

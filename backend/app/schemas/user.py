@@ -2,7 +2,6 @@
 
 import re
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
@@ -70,9 +69,12 @@ class UserInDB(UserResponse):
 class UserUpdate(BaseModel):
     """User update schema."""
 
-    full_name: Optional[str] = Field(None, min_length=1, max_length=100)
-    phone: Optional[str] = Field(None, max_length=20)
-    is_active: Optional[bool] = None
+    full_name: str | None = Field(None, min_length=1, max_length=100)
+    phone: str | None = Field(None, max_length=20)
+    profile_image_url: str | None = Field(
+        None, max_length=500, description="Profile image URL"
+    )
+    is_active: bool | None = None
 
 
 # UserCreateExtended is defined in user_extended.py

@@ -4,7 +4,7 @@ User service unit tests.
 Following TDD approach - Red phase: Writing tests before implementation.
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
 import pytest
@@ -304,7 +304,7 @@ class TestUserService:
         db_session.commit()
 
         # When: 期限付きロール割り当て
-        expires_at = datetime.now(timezone.utc) + timedelta(days=30)
+        expires_at = datetime.now(UTC) + timedelta(days=30)
         user_role = service.assign_role(
             user_id=user.id,
             role_id=role.id,
