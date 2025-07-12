@@ -214,8 +214,6 @@ class RoleSummary(RoleBasic):
     model_config = ConfigDict(from_attributes=True)
 
 
-
-
 class RoleWithPermissions(RoleResponse):
     """Role with permissions information."""
 
