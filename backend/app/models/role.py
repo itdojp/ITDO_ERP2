@@ -17,7 +17,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import AuditableModel, BaseModel, SoftDeletableModel
+from app.models.base import AuditableModel, Base, BaseModel, SoftDeletableModel
 from app.types import DepartmentId, OrganizationId, RoleId, UserId
 
 if TYPE_CHECKING:
@@ -350,7 +350,7 @@ class UserRole(AuditableModel):
         return self.role.get_all_permissions()
 
 
-class RolePermission(BaseModel):
+class RolePermission(Base):
     """Association table between roles and permissions."""
 
     __tablename__ = "role_permissions"
@@ -374,6 +374,17 @@ class RolePermission(BaseModel):
         ForeignKey("users.id"),
         nullable=True,
         comment="User who granted the permission",
+    )
+
+    # Add timestamps for compatibility
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
     )
 
     # Relationships

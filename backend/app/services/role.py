@@ -462,8 +462,48 @@ class RoleService:
         organization_id: OrganizationId | None = None,
     ) -> bool:
         """Check if user has specific permission."""
-        # Stub implementation - always return True for testing
-        return True
+        # Get user's active roles
+        query = (
+            select(UserRole)
+            .join(Role)
+            .where(
+                and_(
+                    UserRole.user_id == user_id,
+                    UserRole.is_active,
+                    Role.is_active,
+                )
+            )
+        )
+
+        if organization_id:
+            query = query.where(
+                or_(
+                    UserRole.organization_id == organization_id,
+                    UserRole.organization_id.is_(None),
+                )
+            )
+
+        user_roles = self.db.scalars(query).all()
+
+        # Check each role for the permission
+        for user_role in user_roles:
+            # Get role with permissions
+            role = user_role.role
+
+            # Check direct permissions
+            for perm in role.permissions:
+                if perm.code == permission_code:
+                    return True
+
+            # Check inherited permissions from parent roles
+            parent = role.parent_role
+            while parent:
+                for perm in parent.permissions:
+                    if perm.code == permission_code:
+                        return True
+                parent = parent.parent_role
+
+        return False
 
     def is_role_in_use(self, role_id: RoleId) -> bool:
         """Check if role is assigned to any users."""

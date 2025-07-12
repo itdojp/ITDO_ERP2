@@ -115,7 +115,7 @@ class TestRoleAPI(
             db_session, test_organization, name="Test Role for Update"
         )
 
-        payload = self.update_payload()
+        payload = self.create_update_payload()
 
         response = client.put(
             f"{self.endpoint_prefix}/{instance.id}",
@@ -251,12 +251,19 @@ class TestRoleAPI(
 
         assert response.status_code == 200
         data = response.json()
-        assert "direct_permissions" in data
-        assert "inherited_permissions" in data
-        assert "all_permission_codes" in data
+        assert "permission_list" in data
+        assert isinstance(data["permission_list"], list)
 
         # Admin should have many permissions
-        assert len(data["all_permission_codes"]) > 0
+        assert len(data["permission_list"]) > 0
+
+        # Check permission structure
+        if data["permission_list"]:
+            perm = data["permission_list"][0]
+            assert "id" in perm
+            assert "code" in perm
+            assert "name" in perm
+            assert "category" in perm
 
     def test_get_role_permissions_include_inherited(
         self, client: TestClient, test_role_system: dict[str, Any], admin_token: str
@@ -283,9 +290,15 @@ class TestRoleAPI(
         data_without_inherited = response.json()
 
         # With inherited should have more or equal permissions
-        assert len(data_with_inherited["all_permission_codes"]) >= len(
-            data_without_inherited["all_permission_codes"]
-        )
+        # Count permission codes from permission_list
+        codes_with_inherited = {
+            p["code"] for p in data_with_inherited.get("permission_list", [])
+        }
+        codes_without_inherited = {
+            p["code"] for p in data_without_inherited.get("permission_list", [])
+        }
+
+        assert len(codes_with_inherited) >= len(codes_without_inherited)
 
     def test_update_role_permissions(
         self,
