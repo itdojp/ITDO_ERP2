@@ -8,7 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import BaseModel
 
 if TYPE_CHECKING:
-    from app.models.role import RolePermission
+    from app.models.role import Role, RolePermission
 
 
 class Permission(BaseModel):
@@ -59,6 +59,13 @@ class Permission(BaseModel):
         back_populates="permission",
         cascade="all, delete-orphan",
         lazy="select",
+    )
+    roles: Mapped[list["Role"]] = relationship(
+        "Role", 
+        secondary="role_permissions", 
+        back_populates="permissions",
+        primaryjoin="Permission.id == RolePermission.permission_id",
+        secondaryjoin="RolePermission.role_id == Role.id"
     )
 
     # Indexes and constraints

@@ -10,6 +10,7 @@ from app.types import OrganizationId
 
 if TYPE_CHECKING:
     from app.models.department import Department
+    from app.models.role import Role
     from app.models.user import User
 
 
@@ -131,6 +132,9 @@ class Organization(SoftDeletableModel):
         secondaryjoin="UserRole.user_id == User.id",
         viewonly=True,
         lazy="dynamic",
+    )
+    roles: Mapped[list["Role"]] = relationship(
+        "Role", back_populates="organization", lazy="dynamic"
     )
 
     def __repr__(self) -> str:
