@@ -51,6 +51,13 @@ class User(SoftDeletableModel):
     password_must_change: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Relationships
+    roles: Mapped[list["Role"]] = relationship(
+        "Role", 
+        secondary="user_roles", 
+        primaryjoin="User.id == UserRole.user_id",
+        secondaryjoin="UserRole.role_id == Role.id",
+        back_populates="users"
+    )
     user_roles: Mapped[list["UserRole"]] = relationship(
         "UserRole", back_populates="user", foreign_keys="UserRole.user_id"
     )
