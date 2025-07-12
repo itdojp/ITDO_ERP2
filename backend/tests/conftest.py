@@ -29,8 +29,17 @@ from tests.factories import (
 )
 
 # Determine database URL based on environment
-# If DATABASE_URL is explicitly set (e.g., in CI), check if it's accessible
-if os.getenv("DATABASE_URL"):
+# CI environment always uses SQLite regardless of DATABASE_URL
+if os.getenv("CI") or "GITHUB_ACTIONS" in os.environ:
+    # Always use SQLite in CI environment regardless of DATABASE_URL
+    SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
+    engine = create_engine(
+        SQLALCHEMY_DATABASE_URL,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+elif os.getenv("DATABASE_URL"):
+    # DATABASE_URL is set in local development, check if accessible
     try:
         SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
         test_engine = create_engine(SQLALCHEMY_DATABASE_URL)
@@ -46,14 +55,6 @@ if os.getenv("DATABASE_URL"):
             connect_args={"check_same_thread": False},
             poolclass=StaticPool,
         )
-elif os.getenv("CI") or "GITHUB_ACTIONS" in os.environ:
-    # Use SQLite in CI environment when DATABASE_URL is not set
-    SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
-    engine = create_engine(
-        SQLALCHEMY_DATABASE_URL,
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
 else:
     # For local development - try PostgreSQL first, fallback to SQLite
     try:
