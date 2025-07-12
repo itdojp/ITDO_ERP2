@@ -135,6 +135,7 @@ class DepartmentSummary(DepartmentBasic):
     parent_name: Optional[str] = None
     manager_id: Optional[int] = None
     manager_name: Optional[str] = None
+    department_type: Optional[str] = None
     current_headcount: int = 0
     headcount_limit: Optional[int] = None
     is_over_headcount: bool = False
