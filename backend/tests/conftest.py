@@ -23,12 +23,27 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
-# Import all models BEFORE importing app to ensure they are registered
-from app.models import Department, Organization, Permission, Role, User
+# Import base first, then individual models to ensure proper registration
 from app.models.base import Base
+
+# Import all models individually to ensure proper registration
+from app.models.user import User
+from app.models.organization import Organization
+from app.models.department import Department
+from app.models.role import Role
+from app.models.permission import Permission
+from app.models.task import Task
+from app.models.audit import AuditLog
+from app.models.password_history import PasswordHistory
+from app.models.user_session import UserSession
+from app.models.user_activity_log import UserActivityLog
+from app.models.project import Project
+from app.models.project_member import ProjectMember
+from app.models.project_milestone import ProjectMilestone
 
 # Now import app components
 from app.core import database
+from app.core.dependencies import get_db
 from app.core.security import create_access_token
 from app.main import app
 from tests.factories import (
@@ -60,17 +75,7 @@ is_ci = (
     or FORCE_SQLITE_IN_TESTS
 )
 
-print(f"DEBUG: CI detection result: {is_ci}")
-print(f"DEBUG: CI={os.getenv('CI')}")
-print(f"DEBUG: GITHUB_ACTIONS={os.getenv('GITHUB_ACTIONS')}")
-print(f"DEBUG: GITHUB_WORKFLOW={os.getenv('GITHUB_WORKFLOW')}")
-print(f"DEBUG: RUNNER_OS={os.getenv('RUNNER_OS')}")
-print(f"DEBUG: HOME={os.getenv('HOME')}")
-print(f"DEBUG: DATABASE_URL={os.getenv('DATABASE_URL')}")
-print(f"DEBUG: FORCE_SQLITE_IN_TESTS={FORCE_SQLITE_IN_TESTS}")
-
 # Use SQLite for tests
-print("DEBUG: Creating SQLite engine for tests")
 if os.getenv("DATABASE_URL") and "sqlite" in os.getenv("DATABASE_URL"):
     # Use file-based SQLite if specified (for CI)
     SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
@@ -94,12 +99,10 @@ database.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=eng
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # CRITICAL: Ensure all tables are created immediately
-print("DEBUG: Creating all tables...")
 try:
     Base.metadata.create_all(bind=engine)
-    print("DEBUG: Tables created successfully")
 except Exception as e:
-    print(f"DEBUG: Error creating tables: {e}")
+    print(f"ERROR: Failed to create database tables: {e}")
     raise
 
 
@@ -129,21 +132,15 @@ def clean_test_database(db_session: Session) -> Generator[None]:
 @pytest.fixture
 def db_session() -> Generator[Session]:
     """Create a clean database session for each test."""
-    # CRITICAL: Always ensure tables exist for each test
-    print(f"DEBUG: Creating tables for test using engine: {engine.url}")
-    Base.metadata.drop_all(bind=engine)
+    # Ensure tables exist before each test
     Base.metadata.create_all(bind=engine)
-    print("DEBUG: Tables created successfully for test")
 
     # Create session
     session = TestingSessionLocal()
 
     try:
-        # Start transaction for test isolation
-        session.begin()
         yield session
     except Exception:
-        # Rollback on any exception
         session.rollback()
         raise
     finally:
@@ -151,36 +148,38 @@ def db_session() -> Generator[Session]:
         session.rollback()
         session.close()
 
-        # Enhanced cleanup for test isolation
-        if "postgresql" in str(engine.url):
-            # Use TRUNCATE for better performance and reset sequences
-            with engine.begin() as conn:
-                # TRUNCATE in safe order
-                table_order = [
-                    "tasks",
-                    "user_roles",
-                    "role_permissions",
-                    "password_history",
-                    "user_sessions",
-                    "user_activity_logs",
-                    "audit_logs",
-                    "project_members",
-                    "project_milestones",
-                    "projects",
-                    "users",
-                    "roles",
-                    "permissions",
-                    "departments",
-                    "organizations",
-                ]
-                for table in table_order:
-                    conn.execute(
-                        text(f'TRUNCATE TABLE "{table}" RESTART IDENTITY CASCADE')
-                    )
-        else:
-            # For SQLite, drop and recreate all tables for complete isolation
-            Base.metadata.drop_all(bind=engine)
-            Base.metadata.create_all(bind=engine)
+        # For SQLite, just clear data without dropping tables to preserve structure
+        with engine.begin() as conn:
+            # Clear data in reverse order to respect foreign keys
+            table_order = [
+                "tasks",
+                "user_roles",
+                "role_permissions",
+                "password_history",
+                "user_sessions",
+                "user_activity_logs",
+                "audit_logs",
+                "project_members",
+                "project_milestones",
+                "projects",
+                "users",
+                "roles",
+                "permissions",
+                "departments",
+                "organizations",
+            ]
+            for table in table_order:
+                try:
+                    conn.execute(text(f"DELETE FROM {table}"))
+                except Exception:
+                    # Table might not exist, ignore
+                    pass
+            # Reset autoincrement for SQLite (if exists)
+            try:
+                conn.execute(text("DELETE FROM sqlite_sequence"))
+            except Exception:
+                # sqlite_sequence might not exist, ignore
+                pass
 
 
 @pytest.fixture
@@ -193,7 +192,8 @@ def client(db_session: Session) -> Generator[TestClient]:
         finally:
             pass
 
-    app.dependency_overrides[database.get_db] = override_get_db
+    # Override the database dependency to use our test session
+    app.dependency_overrides[get_db] = override_get_db
 
     with TestClient(app) as test_client:
         yield test_client
