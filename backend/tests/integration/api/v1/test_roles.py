@@ -61,9 +61,7 @@ class TestRoleAPI(
             raise ValueError("organization_id must be provided for role creation")
         return self.factory_class.build_dict(**overrides)
 
-    @pytest.mark.skip(
-        reason="Role model missing display_order field for pagination"
-    )
+    @pytest.mark.skip(reason="Role model missing display_order field for pagination")
     def test_list_endpoint_pagination(
         self, client: TestClient, db_session: Session, admin_token: str
     ) -> None:
@@ -103,9 +101,7 @@ class TestRoleAPI(
         validated_data = self.response_schema_class.model_validate(data)
         assert validated_data.name == payload["name"]
 
-    @pytest.mark.skip(
-        reason="Role permission check not working properly in PostgreSQL"
-    )
+    @pytest.mark.skip(reason="Role permission check not working properly in PostgreSQL")
     def test_create_endpoint_forbidden(
         self, client: TestClient, user_token: str, test_organization: Organization
     ) -> None:
@@ -120,9 +116,7 @@ class TestRoleAPI(
 
         assert response.status_code == 403
 
-    @pytest.mark.skip(
-        reason="Role permission check not working properly in PostgreSQL"
-    )
+    @pytest.mark.skip(reason="Role permission check not working properly in PostgreSQL")
     def test_update_endpoint_forbidden(
         self,
         client: TestClient,
@@ -147,9 +141,7 @@ class TestRoleAPI(
         # Should be forbidden unless user has specific permissions
         assert response.status_code in [403, 404]
 
-    @pytest.mark.skip(
-        reason="Role permission check not working properly in PostgreSQL"
-    )
+    @pytest.mark.skip(reason="Role permission check not working properly in PostgreSQL")
     def test_delete_endpoint_forbidden(
         self,
         client: TestClient,
