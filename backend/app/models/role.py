@@ -326,15 +326,15 @@ class UserRole(AuditableModel):
 
     # Primary keys
     user_id: Mapped[UserId] = mapped_column(
-        Integer, ForeignKey("users.id"), primary_key=True, comment="User ID"
+        Integer, ForeignKey("users.id"), nullable=False, comment="User ID"
     )
     role_id: Mapped[RoleId] = mapped_column(
-        Integer, ForeignKey("roles.id"), primary_key=True, comment="Role ID"
+        Integer, ForeignKey("roles.id"), nullable=False, comment="Role ID"
     )
     organization_id: Mapped[OrganizationId] = mapped_column(
         Integer,
         ForeignKey("organizations.id"),
-        primary_key=True,
+        nullable=False,
         comment="Organization context",
     )
     department_id: Mapped[int | None] = mapped_column(
