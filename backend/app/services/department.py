@@ -109,9 +109,7 @@ class DepartmentService:
 
         return dept
 
-    def update_department(
-        self, dept_id: int, data: dict, user: User
-    ) -> Department:
+    def update_department(self, dept_id: int, data: dict, user: User) -> Department:
         """Update department."""
         dept = self.get_department(dept_id, user)
 
@@ -199,26 +197,26 @@ class DepartmentService:
         self, search: str, skip: int, limit: int, organization_id: Optional[int] = None
     ) -> Tuple[List[Department], int]:
         """Search departments by name or code."""
-        query = self.db.query(Department).filter(Department.is_active == True)
-        
+        query = self.db.query(Department).filter(Department.is_active)
+
         # Apply search filter
         if search:
             search_filter = f"%{search}%"
             query = query.filter(
-                Department.name.ilike(search_filter) | 
-                Department.code.ilike(search_filter)
+                Department.name.ilike(search_filter)
+                | Department.code.ilike(search_filter)
             )
-        
+
         # Apply organization filter
         if organization_id:
             query = query.filter(Department.organization_id == organization_id)
-        
+
         # Get total count
         total = query.count()
-        
+
         # Apply pagination
         departments = query.offset(skip).limit(limit).all()
-        
+
         return departments, total
 
     def list_departments(
@@ -226,18 +224,18 @@ class DepartmentService:
     ) -> Tuple[List[Department], int]:
         """List departments with filters."""
         query = self.db.query(Department)
-        
+
         # Apply filters
         for key, value in filters.items():
             if hasattr(Department, key):
                 query = query.filter(getattr(Department, key) == value)
-        
+
         # Get total count
         total = query.count()
-        
+
         # Apply pagination
         departments = query.offset(skip).limit(limit).all()
-        
+
         return departments, total
 
     def get_department_summary(self, department: Department) -> DepartmentSummary:
@@ -259,29 +257,36 @@ class DepartmentService:
 
     def get_department_tree(self, organization_id: int) -> List[DepartmentTree]:
         """Get department hierarchy tree for an organization."""
-        departments = self.db.query(Department).filter(
-            Department.organization_id == organization_id,
-            Department.is_active == True
-        ).order_by(Department.level, Department.sort_order).all()
-        
+        departments = (
+            self.db.query(Department)
+            .filter(
+                Department.organization_id == organization_id,
+                Department.is_active,
+            )
+            .order_by(Department.level, Department.sort_order)
+            .all()
+        )
+
         # Build tree structure
         tree = []
         dept_map = {dept.id: dept for dept in departments}
-        
+
         for dept in departments:
             if dept.parent_id is None:
                 # Root department
                 tree.append(self._build_department_tree_node(dept, dept_map))
-        
+
         return tree
 
-    def _build_department_tree_node(self, department: Department, dept_map: dict) -> DepartmentTree:
+    def _build_department_tree_node(
+        self, department: Department, dept_map: dict
+    ) -> DepartmentTree:
         """Build a single node in the department tree."""
         children = []
         for dept in dept_map.values():
             if dept.parent_id == department.id:
                 children.append(self._build_department_tree_node(dept, dept_map))
-        
+
         return DepartmentTree(
             id=department.id,
             code=department.code,
