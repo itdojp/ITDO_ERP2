@@ -48,6 +48,33 @@ class OrganizationFactory(BaseFactory):
         }
 
     @classmethod
+    def build_dict(cls, **kwargs: Any) -> Dict[str, Any]:
+        """Build a dictionary of attributes for API requests."""
+        # Get default attributes
+        defaults = cls._get_default_attributes()
+        
+        # For API requests, settings should be a dict, not a JSON string
+        if "settings" in defaults and isinstance(defaults["settings"], str):
+            defaults["settings"] = json.loads(defaults["settings"])
+            
+        defaults.update(kwargs)
+        return defaults
+
+    @classmethod
+    def build_db_dict(cls, **kwargs: Any) -> Dict[str, Any]:
+        """Build a dictionary of attributes for direct database creation."""
+        # Get default attributes (settings as JSON string for database)
+        defaults = cls._get_default_attributes()
+        defaults.update(kwargs)
+        return defaults
+
+    @classmethod
+    def build(cls, **kwargs: Any) -> Organization:
+        """Build a model instance without saving to database."""
+        attributes = cls.build_db_dict(**kwargs)
+        return cls.model_class(**attributes)
+
+    @classmethod
     def _get_update_attributes(cls) -> Dict[str, Any]:
         """Get default attributes for updating Organization instances."""
         return {

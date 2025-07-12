@@ -49,6 +49,30 @@ def db_session() -> Generator[Session, None, None]:
     # Create tables
     Base.metadata.create_all(bind=engine)
 
+    # Clean up any existing data BEFORE the test
+    if "postgresql" in str(engine.url):
+        with engine.begin() as conn:
+            from sqlalchemy import text
+            # Delete in safe order
+            table_order = [
+                "user_roles",
+                "role_permissions",
+                "password_history",
+                "user_sessions",
+                "user_activity_logs",
+                "audit_logs",
+                "project_members",
+                "project_milestones",
+                "projects",
+                "users",
+                "roles",
+                "permissions",
+                "departments",
+                "organizations",
+            ]
+            for table in table_order:
+                conn.execute(text(f'DELETE FROM "{table}"'))
+
     # Create session
     session = TestingSessionLocal()
 
@@ -112,10 +136,12 @@ def client(db_session: Session) -> Generator[TestClient, None, None]:
 @pytest.fixture
 def test_user(db_session: Session) -> User:
     """Create a basic test user."""
+    import uuid
+    unique_id = str(uuid.uuid4())[:8]
     return UserFactory.create_with_password(
         db_session,
         password="TestPassword123!",
-        email="testuser@example.com",
+        email=f"testuser_{unique_id}@example.com",
         full_name="Test User",
     )
 
@@ -123,10 +149,12 @@ def test_user(db_session: Session) -> User:
 @pytest.fixture
 def test_admin(db_session: Session) -> User:
     """Create a test admin user."""
+    import uuid
+    unique_id = str(uuid.uuid4())[:8]
     return UserFactory.create_with_password(
         db_session,
         password="AdminPassword123!",
-        email="admin@example.com",
+        email=f"admin_{unique_id}@example.com",
         full_name="Admin User",
         is_superuser=True,
     )
@@ -135,10 +163,12 @@ def test_admin(db_session: Session) -> User:
 @pytest.fixture
 def test_manager(db_session: Session) -> User:
     """Create a test manager user."""
+    import uuid
+    unique_id = str(uuid.uuid4())[:8]
     return UserFactory.create_with_password(
         db_session,
         password="ManagerPassword123!",
-        email="manager@example.com",
+        email=f"manager_{unique_id}@example.com",
         full_name="Manager User",
     )
 
