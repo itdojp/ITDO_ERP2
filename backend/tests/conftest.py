@@ -93,6 +93,15 @@ database.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=eng
 # Create session factory with our test engine
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+# CRITICAL: Ensure all tables are created immediately
+print("DEBUG: Creating all tables...")
+try:
+    Base.metadata.create_all(bind=engine)
+    print("DEBUG: Tables created successfully")
+except Exception as e:
+    print(f"DEBUG: Error creating tables: {e}")
+    raise
+
 
 @pytest.fixture(autouse=True)
 def isolate_test_data() -> dict[str, str]:
