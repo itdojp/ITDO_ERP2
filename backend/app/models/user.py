@@ -116,6 +116,10 @@ class User(SoftDeletableModel):
     @classmethod
     def authenticate(cls, db: Session, email: str, password: str) -> Optional["User"]:
         """Authenticate user by email and password."""
+        # Check for None values
+        if email is None or password is None:
+            return None
+
         # Get user by email
         user = cls.get_by_email(db, email)
         if not user:
@@ -125,8 +129,16 @@ class User(SoftDeletableModel):
         if not user.is_active:
             return None
 
+        # Check if account is locked
+        if user.is_locked():
+            return None
+
         # Verify password
-        if not verify_password(password, user.hashed_password):
+        try:
+            if not verify_password(password, user.hashed_password):
+                return None
+        except Exception:
+            # Handle bcrypt errors (e.g., NULL bytes in password)
             return None
 
         return user
