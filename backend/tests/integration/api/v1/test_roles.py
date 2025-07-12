@@ -96,22 +96,26 @@ class TestRoleAPI(
         assert response.status_code == 403
 
     def test_update_endpoint_forbidden(
-        self, client: TestClient, db_session: Session, user_token: str, test_organization: Organization
+        self,
+        client: TestClient,
+        db_session: Session,
+        user_token: str,
+        test_organization: Organization,
     ) -> None:
         """Test update operation with insufficient permissions."""
         # Create an instance with proper organization context
         instance = RoleFactory.create_with_organization(
             db_session, test_organization, name="Test Role for Update"
         )
-        
+
         payload = self.update_payload()
-        
+
         response = client.put(
             f"{self.endpoint_prefix}/{instance.id}",
             json=payload,
             headers=self.get_auth_headers(user_token),
         )
-        
+
         # Should be forbidden unless user has specific permissions
         assert response.status_code in [403, 404]
 
