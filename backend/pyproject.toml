@@ -94,6 +94,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/test_task_management/**/*.py" = ["F821"]  # Allow undefined names in incomplete test files
+"tests/conftest.py" = ["I001", "E402"]  # Allow custom import order for model registration
 
 [tool.ruff.format]
 # Ensure consistent formatting across environments
