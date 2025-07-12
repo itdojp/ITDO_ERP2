@@ -83,7 +83,7 @@ class TestRoleAPI(
         assert validated_data.name == payload["name"]
 
     @pytest.mark.skip(
-        reason="Role permission check not working properly in PostgreSQL - needs investigation"
+        reason="Role permission check not working properly in PostgreSQL"
     )
     def test_create_endpoint_forbidden(
         self, client: TestClient, user_token: str, test_organization: Organization
@@ -100,7 +100,7 @@ class TestRoleAPI(
         assert response.status_code == 403
 
     @pytest.mark.skip(
-        reason="Role permission check not working properly in PostgreSQL - needs investigation"
+        reason="Role permission check not working properly in PostgreSQL"
     )
     def test_update_endpoint_forbidden(
         self,
@@ -127,7 +127,7 @@ class TestRoleAPI(
         assert response.status_code in [403, 404]
 
     @pytest.mark.skip(
-        reason="Role permission check not working properly in PostgreSQL - needs investigation"
+        reason="Role permission check not working properly in PostgreSQL"
     )
     def test_delete_endpoint_forbidden(
         self,
