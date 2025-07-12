@@ -135,7 +135,6 @@ def db_session() -> Generator[Session]:
         if "postgresql" in str(engine.url):
             # Use TRUNCATE for better performance and reset sequences
             with engine.begin() as conn:
-
                 # TRUNCATE in safe order
                 table_order = [
                     "tasks",
