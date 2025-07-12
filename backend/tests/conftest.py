@@ -30,11 +30,28 @@ from tests.factories import (
 
 # Determine database URL based on environment
 # CI environment always uses SQLite regardless of DATABASE_URL
-print(f"DEBUG: CI env var: {os.getenv('CI')}")
-print(f"DEBUG: GITHUB_ACTIONS in environ: {'GITHUB_ACTIONS' in os.environ}")
-print(f"DEBUG: DATABASE_URL: {os.getenv('DATABASE_URL')}")
 
-if os.getenv("CI") or "GITHUB_ACTIONS" in os.environ:
+# CRITICAL: Force SQLite for ANY CI environment detection
+# GitHub Actions sets GITHUB_ACTIONS=true automatically
+# Check multiple ways to detect CI environment
+
+is_ci = (
+    os.getenv("CI") == "true" or
+    os.getenv("GITHUB_ACTIONS") == "true" or
+    os.getenv("GITHUB_WORKFLOW") is not None or
+    os.getenv("RUNNER_OS") is not None or
+    "runner" in os.getenv("HOME", "").lower()
+)
+
+print(f"DEBUG: CI detection result: {is_ci}")
+print(f"DEBUG: CI={os.getenv('CI')}")  
+print(f"DEBUG: GITHUB_ACTIONS={os.getenv('GITHUB_ACTIONS')}")
+print(f"DEBUG: GITHUB_WORKFLOW={os.getenv('GITHUB_WORKFLOW')}")
+print(f"DEBUG: RUNNER_OS={os.getenv('RUNNER_OS')}")
+print(f"DEBUG: HOME={os.getenv('HOME')}")
+print(f"DEBUG: DATABASE_URL={os.getenv('DATABASE_URL')}")
+
+if is_ci:
     # Always use SQLite in CI environment regardless of DATABASE_URL
     print("DEBUG: Using SQLite in CI environment")
     SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
