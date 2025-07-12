@@ -393,6 +393,11 @@ class UserRole(AuditableModel):
 
         return True
 
+    @property
+    def is_expired(self) -> bool:
+        """Check if role assignment has expired."""
+        return self.expires_at is not None and self.expires_at < datetime.now(UTC)
+
     def get_effective_permissions(self) -> dict[str, Any]:
         """Get effective permissions for this role assignment."""
         if not self.is_valid:
