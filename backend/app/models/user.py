@@ -129,8 +129,16 @@ class User(SoftDeletableModel):
         if not user.is_active:
             return None
 
+        # Check if account is locked
+        if user.is_locked():
+            return None
+
         # Verify password
-        if not verify_password(password, user.hashed_password):
+        try:
+            if not verify_password(password, user.hashed_password):
+                return None
+        except Exception:
+            # Handle bcrypt errors (e.g., NULL bytes in password)
             return None
 
         return user

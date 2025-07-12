@@ -64,7 +64,7 @@ class AuthService:
             # Create new tokens
             return AuthService.create_tokens(user)
 
-        except (ExpiredTokenError, InvalidTokenError):
+        except (ExpiredTokenError, InvalidTokenError, ValueError, TypeError, AttributeError):
             return None
 
     @staticmethod
@@ -89,5 +89,5 @@ class AuthService:
 
             return user
 
-        except (ExpiredTokenError, InvalidTokenError):
+        except (ExpiredTokenError, InvalidTokenError, ValueError, TypeError, AttributeError):
             return None
