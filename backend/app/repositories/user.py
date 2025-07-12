@@ -181,7 +181,7 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
 
         # Lock after 5 attempts
         if user.failed_login_attempts >= 5:
-            # Use naive datetime for SQLite compatibility
+            # Use timezone-aware datetime for consistency
             user.locked_until = datetime.now(timezone.utc) + timedelta(minutes=30)
 
         self.db.commit()
