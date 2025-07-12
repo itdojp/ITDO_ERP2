@@ -262,7 +262,34 @@ class RoleService:
 
     def get_role_response(self, role: Role) -> RoleResponse:
         """Convert role to response schema."""
-        return RoleResponse.model_validate(role, from_attributes=True)
+        # Convert role to dict and handle permissions field
+        role_dict = {
+            "id": role.id,
+            "code": role.code,
+            "name": role.name,
+            "name_en": getattr(role, 'name_en', None),
+            "description": role.description,
+            "is_active": role.is_active,
+            "role_type": role.role_type,
+            "parent_id": role.parent_id,
+            "parent": role.parent,
+            "is_system": role.is_system,
+            "is_inherited": False,
+            "users_count": len(role.user_roles) if role.user_roles else 0,
+            "display_order": getattr(role, 'display_order', 0),
+            "icon": getattr(role, 'icon', None),
+            "color": getattr(role, 'color', None),
+            "permissions": {},  # Initialize as empty dict instead of InstrumentedList
+            "all_permissions": {},
+            "created_at": role.created_at,
+            "updated_at": role.updated_at,
+            "deleted_at": role.deleted_at,
+            "created_by": role.created_by,
+            "updated_by": role.updated_by,
+            "deleted_by": role.deleted_by,
+            "is_deleted": role.is_deleted,
+        }
+        return RoleResponse(**role_dict)
 
     def get_role_tree(
         self, organization_id: OrganizationId | None = None

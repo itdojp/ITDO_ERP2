@@ -11,6 +11,18 @@ from app.schemas.organization import OrganizationBasic
 from app.schemas.user import UserBasic
 
 
+class PermissionBasic(BaseModel):
+    """Basic permission information."""
+    
+    id: int
+    code: str
+    name: str
+    category: str
+    description: str | None = None
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
 class RoleBase(BaseModel):
     """Base schema for role."""
 
