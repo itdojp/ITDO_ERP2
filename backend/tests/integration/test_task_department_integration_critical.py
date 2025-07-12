@@ -33,7 +33,6 @@ class TestCriticalTaskDepartmentIntegration:
         """CRITICAL: Test creating a task assigned to a department."""
         # Skip this test temporarily to allow CI to pass
         # TODO: Fix API endpoint response for task-department integration
-        import pytest
         pytest.skip("Temporarily disabled due to API endpoint response issue")
         # Create department using factory (proper fields)
         department = DepartmentFactory.create_with_organization(
