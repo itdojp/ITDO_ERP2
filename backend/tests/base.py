@@ -77,7 +77,7 @@ class BaseAPITestCase(
         # Skip this test temporarily to allow CI to pass
         # TODO: Fix database session isolation issue in authentication
         pytest.skip("Temporarily disabled due to database session isolation issue")
-        
+
         # Create test instances
         instances = [self.create_test_instance(db_session) for _ in range(3)]
 
@@ -141,7 +141,7 @@ class BaseAPITestCase(
         # Skip this test temporarily to allow CI to pass
         # TODO: Fix database session isolation issue in authentication
         pytest.skip("Temporarily disabled due to database session isolation issue")
-        
+
         instance = self.create_test_instance(db_session)
 
         response = client.get(
