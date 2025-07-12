@@ -1,5 +1,7 @@
 """User model."""
 
+from __future__ import annotations
+
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
@@ -51,8 +53,11 @@ class User(SoftDeletableModel):
     password_must_change: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Relationships
-    user_roles: Mapped[List["UserRole"]] = relationship(
-        "UserRole", back_populates="user", foreign_keys="UserRole.user_id"
+    user_roles = relationship(
+        "UserRole",
+        foreign_keys="UserRole.user_id",
+        lazy="select",
+        cascade="all, delete-orphan",
     )
     password_history: Mapped[List["PasswordHistory"]] = relationship(
         "PasswordHistory", back_populates="user", cascade="all, delete-orphan"
@@ -143,6 +148,8 @@ class User(SoftDeletableModel):
                     self.password_changed_at = datetime.now(timezone.utc)
                 setattr(self, key, value)
 
+        # Force update of updated_at timestamp
+        self.updated_at = datetime.now(timezone.utc)
         db.add(self)
         db.flush()
 
@@ -387,6 +394,17 @@ class User(SoftDeletableModel):
     def has_permission(self, permission: str, organization_id: int) -> bool:
         """Check if user has specific permission in organization."""
         return permission in self.get_effective_permissions(organization_id)
+
+    def has_role(self, role_code: str, organization_id: int) -> bool:
+        """Check if user has a specific role in an organization."""
+        for user_role in self.user_roles:
+            if (
+                user_role.organization_id == organization_id
+                and user_role.role.code == role_code
+                and not user_role.is_expired
+            ):
+                return True
+        return False
 
     def has_role_in_department(self, role_code: str, department_id: int) -> bool:
         """Check if user has role in department."""

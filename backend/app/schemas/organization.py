@@ -1,175 +1,87 @@
 """Organization schemas."""
 
-from typing import Any, Dict, List, Optional
+from datetime import datetime
+from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, Field
-
-from app.schemas.common import AuditInfo, SoftDeleteInfo
+from pydantic import BaseModel, Field, validator
 
 
 class OrganizationBase(BaseModel):
-    """Base schema for organization."""
+    """Base organization schema."""
 
-    code: str = Field(
-        ..., min_length=1, max_length=50, description="Unique organization code"
-    )
-    name: str = Field(
-        ..., min_length=1, max_length=200, description="Organization name"
-    )
-    name_kana: Optional[str] = Field(
-        None, max_length=200, description="Organization name in Katakana"
-    )
-    name_en: Optional[str] = Field(
-        None, max_length=200, description="Organization name in English"
-    )
-    is_active: bool = Field(True, description="Whether the organization is active")
+    code: str = Field(..., min_length=1, max_length=50, description="組織コード")
+    name: str = Field(..., min_length=1, max_length=255, description="組織名")
+    name_kana: Optional[str] = Field(None, max_length=255, description="組織名（カナ）")
+    postal_code: Optional[str] = Field(None, max_length=10, description="郵便番号")
+    address: Optional[str] = Field(None, description="住所")
+    phone: Optional[str] = Field(None, max_length=20, description="電話番号")
+    email: Optional[str] = Field(None, max_length=255, description="メールアドレス")
+    website: Optional[str] = Field(None, max_length=255, description="ウェブサイト")
+    fiscal_year_start: int = Field(4, ge=1, le=12, description="会計年度開始月")
 
+    @validator("email")
+    def validate_email(cls, v):
+        if v and "@" not in v:
+            raise ValueError("有効なメールアドレスを入力してください")
+        return v
 
-class OrganizationContactInfo(BaseModel):
-    """Contact information schema."""
-
-    phone: Optional[str] = Field(None, max_length=20, pattern=r"^[\d\-\+\(\)]+$")
-    fax: Optional[str] = Field(None, max_length=20, pattern=r"^[\d\-\+\(\)]+$")
-    email: Optional[str] = Field(
-        None, max_length=255, pattern=r"^[\w\.\-]+@[\w\.\-]+\.\w+$"
-    )
-    website: Optional[str] = Field(None, max_length=255)
+    @validator("fiscal_year_start")
+    def validate_fiscal_year_start(cls, v):
+        if v < 1 or v > 12:
+            raise ValueError("会計年度開始月は1-12の範囲で入力してください")
+        return v
 
 
-class OrganizationAddressInfo(BaseModel):
-    """Address information schema."""
+class OrganizationCreate(OrganizationBase):
+    """Organization creation schema."""
 
-    postal_code: Optional[str] = Field(None, max_length=10, pattern=r"^\d{3}-?\d{4}$")
-    prefecture: Optional[str] = Field(None, max_length=50)
-    city: Optional[str] = Field(None, max_length=100)
-    address_line1: Optional[str] = Field(None, max_length=255)
-    address_line2: Optional[str] = Field(None, max_length=255)
-
-
-class OrganizationBusinessInfo(BaseModel):
-    """Business information schema."""
-
-    business_type: Optional[str] = Field(None, max_length=100)
-    industry: Optional[str] = Field(None, max_length=100)
-    capital: Optional[int] = Field(None, ge=0, description="Capital amount in JPY")
-    employee_count: Optional[int] = Field(None, ge=0)
-    fiscal_year_end: Optional[str] = Field(
-        None, pattern=r"^\d{2}-\d{2}$", description="MM-DD format"
-    )
-
-
-class OrganizationCreate(
-    OrganizationBase,
-    OrganizationContactInfo,
-    OrganizationAddressInfo,
-    OrganizationBusinessInfo,
-):
-    """Schema for creating an organization."""
-
-    parent_id: Optional[int] = Field(None, description="Parent organization ID")
-    description: Optional[str] = Field(None, max_length=1000)
-    logo_url: Optional[str] = Field(None, max_length=255)
-    settings: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    pass
 
 
 class OrganizationUpdate(BaseModel):
-    """Schema for updating an organization."""
+    """Organization update schema."""
 
-    code: Optional[str] = Field(None, min_length=1, max_length=50)
-    name: Optional[str] = Field(None, min_length=1, max_length=200)
-    name_kana: Optional[str] = Field(None, max_length=200)
-    name_en: Optional[str] = Field(None, max_length=200)
-    is_active: Optional[bool] = None
-
-    # Contact info
-    phone: Optional[str] = Field(None, max_length=20, pattern=r"^[\d\-\+\(\)]+$")
-    fax: Optional[str] = Field(None, max_length=20, pattern=r"^[\d\-\+\(\)]+$")
-    email: Optional[str] = Field(
-        None, max_length=255, pattern=r"^[\w\.\-]+@[\w\.\-]+\.\w+$"
+    name: Optional[str] = Field(
+        None, min_length=1, max_length=255, description="組織名"
     )
-    website: Optional[str] = Field(None, max_length=255)
+    name_kana: Optional[str] = Field(None, max_length=255, description="組織名（カナ）")
+    postal_code: Optional[str] = Field(None, max_length=10, description="郵便番号")
+    address: Optional[str] = Field(None, description="住所")
+    phone: Optional[str] = Field(None, max_length=20, description="電話番号")
+    email: Optional[str] = Field(None, max_length=255, description="メールアドレス")
+    website: Optional[str] = Field(None, max_length=255, description="ウェブサイト")
+    fiscal_year_start: Optional[int] = Field(
+        None, ge=1, le=12, description="会計年度開始月"
+    )
 
-    # Address info
-    postal_code: Optional[str] = Field(None, max_length=10, pattern=r"^\d{3}-?\d{4}$")
-    prefecture: Optional[str] = Field(None, max_length=50)
-    city: Optional[str] = Field(None, max_length=100)
-    address_line1: Optional[str] = Field(None, max_length=255)
-    address_line2: Optional[str] = Field(None, max_length=255)
-
-    # Business info
-    business_type: Optional[str] = Field(None, max_length=100)
-    industry: Optional[str] = Field(None, max_length=100)
-    capital: Optional[int] = Field(None, ge=0)
-    employee_count: Optional[int] = Field(None, ge=0)
-    fiscal_year_end: Optional[str] = Field(None, pattern=r"^\d{2}-\d{2}$")
-
-    # Other fields
-    parent_id: Optional[int] = None
-    description: Optional[str] = Field(None, max_length=1000)
-    logo_url: Optional[str] = Field(None, max_length=255)
-    settings: Optional[Dict[str, Any]] = None
+    @validator("email")
+    def validate_email(cls, v):
+        if v and "@" not in v:
+            raise ValueError("有効なメールアドレスを入力してください")
+        return v
 
 
-class OrganizationBasic(BaseModel):
-    """Basic organization information."""
+class OrganizationResponse(OrganizationBase):
+    """Organization response schema."""
 
     id: int
-    code: str
-    name: str
-    name_en: Optional[str] = None
     is_active: bool
+    created_at: datetime
+    updated_at: datetime
+    created_by: Optional[int] = None
+    updated_by: Optional[int] = None
 
-    model_config = ConfigDict(from_attributes=True)
-
-
-class OrganizationSummary(OrganizationBasic):
-    """Organization summary with additional info."""
-
-    parent_id: Optional[int] = None
-    parent_name: Optional[str] = None
-    department_count: int = 0
-    user_count: int = 0
-
-    model_config = ConfigDict(from_attributes=True)
+    class Config:
+        from_attributes = True
 
 
-class OrganizationResponse(
-    OrganizationBase,
-    OrganizationContactInfo,
-    OrganizationAddressInfo,
-    OrganizationBusinessInfo,
-    AuditInfo,
-    SoftDeleteInfo,
-):
-    """Full organization response schema."""
+class OrganizationList(BaseModel):
+    """Organization list response schema."""
 
-    id: int
-    parent_id: Optional[int] = None
-    parent: Optional[OrganizationBasic] = None
-    description: Optional[str] = None
-    logo_url: Optional[str] = None
-    settings: Dict[str, Any] = Field(default_factory=dict)
-    full_address: Optional[str] = None
-    is_subsidiary: bool = False
-    is_parent: bool = False
-    subsidiary_count: int = 0
+    items: list[OrganizationResponse]
+    total: int
+    page: int = 1
+    limit: int = 10
 
-    model_config = ConfigDict(from_attributes=True)
-
-
-class OrganizationTree(BaseModel):
-    """Organization tree structure."""
-
-    id: int
-    code: str
-    name: str
-    is_active: bool
-    level: int = 0
-    parent_id: Optional[int] = None
-    children: List["OrganizationTree"] = Field(default_factory=list)
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-# Update forward references
-OrganizationTree.model_rebuild()
+    class Config:
+        from_attributes = True

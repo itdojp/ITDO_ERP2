@@ -4,7 +4,7 @@ from typing import Any, Dict, List
 
 from app.models.organization import Organization
 from app.models.permission import Permission
-from app.models.role import Role, RolePermission
+from app.models.role import Role, UserRole
 from tests.factories import BaseFactory, fake
 
 from .organization import OrganizationFactory
@@ -140,14 +140,13 @@ class RoleFactory(BaseFactory):
             ),
             "description": fake.text(max_nb_chars=200),
             "role_type": fake.random_element(
-                elements=("system", "custom", "department", "project")
+                elements=("system", "custom", "department", "organization")
             ),
-            "is_active": True,
+            "permissions": [],  # List of permission strings
             "is_system": False,
-            "full_path": "",
-            "depth": 0,
-            "permissions": {},
-            "display_order": 0,
+            "is_active": True,
+            "created_by": None,  # Will be set in tests if needed
+            "updated_by": None,  # Will be set in tests if needed
         }
 
     @classmethod
@@ -169,31 +168,15 @@ class RoleFactory(BaseFactory):
         return cls.create(db_session, **kwargs)
 
     @classmethod
-    def create_with_parent(cls, db_session, parent_role: Role, **kwargs) -> Role:
-        """Create a role with a parent role."""
-        kwargs["parent_id"] = parent_role.id
-        kwargs["organization_id"] = parent_role.organization_id
-        return cls.create(db_session, **kwargs)
-
-    @classmethod
     def create_with_permissions(
         cls, db_session, permissions: List[Permission], **kwargs
     ) -> Role:
         """Create a role with specific permissions."""
-        role = cls.create(db_session, **kwargs)
+        # Convert permissions to list of permission codes
+        permission_codes = [perm.code for perm in permissions]
+        kwargs["permissions"] = permission_codes
 
-        # Add permissions to role
-        for permission in permissions:
-            role_permission = RolePermission(
-                role_id=role.id,
-                permission_id=permission.id,
-                granted_by=kwargs.get("created_by"),
-            )
-            db_session.add(role_permission)
-
-        db_session.commit()
-        db_session.refresh(role)
-        return role
+        return cls.create(db_session, **kwargs)
 
     @classmethod
     def create_role_hierarchy(
@@ -206,34 +189,31 @@ class RoleFactory(BaseFactory):
             organization,
             name="システム管理者",
             description="すべての権限を持つ管理者ロール",
-            role_type="system",
+            is_system=True,
         )
 
         # Create manager roles
-        manager_role = cls.create_with_parent(
+        manager_role = cls.create(
             db_session,
-            admin_role,
             name="マネージャー",
             description="部門管理権限を持つロール",
-            role_type="department",
+            is_system=False,
         )
 
         # Create user roles
-        user_role = cls.create_with_parent(
+        user_role = cls.create(
             db_session,
-            manager_role,
             name="一般ユーザー",
             description="基本的な操作権限を持つロール",
-            role_type="custom",
+            is_system=False,
         )
 
         # Create viewer role
-        viewer_role = cls.create_with_parent(
+        viewer_role = cls.create(
             db_session,
-            user_role,
             name="閲覧者",
             description="読み取り専用権限を持つロール",
-            role_type="custom",
+            is_system=False,
         )
 
         return {
@@ -246,9 +226,9 @@ class RoleFactory(BaseFactory):
         }
 
     @classmethod
-    def create_by_type(cls, db_session, role_type: str, **kwargs) -> Role:
+    def create_by_type(cls, db_session, is_system: bool = False, **kwargs) -> Role:
         """Create a role of a specific type."""
-        kwargs["role_type"] = role_type
+        kwargs["is_system"] = is_system
         return cls.create(db_session, **kwargs)
 
     @classmethod
@@ -260,7 +240,6 @@ class RoleFactory(BaseFactory):
     @classmethod
     def create_system_role(cls, db_session, **kwargs) -> Role:
         """Create a system role."""
-        kwargs["role_type"] = "system"
         kwargs["is_system"] = True
         return cls.create(db_session, **kwargs)
 
@@ -323,27 +302,23 @@ class RoleFactory(BaseFactory):
         cls, db_session, role: Role, permissions: List[Permission]
     ):
         """Helper method to assign permissions to a role."""
-        for permission in permissions:
-            role_permission = RolePermission(
-                role_id=role.id, permission_id=permission.id
-            )
-            db_session.add(role_permission)
+        # Convert permissions to list of permission codes
+        permission_codes = [permission.code for permission in permissions]
 
+        # Update role permissions as list
+        role.permissions = permission_codes
         db_session.commit()
 
     @classmethod
-    def create_minimal(cls, db_session, organization_id: int, **kwargs) -> Role:
+    def create_minimal(cls, db_session, **kwargs) -> Role:
         """Create a role with minimal required fields."""
         minimal_attrs = {
             "code": fake.bothify(text="role.###.####"),
             "name": fake.word(),
-            "organization_id": organization_id,
+            "role_type": "custom",
             "is_active": True,
             "is_system": False,
-            "full_path": "",
-            "depth": 0,
-            "permissions": {},
-            "display_order": 0,
+            "permissions": [],
         }
         minimal_attrs.update(kwargs)
         return cls.create(db_session, **minimal_attrs)
@@ -379,3 +354,45 @@ def create_test_user_role(
     db_session.refresh(user_role)
 
     return user_role
+
+
+class UserRoleFactory(BaseFactory):
+    """Factory for creating UserRole test instances."""
+
+    model_class = UserRole
+
+    @classmethod
+    def _get_default_attributes(cls) -> Dict[str, Any]:
+        """Get default attributes for UserRole creation."""
+        return {
+            "user_id": 1,  # Will be overridden with actual user
+            "role_id": 1,  # Will be overridden with actual role
+            "organization_id": 1,  # Will be overridden with actual organization
+            "department_id": None,
+            "assigned_by": 1,
+            "is_active": True,
+            "expires_at": None,
+            "is_primary": False,
+            "notes": None,
+            "approval_status": None,
+            "approved_by": None,
+            "approved_at": None,
+        }
+
+    @classmethod
+    def create_with_relationships(
+        cls, db_session, user, role, organization, department=None, **kwargs
+    ) -> UserRole:
+        """Create a UserRole with actual relationship objects."""
+        attributes = cls._get_default_attributes()
+        attributes.update(
+            {
+                "user_id": user.id,
+                "role_id": role.id,
+                "organization_id": organization.id,
+                "department_id": department.id if department else None,
+            }
+        )
+        attributes.update(kwargs)
+
+        return cls.create(db_session, **attributes)

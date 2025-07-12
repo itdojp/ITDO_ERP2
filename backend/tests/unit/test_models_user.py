@@ -180,10 +180,11 @@ class TestUserModel:
             full_name="Original Name",
         )
         db_session.commit()
+        original_updated_at = user.updated_at
 
         # When: Updating user
         user.update(db_session, full_name="Updated Name")
 
         # Then: User should be updated
         assert user.full_name == "Updated Name"
-        assert user.updated_at > user.created_at
+        assert user.updated_at > original_updated_at

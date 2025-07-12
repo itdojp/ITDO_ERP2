@@ -1,399 +1,289 @@
-"""Role and UserRole models implementation."""
+"""Role and UserRole models."""
 
-from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from __future__ import annotations
+
+from datetime import datetime
+from typing import TYPE_CHECKING, Any, List, Optional
 
 from sqlalchemy import (
     JSON,
     Boolean,
+    Column,
     DateTime,
     ForeignKey,
-    Index,
     Integer,
     String,
     Text,
     UniqueConstraint,
     func,
 )
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Session, relationship
 
-from app.models.base import AuditableModel, BaseModel, SoftDeletableModel
-from app.types import DepartmentId, OrganizationId, RoleId, UserId
+from app.core.database import Base
 
 if TYPE_CHECKING:
-    from app.models.department import Department
-    from app.models.organization import Organization
-    from app.models.permission import Permission
-    from app.models.user import User
+    from app.models.department import Department  # noqa: F401
+    from app.models.organization import Organization  # noqa: F401
+    from app.models.user import User  # noqa: F401
 
 
-class Role(SoftDeletableModel):
-    """Role model representing a set of permissions."""
+class Role(Base):
+    """Role model."""
 
     __tablename__ = "roles"
 
-    # Basic fields
-    code: Mapped[str] = mapped_column(
-        String(50), unique=True, nullable=False, index=True, comment="Unique role code"
+    id: int = Column(Integer, primary_key=True, index=True)
+    code: str = Column(String(50), unique=True, index=True, nullable=False)
+    name: str = Column(String(200), nullable=False)
+    name_en: Optional[str] = Column(String(200), nullable=True)
+    description: Optional[str] = Column(Text)
+    role_type: str = Column(String(50), nullable=False, default="custom")
+    parent_id: Optional[int] = Column(Integer, ForeignKey("roles.id"))
+    organization_id: Optional[int] = Column(Integer, ForeignKey("organizations.id"))
+    permissions: List[str] = Column(JSON, default=list)  # List of permission strings
+    is_system: bool = Column(Boolean, default=False)  # System roles cannot be deleted
+    is_active: bool = Column(Boolean, default=True)
+    display_order: int = Column(Integer, default=0)
+    icon: Optional[str] = Column(String(50))
+    color: Optional[str] = Column(String(7))
+    full_path: str = Column(String(500), default="")
+    depth: int = Column(Integer, default=0)
+    is_deleted: bool = Column(Boolean, default=False)
+    deleted_at: Optional[datetime] = Column(DateTime(timezone=True))
+    deleted_by: Optional[int] = Column(Integer, ForeignKey("users.id"))
+    created_at: datetime = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at: datetime = Column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
-    name: Mapped[str] = mapped_column(
-        String(200), nullable=False, comment="Role display name"
-    )
-    name_en: Mapped[Optional[str]] = mapped_column(
-        String(200), nullable=True, comment="Role name in English"
-    )
-
-    # Role details
-    description: Mapped[Optional[str]] = mapped_column(
-        Text, nullable=True, comment="Role description"
-    )
-    role_type: Mapped[str] = mapped_column(
-        String(50),
-        nullable=False,
-        default="custom",
-        comment="Type of role (system, organization, custom)",
-    )
-
-    # Organization scope
-    organization_id: Mapped[Optional[OrganizationId]] = mapped_column(
-        Integer,
-        ForeignKey("organizations.id"),
-        nullable=True,
-        index=True,
-        comment="Organization ID if role is organization-specific",
-    )
-
-    # Hierarchy
-    parent_id: Mapped[Optional[RoleId]] = mapped_column(
-        Integer,
-        ForeignKey("roles.id"),
-        nullable=True,
-        comment="Parent role ID for role inheritance",
-    )
-
-    # Hierarchy metadata
-    full_path: Mapped[str] = mapped_column(
-        String(500),
-        nullable=False,
-        default="/",
-        comment="Full path in hierarchy (e.g., /1/2/3)",
-    )
-    depth: Mapped[int] = mapped_column(
-        Integer, nullable=False, default=0, comment="Depth in hierarchy (0 for root)"
-    )
-
-    # Permissions (JSON array)
-    permissions: Mapped[Dict[str, Any]] = mapped_column(
-        JSON, nullable=False, default=dict, comment="Role permissions in JSON format"
-    )
-
-    # Status
-    is_active: Mapped[bool] = mapped_column(
-        Boolean,
-        default=True,
-        nullable=False,
-        index=True,
-        comment="Whether the role is active",
-    )
-    is_system: Mapped[bool] = mapped_column(
-        Boolean,
-        default=False,
-        nullable=False,
-        comment="Whether this is a system role (cannot be modified)",
-    )
-
-    # Display
-    display_order: Mapped[int] = mapped_column(
-        Integer, default=0, nullable=False, comment="Display order for UI"
-    )
-    icon: Mapped[Optional[str]] = mapped_column(
-        String(50), nullable=True, comment="Icon name or class for UI"
-    )
-    color: Mapped[Optional[str]] = mapped_column(
-        String(7), nullable=True, comment="Color code for UI (hex format)"
-    )
+    created_by: Optional[int] = Column(Integer, ForeignKey("users.id"))
+    updated_by: Optional[int] = Column(Integer, ForeignKey("users.id"))
 
     # Relationships
-    parent: Mapped[Optional["Role"]] = relationship(
-        "Role", remote_side="Role.id", back_populates="child_roles", lazy="joined"
-    )
-    child_roles: Mapped[List["Role"]] = relationship(
-        "Role", back_populates="parent", lazy="select"
-    )
-    user_roles: Mapped[List["UserRole"]] = relationship(
-        "UserRole", back_populates="role", cascade="all, delete-orphan", lazy="dynamic"
-    )
-    role_permissions: Mapped[List["RolePermission"]] = relationship(
-        "RolePermission",
-        back_populates="role",
-        cascade="all, delete-orphan",
-        lazy="select",
-    )
+    user_roles = relationship("UserRole", back_populates="role")
+    organization = relationship("Organization", back_populates="roles")
+    parent = relationship("Role", remote_side=[id])
+    children = relationship("Role", back_populates="parent")
 
-    def __repr__(self) -> str:
-        """String representation."""
-        return f"<Role(id={self.id}, code='{self.code}', name='{self.name}')>"
+    @classmethod
+    def init_system_roles(cls, db: Session) -> None:
+        """Initialize system roles."""
+        system_roles = [
+            {
+                "code": "SYSTEM_ADMIN",
+                "name": "システム管理者",
+                "description": "システム全体の管理権限",
+                "permissions": ["*"],
+                "is_system": True,
+            },
+            {
+                "code": "ORG_ADMIN",
+                "name": "組織管理者",
+                "description": "組織内の管理権限",
+                "permissions": ["org:*", "dept:*", "user:*"],
+                "is_system": True,
+            },
+            {
+                "code": "DEPT_MANAGER",
+                "name": "部門管理者",
+                "description": "部門内の管理権限",
+                "permissions": ["dept:*", "user:read", "user:write"],
+                "is_system": True,
+            },
+            {
+                "code": "USER",
+                "name": "一般ユーザー",
+                "description": "基本的な利用権限",
+                "permissions": ["read:own", "write:own"],
+                "is_system": True,
+            },
+        ]
 
-    @property
-    def is_inherited(self) -> bool:
-        """Check if this role inherits from another role."""
-        return self.parent_id is not None
+        for role_data in system_roles:
+            existing = db.query(cls).filter(cls.code == role_data["code"]).first()
+            if not existing:
+                role = cls(**role_data)
+                db.add(role)
 
-    def get_all_permissions(self) -> Dict[str, Any]:
-        """Get all permissions including inherited ones."""
-        all_permissions = {}
+        db.commit()
 
-        # Get inherited permissions recursively
-        if self.parent:
-            all_permissions.update(self.parent.get_all_permissions())
+    @classmethod
+    def create(
+        cls,
+        db: Session,
+        *,
+        code: str,
+        name: str,
+        created_by: int,
+        role_type: str = "custom",
+        organization_id: Optional[int] = None,
+        parent_id: Optional[int] = None,
+        description: Optional[str] = None,
+        permissions: Optional[List[str]] = None,
+        is_system: bool = False,
+        is_active: bool = True,
+    ) -> "Role":
+        """Create a new role."""
+        role = cls(
+            code=code,
+            name=name,
+            role_type=role_type,
+            organization_id=organization_id,
+            parent_id=parent_id,
+            description=description,
+            permissions=permissions or [],
+            is_system=is_system,
+            is_active=is_active,
+            created_by=created_by,
+        )
 
-        # Override with own permissions
-        all_permissions.update(self.permissions)
+        db.add(role)
+        db.flush()
 
-        return all_permissions
+        return role
+
+    @classmethod
+    def get_by_code(cls, db: Session, code: str) -> Optional["Role"]:
+        """Get role by code."""
+        return db.query(cls).filter(cls.code == code).first()
 
     def has_permission(self, permission: str) -> bool:
         """Check if role has a specific permission."""
-        all_permissions = self.get_all_permissions()
+        if not self.permissions:
+            return False
 
-        # Handle nested permissions (e.g., "users.create")
-        parts = permission.split(".")
-        current = all_permissions
+        # Check for exact match
+        if permission in self.permissions:
+            return True
 
-        for part in parts:
-            if not isinstance(current, dict) or part not in current:
-                return False
-            current = current[part]
+        # Check for wildcard permissions
+        for perm in self.permissions:
+            if perm == "*":
+                return True
 
-        return bool(current)
+            # Check for pattern match (e.g., "read:*" matches "read:users")
+            if perm.endswith("*"):
+                prefix = perm[:-1]
+                if permission.startswith(prefix):
+                    return True
 
-    def get_users_count(self) -> int:
-        """Get count of users with this role."""
-        return len([ur for ur in self.user_roles if ur.is_active])
+        return False
+
+    def update(self, db: Session, updated_by: int, **kwargs: Any) -> None:
+        """Update role attributes."""
+        for key, value in kwargs.items():
+            if hasattr(self, key) and key not in ["id", "created_at", "created_by"]:
+                setattr(self, key, value)
+
+        self.updated_by = updated_by
+        db.add(self)
+        db.flush()
+
+    def delete(self) -> None:
+        """Delete role (prevents deletion of system roles)."""
+        if self.is_system:
+            raise ValueError("システムロールは削除できません")
+
+        self.is_active = False
+
+    def __repr__(self) -> str:
+        return f"<Role(id={self.id}, code={self.code}, name={self.name})>"
 
 
-class UserRole(AuditableModel):
-    """Association between users and roles with organizational context."""
+class UserRole(Base):
+    """User role assignment model."""
 
     __tablename__ = "user_roles"
+
+    id: int = Column(Integer, primary_key=True, index=True)
+    user_id: int = Column(Integer, ForeignKey("users.id"), nullable=False)
+    role_id: int = Column(Integer, ForeignKey("roles.id"), nullable=False)
+    organization_id: int = Column(
+        Integer, ForeignKey("organizations.id"), nullable=False
+    )
+    department_id: Optional[int] = Column(
+        Integer, ForeignKey("departments.id"), nullable=True
+    )
+    assigned_by: Optional[int] = Column(Integer, ForeignKey("users.id"))
+    assigned_at: datetime = Column(DateTime(timezone=True), server_default=func.now())
+    valid_from: datetime = Column(DateTime(timezone=True), server_default=func.now())
+    expires_at: Optional[datetime] = Column(DateTime(timezone=True), nullable=True)
+    valid_to: Optional[datetime] = Column(DateTime(timezone=True), nullable=True)
+    is_active: bool = Column(Boolean, default=True, nullable=False)
+    is_primary: bool = Column(Boolean, default=False, nullable=False)
+    notes: Optional[str] = Column(Text, nullable=True)
+    approval_status: Optional[str] = Column(String(50), nullable=True)
+    approved_by: Optional[int] = Column(Integer, ForeignKey("users.id"))
+    approved_at: Optional[datetime] = Column(DateTime(timezone=True), nullable=True)
+    created_at: datetime = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at: datetime = Column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+    created_by: Optional[int] = Column(Integer, ForeignKey("users.id"))
+    updated_by: Optional[int] = Column(Integer, ForeignKey("users.id"))
+
+    # Relationships
+    user = relationship("User", foreign_keys=[user_id])
+    role = relationship("Role", back_populates="user_roles")
+    organization = relationship("Organization", back_populates="user_roles")
+    department = relationship("Department", back_populates="user_roles")
+    assigned_by_user = relationship("User", foreign_keys=[assigned_by])
+
     __table_args__ = (
         UniqueConstraint(
             "user_id",
             "role_id",
             "organization_id",
-            "department_id",
-            name="uq_user_role_org_dept",
+            name="uix_user_role_org",
         ),
-        # Note: expires_at and is_active already have index=True in column definitions
     )
 
-    # Foreign keys
-    user_id: Mapped[UserId] = mapped_column(
-        Integer, ForeignKey("users.id"), nullable=False, index=True, comment="User ID"
-    )
-    role_id: Mapped[RoleId] = mapped_column(
-        Integer, ForeignKey("roles.id"), nullable=False, index=True, comment="Role ID"
-    )
-    organization_id: Mapped[OrganizationId] = mapped_column(
-        Integer,
-        ForeignKey("organizations.id"),
-        nullable=False,
-        index=True,
-        comment="Organization context for the role",
-    )
-    department_id: Mapped[Optional[DepartmentId]] = mapped_column(
-        Integer,
-        ForeignKey("departments.id"),
-        nullable=True,
-        index=True,
-        comment="Department context (optional)",
-    )
-
-    # Assignment details
-    assigned_by: Mapped[Optional[UserId]] = mapped_column(
-        Integer,
-        ForeignKey("users.id"),
-        nullable=True,
-        comment="User who assigned this role",
-    )
-    assigned_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now(),
-        comment="When the role was assigned",
-    )
-
-    # Validity period
-    valid_from: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now(),
-        comment="When the role becomes valid",
-    )
-    valid_to: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True),
-        nullable=True,
-        comment="When the role validity ends (deprecated, use expires_at)",
-    )
-    expires_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True),
-        nullable=True,
-        index=True,
-        comment="When the role expires (null = never)",
-    )
-
-    # Status
-    is_active: Mapped[bool] = mapped_column(
-        Boolean,
-        default=True,
-        nullable=False,
-        index=True,
-        comment="Whether the role assignment is active",
-    )
-    is_primary: Mapped[bool] = mapped_column(
-        Boolean,
-        default=False,
-        nullable=False,
-        comment="Whether this is the user's primary role",
-    )
-
-    # Notes
-    notes: Mapped[Optional[str]] = mapped_column(
-        Text, nullable=True, comment="Notes about this role assignment"
-    )
-
-    # Approval workflow
-    approval_status: Mapped[Optional[str]] = mapped_column(
-        String(50),
-        nullable=True,
-        comment="Approval status (pending, approved, rejected)",
-    )
-    approved_by: Mapped[Optional[UserId]] = mapped_column(
-        Integer,
-        ForeignKey("users.id"),
-        nullable=True,
-        comment="User who approved this role assignment",
-    )
-    approved_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True), nullable=True, comment="When the role was approved"
-    )
-
-    # Relationships
-    user: Mapped["User"] = relationship(
-        "User", foreign_keys=[user_id], back_populates="user_roles"
-    )
-    role: Mapped["Role"] = relationship(
-        "Role", back_populates="user_roles", lazy="joined"
-    )
-    organization: Mapped["Organization"] = relationship("Organization", lazy="joined")
-    department: Mapped[Optional["Department"]] = relationship(
-        "Department", lazy="joined"
-    )
-    assigned_by_user: Mapped[Optional["User"]] = relationship(
-        "User", foreign_keys=[assigned_by], lazy="joined"
-    )
-    approved_by_user: Mapped[Optional["User"]] = relationship(
-        "User", foreign_keys=[approved_by], lazy="joined"
-    )
-
-    def __repr__(self) -> str:
-        """String representation."""
-        return (
-            f"<UserRole(user_id={self.user_id}, role_id={self.role_id}, "
-            f"org_id={self.organization_id}, dept_id={self.department_id})>"
+    @classmethod
+    def create(
+        cls,
+        db: Session,
+        *,
+        user_id: int,
+        role_id: int,
+        organization_id: int,
+        assigned_by: int,
+        department_id: Optional[int] = None,
+        expires_at: Optional[datetime] = None,
+        is_active: bool = True,
+        is_primary: bool = False,
+        notes: Optional[str] = None,
+        approval_status: Optional[str] = None,
+        approved_by: Optional[int] = None,
+        approved_at: Optional[datetime] = None,
+    ) -> "UserRole":
+        """Create a new user role assignment."""
+        user_role = cls(
+            user_id=user_id,
+            role_id=role_id,
+            organization_id=organization_id,
+            department_id=department_id,
+            assigned_by=assigned_by,
+            expires_at=expires_at,
+            is_active=is_active,
+            is_primary=is_primary,
+            notes=notes,
+            approval_status=approval_status,
+            approved_by=approved_by,
+            approved_at=approved_at,
         )
 
-    @property
+        db.add(user_role)
+        db.flush()
+
+        return user_role
+
     def is_expired(self) -> bool:
         """Check if role assignment is expired."""
         if not self.expires_at:
             return False
-        return datetime.now(timezone.utc) > self.expires_at
 
-    @property
-    def is_valid(self) -> bool:
-        """Check if role assignment is currently valid."""
-        now = datetime.now(timezone.utc)
-
-        # Check if active
-        if not self.is_active:
-            return False
-
-        # Check validity period
-        if now < self.valid_from:
-            return False
-
-        # Check expiration
-        if self.expires_at and now > self.expires_at:
-            return False
-
-        # Check approval if required
-        if self.approval_status == "pending":
-            return False
-
-        return True
-
-    @property
-    def days_until_expiry(self) -> Optional[int]:
-        """Get days until expiry (None if no expiry date)."""
-        if not self.expires_at:
-            return None
-
-        delta = self.expires_at - datetime.now(timezone.utc)
-        return delta.days
-
-    def get_effective_permissions(self) -> Dict[str, Any]:
-        """Get effective permissions for this role assignment."""
-        if not self.is_valid:
-            return {}
-
-        return self.role.get_all_permissions()
-
-
-class RolePermission(BaseModel):
-    """Association table between roles and permissions."""
-
-    __tablename__ = "role_permissions"
-
-    role_id: Mapped[RoleId] = mapped_column(
-        Integer, ForeignKey("roles.id"), primary_key=True, comment="Role ID"
-    )
-    permission_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("permissions.id"), primary_key=True, comment="Permission ID"
-    )
-
-    # Additional metadata
-    granted_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        nullable=False,
-        comment="When permission was granted",
-    )
-    granted_by: Mapped[Optional[UserId]] = mapped_column(
-        Integer,
-        ForeignKey("users.id"),
-        nullable=True,
-        comment="User who granted the permission",
-    )
-
-    # Relationships
-    role: Mapped["Role"] = relationship(
-        "Role", back_populates="role_permissions", lazy="joined"
-    )
-    permission: Mapped["Permission"] = relationship(
-        "Permission", back_populates="role_permissions", lazy="joined"
-    )
-
-    # Indexes and constraints
-    __table_args__ = (
-        UniqueConstraint("role_id", "permission_id", name="uq_role_permissions"),
-        Index("ix_role_permissions_role_id", "role_id"),
-        Index("ix_role_permissions_permission_id", "permission_id"),
-    )
+        return datetime.utcnow() > self.expires_at
 
     def __repr__(self) -> str:
-        """String representation."""
         return (
-            f"<RolePermission(role_id={self.role_id}, "
-            f"permission_id={self.permission_id})>"
+            f"<UserRole(id={self.id}, user_id={self.user_id}, role_id={self.role_id})>"
         )

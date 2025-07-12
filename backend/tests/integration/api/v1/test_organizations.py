@@ -1,387 +1,303 @@
-"""Integration tests for Organization API endpoints."""
+"""
+Organization API integration tests.
 
+Following TDD approach - Red phase: Writing tests before implementation.
+"""
+
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.models.organization import Organization
-from app.schemas.organization import (
-    OrganizationCreate,
-    OrganizationResponse,
-    OrganizationUpdate,
+from app.core.security import create_access_token
+from app.main import app
+from tests.factories import (
+    create_test_organization,
+    create_test_role,
+    create_test_user,
+    create_test_user_role,
 )
-from tests.base import BaseAPITestCase, HierarchyTestMixin, SearchTestMixin
-from tests.conftest import create_auth_headers
-from tests.factories import OrganizationFactory
 
 
-class TestOrganizationAPI(
-    BaseAPITestCase[
-        Organization, OrganizationCreate, OrganizationUpdate, OrganizationResponse
-    ],
-    SearchTestMixin,
-    HierarchyTestMixin,
-):
+@pytest.fixture
+def client():
+    """Create test client."""
+    return TestClient(app)
+
+
+def get_auth_header(user) -> dict:
+    """Get authorization header for user."""
+    token = create_access_token(data={"sub": str(user.id)})
+    return {"Authorization": f"Bearer {token}"}
+
+
+class TestOrganizationAPI:
     """Test cases for Organization API endpoints."""
 
-    @property
-    def endpoint_prefix(self) -> str:
-        """API endpoint prefix."""
-        return "/api/v1/organizations"
-
-    @property
-    def factory_class(self):
-        """Factory class for creating test instances."""
-        return OrganizationFactory
-
-    @property
-    def create_schema_class(self):
-        """Schema class for create operations."""
-        return OrganizationCreate
-
-    @property
-    def update_schema_class(self):
-        """Schema class for update operations."""
-        return OrganizationUpdate
-
-    @property
-    def response_schema_class(self):
-        """Schema class for API responses."""
-        return OrganizationResponse
-
-    # Custom test methods specific to Organization API
-
-    def test_tree_endpoint_success(
-        self, client: TestClient, db_session: Session, admin_token: str
+    def test_create_organization_api(
+        self, client: TestClient, db_session: Session
     ) -> None:
-        """Test organization tree endpoint."""
-        # Create organization hierarchy
-        tree_data = OrganizationFactory.create_subsidiary_tree(
-            db_session, depth=2, children_per_level=2
-        )
+        """TEST-API-ORG-001: 組織作成APIが正しく動作することを確認."""
+        # Given: システム管理者トークン
+        admin = create_test_user(is_superuser=True)
+        db_session.commit()
+        headers = get_auth_header(admin)
 
-        response = client.get(
-            f"{self.endpoint_prefix}/tree", headers=create_auth_headers(admin_token)
-        )
-
-        assert response.status_code == 200
-        data = response.json()
-        assert isinstance(data, list)
-        assert len(data) >= 1
-
-        # Verify tree structure
-        root_org = data[0]
-        assert "id" in root_org
-        assert "name" in root_org
-        assert "children" in root_org
-        assert len(root_org["children"]) == tree_data["children_per_level"]
-
-    def test_get_subsidiaries_endpoint(
-        self, client: TestClient, db_session: Session, admin_token: str
-    ) -> None:
-        """Test get subsidiaries endpoint."""
-        # Create parent organization
-        parent = OrganizationFactory.create(db_session, name="親会社")
-
-        # Create subsidiaries
-        subsidiaries = [
-            OrganizationFactory.create_with_parent(
-                db_session, parent.id, name=f"子会社{i}"
-            )
-            for i in range(3)
-        ]
-
-        response = client.get(
-            f"{self.endpoint_prefix}/{parent.id}/subsidiaries",
-            headers=create_auth_headers(admin_token),
-        )
-
-        assert response.status_code == 200
-        data = response.json()
-        assert len(data) == 3
-
-        # Verify all subsidiaries are returned
-        subsidiary_ids = [item["id"] for item in data]
-        for subsidiary in subsidiaries:
-            assert subsidiary.id in subsidiary_ids
-
-    def test_get_subsidiaries_recursive(
-        self, client: TestClient, db_session: Session, admin_token: str
-    ) -> None:
-        """Test get subsidiaries with recursive option."""
-        # Create organization hierarchy
-        tree_data = OrganizationFactory.create_subsidiary_tree(
-            db_session, depth=3, children_per_level=2
-        )
-        root = tree_data["root"]
-
-        # Test non-recursive (direct children only)
-        response = client.get(
-            f"{self.endpoint_prefix}/{root.id}/subsidiaries?recursive=false",
-            headers=create_auth_headers(admin_token),
-        )
-
-        assert response.status_code == 200
-        direct_children = response.json()
-
-        # Test recursive (all descendants)
-        response = client.get(
-            f"{self.endpoint_prefix}/{root.id}/subsidiaries?recursive=true",
-            headers=create_auth_headers(admin_token),
-        )
-
-        assert response.status_code == 200
-        all_descendants = response.json()
-
-        # Recursive should return more organizations
-        assert len(all_descendants) > len(direct_children)
-
-    def test_activate_organization_endpoint(
-        self, client: TestClient, db_session: Session, admin_token: str
-    ) -> None:
-        """Test organization activation endpoint."""
-        # Create inactive organization
-        org = OrganizationFactory.create_inactive(db_session)
-
+        # When: API呼び出し
         response = client.post(
-            f"{self.endpoint_prefix}/{org.id}/activate",
-            headers=create_auth_headers(admin_token),
+            "/api/v1/organizations",
+            json={
+                "code": "NEWORG",
+                "name": "新組織",
+                "email": "new@example.com",
+                "fiscal_year_start": 4,
+            },
+            headers=headers,
         )
 
-        assert response.status_code == 200
+        # Then:
+        assert response.status_code == 201
         data = response.json()
+        assert data["code"] == "NEWORG"
+        assert data["name"] == "新組織"
+        assert data["id"] is not None
         assert data["is_active"] is True
 
-    def test_deactivate_organization_endpoint(
-        self, client: TestClient, db_session: Session, admin_token: str
+    def test_create_organization_unauthorized(
+        self, client: TestClient, db_session: Session
     ) -> None:
-        """Test organization deactivation endpoint."""
-        # Create active organization
-        org = OrganizationFactory.create(db_session)
-
+        """認証なしで組織作成が拒否されることを確認."""
+        # When: 認証なしでAPI呼び出し
         response = client.post(
-            f"{self.endpoint_prefix}/{org.id}/deactivate",
-            headers=create_auth_headers(admin_token),
+            "/api/v1/organizations", json={"code": "UNAUTH", "name": "無認証組織"}
         )
 
+        # Then:
+        assert response.status_code == 403  # No auth header
+
+    def test_create_organization_forbidden(
+        self, client: TestClient, db_session: Session
+    ) -> None:
+        """一般ユーザーによる組織作成が拒否されることを確認."""
+        # Given: 一般ユーザー
+        user = create_test_user(is_superuser=False)
+        db_session.commit()
+        headers = get_auth_header(user)
+
+        # When: API呼び出し
+        response = client.post(
+            "/api/v1/organizations",
+            json={"code": "FORBIDDEN", "name": "権限なし組織"},
+            headers=headers,
+        )
+
+        # Then:
+        assert response.status_code == 403
+        assert "システム管理者権限が必要です" in response.json()["detail"]
+
+    def test_list_organizations_api(
+        self, client: TestClient, db_session: Session
+    ) -> None:
+        """TEST-API-ORG-002: 組織一覧APIがフィルタリングされることを確認."""
+        # Given: 複数組織と制限ユーザー
+        org1 = create_test_organization(code="ORG1", name="組織1")
+        create_test_organization(code="ORG2", name="組織2")
+        create_test_organization(code="ORG3", name="組織3")
+
+        user = create_test_user()
+        role = create_test_role(code="ORG_ADMIN")
+        create_test_user_role(user=user, role=role, organization=org1)
+        db_session.commit()
+
+        headers = get_auth_header(user)
+
+        # When: API呼び出し
+        response = client.get("/api/v1/organizations", headers=headers)
+
+        # Then: 所属組織のみ
         assert response.status_code == 200
         data = response.json()
-        assert data["is_active"] is False
+        assert data["total"] == 1
+        assert len(data["items"]) == 1
+        assert data["items"][0]["id"] == org1.id
 
-    def test_create_with_duplicate_code(
-        self, client: TestClient, db_session: Session, admin_token: str
+    def test_get_organization_detail(
+        self, client: TestClient, db_session: Session
     ) -> None:
-        """Test create organization with duplicate code."""
-        # Create first organization
-        OrganizationFactory.create(db_session, code="DUPLICATE")
-
-        # Try to create second organization with same code
-        payload = OrganizationFactory.build_dict(code="DUPLICATE")
-
-        response = client.post(
-            self.endpoint_prefix, json=payload, headers=create_auth_headers(admin_token)
+        """組織詳細取得APIが正しく動作することを確認."""
+        # Given: 組織とアクセス権を持つユーザー
+        org = create_test_organization(
+            code="DETAIL", name="詳細テスト組織", email="detail@example.com"
         )
+        user = create_test_user()
+        role = create_test_role()
+        create_test_user_role(user=user, role=role, organization=org)
+        db_session.commit()
 
-        assert response.status_code == 409
+        headers = get_auth_header(user)
+
+        # When: API呼び出し
+        response = client.get(f"/api/v1/organizations/{org.id}", headers=headers)
+
+        # Then:
+        assert response.status_code == 200
         data = response.json()
-        assert "DUPLICATE_CODE" in data.get("code", "")
+        assert data["id"] == org.id
+        assert data["code"] == "DETAIL"
+        assert data["name"] == "詳細テスト組織"
 
-    def test_update_with_duplicate_code(
-        self, client: TestClient, db_session: Session, admin_token: str
+    def test_get_organization_forbidden(
+        self, client: TestClient, db_session: Session
     ) -> None:
-        """Test update organization with duplicate code."""
-        # Create two organizations
-        OrganizationFactory.create(db_session, code="ORG1")
-        org2 = OrganizationFactory.create(db_session, code="ORG2")
+        """アクセス権のない組織の詳細取得が拒否されることを確認."""
+        # Given: 組織とアクセス権のないユーザー
+        org = create_test_organization()
+        user = create_test_user()
+        db_session.commit()
 
-        # Try to update org2 with org1's code
-        payload = {"code": "ORG1"}
+        headers = get_auth_header(user)
 
+        # When: API呼び出し
+        response = client.get(f"/api/v1/organizations/{org.id}", headers=headers)
+
+        # Then:
+        assert response.status_code == 403
+
+    def test_update_organization_api(
+        self, client: TestClient, db_session: Session
+    ) -> None:
+        """組織更新APIが正しく動作することを確認."""
+        # Given: 組織と組織管理者
+        org = create_test_organization(name="旧名称", email="old@example.com")
+        admin = create_test_user()
+        admin_role = create_test_role(code="ORG_ADMIN", permissions=["org:*"])
+        create_test_user_role(user=admin, role=admin_role, organization=org)
+        db_session.commit()
+
+        headers = get_auth_header(admin)
+
+        # When: API呼び出し
         response = client.put(
-            f"{self.endpoint_prefix}/{org2.id}",
-            json=payload,
-            headers=create_auth_headers(admin_token),
+            f"/api/v1/organizations/{org.id}",
+            json={"name": "新名称", "email": "new@example.com"},
+            headers=headers,
         )
 
-        assert response.status_code == 409
-        data = response.json()
-        assert "DUPLICATE_CODE" in data.get("code", "")
-
-    def test_delete_with_active_subsidiaries(
-        self, client: TestClient, db_session: Session, admin_token: str
-    ) -> None:
-        """Test delete organization with active subsidiaries."""
-        # Create parent with subsidiaries
-        parent = OrganizationFactory.create(db_session, name="親会社")
-        OrganizationFactory.create_with_parent(db_session, parent.id, name="子会社")
-
-        response = client.delete(
-            f"{self.endpoint_prefix}/{parent.id}",
-            headers=create_auth_headers(admin_token),
-        )
-
-        assert response.status_code == 409
-        data = response.json()
-        assert "HAS_SUBSIDIARIES" in data.get("code", "")
-
-    def test_list_with_filters(
-        self, client: TestClient, db_session: Session, admin_token: str
-    ) -> None:
-        """Test list organizations with various filters."""
-        # Create organizations with different attributes
-        OrganizationFactory.create_with_specific_industry(db_session, "IT")
-        OrganizationFactory.create_with_specific_industry(db_session, "金融業")
-        org_inactive = OrganizationFactory.create_inactive(db_session)
-
-        # Test industry filter
-        response = client.get(
-            f"{self.endpoint_prefix}?industry=IT",
-            headers=create_auth_headers(admin_token),
-        )
-
+        # Then:
         assert response.status_code == 200
         data = response.json()
-        assert len(data["items"]) >= 1
+        assert data["name"] == "新名称"
+        assert data["email"] == "new@example.com"
 
-        # Test active_only filter
+    def test_delete_organization_api(
+        self, client: TestClient, db_session: Session
+    ) -> None:
+        """組織削除（論理削除）APIが正しく動作することを確認."""
+        # Given: 組織とシステム管理者
+        org = create_test_organization(is_active=True)
+        admin = create_test_user(is_superuser=True)
+        db_session.commit()
+
+        headers = get_auth_header(admin)
+
+        # When: API呼び出し
+        response = client.delete(f"/api/v1/organizations/{org.id}", headers=headers)
+
+        # Then:
+        assert response.status_code == 204
+
+        # 論理削除確認
+        db_session.refresh(org)
+        assert org.is_active is False
+
+    def test_organization_search_api(
+        self, client: TestClient, db_session: Session
+    ) -> None:
+        """組織検索APIが正しく動作することを確認."""
+        # Given: 複数組織
+        create_test_organization(name="アルファ商事", code="ALPHA")
+        create_test_organization(name="ベータ工業", code="BETA")
+        create_test_organization(name="アルファシステム", code="ALPHASYS")
+
+        admin = create_test_user(is_superuser=True)
+        db_session.commit()
+
+        headers = get_auth_header(admin)
+
+        # When: 検索API呼び出し
         response = client.get(
-            f"{self.endpoint_prefix}?active_only=false",
-            headers=create_auth_headers(admin_token),
+            "/api/v1/organizations", params={"search": "アルファ"}, headers=headers
         )
 
+        # Then:
         assert response.status_code == 200
         data = response.json()
-        # Should include inactive organizations
-        org_ids = [item["id"] for item in data["items"]]
-        assert org_inactive.id in org_ids
+        assert data["total"] == 2
+        org_names = [item["name"] for item in data["items"]]
+        assert "アルファ商事" in org_names
+        assert "アルファシステム" in org_names
+        assert "ベータ工業" not in org_names
 
-    def test_permission_checks(
-        self, client: TestClient, db_session: Session, user_token: str
+    def test_organization_pagination_api(
+        self, client: TestClient, db_session: Session
     ) -> None:
-        """Test that non-admin users cannot perform admin operations."""
-        org = OrganizationFactory.create(db_session)
+        """組織一覧のページネーションAPIが正しく動作することを確認."""
+        # Given: 多数の組織
+        for i in range(15):
+            create_test_organization(code=f"PAGE{i:03d}")
 
-        # Test create permission
-        payload = OrganizationFactory.build_dict()
-        response = client.post(
-            self.endpoint_prefix, json=payload, headers=create_auth_headers(user_token)
+        admin = create_test_user(is_superuser=True)
+        db_session.commit()
+
+        headers = get_auth_header(admin)
+
+        # When: ページ1
+        response1 = client.get(
+            "/api/v1/organizations", params={"page": 1, "limit": 10}, headers=headers
         )
-        assert response.status_code == 403
 
-        # Test update permission
-        update_payload = {"name": "Updated Name"}
-        response = client.put(
-            f"{self.endpoint_prefix}/{org.id}",
-            json=update_payload,
-            headers=create_auth_headers(user_token),
+        # When: ページ2
+        response2 = client.get(
+            "/api/v1/organizations", params={"page": 2, "limit": 10}, headers=headers
         )
-        assert response.status_code == 403
 
-        # Test delete permission
-        response = client.delete(
-            f"{self.endpoint_prefix}/{org.id}", headers=create_auth_headers(user_token)
-        )
-        assert response.status_code == 403
+        # Then:
+        assert response1.status_code == 200
+        assert response2.status_code == 200
 
-        # Test activate permission
-        response = client.post(
-            f"{self.endpoint_prefix}/{org.id}/activate",
-            headers=create_auth_headers(user_token),
-        )
-        assert response.status_code == 403
+        data1 = response1.json()
+        data2 = response2.json()
 
+        assert len(data1["items"]) == 10
+        assert len(data2["items"]) == 5
+        assert data1["total"] == 15
+        assert data1["page"] == 1
+        assert data2["page"] == 2
 
-class TestOrganizationValidation:
-    """Test validation rules for Organization API."""
-
-    def test_create_with_invalid_data(
-        self, client: TestClient, admin_token: str
+    def test_organization_validation_errors(
+        self, client: TestClient, db_session: Session
     ) -> None:
-        """Test create organization with various invalid data."""
-        # Test missing required fields
+        """組織作成時のバリデーションエラーが正しく返されることを確認."""
+        # Given: システム管理者
+        admin = create_test_user(is_superuser=True)
+        db_session.commit()
+        headers = get_auth_header(admin)
+
+        # When: 不正なデータで作成
         response = client.post(
-            "/api/v1/organizations", json={}, headers=create_auth_headers(admin_token)
+            "/api/v1/organizations",
+            json={
+                "code": "",  # 空のコード
+                "name": "",  # 空の名前
+                "email": "invalid-email",  # 不正なメール
+                "fiscal_year_start": 13,  # 範囲外
+            },
+            headers=headers,
         )
+
+        # Then:
         assert response.status_code == 422
-
-        # Test invalid email format
-        payload = OrganizationFactory.build_dict(email="invalid-email")
-        response = client.post(
-            "/api/v1/organizations",
-            json=payload,
-            headers=create_auth_headers(admin_token),
-        )
-        assert response.status_code == 422
-
-        # Test invalid postal code (if validation exists)
-        payload = OrganizationFactory.build_dict(postal_code="invalid")
-        response = client.post(
-            "/api/v1/organizations",
-            json=payload,
-            headers=create_auth_headers(admin_token),
-        )
-        # This might pass if no validation, adjust based on actual validation rules
-
-    def test_field_length_limits(self, client: TestClient, admin_token: str) -> None:
-        """Test field length limit validations."""
-        # Test name too long
-        payload = OrganizationFactory.build_dict(name="x" * 300)
-        client.post(
-            "/api/v1/organizations",
-            json=payload,
-            headers=create_auth_headers(admin_token),
-        )
-        # Should pass or fail based on actual validation rules
-
-        # Test code too long
-        payload = OrganizationFactory.build_dict(code="x" * 100)
-        client.post(
-            "/api/v1/organizations",
-            json=payload,
-            headers=create_auth_headers(admin_token),
-        )
-        # Should pass or fail based on actual validation rules
-
-
-class TestOrganizationBusinessLogic:
-    """Test business logic for organizations."""
-
-    def test_hierarchy_depth_limits(
-        self, client: TestClient, db_session: Session, admin_token: str
-    ) -> None:
-        """Test organization hierarchy depth handling."""
-        # Create deep hierarchy
-        organizations = []
-        parent_id = None
-
-        for i in range(5):  # Create 5 levels deep
-            if parent_id:
-                org = OrganizationFactory.create_with_parent(
-                    db_session, parent_id, name=f"Level {i} Organization"
-                )
-            else:
-                org = OrganizationFactory.create(
-                    db_session, name=f"Level {i} Organization"
-                )
-
-            organizations.append(org)
-            parent_id = org.id
-
-        # Test that tree endpoint handles deep hierarchy
-        response = client.get(
-            "/api/v1/organizations/tree", headers=create_auth_headers(admin_token)
-        )
-
-        assert response.status_code == 200
-        data = response.json()
-
-        # Verify the tree structure is properly nested
-        def count_depth(node, current_depth=0):
-            max_depth = current_depth
-            for child in node.get("children", []):
-                child_depth = count_depth(child, current_depth + 1)
-                max_depth = max(max_depth, child_depth)
-            return max_depth
-
-        if data:
-            tree_depth = count_depth(data[0])
-            assert tree_depth >= 4  # Should handle at least 4 levels deep
+        errors = response.json()["detail"]
+        assert any(e["loc"] == ["body", "code"] for e in errors)
+        assert any(e["loc"] == ["body", "name"] for e in errors)
+        assert any(e["loc"] == ["body", "email"] for e in errors)
+        assert any(e["loc"] == ["body", "fiscal_year_start"] for e in errors)

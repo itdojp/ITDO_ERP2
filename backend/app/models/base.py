@@ -5,22 +5,16 @@ for all database models.
 """
 
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, TypeVar
+from typing import Any, Dict, List, Optional, TypeVar
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, func
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column
 
+from app.core.database import Base
 from app.types import UserId
 
-if TYPE_CHECKING:
-    pass
-
-
-# Create base class for all models using SQLAlchemy 2.0 style
-class Base(DeclarativeBase):
-    """Base class for all models."""
-
-    pass
+# if TYPE_CHECKING:
+#     pass  # No type checking imports needed for base models
 
 
 # Type variable for model types

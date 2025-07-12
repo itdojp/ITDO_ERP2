@@ -8,7 +8,7 @@ from app.models.permission import Permission
 from app.models.project import Project
 from app.models.project_member import ProjectMember
 from app.models.project_milestone import ProjectMilestone
-from app.models.role import Role, RolePermission, UserRole
+from app.models.role import Role, UserRole
 from app.models.task import Task
 from app.models.user import User
 from app.models.user_activity_log import UserActivityLog
@@ -20,7 +20,6 @@ __all__ = [
     "Department",
     "Role",
     "UserRole",
-    "RolePermission",
     "Permission",
     "PasswordHistory",
     "UserSession",

@@ -13,10 +13,23 @@ from sqlalchemy.pool import StaticPool
 from app.core.database import get_db
 from app.core.security import create_access_token
 from app.main import app
+from app.models.audit import AuditLog
+from app.models.base import Base
+from app.models.department import Department
 
 # Import all models to ensure they are registered with SQLAlchemy
-from app.models import Department, Organization, Permission, Role, User
-from app.models.base import Base
+# Import in order to avoid circular dependencies
+from app.models.organization import Organization
+from app.models.password_history import PasswordHistory
+from app.models.permission import Permission
+from app.models.project import Project
+from app.models.project_member import ProjectMember
+from app.models.project_milestone import ProjectMilestone
+from app.models.role import Role, UserRole
+from app.models.task import Task
+from app.models.user import User
+from app.models.user_activity_log import UserActivityLog
+from app.models.user_session import UserSession
 from tests.factories import (
     DepartmentFactory,
     OrganizationFactory,
@@ -30,7 +43,14 @@ SQLALCHEMY_DATABASE_URL = os.getenv(
 )
 
 # For SQLite tests (unit tests)
-if "unit" in os.getenv("PYTEST_CURRENT_TEST", ""):
+# Check if running unit tests by environment variable or test path
+running_unit_tests = (
+    "unit" in os.getenv("PYTEST_CURRENT_TEST", "")
+    or "tests/unit" in os.getcwd()
+    or any("tests/unit" in arg for arg in __import__("sys").argv)
+)
+
+if running_unit_tests:
     SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
     engine = create_engine(
         SQLALCHEMY_DATABASE_URL,
