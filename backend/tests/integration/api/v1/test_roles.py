@@ -119,6 +119,27 @@ class TestRoleAPI(
         # Should be forbidden unless user has specific permissions
         assert response.status_code in [403, 404]
 
+    def test_delete_endpoint_forbidden(
+        self,
+        client: TestClient,
+        db_session: Session,
+        user_token: str,
+        test_organization: Organization,
+    ) -> None:
+        """Test delete operation with insufficient permissions."""
+        # Create an instance with proper organization context
+        instance = RoleFactory.create_with_organization(
+            db_session, test_organization, name="Test Role for Delete"
+        )
+
+        response = client.delete(
+            f"{self.endpoint_prefix}/{instance.id}",
+            headers=self.get_auth_headers(user_token),
+        )
+
+        # Should be forbidden unless user has specific permissions
+        assert response.status_code in [403, 404]
+
     # Role-specific test methods
 
     def test_role_tree_endpoint(
