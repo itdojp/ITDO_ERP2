@@ -21,7 +21,7 @@ from tests.factories import DepartmentFactory, OrganizationFactory, UserFactory
 # Skip problematic tests in CI environment due to SQLite table setup issues
 skip_in_ci = pytest.mark.skipif(
     os.getenv("CI") == "true" or os.getenv("GITHUB_ACTIONS") == "true",
-    reason="Skip in CI due to SQLite database setup issues"
+    reason="Skip in CI due to SQLite database setup issues",
 )
 
 

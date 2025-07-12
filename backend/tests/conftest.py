@@ -109,6 +109,7 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engin
 try:
     # Explicitly register all table metadata from imported models
     from app.models import *  # noqa: F403, F401
+
     Base.metadata.create_all(bind=engine, checkfirst=True)
     print(f"Created tables: {list(Base.metadata.tables.keys())}")
 except Exception as e:
@@ -223,6 +224,7 @@ def client(db_session: Session) -> Generator[TestClient]:
 
     # Also override the app's database engine to use our test engine
     from app.core import database as app_database
+
     original_engine = app_database.engine
     original_session_local = app_database.SessionLocal
 
