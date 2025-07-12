@@ -1,7 +1,17 @@
 """Pytest configuration and fixtures."""
 
-# Use PostgreSQL for integration tests (same as development)
 import os
+
+# CRITICAL: Set test environment variables immediately to prevent PostgreSQL usage in CI
+# This must happen before any app imports
+os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+os.environ["SECRET_KEY"] = "test-secret-key-for-testing-only-32-chars-long"
+os.environ["ALGORITHM"] = "HS256"
+os.environ["ACCESS_TOKEN_EXPIRE_MINUTES"] = "1440"
+os.environ["REFRESH_TOKEN_EXPIRE_DAYS"] = "7"
+os.environ["BCRYPT_ROUNDS"] = "4"
+
+# Use PostgreSQL for integration tests (same as development)
 import uuid
 from collections.abc import Generator
 from datetime import datetime
@@ -381,15 +391,11 @@ def complete_test_system(db_session: Session) -> dict[str, Any]:
 
 
 @pytest.fixture(autouse=True)
-def setup_test_environment(monkeypatch: Any) -> None:
+def setup_test_environment() -> None:
     """Set up test environment variables."""
-    # Set test environment variables
-    monkeypatch.setenv("SECRET_KEY", "test-secret-key-for-testing-only-32-chars-long")
-    monkeypatch.setenv("ALGORITHM", "HS256")
-    monkeypatch.setenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440")
-    monkeypatch.setenv("REFRESH_TOKEN_EXPIRE_DAYS", "7")
-    monkeypatch.setenv("BCRYPT_ROUNDS", "4")  # Lower rounds for faster tests
-    monkeypatch.setenv("DATABASE_URL", SQLALCHEMY_DATABASE_URL)
+    # Environment variables are already set at module level
+    # This fixture ensures they remain set for each test
+    pass
 
 
 # Utility Functions for Tests
