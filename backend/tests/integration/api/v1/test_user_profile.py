@@ -17,10 +17,7 @@ class TestUserProfile:
         self, client: TestClient, db_session: Session, user_token: str, test_user: User
     ) -> None:
         """Test successful profile update."""
-        update_data = {
-            "full_name": "Updated Name",
-            "phone": "+1234567890"
-        }
+        update_data = {"full_name": "Updated Name", "phone": "+1234567890"}
 
         response = client.put(
             "/api/v1/users/me",
@@ -39,9 +36,7 @@ class TestUserProfile:
         """Test successful profile image upload."""
         # Create a test image file
         image_data = b"fake_image_data"
-        files = {
-            "file": ("test_image.jpg", io.BytesIO(image_data), "image/jpeg")
-        }
+        files = {"file": ("test_image.jpg", io.BytesIO(image_data), "image/jpeg")}
 
         response = client.post(
             "/api/v1/users/me/profile-image",
@@ -70,9 +65,7 @@ class TestUserProfile:
         """Test profile image upload with invalid file type."""
         # Create a test text file
         text_data = b"this is not an image"
-        files = {
-            "file": ("test_file.txt", io.BytesIO(text_data), "text/plain")
-        }
+        files = {"file": ("test_file.txt", io.BytesIO(text_data), "text/plain")}
 
         response = client.post(
             "/api/v1/users/me/profile-image",
@@ -89,9 +82,7 @@ class TestUserProfile:
     ) -> None:
         """Test profile image upload without authentication."""
         image_data = b"fake_image_data"
-        files = {
-            "file": ("test_image.jpg", io.BytesIO(image_data), "image/jpeg")
-        }
+        files = {"file": ("test_image.jpg", io.BytesIO(image_data), "image/jpeg")}
 
         response = client.post(
             "/api/v1/users/me/profile-image",
@@ -119,9 +110,7 @@ class TestUserProfile:
         self, client: TestClient, db_session: Session
     ) -> None:
         """Test profile update without authentication."""
-        update_data = {
-            "full_name": "Updated Name"
-        }
+        update_data = {"full_name": "Updated Name"}
 
         response = client.put(
             "/api/v1/users/me",
@@ -129,4 +118,3 @@ class TestUserProfile:
         )
 
         assert response.status_code == 403
-

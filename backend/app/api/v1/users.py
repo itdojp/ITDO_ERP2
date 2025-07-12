@@ -120,7 +120,7 @@ async def upload_profile_image(
     if file.content_type not in allowed_types:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only JPEG, PNG, and GIF images are allowed"
+            detail="Only JPEG, PNG, and GIF images are allowed",
         )
 
     # Validate file size (5MB max)
@@ -129,7 +129,7 @@ async def upload_profile_image(
     if len(contents) > max_size:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail="File size must be less than 5MB"
+            detail="File size must be less than 5MB",
         )
 
     # Create uploads directory if it doesn't exist
@@ -153,5 +153,5 @@ async def upload_profile_image(
     return {
         "message": "Profile image uploaded successfully",
         "profile_image_url": profile_image_url,
-        "filename": filename
+        "filename": filename,
     }
