@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.exc import IntegrityError
 
 from app.api.errors import integrity_error_handler, validation_exception_handler
+from app.api.v1.file_upload import file_router
 from app.api.v1.router import api_router
 from app.core.config import settings
 
@@ -30,6 +31,7 @@ app.add_exception_handler(IntegrityError, integrity_error_handler)  # type: igno
 
 # APIルーターの登録
 app.include_router(api_router, prefix=settings.API_V1_STR)
+app.include_router(file_router)  # Static file serving
 
 
 @app.get("/")

@@ -626,6 +626,21 @@ class UserService:
         random.shuffle(password_parts)
         return "".join(password_parts)
 
+    def update_user_profile_image(self, user_id: int, image_url: Optional[str]) -> None:
+        """Update user's profile image URL.
+        
+        Args:
+            user_id: ID of the user
+            image_url: New profile image URL (None to remove)
+        """
+        user = self.db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise NotFound("ユーザーが見つかりません")
+
+        user.profile_image_url = image_url
+        self.db.add(user)
+        self.db.flush()
+
     def _log_audit(
         self,
         action: str,

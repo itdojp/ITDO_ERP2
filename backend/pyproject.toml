@@ -21,6 +21,7 @@ dependencies = [
     "httpx>=0.25.2",
     "celery>=5.3.4",
     "python-keycloak>=3.7.0",
+    "aiofiles>=23.2.1",
 ]
 requires-python = ">=3.13"
 readme = "README.md"

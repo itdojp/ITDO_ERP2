@@ -58,6 +58,11 @@ class Settings(BaseSettings):
     BCRYPT_ROUNDS: int = 12
     PASSWORD_MIN_LENGTH: int = 8
 
+    # ファイルアップロード設定
+    UPLOAD_DIRECTORY: str = "uploads"
+    BASE_URL: str = "http://localhost:8000"
+    MAX_UPLOAD_SIZE_MB: int = 5
+
     # 開発環境フラグ
     DEBUG: bool = False
 
@@ -67,3 +72,8 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+def get_settings() -> Settings:
+    """Get application settings."""
+    return settings
