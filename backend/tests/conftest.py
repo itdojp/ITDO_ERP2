@@ -15,7 +15,6 @@ from sqlalchemy.pool import StaticPool
 
 from app.core.database import get_db
 from app.core.security import create_access_token
-from app.main import app
 
 # Import all models to ensure they are registered with SQLAlchemy
 from app.models import Department, Organization, Permission, Role, User
@@ -159,6 +158,21 @@ def db_session() -> Generator[Session]:
 @pytest.fixture
 def client(db_session: Session) -> Generator[TestClient]:
     """Create a test client with overridden database dependency."""
+    # Import here to avoid circular imports
+    from app.main import app
+    # Also patch the app's database module
+    import app.core.database as app_db
+    import app.core.dependencies as app_deps
+    
+    # Store original engine and sessions
+    original_engine = app_db.engine
+    original_session_local = app_db.SessionLocal
+    original_deps_session_local = app_deps.SessionLocal
+    
+    # Replace with test engine
+    app_db.engine = engine
+    app_db.SessionLocal = TestingSessionLocal
+    app_deps.SessionLocal = TestingSessionLocal
 
     def override_get_db() -> Generator[Session]:
         try:
@@ -168,11 +182,16 @@ def client(db_session: Session) -> Generator[TestClient]:
 
     app.dependency_overrides[get_db] = override_get_db
 
-    with TestClient(app) as test_client:
-        yield test_client
-
-    # Clear overrides
-    app.dependency_overrides.clear()
+    try:
+        with TestClient(app) as test_client:
+            yield test_client
+    finally:
+        # Restore original engine and sessions
+        app_db.engine = original_engine
+        app_db.SessionLocal = original_session_local
+        app_deps.SessionLocal = original_deps_session_local
+        # Clear overrides
+        app.dependency_overrides.clear()
 
 
 # User Fixtures
