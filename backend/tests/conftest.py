@@ -30,8 +30,13 @@ from tests.factories import (
 
 # Determine database URL based on environment
 # CI environment always uses SQLite regardless of DATABASE_URL
+print(f"DEBUG: CI env var: {os.getenv('CI')}")
+print(f"DEBUG: GITHUB_ACTIONS in environ: {'GITHUB_ACTIONS' in os.environ}")
+print(f"DEBUG: DATABASE_URL: {os.getenv('DATABASE_URL')}")
+
 if os.getenv("CI") or "GITHUB_ACTIONS" in os.environ:
     # Always use SQLite in CI environment regardless of DATABASE_URL
+    print("DEBUG: Using SQLite in CI environment")
     SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
     engine = create_engine(
         SQLALCHEMY_DATABASE_URL,
@@ -40,15 +45,18 @@ if os.getenv("CI") or "GITHUB_ACTIONS" in os.environ:
     )
 elif os.getenv("DATABASE_URL"):
     # DATABASE_URL is set in local development, check if accessible
+    print("DEBUG: DATABASE_URL is set, testing connection")
     try:
         SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
         test_engine = create_engine(SQLALCHEMY_DATABASE_URL)
         with test_engine.connect() as conn:
             conn.execute(text("SELECT 1"))
         # Connection successful, use it
+        print("DEBUG: Using PostgreSQL from DATABASE_URL")
         engine = test_engine
-    except Exception:
+    except Exception as e:
         # DATABASE_URL set but not accessible, fallback to SQLite
+        print(f"DEBUG: PostgreSQL connection failed: {e}, falling back to SQLite")
         SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
         engine = create_engine(
             SQLALCHEMY_DATABASE_URL,
@@ -57,6 +65,7 @@ elif os.getenv("DATABASE_URL"):
         )
 else:
     # For local development - try PostgreSQL first, fallback to SQLite
+    print("DEBUG: No CI env or DATABASE_URL, trying local PostgreSQL")
     try:
         SQLALCHEMY_DATABASE_URL = (
             "postgresql://itdo_user:itdo_password@localhost:5432/itdo_erp"
@@ -65,9 +74,11 @@ else:
         with test_engine.connect() as conn:
             conn.execute(text("SELECT 1"))
         # Connection successful, use PostgreSQL
+        print("DEBUG: Using local PostgreSQL")
         engine = test_engine
-    except Exception:
+    except Exception as e:
         # PostgreSQL not available, use SQLite for all tests
+        print(f"DEBUG: Local PostgreSQL failed: {e}, using SQLite")
         SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
         engine = create_engine(
             SQLALCHEMY_DATABASE_URL,
