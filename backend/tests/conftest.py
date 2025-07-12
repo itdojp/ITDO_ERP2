@@ -2,14 +2,20 @@
 
 import os
 
-# CRITICAL: Set test environment variables immediately to prevent PostgreSQL usage in CI
+# CRITICAL: Set test environment variables if not already set
 # This must happen before any app imports
-os.environ["DATABASE_URL"] = "sqlite:///:memory:"
-os.environ["SECRET_KEY"] = "test-secret-key-for-testing-only-32-chars-long"
-os.environ["ALGORITHM"] = "HS256"
-os.environ["ACCESS_TOKEN_EXPIRE_MINUTES"] = "1440"
-os.environ["REFRESH_TOKEN_EXPIRE_DAYS"] = "7"
-os.environ["BCRYPT_ROUNDS"] = "4"
+if not os.environ.get("DATABASE_URL"):
+    os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+if not os.environ.get("SECRET_KEY"):
+    os.environ["SECRET_KEY"] = "test-secret-key-for-testing-only-32-chars-long"
+if not os.environ.get("ALGORITHM"):
+    os.environ["ALGORITHM"] = "HS256"
+if not os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES"):
+    os.environ["ACCESS_TOKEN_EXPIRE_MINUTES"] = "1440"
+if not os.environ.get("REFRESH_TOKEN_EXPIRE_DAYS"):
+    os.environ["REFRESH_TOKEN_EXPIRE_DAYS"] = "7"
+if not os.environ.get("BCRYPT_ROUNDS"):
+    os.environ["BCRYPT_ROUNDS"] = "4"
 
 # Use PostgreSQL for integration tests (same as development)
 import uuid
@@ -19,14 +25,18 @@ from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, text, inspect
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
-# Import base first, then individual models to ensure proper registration
+# Import base first
 from app.models.base import Base
 
-# Import all models individually to ensure proper registration
+# Import all models to ensure proper registration
+# This ensures all models are registered with SQLAlchemy metadata
+import app.models  # This will import all models via __init__.py
+
+# Also import specific models we use in tests
 from app.models.user import User
 from app.models.organization import Organization
 from app.models.department import Department
@@ -55,32 +65,36 @@ from tests.factories import (
 # GitHub Actions sets GITHUB_ACTIONS=true automatically
 # Check multiple ways to detect CI environment
 
-# CRITICAL: Always force SQLite for CI to avoid PostgreSQL dependency issues
-# This is a temporary fix until proper CI database setup is implemented
-FORCE_SQLITE_IN_TESTS = True
+# Determine which database to use
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///:memory:")
+# print(f"DEBUG: DATABASE_URL from env = {DATABASE_URL}")
 
-is_ci = (
-    os.getenv("CI") == "true"
-    or os.getenv("GITHUB_ACTIONS") == "true"
-    or os.getenv("GITHUB_WORKFLOW") is not None
-    or os.getenv("RUNNER_OS") is not None
-    or "runner" in os.getenv("HOME", "").lower()
-    or os.getenv("PYTHONPATH", "").find("runner") != -1
-    or FORCE_SQLITE_IN_TESTS
-)
-
-# Use SQLite for tests
-if os.getenv("DATABASE_URL") and "sqlite" in os.getenv("DATABASE_URL"):
-    # Use file-based SQLite if specified (for CI)
-    SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
-    engine = create_engine(
-        SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
-    )
+if "postgresql" in DATABASE_URL:
+    # Use PostgreSQL (for CI or when explicitly configured)
+    # print(f"DEBUG: Using PostgreSQL: {DATABASE_URL}")
+    engine = create_engine(DATABASE_URL)
+elif "sqlite" in DATABASE_URL:
+    # Use SQLite
+    if DATABASE_URL == "sqlite:///:memory:":
+        # print(f"DEBUG: Using in-memory SQLite")
+        engine = create_engine(
+            DATABASE_URL,
+            connect_args={"check_same_thread": False},
+            poolclass=StaticPool,
+        )
+    else:
+        # File-based SQLite
+        # print(f"DEBUG: Using file-based SQLite: {DATABASE_URL}")
+        engine = create_engine(
+            DATABASE_URL, 
+            connect_args={"check_same_thread": False},
+            poolclass=StaticPool,  # Use StaticPool for file-based SQLite too
+        )
 else:
-    # Use in-memory SQLite for local tests
-    SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
+    # Default to in-memory SQLite
+    # print(f"DEBUG: Unknown database type, defaulting to in-memory SQLite")
     engine = create_engine(
-        SQLALCHEMY_DATABASE_URL,
+        "sqlite:///:memory:",
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
@@ -190,9 +204,18 @@ def db_session() -> Generator[Session]:
 @pytest.fixture
 def client(db_session: Session) -> Generator[TestClient]:
     """Create a test client with overridden database dependency."""
+    
+    # Verify tables exist before creating client
+    with engine.connect() as conn:
+        inspector = inspect(conn)
+        tables = inspector.get_table_names()
+        if "departments" not in tables:
+            # Recreate tables if missing
+            Base.metadata.create_all(bind=engine)
 
     def override_get_db() -> Generator[Session]:
         try:
+            # Use the same session for all requests
             yield db_session
         finally:
             pass
