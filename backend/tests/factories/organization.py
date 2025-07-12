@@ -52,11 +52,11 @@ class OrganizationFactory(BaseFactory):
         """Build a dictionary of attributes for API requests."""
         # Get default attributes
         defaults = cls._get_default_attributes()
-        
+
         # For API requests, settings should be a dict, not a JSON string
         if "settings" in defaults and isinstance(defaults["settings"], str):
             defaults["settings"] = json.loads(defaults["settings"])
-            
+
         defaults.update(kwargs)
         return defaults
 

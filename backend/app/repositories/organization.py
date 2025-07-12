@@ -63,12 +63,12 @@ class OrganizationRepository(
                 )
             )
             all_children = direct_children.copy()
-            
+
             for child in direct_children:
                 all_children.extend(get_children_recursive(child.id))
-            
+
             return all_children
-        
+
         return get_children_recursive(parent_id)
 
     def get_root_organizations(self) -> List[Organization]:

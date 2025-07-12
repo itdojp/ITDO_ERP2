@@ -83,12 +83,12 @@ class OrganizationService:
 
         # Add audit fields
         data = organization_data.model_dump()
-        
+
         # Convert settings dict to JSON string for database storage
         if data.get("settings") and isinstance(data["settings"], dict):
             import json
             data["settings"] = json.dumps(data["settings"])
-            
+
         if created_by:
             data["created_by"] = created_by
             data["updated_by"] = created_by
@@ -123,12 +123,12 @@ class OrganizationService:
 
         # Add audit fields
         data = organization_data.model_dump(exclude_unset=True)
-        
+
         # Convert settings dict to JSON string for database storage
         if data.get("settings") and isinstance(data["settings"], dict):
             import json
             data["settings"] = json.dumps(data["settings"])
-            
+
         if updated_by:
             data["updated_by"] = updated_by
 
@@ -141,7 +141,7 @@ class OrganizationService:
                 .values(**data)
             )
             self.db.commit()
-        
+
         return self.repository.get(organization_id)
 
     def delete_organization(
@@ -229,7 +229,7 @@ class OrganizationService:
 
         # Build response
         data = organization.to_dict()
-        
+
         # Parse settings JSON string to dict if it exists
         if data.get("settings") and isinstance(data["settings"], str):
             import json
@@ -239,7 +239,7 @@ class OrganizationService:
                 data["settings"] = {}
         elif not data.get("settings"):
             data["settings"] = {}
-            
+
         data["parent"] = organization.parent.to_dict() if organization.parent else None
         data["full_address"] = organization.full_address
         data["is_subsidiary"] = organization.is_subsidiary

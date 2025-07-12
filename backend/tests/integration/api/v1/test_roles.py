@@ -61,7 +61,7 @@ class TestRoleAPI(
         return self.factory_class.build_dict(**overrides)
 
     # Override base test methods to provide organization_id
-    
+
     def test_create_endpoint_success(
         self, client: TestClient, test_organization: Organization, admin_token: str
     ) -> None:
@@ -78,7 +78,7 @@ class TestRoleAPI(
         data = response.json()
         assert "id" in data
         assert data["organization_id"] == test_organization.id
-    
+
     def test_create_endpoint_forbidden(
         self, client: TestClient, test_organization: Organization, user_token: str
     ) -> None:
@@ -91,7 +91,8 @@ class TestRoleAPI(
             headers=self.get_auth_headers(user_token),
         )
 
-        # TODO: This should return 403 when proper role permission checks are implemented
+        # TODO: This should return 403 when proper role permission checks
+        # are implemented
         # For now, the test passes since user can create roles
         assert response.status_code == 201
         data = response.json()
