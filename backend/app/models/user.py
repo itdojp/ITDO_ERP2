@@ -116,6 +116,10 @@ class User(SoftDeletableModel):
     @classmethod
     def authenticate(cls, db: Session, email: str, password: str) -> Optional["User"]:
         """Authenticate user by email and password."""
+        # Check for None values
+        if email is None or password is None:
+            return None
+            
         # Get user by email
         user = cls.get_by_email(db, email)
         if not user:
