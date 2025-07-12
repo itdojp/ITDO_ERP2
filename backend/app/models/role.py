@@ -333,6 +333,12 @@ class UserRole(AuditableModel):
         primary_key=True,
         comment="Organization context",
     )
+    department_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("departments.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="Department context (optional)",
+    )
 
     # Assignment details
     assigned_at: Mapped[datetime] = mapped_column(
@@ -365,6 +371,7 @@ class UserRole(AuditableModel):
     )
     role: Mapped["Role"] = relationship("Role", back_populates="user_roles")
     organization: Mapped["Organization"] = relationship("Organization")
+    department: Mapped["Department | None"] = relationship("Department")
     assigner: Mapped["User | None"] = relationship("User", foreign_keys=[assigned_by])
 
     @property
