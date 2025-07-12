@@ -35,6 +35,10 @@ from tests.factories import (
 # GitHub Actions sets GITHUB_ACTIONS=true automatically
 # Check multiple ways to detect CI environment
 
+# CRITICAL: Always force SQLite for CI to avoid PostgreSQL dependency issues
+# This is a temporary fix until proper CI database setup is implemented
+FORCE_SQLITE_IN_TESTS = True
+
 is_ci = (
     os.getenv("CI") == "true"
     or os.getenv("GITHUB_ACTIONS") == "true"
@@ -42,9 +46,7 @@ is_ci = (
     or os.getenv("RUNNER_OS") is not None
     or "runner" in os.getenv("HOME", "").lower()
     or os.getenv("PYTHONPATH", "").find("runner") != -1
-    or
-    # Force SQLite if we detect any CI characteristics
-    True  # TEMPORARY: Force SQLite until CI detection is resolved
+    or FORCE_SQLITE_IN_TESTS
 )
 
 print(f"DEBUG: CI detection result: {is_ci}")
@@ -54,10 +56,11 @@ print(f"DEBUG: GITHUB_WORKFLOW={os.getenv('GITHUB_WORKFLOW')}")
 print(f"DEBUG: RUNNER_OS={os.getenv('RUNNER_OS')}")
 print(f"DEBUG: HOME={os.getenv('HOME')}")
 print(f"DEBUG: DATABASE_URL={os.getenv('DATABASE_URL')}")
+print(f"DEBUG: FORCE_SQLITE_IN_TESTS={FORCE_SQLITE_IN_TESTS}")
 
-if is_ci:
-    # Always use SQLite in CI environment regardless of DATABASE_URL
-    print("DEBUG: Using SQLite in CI environment")
+if is_ci or FORCE_SQLITE_IN_TESTS:
+    # Always use SQLite in CI environment or when forced
+    print("DEBUG: Using SQLite (CI or forced)")
     SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
     engine = create_engine(
         SQLALCHEMY_DATABASE_URL,
