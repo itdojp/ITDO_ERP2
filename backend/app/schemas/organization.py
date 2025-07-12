@@ -163,7 +163,8 @@ class OrganizationResponse(
         """Parse settings JSON string to dict."""
         if isinstance(v, str):
             try:
-                return json.loads(v)
+                parsed = json.loads(v)
+                return parsed if isinstance(parsed, dict) else {}
             except (json.JSONDecodeError, TypeError):
                 return {}
         return v or {}

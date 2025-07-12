@@ -374,11 +374,8 @@ class User(SoftDeletableModel):
             ):
                 # Handle permissions stored as JSON
                 if user_role.role and user_role.role.permissions:
-                    # If permissions is a list, add all items
-                    if isinstance(user_role.role.permissions, list):
-                        permissions.update(user_role.role.permissions)
                     # If permissions is a dict, extract permission codes
-                    elif isinstance(user_role.role.permissions, dict):
+                    if isinstance(user_role.role.permissions, dict):
                         # Handle various dict structures
                         if "codes" in user_role.role.permissions:
                             permissions.update(user_role.role.permissions["codes"])

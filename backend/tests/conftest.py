@@ -129,8 +129,11 @@ def clean_test_database(db_session: Session) -> Generator[None]:
 @pytest.fixture
 def db_session() -> Generator[Session]:
     """Create a clean database session for each test."""
-    # Create tables
+    # CRITICAL: Always ensure tables exist for each test
+    print(f"DEBUG: Creating tables for test using engine: {engine.url}")
+    Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
+    print("DEBUG: Tables created successfully for test")
 
     # Create session
     session = TestingSessionLocal()
