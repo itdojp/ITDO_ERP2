@@ -32,6 +32,8 @@ from app.models.organization import Organization
 from app.models.department import Department
 from app.models.role import Role
 from app.models.permission import Permission
+from app.models.task import Task
+from app.models.project import Project
 
 # Now import app components
 from app.core import database
@@ -91,10 +93,15 @@ database.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=eng
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # CRITICAL: Ensure all tables are created immediately
+# Force metadata creation after all models are imported
 try:
-    Base.metadata.create_all(bind=engine)
+    # Explicitly register all table metadata from imported models
+    from app.models import *  # noqa: F403, F401
+    Base.metadata.create_all(bind=engine, checkfirst=True)
+    print(f"Created tables: {list(Base.metadata.tables.keys())}")
 except Exception as e:
     print(f"ERROR: Failed to create database tables: {e}")
+    print(f"Available metadata tables: {list(Base.metadata.tables.keys())}")
     raise
 
 
@@ -125,7 +132,13 @@ def clean_test_database(db_session: Session) -> Generator[None]:
 def db_session() -> Generator[Session]:
     """Create a clean database session for each test."""
     # Ensure tables exist before each test
-    Base.metadata.create_all(bind=engine)
+    try:
+        # Force metadata refresh
+        Base.metadata.create_all(bind=engine, checkfirst=True)
+        print(f"db_session: Created tables: {list(Base.metadata.tables.keys())}")
+    except Exception as e:
+        print(f"db_session: ERROR creating tables: {e}")
+        raise
 
     # Create session
     session = TestingSessionLocal()
@@ -186,12 +199,24 @@ def client(db_session: Session) -> Generator[TestClient]:
 
     # Override the database dependency to use our test session
     app.dependency_overrides[get_db] = override_get_db
+    
+    # Also override the app's database engine to use our test engine
+    from app.core import database as app_database
+    original_engine = app_database.engine
+    original_session_local = app_database.SessionLocal
+    
+    app_database.engine = engine  
+    app_database.SessionLocal = TestingSessionLocal
 
-    with TestClient(app) as test_client:
-        yield test_client
-
-    # Clear overrides
-    app.dependency_overrides.clear()
+    try:
+        with TestClient(app) as test_client:
+            yield test_client
+    finally:
+        # Restore original database settings
+        app_database.engine = original_engine
+        app_database.SessionLocal = original_session_local
+        # Clear overrides
+        app.dependency_overrides.clear()
 
 
 # User Fixtures
