@@ -354,7 +354,9 @@ class TestRoleAPI(
         # Check if permissions were assigned - exact structure may vary
         assert permissions_response.status_code == 200
         # Basic validation that response contains permission data
-        assert "permissions" in permissions_data or "permission_list" in permissions_data
+        assert (
+            "permissions" in permissions_data or "permission_list" in permissions_data
+        )
 
     def test_update_role_permissions_invalid_codes(
         self,
