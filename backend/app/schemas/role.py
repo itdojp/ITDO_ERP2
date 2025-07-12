@@ -93,6 +93,7 @@ class RoleResponse(RoleBase, RolePermissions, RoleDisplay, AuditInfo, SoftDelete
 
     id: int
     role_type: str
+    organization_id: Optional[int] = None
     parent_id: Optional[int] = None
     parent: Optional[RoleBasic] = None
     is_system: bool
