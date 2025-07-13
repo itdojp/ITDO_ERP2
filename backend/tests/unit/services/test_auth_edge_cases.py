@@ -60,9 +60,7 @@ class TestAuthServiceEdgeCases:
 
         # Test with special characters in email domain
         special_email = "user+tag@sub-domain.co.uk"
-        UserFactory.create(
-            db_session, email=special_email, password="password123"
-        )
+        UserFactory.create(db_session, email=special_email, password="password123")
 
         result = auth_service.authenticate(special_email, "password123")
         assert result is not None
@@ -161,9 +159,7 @@ class TestAuthServiceEdgeCases:
         # Test with Unicode in email local part (if supported by system)
         try:
             unicode_email = "用户@example.com"
-            UserFactory.create(
-                db_session, email=unicode_email, password="password123"
-            )
+            UserFactory.create(db_session, email=unicode_email, password="password123")
 
             result = auth_service.authenticate(unicode_email, "password123")
             assert result is not None
@@ -231,9 +227,7 @@ class TestAuthServiceEdgeCases:
         self, auth_service: AuthService, db_session: Session
     ) -> None:
         """Test email case sensitivity in authentication."""
-        UserFactory.create(
-            db_session, email="User@Example.COM", password="password123"
-        )
+        UserFactory.create(db_session, email="User@Example.COM", password="password123")
 
         # Test various case combinations
         email_variations = [
@@ -252,9 +246,7 @@ class TestAuthServiceEdgeCases:
         self, auth_service: AuthService, db_session: Session
     ) -> None:
         """Test authentication with leading/trailing whitespace."""
-        UserFactory.create(
-            db_session, email="user@example.com", password="password123"
-        )
+        UserFactory.create(db_session, email="user@example.com", password="password123")
 
         # Test with various whitespace scenarios
         whitespace_emails = [

@@ -641,9 +641,7 @@ class TestRoleAPI(
         data = response.json()
         assert "INVALID_PARENT" in data.get("code", "")
 
-    @pytest.mark.skip(
-        reason="Role assignment API needs schema validation fixes"
-    )
+    @pytest.mark.skip(reason="Role assignment API needs schema validation fixes")
     def test_delete_role_in_use(
         self,
         client: TestClient,
@@ -656,15 +654,10 @@ class TestRoleAPI(
         role = RoleFactory.create_with_organization(db_session, test_organization)
         user = UserFactory.create(db_session)
 
-        # Assign role to user (minimal required fields)
-        assignment_data = {
-            "user_id": user.id, 
-            "role_id": role.id,
-            "organization_id": test_organization.id
-        }
         # For now, create the role assignment directly in the database
         # to bypass the response schema issues
         from app.models.role import UserRole
+
         user_role = UserRole(
             user_id=user.id,
             role_id=role.id,
@@ -687,9 +680,7 @@ class TestRoleAPI(
         data = response.json()
         assert "ROLE_IN_USE" in data.get("code", "")
 
-    @pytest.mark.skip(
-        reason="Role creation API needs implementation fixes"
-    )
+    @pytest.mark.skip(reason="Role creation API needs implementation fixes")
     def test_create_with_duplicate_name_in_organization(
         self,
         client: TestClient,
