@@ -6,9 +6,8 @@ from datetime import datetime, timedelta
 import pytest
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import AuthenticationError
 from app.services.auth import AuthService
-from tests.factories import UserFactory, create_test_user
+from tests.factories import create_test_user
 
 
 class TestAuthServiceEdgeCases:
@@ -54,7 +53,9 @@ class TestAuthServiceEdgeCases:
         )
 
         # Should authenticate successfully
-        result = auth_service.authenticate_user(db_session, "test@example.com", special_password)
+        result = auth_service.authenticate_user(
+            db_session, "test@example.com", special_password
+        )
         assert result is not None
         assert result.email == "test@example.com"
 
@@ -62,7 +63,9 @@ class TestAuthServiceEdgeCases:
         special_email = "user+tag@sub-domain.co.uk"
         create_test_user(db_session, email=special_email, password="password123")
 
-        result = auth_service.authenticate_user(db_session, special_email, "password123")
+        result = auth_service.authenticate_user(
+            db_session, special_email, "password123"
+        )
         assert result is not None
         assert result.email == special_email
 
@@ -85,7 +88,9 @@ class TestAuthServiceEdgeCases:
         ]
 
         for injection in injection_attempts:
-            result = auth_service.authenticate_user(db_session, injection, "securepassword")
+            result = auth_service.authenticate_user(
+                db_session, injection, "securepassword"
+            )
             assert result is None
 
         # SQL injection attempts in password
@@ -96,7 +101,9 @@ class TestAuthServiceEdgeCases:
         ]
 
         for injection in password_injections:
-            result = auth_service.authenticate_user(db_session, "admin@example.com", injection)
+            result = auth_service.authenticate_user(
+                db_session, "admin@example.com", injection
+            )
             assert result is None
 
     def test_authenticate_with_invalid_email_formats(
@@ -120,7 +127,9 @@ class TestAuthServiceEdgeCases:
         ]
 
         for invalid_email in invalid_emails:
-            result = auth_service.authenticate_user(db_session, invalid_email, "password123")
+            result = auth_service.authenticate_user(
+                db_session, invalid_email, "password123"
+            )
             assert result is None
 
     def test_authenticate_with_very_long_inputs(
@@ -134,7 +143,9 @@ class TestAuthServiceEdgeCases:
 
         # Very long password
         long_password = "a" * 10000
-        result = auth_service.authenticate_user(db_session, "user@example.com", long_password)
+        result = auth_service.authenticate_user(
+            db_session, "user@example.com", long_password
+        )
         assert result is None
 
         # Both very long
@@ -152,7 +163,9 @@ class TestAuthServiceEdgeCases:
         )
 
         # Should authenticate successfully
-        result = auth_service.authenticate_user(db_session, "unicode@example.com", unicode_password)
+        result = auth_service.authenticate_user(
+            db_session, "unicode@example.com", unicode_password
+        )
         assert result is not None
         assert result.email == "unicode@example.com"
 
@@ -161,7 +174,9 @@ class TestAuthServiceEdgeCases:
             unicode_email = "用户@example.com"
             create_test_user(db_session, email=unicode_email, password="password123")
 
-            result = auth_service.authenticate_user(db_session, unicode_email, "password123")
+            result = auth_service.authenticate_user(
+                db_session, unicode_email, "password123"
+            )
             assert result is not None
         except Exception:
             # Unicode emails might not be supported, which is acceptable
@@ -190,7 +205,9 @@ class TestAuthServiceEdgeCases:
         ]
 
         for attempt in password_null_attempts:
-            result = auth_service.authenticate_user(db_session, "user@example.com", attempt)
+            result = auth_service.authenticate_user(
+                db_session, "user@example.com", attempt
+            )
             assert result is None
 
     def test_authenticate_during_account_lockout_expiry(
@@ -209,14 +226,18 @@ class TestAuthServiceEdgeCases:
         # NOTE: Current implementation doesn't check is_locked() in authenticate
         # This is a gap that should be addressed in the implementation
         # For now, the test reflects current behavior
-        result = auth_service.authenticate_user(db_session, "locked@example.com", "password123")
+        result = auth_service.authenticate_user(
+            db_session, "locked@example.com", "password123"
+        )
         assert result is not None  # Currently succeeds even when locked
 
         # Wait for lockout to expire
         time.sleep(1.1)
 
         # Should succeed after lockout expires
-        result = auth_service.authenticate_user(db_session, "locked@example.com", "password123")
+        result = auth_service.authenticate_user(
+            db_session, "locked@example.com", "password123"
+        )
         assert result is not None
         assert result.email == "locked@example.com"
 
@@ -229,7 +250,9 @@ class TestAuthServiceEdgeCases:
         # Test various case combinations
         # NOTE: Current implementation is case-sensitive
         # Only exact match will authenticate
-        result = auth_service.authenticate_user(db_session, "User@Example.COM", "password123")
+        result = auth_service.authenticate_user(
+            db_session, "User@Example.COM", "password123"
+        )
         assert result is not None
         assert result.email == "User@Example.COM"
 
@@ -243,7 +266,9 @@ class TestAuthServiceEdgeCases:
 
         for email_variant in email_variations:
             if email_variant != "User@Example.COM":
-                result = auth_service.authenticate_user(db_session, email_variant, "password123")
+                result = auth_service.authenticate_user(
+                    db_session, email_variant, "password123"
+                )
                 assert result is None  # Case-sensitive, so these fail
 
     def test_authenticate_with_whitespace_handling(
@@ -263,7 +288,9 @@ class TestAuthServiceEdgeCases:
         ]
 
         for email_with_space in whitespace_emails:
-            result = auth_service.authenticate_user(db_session, email_with_space, "password123")
+            result = auth_service.authenticate_user(
+                db_session, email_with_space, "password123"
+            )
             assert result is None  # Whitespace causes lookup failure
 
     def test_authenticate_with_password_must_change(
@@ -279,7 +306,9 @@ class TestAuthServiceEdgeCases:
         db_session.commit()
 
         # Authentication should succeed but indicate password change required
-        result = auth_service.authenticate_user(db_session, "mustchange@example.com", "password123")
+        result = auth_service.authenticate_user(
+            db_session, "mustchange@example.com", "password123"
+        )
         assert result is not None
         assert result.password_must_change is True
 
@@ -330,11 +359,14 @@ class TestAuthServiceEdgeCases:
         error_list = []
         while not errors.empty():
             error_list.append(errors.get())
-        
+
         # It's acceptable to have some errors in concurrent scenarios
         # as long as at least one authentication succeeded
         if error_list:
-            print(f"Concurrent test had {len(error_list)} errors, but {len(successful_results)} successes")
+            print(
+                f"Concurrent test had {len(error_list)} errors, "
+                f"but {len(successful_results)} successes"
+            )
 
     def test_authenticate_with_expired_password(
         self, auth_service: AuthService, db_session: Session
@@ -349,7 +381,9 @@ class TestAuthServiceEdgeCases:
         db_session.commit()
 
         # Authentication should succeed but indicate password is expired
-        result = auth_service.authenticate_user(db_session, "expired@example.com", "password123")
+        result = auth_service.authenticate_user(
+            db_session, "expired@example.com", "password123"
+        )
         assert result is not None
 
         # Check if password expiry is detected (implementation dependent)
@@ -368,7 +402,9 @@ class TestAuthServiceEdgeCases:
         )
 
         # Should fail authentication
-        result = auth_service.authenticate_user(db_session, "inactive@example.com", "password123")
+        result = auth_service.authenticate_user(
+            db_session, "inactive@example.com", "password123"
+        )
         assert result is None
 
         # Activate user during authentication process (race condition simulation)
@@ -376,6 +412,8 @@ class TestAuthServiceEdgeCases:
         db_session.commit()
 
         # Should now succeed
-        result = auth_service.authenticate_user(db_session, "inactive@example.com", "password123")
+        result = auth_service.authenticate_user(
+            db_session, "inactive@example.com", "password123"
+        )
         assert result is not None
         assert result.is_active is True
