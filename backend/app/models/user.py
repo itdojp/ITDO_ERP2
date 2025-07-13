@@ -52,11 +52,11 @@ class User(SoftDeletableModel):
 
     # Relationships
     roles: Mapped[list["Role"]] = relationship(
-        "Role", 
-        secondary="user_roles", 
+        "Role",
+        secondary="user_roles",
         primaryjoin="User.id == UserRole.user_id",
         secondaryjoin="UserRole.role_id == Role.id",
-        back_populates="users"
+        back_populates="users",
     )
     user_roles: Mapped[list["UserRole"]] = relationship(
         "UserRole", back_populates="user", foreign_keys="UserRole.user_id"

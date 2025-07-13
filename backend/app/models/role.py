@@ -139,9 +139,9 @@ class Role(SoftDeletableModel):
     users: Mapped[list["User"]] = relationship(
         "User",
         secondary="user_roles",
-        back_populates="roles",
         primaryjoin="Role.id == UserRole.role_id",
         secondaryjoin="UserRole.user_id == User.id",
+        back_populates="roles",
     )
     user_roles: Mapped[list["UserRole"]] = relationship(
         "UserRole", back_populates="role", cascade="all, delete-orphan"
