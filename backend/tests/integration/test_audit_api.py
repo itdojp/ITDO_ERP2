@@ -60,7 +60,7 @@ def test_get_organization_audit_logs(
         )
 
     response = client.get(
-        f"/api/v1/audit/organizations/{test_organization.id}/logs", 
+        f"/api/v1/audit/organizations/{test_organization.id}/logs",
         headers=create_auth_headers(admin_token)
     )
 
