@@ -57,7 +57,8 @@ def refresh_token(
         try:
             from app.core.security import verify_token
             from app.core.exceptions import ExpiredTokenError, InvalidTokenError
-            payload = verify_token(request.refresh_token)
+
+            verify_token(request.refresh_token)
             # Token is valid format but user/refresh issue
             error_code = "AUTH002"
         except ExpiredTokenError:
