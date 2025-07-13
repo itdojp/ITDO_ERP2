@@ -149,9 +149,7 @@ def db_session() -> Generator[Session]:
                 "organizations",
             ]
             for table in table_order:
-                conn.execute(
-                    text(f'TRUNCATE TABLE "{table}" RESTART IDENTITY CASCADE')
-                )
+                conn.execute(text(f'TRUNCATE TABLE "{table}" RESTART IDENTITY CASCADE'))
     else:
         # For SQLite, drop and recreate all tables for complete isolation
         Base.metadata.drop_all(bind=engine)
