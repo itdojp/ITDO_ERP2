@@ -17,7 +17,7 @@ class TestAuthServiceEdgeCases:
     @pytest.fixture
     def auth_service(self, db_session: Session) -> AuthService:
         """Create auth service instance."""
-        return AuthService(db_session)
+        return AuthService()
 
     def test_authenticate_with_empty_credentials(
         self, auth_service: AuthService, db_session: Session
@@ -25,23 +25,23 @@ class TestAuthServiceEdgeCases:
         """Test authentication with empty/null credentials."""
         # Test empty email
         with pytest.raises(AuthenticationError, match="Invalid credentials"):
-            auth_service.authenticate("", "password123")
+            auth_service.authenticate_user(db_session, "", "password123")
 
         # Test None email
         with pytest.raises(AuthenticationError, match="Invalid credentials"):
-            auth_service.authenticate(None, "password123")
+            auth_service.authenticate_user(db_session, None, "password123")
 
         # Test empty password
         with pytest.raises(AuthenticationError, match="Invalid credentials"):
-            auth_service.authenticate("user@example.com", "")
+            auth_service.authenticate_user(db_session, "user@example.com", "")
 
         # Test None password
         with pytest.raises(AuthenticationError, match="Invalid credentials"):
-            auth_service.authenticate("user@example.com", None)
+            auth_service.authenticate_user(db_session, "user@example.com", None)
 
         # Test both empty
         with pytest.raises(AuthenticationError, match="Invalid credentials"):
-            auth_service.authenticate("", "")
+            auth_service.authenticate_user(db_session, "", "")
 
     def test_authenticate_with_special_characters(
         self, auth_service: AuthService, db_session: Session
@@ -54,7 +54,7 @@ class TestAuthServiceEdgeCases:
         )
 
         # Should authenticate successfully
-        result = auth_service.authenticate("test@example.com", special_password)
+        result = auth_service.authenticate_user(db_session, "test@example.com", special_password)
         assert result is not None
         assert result.email == "test@example.com"
 
@@ -62,7 +62,7 @@ class TestAuthServiceEdgeCases:
         special_email = "user+tag@sub-domain.co.uk"
         UserFactory.create(db_session, email=special_email, password="password123")
 
-        result = auth_service.authenticate(special_email, "password123")
+        result = auth_service.authenticate_user(db_session, special_email, "password123")
         assert result is not None
         assert result.email == special_email
 
@@ -86,7 +86,7 @@ class TestAuthServiceEdgeCases:
 
         for injection in injection_attempts:
             with pytest.raises(AuthenticationError, match="Invalid credentials"):
-                auth_service.authenticate(injection, "securepassword")
+                auth_service.authenticate_user(db_session, injection, "securepassword")
 
         # SQL injection attempts in password
         password_injections = [
@@ -97,7 +97,7 @@ class TestAuthServiceEdgeCases:
 
         for injection in password_injections:
             with pytest.raises(AuthenticationError, match="Invalid credentials"):
-                auth_service.authenticate("admin@example.com", injection)
+                auth_service.authenticate_user(db_session, "admin@example.com", injection)
 
     def test_authenticate_with_invalid_email_formats(
         self, auth_service: AuthService, db_session: Session
@@ -121,7 +121,7 @@ class TestAuthServiceEdgeCases:
 
         for invalid_email in invalid_emails:
             with pytest.raises(AuthenticationError, match="Invalid credentials"):
-                auth_service.authenticate(invalid_email, "password123")
+                auth_service.authenticate_user(db_session, invalid_email, "password123")
 
     def test_authenticate_with_very_long_inputs(
         self, auth_service: AuthService, db_session: Session
@@ -130,16 +130,16 @@ class TestAuthServiceEdgeCases:
         # Very long email (over reasonable limits)
         long_email = "a" * 1000 + "@example.com"
         with pytest.raises(AuthenticationError, match="Invalid credentials"):
-            auth_service.authenticate(long_email, "password123")
+            auth_service.authenticate_user(db_session, long_email, "password123")
 
         # Very long password
         long_password = "a" * 10000
         with pytest.raises(AuthenticationError, match="Invalid credentials"):
-            auth_service.authenticate("user@example.com", long_password)
+            auth_service.authenticate_user(db_session, "user@example.com", long_password)
 
         # Both very long
         with pytest.raises(AuthenticationError, match="Invalid credentials"):
-            auth_service.authenticate(long_email, long_password)
+            auth_service.authenticate_user(db_session, long_email, long_password)
 
     def test_authenticate_with_unicode_characters(
         self, auth_service: AuthService, db_session: Session
@@ -152,7 +152,7 @@ class TestAuthServiceEdgeCases:
         )
 
         # Should authenticate successfully
-        result = auth_service.authenticate("unicode@example.com", unicode_password)
+        result = auth_service.authenticate_user(db_session, "unicode@example.com", unicode_password)
         assert result is not None
         assert result.email == "unicode@example.com"
 
@@ -161,7 +161,7 @@ class TestAuthServiceEdgeCases:
             unicode_email = "用户@example.com"
             UserFactory.create(db_session, email=unicode_email, password="password123")
 
-            result = auth_service.authenticate(unicode_email, "password123")
+            result = auth_service.authenticate_user(db_session, unicode_email, "password123")
             assert result is not None
         except Exception:
             # Unicode emails might not be supported, which is acceptable
@@ -180,7 +180,7 @@ class TestAuthServiceEdgeCases:
 
         for attempt in null_byte_attempts:
             with pytest.raises(AuthenticationError, match="Invalid credentials"):
-                auth_service.authenticate(attempt, "password123")
+                auth_service.authenticate_user(db_session, attempt, "password123")
 
         # Null bytes in password
         password_null_attempts = [
@@ -191,7 +191,7 @@ class TestAuthServiceEdgeCases:
 
         for attempt in password_null_attempts:
             with pytest.raises(AuthenticationError, match="Invalid credentials"):
-                auth_service.authenticate("user@example.com", attempt)
+                auth_service.authenticate_user(db_session, "user@example.com", attempt)
 
     def test_authenticate_during_account_lockout_expiry(
         self, auth_service: AuthService, db_session: Session
@@ -208,13 +208,13 @@ class TestAuthServiceEdgeCases:
 
         # Should fail while locked
         with pytest.raises(AuthenticationError, match="Account is locked"):
-            auth_service.authenticate("locked@example.com", "password123")
+            auth_service.authenticate_user(db_session, "locked@example.com", "password123")
 
         # Wait for lockout to expire
         time.sleep(1.1)
 
         # Should succeed after lockout expires
-        result = auth_service.authenticate("locked@example.com", "password123")
+        result = auth_service.authenticate_user(db_session, "locked@example.com", "password123")
         assert result is not None
         assert result.email == "locked@example.com"
 
@@ -238,7 +238,7 @@ class TestAuthServiceEdgeCases:
         ]
 
         for email_variant in email_variations:
-            result = auth_service.authenticate(email_variant, "password123")
+            result = auth_service.authenticate_user(db_session, email_variant, "password123")
             assert result is not None
             assert result.email.lower() == "user@example.com"
 
@@ -258,7 +258,7 @@ class TestAuthServiceEdgeCases:
         ]
 
         for email_with_space in whitespace_emails:
-            result = auth_service.authenticate(email_with_space, "password123")
+            result = auth_service.authenticate_user(db_session, email_with_space, "password123")
             assert result is not None
             assert result.email == "user@example.com"
 
@@ -275,7 +275,7 @@ class TestAuthServiceEdgeCases:
         db_session.commit()
 
         # Authentication should succeed but indicate password change required
-        result = auth_service.authenticate("mustchange@example.com", "password123")
+        result = auth_service.authenticate_user(db_session, "mustchange@example.com", "password123")
         assert result is not None
         assert result.password_must_change is True
 
@@ -296,7 +296,7 @@ class TestAuthServiceEdgeCases:
 
         def authenticate():
             try:
-                result = auth_service.authenticate(
+                result = auth_service.authenticate_user(db_session, 
                     "concurrent@example.com", "password123"
                 )
                 results.put(result)
@@ -338,7 +338,7 @@ class TestAuthServiceEdgeCases:
         db_session.commit()
 
         # Authentication should succeed but indicate password is expired
-        result = auth_service.authenticate("expired@example.com", "password123")
+        result = auth_service.authenticate_user(db_session, "expired@example.com", "password123")
         assert result is not None
 
         # Check if password expiry is detected (implementation dependent)
@@ -358,13 +358,13 @@ class TestAuthServiceEdgeCases:
 
         # Should fail authentication
         with pytest.raises(AuthenticationError, match="Invalid credentials"):
-            auth_service.authenticate("inactive@example.com", "password123")
+            auth_service.authenticate_user(db_session, "inactive@example.com", "password123")
 
         # Activate user during authentication process (race condition simulation)
         user.is_active = True
         db_session.commit()
 
         # Should now succeed
-        result = auth_service.authenticate("inactive@example.com", "password123")
+        result = auth_service.authenticate_user(db_session, "inactive@example.com", "password123")
         assert result is not None
         assert result.is_active is True
