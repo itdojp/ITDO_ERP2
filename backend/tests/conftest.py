@@ -124,54 +124,46 @@ def db_session() -> Generator[Session]:
     # Create tables
     Base.metadata.create_all(bind=engine)
 
+    # Clean database before test
+    if "postgresql" in str(engine.url):
+        # Use TRUNCATE for better performance and reset sequences
+        with engine.begin() as conn:
+            from sqlalchemy import text
+
+            # TRUNCATE in safe order (cleanup before test)
+            table_order = [
+                "tasks",
+                "user_roles",
+                "role_permissions",
+                "password_history",
+                "user_sessions",
+                "user_activity_logs",
+                "audit_logs",
+                "project_members",
+                "project_milestones",
+                "projects",
+                "users",
+                "roles",
+                "permissions",
+                "departments",
+                "organizations",
+            ]
+            for table in table_order:
+                conn.execute(
+                    text(f'TRUNCATE TABLE "{table}" RESTART IDENTITY CASCADE')
+                )
+    else:
+        # For SQLite, drop and recreate all tables for complete isolation
+        Base.metadata.drop_all(bind=engine)
+        Base.metadata.create_all(bind=engine)
+
     # Create session
     session = TestingSessionLocal()
 
     try:
-        # Start transaction for test isolation
-        session.begin()
         yield session
-    except Exception:
-        # Rollback on any exception
-        session.rollback()
-        raise
     finally:
-        # Always rollback to ensure clean state
-        session.rollback()
         session.close()
-
-        # Enhanced cleanup for test isolation
-        if "postgresql" in str(engine.url):
-            # Use TRUNCATE for better performance and reset sequences
-            with engine.begin() as conn:
-                from sqlalchemy import text
-
-                # TRUNCATE in safe order
-                table_order = [
-                    "tasks",
-                    "user_roles",
-                    "role_permissions",
-                    "password_history",
-                    "user_sessions",
-                    "user_activity_logs",
-                    "audit_logs",
-                    "project_members",
-                    "project_milestones",
-                    "projects",
-                    "users",
-                    "roles",
-                    "permissions",
-                    "departments",
-                    "organizations",
-                ]
-                for table in table_order:
-                    conn.execute(
-                        text(f'TRUNCATE TABLE "{table}" RESTART IDENTITY CASCADE')
-                    )
-        else:
-            # For SQLite, drop and recreate all tables for complete isolation
-            Base.metadata.drop_all(bind=engine)
-            Base.metadata.create_all(bind=engine)
 
 
 @pytest.fixture
