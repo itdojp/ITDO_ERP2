@@ -148,9 +148,46 @@ class OrganizationRepository(
         count = self.db.scalar(query) or 0
         return count == 0
 
-    def update_settings(
-        self, id: int, settings: Dict[str, Any]
-    ) -> Optional[Organization]:
+    def create(self, obj_in: OrganizationCreate) -> Organization:
+        """Create a new organization with proper settings handling."""
+        import json
+        
+        obj_data = obj_in.model_dump()
+
+        # Convert settings dict to JSON string for database storage
+        if "settings" in obj_data and isinstance(obj_data["settings"], dict):
+            obj_data["settings"] = json.dumps(obj_data["settings"])
+
+        db_obj = self.model(**obj_data)
+        self.db.add(db_obj)
+        self.db.commit()
+        self.db.refresh(db_obj)
+        return db_obj
+
+    def update(self, id: int, obj_in: OrganizationUpdate) -> Optional[Organization]:
+        """Update an organization with proper settings handling."""
+        import json
+        
+        obj_data = obj_in.model_dump(exclude_unset=True)
+        
+        # Convert settings dict to JSON string for database storage
+        if "settings" in obj_data and isinstance(obj_data["settings"], dict):
+            obj_data["settings"] = json.dumps(obj_data["settings"])
+        
+        # Get the existing organization
+        db_obj = self.get(id)
+        if not db_obj:
+            return None
+            
+        # Update fields
+        for field, value in obj_data.items():
+            setattr(db_obj, field, value)
+            
+        self.db.commit()
+        self.db.refresh(db_obj)
+        return db_obj
+
+    def update_settings(self, id: int, settings: Dict[str, Any]) -> Optional[Organization]:
         """Update organization settings."""
         import json
 
