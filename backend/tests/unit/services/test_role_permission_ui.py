@@ -101,7 +101,9 @@ class TestRolePermissionUIService:
         # Initially, most permissions should be False
         assert all(not enabled for enabled in matrix.permissions.values())
 
-    @pytest.mark.skip(reason="RolePermissionUIService.update_role_permissions not implemented yet")
+    @pytest.mark.skip(
+        reason="RolePermissionUIService.update_role_permissions not implemented yet"
+    )
     def test_update_role_permissions(
         self,
         ui_service: RolePermissionUIService,
