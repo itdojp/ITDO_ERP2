@@ -108,7 +108,7 @@ class TestRoleAPI(
             db_session, test_organization, name="Test Role for Update"
         )
 
-        payload = self.update_payload()
+        payload = self.create_update_payload()
 
         response = client.put(
             f"{self.endpoint_prefix}/{instance.id}",
