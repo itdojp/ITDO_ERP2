@@ -12,6 +12,8 @@ from app.models.role import Role, RolePermission, UserRole
 from app.models.task import Task
 from app.models.user import User
 from app.models.user_activity_log import UserActivityLog
+from app.models.user_preferences import UserPreferences
+from app.models.user_privacy import UserPrivacySettings
 from app.models.user_session import UserSession
 
 __all__ = [
@@ -25,6 +27,8 @@ __all__ = [
     "PasswordHistory",
     "UserSession",
     "UserActivityLog",
+    "UserPreferences",
+    "UserPrivacySettings",
     "AuditLog",
     "Project",
     "ProjectMember",

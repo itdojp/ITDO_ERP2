@@ -3,11 +3,11 @@
 import time
 from datetime import datetime, timedelta
 
-import jwt
 import pytest
+from jose import jwt
 from sqlalchemy.orm import Session
 
-from app.core.config import get_settings
+from app.core.config import settings
 from app.core.security import create_access_token, verify_token
 from app.models.user import User
 from app.services.auth import AuthService
@@ -55,7 +55,7 @@ class TestTokenSecurityEdgeCases:
 
     def test_token_with_wrong_algorithm(self, user: User) -> None:
         """Test token with different signing algorithm."""
-        settings = get_settings()
+        current_settings = settings
 
         # Create token with different algorithm
         payload = {
@@ -73,7 +73,9 @@ class TestTokenSecurityEdgeCases:
 
         # Try with different algorithm
         try:
-            rs256_token = jwt.encode(payload, settings.SECRET_KEY, algorithm="RS256")
+            rs256_token = jwt.encode(
+                payload, current_settings.SECRET_KEY, algorithm="RS256"
+            )
             with pytest.raises(Exception):
                 verify_token(rs256_token)
         except Exception:
@@ -109,9 +111,9 @@ class TestTokenSecurityEdgeCases:
             "exp": (future_time + timedelta(hours=1)).timestamp(),
         }
 
-        settings = get_settings()
+        current_settings = settings
         future_token = jwt.encode(
-            payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+            payload, current_settings.SECRET_KEY, algorithm=current_settings.ALGORITHM
         )
 
         # Should be rejected (depending on JWT library configuration)
@@ -127,9 +129,9 @@ class TestTokenSecurityEdgeCases:
         far_future = datetime.utcnow() + timedelta(days=365 * 100)
         payload = {"sub": str(user.id), "exp": far_future.timestamp()}
 
-        settings = get_settings()
+        current_settings = settings
         long_token = jwt.encode(
-            payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+            payload, current_settings.SECRET_KEY, algorithm=current_settings.ALGORITHM
         )
 
         # Should still validate (but may be rejected by application logic)
@@ -141,9 +143,9 @@ class TestTokenSecurityEdgeCases:
         # Create token with negative timestamp
         payload = {"sub": str(user.id), "exp": -1}
 
-        settings = get_settings()
+        current_settings = settings
         negative_token = jwt.encode(
-            payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+            payload, current_settings.SECRET_KEY, algorithm=current_settings.ALGORITHM
         )
 
         # Should be rejected as expired
@@ -207,9 +209,9 @@ class TestTokenSecurityEdgeCases:
             "custom_data": {"key": "value"},  # Unexpected claim
         }
 
-        settings = get_settings()
+        current_settings = settings
         extra_claims_token = jwt.encode(
-            payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+            payload, current_settings.SECRET_KEY, algorithm=current_settings.ALGORITHM
         )
 
         # Should still validate basic token structure
@@ -222,12 +224,14 @@ class TestTokenSecurityEdgeCases:
 
     def test_token_without_required_claims(self, user: User) -> None:
         """Test token missing required claims."""
-        settings = get_settings()
+        current_settings = settings
 
         # Token without 'sub' claim
         payload_no_sub = {"exp": (datetime.utcnow() + timedelta(hours=1)).timestamp()}
         token_no_sub = jwt.encode(
-            payload_no_sub, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+            payload_no_sub,
+            current_settings.SECRET_KEY,
+            algorithm=current_settings.ALGORITHM,
         )
 
         # Should handle missing required claims
@@ -237,7 +241,9 @@ class TestTokenSecurityEdgeCases:
         # Token without 'exp' claim
         payload_no_exp = {"sub": str(user.id)}
         token_no_exp = jwt.encode(
-            payload_no_exp, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+            payload_no_exp,
+            current_settings.SECRET_KEY,
+            algorithm=current_settings.ALGORITHM,
         )
 
         # Should still validate (depending on JWT library settings)
@@ -265,7 +271,7 @@ class TestTokenSecurityEdgeCases:
 
     def test_token_with_malformed_subject(self, user: User) -> None:
         """Test token with malformed subject claim."""
-        settings = get_settings()
+        current_settings = settings
 
         # Token with non-numeric user ID
         payload_string_id = {
@@ -273,7 +279,9 @@ class TestTokenSecurityEdgeCases:
             "exp": (datetime.utcnow() + timedelta(hours=1)).timestamp(),
         }
         token_string_id = jwt.encode(
-            payload_string_id, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+            payload_string_id,
+            current_settings.SECRET_KEY,
+            algorithm=current_settings.ALGORITHM,
         )
 
         # Should validate at JWT level but may fail at application level
@@ -286,7 +294,9 @@ class TestTokenSecurityEdgeCases:
             "exp": (datetime.utcnow() + timedelta(hours=1)).timestamp(),
         }
         token_empty_sub = jwt.encode(
-            payload_empty_sub, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+            payload_empty_sub,
+            current_settings.SECRET_KEY,
+            algorithm=current_settings.ALGORITHM,
         )
 
         result = verify_token(token_empty_sub)
@@ -329,9 +339,9 @@ class TestTokenSecurityEdgeCases:
             "emoji": "🚀🔐💯",
         }
 
-        settings = get_settings()
+        current_settings = settings
         unicode_token = jwt.encode(
-            payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+            payload, current_settings.SECRET_KEY, algorithm=current_settings.ALGORITHM
         )
 
         # Should handle Unicode data properly
@@ -350,10 +360,12 @@ class TestTokenSecurityEdgeCases:
             "large_field": large_data,
         }
 
-        settings = get_settings()
+        current_settings = settings
         try:
             large_token = jwt.encode(
-                payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+                payload,
+                current_settings.SECRET_KEY,
+                algorithm=current_settings.ALGORITHM,
             )
 
             # Should handle large tokens (within JWT limits)
