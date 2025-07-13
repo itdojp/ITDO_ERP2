@@ -207,9 +207,9 @@ class UserActivityListResponse(BaseModel):
 
 
 # Import these at the end to avoid circular imports
-from app.schemas.department_basic import DepartmentBasic
-from app.schemas.organization_basic import OrganizationBasic
-from app.schemas.role_basic import RoleBasic
+from app.schemas.department_basic import DepartmentBasic  # noqa: E402
+from app.schemas.organization_basic import OrganizationBasic  # noqa: E402
+from app.schemas.role_basic import RoleBasic  # noqa: E402
 
 # Update forward refs
 UserResponseExtended.model_rebuild()

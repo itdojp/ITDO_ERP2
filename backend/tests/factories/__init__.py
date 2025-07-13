@@ -80,16 +80,16 @@ class BaseFactory(ABC):
 
 
 # Re-export factory classes
-from tests.factories.audit import AuditLogFactory
-from tests.factories.department import DepartmentFactory, create_test_department
-from tests.factories.organization import OrganizationFactory, create_test_organization
-from tests.factories.role import (
+from tests.factories.audit import AuditLogFactory  # noqa: E402
+from tests.factories.department import DepartmentFactory, create_test_department  # noqa: E402
+from tests.factories.organization import OrganizationFactory, create_test_organization  # noqa: E402
+from tests.factories.role import (  # noqa: E402
     PermissionFactory,
     RoleFactory,
     create_test_role,
     create_test_user_role,
 )
-from tests.factories.user import UserFactory, create_test_user
+from tests.factories.user import UserFactory, create_test_user  # noqa: E402
 
 __all__ = [
     "BaseFactory",
