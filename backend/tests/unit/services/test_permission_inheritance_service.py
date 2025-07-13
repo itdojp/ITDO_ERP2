@@ -312,7 +312,7 @@ class TestPermissionInheritanceService:
         service.grant_permission_to_role(parent.id, perm3.id, admin, db_session)
 
         # When: Creating selective inheritance (only read and write)
-        rule = service.create_inheritance_rule(
+        service.create_inheritance_rule(
             parent_role_id=parent.id,
             child_role_id=child.id,
             inherit_all=False,

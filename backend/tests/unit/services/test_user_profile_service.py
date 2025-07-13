@@ -267,7 +267,8 @@ class TestUserProfileService:
     ) -> None:
         """Test that privacy visibility rules are enforced."""
         # Given: User with private email visibility
-        org = create_test_organization(db_session)
+        # Organization created but not used in this test
+        # org = create_test_organization(db_session)
         user1 = create_test_user(db_session, email="private@example.com")
         user2 = create_test_user(db_session, email="viewer@example.com")
         db_session.commit()

@@ -106,7 +106,10 @@ class UserOrganization(BaseModel):
     )
 
     def __repr__(self) -> str:
-        return f"<UserOrganization(user_id={self.user_id}, org_id={self.organization_id}, type={self.access_type})>"
+        return (
+            f"<UserOrganization(user_id={self.user_id}, "
+            f"org_id={self.organization_id}, type={self.access_type})>"
+        )
 
     @property
     def is_expired(self) -> bool:
@@ -162,7 +165,10 @@ class OrganizationInvitation(BaseModel):
     accepter: Mapped["User | None"] = relationship("User", foreign_keys=[accepted_by])
 
     def __repr__(self) -> str:
-        return f"<OrganizationInvitation(email={self.email}, org_id={self.organization_id})>"
+        return (
+            f"<OrganizationInvitation(email={self.email}, "
+            f"org_id={self.organization_id})>"
+        )
 
     @property
     def is_expired(self) -> bool:
@@ -231,7 +237,11 @@ class UserTransferRequest(BaseModel):
     requester: Mapped["User"] = relationship("User", foreign_keys=[requested_by])
 
     def __repr__(self) -> str:
-        return f"<UserTransferRequest(user_id={self.user_id}, from_org={self.from_organization_id}, to_org={self.to_organization_id})>"
+        return (
+            f"<UserTransferRequest(user_id={self.user_id}, "
+            f"from_org={self.from_organization_id}, "
+            f"to_org={self.to_organization_id})>"
+        )
 
     @property
     def is_pending(self) -> bool:

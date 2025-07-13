@@ -14,7 +14,8 @@ class CrossTenantPermissionRule(BaseModel):
     target_organization_id: int
     permission_pattern: str = Field(
         ...,
-        description="Permission pattern (e.g., 'read:*', 'user:*', specific permission)",
+        description="Permission pattern (e.g., 'read:*', 'user:*', "
+        "specific permission)",
     )
     rule_type: str = Field(default="allow", description="Rule type: allow, deny")
     priority: int = Field(
@@ -38,7 +39,8 @@ class CrossTenantPermissionRuleCreate(BaseModel):
     target_organization_id: int
     permission_pattern: str = Field(
         ...,
-        description="Permission pattern (e.g., 'read:*', 'user:*', specific permission)",
+        description="Permission pattern (e.g., 'read:*', 'user:*', "
+        "specific permission)",
     )
     rule_type: str = Field(default="allow", description="Rule type: allow, deny")
     priority: int = Field(

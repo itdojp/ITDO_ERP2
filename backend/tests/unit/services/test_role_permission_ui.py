@@ -43,15 +43,7 @@ class TestRolePermissionUIService:
         user = UserFactory.create_with_password(
             db_session, password="password123", email="orgadmin@example.com"
         )
-        # Add org admin role with permission management
-        import uuid
-
-        admin_role = RoleFactory.create(
-            db_session,
-            code=f"ORG_ADMIN_{uuid.uuid4().hex[:8]}",
-            name="Organization Admin",
-        )
-        # TODO: Implement role assignment
+        # TODO: Implement role assignment with admin role
         return user
 
     @pytest.fixture

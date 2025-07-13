@@ -34,7 +34,7 @@ class TestDatabaseDependency:
         """Test that get_db properly closes the session."""
         # When: Using database session in context
         db_generator = get_db()
-        db = next(db_generator)
+        next(db_generator)  # Get the session but don't store it
 
         # Simulate ending the context
         try:

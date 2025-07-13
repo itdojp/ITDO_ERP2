@@ -53,7 +53,8 @@ class RoleService:
                 role_data.name, role_data.organization_id
             ):
                 raise AlreadyExists(
-                    f"Role with name '{role_data.name}' already exists in this organization"
+                    f"Role with name '{role_data.name}' already exists in "
+                    "this organization"
                 )
 
         # Check if organization exists if specified

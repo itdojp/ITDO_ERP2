@@ -544,6 +544,7 @@ class TestUserServiceAuthenticationEdgeCases:
             assert len(result.errors) == result.error_count
 
         except Exception:
-            # If the service fails entirely on malformed data, that's also valid behavior
+            # If the service fails entirely on malformed data, that's also
+            # valid behavior
             # as long as it doesn't crash the application
             assert True

@@ -170,7 +170,10 @@ class TestExceptionEdgeCases:
     def test_exception_with_complex_message(self) -> None:
         """Test exceptions with complex messages."""
         # Given: Complex error message with unicode and special characters
-        message = "Error: ユーザー認証に失敗しました。詳細: {'code': 401, 'detail': 'Invalid token'}"
+        message = (
+            "Error: ユーザー認証に失敗しました。詳細: "
+            "{'code': 401, 'detail': 'Invalid token'}"
+        )
 
         # When: Raising exception with complex message
         with pytest.raises(AuthenticationError) as exc_info:
@@ -269,7 +272,10 @@ class TestExceptionUsagePatterns:
         reason = "Invalid email format"
 
         # When: Creating detailed validation error
-        message = f"Validation failed for field '{field_name}' with value '{field_value}': {reason}"
+        message = (
+            f"Validation failed for field '{field_name}' with value "
+            f"'{field_value}': {reason}"
+        )
 
         with pytest.raises(ValidationError) as exc_info:
             raise ValidationError(message)
