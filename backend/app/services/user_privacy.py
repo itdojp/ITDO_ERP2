@@ -52,7 +52,7 @@ class UserPrivacyService:
 
         self.db.commit()
 
-        return PrivacySettingsResponse.from_orm(settings)
+        return PrivacySettingsResponse.model_validate(settings)
 
     def get_settings(self, user_id: int) -> PrivacySettingsResponse:
         """Get user's privacy settings."""
@@ -65,7 +65,7 @@ class UserPrivacyService:
         if not settings:
             raise NotFound("プライバシー設定が見つかりません")
 
-        return PrivacySettingsResponse.from_orm(settings)
+        return PrivacySettingsResponse.model_validate(settings)
 
     def get_settings_or_default(self, user_id: int) -> PrivacySettingsResponse:
         """Get user's privacy settings or return defaults."""
@@ -73,7 +73,9 @@ class UserPrivacyService:
             return self.get_settings(user_id)
         except NotFound:
             # Return default settings
+            from datetime import datetime
             default_data = PrivacySettingsCreate()
+            now = datetime.now()
             return PrivacySettingsResponse(
                 id=0,  # Temporary ID for defaults
                 user_id=user_id,
@@ -85,8 +87,8 @@ class UserPrivacyService:
                 allow_direct_messages=default_data.allow_direct_messages,
                 searchable_by_email=default_data.searchable_by_email,
                 searchable_by_name=default_data.searchable_by_name,
-                created_at=None,
-                updated_at=None,
+                created_at=now,
+                updated_at=now,
             )
 
     def update_settings(
@@ -108,7 +110,7 @@ class UserPrivacyService:
 
         self.db.commit()
 
-        return PrivacySettingsResponse.from_orm(settings)
+        return PrivacySettingsResponse.model_validate(settings)
 
     def set_all_private(self, user_id: int) -> PrivacySettingsResponse:
         """Set all privacy settings to most restrictive."""
@@ -137,7 +139,7 @@ class UserPrivacyService:
 
         self.db.commit()
 
-        return PrivacySettingsResponse.from_orm(settings)
+        return PrivacySettingsResponse.model_validate(settings)
 
     def can_view_profile(self, viewer_id: int, target_user_id: int) -> bool:
         """Check if viewer can see target user's profile."""
