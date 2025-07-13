@@ -356,9 +356,7 @@ class TestRoleAPI(
             "permissions" in permissions_data or "permission_list" in permissions_data
         )
 
-    @pytest.mark.skip(
-        reason="Role permissions validation needs API implementation fix"
-    )
+    @pytest.mark.skip(reason="Role permissions validation needs API implementation fix")
     def test_update_role_permissions_invalid_codes(
         self,
         client: TestClient,
@@ -383,9 +381,7 @@ class TestRoleAPI(
         data = response.json()
         assert "INVALID_PERMISSION" in data.get("code", "")
 
-    @pytest.mark.skip(
-        reason="Role assignment API needs schema validation fixes"
-    )
+    @pytest.mark.skip(reason="Role assignment API needs schema validation fixes")
     def test_assign_role_to_user(
         self,
         client: TestClient,
@@ -412,9 +408,7 @@ class TestRoleAPI(
         assert data["role_id"] == role.id
         assert data["is_active"] is True
 
-    @pytest.mark.skip(
-        reason="Role assignment API needs schema validation fixes"
-    )
+    @pytest.mark.skip(reason="Role assignment API needs schema validation fixes")
     def test_assign_role_duplicate_assignment(
         self,
         client: TestClient,
@@ -447,9 +441,7 @@ class TestRoleAPI(
         data = response.json()
         assert "ASSIGNMENT_EXISTS" in data.get("code", "")
 
-    @pytest.mark.skip(
-        reason="Role assignment API needs schema validation fixes"
-    )
+    @pytest.mark.skip(reason="Role assignment API needs schema validation fixes")
     def test_remove_role_from_user(
         self,
         client: TestClient,
@@ -495,9 +487,7 @@ class TestRoleAPI(
         data = response.json()
         assert "ROLE_NOT_FOUND" in data.get("code", "")
 
-    @pytest.mark.skip(
-        reason="Role assignment API needs schema validation fixes"
-    )
+    @pytest.mark.skip(reason="Role assignment API needs schema validation fixes")
     def test_get_user_roles(
         self,
         client: TestClient,
@@ -539,9 +529,7 @@ class TestRoleAPI(
         assert role1.id in role_ids
         assert role2.id in role_ids
 
-    @pytest.mark.skip(
-        reason="Role assignment API needs schema validation fixes"
-    )
+    @pytest.mark.skip(reason="Role assignment API needs schema validation fixes")
     def test_get_user_roles_with_organization_filter(
         self, client: TestClient, db_session: Session, admin_token: str
     ) -> None:
@@ -575,9 +563,7 @@ class TestRoleAPI(
         assert len(data) == 1
         assert data[0]["role_id"] == role1.id
 
-    @pytest.mark.skip(
-        reason="Role creation API needs implementation fixes"
-    )
+    @pytest.mark.skip(reason="Role creation API needs implementation fixes")
     def test_create_role_with_parent(
         self,
         client: TestClient,
@@ -603,9 +589,7 @@ class TestRoleAPI(
         assert data["parent_id"] == parent.id
         assert data["organization_id"] == test_organization.id
 
-    @pytest.mark.skip(
-        reason="Role creation API needs implementation fixes"
-    )
+    @pytest.mark.skip(reason="Role creation API needs implementation fixes")
     def test_create_role_invalid_parent(
         self,
         client: TestClient,
