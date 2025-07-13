@@ -1,22 +1,19 @@
 """Enhanced audit service tests."""
 
-import pytest
 from datetime import datetime, timedelta, timezone
-from typing import Dict, List
+
+import pytest
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import NotFound, PermissionDenied
+from app.core.exceptions import PermissionDenied
 from app.models.audit import AuditLog
 from app.models.organization import Organization
 from app.models.user import User
 from app.schemas.audit import (
     AuditLogCreate,
-    AuditLogFilter,
-    AuditLogResponse,
     AuditLogSearch,
-    AuditLogStats,
 )
-from app.services.audit import AuditService, AuditLogger
+from app.services.audit import AuditLogger, AuditService
 from tests.factories import AuditLogFactory, OrganizationFactory, UserFactory
 
 
@@ -66,7 +63,7 @@ class TestEnhancedAuditService:
         # Create test audit logs
         base_time = datetime.now(timezone.utc)
 
-        logs = [
+        [
             AuditLogFactory.create(
                 db_session,
                 user_id=admin_user.id,
@@ -251,7 +248,7 @@ class TestEnhancedAuditService:
         from sqlalchemy import text
 
         db_session.execute(
-            text(f"UPDATE audit_logs SET changes = :changes WHERE id = :log_id"),
+            text("UPDATE audit_logs SET changes = :changes WHERE id = :log_id"),
             {"changes": '{"email": "tampered@example.com"}', "log_id": log.id},
         )
         db_session.commit()

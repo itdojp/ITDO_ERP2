@@ -3,11 +3,9 @@
 import pytest
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import NotFound, PermissionDenied
 from app.models.user import User
 from app.schemas.user_privacy import (
     PrivacySettingsCreate,
-    PrivacySettingsResponse,
     PrivacySettingsUpdate,
     VisibilityLevel,
 )
@@ -69,7 +67,7 @@ class TestUserPrivacyService:
             profile_visibility=VisibilityLevel.PUBLIC,
             email_visibility=VisibilityLevel.PRIVATE,
         )
-        created = privacy_service.create_settings(user_id=user.id, data=settings_data)
+        privacy_service.create_settings(user_id=user.id, data=settings_data)
 
         # Get settings
         retrieved = privacy_service.get_settings(user_id=user.id)

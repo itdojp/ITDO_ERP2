@@ -1,13 +1,12 @@
 """User preferences management service."""
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import NotFound
 from app.models.user_preferences import UserPreferences
 from app.schemas.user_preferences import (
-    UserLocaleInfo,
     UserPreferencesCreate,
     UserPreferencesResponse,
     UserPreferencesUpdate,

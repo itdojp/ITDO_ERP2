@@ -49,7 +49,7 @@ class TestAuthServiceEdgeCases:
         """Test authentication with special characters in credentials."""
         # Create user with special character password
         special_password = "P@ssw0rd!#$%^&*()_+-=[]{}|;:,.<>?"
-        user = UserFactory.create(
+        UserFactory.create(
             db_session, email="test@example.com", password=special_password
         )
 
@@ -60,7 +60,7 @@ class TestAuthServiceEdgeCases:
 
         # Test with special characters in email domain
         special_email = "user+tag@sub-domain.co.uk"
-        user_special = UserFactory.create(
+        UserFactory.create(
             db_session, email=special_email, password="password123"
         )
 
@@ -149,7 +149,7 @@ class TestAuthServiceEdgeCases:
         """Test authentication with Unicode characters."""
         # Create user with Unicode password
         unicode_password = "пароль123测试🔒"
-        user = UserFactory.create(
+        UserFactory.create(
             db_session, email="unicode@example.com", password=unicode_password
         )
 
@@ -161,7 +161,7 @@ class TestAuthServiceEdgeCases:
         # Test with Unicode in email local part (if supported by system)
         try:
             unicode_email = "用户@example.com"
-            user_unicode = UserFactory.create(
+            UserFactory.create(
                 db_session, email=unicode_email, password="password123"
             )
 
@@ -231,7 +231,7 @@ class TestAuthServiceEdgeCases:
         self, auth_service: AuthService, db_session: Session
     ) -> None:
         """Test email case sensitivity in authentication."""
-        user = UserFactory.create(
+        UserFactory.create(
             db_session, email="User@Example.COM", password="password123"
         )
 
@@ -252,7 +252,7 @@ class TestAuthServiceEdgeCases:
         self, auth_service: AuthService, db_session: Session
     ) -> None:
         """Test authentication with leading/trailing whitespace."""
-        user = UserFactory.create(
+        UserFactory.create(
             db_session, email="user@example.com", password="password123"
         )
 
@@ -291,7 +291,7 @@ class TestAuthServiceEdgeCases:
         self, auth_service: AuthService, db_session: Session
     ) -> None:
         """Test concurrent authentication attempts."""
-        user = UserFactory.create(
+        UserFactory.create(
             db_session, email="concurrent@example.com", password="password123"
         )
 

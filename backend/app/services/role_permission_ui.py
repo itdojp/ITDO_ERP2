@@ -15,7 +15,6 @@ from app.schemas.role_permission_ui import (
     PermissionMatrix,
     PermissionMatrixUpdate,
     PermissionSearchResult,
-    RolePermissionUI,
     UIPermissionCategory,
     UIPermissionGroup,
 )

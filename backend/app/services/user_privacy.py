@@ -1,6 +1,6 @@
 """User privacy settings service."""
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from sqlalchemy.orm import Session
 
@@ -8,7 +8,6 @@ from app.core.exceptions import NotFound
 from app.models.user import User
 from app.models.user_privacy import UserPrivacySettings
 from app.schemas.user_privacy import (
-    PrivacyCheckResult,
     PrivacySettingsCreate,
     PrivacySettingsResponse,
     PrivacySettingsUpdate,

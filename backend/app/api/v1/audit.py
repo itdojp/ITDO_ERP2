@@ -13,7 +13,6 @@ from app.schemas.audit import (
     AuditLogBulkIntegrityResult,
     AuditLogFilter,
     AuditLogListResponse,
-    AuditLogResponse,
     AuditLogSearch,
     AuditLogStats,
 )

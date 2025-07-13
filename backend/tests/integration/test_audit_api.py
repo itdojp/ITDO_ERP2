@@ -1,7 +1,8 @@
 """Integration tests for audit API."""
 
-import pytest
 from datetime import datetime, timedelta, timezone
+
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
@@ -307,7 +308,7 @@ def test_permission_denied_for_wrong_organization(
     other_org = OrganizationFactory.create(db_session, name="Other Org")
 
     # Create non-superuser
-    regular_user = UserFactory.create_with_password(
+    UserFactory.create_with_password(
         db_session, email="regular@test.com", password="password123", is_superuser=False
     )
 

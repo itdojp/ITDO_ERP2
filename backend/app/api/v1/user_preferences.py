@@ -9,7 +9,6 @@ from app.core.dependencies import get_current_active_user, get_db
 from app.core.exceptions import NotFound
 from app.models.user import User
 from app.schemas.user_preferences import (
-    UserLocaleInfo,
     UserPreferencesCreate,
     UserPreferencesResponse,
     UserPreferencesUpdate,

@@ -3,17 +3,12 @@
 import pytest
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import NotFound, PermissionDenied
 from app.models.organization import Organization
 from app.models.role import Role
 from app.models.user import User
 from app.schemas.role_permission_ui import (
     PermissionCategory,
-    PermissionDefinition,
-    PermissionMatrix,
     PermissionMatrixUpdate,
-    RolePermissionUI,
-    UIPermissionGroup,
 )
 from app.services.role_permission_ui import RolePermissionUIService
 from tests.factories import OrganizationFactory, RoleFactory, UserFactory
@@ -399,7 +394,7 @@ class TestRolePermissionUIService:
             name="Parent1",
             parent_id=grandparent.id,
         )
-        parent2 = RoleFactory.create(
+        RoleFactory.create(
             db_session,
             code=f"P2_{uuid.uuid4().hex[:8]}",
             name="Parent2",

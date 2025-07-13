@@ -155,7 +155,7 @@ class TestTokenSecurityEdgeCases:
     ) -> None:
         """Test race condition during token refresh."""
         # Create initial tokens
-        access_token = create_access_token(data={"sub": str(user.id)})
+        create_access_token(data={"sub": str(user.id)})
         refresh_token = create_access_token(
             data={"sub": str(user.id), "type": "refresh"},
             expires_delta=timedelta(days=7),

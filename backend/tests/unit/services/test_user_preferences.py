@@ -3,11 +3,10 @@
 import pytest
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import NotFound, PermissionDenied
+from app.core.exceptions import NotFound
 from app.models.user import User
 from app.schemas.user_preferences import (
     UserPreferencesCreate,
-    UserPreferencesResponse,
     UserPreferencesUpdate,
 )
 from app.services.user_preferences import UserPreferencesService
@@ -62,7 +61,7 @@ class TestUserPreferencesService:
         preferences_data = UserPreferencesCreate(
             language="en", timezone="UTC", theme="light"
         )
-        created_prefs = user_preferences_service.create_preferences(
+        user_preferences_service.create_preferences(
             user_id=user.id, data=preferences_data
         )
 
