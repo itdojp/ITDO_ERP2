@@ -1,7 +1,7 @@
 """Cross-tenant permissions schemas."""
 
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -150,14 +150,14 @@ class BatchCrossTenantPermissionResult(BaseModel):
     source_organization_id: int
     target_organization_id: int
     results: List[CrossTenantPermissionResult]
-    summary: dict = Field(description="Summary with allowed/denied counts")
+    summary: dict[str, Any] = Field(description="Summary with allowed/denied counts")
 
 
 class CrossTenantPermissionMatrix(BaseModel):
     """Permission matrix for cross-tenant access."""
 
     source_organization_id: int
-    target_organizations: List[dict] = Field(
+    target_organizations: List[dict[str, Any]] = Field(
         description="List of target orgs with their permission mappings"
     )
 

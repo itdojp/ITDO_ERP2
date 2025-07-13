@@ -216,7 +216,7 @@ class BatchUserInvite(BaseModel):
     """Schema for batch user invitations."""
 
     organization_id: int
-    emails: list[EmailStr] = Field(..., min_items=1, max_items=50)
+    emails: list[EmailStr] = Field(..., min_length=1, max_length=50)
     access_type: Literal["member", "guest", "temporary"] = "member"
     message: Optional[str] = None
     expires_at: Optional[datetime] = None
