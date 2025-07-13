@@ -474,11 +474,11 @@ class RoleService:
         user = self.db.scalar(select(User).where(User.id == user_id))
         if not user:
             return False
-        
+
         # Check if user is superuser (has all permissions)
         if user.is_superuser:
             return True
-        
+
         # Check if user has the specific permission through role assignments
         query = (
             select(Permission)
@@ -488,18 +488,18 @@ class RoleService:
             .where(
                 and_(
                     UserRole.user_id == user_id,
-                    UserRole.is_active == True,
-                    Role.is_active == True,
+                    UserRole.is_active,
+                    Role.is_active,
                     Permission.code == permission_code,
-                    Permission.is_active == True,
+                    Permission.is_active,
                 )
             )
         )
-        
+
         # Filter by organization if provided
         if organization_id:
             query = query.where(UserRole.organization_id == organization_id)
-        
+
         # Check if any matching permission exists
         permission = self.db.scalar(query)
         return permission is not None
