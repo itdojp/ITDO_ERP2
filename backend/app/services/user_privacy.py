@@ -106,7 +106,7 @@ class UserPrivacyService:
             raise NotFound("プライバシー設定が見つかりません")
 
         # Update only provided fields
-        update_data = data.dict(exclude_unset=True)
+        update_data = data.model_dump(exclude_unset=True)
         settings.update(self.db, **update_data)
 
         self.db.commit()

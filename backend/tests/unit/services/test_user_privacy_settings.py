@@ -145,7 +145,8 @@ class TestUserPrivacyService:
         privacy_service.create_settings(user_id=user.id, data=settings_data)
 
         # Mock same organization membership
-        with pytest.mock.patch(
+        from unittest import mock
+        with mock.patch(
             "app.services.user_privacy.UserPrivacyService._users_in_same_organization",
             return_value=True,
         ):
@@ -155,7 +156,8 @@ class TestUserPrivacyService:
             assert can_view is True
 
         # Mock different organization
-        with pytest.mock.patch(
+        from unittest import mock
+        with mock.patch(
             "app.services.user_privacy.UserPrivacyService._users_in_same_organization",
             return_value=False,
         ):
@@ -175,7 +177,8 @@ class TestUserPrivacyService:
         privacy_service.create_settings(user_id=user.id, data=settings_data)
 
         # Mock same department membership
-        with pytest.mock.patch(
+        from unittest import mock
+        with mock.patch(
             "app.services.user_privacy.UserPrivacyService._users_in_same_department",
             return_value=True,
         ):
@@ -185,7 +188,8 @@ class TestUserPrivacyService:
             assert can_view is True
 
         # Mock different department
-        with pytest.mock.patch(
+        from unittest import mock
+        with mock.patch(
             "app.services.user_privacy.UserPrivacyService._users_in_same_department",
             return_value=False,
         ):
