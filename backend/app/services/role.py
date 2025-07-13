@@ -220,7 +220,6 @@ class RoleService:
             organization_id=assignment.organization_id,
             department_id=assignment.department_id,
             assigned_by=assigned_by,
-            valid_from=assignment.valid_from,
             expires_at=assignment.expires_at,
             is_active=True,
             created_by=assigned_by,
