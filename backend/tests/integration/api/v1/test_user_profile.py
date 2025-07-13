@@ -15,8 +15,7 @@ class TestUserProfile:
     """Test cases for user profile endpoints."""
 
     @pytest.mark.skip(
-        reason="User profile update API needs implementation fixes - "
-        "phone field missing"
+        reason="User profile update API needs implementation fixes"
     )
     def test_update_profile_success(
         self, client: TestClient, db_session: Session, user_token: str, test_user: User

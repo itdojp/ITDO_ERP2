@@ -55,9 +55,9 @@ def refresh_token(
     if not tokens:
         # Determine error type based on token validation
         try:
-            from app.core.security import verify_token
             from app.core.exceptions import ExpiredTokenError, InvalidTokenError
-
+            from app.core.security import verify_token
+            
             verify_token(request.refresh_token)
             # Token is valid format but user/refresh issue
             error_code = "AUTH002"

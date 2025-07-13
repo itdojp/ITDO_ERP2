@@ -7,7 +7,8 @@ from unittest.mock import patch
 import pytest
 from sqlalchemy.orm import Session
 
-from app.models.user import User, UserSession
+from app.models.user import User
+from app.models.user_session import UserSession
 from app.services.auth import AuthService
 from tests.factories import UserFactory
 

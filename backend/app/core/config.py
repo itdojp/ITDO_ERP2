@@ -1,6 +1,6 @@
 from typing import Any
 
-from pydantic import AnyHttpUrl, AnyUrl, PostgresDsn, field_validator, ValidationInfo
+from pydantic import AnyHttpUrl, AnyUrl, PostgresDsn, ValidationInfo, field_validator
 from pydantic_settings import BaseSettings
 
 

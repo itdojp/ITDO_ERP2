@@ -3,6 +3,10 @@
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, Optional
 
+if TYPE_CHECKING:
+    from app.models.user_preferences import UserPreferences
+    from app.models.user_privacy import UserPrivacySettings
+
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, desc, func
 from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
 
@@ -86,6 +90,20 @@ class User(SoftDeletableModel):
         back_populates="users",
         primaryjoin="User.id == UserRole.user_id",
         secondaryjoin="UserRole.role_id == Role.id",
+    )
+
+    # User preferences relationship
+    preferences: Mapped["UserPreferences"] = relationship(
+        "UserPreferences",
+        back_populates="user",
+        uselist=False
+    )
+
+    # User privacy settings relationship
+    privacy_settings: Mapped["UserPrivacySettings"] = relationship(
+        "UserPrivacySettings",
+        back_populates="user",
+        uselist=False
     )
 
     @classmethod
