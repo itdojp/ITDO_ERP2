@@ -163,12 +163,19 @@ class RoleService:
         if not role:
             raise NotFound(f"Role {role_id} not found")
 
-        # Convert permission codes to IDs
+        # Validate all permission codes first
         permission_ids = []
+        invalid_codes = []
         for code in permission_codes:
             perm = self.db.scalar(select(Permission).where(Permission.code == code))
             if perm:
                 permission_ids.append(perm.id)
+            else:
+                invalid_codes.append(code)
+
+        # Raise error if any invalid permission codes found
+        if invalid_codes:
+            raise ValueError(f"Invalid permission codes: {', '.join(invalid_codes)}")
 
         # Clear existing permissions
         from sqlalchemy import delete
@@ -213,7 +220,6 @@ class RoleService:
             organization_id=assignment.organization_id,
             department_id=assignment.department_id,
             assigned_by=assigned_by,
-            valid_from=assignment.valid_from,
             expires_at=assignment.expires_at,
             is_active=True,
             created_by=assigned_by,
