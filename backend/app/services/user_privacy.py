@@ -73,7 +73,10 @@ class UserPrivacyService:
             return self.get_settings(user_id)
         except NotFound:
             # Return default settings
+            from datetime import datetime
+
             default_data = PrivacySettingsCreate()
+            now = datetime.utcnow()
             return PrivacySettingsResponse(
                 id=0,  # Temporary ID for defaults
                 user_id=user_id,
@@ -85,8 +88,8 @@ class UserPrivacyService:
                 allow_direct_messages=default_data.allow_direct_messages,
                 searchable_by_email=default_data.searchable_by_email,
                 searchable_by_name=default_data.searchable_by_name,
-                created_at=None,
-                updated_at=None,
+                created_at=now,
+                updated_at=now,
             )
 
     def update_settings(
