@@ -3,6 +3,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.api.v1 import (
+    audit,
     auth,
     cross_tenant_permissions,
     departments,
@@ -22,6 +23,7 @@ api_router = APIRouter()
 
 # Include routers
 api_router.include_router(auth.router)
+api_router.include_router(audit.router, prefix="/audit", tags=["audit"])
 api_router.include_router(users.router)
 api_router.include_router(users_extended.router)
 api_router.include_router(user_profile.router, tags=["user-profile"])

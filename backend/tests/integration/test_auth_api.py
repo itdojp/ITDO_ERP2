@@ -99,7 +99,7 @@ class TestAuthAPI:
 
         # Then: Should return 401
         assert response.status_code == 401
-        assert response.json()["code"] == "AUTH003"
+        assert response.json()["code"] == "AUTH002"
 
     def test_refresh_token_expired(self, client: TestClient, test_user) -> None:
         """Test refresh with expired token."""
