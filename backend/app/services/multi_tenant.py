@@ -97,7 +97,7 @@ class MultiTenantService:
             self.db.query(UserOrganization).filter(
                 and_(
                     UserOrganization.user_id == user_id,
-                    UserOrganization.is_primary == True,
+                    UserOrganization.is_primary,
                 )
             ).update({"is_primary": False})
 
@@ -154,7 +154,7 @@ class MultiTenantService:
             self.db.query(UserOrganization).filter(
                 and_(
                     UserOrganization.user_id == membership.user_id,
-                    UserOrganization.is_primary == True,
+                    UserOrganization.is_primary,
                     UserOrganization.id != membership_id,
                 )
             ).update({"is_primary": False})
@@ -182,7 +182,7 @@ class MultiTenantService:
                 and_(
                     UserOrganization.user_id == user_id,
                     UserOrganization.organization_id == organization_id,
-                    UserOrganization.is_active == True,
+                    UserOrganization.is_active,
                 )
             )
             .first()
@@ -447,7 +447,7 @@ class MultiTenantService:
                     UserOrganization.user_id == transfer_data.user_id,
                     UserOrganization.organization_id
                     == transfer_data.from_organization_id,
-                    UserOrganization.is_active == True,
+                    UserOrganization.is_active,
                 )
             )
             .first()
@@ -630,7 +630,7 @@ class MultiTenantService:
         )
 
         if not include_inactive:
-            query = query.filter(UserOrganization.is_active == True)
+            query = query.filter(UserOrganization.is_active)
 
         return query.all()
 
@@ -647,7 +647,7 @@ class MultiTenantService:
         )
 
         if not include_inactive:
-            query = query.filter(UserOrganization.is_active == True)
+            query = query.filter(UserOrganization.is_active)
 
         return query.all()
 
@@ -664,7 +664,7 @@ class MultiTenantService:
             .filter(
                 and_(
                     UserTransferRequest.user_id == user_id,
-                    UserTransferRequest.is_pending == True,
+                    UserTransferRequest.is_pending,
                 )
             )
             .count()
@@ -703,7 +703,7 @@ class MultiTenantService:
             .filter(
                 and_(
                     OrganizationInvitation.organization_id == organization_id,
-                    OrganizationInvitation.is_pending == True,
+                    OrganizationInvitation.is_pending,
                 )
             )
             .count()
@@ -714,7 +714,7 @@ class MultiTenantService:
             .filter(
                 and_(
                     UserTransferRequest.to_organization_id == organization_id,
-                    UserTransferRequest.is_pending == True,
+                    UserTransferRequest.is_pending,
                 )
             )
             .count()
@@ -725,7 +725,7 @@ class MultiTenantService:
             .filter(
                 and_(
                     UserTransferRequest.from_organization_id == organization_id,
-                    UserTransferRequest.is_pending == True,
+                    UserTransferRequest.is_pending,
                 )
             )
             .count()
@@ -763,7 +763,7 @@ class MultiTenantService:
                 and_(
                     UserOrganization.access_type == "temporary",
                     UserOrganization.access_expires_at <= now,
-                    UserOrganization.is_active == True,
+                    UserOrganization.is_active,
                 )
             )
             .all()

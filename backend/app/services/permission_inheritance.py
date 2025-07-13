@@ -143,7 +143,7 @@ class PermissionInheritanceService:
                 .filter(
                     and_(
                         RoleInheritanceRule.child_role_id == current_role_id,
-                        RoleInheritanceRule.is_active == True,
+                        RoleInheritanceRule.is_active,
                     )
                 )
                 .all()
@@ -233,7 +233,7 @@ class PermissionInheritanceService:
                     and_(
                         PermissionDependency.requires_permission_id
                         == current_permission_id,
-                        PermissionDependency.is_active == True,
+                        PermissionDependency.is_active,
                     )
                 )
                 .all()
@@ -262,7 +262,7 @@ class PermissionInheritanceService:
                 .filter(
                     and_(
                         PermissionDependency.permission_id == perm_id,
-                        PermissionDependency.is_active == True,
+                        PermissionDependency.is_active,
                     )
                 )
                 .all()
@@ -288,7 +288,7 @@ class PermissionInheritanceService:
             .filter(
                 and_(
                     RoleInheritanceRule.child_role_id == role_id,
-                    RoleInheritanceRule.is_active == True,
+                    RoleInheritanceRule.is_active,
                 )
             )
             .all()
@@ -431,7 +431,7 @@ class PermissionInheritanceService:
             .filter(
                 and_(
                     RoleInheritanceRule.child_role_id == role_id,
-                    RoleInheritanceRule.is_active == True,
+                    RoleInheritanceRule.is_active,
                 )
             )
             .order_by(RoleInheritanceRule.priority.desc())
@@ -483,7 +483,7 @@ class PermissionInheritanceService:
                 .filter(
                     and_(
                         RoleInheritanceRule.child_role_id == current_role_id,
-                        RoleInheritanceRule.is_active == True,
+                        RoleInheritanceRule.is_active,
                     )
                 )
                 .order_by(RoleInheritanceRule.priority.desc())  # Higher priority first
@@ -580,7 +580,7 @@ class PermissionInheritanceService:
                 .filter(
                     and_(
                         RoleInheritanceRule.child_role_id == current_role_id,
-                        RoleInheritanceRule.is_active == True,
+                        RoleInheritanceRule.is_active,
                     )
                 )
                 .order_by(RoleInheritanceRule.priority.desc())

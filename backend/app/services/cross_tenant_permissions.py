@@ -75,7 +75,7 @@ class CrossTenantPermissionService:
                     CrossTenantPermissionRule.permission_pattern
                     == rule_data.permission_pattern,
                     CrossTenantPermissionRule.priority == rule_data.priority,
-                    CrossTenantPermissionRule.is_active == True,
+                    CrossTenantPermissionRule.is_active,
                 )
             )
             .first()
@@ -199,7 +199,7 @@ class CrossTenantPermissionService:
                 and_(
                     UserOrganization.user_id == user_id,
                     UserOrganization.organization_id == source_organization_id,
-                    UserOrganization.is_active == True,
+                    UserOrganization.is_active,
                 )
             )
             .first()
@@ -392,7 +392,7 @@ class CrossTenantPermissionService:
             .filter(
                 and_(
                     CrossTenantPermissionRule.source_organization_id == organization_id,
-                    CrossTenantPermissionRule.is_active == True,
+                    CrossTenantPermissionRule.is_active,
                 )
             )
             .count()
@@ -404,7 +404,7 @@ class CrossTenantPermissionService:
             .filter(
                 and_(
                     CrossTenantPermissionRule.target_organization_id == organization_id,
-                    CrossTenantPermissionRule.is_active == True,
+                    CrossTenantPermissionRule.is_active,
                 )
             )
             .count()
@@ -416,7 +416,7 @@ class CrossTenantPermissionService:
             .filter(
                 and_(
                     UserOrganization.organization_id == organization_id,
-                    UserOrganization.is_active == True,
+                    UserOrganization.is_active,
                 )
             )
             .count()
@@ -454,7 +454,7 @@ class CrossTenantPermissionService:
             .filter(
                 and_(
                     CrossTenantPermissionRule.expires_at <= now,
-                    CrossTenantPermissionRule.is_active == True,
+                    CrossTenantPermissionRule.is_active,
                 )
             )
             .all()
@@ -481,7 +481,7 @@ class CrossTenantPermissionService:
                 == source_organization_id,
                 CrossTenantPermissionRule.target_organization_id
                 == target_organization_id,
-                CrossTenantPermissionRule.is_active == True,
+                CrossTenantPermissionRule.is_active,
             )
         )
 

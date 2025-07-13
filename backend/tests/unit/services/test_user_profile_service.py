@@ -23,7 +23,7 @@ from app.schemas.user_profile import (
     UserProfileUpdate,
 )
 from app.services.user_profile import UserProfileService
-from tests.factories import create_test_organization, create_test_user
+from tests.factories import create_test_user
 
 
 class TestUserProfileService:
