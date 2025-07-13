@@ -56,13 +56,16 @@ def refresh_token(
         # Determine error type based on token validation
         try:
             from app.core.security import verify_token
-
-            verify_token(request.refresh_token)
-            # Token is valid but not a refresh token or user issue
-            error_code = "AUTH003"
-        except Exception:
-            # Token is expired or invalid
+            from app.core.exceptions import ExpiredTokenError, InvalidTokenError
+            payload = verify_token(request.refresh_token)
+            # Token is valid format but user/refresh issue
             error_code = "AUTH002"
+        except ExpiredTokenError:
+            error_code = "AUTH002"  # Expired token
+        except InvalidTokenError:
+            error_code = "AUTH003"  # Invalid format
+        except Exception:
+            error_code = "AUTH003"  # Other invalid format
 
         return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
