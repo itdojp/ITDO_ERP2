@@ -139,9 +139,6 @@ class Organization(SoftDeletableModel):
         viewonly=True,
         lazy="dynamic",
     )
-    roles: Mapped[list["Role"]] = relationship(
-        "Role", back_populates="organization", lazy="dynamic"
-    )
 
     def __repr__(self) -> str:
         """String representation."""

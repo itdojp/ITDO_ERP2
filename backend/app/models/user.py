@@ -44,6 +44,9 @@ class User(SoftDeletableModel):
     department_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("departments.id"), nullable=True
     )
+    organization_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("organizations.id"), nullable=True
+    )
 
     # Security fields
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -83,27 +86,14 @@ class User(SoftDeletableModel):
         "Task", foreign_keys="Task.reporter_id", back_populates="reporter"
     )
 
-    # Role relationships
-    roles: Mapped[list["Role"]] = relationship(
-        "Role",
-        secondary="user_roles",
-        back_populates="users",
-        primaryjoin="User.id == UserRole.user_id",
-        secondaryjoin="UserRole.role_id == Role.id",
-    )
-
     # User preferences relationship
     preferences: Mapped["UserPreferences"] = relationship(
-        "UserPreferences",
-        back_populates="user",
-        uselist=False
+        "UserPreferences", back_populates="user", uselist=False
     )
 
     # User privacy settings relationship
     privacy_settings: Mapped["UserPrivacySettings"] = relationship(
-        "UserPrivacySettings",
-        back_populates="user",
-        uselist=False
+        "UserPrivacySettings", back_populates="user", uselist=False
     )
 
     @classmethod

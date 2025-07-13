@@ -83,13 +83,13 @@ class AuditLogSearch(BaseModel):
     sort_order: str = Field(default="desc", description="Sort order (asc/desc)")
 
     @validator("sort_order")
-    def validate_sort_order(cls, v):
+    def validate_sort_order(cls, v: str) -> str:
         if v not in ["asc", "desc"]:
             raise ValueError('sort_order must be "asc" or "desc"')
         return v
 
     @validator("sort_by")
-    def validate_sort_by(cls, v):
+    def validate_sort_by(cls, v: str) -> str:
         allowed_fields = ["created_at", "action", "resource_type", "user_id"]
         if v not in allowed_fields:
             raise ValueError(f"sort_by must be one of: {', '.join(allowed_fields)}")
@@ -156,7 +156,7 @@ class AuditLogExportRequest(BaseModel):
     include_sensitive: bool = Field(default=False, description="Include sensitive data")
 
     @validator("format")
-    def validate_format(cls, v):
+    def validate_format(cls, v: str) -> str:
         if v not in ["csv", "json", "xlsx"]:
             raise ValueError('format must be "csv", "json", or "xlsx"')
         return v

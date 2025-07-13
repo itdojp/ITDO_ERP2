@@ -14,9 +14,7 @@ from tests.conftest import create_auth_headers
 class TestUserProfile:
     """Test cases for user profile endpoints."""
 
-    @pytest.mark.skip(
-        reason="User profile update API needs implementation fixes"
-    )
+    @pytest.mark.skip(reason="User profile update API needs implementation fixes")
     def test_update_profile_success(
         self, client: TestClient, db_session: Session, user_token: str, test_user: User
     ) -> None:

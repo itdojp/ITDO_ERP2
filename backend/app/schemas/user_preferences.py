@@ -22,7 +22,7 @@ class UserPreferencesBase(BaseModel):
     time_format: str = Field(default="24h", description="Time display format")
 
     @validator("language")
-    def validate_language(cls, v):
+    def validate_language(cls, v: str) -> str:
         """Validate language code."""
         supported_languages = ["en", "ja", "es", "fr", "de", "zh", "ko"]
         if v not in supported_languages:
@@ -30,7 +30,7 @@ class UserPreferencesBase(BaseModel):
         return v
 
     @validator("timezone")
-    def validate_timezone(cls, v):
+    def validate_timezone(cls, v: str) -> str:
         """Validate timezone."""
         import pytz
 
@@ -41,7 +41,7 @@ class UserPreferencesBase(BaseModel):
         return v
 
     @validator("theme")
-    def validate_theme(cls, v):
+    def validate_theme(cls, v: str) -> str:
         """Validate theme."""
         supported_themes = ["light", "dark", "auto"]
         if v not in supported_themes:
@@ -49,7 +49,7 @@ class UserPreferencesBase(BaseModel):
         return v
 
     @validator("date_format")
-    def validate_date_format(cls, v):
+    def validate_date_format(cls, v: str) -> str:
         """Validate date format."""
         supported_formats = [
             "YYYY-MM-DD",
@@ -63,7 +63,7 @@ class UserPreferencesBase(BaseModel):
         return v
 
     @validator("time_format")
-    def validate_time_format(cls, v):
+    def validate_time_format(cls, v: str) -> str:
         """Validate time format."""
         supported_formats = ["12h", "24h"]
         if v not in supported_formats:
@@ -89,7 +89,7 @@ class UserPreferencesUpdate(BaseModel):
     time_format: Optional[str] = None
 
     @validator("language")
-    def validate_language(cls, v):
+    def validate_language(cls, v: Optional[str]) -> Optional[str]:
         """Validate language code."""
         if v is not None:
             supported_languages = ["en", "ja", "es", "fr", "de", "zh", "ko"]
@@ -98,7 +98,7 @@ class UserPreferencesUpdate(BaseModel):
         return v
 
     @validator("timezone")
-    def validate_timezone(cls, v):
+    def validate_timezone(cls, v: Optional[str]) -> Optional[str]:
         """Validate timezone."""
         if v is not None:
             import pytz
@@ -110,7 +110,7 @@ class UserPreferencesUpdate(BaseModel):
         return v
 
     @validator("theme")
-    def validate_theme(cls, v):
+    def validate_theme(cls, v: Optional[str]) -> Optional[str]:
         """Validate theme."""
         if v is not None:
             supported_themes = ["light", "dark", "auto"]
@@ -119,7 +119,7 @@ class UserPreferencesUpdate(BaseModel):
         return v
 
     @validator("date_format")
-    def validate_date_format(cls, v):
+    def validate_date_format(cls, v: Optional[str]) -> Optional[str]:
         """Validate date format."""
         if v is not None:
             supported_formats = [
@@ -134,7 +134,7 @@ class UserPreferencesUpdate(BaseModel):
         return v
 
     @validator("time_format")
-    def validate_time_format(cls, v):
+    def validate_time_format(cls, v: Optional[str]) -> Optional[str]:
         """Validate time format."""
         if v is not None:
             supported_formats = ["12h", "24h"]

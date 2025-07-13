@@ -63,13 +63,6 @@ class Permission(BaseModel):
         cascade="all, delete-orphan",
         lazy="select",
     )
-    roles: Mapped[list["Role"]] = relationship(
-        "Role",
-        secondary="role_permissions",
-        back_populates="permissions",
-        primaryjoin="Permission.id == RolePermission.permission_id",
-        secondaryjoin="RolePermission.role_id == Role.id",
-    )
 
     # Indexes and constraints
     __table_args__ = (
