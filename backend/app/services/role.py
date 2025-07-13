@@ -169,7 +169,7 @@ class RoleService:
         if not role:
             raise NotFound(f"Role {role_id} not found")
 
-        # Validate all permission codes first
+        # Validate all permission codes exist
         permission_ids = []
         invalid_codes = []
         for code in permission_codes:
@@ -179,7 +179,7 @@ class RoleService:
             else:
                 invalid_codes.append(code)
 
-        # Raise error if any invalid permission codes found
+        # Raise error if any invalid codes found
         if invalid_codes:
             raise ValueError(f"Invalid permission codes: {', '.join(invalid_codes)}")
 
