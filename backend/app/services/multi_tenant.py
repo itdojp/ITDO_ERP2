@@ -664,7 +664,9 @@ class MultiTenantService:
             .filter(
                 and_(
                     UserTransferRequest.user_id == user_id,
-                    UserTransferRequest.is_pending,
+                    UserTransferRequest.approved_at.is_(None),
+                    UserTransferRequest.rejected_at.is_(None),
+                    UserTransferRequest.executed_at.is_(None),
                 )
             )
             .count()
@@ -698,12 +700,15 @@ class MultiTenantService:
             organization_id, include_inactive=False
         )
 
+        now = datetime.utcnow()
         pending_invitations = (
             self.db.query(OrganizationInvitation)
             .filter(
                 and_(
                     OrganizationInvitation.organization_id == organization_id,
-                    OrganizationInvitation.is_pending,
+                    OrganizationInvitation.accepted_at.is_(None),
+                    OrganizationInvitation.declined_at.is_(None),
+                    OrganizationInvitation.expires_at > now,
                 )
             )
             .count()
@@ -714,7 +719,9 @@ class MultiTenantService:
             .filter(
                 and_(
                     UserTransferRequest.to_organization_id == organization_id,
-                    UserTransferRequest.is_pending,
+                    UserTransferRequest.approved_at.is_(None),
+                    UserTransferRequest.rejected_at.is_(None),
+                    UserTransferRequest.executed_at.is_(None),
                 )
             )
             .count()
@@ -725,7 +732,9 @@ class MultiTenantService:
             .filter(
                 and_(
                     UserTransferRequest.from_organization_id == organization_id,
-                    UserTransferRequest.is_pending,
+                    UserTransferRequest.approved_at.is_(None),
+                    UserTransferRequest.rejected_at.is_(None),
+                    UserTransferRequest.executed_at.is_(None),
                 )
             )
             .count()
