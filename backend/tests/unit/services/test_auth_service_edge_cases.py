@@ -491,7 +491,7 @@ class TestAuthServiceEdgeCases:
 
         # Create token that expires very soon
         short_lived_token = create_access_token(
-            data={"sub": user.email}, expires_delta=timedelta(seconds=1)
+            data={"sub": str(user.id)}, expires_delta=timedelta(seconds=1)
         )
 
         # When: Using token at boundary conditions
