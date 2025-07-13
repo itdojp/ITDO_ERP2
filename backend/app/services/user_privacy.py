@@ -74,8 +74,9 @@ class UserPrivacyService:
         except NotFound:
             # Return default settings
             from datetime import datetime
+
             default_data = PrivacySettingsCreate()
-            now = datetime.now()
+            now = datetime.utcnow()
             return PrivacySettingsResponse(
                 id=0,  # Temporary ID for defaults
                 user_id=user_id,
