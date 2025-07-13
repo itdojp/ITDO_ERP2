@@ -3,8 +3,8 @@
 import time
 from datetime import datetime, timedelta
 
-from jose import jwt
 import pytest
+from jose import jwt
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -73,7 +73,9 @@ class TestTokenSecurityEdgeCases:
 
         # Try with different algorithm
         try:
-            rs256_token = jwt.encode(payload, current_settings.SECRET_KEY, algorithm="RS256")
+            rs256_token = jwt.encode(
+                payload, current_settings.SECRET_KEY, algorithm="RS256"
+            )
             with pytest.raises(Exception):
                 verify_token(rs256_token)
         except Exception:
@@ -227,7 +229,9 @@ class TestTokenSecurityEdgeCases:
         # Token without 'sub' claim
         payload_no_sub = {"exp": (datetime.utcnow() + timedelta(hours=1)).timestamp()}
         token_no_sub = jwt.encode(
-            payload_no_sub, current_settings.SECRET_KEY, algorithm=current_settings.ALGORITHM
+            payload_no_sub,
+            current_settings.SECRET_KEY,
+            algorithm=current_settings.ALGORITHM,
         )
 
         # Should handle missing required claims
@@ -237,7 +241,9 @@ class TestTokenSecurityEdgeCases:
         # Token without 'exp' claim
         payload_no_exp = {"sub": str(user.id)}
         token_no_exp = jwt.encode(
-            payload_no_exp, current_settings.SECRET_KEY, algorithm=current_settings.ALGORITHM
+            payload_no_exp,
+            current_settings.SECRET_KEY,
+            algorithm=current_settings.ALGORITHM,
         )
 
         # Should still validate (depending on JWT library settings)
@@ -273,7 +279,9 @@ class TestTokenSecurityEdgeCases:
             "exp": (datetime.utcnow() + timedelta(hours=1)).timestamp(),
         }
         token_string_id = jwt.encode(
-            payload_string_id, current_settings.SECRET_KEY, algorithm=current_settings.ALGORITHM
+            payload_string_id,
+            current_settings.SECRET_KEY,
+            algorithm=current_settings.ALGORITHM,
         )
 
         # Should validate at JWT level but may fail at application level
@@ -286,7 +294,9 @@ class TestTokenSecurityEdgeCases:
             "exp": (datetime.utcnow() + timedelta(hours=1)).timestamp(),
         }
         token_empty_sub = jwt.encode(
-            payload_empty_sub, current_settings.SECRET_KEY, algorithm=current_settings.ALGORITHM
+            payload_empty_sub,
+            current_settings.SECRET_KEY,
+            algorithm=current_settings.ALGORITHM,
         )
 
         result = verify_token(token_empty_sub)
@@ -353,7 +363,9 @@ class TestTokenSecurityEdgeCases:
         current_settings = settings
         try:
             large_token = jwt.encode(
-                payload, current_settings.SECRET_KEY, algorithm=current_settings.ALGORITHM
+                payload,
+                current_settings.SECRET_KEY,
+                algorithm=current_settings.ALGORITHM,
             )
 
             # Should handle large tokens (within JWT limits)
