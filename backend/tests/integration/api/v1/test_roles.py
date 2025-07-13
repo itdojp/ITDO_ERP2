@@ -778,7 +778,11 @@ class TestRolePermissions:
         assert response.status_code == 403
 
         # Test assign permission
-        assignment_data = {"user_id": user.id, "role_id": role.id}
+        assignment_data = {
+            "user_id": user.id, 
+            "role_id": role.id,
+            "organization_id": test_organization.id
+        }
         response = client.post(
             "/api/v1/roles/assign",
             json=assignment_data,

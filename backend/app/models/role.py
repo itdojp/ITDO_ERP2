@@ -47,6 +47,9 @@ class Role(SoftDeletableModel):
         comment="Unique role code within organization",
     )
     name: Mapped[str] = mapped_column(String(200), nullable=False, comment="Role name")
+    name_en: Mapped[str | None] = mapped_column(
+        String(200), nullable=True, comment="Role name in English"
+    )
     description: Mapped[str | None] = mapped_column(
         Text, nullable=True, comment="Role description"
     )

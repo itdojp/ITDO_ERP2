@@ -47,6 +47,11 @@ class RoleService:
         if self.repository.get_by_code(role_data.code):
             raise AlreadyExists(f"Role with code '{role_data.code}' already exists")
 
+        # Check if role name already exists within organization
+        if hasattr(role_data, "organization_id") and role_data.organization_id:
+            if self.repository.get_by_name_and_organization(role_data.name, role_data.organization_id):
+                raise AlreadyExists(f"Role with name '{role_data.name}' already exists in this organization")
+
         # Check if organization exists if specified
         if hasattr(role_data, "organization_id") and role_data.organization_id:
             org = self.db.get(Organization, role_data.organization_id)
@@ -62,11 +67,7 @@ class RoleService:
             role_type=role_data.role_type,
             organization_id=getattr(role_data, "organization_id", None),
             parent_id=role_data.parent_id,
-            permissions=role_data.permissions,
             is_system=role_data.is_system,
-            display_order=role_data.display_order,
-            icon=role_data.icon,
-            color=role_data.color,
             created_by=created_by,
             updated_by=created_by,
         )
@@ -282,9 +283,9 @@ class RoleService:
             "is_system": role.is_system,
             "is_inherited": False,
             "users_count": len(role.user_roles) if role.user_roles else 0,
-            "display_order": getattr(role, "display_order", 0),
-            "icon": getattr(role, "icon", None),
-            "color": getattr(role, "color", None),
+            "display_order": 0,
+            "icon": None,
+            "color": None,
             "permissions": {},  # Initialize as empty dict instead of InstrumentedList
             "all_permissions": {},
             "created_at": role.created_at,
@@ -340,6 +341,7 @@ class RoleService:
         active_only: bool = True,
         limit: int = 100,
         organization_id: OrganizationId | None = None,
+        filters: dict[str, Any] | None = None,
     ) -> tuple[list[Role], int]:
         """List roles with filtering."""
         query = select(Role).where(~Role.is_deleted)
@@ -355,13 +357,24 @@ class RoleService:
                 )
             )
 
+        # Apply additional filters
+        if filters:
+            for key, value in filters.items():
+                if key == "role_type":
+                    query = query.where(Role.role_type == value)
+                elif key == "is_active":
+                    query = query.where(Role.is_active == value)
+                elif key == "organization_id":
+                    # Already handled above
+                    pass
+
         # Count total
         count_query = select(func.count()).select_from(query.subquery())
         total = self.db.scalar(count_query) or 0
 
         # Get paginated results
         roles = self.db.scalars(
-            query.order_by(Role.display_order, Role.name).offset(skip).limit(limit)
+            query.order_by(Role.name).offset(skip).limit(limit)
         ).all()
 
         return list(roles), total
