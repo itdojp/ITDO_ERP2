@@ -2,16 +2,13 @@
 
 import pytest
 from fastapi import HTTPException
-from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import (
     get_current_active_user,
     get_current_superuser,
-    get_current_user,
     get_db,
 )
-from app.models.user import User
 from tests.factories import UserFactory
 
 
@@ -26,7 +23,7 @@ class TestDatabaseDependency:
 
         # Then: Should return a valid Session
         assert isinstance(db, Session)
-        
+
         # Cleanup
         try:
             next(db_generator)
@@ -38,7 +35,7 @@ class TestDatabaseDependency:
         # When: Using database session in context
         db_generator = get_db()
         db = next(db_generator)
-        
+
         # Simulate ending the context
         try:
             next(db_generator)
@@ -56,9 +53,7 @@ class TestUserAuthenticationDependencies:
         """Test get_current_active_user with active user."""
         # Given: Active user
         user = UserFactory.create_with_password(
-            db_session, 
-            password="password123", 
-            is_active=True
+            db_session, password="password123", is_active=True
         )
 
         # When: Getting current active user
@@ -74,28 +69,21 @@ class TestUserAuthenticationDependencies:
         """Test get_current_active_user with inactive user."""
         # Given: Inactive user
         user = UserFactory.create_with_password(
-            db_session, 
-            password="password123", 
-            is_active=False
+            db_session, password="password123", is_active=False
         )
 
         # When/Then: Should raise HTTPException for inactive user
         with pytest.raises(HTTPException) as exc_info:
             get_current_active_user(user)
-        
+
         assert exc_info.value.status_code == 403
         assert "Inactive user" in str(exc_info.value.detail)
 
-    def test_get_current_superuser_with_superuser(
-        self, db_session: Session
-    ) -> None:
+    def test_get_current_superuser_with_superuser(self, db_session: Session) -> None:
         """Test get_current_superuser with superuser."""
         # Given: Active superuser
         user = UserFactory.create_with_password(
-            db_session, 
-            password="password123", 
-            is_active=True,
-            is_superuser=True
+            db_session, password="password123", is_active=True, is_superuser=True
         )
 
         # When: Getting current superuser
@@ -105,22 +93,17 @@ class TestUserAuthenticationDependencies:
         assert result == user
         assert result.is_superuser
 
-    def test_get_current_superuser_with_regular_user(
-        self, db_session: Session
-    ) -> None:
+    def test_get_current_superuser_with_regular_user(self, db_session: Session) -> None:
         """Test get_current_superuser with regular user."""
         # Given: Regular user (not superuser)
         user = UserFactory.create_with_password(
-            db_session, 
-            password="password123", 
-            is_active=True,
-            is_superuser=False
+            db_session, password="password123", is_active=True, is_superuser=False
         )
 
         # When/Then: Should raise HTTPException for non-superuser
         with pytest.raises(HTTPException) as exc_info:
             get_current_superuser(user)
-        
+
         assert exc_info.value.status_code == 403
         assert "Not enough permissions" in str(exc_info.value.detail)
 
@@ -130,17 +113,14 @@ class TestUserAuthenticationDependencies:
         """Test get_current_superuser with inactive superuser."""
         # Given: Inactive superuser
         user = UserFactory.create_with_password(
-            db_session, 
-            password="password123", 
-            is_active=False,
-            is_superuser=True
+            db_session, password="password123", is_active=False, is_superuser=True
         )
 
         # When/Then: Should raise HTTPException for inactive user first
         with pytest.raises(HTTPException) as exc_info:
             # This would go through get_current_active_user first
             get_current_active_user(user)
-        
+
         assert exc_info.value.status_code == 403
         assert "Inactive user" in str(exc_info.value.detail)
 
@@ -152,10 +132,7 @@ class TestAuthenticationEdgeCases:
         """Test user with various permission combinations."""
         # Given: User with specific attributes
         user = UserFactory.create_with_password(
-            db_session,
-            password="password123",
-            is_active=True,
-            is_superuser=False
+            db_session, password="password123", is_active=True, is_superuser=False
         )
 
         # When: Checking active user status
@@ -163,7 +140,7 @@ class TestAuthenticationEdgeCases:
 
         # Then: Should pass active check but fail superuser check
         assert result == user
-        
+
         with pytest.raises(HTTPException):
             get_current_superuser(user)
 
@@ -177,14 +154,19 @@ class TestAuthenticationEdgeCases:
             (False, False, False, False),
         ]
 
-        for is_active, is_superuser, should_pass_active, should_pass_super in test_cases:
+        for (
+            is_active,
+            is_superuser,
+            should_pass_active,
+            should_pass_super,
+        ) in test_cases:
             # Given: User with specific state
             user = UserFactory.create_with_password(
                 db_session,
                 password="password123",
                 email=f"test_{is_active}_{is_superuser}@example.com",
                 is_active=is_active,
-                is_superuser=is_superuser
+                is_superuser=is_superuser,
             )
 
             # Test active user check
@@ -212,10 +194,7 @@ class TestDependencyChaining:
         """Test successful dependency chain execution."""
         # Given: Valid superuser
         user = UserFactory.create_with_password(
-            db_session,
-            password="password123",
-            is_active=True,
-            is_superuser=True
+            db_session, password="password123", is_active=True, is_superuser=True
         )
 
         # When: Going through full dependency chain
@@ -232,26 +211,20 @@ class TestDependencyChaining:
         """Test dependency chain breaking at active user check."""
         # Given: Inactive superuser
         user = UserFactory.create_with_password(
-            db_session,
-            password="password123",
-            is_active=False,
-            is_superuser=True
+            db_session, password="password123", is_active=False, is_superuser=True
         )
 
         # When/Then: Should break at active user check
         with pytest.raises(HTTPException) as exc_info:
             get_current_active_user(user)
-        
+
         assert exc_info.value.status_code == 403
 
     def test_dependency_chain_break_at_superuser(self, db_session: Session) -> None:
         """Test dependency chain breaking at superuser check."""
         # Given: Active regular user
         user = UserFactory.create_with_password(
-            db_session,
-            password="password123",
-            is_active=True,
-            is_superuser=False
+            db_session, password="password123", is_active=True, is_superuser=False
         )
 
         # When: Should pass active check but fail superuser check
@@ -261,6 +234,6 @@ class TestDependencyChaining:
         # Then: Should break at superuser check
         with pytest.raises(HTTPException) as exc_info:
             get_current_superuser(active_user)
-        
+
         assert exc_info.value.status_code == 403
         assert "Not enough permissions" in str(exc_info.value.detail)

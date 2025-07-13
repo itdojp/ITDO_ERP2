@@ -4,7 +4,7 @@ from typing import Any, Dict, List
 
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import NotFound, PermissionDenied
+from app.core.exceptions import NotFound
 from app.models.role import Role
 from app.models.user import User
 from app.schemas.role_permission_ui import (
@@ -41,7 +41,9 @@ class RolePermissionUIService:
             raise NotFound("ロールが見つかりません")
 
         # Get role permissions
-        role_permissions = [rp.permission.code for rp in role.role_permissions if rp.is_granted]
+        role_permissions = [
+            rp.permission.code for rp in role.role_permissions if rp.is_granted
+        ]
 
         # Create permission matrix
         permissions = {}
@@ -67,7 +69,7 @@ class RolePermissionUIService:
     ) -> PermissionMatrix:
         """Update role permissions."""
         # Permission check
-        if not hasattr(updater, 'is_superuser') or not updater.is_superuser:
+        if not hasattr(updater, "is_superuser") or not updater.is_superuser:
             # TODO: Implement proper permission check
             pass
 
@@ -100,7 +102,7 @@ class RolePermissionUIService:
     ) -> PermissionMatrix:
         """Copy permissions from one role to another."""
         # Permission check
-        if not hasattr(copier, 'is_superuser') or not copier.is_superuser:
+        if not hasattr(copier, "is_superuser") or not copier.is_superuser:
             # TODO: Implement proper permission check
             pass
 
@@ -127,13 +129,19 @@ class RolePermissionUIService:
         if role.parent_id:
             parent_role = self.db.query(Role).filter(Role.id == role.parent_id).first()
             if parent_role:
-                parent_perms = [rp.permission.code for rp in parent_role.role_permissions if rp.is_granted]
+                parent_perms = [
+                    rp.permission.code
+                    for rp in parent_role.role_permissions
+                    if rp.is_granted
+                ]
                 for perm_code in self._get_all_permission_codes():
                     inherited_permissions[perm_code] = perm_code in parent_perms
 
         # Get own permissions
         own_permissions = {}
-        role_perms = [rp.permission.code for rp in role.role_permissions if rp.is_granted]
+        role_perms = [
+            rp.permission.code for rp in role.role_permissions if rp.is_granted
+        ]
         for perm_code in self._get_all_permission_codes():
             own_permissions[perm_code] = perm_code in role_perms
 
@@ -158,7 +166,7 @@ class RolePermissionUIService:
         updater: User,
     ) -> List[PermissionMatrix]:
         """Bulk update permissions for multiple roles."""
-        if not hasattr(updater, 'is_superuser') or not updater.is_superuser:
+        if not hasattr(updater, "is_superuser") or not updater.is_superuser:
             # TODO: Implement proper permission check
             pass
 

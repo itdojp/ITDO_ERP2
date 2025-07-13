@@ -19,7 +19,9 @@ class RoleRepository(BaseRepository[Role, RoleCreate, RoleUpdate]):
         """Get role by code."""
         return self.db.scalar(select(self.model).where(self.model.code == code))
 
-    def get_by_name_and_organization(self, name: str, organization_id: int) -> Role | None:
+    def get_by_name_and_organization(
+        self, name: str, organization_id: int
+    ) -> Role | None:
         """Get role by name within organization."""
         return self.db.scalar(
             select(self.model)

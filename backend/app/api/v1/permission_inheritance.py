@@ -115,7 +115,9 @@ def create_permission_dependency(
 @router.get("/roles/{role_id}/effective-permissions")
 def get_effective_permissions(
     role_id: int,
-    include_source: bool = Query(False, description="Include permission source information"),
+    include_source: bool = Query(
+        False, description="Include permission source information"
+    ),
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ):
@@ -133,7 +135,9 @@ def get_effective_permissions(
         )
 
 
-@router.get("/roles/{role_id}/inheritance-conflicts", response_model=List[InheritanceConflict])
+@router.get(
+    "/roles/{role_id}/inheritance-conflicts", response_model=List[InheritanceConflict]
+)
 def get_inheritance_conflicts(
     role_id: int,
     current_user: User = Depends(get_current_active_user),
@@ -188,7 +192,10 @@ def get_inheritance_audit_logs(
         )
 
 
-@router.get("/permissions/{permission_id}/dependencies", response_model=List[PermissionDependency])
+@router.get(
+    "/permissions/{permission_id}/dependencies",
+    response_model=List[PermissionDependency],
+)
 def get_permission_dependencies(
     permission_id: int,
     transitive: bool = Query(False, description="Include transitive dependencies"),

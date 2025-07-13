@@ -218,6 +218,7 @@ class TestPasswordHashingEdgeCases:
         # When/Then: Verifying with malformed hash should raise an exception
         # This is expected behavior as passlib cannot identify the hash format
         from passlib.exc import UnknownHashError
+
         with pytest.raises(UnknownHashError):
             verify_password(password, malformed_hash)
 
@@ -261,7 +262,7 @@ class TestJWTTokenEdgeCases:
         data = {
             "sub": "123",
             "large_data": "x" * 10000,  # 10KB of data
-            "permissions": ["read", "write", "admin"] * 100
+            "permissions": ["read", "write", "admin"] * 100,
         }
 
         # When: Creating token
@@ -278,7 +279,7 @@ class TestJWTTokenEdgeCases:
         # Given: Valid token with tampered signature
         data = {"sub": "123"}
         token = create_access_token(data)
-        
+
         # Tamper with the signature (last part after last dot)
         parts = token.split(".")
         tampered_token = ".".join(parts[:-1]) + ".tampered_signature"
@@ -351,10 +352,10 @@ class TestSecurityUtilitiesIntegration:
 
         # Then: All operations should work together
         assert verify_password(password, hashed_password)
-        
+
         access_payload = verify_token(access_token)
         refresh_payload = verify_token(refresh_token)
-        
+
         assert access_payload["email"] == email
         assert refresh_payload["email"] == email
 
@@ -386,10 +387,10 @@ class TestSecurityUtilitiesIntegration:
 
         # Then: Tokens should be different
         assert token1 != token2
-        
+
         payload1 = verify_token(token1)
         payload2 = verify_token(token2)
-        
+
         assert payload1["sub"] != payload2["sub"]
         assert payload1["email"] != payload2["email"]
         assert payload1["type"] == payload2["type"] == "access"

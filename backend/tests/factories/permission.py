@@ -22,7 +22,16 @@ class PermissionFactory(BaseFactory):
             "code": f"test.{unique_id}",
             "name": fake.words(2, unique=True)[0],
             "description": fake.text(max_nb_chars=200),
-            "category": fake.random_element(elements=["user", "role", "organization", "department", "project", "task"]),
+            "category": fake.random_element(
+                elements=[
+                    "user",
+                    "role",
+                    "organization",
+                    "department",
+                    "project",
+                    "task",
+                ]
+            ),
             "is_active": True,
             "is_system": False,
         }
@@ -34,7 +43,9 @@ class PermissionFactory(BaseFactory):
         return cls.create(db_session, **kwargs)
 
     @classmethod
-    def create_with_category(cls, db_session: Session, category: str, **kwargs) -> Permission:
+    def create_with_category(
+        cls, db_session: Session, category: str, **kwargs
+    ) -> Permission:
         """Create a permission with a specific category."""
         kwargs["category"] = category
         return cls.create(db_session, **kwargs)

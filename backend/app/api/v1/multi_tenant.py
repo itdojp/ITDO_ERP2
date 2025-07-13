@@ -73,7 +73,9 @@ def update_user_organization_membership(
 def remove_user_from_organization(
     organization_id: int,
     user_id: int,
-    soft_delete: bool = Query(True, description="Soft delete membership instead of hard delete"),
+    soft_delete: bool = Query(
+        True, description="Soft delete membership instead of hard delete"
+    ),
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ) -> dict[str, str]:
@@ -91,7 +93,10 @@ def remove_user_from_organization(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
-@router.post("/organizations/{organization_id}/invitations", response_model=OrganizationInvitation)
+@router.post(
+    "/organizations/{organization_id}/invitations",
+    response_model=OrganizationInvitation,
+)
 def invite_user_to_organization(
     organization_id: int,
     invitation_data: OrganizationInvitationCreate,
@@ -108,7 +113,10 @@ def invite_user_to_organization(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
-@router.post("/organizations/{organization_id}/batch-invitations", response_model=BatchInviteResult)
+@router.post(
+    "/organizations/{organization_id}/batch-invitations",
+    response_model=BatchInviteResult,
+)
 def batch_invite_users(
     organization_id: int,
     batch_data: BatchUserInvite,
@@ -168,7 +176,9 @@ def request_user_transfer(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
-@router.post("/transfer-requests/{request_id}/approve", response_model=UserTransferRequest)
+@router.post(
+    "/transfer-requests/{request_id}/approve", response_model=UserTransferRequest
+)
 def approve_transfer_request(
     request_id: int,
     approval: TransferApproval,
@@ -192,17 +202,20 @@ def get_user_organizations(
 ) -> List[UserOrganization]:
     """Get all organizations for a user."""
     service = MultiTenantService(db)
-    # Basic permission check - users can view their own organizations, admins can view any
+    # Basic permission check - users can view their own organizations,
+    # admins can view any
     if not current_user.is_superuser and current_user.id != user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions to view user organizations"
+            detail="Insufficient permissions to view user organizations",
         )
-    
+
     return service.get_user_organizations(user_id, include_inactive)
 
 
-@router.get("/organizations/{organization_id}/users", response_model=List[UserOrganization])
+@router.get(
+    "/organizations/{organization_id}/users", response_model=List[UserOrganization]
+)
 def get_organization_users(
     organization_id: int,
     include_inactive: bool = Query(False, description="Include inactive memberships"),
@@ -215,13 +228,15 @@ def get_organization_users(
     if not current_user.is_superuser:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions to view organization users"
+            detail="Insufficient permissions to view organization users",
         )
-    
+
     return service.get_organization_users(organization_id, include_inactive)
 
 
-@router.get("/users/{user_id}/membership-summary", response_model=OrganizationMembershipSummary)
+@router.get(
+    "/users/{user_id}/membership-summary", response_model=OrganizationMembershipSummary
+)
 def get_user_membership_summary(
     user_id: int,
     current_user: User = Depends(get_current_active_user),
@@ -233,13 +248,16 @@ def get_user_membership_summary(
     if not current_user.is_superuser and current_user.id != user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions to view membership summary"
+            detail="Insufficient permissions to view membership summary",
         )
-    
+
     return service.get_user_membership_summary(user_id)
 
 
-@router.get("/organizations/{organization_id}/users-summary", response_model=OrganizationUsersSummary)
+@router.get(
+    "/organizations/{organization_id}/users-summary",
+    response_model=OrganizationUsersSummary,
+)
 def get_organization_users_summary(
     organization_id: int,
     current_user: User = Depends(get_current_active_user),
@@ -251,9 +269,9 @@ def get_organization_users_summary(
     if not current_user.is_superuser:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions to view organization summary"
+            detail="Insufficient permissions to view organization summary",
         )
-    
+
     return service.get_organization_users_summary(organization_id)
 
 
@@ -266,10 +284,10 @@ def cleanup_expired_access(
     if not current_user.is_superuser:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only superusers can run cleanup operations"
+            detail="Only superusers can run cleanup operations",
         )
-    
+
     service = MultiTenantService(db)
     cleaned_count = service.cleanup_expired_access()
-    
+
     return {"cleaned_count": cleaned_count}

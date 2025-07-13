@@ -42,7 +42,7 @@ class User(SoftDeletableModel):
     department_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("departments.id"), nullable=True
     )
-    
+
     # Profile fields
     bio: Mapped[str | None] = mapped_column(String(500))
     location: Mapped[str | None] = mapped_column(String(100))
@@ -85,21 +85,27 @@ class User(SoftDeletableModel):
     reported_tasks: Mapped[list["Task"]] = relationship(
         "Task", foreign_keys="Task.reporter_id", back_populates="reporter"
     )
-    
+
     # User preferences and privacy settings
     preferences: Mapped["UserPreferences | None"] = relationship(
-        "UserPreferences", back_populates="user", uselist=False, cascade="all, delete-orphan"
+        "UserPreferences",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
     )
     privacy_settings: Mapped["UserPrivacySettings | None"] = relationship(
-        "UserPrivacySettings", back_populates="user", uselist=False, cascade="all, delete-orphan"
+        "UserPrivacySettings",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
     )
-    
+
     # Multi-tenant organization relationships
     organization_memberships: Mapped[list["UserOrganization"]] = relationship(
-        "UserOrganization", 
+        "UserOrganization",
         foreign_keys="UserOrganization.user_id",
-        back_populates="user", 
-        cascade="all, delete-orphan"
+        back_populates="user",
+        cascade="all, delete-orphan",
     )
 
     @classmethod
@@ -599,11 +605,12 @@ class User(SoftDeletableModel):
         """Check if user is currently online (active within last 15 minutes)."""
         if not self.last_login_at:
             return False
-        
-        from datetime import datetime, timezone, timedelta
+
+        from datetime import datetime, timedelta, timezone
+
         now = datetime.now(timezone.utc)
         online_threshold = now - timedelta(minutes=15)
-        
+
         return self.last_login_at > online_threshold
 
     def __repr__(self) -> str:

@@ -224,7 +224,9 @@ class TestEnhancedAuditService:
         assert "User" in data_row
         assert admin_user.email in data_row
 
-    @pytest.mark.skip(reason="AuditService.verify_audit_log_integrity not yet implemented")
+    @pytest.mark.skip(
+        reason="AuditService.verify_audit_log_integrity not yet implemented"
+    )
     def test_audit_log_integrity_verification(
         self,
         audit_service: AuditService,

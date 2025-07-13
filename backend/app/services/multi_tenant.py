@@ -3,7 +3,7 @@
 from datetime import datetime, timedelta
 from typing import List, Optional
 
-from sqlalchemy import and_, func, or_
+from sqlalchemy import and_
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.exceptions import BusinessLogicError, NotFound, PermissionDenied
@@ -21,7 +21,6 @@ from app.schemas.multi_tenant import (
     OrganizationMembershipSummary,
     OrganizationUsersSummary,
     TransferApproval,
-    UserOrganizationCreate,
     UserOrganizationUpdate,
     UserTransferRequestCreate,
 )
@@ -46,8 +45,12 @@ class MultiTenantService:
         """Add a user to an organization."""
         # Validate user and organization exist
         user = self.db.query(User).filter(User.id == user_id).first()
-        organization = self.db.query(Organization).filter(Organization.id == organization_id).first()
-        
+        organization = (
+            self.db.query(Organization)
+            .filter(Organization.id == organization_id)
+            .first()
+        )
+
         if not user:
             raise NotFound(f"User with id {user_id} not found")
         if not organization:
@@ -55,7 +58,9 @@ class MultiTenantService:
 
         # Check permissions
         if not self._can_manage_organization_membership(added_by, organization):
-            raise PermissionDenied("Insufficient permissions to add user to organization")
+            raise PermissionDenied(
+                "Insufficient permissions to add user to organization"
+            )
 
         # Check if membership already exists
         existing = (
@@ -68,10 +73,12 @@ class MultiTenantService:
             )
             .first()
         )
-        
+
         if existing:
             if existing.is_active:
-                raise BusinessLogicError("User is already a member of this organization")
+                raise BusinessLogicError(
+                    "User is already a member of this organization"
+                )
             else:
                 # Reactivate existing membership
                 existing.is_active = True
@@ -124,21 +131,23 @@ class MultiTenantService:
             .filter(UserOrganization.id == membership_id)
             .first()
         )
-        
+
         if not membership:
             raise NotFound("Membership not found")
 
         # Check permissions
-        organization = self.db.query(Organization).filter(
-            Organization.id == membership.organization_id
-        ).first()
-        
+        organization = (
+            self.db.query(Organization)
+            .filter(Organization.id == membership.organization_id)
+            .first()
+        )
+
         if not self._can_manage_organization_membership(updated_by, organization):
             raise PermissionDenied("Insufficient permissions to update membership")
 
         # Update fields
         update_dict = update_data.model_dump(exclude_unset=True)
-        
+
         # Handle primary organization change
         if update_dict.get("is_primary") is True:
             # Remove primary status from other memberships
@@ -178,15 +187,17 @@ class MultiTenantService:
             )
             .first()
         )
-        
+
         if not membership:
             raise NotFound("Active membership not found")
 
         # Check permissions
-        organization = self.db.query(Organization).filter(
-            Organization.id == organization_id
-        ).first()
-        
+        organization = (
+            self.db.query(Organization)
+            .filter(Organization.id == organization_id)
+            .first()
+        )
+
         if not self._can_manage_organization_membership(removed_by, organization):
             raise PermissionDenied("Insufficient permissions to remove user")
 
@@ -206,13 +217,15 @@ class MultiTenantService:
     ) -> OrganizationInvitation:
         """Send invitation to join organization."""
         # Check permissions
-        organization = self.db.query(Organization).filter(
-            Organization.id == invitation_data.organization_id
-        ).first()
-        
+        organization = (
+            self.db.query(Organization)
+            .filter(Organization.id == invitation_data.organization_id)
+            .first()
+        )
+
         if not organization:
             raise NotFound("Organization not found")
-            
+
         if not self._can_manage_organization_membership(invited_by, organization):
             raise PermissionDenied("Insufficient permissions to send invitations")
 
@@ -222,19 +235,22 @@ class MultiTenantService:
             .filter(
                 and_(
                     OrganizationInvitation.email == invitation_data.email,
-                    OrganizationInvitation.organization_id == invitation_data.organization_id,
+                    OrganizationInvitation.organization_id
+                    == invitation_data.organization_id,
                     OrganizationInvitation.accepted_at.is_(None),
                     OrganizationInvitation.declined_at.is_(None),
                 )
             )
             .first()
         )
-        
+
         if existing and not existing.is_expired:
             raise BusinessLogicError("Pending invitation already exists for this email")
 
         # Set default expiration if not provided
-        expires_at = invitation_data.expires_at or (datetime.utcnow() + timedelta(days=7))
+        expires_at = invitation_data.expires_at or (
+            datetime.utcnow() + timedelta(days=7)
+        )
 
         invitation = OrganizationInvitation(
             organization_id=invitation_data.organization_id,
@@ -258,13 +274,15 @@ class MultiTenantService:
     ) -> BatchInviteResult:
         """Send batch invitations to multiple users."""
         # Check permissions
-        organization = self.db.query(Organization).filter(
-            Organization.id == batch_data.organization_id
-        ).first()
-        
+        organization = (
+            self.db.query(Organization)
+            .filter(Organization.id == batch_data.organization_id)
+            .first()
+        )
+
         if not organization:
             raise NotFound("Organization not found")
-            
+
         if not self._can_manage_organization_membership(invited_by, organization):
             raise PermissionDenied("Insufficient permissions to send invitations")
 
@@ -284,14 +302,15 @@ class MultiTenantService:
                     .filter(
                         and_(
                             OrganizationInvitation.email == email,
-                            OrganizationInvitation.organization_id == batch_data.organization_id,
+                            OrganizationInvitation.organization_id
+                            == batch_data.organization_id,
                             OrganizationInvitation.accepted_at.is_(None),
                             OrganizationInvitation.declined_at.is_(None),
                         )
                     )
                     .first()
                 )
-                
+
                 if existing and not existing.is_expired:
                     duplicate_invites += 1
                     continue
@@ -307,7 +326,7 @@ class MultiTenantService:
 
                 self.db.add(invitation)
                 self.db.flush()  # Get ID without committing
-                
+
                 invitation_ids.append(invitation.id)
                 successful_invites += 1
 
@@ -336,13 +355,13 @@ class MultiTenantService:
             .filter(OrganizationInvitation.id == invitation_id)
             .first()
         )
-        
+
         if not invitation:
             raise NotFound("Invitation not found")
-            
+
         if invitation.email != user.email:
             raise PermissionDenied("This invitation is not for your email address")
-            
+
         if not invitation.is_pending:
             raise BusinessLogicError("Invitation is no longer valid")
 
@@ -363,7 +382,7 @@ class MultiTenantService:
         # Mark invitation as accepted
         invitation.accepted_at = datetime.utcnow()
         invitation.accepted_by = user.id
-        
+
         self.db.commit()
 
         return membership
@@ -379,13 +398,13 @@ class MultiTenantService:
             .filter(OrganizationInvitation.id == invitation_id)
             .first()
         )
-        
+
         if not invitation:
             raise NotFound("Invitation not found")
-            
+
         if invitation.email != user.email:
             raise PermissionDenied("This invitation is not for your email address")
-            
+
         if not invitation.is_pending:
             raise BusinessLogicError("Invitation is no longer valid")
 
@@ -402,13 +421,17 @@ class MultiTenantService:
         """Request to transfer user between organizations."""
         # Validate user and organizations
         user = self.db.query(User).filter(User.id == transfer_data.user_id).first()
-        from_org = self.db.query(Organization).filter(
-            Organization.id == transfer_data.from_organization_id
-        ).first()
-        to_org = self.db.query(Organization).filter(
-            Organization.id == transfer_data.to_organization_id
-        ).first()
-        
+        from_org = (
+            self.db.query(Organization)
+            .filter(Organization.id == transfer_data.from_organization_id)
+            .first()
+        )
+        to_org = (
+            self.db.query(Organization)
+            .filter(Organization.id == transfer_data.to_organization_id)
+            .first()
+        )
+
         if not user:
             raise NotFound("User not found")
         if not from_org:
@@ -422,21 +445,23 @@ class MultiTenantService:
             .filter(
                 and_(
                     UserOrganization.user_id == transfer_data.user_id,
-                    UserOrganization.organization_id == transfer_data.from_organization_id,
+                    UserOrganization.organization_id
+                    == transfer_data.from_organization_id,
                     UserOrganization.is_active == True,
                 )
             )
             .first()
         )
-        
+
         if not source_membership:
             raise BusinessLogicError("User is not a member of the source organization")
 
         # Check permissions
         if not (
-            self._can_manage_organization_membership(requested_by, from_org) or
-            self._can_manage_organization_membership(requested_by, to_org) or
-            requested_by.id == transfer_data.user_id  # User can request their own transfer
+            self._can_manage_organization_membership(requested_by, from_org)
+            or self._can_manage_organization_membership(requested_by, to_org)
+            or requested_by.id
+            == transfer_data.user_id  # User can request their own transfer
         ):
             raise PermissionDenied("Insufficient permissions to request transfer")
 
@@ -446,8 +471,10 @@ class MultiTenantService:
             .filter(
                 and_(
                     UserTransferRequest.user_id == transfer_data.user_id,
-                    UserTransferRequest.from_organization_id == transfer_data.from_organization_id,
-                    UserTransferRequest.to_organization_id == transfer_data.to_organization_id,
+                    UserTransferRequest.from_organization_id
+                    == transfer_data.from_organization_id,
+                    UserTransferRequest.to_organization_id
+                    == transfer_data.to_organization_id,
                     UserTransferRequest.approved_at.is_(None),
                     UserTransferRequest.rejected_at.is_(None),
                     UserTransferRequest.executed_at.is_(None),
@@ -455,7 +482,7 @@ class MultiTenantService:
             )
             .first()
         )
-        
+
         if existing:
             raise BusinessLogicError("Transfer request already pending")
 
@@ -486,24 +513,30 @@ class MultiTenantService:
             .filter(UserTransferRequest.id == request_id)
             .first()
         )
-        
+
         if not transfer_request:
             raise NotFound("Transfer request not found")
-            
+
         if not transfer_request.is_pending:
             raise BusinessLogicError("Transfer request is not pending")
 
         # Check permissions
-        from_org = self.db.query(Organization).filter(
-            Organization.id == transfer_request.from_organization_id
-        ).first()
-        to_org = self.db.query(Organization).filter(
-            Organization.id == transfer_request.to_organization_id
-        ).first()
-        
-        can_approve_source = self._can_manage_organization_membership(approver, from_org)
+        from_org = (
+            self.db.query(Organization)
+            .filter(Organization.id == transfer_request.from_organization_id)
+            .first()
+        )
+        to_org = (
+            self.db.query(Organization)
+            .filter(Organization.id == transfer_request.to_organization_id)
+            .first()
+        )
+
+        can_approve_source = self._can_manage_organization_membership(
+            approver, from_org
+        )
         can_approve_target = self._can_manage_organization_membership(approver, to_org)
-        
+
         if not (can_approve_source or can_approve_target):
             raise PermissionDenied("Insufficient permissions to approve transfer")
 
@@ -522,10 +555,12 @@ class MultiTenantService:
             transfer_request.approved_by_target = approver.id
 
         # Check if both approvals are complete
-        if (transfer_request.approved_by_source is not None and 
-            transfer_request.approved_by_target is not None):
+        if (
+            transfer_request.approved_by_source is not None
+            and transfer_request.approved_by_target is not None
+        ):
             transfer_request.approved_at = datetime.utcnow()
-            
+
             # Execute the transfer
             self._execute_transfer(transfer_request, approver)
 
@@ -548,7 +583,7 @@ class MultiTenantService:
                 executor,
                 soft_delete=True,
             )
-            
+
             # Add to target organization
             self.add_user_to_organization(
                 transfer_request.user_id,
@@ -557,7 +592,7 @@ class MultiTenantService:
                 access_type="member",
                 is_primary=True,  # Make new organization primary
             )
-            
+
         elif transfer_request.transfer_type == "temporary":
             # Add temporary access to target organization
             expires_at = datetime.utcnow() + timedelta(days=30)  # Default 30 days
@@ -568,7 +603,7 @@ class MultiTenantService:
                 access_type="temporary",
                 expires_at=expires_at,
             )
-            
+
         elif transfer_request.transfer_type == "guest":
             # Add guest access to target organization
             self.add_user_to_organization(
@@ -593,10 +628,10 @@ class MultiTenantService:
             .options(joinedload(UserOrganization.organization))
             .filter(UserOrganization.user_id == user_id)
         )
-        
+
         if not include_inactive:
             query = query.filter(UserOrganization.is_active == True)
-            
+
         return query.all()
 
     def get_organization_users(
@@ -610,20 +645,20 @@ class MultiTenantService:
             .options(joinedload(UserOrganization.user))
             .filter(UserOrganization.organization_id == organization_id)
         )
-        
+
         if not include_inactive:
             query = query.filter(UserOrganization.is_active == True)
-            
+
         return query.all()
 
-    def get_user_membership_summary(self, user_id: int) -> OrganizationMembershipSummary:
+    def get_user_membership_summary(
+        self, user_id: int
+    ) -> OrganizationMembershipSummary:
         """Get summary of user's organization memberships."""
         memberships = self.get_user_organizations(user_id, include_inactive=False)
-        
-        primary_membership = next(
-            (m for m in memberships if m.is_primary), None
-        )
-        
+
+        primary_membership = next((m for m in memberships if m.is_primary), None)
+
         pending_transfers = (
             self.db.query(UserTransferRequest)
             .filter(
@@ -636,23 +671,33 @@ class MultiTenantService:
         )
 
         user = self.db.query(User).filter(User.id == user_id).first()
-        
+
         return OrganizationMembershipSummary(
             user_id=user_id,
             user_email=user.email if user else "",
             user_full_name=user.full_name if user else "",
             total_organizations=len(memberships),
-            primary_organization_id=primary_membership.organization_id if primary_membership else None,
-            primary_organization_name=primary_membership.organization.name if primary_membership else None,
+            primary_organization_id=primary_membership.organization_id
+            if primary_membership
+            else None,
+            primary_organization_name=primary_membership.organization.name
+            if primary_membership
+            else None,
             active_memberships=len([m for m in memberships if m.is_active]),
-            temporary_memberships=len([m for m in memberships if m.access_type == "temporary"]),
+            temporary_memberships=len(
+                [m for m in memberships if m.access_type == "temporary"]
+            ),
             pending_transfers=pending_transfers,
         )
 
-    def get_organization_users_summary(self, organization_id: int) -> OrganizationUsersSummary:
+    def get_organization_users_summary(
+        self, organization_id: int
+    ) -> OrganizationUsersSummary:
         """Get summary of organization's users."""
-        memberships = self.get_organization_users(organization_id, include_inactive=False)
-        
+        memberships = self.get_organization_users(
+            organization_id, include_inactive=False
+        )
+
         pending_invitations = (
             self.db.query(OrganizationInvitation)
             .filter(
@@ -663,7 +708,7 @@ class MultiTenantService:
             )
             .count()
         )
-        
+
         pending_transfers_in = (
             self.db.query(UserTransferRequest)
             .filter(
@@ -674,7 +719,7 @@ class MultiTenantService:
             )
             .count()
         )
-        
+
         pending_transfers_out = (
             self.db.query(UserTransferRequest)
             .filter(
@@ -686,8 +731,12 @@ class MultiTenantService:
             .count()
         )
 
-        organization = self.db.query(Organization).filter(Organization.id == organization_id).first()
-        
+        organization = (
+            self.db.query(Organization)
+            .filter(Organization.id == organization_id)
+            .first()
+        )
+
         return OrganizationUsersSummary(
             organization_id=organization_id,
             organization_name=organization.name if organization else "",
@@ -695,7 +744,9 @@ class MultiTenantService:
             total_users=len(memberships),
             active_users=len([m for m in memberships if m.is_active]),
             guest_users=len([m for m in memberships if m.access_type == "guest"]),
-            temporary_users=len([m for m in memberships if m.access_type == "temporary"]),
+            temporary_users=len(
+                [m for m in memberships if m.access_type == "temporary"]
+            ),
             pending_invitations=pending_invitations,
             pending_transfers_in=pending_transfers_in,
             pending_transfers_out=pending_transfers_out,
@@ -704,7 +755,7 @@ class MultiTenantService:
     def cleanup_expired_access(self) -> int:
         """Clean up expired temporary access and invitations."""
         now = datetime.utcnow()
-        
+
         # Deactivate expired temporary memberships
         expired_memberships = (
             self.db.query(UserOrganization)
@@ -717,11 +768,11 @@ class MultiTenantService:
             )
             .all()
         )
-        
+
         for membership in expired_memberships:
             membership.is_active = False
             membership.updated_at = now
-        
+
         # Clean up expired invitations (mark as declined)
         expired_invitations = (
             self.db.query(OrganizationInvitation)
@@ -734,12 +785,12 @@ class MultiTenantService:
             )
             .all()
         )
-        
+
         for invitation in expired_invitations:
             invitation.declined_at = now
-        
+
         self.db.commit()
-        
+
         return len(expired_memberships) + len(expired_invitations)
 
     def _can_manage_organization_membership(
@@ -748,7 +799,7 @@ class MultiTenantService:
         """Check if user can manage organization membership."""
         if user.is_superuser:
             return True
-            
+
         # Check if user is admin/manager of the organization
         # This would typically check user roles within the organization
         # For now, simplified to superuser check

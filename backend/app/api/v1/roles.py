@@ -63,7 +63,9 @@ def list_roles(
     if search:
         roles, total = service.search_roles(search, skip, limit, filters)
     else:
-        roles, total = service.list_roles(skip, active_only, limit, organization_id, filters)
+        roles, total = service.list_roles(
+            skip, active_only, limit, organization_id, filters
+        )
 
     # Convert to summary
     items = [service.get_role_summary(role) for role in roles]

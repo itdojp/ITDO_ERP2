@@ -236,7 +236,7 @@ class TestExceptionEdgeCases:
         assert isinstance(expired_error, Exception)
         assert isinstance(invalid_error, AuthenticationError)
         assert isinstance(invalid_error, Exception)
-        
+
         # But should be distinct types
         assert not isinstance(expired_error, InvalidTokenError)
         assert not isinstance(invalid_error, ExpiredTokenError)
@@ -253,7 +253,7 @@ class TestExceptionUsagePatterns:
 
         # When: Creating exception with context
         message = f"User {user_id} cannot access {resource_type}"
-        
+
         with pytest.raises(PermissionDenied) as exc_info:
             raise PermissionDenied(message)
 
@@ -270,7 +270,7 @@ class TestExceptionUsagePatterns:
 
         # When: Creating detailed validation error
         message = f"Validation failed for field '{field_name}' with value '{field_value}': {reason}"
-        
+
         with pytest.raises(ValidationError) as exc_info:
             raise ValidationError(message)
 
@@ -288,7 +288,7 @@ class TestExceptionUsagePatterns:
 
         # When: Creating detailed not found error
         message = f"{resource_type} with {query_field}='{query_value}' not found"
-        
+
         with pytest.raises(NotFound) as exc_info:
             raise NotFound(message)
 

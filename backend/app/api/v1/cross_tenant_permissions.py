@@ -1,7 +1,5 @@
 """Cross-tenant permissions API endpoints."""
 
-from typing import List
-
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
 
@@ -87,12 +85,12 @@ def check_cross_tenant_permission(
     if not current_user.is_superuser and current_user.id != check_data.user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions to check user permissions"
+            detail="Insufficient permissions to check user permissions",
         )
-    
+
     service = CrossTenantPermissionService(db)
     ip_address, user_agent = get_client_info(request)
-    
+
     try:
         return service.check_cross_tenant_permission(
             user_id=check_data.user_id,
@@ -118,12 +116,12 @@ def batch_check_cross_tenant_permissions(
     if not current_user.is_superuser and current_user.id != check_data.user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions to check user permissions"
+            detail="Insufficient permissions to check user permissions",
         )
-    
+
     service = CrossTenantPermissionService(db)
     ip_address, user_agent = get_client_info(request)
-    
+
     try:
         return service.batch_check_permissions(
             user_id=check_data.user_id,
@@ -150,9 +148,9 @@ def get_user_cross_tenant_access(
     if not current_user.is_superuser and current_user.id != user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions to view user access"
+            detail="Insufficient permissions to view user access",
         )
-    
+
     service = CrossTenantPermissionService(db)
     try:
         return service.get_user_cross_tenant_access(
@@ -164,7 +162,10 @@ def get_user_cross_tenant_access(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
-@router.get("/organizations/{organization_id}/summary", response_model=OrganizationCrossTenantSummary)
+@router.get(
+    "/organizations/{organization_id}/summary",
+    response_model=OrganizationCrossTenantSummary,
+)
 def get_organization_cross_tenant_summary(
     organization_id: int,
     current_user: User = Depends(get_current_active_user),
@@ -175,9 +176,9 @@ def get_organization_cross_tenant_summary(
     if not current_user.is_superuser:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions to view organization summary"
+            detail="Insufficient permissions to view organization summary",
         )
-    
+
     service = CrossTenantPermissionService(db)
     try:
         return service.get_organization_cross_tenant_summary(organization_id)
@@ -194,16 +195,17 @@ def cleanup_expired_rules(
     if not current_user.is_superuser:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only superusers can run cleanup operations"
+            detail="Only superusers can run cleanup operations",
         )
-    
+
     service = CrossTenantPermissionService(db)
     cleaned_count = service.cleanup_expired_rules()
-    
+
     return {"cleaned_count": cleaned_count}
 
 
 # Convenience endpoints for common operations
+
 
 @router.get("/users/{user_id}/cross-tenant-organizations")
 def get_user_cross_tenant_organizations(
@@ -216,17 +218,18 @@ def get_user_cross_tenant_organizations(
     if not current_user.is_superuser and current_user.id != user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions to view user access"
+            detail="Insufficient permissions to view user access",
         )
-    
+
     # This is a simplified implementation
-    # In a real scenario, you'd query all organizations where the user has 
+    # In a real scenario, you'd query all organizations where the user has
     # cross-tenant access based on their memberships and existing rules
-    
+
     return {
         "accessible_organizations": [],
         "source_organizations": [],
-        "message": "Cross-tenant organization access requires specific permission checks"
+        "message": "Cross-tenant organization access requires specific permission "
+        "checks",
     }
 
 
@@ -245,12 +248,12 @@ def quick_permission_check(
     if not current_user.is_superuser and current_user.id != user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions to check user permissions"
+            detail="Insufficient permissions to check user permissions",
         )
-    
+
     service = CrossTenantPermissionService(db)
     ip_address, user_agent = get_client_info(request)
-    
+
     try:
         result = service.check_cross_tenant_permission(
             user_id=user_id,
@@ -261,7 +264,7 @@ def quick_permission_check(
             ip_address=ip_address,
             user_agent=user_agent,
         )
-        
+
         return {
             "allowed": result.allowed,
             "reason": result.reason,

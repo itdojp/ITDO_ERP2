@@ -49,8 +49,12 @@ class RoleService:
 
         # Check if role name already exists within organization
         if hasattr(role_data, "organization_id") and role_data.organization_id:
-            if self.repository.get_by_name_and_organization(role_data.name, role_data.organization_id):
-                raise AlreadyExists(f"Role with name '{role_data.name}' already exists in this organization")
+            if self.repository.get_by_name_and_organization(
+                role_data.name, role_data.organization_id
+            ):
+                raise AlreadyExists(
+                    f"Role with name '{role_data.name}' already exists in this organization"
+                )
 
         # Check if organization exists if specified
         if hasattr(role_data, "organization_id") and role_data.organization_id:

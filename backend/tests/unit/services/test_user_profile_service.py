@@ -7,15 +7,13 @@ Following TDD approach - Red phase: Writing tests before implementation.
 """
 
 import io
-from datetime import UTC, datetime
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 from PIL import Image
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import BusinessLogicError, NotFound, PermissionDenied
+from app.core.exceptions import BusinessLogicError, PermissionDenied
 from app.schemas.user_profile import (
     ProfileImageUploadResponse,
     UserPrivacySettings,
@@ -39,9 +37,9 @@ class TestUserProfileService:
     @pytest.fixture
     def test_image(self) -> io.BytesIO:
         """Create a test image file."""
-        img = Image.new('RGB', (100, 100), color='red')
+        img = Image.new("RGB", (100, 100), color="red")
         img_io = io.BytesIO()
-        img.save(img_io, 'PNG')
+        img.save(img_io, "PNG")
         img_io.seek(0)
         return img_io
 
@@ -52,7 +50,7 @@ class TestUserProfileService:
         # Given: User
         user = create_test_user(db_session)
         db_session.commit()
-        
+
         # When: Uploading profile image
         result = service.upload_profile_image(
             user_id=user.id,
@@ -62,14 +60,14 @@ class TestUserProfileService:
             uploader=user,
             db=db_session,
         )
-        
+
         # Then: Image should be uploaded
         assert isinstance(result, ProfileImageUploadResponse)
         assert result.url is not None
         assert result.url.startswith("/uploads/profile/")
         assert result.size > 0
         assert result.content_type == "image/png"
-        
+
         # User's profile_image_url should be updated
         db_session.refresh(user)
         assert user.profile_image_url == result.url
@@ -81,7 +79,7 @@ class TestUserProfileService:
         # Given: User and invalid file
         user = create_test_user(db_session)
         db_session.commit()
-        
+
         # When/Then: Uploading non-image file should fail
         with pytest.raises(BusinessLogicError, match="Invalid image format"):
             service.upload_profile_image(
@@ -100,10 +98,10 @@ class TestUserProfileService:
         # Given: User and large image
         user = create_test_user(db_session)
         db_session.commit()
-        
+
         # Create fake large image data (>5MB)
-        large_data = b'x' * (6 * 1024 * 1024)  # 6MB of data
-        
+        large_data = b"x" * (6 * 1024 * 1024)  # 6MB of data
+
         # When/Then: Uploading large image should fail
         with pytest.raises(BusinessLogicError, match="Image size exceeds limit"):
             service.upload_profile_image(
@@ -123,7 +121,7 @@ class TestUserProfileService:
         user1 = create_test_user(db_session, email="user1@example.com")
         user2 = create_test_user(db_session, email="user2@example.com")
         db_session.commit()
-        
+
         # When/Then: User2 trying to upload image for user1 should fail
         with pytest.raises(PermissionDenied):
             service.upload_profile_image(
@@ -140,16 +138,18 @@ class TestUserProfileService:
     ) -> None:
         """Test profile image deletion."""
         # Given: User with profile image
-        user = create_test_user(db_session, profile_image_url="/uploads/profile/test.png")
+        user = create_test_user(
+            db_session, profile_image_url="/uploads/profile/test.png"
+        )
         db_session.commit()
-        
+
         # When: Deleting profile image
         service.delete_profile_image(
             user_id=user.id,
             deleter=user,
             db=db_session,
         )
-        
+
         # Then: Profile image should be removed
         db_session.refresh(user)
         assert user.profile_image_url is None
@@ -161,7 +161,7 @@ class TestUserProfileService:
         # Given: User
         user = create_test_user(db_session)
         db_session.commit()
-        
+
         # When: Updating profile settings
         settings_update = UserProfileSettingsUpdate(
             language="ja",
@@ -171,14 +171,14 @@ class TestUserProfileService:
             notification_email=True,
             notification_push=False,
         )
-        
+
         result = service.update_profile_settings(
             user_id=user.id,
             settings=settings_update,
             updater=user,
             db=db_session,
         )
-        
+
         # Then: Settings should be updated
         assert isinstance(result, UserProfileSettings)
         assert result.language == "ja"
@@ -195,14 +195,14 @@ class TestUserProfileService:
         # Given: User with settings
         user = create_test_user(db_session)
         db_session.commit()
-        
+
         # When: Getting profile settings
         settings = service.get_profile_settings(
             user_id=user.id,
             viewer=user,
             db=db_session,
         )
-        
+
         # Then: Should return settings with defaults
         assert isinstance(settings, UserProfileSettings)
         assert settings.language == "en"  # Default
@@ -216,7 +216,7 @@ class TestUserProfileService:
         # Given: User
         user = create_test_user(db_session)
         db_session.commit()
-        
+
         # When: Updating privacy settings
         privacy_update = UserPrivacySettingsUpdate(
             profile_visibility="organization",  # Only visible to organization members
@@ -225,14 +225,14 @@ class TestUserProfileService:
             allow_direct_messages=False,
             show_online_status=True,
         )
-        
+
         result = service.update_privacy_settings(
             user_id=user.id,
             settings=privacy_update,
             updater=user,
             db=db_session,
         )
-        
+
         # Then: Privacy settings should be updated
         assert isinstance(result, UserPrivacySettings)
         assert result.profile_visibility == "organization"
@@ -248,14 +248,14 @@ class TestUserProfileService:
         # Given: User
         user = create_test_user(db_session)
         db_session.commit()
-        
+
         # When: Getting privacy settings
         settings = service.get_privacy_settings(
             user_id=user.id,
             viewer=user,
             db=db_session,
         )
-        
+
         # Then: Should return settings with defaults
         assert isinstance(settings, UserPrivacySettings)
         assert settings.profile_visibility == "organization"  # Default
@@ -271,7 +271,7 @@ class TestUserProfileService:
         user1 = create_test_user(db_session, email="private@example.com")
         user2 = create_test_user(db_session, email="viewer@example.com")
         db_session.commit()
-        
+
         # Set user1's email to private
         service.update_privacy_settings(
             user_id=user1.id,
@@ -279,14 +279,14 @@ class TestUserProfileService:
             updater=user1,
             db=db_session,
         )
-        
+
         # When: User2 tries to view user1's profile
         profile = service.get_user_profile(
             user_id=user1.id,
             viewer=user2,
             db=db_session,
         )
-        
+
         # Then: Email should be hidden
         assert profile.email is None  # Hidden due to privacy settings
         assert profile.full_name is not None  # Name is still visible
@@ -298,7 +298,7 @@ class TestUserProfileService:
         # Given: User
         user = create_test_user(db_session, full_name="Old Name")
         db_session.commit()
-        
+
         # When: Updating profile
         update_data = UserProfileUpdate(
             full_name="New Name",
@@ -306,14 +306,14 @@ class TestUserProfileService:
             location="Tokyo, Japan",
             website="https://example.com",
         )
-        
+
         result = service.update_profile(
             user_id=user.id,
             data=update_data,
             updater=user,
             db=db_session,
         )
-        
+
         # Then: Profile should be updated
         assert result.full_name == "New Name"
         assert result.bio == "Software Engineer with 10 years experience"
@@ -327,17 +327,17 @@ class TestUserProfileService:
         # Given: User and large image
         user = create_test_user(db_session)
         db_session.commit()
-        
+
         # Create a large image that needs processing
-        large_img = Image.new('RGB', (2000, 2000), color='green')
+        large_img = Image.new("RGB", (2000, 2000), color="green")
         img_io = io.BytesIO()
-        large_img.save(img_io, 'PNG')
+        large_img.save(img_io, "PNG")
         img_io.seek(0)
-        
+
         # When: Uploading image
-        with patch.object(service, '_process_image') as mock_process:
+        with patch.object(service, "_process_image") as mock_process:
             mock_process.return_value = (b"processed_image", 1024)
-            
+
             result = service.upload_profile_image(
                 user_id=user.id,
                 file_data=img_io.read(),
@@ -346,7 +346,7 @@ class TestUserProfileService:
                 uploader=user,
                 db=db_session,
             )
-            
+
             # Then: Image should be processed
             mock_process.assert_called_once()
             assert result.size == 1024  # Processed size
@@ -358,21 +358,24 @@ class TestUserProfileService:
         # Given: User
         user = create_test_user(db_session)
         db_session.commit()
-        
+
         # When/Then: Invalid language code should fail (Pydantic validation)
         from pydantic import ValidationError
+
         with pytest.raises(ValidationError, match="String should match pattern"):
             UserProfileSettingsUpdate(language="invalid")
-        
+
         # When/Then: Language not in allowed list should fail
         with pytest.raises(BusinessLogicError, match="Invalid language code"):
             service.update_profile_settings(
                 user_id=user.id,
-                settings=UserProfileSettingsUpdate(language="xx"),  # Valid pattern but not in allowed list
+                settings=UserProfileSettingsUpdate(
+                    language="xx"
+                ),  # Valid pattern but not in allowed list
                 updater=user,
                 db=db_session,
             )
-        
+
         # When/Then: Invalid timezone should fail
         with pytest.raises(BusinessLogicError, match="Invalid timezone"):
             service.update_profile_settings(
@@ -388,9 +391,11 @@ class TestUserProfileService:
         """Test that admins can override privacy settings."""
         # Given: Regular user with private profile and admin
         user = create_test_user(db_session, email="private@example.com")
-        admin = create_test_user(db_session, email="admin@example.com", is_superuser=True)
+        admin = create_test_user(
+            db_session, email="admin@example.com", is_superuser=True
+        )
         db_session.commit()
-        
+
         # Set user's email to private
         service.update_privacy_settings(
             user_id=user.id,
@@ -398,29 +403,32 @@ class TestUserProfileService:
             updater=user,
             db=db_session,
         )
-        
+
         # When: Admin views user's profile
         profile = service.get_user_profile(
             user_id=user.id,
             viewer=admin,
             db=db_session,
         )
-        
+
         # Then: Admin can see private information
         assert profile.email == "private@example.com"  # Visible to admin
 
-    @patch('app.services.user_profile.storage_client')
+    @patch("app.services.user_profile.storage_client")
     def test_profile_image_storage_integration(
-        self, mock_storage: MagicMock, service: UserProfileService, 
-        db_session: Session, test_image: io.BytesIO
+        self,
+        mock_storage: MagicMock,
+        service: UserProfileService,
+        db_session: Session,
+        test_image: io.BytesIO,
     ) -> None:
         """Test integration with storage service."""
         # Given: User and mock storage
         user = create_test_user(db_session)
         db_session.commit()
-        
+
         mock_storage.upload.return_value = "/storage/profile/123.png"
-        
+
         # When: Uploading image
         result = service.upload_profile_image(
             user_id=user.id,
@@ -430,7 +438,7 @@ class TestUserProfileService:
             uploader=user,
             db=db_session,
         )
-        
+
         # Then: Storage service should be called
         mock_storage.upload.assert_called_once()
         assert result.url == "/storage/profile/123.png"

@@ -1,11 +1,10 @@
 """Cross-tenant permissions service."""
 
-import fnmatch
 from datetime import datetime
-from typing import Dict, List, Optional, Set
+from typing import List, Optional, Set
 
 from sqlalchemy import and_, desc, or_
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session
 
 from app.core.exceptions import BusinessLogicError, NotFound, PermissionDenied
 from app.models.cross_tenant_permissions import (
@@ -17,7 +16,6 @@ from app.models.user import User
 from app.models.user_organization import UserOrganization
 from app.schemas.cross_tenant_permissions import (
     BatchCrossTenantPermissionResult,
-    CrossTenantPermissionCheck,
     CrossTenantPermissionResult,
     CrossTenantPermissionRuleCreate,
     CrossTenantPermissionRuleUpdate,
@@ -39,46 +37,55 @@ class CrossTenantPermissionService:
     ) -> CrossTenantPermissionRule:
         """Create a new cross-tenant permission rule."""
         # Validate organizations exist
-        source_org = self.db.query(Organization).filter(
-            Organization.id == rule_data.source_organization_id
-        ).first()
-        target_org = self.db.query(Organization).filter(
-            Organization.id == rule_data.target_organization_id
-        ).first()
-        
+        source_org = (
+            self.db.query(Organization)
+            .filter(Organization.id == rule_data.source_organization_id)
+            .first()
+        )
+        target_org = (
+            self.db.query(Organization)
+            .filter(Organization.id == rule_data.target_organization_id)
+            .first()
+        )
+
         if not source_org:
             raise NotFound("Source organization not found")
         if not target_org:
             raise NotFound("Target organization not found")
-        
+
         # Check permissions - user must be admin of source organization
         if not self._can_manage_cross_tenant_rules(created_by, source_org):
-            raise PermissionDenied("Insufficient permissions to create cross-tenant rules")
-        
+            raise PermissionDenied(
+                "Insufficient permissions to create cross-tenant rules"
+            )
+
         # Validate rule type
         if rule_data.rule_type not in ["allow", "deny"]:
             raise BusinessLogicError("Rule type must be 'allow' or 'deny'")
-        
+
         # Check for conflicting rules with same priority
         existing_rule = (
             self.db.query(CrossTenantPermissionRule)
             .filter(
                 and_(
-                    CrossTenantPermissionRule.source_organization_id == rule_data.source_organization_id,
-                    CrossTenantPermissionRule.target_organization_id == rule_data.target_organization_id,
-                    CrossTenantPermissionRule.permission_pattern == rule_data.permission_pattern,
+                    CrossTenantPermissionRule.source_organization_id
+                    == rule_data.source_organization_id,
+                    CrossTenantPermissionRule.target_organization_id
+                    == rule_data.target_organization_id,
+                    CrossTenantPermissionRule.permission_pattern
+                    == rule_data.permission_pattern,
                     CrossTenantPermissionRule.priority == rule_data.priority,
                     CrossTenantPermissionRule.is_active == True,
                 )
             )
             .first()
         )
-        
+
         if existing_rule:
             raise BusinessLogicError(
                 "A rule with the same pattern and priority already exists"
             )
-        
+
         # Create the rule
         rule = CrossTenantPermissionRule(
             source_organization_id=rule_data.source_organization_id,
@@ -90,11 +97,11 @@ class CrossTenantPermissionService:
             expires_at=rule_data.expires_at,
             notes=rule_data.notes,
         )
-        
+
         self.db.add(rule)
         self.db.commit()
         self.db.refresh(rule)
-        
+
         return rule
 
     def update_permission_rule(
@@ -109,28 +116,32 @@ class CrossTenantPermissionService:
             .filter(CrossTenantPermissionRule.id == rule_id)
             .first()
         )
-        
+
         if not rule:
             raise NotFound("Permission rule not found")
-        
+
         # Check permissions
-        source_org = self.db.query(Organization).filter(
-            Organization.id == rule.source_organization_id
-        ).first()
-        
+        source_org = (
+            self.db.query(Organization)
+            .filter(Organization.id == rule.source_organization_id)
+            .first()
+        )
+
         if not self._can_manage_cross_tenant_rules(updated_by, source_org):
-            raise PermissionDenied("Insufficient permissions to update cross-tenant rules")
-        
+            raise PermissionDenied(
+                "Insufficient permissions to update cross-tenant rules"
+            )
+
         # Update fields
         update_dict = update_data.model_dump(exclude_unset=True)
         for field, value in update_dict.items():
             setattr(rule, field, value)
-        
+
         rule.updated_at = datetime.now()
-        
+
         self.db.commit()
         self.db.refresh(rule)
-        
+
         return rule
 
     def delete_permission_rule(
@@ -144,21 +155,25 @@ class CrossTenantPermissionService:
             .filter(CrossTenantPermissionRule.id == rule_id)
             .first()
         )
-        
+
         if not rule:
             raise NotFound("Permission rule not found")
-        
+
         # Check permissions
-        source_org = self.db.query(Organization).filter(
-            Organization.id == rule.source_organization_id
-        ).first()
-        
+        source_org = (
+            self.db.query(Organization)
+            .filter(Organization.id == rule.source_organization_id)
+            .first()
+        )
+
         if not self._can_manage_cross_tenant_rules(deleted_by, source_org):
-            raise PermissionDenied("Insufficient permissions to delete cross-tenant rules")
-        
+            raise PermissionDenied(
+                "Insufficient permissions to delete cross-tenant rules"
+            )
+
         self.db.delete(rule)
         self.db.commit()
-        
+
         return True
 
     def check_cross_tenant_permission(
@@ -176,7 +191,7 @@ class CrossTenantPermissionService:
         user = self.db.query(User).filter(User.id == user_id).first()
         if not user:
             raise NotFound("User not found")
-        
+
         # Check if user is member of source organization
         source_membership = (
             self.db.query(UserOrganization)
@@ -189,7 +204,7 @@ class CrossTenantPermissionService:
             )
             .first()
         )
-        
+
         if not source_membership:
             result = CrossTenantPermissionResult(
                 user_id=user_id,
@@ -200,26 +215,24 @@ class CrossTenantPermissionService:
                 reason="User is not a member of the source organization",
                 matching_rules=[],
             )
-            
+
             if log_check:
-                self._log_permission_check(
-                    result, ip_address, user_agent
-                )
-            
+                self._log_permission_check(result, ip_address, user_agent)
+
             return result
-        
+
         # Get applicable rules
         rules = self._get_applicable_rules(
             source_organization_id, target_organization_id, permission
         )
-        
+
         # Apply rules in priority order (highest priority first)
         rules = sorted(rules, key=lambda r: r.priority, reverse=True)
-        
+
         allowed = False
         reason = "No applicable rules found - default deny"
         matching_rules = []
-        
+
         for rule in rules:
             if rule.matches_permission(permission):
                 matching_rules.append(rule)
@@ -231,7 +244,7 @@ class CrossTenantPermissionService:
                     allowed = False
                     reason = f"Denied by rule {rule.id}: {rule.permission_pattern}"
                     break
-        
+
         result = CrossTenantPermissionResult(
             user_id=user_id,
             source_organization_id=source_organization_id,
@@ -241,10 +254,10 @@ class CrossTenantPermissionService:
             reason=reason,
             matching_rules=matching_rules,
         )
-        
+
         if log_check:
             self._log_permission_check(result, ip_address, user_agent)
-        
+
         return result
 
     def batch_check_permissions(
@@ -260,7 +273,7 @@ class CrossTenantPermissionService:
         results = []
         allowed_count = 0
         denied_count = 0
-        
+
         for permission in permissions:
             result = self.check_cross_tenant_permission(
                 user_id=user_id,
@@ -271,27 +284,32 @@ class CrossTenantPermissionService:
                 ip_address=ip_address,
                 user_agent=user_agent,
             )
-            
+
             results.append(result)
             if result.allowed:
                 allowed_count += 1
             else:
                 denied_count += 1
-        
+
         # Log batch check
         self._log_batch_permission_check(
-            user_id, source_organization_id, target_organization_id,
-            permissions, allowed_count, denied_count,
-            ip_address, user_agent
+            user_id,
+            source_organization_id,
+            target_organization_id,
+            permissions,
+            allowed_count,
+            denied_count,
+            ip_address,
+            user_agent,
         )
-        
+
         summary = {
             "total_permissions": len(permissions),
             "allowed": allowed_count,
             "denied": denied_count,
             "success_rate": allowed_count / len(permissions) if permissions else 0,
         }
-        
+
         return BatchCrossTenantPermissionResult(
             user_id=user_id,
             source_organization_id=source_organization_id,
@@ -311,35 +329,39 @@ class CrossTenantPermissionService:
         rules = self._get_applicable_rules(
             source_organization_id, target_organization_id
         )
-        
+
         allowed_permissions = set()
         denied_permissions = set()
-        
+
         # Process rules to determine allowed/denied permissions
         for rule in sorted(rules, key=lambda r: r.priority, reverse=True):
             if rule.rule_type == "allow":
                 allowed_permissions.add(rule.permission_pattern)
             elif rule.rule_type == "deny":
                 denied_permissions.add(rule.permission_pattern)
-        
+
         # Determine access level
-        access_level = self._determine_access_level(allowed_permissions, denied_permissions)
-        
+        access_level = self._determine_access_level(
+            allowed_permissions, denied_permissions
+        )
+
         # Get last access time from audit logs
         last_access_log = (
             self.db.query(CrossTenantAuditLog)
             .filter(
                 and_(
                     CrossTenantAuditLog.user_id == user_id,
-                    CrossTenantAuditLog.source_organization_id == source_organization_id,
-                    CrossTenantAuditLog.target_organization_id == target_organization_id,
+                    CrossTenantAuditLog.source_organization_id
+                    == source_organization_id,
+                    CrossTenantAuditLog.target_organization_id
+                    == target_organization_id,
                     CrossTenantAuditLog.result == "allowed",
                 )
             )
             .order_by(desc(CrossTenantAuditLog.created_at))
             .first()
         )
-        
+
         return UserCrossTenantAccess(
             user_id=user_id,
             source_organization_id=source_organization_id,
@@ -356,10 +378,14 @@ class CrossTenantPermissionService:
         organization_id: int,
     ) -> OrganizationCrossTenantSummary:
         """Get cross-tenant permission summary for an organization."""
-        org = self.db.query(Organization).filter(Organization.id == organization_id).first()
+        org = (
+            self.db.query(Organization)
+            .filter(Organization.id == organization_id)
+            .first()
+        )
         if not org:
             raise NotFound("Organization not found")
-        
+
         # Count outbound rules (this org granting access to others)
         outbound_rules = (
             self.db.query(CrossTenantPermissionRule)
@@ -371,7 +397,7 @@ class CrossTenantPermissionService:
             )
             .count()
         )
-        
+
         # Count inbound rules (other orgs granting access to this org)
         inbound_rules = (
             self.db.query(CrossTenantPermissionRule)
@@ -383,7 +409,7 @@ class CrossTenantPermissionService:
             )
             .count()
         )
-        
+
         # Count active cross-tenant users
         active_users = (
             self.db.query(UserOrganization)
@@ -395,7 +421,7 @@ class CrossTenantPermissionService:
             )
             .count()
         )
-        
+
         # Get last update time
         last_rule = (
             self.db.query(CrossTenantPermissionRule)
@@ -408,7 +434,7 @@ class CrossTenantPermissionService:
             .order_by(desc(CrossTenantPermissionRule.updated_at))
             .first()
         )
-        
+
         return OrganizationCrossTenantSummary(
             organization_id=organization_id,
             organization_name=org.name,
@@ -422,7 +448,7 @@ class CrossTenantPermissionService:
     def cleanup_expired_rules(self) -> int:
         """Clean up expired cross-tenant permission rules."""
         now = datetime.now()
-        
+
         expired_rules = (
             self.db.query(CrossTenantPermissionRule)
             .filter(
@@ -433,13 +459,13 @@ class CrossTenantPermissionService:
             )
             .all()
         )
-        
+
         for rule in expired_rules:
             rule.is_active = False
             rule.updated_at = now
-        
+
         self.db.commit()
-        
+
         return len(expired_rules)
 
     def _get_applicable_rules(
@@ -449,17 +475,16 @@ class CrossTenantPermissionService:
         permission: Optional[str] = None,
     ) -> List[CrossTenantPermissionRule]:
         """Get applicable cross-tenant permission rules."""
-        query = (
-            self.db.query(CrossTenantPermissionRule)
-            .filter(
-                and_(
-                    CrossTenantPermissionRule.source_organization_id == source_organization_id,
-                    CrossTenantPermissionRule.target_organization_id == target_organization_id,
-                    CrossTenantPermissionRule.is_active == True,
-                )
+        query = self.db.query(CrossTenantPermissionRule).filter(
+            and_(
+                CrossTenantPermissionRule.source_organization_id
+                == source_organization_id,
+                CrossTenantPermissionRule.target_organization_id
+                == target_organization_id,
+                CrossTenantPermissionRule.is_active == True,
             )
         )
-        
+
         # Filter out expired rules
         now = datetime.now()
         query = query.filter(
@@ -468,13 +493,13 @@ class CrossTenantPermissionService:
                 CrossTenantPermissionRule.expires_at > now,
             )
         )
-        
+
         rules = query.all()
-        
+
         # If permission is specified, filter by matching patterns
         if permission:
             rules = [rule for rule in rules if rule.matches_permission(permission)]
-        
+
         return rules
 
     def _determine_access_level(
@@ -485,19 +510,19 @@ class CrossTenantPermissionService:
         """Determine access level based on permissions."""
         if not allowed_permissions:
             return "none"
-        
+
         # Check for full access patterns
         full_access_patterns = ["*", "admin:*", "full:*"]
         if any(pattern in allowed_permissions for pattern in full_access_patterns):
             return "full"
-        
+
         # Check for read-only patterns
         read_patterns = ["read:*", "view:*"]
         write_patterns = ["write:*", "edit:*", "create:*", "delete:*"]
-        
+
         has_read = any(pattern in allowed_permissions for pattern in read_patterns)
         has_write = any(pattern in allowed_permissions for pattern in write_patterns)
-        
+
         if has_read and not has_write:
             return "read_only"
         elif has_read and has_write:
@@ -513,7 +538,7 @@ class CrossTenantPermissionService:
         """Check if user can manage cross-tenant rules for organization."""
         if user.is_superuser:
             return True
-        
+
         # Check if user is admin of the organization
         # This would typically check user roles within the organization
         # For now, simplified to superuser check
@@ -527,7 +552,7 @@ class CrossTenantPermissionService:
     ) -> None:
         """Log a permission check to audit trail."""
         rule_id = result.matching_rules[0].id if result.matching_rules else None
-        
+
         log_entry = CrossTenantAuditLog(
             user_id=result.user_id,
             source_organization_id=result.source_organization_id,
@@ -539,7 +564,7 @@ class CrossTenantPermissionService:
             ip_address=ip_address,
             user_agent=user_agent,
         )
-        
+
         self.db.add(log_entry)
         self.db.commit()
 
@@ -565,6 +590,6 @@ class CrossTenantPermissionService:
             ip_address=ip_address,
             user_agent=user_agent,
         )
-        
+
         self.db.add(log_entry)
         self.db.commit()

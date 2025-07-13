@@ -5,9 +5,8 @@ from datetime import datetime, timedelta
 import pytest
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import BusinessLogicError, NotFound, PermissionDenied
+from app.core.exceptions import PermissionDenied
 from app.schemas.cross_tenant_permissions import (
-    CrossTenantPermissionCheck,
     CrossTenantPermissionRuleCreate,
 )
 from app.services.cross_tenant_permissions import CrossTenantPermissionService
@@ -86,6 +85,7 @@ class TestCrossTenantPermissionService:
 
         # Add user to source organization
         from app.services.multi_tenant import MultiTenantService
+
         multi_tenant_service = MultiTenantService(db_session)
         multi_tenant_service.add_user_to_organization(
             user_id=user.id,
@@ -129,6 +129,7 @@ class TestCrossTenantPermissionService:
 
         # Add user to source organization
         from app.services.multi_tenant import MultiTenantService
+
         multi_tenant_service = MultiTenantService(db_session)
         multi_tenant_service.add_user_to_organization(
             user_id=user.id,
@@ -195,6 +196,7 @@ class TestCrossTenantPermissionService:
 
         # Add user to source organization
         from app.services.multi_tenant import MultiTenantService
+
         multi_tenant_service = MultiTenantService(db_session)
         multi_tenant_service.add_user_to_organization(
             user_id=user.id,
@@ -235,12 +237,12 @@ class TestCrossTenantPermissionService:
         assert len(result.results) == 4
         assert result.summary["total_permissions"] == 4
         assert result.summary["allowed"] == 2  # read permissions
-        assert result.summary["denied"] == 2   # write and admin permissions
+        assert result.summary["denied"] == 2  # write and admin permissions
 
         # Check individual results
         read_results = [r for r in result.results if r.permission.startswith("read:")]
         write_results = [r for r in result.results if r.permission.startswith("write:")]
-        
+
         assert all(r.allowed for r in read_results)
         assert not any(r.allowed for r in write_results)
 
@@ -331,7 +333,7 @@ class TestCrossTenantPermissionService:
         assert summary.organization_id == source_org.id
         assert summary.organization_name == source_org.name
         assert summary.outbound_rules == 2  # Rules granting access to others
-        assert summary.inbound_rules == 1   # Rules allowing access from others
+        assert summary.inbound_rules == 1  # Rules allowing access from others
         assert summary.total_shared_permissions == 3
 
     def test_cleanup_expired_rules(

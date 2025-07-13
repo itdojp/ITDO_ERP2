@@ -35,24 +35,24 @@ class TestSessionManagementEdgeCases:
         ip_address: str = "192.168.1.100",
         user_agent: str = "Test Browser/1.0",
         session_token: str = None,
-        **kwargs
+        **kwargs,
     ) -> UserSession:
         """Helper to create a user session."""
-        from datetime import datetime, timedelta
         import uuid
-        
+        from datetime import datetime, timedelta
+
         if session_token is None:
             session_token = f"test_session_{uuid.uuid4().hex[:8]}"
-            
+
         session_data = {
             "user_id": user_id,
             "session_token": session_token,
             "ip_address": ip_address,
             "user_agent": user_agent,
             "expires_at": datetime.utcnow() + timedelta(hours=24),
-            **kwargs
+            **kwargs,
         }
-        
+
         session = UserSession(**session_data)
         db_session.add(session)
         db_session.commit()
@@ -145,7 +145,8 @@ class TestSessionManagementEdgeCases:
             .count()
         )
 
-        # Should not exceed reasonable limits (this test is more about structure than enforcement)
+        # Should not exceed reasonable limits (this test is more about
+        # structure than enforcement)
         assert active_sessions >= 1  # At least one session should be created
 
     def test_session_validation_with_modified_user_agent(

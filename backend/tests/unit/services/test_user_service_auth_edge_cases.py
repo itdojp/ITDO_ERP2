@@ -33,13 +33,13 @@ class TestUserServiceAuthenticationEdgeCases:
         org = create_test_organization(db_session)
         user_role = create_test_role(db_session, code="USER")
         admin_role = create_test_role(db_session, code="ORG_ADMIN")
-        
+
         admin = create_test_user(db_session, email="admin@example.com")
         create_test_user_role(db_session, user=admin, role=admin_role, organization=org)
-        
+
         db_session.add_all([org, user_role, admin_role, admin])
         db_session.commit()
-        
+
         return {
             "org": org,
             "user_role": user_role,
@@ -53,7 +53,7 @@ class TestUserServiceAuthenticationEdgeCases:
         """Test user creation with empty email address."""
         # Given: Basic setup
         env = setup_basic_environment
-        
+
         # When/Then: Creating user with empty email should raise validation error
         with pytest.raises((BusinessLogicError, ValueError)):
             service.create_user(
@@ -74,7 +74,7 @@ class TestUserServiceAuthenticationEdgeCases:
         """Test user creation with whitespace-only email."""
         # Given: Basic setup
         env = setup_basic_environment
-        
+
         # When/Then: Creating user with whitespace email should raise validation error
         with pytest.raises((BusinessLogicError, ValueError)):
             service.create_user(
@@ -95,10 +95,10 @@ class TestUserServiceAuthenticationEdgeCases:
         """Test user creation with SQL injection attempt in email."""
         # Given: Basic setup
         env = setup_basic_environment
-        
+
         # When/Then: SQL injection in email should be handled safely
         malicious_email = "user@example.com'; DROP TABLE users; --"
-        
+
         with pytest.raises((BusinessLogicError, ValueError)):
             service.create_user(
                 data=UserCreateExtended(
@@ -118,10 +118,10 @@ class TestUserServiceAuthenticationEdgeCases:
         """Test user creation with Unicode characters in email."""
         # Given: Basic setup
         env = setup_basic_environment
-        
+
         # When: Creating user with Unicode email
         unicode_email = "用户@例子.测试"  # Chinese characters
-        
+
         try:
             user = service.create_user(
                 data=UserCreateExtended(
@@ -146,10 +146,10 @@ class TestUserServiceAuthenticationEdgeCases:
         """Test user creation with extremely long email."""
         # Given: Basic setup
         env = setup_basic_environment
-        
+
         # When/Then: Very long email should be rejected
         long_email = "a" * 300 + "@example.com"  # > 255 characters
-        
+
         with pytest.raises((BusinessLogicError, ValueError)):
             service.create_user(
                 data=UserCreateExtended(
@@ -169,10 +169,10 @@ class TestUserServiceAuthenticationEdgeCases:
         """Test user creation with special characters in name."""
         # Given: Basic setup
         env = setup_basic_environment
-        
+
         # When: Creating user with special characters in name
         special_name = "Test'User<script>alert('xss')</script>"
-        
+
         user = service.create_user(
             data=UserCreateExtended(
                 email="testuser@example.com",
@@ -184,7 +184,7 @@ class TestUserServiceAuthenticationEdgeCases:
             creator=env["admin"],
             db=db_session,
         )
-        
+
         # Then: Name should be stored safely (not executed)
         assert user.full_name == special_name
         assert "<script>" in user.full_name  # Stored as-is, not executed
@@ -195,7 +195,7 @@ class TestUserServiceAuthenticationEdgeCases:
         """Test user creation with null bytes in input fields."""
         # Given: Basic setup
         env = setup_basic_environment
-        
+
         # When/Then: Null bytes should be rejected or handled safely
         with pytest.raises((BusinessLogicError, ValueError)):
             service.create_user(
@@ -218,7 +218,7 @@ class TestUserServiceAuthenticationEdgeCases:
         user = create_test_user(db_session)
         db_session.add(user)
         db_session.commit()
-        
+
         # When/Then: Empty current password should fail
         with pytest.raises(BusinessLogicError):
             service.change_password(
@@ -228,7 +228,7 @@ class TestUserServiceAuthenticationEdgeCases:
                 changer=user,
                 db=db_session,
             )
-        
+
         # When/Then: Empty new password should fail
         with pytest.raises(BusinessLogicError):
             service.change_password(
@@ -247,7 +247,7 @@ class TestUserServiceAuthenticationEdgeCases:
         user = create_test_user(db_session)
         db_session.add(user)
         db_session.commit()
-        
+
         # When/Then: Whitespace-only passwords should fail
         with pytest.raises(BusinessLogicError):
             service.change_password(
@@ -266,7 +266,7 @@ class TestUserServiceAuthenticationEdgeCases:
         user = create_test_user(db_session)
         db_session.add(user)
         db_session.commit()
-        
+
         # When/Then: Setting same password should fail
         with pytest.raises(BusinessLogicError):
             service.change_password(
@@ -285,11 +285,11 @@ class TestUserServiceAuthenticationEdgeCases:
         user = create_test_user(db_session)
         db_session.add(user)
         db_session.commit()
-        
+
         # When: Setting password with Unicode characters that meet validation rules
         # Include ASCII characters to meet password strength requirements
         unicode_password = "Password123!パスワード"
-        
+
         try:
             service.change_password(
                 user_id=user.id,
@@ -298,12 +298,12 @@ class TestUserServiceAuthenticationEdgeCases:
                 changer=user,
                 db=db_session,
             )
-            
+
             # Then: Should handle Unicode passwords properly
             db_session.refresh(user)
             assert user.hashed_password is not None
             assert user.password_changed_at > user.created_at
-            
+
         except BusinessLogicError:
             # If Unicode passwords are not supported due to validation rules,
             # this is also acceptable behavior for security reasons
@@ -320,16 +320,16 @@ class TestUserServiceAuthenticationEdgeCases:
             db_session, user=test_user, role=env["user_role"], organization=env["org"]
         )
         db_session.commit()
-        
+
         # When: Searching with SQL injection attempt
         malicious_search = "'; DROP TABLE users; --"
         params = UserSearchParams(search=malicious_search)
-        
+
         # Then: Should handle safely without executing malicious SQL
         result = service.search_users(
             params=params, searcher=env["admin"], db=db_session
         )
-        
+
         # Should return empty results or handle gracefully
         assert isinstance(result.total, int)
         assert result.total >= 0
@@ -340,16 +340,16 @@ class TestUserServiceAuthenticationEdgeCases:
         """Test user search with extremely long search term."""
         # Given: Basic setup
         env = setup_basic_environment
-        
+
         # When: Searching with very long term
         long_search = "a" * 10000  # 10KB search term
         params = UserSearchParams(search=long_search)
-        
+
         # Then: Should handle gracefully without crashing
         result = service.search_users(
             params=params, searcher=env["admin"], db=db_session
         )
-        
+
         assert isinstance(result.total, int)
         assert result.total >= 0
 
@@ -364,7 +364,7 @@ class TestUserServiceAuthenticationEdgeCases:
             db_session, user=test_user, role=env["user_role"], organization=env["org"]
         )
         db_session.commit()
-        
+
         # When: Searching with regex patterns
         regex_patterns = [
             ".*",
@@ -373,15 +373,15 @@ class TestUserServiceAuthenticationEdgeCases:
             "(?i)TEST",  # Case insensitive
             "\\",  # Escape character
         ]
-        
+
         for pattern in regex_patterns:
             params = UserSearchParams(search=pattern)
-            
+
             # Then: Should handle regex patterns safely
             result = service.search_users(
                 params=params, searcher=env["admin"], db=db_session
             )
-            
+
             assert isinstance(result.total, int)
             assert result.total >= 0
 
@@ -391,7 +391,7 @@ class TestUserServiceAuthenticationEdgeCases:
         """Test password reset for non-existent user."""
         # Given: Basic setup
         env = setup_basic_environment
-        
+
         # When/Then: Resetting password for non-existent user should fail
         with pytest.raises(NotFound):
             service.reset_password(
@@ -406,7 +406,7 @@ class TestUserServiceAuthenticationEdgeCases:
         """Test role assignment with negative user ID."""
         # Given: Basic setup
         env = setup_basic_environment
-        
+
         # When/Then: Negative user ID should fail
         with pytest.raises(NotFound):
             service.assign_role(
@@ -428,11 +428,11 @@ class TestUserServiceAuthenticationEdgeCases:
             db_session, user=user, role=env["user_role"], organization=env["org"]
         )
         db_session.commit()
-        
+
         # When: User is soft deleted
         user.soft_delete(deleted_by=env["admin"].id)
         db_session.commit()
-        
+
         # Then: Test behavior with deleted user
         try:
             result = service.get_user_detail(
@@ -452,7 +452,7 @@ class TestUserServiceAuthenticationEdgeCases:
         user = create_test_user(db_session)
         db_session.add(user)
         db_session.commit()
-        
+
         # When: First password change
         service.change_password(
             user_id=user.id,
@@ -461,7 +461,7 @@ class TestUserServiceAuthenticationEdgeCases:
             changer=user,
             db=db_session,
         )
-        
+
         # Then: Second attempt with old password should fail
         with pytest.raises(BusinessLogicError):
             service.change_password(
@@ -480,10 +480,13 @@ class TestUserServiceAuthenticationEdgeCases:
         env = setup_basic_environment
         regular_user = create_test_user(db_session, email="regular@example.com")
         create_test_user_role(
-            db_session, user=regular_user, role=env["user_role"], organization=env["org"]
+            db_session,
+            user=regular_user,
+            role=env["user_role"],
+            organization=env["org"],
         )
         db_session.commit()
-        
+
         # When/Then: Regular user trying to create another user should fail
         with pytest.raises(PermissionDenied):
             service.create_user(
@@ -504,7 +507,7 @@ class TestUserServiceAuthenticationEdgeCases:
         """Test bulk operations with malformed input data."""
         # Given: Basic setup
         env = setup_basic_environment
-        
+
         # When: Bulk import with malformed data
         malformed_data = [
             {
@@ -524,7 +527,7 @@ class TestUserServiceAuthenticationEdgeCases:
                 "full_name": "",  # Empty full_name
             },
         ]
-        
+
         try:
             result = service.bulk_import_users(
                 data=malformed_data,
@@ -533,13 +536,13 @@ class TestUserServiceAuthenticationEdgeCases:
                 importer=env["admin"],
                 db=db_session,
             )
-            
+
             # Then: Should handle malformed data gracefully
             assert result.success_count >= 0
             assert result.error_count >= 0
             assert result.success_count + result.error_count == len(malformed_data)
             assert len(result.errors) == result.error_count
-            
+
         except Exception:
             # If the service fails entirely on malformed data, that's also valid behavior
             # as long as it doesn't crash the application

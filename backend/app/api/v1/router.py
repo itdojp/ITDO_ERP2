@@ -28,10 +28,20 @@ api_router.include_router(user_profile.router, tags=["user-profile"])
 api_router.include_router(organizations.router)
 api_router.include_router(departments.router)
 api_router.include_router(roles.router)
-api_router.include_router(role_permission_ui.router, prefix="/role-permissions", tags=["role-permissions"])
-api_router.include_router(permission_inheritance.router, prefix="/permission-inheritance", tags=["permission-inheritance"])
-api_router.include_router(multi_tenant.router, prefix="/multi-tenant", tags=["multi-tenant"])
-api_router.include_router(cross_tenant_permissions.router, prefix="/cross-tenant", tags=["cross-tenant"])
+api_router.include_router(
+    role_permission_ui.router, prefix="/role-permissions", tags=["role-permissions"]
+)
+api_router.include_router(
+    permission_inheritance.router,
+    prefix="/permission-inheritance",
+    tags=["permission-inheritance"],
+)
+api_router.include_router(
+    multi_tenant.router, prefix="/multi-tenant", tags=["multi-tenant"]
+)
+api_router.include_router(
+    cross_tenant_permissions.router, prefix="/cross-tenant", tags=["cross-tenant"]
+)
 api_router.include_router(tasks.router, prefix="/tasks", tags=["tasks"])
 
 

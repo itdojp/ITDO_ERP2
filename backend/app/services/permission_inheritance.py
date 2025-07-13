@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from sqlalchemy import and_, or_
+from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import BusinessLogicError, NotFound, PermissionDenied
@@ -17,11 +17,16 @@ from app.models.role import Role, RolePermission
 from app.models.user import User
 from app.schemas.permission_inheritance import (
     InheritanceConflict,
-    InheritanceConflictResolution as ConflictResolutionSchema,
-    PermissionDependency as PermissionDependencySchema,
-    PermissionInheritanceCreate,
-    PermissionInheritanceRule as PermissionInheritanceRuleSchema,
     PermissionInheritanceUpdate,
+)
+from app.schemas.permission_inheritance import (
+    InheritanceConflictResolution as ConflictResolutionSchema,
+)
+from app.schemas.permission_inheritance import (
+    PermissionDependency as PermissionDependencySchema,
+)
+from app.schemas.permission_inheritance import (
+    PermissionInheritanceRule as PermissionInheritanceRuleSchema,
 )
 
 
@@ -61,16 +66,16 @@ class PermissionInheritanceService:
             raise BusinessLogicError("Role cannot inherit from itself")
 
         # Check for circular inheritance
-        if self._would_create_circular_inheritance(
-            parent_role_id, child_role_id, db
-        ):
+        if self._would_create_circular_inheritance(parent_role_id, child_role_id, db):
             raise BusinessLogicError("Circular inheritance detected")
 
         # Check permissions
         if not creator.is_superuser and not self._can_manage_role_inheritance(
             creator, parent_role, child_role
         ):
-            raise PermissionDenied("Insufficient permissions to create inheritance rule")
+            raise PermissionDenied(
+                "Insufficient permissions to create inheritance rule"
+            )
 
         # Create rule
         rule = RoleInheritanceRule(
@@ -123,15 +128,15 @@ class PermissionInheritanceService:
         # Check if parent_role_id can reach child_role_id through inheritance chain
         # If it can, then adding child_role_id -> parent_role_id would create a cycle
         visited = set()
-        
+
         def has_path_to_target(current_role_id: int, target_role_id: int) -> bool:
             if current_role_id in visited:
                 return False
             if current_role_id == target_role_id:
                 return True
-                
+
             visited.add(current_role_id)
-            
+
             # Check all roles that current_role inherits from (parent roles)
             parent_rules = (
                 db.query(RoleInheritanceRule)
@@ -143,14 +148,14 @@ class PermissionInheritanceService:
                 )
                 .all()
             )
-            
+
             for rule in parent_rules:
                 if has_path_to_target(rule.parent_role_id, target_role_id):
                     return True
-                    
+
             return False
-        
-        # If parent_role_id has a path to child_role_id, creating 
+
+        # If parent_role_id has a path to child_role_id, creating
         # child_role_id -> parent_role_id would create a cycle
         return has_path_to_target(parent_role_id, child_role_id)
 
@@ -212,45 +217,46 @@ class PermissionInheritanceService:
     ) -> bool:
         """Check if creating dependency would create a circular dependency."""
         visited = set()
-        
+
         def has_path_to_permission(current_permission_id: int) -> bool:
             if current_permission_id in visited:
                 return False
             if current_permission_id == permission_id:
                 return True
-                
+
             visited.add(current_permission_id)
-            
+
             # Check all dependencies of current permission
             dependencies = (
                 db.query(PermissionDependency)
                 .filter(
                     and_(
-                        PermissionDependency.requires_permission_id == current_permission_id,
+                        PermissionDependency.requires_permission_id
+                        == current_permission_id,
                         PermissionDependency.is_active == True,
                     )
                 )
                 .all()
             )
-            
+
             for dep in dependencies:
                 if has_path_to_permission(dep.permission_id):
                     return True
-                    
+
             return False
-        
+
         return has_path_to_permission(requires_permission_id)
 
     def get_all_permission_dependencies(self, permission_id: int) -> list[Permission]:
         """Get all dependencies (direct and transitive) for a permission."""
         all_dependencies = set()
         visited = set()
-        
+
         def collect_dependencies(perm_id: int):
             if perm_id in visited:
                 return
             visited.add(perm_id)
-            
+
             dependencies = (
                 self.db.query(PermissionDependency)
                 .filter(
@@ -261,23 +267,21 @@ class PermissionInheritanceService:
                 )
                 .all()
             )
-            
+
             for dep in dependencies:
                 all_dependencies.add(dep.requires_permission_id)
                 collect_dependencies(dep.requires_permission_id)
-        
+
         collect_dependencies(permission_id)
-        
+
         return (
-            self.db.query(Permission)
-            .filter(Permission.id.in_(all_dependencies))
-            .all()
+            self.db.query(Permission).filter(Permission.id.in_(all_dependencies)).all()
         )
 
     def get_inheritance_conflicts(self, role_id: int) -> list[InheritanceConflict]:
         """Get inheritance conflicts for a role."""
         conflicts = []
-        
+
         # Get all parent roles
         parent_rules = (
             self.db.query(RoleInheritanceRule)
@@ -289,16 +293,16 @@ class PermissionInheritanceService:
             )
             .all()
         )
-        
+
         if len(parent_rules) < 2:
             return conflicts
-            
+
         # Check for conflicts between parent permissions
         for i, rule1 in enumerate(parent_rules):
-            for rule2 in parent_rules[i + 1:]:
+            for rule2 in parent_rules[i + 1 :]:
                 role1_perms = self._get_role_permissions_map(rule1.parent_role_id)
                 role2_perms = self._get_role_permissions_map(rule2.parent_role_id)
-                
+
                 # Find conflicting permissions
                 common_perms = set(role1_perms.keys()) & set(role2_perms.keys())
                 for perm_code in common_perms:
@@ -322,7 +326,7 @@ class PermissionInheritanceService:
                                     conflict_type="grant_vs_deny",
                                 )
                             )
-        
+
         return conflicts
 
     def _get_role_permissions_map(self, role_id: int) -> dict[str, bool]:
@@ -333,7 +337,7 @@ class PermissionInheritanceService:
             .filter(RolePermission.role_id == role_id)
             .all()
         )
-        
+
         return {rp.permission.code: rp.is_granted for rp in role_permissions}
 
     def resolve_inheritance_conflict(
@@ -520,13 +524,17 @@ class PermissionInheritanceService:
         visited_roles = set()
 
         def collect_permissions_with_source(
-            current_role_id: int, depth: int = 0, original_source_role_id: int | None = None
+            current_role_id: int,
+            depth: int = 0,
+            original_source_role_id: int | None = None,
         ):
             if current_role_id in visited_roles or depth > 10:
                 return
             visited_roles.add(current_role_id)
 
-            current_role = self.db.query(Role).filter(Role.id == current_role_id).first()
+            current_role = (
+                self.db.query(Role).filter(Role.id == current_role_id).first()
+            )
             if not current_role:
                 return
 
@@ -549,9 +557,15 @@ class PermissionInheritanceService:
                     else:
                         source_role_id = original_source_role_id or current_role_id
                         # Get the source role's code
-                        source_role = self.db.query(Role).filter(Role.id == source_role_id).first()
-                        source_role_code = source_role.code if source_role else current_role.code
-                    
+                        source_role = (
+                            self.db.query(Role)
+                            .filter(Role.id == source_role_id)
+                            .first()
+                        )
+                        source_role_code = (
+                            source_role.code if source_role else current_role.code
+                        )
+
                     permissions_with_source[perm_code] = {
                         "granted": rp.is_granted,
                         "source_role_id": source_role_id,
@@ -578,7 +592,7 @@ class PermissionInheritanceService:
                     self.db.query(Role).filter(Role.id == rule.parent_role_id).first()
                 )
                 if parent_role:
-                    # For inheritance chain starting from root (depth 0), 
+                    # For inheritance chain starting from root (depth 0),
                     # the first parent becomes the source
                     # For deeper inheritance, preserve the existing source
                     if depth == 0:
@@ -631,7 +645,9 @@ class PermissionInheritanceService:
         if not granter.is_superuser and not self._can_manage_role_permissions(
             granter, role
         ):
-            raise PermissionDenied("Insufficient permissions to modify role permissions")
+            raise PermissionDenied(
+                "Insufficient permissions to modify role permissions"
+            )
 
         # Create or update role permission
         existing_rp = (
@@ -678,15 +694,15 @@ class PermissionInheritanceService:
             }
             # Try to get performer name if performer relationship exists
             try:
-                if hasattr(log, 'performer') and log.performer:
+                if hasattr(log, "performer") and log.performer:
                     log_dict["performed_by_name"] = log.performer.full_name
                 else:
                     log_dict["performed_by_name"] = "Unknown"
             except Exception:
                 log_dict["performed_by_name"] = "Unknown"
-            
+
             result.append(log_dict)
-        
+
         return result
 
     def update_inheritance_rule(
@@ -697,7 +713,11 @@ class PermissionInheritanceService:
         db: Session,
     ) -> PermissionInheritanceRuleSchema:
         """Update an inheritance rule."""
-        rule = db.query(RoleInheritanceRule).filter(RoleInheritanceRule.id == rule_id).first()
+        rule = (
+            db.query(RoleInheritanceRule)
+            .filter(RoleInheritanceRule.id == rule_id)
+            .first()
+        )
         if not rule:
             raise NotFound("Inheritance rule not found")
 
@@ -705,7 +725,9 @@ class PermissionInheritanceService:
         if not updater.is_superuser and not self._can_manage_role_inheritance(
             updater, rule.parent_role, rule.child_role
         ):
-            raise PermissionDenied("Insufficient permissions to update inheritance rule")
+            raise PermissionDenied(
+                "Insufficient permissions to update inheritance rule"
+            )
 
         # Update fields
         update_dict = update_data.model_dump(exclude_unset=True)

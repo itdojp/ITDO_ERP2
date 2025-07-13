@@ -653,15 +653,10 @@ class TestRoleAPI(
         role = RoleFactory.create_with_organization(db_session, test_organization)
         user = UserFactory.create(db_session)
 
-        # Assign role to user (minimal required fields)
-        assignment_data = {
-            "user_id": user.id, 
-            "role_id": role.id,
-            "organization_id": test_organization.id
-        }
         # For now, create the role assignment directly in the database
         # to bypass the response schema issues
         from app.models.role import UserRole
+
         user_role = UserRole(
             user_id=user.id,
             role_id=role.id,
@@ -779,9 +774,9 @@ class TestRolePermissions:
 
         # Test assign permission
         assignment_data = {
-            "user_id": user.id, 
+            "user_id": user.id,
             "role_id": role.id,
-            "organization_id": test_organization.id
+            "organization_id": test_organization.id,
         }
         response = client.post(
             "/api/v1/roles/assign",

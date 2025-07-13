@@ -340,7 +340,8 @@ class TestRolePermissionUIService:
 
         assert len(results) > 0
         assert all(
-            "user" in p.permission.code.lower() or "user" in p.permission.name.lower() for p in results
+            "user" in p.permission.code.lower() or "user" in p.permission.name.lower()
+            for p in results
         )
 
         # Search for create permissions
@@ -348,7 +349,8 @@ class TestRolePermissionUIService:
 
         assert len(create_results) > 0
         assert all(
-            "create" in p.permission.code.lower() or "create" in p.permission.name.lower()
+            "create" in p.permission.code.lower()
+            or "create" in p.permission.name.lower()
             for p in create_results
         )
 
@@ -409,7 +411,10 @@ class TestRolePermissionUIService:
 
         # Set conflicting permissions
         admin = UserFactory.create_with_password(
-            db_session, password="password", email="conflict_admin@example.com", is_superuser=True
+            db_session,
+            password="password",
+            email="conflict_admin@example.com",
+            is_superuser=True,
         )
 
         ui_service.update_role_permissions(

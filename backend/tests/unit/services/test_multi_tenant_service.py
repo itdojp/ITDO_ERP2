@@ -5,12 +5,11 @@ from datetime import datetime, timedelta
 import pytest
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import BusinessLogicError, NotFound, PermissionDenied
+from app.core.exceptions import BusinessLogicError
 from app.schemas.multi_tenant import (
     BatchUserInvite,
     OrganizationInvitationCreate,
     TransferApproval,
-    UserOrganizationCreate,
     UserTransferRequestCreate,
 )
 from app.services.multi_tenant import MultiTenantService

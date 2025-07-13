@@ -8,21 +8,17 @@ from pydantic import BaseModel, Field
 
 class CrossTenantPermissionRule(BaseModel):
     """Cross-tenant permission rule model."""
-    
+
     id: int
     source_organization_id: int
     target_organization_id: int
     permission_pattern: str = Field(
-        ..., 
-        description="Permission pattern (e.g., 'read:*', 'user:*', specific permission)"
+        ...,
+        description="Permission pattern (e.g., 'read:*', 'user:*', specific permission)",
     )
-    rule_type: str = Field(
-        default="allow", 
-        description="Rule type: allow, deny"
-    )
+    rule_type: str = Field(default="allow", description="Rule type: allow, deny")
     priority: int = Field(
-        default=100, 
-        description="Rule priority (higher number = higher priority)"
+        default=100, description="Rule priority (higher number = higher priority)"
     )
     is_active: bool = True
     created_by: int
@@ -37,20 +33,16 @@ class CrossTenantPermissionRule(BaseModel):
 
 class CrossTenantPermissionRuleCreate(BaseModel):
     """Schema for creating cross-tenant permission rules."""
-    
+
     source_organization_id: int
     target_organization_id: int
     permission_pattern: str = Field(
-        ..., 
-        description="Permission pattern (e.g., 'read:*', 'user:*', specific permission)"
+        ...,
+        description="Permission pattern (e.g., 'read:*', 'user:*', specific permission)",
     )
-    rule_type: str = Field(
-        default="allow", 
-        description="Rule type: allow, deny"
-    )
+    rule_type: str = Field(default="allow", description="Rule type: allow, deny")
     priority: int = Field(
-        default=100, 
-        description="Rule priority (higher number = higher priority)"
+        default=100, description="Rule priority (higher number = higher priority)"
     )
     expires_at: Optional[datetime] = None
     notes: Optional[str] = None
@@ -58,7 +50,7 @@ class CrossTenantPermissionRuleCreate(BaseModel):
 
 class CrossTenantPermissionRuleUpdate(BaseModel):
     """Schema for updating cross-tenant permission rules."""
-    
+
     permission_pattern: Optional[str] = None
     rule_type: Optional[str] = None
     priority: Optional[int] = None
@@ -69,7 +61,7 @@ class CrossTenantPermissionRuleUpdate(BaseModel):
 
 class UserCrossTenantAccess(BaseModel):
     """User's cross-tenant access information."""
-    
+
     user_id: int
     source_organization_id: int
     target_organization_id: int
@@ -87,7 +79,7 @@ class UserCrossTenantAccess(BaseModel):
 
 class CrossTenantPermissionCheck(BaseModel):
     """Request for cross-tenant permission check."""
-    
+
     user_id: int
     source_organization_id: int
     target_organization_id: int
@@ -96,7 +88,7 @@ class CrossTenantPermissionCheck(BaseModel):
 
 class CrossTenantPermissionResult(BaseModel):
     """Result of cross-tenant permission check."""
-    
+
     user_id: int
     source_organization_id: int
     target_organization_id: int
@@ -108,7 +100,7 @@ class CrossTenantPermissionResult(BaseModel):
 
 class OrganizationCrossTenantSummary(BaseModel):
     """Summary of organization's cross-tenant permissions."""
-    
+
     organization_id: int
     organization_name: str
     outbound_rules: int = Field(description="Rules granting access to other orgs")
@@ -123,7 +115,7 @@ class OrganizationCrossTenantSummary(BaseModel):
 
 class CrossTenantAuditLog(BaseModel):
     """Cross-tenant permission audit log."""
-    
+
     id: int
     user_id: int
     source_organization_id: int
@@ -142,7 +134,7 @@ class CrossTenantAuditLog(BaseModel):
 
 class BatchCrossTenantPermissionCheck(BaseModel):
     """Batch cross-tenant permission check request."""
-    
+
     user_id: int
     source_organization_id: int
     target_organization_id: int
@@ -151,23 +143,21 @@ class BatchCrossTenantPermissionCheck(BaseModel):
 
 class BatchCrossTenantPermissionResult(BaseModel):
     """Batch cross-tenant permission check result."""
-    
+
     user_id: int
     source_organization_id: int
     target_organization_id: int
     results: List[CrossTenantPermissionResult]
-    summary: dict = Field(
-        description="Summary with allowed/denied counts"
-    )
+    summary: dict = Field(description="Summary with allowed/denied counts")
 
 
 class CrossTenantPermissionMatrix(BaseModel):
     """Permission matrix for cross-tenant access."""
-    
+
     source_organization_id: int
     target_organizations: List[dict] = Field(
         description="List of target orgs with their permission mappings"
     )
-    
+
     class Config:
         from_attributes = True

@@ -8,15 +8,10 @@ Following TDD approach - Red phase: Writing tests before implementation.
 import pytest
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import BusinessLogicError, NotFound, PermissionDenied
-from app.models.permission import Permission
-from app.models.role import Role
-from app.models.user import User
+from app.core.exceptions import BusinessLogicError
 from app.schemas.permission_inheritance import (
-    PermissionDependency,
-    PermissionInheritanceRule,
-    PermissionInheritanceUpdate,
     InheritanceConflictResolution,
+    PermissionInheritanceUpdate,
 )
 from app.services.permission_inheritance import PermissionInheritanceService
 from tests.factories import (

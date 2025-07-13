@@ -8,8 +8,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import BaseModel
 
 if TYPE_CHECKING:
-    from app.models.role import Role, RolePermission
     from app.models.permission_inheritance import PermissionDependency
+    from app.models.role import Role, RolePermission
 
 
 class Permission(BaseModel):
@@ -71,7 +71,7 @@ class Permission(BaseModel):
         primaryjoin="Permission.id == RolePermission.permission_id",
         secondaryjoin="RolePermission.role_id == Role.id",
     )
-    
+
     # Permission dependencies
     dependencies: Mapped[list["PermissionDependency"]] = relationship(
         "PermissionDependency",
