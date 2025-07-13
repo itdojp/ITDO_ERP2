@@ -133,6 +133,10 @@ class User(SoftDeletableModel):
         if user.is_locked():
             return None
 
+        # Check if account is expired
+        if user.account_expires_at and user.account_expires_at < datetime.now(timezone.utc):
+            return None
+
         # Verify password
         try:
             if not verify_password(password, user.hashed_password):
