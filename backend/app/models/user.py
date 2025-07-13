@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from app.models.role import Role, UserRole
     from app.models.task import Task
     from app.models.user_activity_log import UserActivityLog
+    from app.models.user_organization import UserOrganization
     from app.models.user_preferences import UserPreferences
     from app.models.user_privacy import UserPrivacySettings
     from app.models.user_session import UserSession

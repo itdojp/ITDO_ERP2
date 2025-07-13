@@ -12,6 +12,10 @@ if TYPE_CHECKING:
     from app.models.department import Department
     from app.models.role import Role
     from app.models.user import User
+    from app.models.user_organization import (
+        OrganizationInvitation,
+        UserOrganization,
+    )
 
 
 class Organization(SoftDeletableModel):
