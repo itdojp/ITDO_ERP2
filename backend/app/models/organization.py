@@ -142,6 +142,20 @@ class Organization(SoftDeletableModel):
     roles: Mapped[list["Role"]] = relationship(
         "Role", back_populates="organization", lazy="dynamic"
     )
+    
+    # Multi-tenant user relationships
+    user_memberships: Mapped[list["UserOrganization"]] = relationship(
+        "UserOrganization", 
+        foreign_keys="UserOrganization.organization_id",
+        back_populates="organization", 
+        cascade="all, delete-orphan"
+    )
+    invitations: Mapped[list["OrganizationInvitation"]] = relationship(
+        "OrganizationInvitation", 
+        foreign_keys="OrganizationInvitation.organization_id",
+        back_populates="organization", 
+        cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         """String representation."""

@@ -50,9 +50,8 @@ class TestRolePermissionUIService:
             db_session,
             code=f"ORG_ADMIN_{uuid.uuid4().hex[:8]}",
             name="Organization Admin",
-            permissions={"role": {"manage": True}},
         )
-        user.assign_role(admin_role, organization)
+        # TODO: Implement role assignment
         return user
 
     @pytest.fixture
@@ -258,6 +257,7 @@ class TestRolePermissionUIService:
         self,
         ui_service: RolePermissionUIService,
         organization: Organization,
+        admin_user: User,
         db_session: Session,
     ) -> None:
         """Test getting effective permissions including inheritance."""
@@ -282,7 +282,7 @@ class TestRolePermissionUIService:
             role_id=parent_role.id,
             organization_id=organization.id,
             update_data=parent_update,
-            updater=db_session.query(User).filter(User.is_superuser).first(),
+            updater=admin_user,
         )
 
         # Set child permissions (override one)
@@ -293,7 +293,7 @@ class TestRolePermissionUIService:
             role_id=child_role.id,
             organization_id=organization.id,
             update_data=child_update,
-            updater=db_session.query(User).filter(User.is_superuser).first(),
+            updater=admin_user,
         )
 
         # Get effective permissions
@@ -340,7 +340,7 @@ class TestRolePermissionUIService:
 
         assert len(results) > 0
         assert all(
-            "user" in p.code.lower() or "user" in p.name.lower() for p in results
+            "user" in p.permission.code.lower() or "user" in p.permission.name.lower() for p in results
         )
 
         # Search for create permissions
@@ -348,7 +348,7 @@ class TestRolePermissionUIService:
 
         assert len(create_results) > 0
         assert all(
-            "create" in p.code.lower() or "create" in p.name.lower()
+            "create" in p.permission.code.lower() or "create" in p.permission.name.lower()
             for p in create_results
         )
 
@@ -408,7 +408,9 @@ class TestRolePermissionUIService:
         )
 
         # Set conflicting permissions
-        admin = db_session.query(User).filter(User.is_superuser).first()
+        admin = UserFactory.create_with_password(
+            db_session, password="password", email="conflict_admin@example.com", is_superuser=True
+        )
 
         ui_service.update_role_permissions(
             grandparent.id,

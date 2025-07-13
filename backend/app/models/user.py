@@ -16,6 +16,8 @@ if TYPE_CHECKING:
     from app.models.role import Role, UserRole
     from app.models.task import Task
     from app.models.user_activity_log import UserActivityLog
+    from app.models.user_preferences import UserPreferences
+    from app.models.user_privacy import UserPrivacySettings
     from app.models.user_session import UserSession
 
 # Re-export for backwards compatibility
@@ -40,6 +42,11 @@ class User(SoftDeletableModel):
     department_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("departments.id"), nullable=True
     )
+    
+    # Profile fields
+    bio: Mapped[str | None] = mapped_column(String(500))
+    location: Mapped[str | None] = mapped_column(String(100))
+    website: Mapped[str | None] = mapped_column(String(255))
 
     # Security fields
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -78,14 +85,21 @@ class User(SoftDeletableModel):
     reported_tasks: Mapped[list["Task"]] = relationship(
         "Task", foreign_keys="Task.reporter_id", back_populates="reporter"
     )
-
-    # Role relationships
-    roles: Mapped[list["Role"]] = relationship(
-        "Role",
-        secondary="user_roles",
-        back_populates="users",
-        primaryjoin="User.id == UserRole.user_id",
-        secondaryjoin="UserRole.role_id == Role.id",
+    
+    # User preferences and privacy settings
+    preferences: Mapped["UserPreferences | None"] = relationship(
+        "UserPreferences", back_populates="user", uselist=False, cascade="all, delete-orphan"
+    )
+    privacy_settings: Mapped["UserPrivacySettings | None"] = relationship(
+        "UserPrivacySettings", back_populates="user", uselist=False, cascade="all, delete-orphan"
+    )
+    
+    # Multi-tenant organization relationships
+    organization_memberships: Mapped[list["UserOrganization"]] = relationship(
+        "UserOrganization", 
+        foreign_keys="UserOrganization.user_id",
+        back_populates="user", 
+        cascade="all, delete-orphan"
     )
 
     @classmethod
@@ -580,6 +594,17 @@ class User(SoftDeletableModel):
     def assign_role_to_self(self, role: "Role", organization: "Organization") -> None:
         """Attempt to assign role to self (should fail for security)."""
         raise PermissionDenied("ユーザーは自分自身にロールを割り当てることはできません")
+
+    def is_online(self) -> bool:
+        """Check if user is currently online (active within last 15 minutes)."""
+        if not self.last_login_at:
+            return False
+        
+        from datetime import datetime, timezone, timedelta
+        now = datetime.now(timezone.utc)
+        online_threshold = now - timedelta(minutes=15)
+        
+        return self.last_login_at > online_threshold
 
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email={self.email})>"

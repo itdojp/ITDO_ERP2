@@ -9,6 +9,7 @@ from app.models.base import BaseModel
 
 if TYPE_CHECKING:
     from app.models.role import Role, RolePermission
+    from app.models.permission_inheritance import PermissionDependency
 
 
 class Permission(BaseModel):
@@ -69,6 +70,14 @@ class Permission(BaseModel):
         back_populates="permissions",
         primaryjoin="Permission.id == RolePermission.permission_id",
         secondaryjoin="RolePermission.role_id == Role.id",
+    )
+    
+    # Permission dependencies
+    dependencies: Mapped[list["PermissionDependency"]] = relationship(
+        "PermissionDependency",
+        foreign_keys="PermissionDependency.permission_id",
+        back_populates="permission",
+        cascade="all, delete-orphan",
     )
 
     # Indexes and constraints

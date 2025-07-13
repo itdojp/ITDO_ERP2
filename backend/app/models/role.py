@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from app.models.organization import Organization
     from app.models.permission import Permission
     from app.models.user import User
+    from app.models.permission_inheritance import RoleInheritanceRule
 
 
 class Role(SoftDeletableModel):
@@ -154,6 +155,20 @@ class Role(SoftDeletableModel):
     )
     role_permissions: Mapped[list["RolePermission"]] = relationship(
         "RolePermission", back_populates="role", cascade="all, delete-orphan"
+    )
+    
+    # Inheritance relationships
+    parent_inheritance_rules: Mapped[list["RoleInheritanceRule"]] = relationship(
+        "RoleInheritanceRule",
+        foreign_keys="RoleInheritanceRule.child_role_id",
+        back_populates="child_role",
+        cascade="all, delete-orphan",
+    )
+    child_inheritance_rules: Mapped[list["RoleInheritanceRule"]] = relationship(
+        "RoleInheritanceRule",
+        foreign_keys="RoleInheritanceRule.parent_role_id",
+        back_populates="parent_role",
+        cascade="all, delete-orphan",
     )
 
     def __repr__(self) -> str:
