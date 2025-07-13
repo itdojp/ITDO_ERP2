@@ -15,6 +15,7 @@ from app.core.exceptions import (
 from app.models.organization import Organization
 from app.models.permission import Permission
 from app.models.role import Role, RolePermission, UserRole
+from app.models.user import User
 from app.repositories.role import RoleRepository
 from app.schemas.role import (
     BulkRoleAssignment,
@@ -462,8 +463,39 @@ class RoleService:
         organization_id: OrganizationId | None = None,
     ) -> bool:
         """Check if user has specific permission."""
-        # Stub implementation - always return True for testing
-        return True
+        # Get user
+        user = self.db.scalar(select(User).where(User.id == user_id))
+        if not user:
+            return False
+
+        # Check if user is superuser (has all permissions)
+        if user.is_superuser:
+            return True
+
+        # Check if user has the specific permission through role assignments
+        query = (
+            select(Permission)
+            .join(RolePermission)
+            .join(Role)
+            .join(UserRole)
+            .where(
+                and_(
+                    UserRole.user_id == user_id,
+                    UserRole.is_active,
+                    Role.is_active,
+                    Permission.code == permission_code,
+                    Permission.is_active,
+                )
+            )
+        )
+
+        # Filter by organization if provided
+        if organization_id:
+            query = query.where(UserRole.organization_id == organization_id)
+
+        # Check if any matching permission exists
+        permission = self.db.scalar(query)
+        return permission is not None
 
     def is_role_in_use(self, role_id: RoleId) -> bool:
         """Check if role is assigned to any users."""
