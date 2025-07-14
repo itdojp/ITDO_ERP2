@@ -168,7 +168,7 @@ class TestUserRepository:
         assert locked_user is not None
         assert locked_user.failed_login_attempts == 5
         assert locked_user.locked_until is not None
-        
+
         # Ensure timezone-aware comparison
         locked_until = locked_user.locked_until
         if locked_until.tzinfo is None:

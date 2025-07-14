@@ -1,6 +1,5 @@
 """User profile management API endpoints."""
 
-
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
@@ -60,8 +59,7 @@ def get_user_profile(
         target_user = db.query(User).filter(User.id == user_id).first()
         if not target_user:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="ユーザーが見つかりません"
+                status_code=status.HTTP_404_NOT_FOUND, detail="ユーザーが見つかりません"
             )
 
         return UserProfileResponse(
@@ -75,9 +73,10 @@ def get_user_profile(
         )
     except (NotFound, PermissionDenied) as e:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND if isinstance(e, NotFound)
-                        else status.HTTP_403_FORBIDDEN,
-            detail=str(e)
+            status_code=status.HTTP_404_NOT_FOUND
+            if isinstance(e, NotFound)
+            else status.HTTP_403_FORBIDDEN,
+            detail=str(e),
         )
 
 
@@ -99,6 +98,7 @@ def update_my_profile(
 
         # Update other profile fields using existing update_user method
         from app.schemas.user_extended import UserUpdate
+
         update_data = UserUpdate(
             full_name=profile_data.full_name,
             phone=profile_data.phone,
@@ -110,9 +110,10 @@ def update_my_profile(
 
     except (NotFound, PermissionDenied) as e:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND if isinstance(e, NotFound)
-                        else status.HTTP_403_FORBIDDEN,
-            detail=str(e)
+            status_code=status.HTTP_404_NOT_FOUND
+            if isinstance(e, NotFound)
+            else status.HTTP_403_FORBIDDEN,
+            detail=str(e),
         )
 
 
@@ -127,14 +128,14 @@ async def upload_profile_image(
     if not file.content_type or not file.content_type.startswith("image/"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="画像ファイルをアップロードしてください"
+            detail="画像ファイルをアップロードしてください",
         )
 
     # Validate file size (max 5MB)
     if file.size and file.size > 5 * 1024 * 1024:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="ファイルサイズは5MB以下にしてください"
+            detail="ファイルサイズは5MB以下にしてください",
         )
 
     try:
@@ -149,9 +150,10 @@ async def upload_profile_image(
 
     except (NotFound, PermissionDenied) as e:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND if isinstance(e, NotFound)
-                        else status.HTTP_403_FORBIDDEN,
-            detail=str(e)
+            status_code=status.HTTP_404_NOT_FOUND
+            if isinstance(e, NotFound)
+            else status.HTTP_403_FORBIDDEN,
+            detail=str(e),
         )
 
 
@@ -183,9 +185,10 @@ def update_my_settings(
 
     except (NotFound, PermissionDenied) as e:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND if isinstance(e, NotFound)
-                        else status.HTTP_403_FORBIDDEN,
-            detail=str(e)
+            status_code=status.HTTP_404_NOT_FOUND
+            if isinstance(e, NotFound)
+            else status.HTTP_403_FORBIDDEN,
+            detail=str(e),
         )
 
 
@@ -217,7 +220,8 @@ def update_my_privacy_settings(
 
     except (NotFound, PermissionDenied) as e:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND if isinstance(e, NotFound)
-                        else status.HTTP_403_FORBIDDEN,
-            detail=str(e)
+            status_code=status.HTTP_404_NOT_FOUND
+            if isinstance(e, NotFound)
+            else status.HTTP_403_FORBIDDEN,
+            detail=str(e),
         )

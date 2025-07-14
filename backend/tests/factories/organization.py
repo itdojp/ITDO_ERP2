@@ -54,9 +54,7 @@ class OrganizationFactory(BaseFactory):
             ),
             "capital": fake.random_int(min=1000000, max=1000000000),
             "employee_count": fake.random_int(min=1, max=10000),
-            "fiscal_year_start": fake.random_element(
-                elements=(1, 4, 7, 10)
-            ),
+            "fiscal_year_start": fake.random_element(elements=(1, 4, 7, 10)),
             "is_active": True,
             "created_by": None,  # Will be set in tests if needed
             "updated_by": None,  # Will be set in tests if needed

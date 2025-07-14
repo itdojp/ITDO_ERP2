@@ -189,14 +189,14 @@ class TestUserModel:
 
         # Then: User should be updated
         assert user.full_name == "Updated Name"
-        
+
         # Ensure timezone-aware comparison
         original_time = original_updated_at
         if original_time.tzinfo is None:
             original_time = original_time.replace(tzinfo=timezone.utc)
-        
+
         updated_time = user.updated_at
         if updated_time.tzinfo is None:
             updated_time = updated_time.replace(tzinfo=timezone.utc)
-            
+
         assert updated_time > original_time
