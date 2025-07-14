@@ -303,12 +303,20 @@ class Role(SoftDeletableModel):
             return True
 
         if self.scope == "organization":
-            return user.organization_id == self.organization_id
+            # Check if user has any role in this organization
+            return any(
+                ur.organization_id == self.organization_id
+                for ur in user.user_roles
+                if ur.is_valid
+            )
 
         if self.scope == "department":
-            return (
-                user.organization_id == self.organization_id
-                and user.department_id == self.department_id
+            # Check if user has access to this department in this organization
+            return any(
+                ur.organization_id == self.organization_id
+                and (ur.department_id == self.department_id or ur.department_id is None)
+                for ur in user.user_roles
+                if ur.is_valid
             )
 
         return False
