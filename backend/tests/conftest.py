@@ -74,6 +74,8 @@ def db_session() -> Generator[Session, None, None]:
                     "password_history",
                     "user_sessions",
                     "user_activity_logs",
+                    "user_preferences",
+                    "user_privacy_settings",
                     "audit_logs",
                     "project_members",
                     "project_milestones",

@@ -3,9 +3,11 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.api.v1 import (
+    audit_logs,
     auth,
     departments,
     organizations,
+    permission_management,
     roles,
     tasks,
     users,
@@ -22,6 +24,8 @@ api_router.include_router(users_extended.router)
 api_router.include_router(organizations.router)
 api_router.include_router(departments.router)
 api_router.include_router(roles.router)
+api_router.include_router(permission_management.router)
+api_router.include_router(audit_logs.router)
 api_router.include_router(tasks.router, prefix="/tasks", tags=["tasks"])
 
 

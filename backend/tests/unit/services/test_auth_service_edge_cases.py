@@ -15,6 +15,7 @@ This test suite covers 26 edge cases across different categories:
 """
 
 import threading
+import uuid
 from datetime import datetime, timedelta, timezone
 from unittest.mock import Mock, patch
 
@@ -24,6 +25,11 @@ from sqlalchemy.orm import Session
 from app.core.security import create_access_token
 from app.services.auth import AuthService
 from tests.factories import create_test_user
+
+
+def unique_email(prefix: str = "user") -> str:
+    """Generate unique email for testing."""
+    return f"{prefix}+{uuid.uuid4().hex[:8]}@example.com"
 
 
 class TestAuthServiceEdgeCases:
@@ -43,7 +49,7 @@ class TestAuthServiceEdgeCases:
     ) -> None:
         """TEST-AUTH-EDGE-001: Authentication with empty email should fail."""
         # Given: User with valid password
-        create_test_user(db_session, email="valid@example.com")
+        create_test_user(db_session, email=unique_email("valid"))
 
         # When: Authenticating with empty email
         result = auth_service.authenticate_user(db_session, "", "TestPassword123!")
@@ -56,7 +62,7 @@ class TestAuthServiceEdgeCases:
     ) -> None:
         """TEST-AUTH-EDGE-002: Authentication with None email should fail."""
         # Given: User with valid password
-        create_test_user(db_session, email="valid@example.com")
+        create_test_user(db_session, email=unique_email("valid"))
 
         # When: Authenticating with None email
         result = auth_service.authenticate_user(db_session, None, "TestPassword123!")
@@ -69,7 +75,7 @@ class TestAuthServiceEdgeCases:
     ) -> None:
         """TEST-AUTH-EDGE-003: Authentication with empty password should fail."""
         # Given: Valid user
-        user = create_test_user(db_session, email="user@example.com")
+        user = create_test_user(db_session, email=unique_email("user"))
         db_session.add(user)
         db_session.commit()
 
@@ -84,7 +90,7 @@ class TestAuthServiceEdgeCases:
     ) -> None:
         """TEST-AUTH-EDGE-004: Authentication with None password should fail."""
         # Given: Valid user
-        user = create_test_user(db_session, email="user@example.com")
+        user = create_test_user(db_session, email=unique_email("user"))
         db_session.add(user)
         db_session.commit()
 
@@ -99,7 +105,7 @@ class TestAuthServiceEdgeCases:
     ) -> None:
         """TEST-AUTH-EDGE-005: Whitespace-only credentials should fail."""
         # Given: Valid user
-        create_test_user(db_session, email="user@example.com")
+        create_test_user(db_session, email=unique_email("user"))
 
         # When: Authenticating with whitespace-only credentials
         result = auth_service.authenticate_user(db_session, "   ", "   ")
@@ -116,7 +122,7 @@ class TestAuthServiceEdgeCases:
     ) -> None:
         """TEST-AUTH-EDGE-006: Authentication with malformed email should fail."""
         # Given: User with valid email
-        create_test_user(db_session, email="valid@example.com")
+        create_test_user(db_session, email=unique_email("valid"))
 
         # When: Authenticating with malformed email formats
         malformed_emails = [
@@ -141,7 +147,7 @@ class TestAuthServiceEdgeCases:
     ) -> None:
         """TEST-AUTH-EDGE-007: Authentication with unicode chars in email."""
         # Given: Valid user
-        create_test_user(db_session, email="user@example.com")
+        create_test_user(db_session, email=unique_email("user"))
 
         # When: Authenticating with unicode email
         result = auth_service.authenticate_user(
@@ -196,7 +202,7 @@ class TestAuthServiceEdgeCases:
     ) -> None:
         """TEST-AUTH-EDGE-010: Authentication with control characters in password."""
         # Given: User
-        user = create_test_user(db_session, email="user@example.com")
+        user = create_test_user(db_session, email=unique_email("user"))
         db_session.add(user)
         db_session.commit()
 
@@ -218,7 +224,7 @@ class TestAuthServiceEdgeCases:
     ) -> None:
         """TEST-AUTH-EDGE-011: Authentication with SQL injection in email."""
         # Given: Valid user
-        user = create_test_user(db_session, email="user@example.com")
+        user = create_test_user(db_session, email=unique_email("user"))
         db_session.add(user)
         db_session.commit()
 
@@ -242,7 +248,7 @@ class TestAuthServiceEdgeCases:
     ) -> None:
         """TEST-AUTH-EDGE-012: Authentication with SQL injection in password."""
         # Given: Valid user
-        user = create_test_user(db_session, email="user@example.com")
+        user = create_test_user(db_session, email=unique_email("user"))
         db_session.add(user)
         db_session.commit()
 
@@ -270,7 +276,7 @@ class TestAuthServiceEdgeCases:
     ) -> None:
         """TEST-AUTH-EDGE-013: Authentication with extremely long email."""
         # Given: User
-        create_test_user(db_session, email="user@example.com")
+        create_test_user(db_session, email=unique_email("user"))
 
         # When: Authenticating with very long email (over 1000 characters)
         long_email = "a" * 1000 + "@example.com"
@@ -286,7 +292,7 @@ class TestAuthServiceEdgeCases:
     ) -> None:
         """TEST-AUTH-EDGE-014: Authentication with extremely long password."""
         # Given: Valid user
-        user = create_test_user(db_session, email="user@example.com")
+        user = create_test_user(db_session, email=unique_email("user"))
         db_session.add(user)
         db_session.commit()
 
@@ -302,7 +308,7 @@ class TestAuthServiceEdgeCases:
     ) -> None:
         """TEST-AUTH-EDGE-015: Authentication with both inputs extremely long."""
         # Given: Valid user
-        create_test_user(db_session, email="user@example.com")
+        create_test_user(db_session, email=unique_email("user"))
 
         # When: Authenticating with both very long inputs
         long_email = "a" * 2000 + "@example.com"
@@ -321,7 +327,7 @@ class TestAuthServiceEdgeCases:
     ) -> None:
         """TEST-AUTH-EDGE-016: Authentication with invalid UTF-8 in email."""
         # Given: Valid user
-        create_test_user(db_session, email="user@example.com")
+        create_test_user(db_session, email=unique_email("user"))
 
         # When: Authenticating with invalid UTF-8 sequences
         # These should be handled gracefully by the system
@@ -340,7 +346,7 @@ class TestAuthServiceEdgeCases:
     ) -> None:
         """TEST-AUTH-EDGE-017: Authentication with mixed encoding password."""
         # Given: Valid user
-        user = create_test_user(db_session, email="user@example.com")
+        user = create_test_user(db_session, email=unique_email("user"))
         db_session.add(user)
         db_session.commit()
 
@@ -364,7 +370,7 @@ class TestAuthServiceEdgeCases:
     ) -> None:
         """TEST-AUTH-EDGE-018: Get current user with malformed token."""
         # Given: Valid user
-        create_test_user(db_session, email="user@example.com")
+        create_test_user(db_session, email=unique_email("user"))
 
         # When: Using malformed tokens
         malformed_tokens = [
@@ -386,7 +392,7 @@ class TestAuthServiceEdgeCases:
     ) -> None:
         """TEST-AUTH-EDGE-019: Get current user with tampered token."""
         # Given: User and valid token
-        user = create_test_user(db_session, email="user@example.com")
+        user = create_test_user(db_session, email=unique_email("user"))
         db_session.add(user)
         db_session.commit()
 
@@ -412,7 +418,7 @@ class TestAuthServiceEdgeCases:
     ) -> None:
         """TEST-AUTH-EDGE-020: Concurrent authentication attempts."""
         # Given: Valid user
-        user = create_test_user(db_session, email="user@example.com")
+        user = create_test_user(db_session, email=unique_email("user"))
         db_session.add(user)
         db_session.commit()
 
@@ -457,7 +463,7 @@ class TestAuthServiceEdgeCases:
     ) -> None:
         """TEST-AUTH-EDGE-021: Concurrent token validation."""
         # Given: User and token
-        user = create_test_user(db_session, email="user@example.com")
+        user = create_test_user(db_session, email=unique_email("user"))
         db_session.add(user)
         db_session.commit()
 
@@ -495,7 +501,7 @@ class TestAuthServiceEdgeCases:
     ) -> None:
         """TEST-AUTH-EDGE-023: Token operations at expiry boundaries."""
         # Given: User and tokens
-        user = create_test_user(db_session, email="user@example.com")
+        user = create_test_user(db_session, email=unique_email("user"))
         db_session.add(user)
         db_session.commit()
 
@@ -526,7 +532,7 @@ class TestAuthServiceEdgeCases:
     ) -> None:
         """TEST-AUTH-EDGE-024: Authentication at system resource limits."""
         # Given: Valid user
-        user = create_test_user(db_session, email="user@example.com")
+        user = create_test_user(db_session, email=unique_email("user"))
         db_session.add(user)
         db_session.commit()
 
@@ -548,7 +554,7 @@ class TestAuthServiceEdgeCases:
     ) -> None:
         """TEST-AUTH-EDGE-025: Token operations with corrupted database session."""
         # Given: User and token
-        user = create_test_user(db_session, email="user@example.com")
+        user = create_test_user(db_session, email=unique_email("user"))
         token = create_access_token(data={"sub": user.email})
 
         # Simulate corrupted session
@@ -572,7 +578,7 @@ class TestAuthServiceEdgeCases:
     ) -> None:
         """TEST-AUTH-EDGE-026: Authentication under memory pressure conditions."""
         # Given: Valid user
-        user = create_test_user(db_session, email="user@example.com")
+        user = create_test_user(db_session, email=unique_email("user"))
         db_session.add(user)
         db_session.commit()
 
@@ -599,7 +605,7 @@ class TestAuthServiceEdgeCases:
     ) -> None:
         """TEST-AUTH-EDGE-027: Authentication with locked user account."""
         # Given: User with locked account
-        user = create_test_user(db_session, email="user@example.com")
+        user = create_test_user(db_session, email=unique_email("user"))
         user.locked_until = datetime.now(timezone.utc) + timedelta(hours=1)
         db_session.add(user)
         db_session.commit()
@@ -617,7 +623,7 @@ class TestAuthServiceEdgeCases:
     ) -> None:
         """TEST-AUTH-EDGE-028: Token with future issued-at time should be rejected."""
         # Given: User
-        user = create_test_user(db_session, email="user@example.com")
+        user = create_test_user(db_session, email=unique_email("user"))
         db_session.add(user)
         db_session.commit()
 
@@ -649,7 +655,7 @@ class TestAuthServiceEdgeCases:
     ) -> None:
         """TEST-AUTH-EDGE-029: Authentication with expired user account."""
         # Given: User with expired account
-        user = create_test_user(db_session, email="user@example.com")
+        user = create_test_user(db_session, email=unique_email("user"))
         user.account_expires_at = datetime.now(timezone.utc) - timedelta(days=1)
         db_session.add(user)
         db_session.commit()
