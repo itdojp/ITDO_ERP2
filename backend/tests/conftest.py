@@ -87,7 +87,11 @@ def db_session() -> Generator[Session, None, None]:
                     "organizations",
                 ]
                 for table in table_order:
-                    conn.execute(text(f'DELETE FROM "{table}"'))
+                    try:
+                        conn.execute(text(f'DELETE FROM "{table}"'))
+                    except Exception:
+                        # Skip if table doesn't exist
+                        pass
         else:
             # For SQLite, drop all tables
             Base.metadata.drop_all(bind=engine)
