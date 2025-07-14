@@ -13,13 +13,13 @@ from sqlalchemy import (
     Text,
     func,
 )
-from sqlalchemy.orm import Session, relationship
+from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
 
 from app.core.database import Base
 
 if TYPE_CHECKING:
-    from app.models.organization import Organization  # type: ignore
-    from app.models.user import User  # type: ignore
+    from app.models.organization import Organization
+    from app.models.user import User
 
 
 class Department(Base):
@@ -27,23 +27,23 @@ class Department(Base):
 
     __tablename__ = "departments"
 
-    id: int = Column(Integer, primary_key=True, index=True)
-    organization_id: int = Column(Integer, ForeignKey("organizations.id"), nullable=False)
-    parent_id: Optional[int] = Column(Integer, ForeignKey("departments.id"), nullable=True)
-    code: str = Column(String(50), nullable=False, index=True)
-    name: str = Column(String(255), nullable=False)
-    name_kana: Optional[str] = Column(String(255))
-    description: Optional[str] = Column(Text)
-    level: int = Column(Integer, default=1)  # 階層レベル
-    path: Optional[str] = Column(String(255))  # 階層パス (例: "1/2/3")
-    sort_order: int = Column(Integer, default=0)
-    is_active: bool = Column(Boolean, default=True)
-    created_at: datetime = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at: datetime = Column(
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    organization_id: Mapped[int] = mapped_column(Integer, ForeignKey("organizations.id"), nullable=False)
+    parent_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("departments.id"), nullable=True)
+    code: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    name_kana: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    level: Mapped[int] = mapped_column(Integer, default=1)  # 階層レベル
+    path: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)  # 階層パス (例: "1/2/3")
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
-    created_by: Optional[int] = Column(Integer, ForeignKey("users.id"))
-    updated_by: Optional[int] = Column(Integer, ForeignKey("users.id"))
+    created_by: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)
+    updated_by: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)
 
     # Relationships
     organization = relationship("Organization", back_populates="departments")
@@ -112,7 +112,7 @@ class Department(Base):
         """Get all departments for an organization."""
         return (
             db.query(cls)
-            .filter(cls.organization_id == organization_id, cls.is_active == True)
+            .filter(cls.organization_id == organization_id, cls.is_active.is_(True))
             .order_by(cls.sort_order, cls.code)
             .all()
         )

@@ -25,8 +25,8 @@ app.add_middleware(
 )
 
 # Exception handlers
-app.add_exception_handler(RequestValidationError, validation_exception_handler)
-app.add_exception_handler(IntegrityError, integrity_error_handler)
+app.add_exception_handler(RequestValidationError, validation_exception_handler)  # type: ignore[arg-type]
+app.add_exception_handler(IntegrityError, integrity_error_handler)  # type: ignore[arg-type]
 
 # APIルーターの登録
 app.include_router(api_router, prefix=settings.API_V1_STR)

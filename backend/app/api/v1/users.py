@@ -47,13 +47,9 @@ def create_user(
 
     except IntegrityError:
         db.rollback()
-        return JSONResponse(
+        raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            content=ErrorResponse(
-                detail="User with this email already exists",
-                code="USER001",
-                timestamp=datetime.utcnow(),
-            ).model_dump(),
+            detail="User with this email already exists",
         )
 
 

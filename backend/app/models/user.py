@@ -1,10 +1,10 @@
 """User model."""
 
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from sqlalchemy import Boolean, Column, DateTime, Integer, String, func
-from sqlalchemy.orm import Session, relationship
+from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
 
 from app.core.database import Base
 from app.core.security import hash_password, verify_password
@@ -15,14 +15,14 @@ class User(Base):
 
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, index=True)
-    email = Column(String, unique=True, index=True, nullable=False)
-    hashed_password = Column(String, nullable=False)
-    full_name = Column(String(100), nullable=False)
-    is_active = Column(Boolean, default=True)
-    is_superuser = Column(Boolean, default=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    email: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
+    hashed_password: Mapped[str] = mapped_column(String, nullable=False)
+    full_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
@@ -84,7 +84,7 @@ class User(Base):
 
         return user
 
-    def update(self, db: Session, **kwargs) -> None:
+    def update(self, db: Session, **kwargs: Any) -> None:
         """Update user attributes."""
         for key, value in kwargs.items():
             if hasattr(self, key):

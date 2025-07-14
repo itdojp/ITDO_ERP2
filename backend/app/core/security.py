@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
 
 from jose import JWTError, jwt
+from jose.exceptions import ExpiredSignatureError
 from passlib.context import CryptContext
 
 from app.core.config import settings
@@ -83,7 +84,7 @@ def verify_token(token: str) -> Dict[str, Any]:
             token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
         )
         return payload
-    except jwt.ExpiredSignatureError:
+    except ExpiredSignatureError:
         raise ExpiredTokenError("Token has expired")
     except JWTError:
         raise InvalidTokenError("Invalid token")

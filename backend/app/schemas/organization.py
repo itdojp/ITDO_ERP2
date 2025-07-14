@@ -20,13 +20,13 @@ class OrganizationBase(BaseModel):
     fiscal_year_start: int = Field(4, ge=1, le=12, description="会計年度開始月")
 
     @validator("email")
-    def validate_email(cls, v):
+    def validate_email(cls, v: Optional[str]) -> Optional[str]:
         if v and "@" not in v:
             raise ValueError("有効なメールアドレスを入力してください")
         return v
 
     @validator("fiscal_year_start")
-    def validate_fiscal_year_start(cls, v):
+    def validate_fiscal_year_start(cls, v: int) -> int:
         if v < 1 or v > 12:
             raise ValueError("会計年度開始月は1-12の範囲で入力してください")
         return v
@@ -55,7 +55,7 @@ class OrganizationUpdate(BaseModel):
     )
 
     @validator("email")
-    def validate_email(cls, v):
+    def validate_email(cls, v: Optional[str]) -> Optional[str]:
         if v and "@" not in v:
             raise ValueError("有効なメールアドレスを入力してください")
         return v

@@ -1,7 +1,7 @@
 """Audit service."""
 
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
@@ -42,7 +42,9 @@ class AuditLogList:
 class AuditService:
     """Audit service class."""
 
-    def __init__(self):
+    def __init__(self, db: Session) -> None:
+        """Initialize audit service with database session."""
+        self.db = db
         # Mock storage for audit logs
         self._logs: List[AuditLog] = []
 
@@ -52,7 +54,7 @@ class AuditService:
         resource_type: str,
         resource_id: int,
         user: User,
-        changes: dict,
+        changes: Dict[str, Any],
         organization_id: Optional[int] = None,
     ) -> None:
         """Log an audit event."""
@@ -93,13 +95,45 @@ class AuditService:
             items=items, total=len(filtered_logs), page=page, limit=limit
         )
 
+    def get_organization_audit_logs(
+        self,
+        organization_id: int,
+        user: User,
+        page: int = 1,
+        limit: int = 10,
+        resource_type: Optional[str] = None,
+        action: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Get audit logs for specific organization."""
+        # Mock implementation
+        return {
+            "items": [],
+            "total": 0,
+            "page": page,
+            "limit": limit,
+        }
+
+    def search_audit_logs(
+        self, search_params: Dict[str, Any], user: User
+    ) -> Dict[str, Any]:
+        """Search audit logs with various filters."""
+        # Mock implementation
+        page = search_params.get("page", 1)
+        limit = search_params.get("limit", 10)
+        return {
+            "items": [],
+            "total": 0,
+            "page": page,
+            "limit": limit,
+        }
+
 
 class AuditLogger:
     """Mock audit logger."""
 
     @staticmethod
     def log(
-        action: str, resource_type: str, resource_id: int, user: User, changes: dict
+        action: str, resource_type: str, resource_id: int, user: User, changes: Dict[str, Any]
     ) -> None:
         """Log audit event."""
         # Mock implementation

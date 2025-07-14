@@ -15,14 +15,14 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
-from sqlalchemy.orm import Session, relationship
+from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
 
 from app.core.database import Base
 
 if TYPE_CHECKING:
-    from app.models.user import User  # type: ignore
-    from app.models.organization import Organization  # type: ignore
-    from app.models.department import Department  # type: ignore
+    from app.models.user import User
+    from app.models.organization import Organization
+    from app.models.department import Department
 
 
 class Role(Base):
@@ -30,19 +30,19 @@ class Role(Base):
 
     __tablename__ = "roles"
 
-    id: int = Column(Integer, primary_key=True, index=True)
-    code: str = Column(String(50), unique=True, index=True, nullable=False)
-    name: str = Column(String(255), nullable=False)
-    description: Optional[str] = Column(Text)
-    permissions: List[str] = Column(JSON, default=list)  # List of permission strings
-    is_system: bool = Column(Boolean, default=False)  # System roles cannot be deleted
-    is_active: bool = Column(Boolean, default=True)
-    created_at: datetime = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at: datetime = Column(
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    code: Mapped[str] = mapped_column(String(50), unique=True, index=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    permissions: Mapped[List[str]] = mapped_column(JSON, default=list)  # List of permission strings
+    is_system: Mapped[bool] = mapped_column(Boolean, default=False)  # System roles cannot be deleted
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
-    created_by: Optional[int] = Column(Integer, ForeignKey("users.id"))
-    updated_by: Optional[int] = Column(Integer, ForeignKey("users.id"))
+    created_by: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)
+    updated_by: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)
 
     # Relationships
     user_roles = relationship("UserRole", back_populates="role")
@@ -171,14 +171,14 @@ class UserRole(Base):
 
     __tablename__ = "user_roles"
 
-    id: int = Column(Integer, primary_key=True, index=True)
-    user_id: int = Column(Integer, ForeignKey("users.id"), nullable=False)
-    role_id: int = Column(Integer, ForeignKey("roles.id"), nullable=False)
-    organization_id: int = Column(Integer, ForeignKey("organizations.id"), nullable=False)
-    department_id: Optional[int] = Column(Integer, ForeignKey("departments.id"), nullable=True)
-    assigned_by: Optional[int] = Column(Integer, ForeignKey("users.id"))
-    assigned_at: datetime = Column(DateTime(timezone=True), server_default=func.now())
-    expires_at: Optional[datetime] = Column(DateTime(timezone=True), nullable=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    role_id: Mapped[int] = mapped_column(Integer, ForeignKey("roles.id"), nullable=False)
+    organization_id: Mapped[int] = mapped_column(Integer, ForeignKey("organizations.id"), nullable=False)
+    department_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("departments.id"), nullable=True)
+    assigned_by: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)
+    assigned_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     user = relationship("User", foreign_keys=[user_id])

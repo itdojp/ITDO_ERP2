@@ -1,6 +1,6 @@
 """Organization service."""
 
-from typing import List, Optional, Any
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
@@ -63,7 +63,7 @@ class OrganizationService:
         search: Optional[str] = None,
     ) -> OrganizationList:
         """Get organizations accessible by user."""
-        query = db.query(Organization).filter(Organization.is_active == True)
+        query = db.query(Organization).filter(Organization.is_active.is_(True))
 
         # Apply search filter
         if search:
@@ -178,7 +178,7 @@ class OrganizationService:
         resource_type: str,
         resource_id: int,
         user: User,
-        changes: dict,
+        changes: Dict[str, Any],
     ) -> None:
         """Log audit event."""
         # Mock implementation for now

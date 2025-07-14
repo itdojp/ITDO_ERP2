@@ -1,6 +1,6 @@
 """Department service."""
 
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
@@ -21,7 +21,7 @@ class DepartmentService:
     """Department service class."""
 
     def create_department(
-        self, data: dict, organization_id: int, user: User, db: Session
+        self, data: Dict[str, Any], organization_id: int, user: User, db: Session
     ) -> Department:
         """Create a new department."""
         # Check organization access
@@ -109,7 +109,7 @@ class DepartmentService:
         return dept
 
     def update_department(
-        self, dept_id: int, data: dict, user: User, db: Session
+        self, dept_id: int, data: Dict[str, Any], user: User, db: Session
     ) -> Department:
         """Update department."""
         dept = self.get_department(dept_id, user, db)

@@ -27,13 +27,9 @@ def login(request: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse
     # Authenticate user
     user = AuthService.authenticate_user(db, request.email, request.password)
     if not user:
-        return JSONResponse(
+        raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            content=ErrorResponse(
-                detail="Invalid authentication credentials",
-                code="AUTH001",
-                timestamp=datetime.utcnow(),
-            ).model_dump(),
+            detail="Invalid authentication credentials",
         )
 
     # Create tokens
@@ -65,13 +61,9 @@ def refresh_token(
             # Token is expired or invalid
             error_code = "AUTH002"
 
-        return JSONResponse(
+        raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            content=ErrorResponse(
-                detail="Invalid or expired refresh token",
-                code=error_code,
-                timestamp=datetime.utcnow(),
-            ).model_dump(),
+            detail="Invalid or expired refresh token",
         )
 
     return tokens

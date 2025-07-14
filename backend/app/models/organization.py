@@ -13,12 +13,12 @@ from sqlalchemy import (
     Text,
     func,
 )
-from sqlalchemy.orm import Session, relationship
+from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
 
 from app.core.database import Base
 
 if TYPE_CHECKING:
-    from app.models.user import User  # type: ignore
+    from app.models.user import User
 
 
 class Organization(Base):
@@ -26,23 +26,23 @@ class Organization(Base):
 
     __tablename__ = "organizations"
 
-    id: int = Column(Integer, primary_key=True, index=True)
-    code: str = Column(String(50), unique=True, index=True, nullable=False)
-    name: str = Column(String(255), nullable=False)
-    name_kana: Optional[str] = Column(String(255))
-    postal_code: Optional[str] = Column(String(10))
-    address: Optional[str] = Column(Text)
-    phone: Optional[str] = Column(String(20))
-    email: Optional[str] = Column(String(255))
-    website: Optional[str] = Column(String(255))
-    fiscal_year_start: int = Column(Integer, default=4)  # 会計年度開始月
-    is_active: bool = Column(Boolean, default=True)
-    created_at: datetime = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at: datetime = Column(
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    code: Mapped[str] = mapped_column(String(50), unique=True, index=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    name_kana: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    postal_code: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
+    address: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    phone: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    website: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    fiscal_year_start: Mapped[int] = mapped_column(Integer, default=4)  # 会計年度開始月
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
-    created_by: Optional[int] = Column(Integer, ForeignKey("users.id"))
-    updated_by: Optional[int] = Column(Integer, ForeignKey("users.id"))
+    created_by: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)
+    updated_by: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)
 
     # Relationships
     departments = relationship("Department", back_populates="organization")
@@ -95,7 +95,7 @@ class Organization(Base):
     @classmethod
     def get_active_organizations(cls, db: Session) -> List["Organization"]:
         """Get all active organizations."""
-        return db.query(cls).filter(cls.is_active == True).all()
+        return db.query(cls).filter(cls.is_active.is_(True)).all()
 
     def update(self, db: Session, updated_by: int, **kwargs: Any) -> None:
         """Update organization attributes."""

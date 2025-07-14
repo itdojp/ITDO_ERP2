@@ -28,7 +28,7 @@ async def create_organization(
     data: OrganizationCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> OrganizationResponse:
     """Create a new organization."""
     try:
         org = org_service.create_organization(data=data, user=current_user, db=db)
@@ -44,7 +44,7 @@ async def list_organizations(
     search: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> OrganizationList:
     """List organizations."""
     return org_service.get_organizations(
         user=current_user, db=db, page=page, limit=limit, search=search
@@ -56,7 +56,7 @@ async def get_organization(
     org_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> OrganizationResponse:
     """Get organization by ID."""
     try:
         org = org_service.get_organization(org_id=org_id, user=current_user, db=db)
@@ -73,7 +73,7 @@ async def update_organization(
     data: OrganizationUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> OrganizationResponse:
     """Update organization."""
     try:
         org = org_service.update_organization(
@@ -91,7 +91,7 @@ async def delete_organization(
     org_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> None:
     """Delete organization."""
     try:
         org_service.delete_organization(org_id=org_id, user=current_user, db=db)
