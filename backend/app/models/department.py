@@ -57,20 +57,21 @@ class Department(SoftDeletableModel):
         comment="Parent department ID for sub-departments",
     )
 
+    # TODO: Add migration for path and depth fields
     # CRITICAL: Materialized path fields for hierarchical queries
-    path: Mapped[str] = mapped_column(
-        String(1000),
-        nullable=False,
-        default="",
-        index=True,
-        comment="Materialized path for efficient hierarchy queries",
-    )
-    depth: Mapped[int] = mapped_column(
-        Integer,
-        nullable=False,
-        default=0,
-        comment="Depth level in hierarchy (0 = root)",
-    )
+    # path: Mapped[str] = mapped_column(
+    #     String(1000),
+    #     nullable=False,
+    #     default="",
+    #     index=True,
+    #     comment="Materialized path for efficient hierarchy queries",
+    # )
+    # depth: Mapped[int] = mapped_column(
+    #     Integer,
+    #     nullable=False,
+    #     default=0,
+    #     comment="Depth level in hierarchy (0 = root)",
+    # )
 
     # Department head
     manager_id: Mapped[UserId | None] = mapped_column(
