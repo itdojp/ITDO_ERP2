@@ -4,10 +4,10 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import and_, or_
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import BusinessLogicError, NotFound
+from app.core.exceptions import BusinessLogicError
 from app.models.audit import AuditLog
 from app.models.permission import Permission
 from app.models.role import Role, RolePermission, UserRole
@@ -49,7 +49,10 @@ class PermissionService:
             .filter(
                 UserRole.user_id == user_id,
                 UserRole.is_active == True,
-                or_(UserRole.expires_at.is_(None), UserRole.expires_at > datetime.utcnow())
+                or_(
+                    UserRole.expires_at.is_(None),
+                    UserRole.expires_at > datetime.utcnow(),
+                ),
             )
             .all()
         )
@@ -61,7 +64,7 @@ class PermissionService:
                 .join(Permission)
                 .filter(
                     RolePermission.role_id == user_role.role_id,
-                    Permission.is_active == True
+                    Permission.is_active == True,
                 )
                 .all()
             )
@@ -69,7 +72,7 @@ class PermissionService:
             for rp in role_permissions:
                 perm = rp.permission
                 all_permission_codes.add(perm.code)
-                
+
                 inherited_permissions.append(
                     PermissionInheritanceInfo(
                         permission=PermissionDetail(
@@ -100,20 +103,23 @@ class PermissionService:
         )
 
     def check_user_permissions(
-        self, user_id: int, permission_codes: List[str], context: Optional[Dict[str, Any]] = None
+        self,
+        user_id: int,
+        permission_codes: List[str],
+        context: Optional[Dict[str, Any]] = None,
     ) -> PermissionCheckResponse:
         """Check if user has specific permissions."""
         effective_perms = self.get_user_effective_permissions(user_id)
-        
+
         results = {}
         missing_permissions = []
-        
+
         for code in permission_codes:
             has_permission = code in effective_perms.all_permission_codes
             results[code] = has_permission
             if not has_permission:
                 missing_permissions.append(code)
-        
+
         return PermissionCheckResponse(
             user_id=user_id,
             results=results,
@@ -136,18 +142,14 @@ class PermissionService:
 
         # Verify all permissions exist
         permissions = (
-            self.db.query(Permission)
-            .filter(Permission.id.in_(permission_ids))
-            .all()
+            self.db.query(Permission).filter(Permission.id.in_(permission_ids)).all()
         )
-        
+
         if len(permissions) != len(permission_ids):
             raise ValueError("One or more permissions not found")
 
         # Remove existing permissions for this role
-        self.db.query(RolePermission).filter(
-            RolePermission.role_id == role_id
-        ).delete()
+        self.db.query(RolePermission).filter(RolePermission.role_id == role_id).delete()
 
         # Add new permissions
         count = 0
@@ -167,7 +169,7 @@ class PermissionService:
                 action="granted",
                 target_type="role",
                 target_id=role_id,
-                reason=f"Assigned to role {role.name}"
+                reason=f"Assigned to role {role.name}",
             )
 
         self.db.commit()
@@ -189,7 +191,9 @@ class PermissionService:
             raise ValueError(f"User with id {user_id} not found")
 
         # Verify permission exists
-        permission = self.db.query(Permission).filter(Permission.id == permission_id).first()
+        permission = (
+            self.db.query(Permission).filter(Permission.id == permission_id).first()
+        )
         if not permission:
             raise ValueError(f"Permission with id {permission_id} not found")
 
@@ -209,7 +213,7 @@ class PermissionService:
         )
 
         # Return a mock override object
-        return type('obj', (object,), {'id': 1})()
+        return type("obj", (object,), {"id": 1})()
 
     def get_permission_audit_log(
         self,
@@ -219,17 +223,17 @@ class PermissionService:
         offset: int = 0,
     ) -> List[PermissionAuditLog]:
         """Get permission change audit logs."""
-        query = self.db.query(AuditLog).filter(
-            AuditLog.entity_type == "permission"
-        )
+        query = self.db.query(AuditLog).filter(AuditLog.entity_type == "permission")
 
         if user_id:
             query = query.filter(AuditLog.user_id == user_id)
-        
+
         if permission_id:
             query = query.filter(AuditLog.entity_id == permission_id)
 
-        logs = query.order_by(AuditLog.created_at.desc()).limit(limit).offset(offset).all()
+        logs = (
+            query.order_by(AuditLog.created_at.desc()).limit(limit).offset(offset).all()
+        )
 
         result = []
         for log in logs:
@@ -249,13 +253,15 @@ class PermissionService:
 
         return result
 
-    def list_permission_templates(self, is_active: Optional[bool] = None) -> List[PermissionTemplate]:
+    def list_permission_templates(
+        self, is_active: Optional[bool] = None
+    ) -> List[PermissionTemplate]:
         """List available permission templates."""
         # TODO: Implement actual template storage
         # For now, return predefined templates
-        
+
         templates = []
-        
+
         # Admin template
         admin_perms = self.db.query(Permission).all()
         templates.append(
@@ -291,10 +297,7 @@ class PermissionService:
         # User template
         user_perms = (
             self.db.query(Permission)
-            .filter(
-                Permission.category.in_(["users"]),
-                Permission.code.like("%.read")
-            )
+            .filter(Permission.category.in_(["users"]), Permission.code.like("%.read"))
             .all()
         )
         templates.append(
@@ -325,11 +328,9 @@ class PermissionService:
         """Create a new permission template."""
         # Verify permissions exist
         permissions = (
-            self.db.query(Permission)
-            .filter(Permission.id.in_(permission_ids))
-            .all()
+            self.db.query(Permission).filter(Permission.id.in_(permission_ids)).all()
         )
-        
+
         if len(permissions) != len(permission_ids):
             raise ValueError("One or more permissions not found")
 
@@ -358,7 +359,7 @@ class PermissionService:
         """Execute bulk permission operations."""
         if operation not in ["grant", "revoke", "sync"]:
             raise ValueError("Invalid operation type")
-        
+
         if target_type not in ["users", "roles", "departments"]:
             raise ValueError("Invalid target type")
 
@@ -369,11 +370,9 @@ class PermissionService:
 
         # Verify permissions exist
         permissions = (
-            self.db.query(Permission)
-            .filter(Permission.id.in_(permission_ids))
-            .all()
+            self.db.query(Permission).filter(Permission.id.in_(permission_ids)).all()
         )
-        
+
         if len(permissions) != len(permission_ids):
             raise ValueError("One or more permissions not found")
 
@@ -388,10 +387,7 @@ class PermissionService:
                     success_count += 1
                 except Exception as e:
                     failure_count += 1
-                    failures.append({
-                        "target_id": role_id,
-                        "error": str(e)
-                    })
+                    failures.append({"target_id": role_id, "error": str(e)})
 
         # TODO: Implement for users and departments
 

@@ -41,12 +41,12 @@ def get_user_effective_permissions(
 ) -> UserEffectivePermissions:
     """Get user's effective permissions including inheritance."""
     service = PermissionService(db)
-    
+
     # Check permission to view other user's permissions
     if user_id != current_user.id and not current_user.is_superuser:
         if not service.user_has_permission(current_user.id, "users.permissions.read"):
             raise PermissionDenied("Cannot view other user's permissions")
-    
+
     try:
         return service.get_user_effective_permissions(user_id)
     except ValueError as e:
@@ -67,16 +67,14 @@ def check_user_permissions(
 ) -> PermissionCheckResponse:
     """Check if a user has specific permissions."""
     service = PermissionService(db)
-    
+
     # Users can check their own permissions, others need permission
     if request.user_id != current_user.id and not current_user.is_superuser:
         if not service.user_has_permission(current_user.id, "users.permissions.read"):
             raise PermissionDenied("Cannot check other user's permissions")
-    
+
     return service.check_user_permissions(
-        request.user_id,
-        request.permission_codes,
-        request.context
+        request.user_id, request.permission_codes, request.context
     )
 
 
@@ -96,17 +94,15 @@ def assign_permissions_to_role(
 ) -> dict:
     """Assign permissions to a role."""
     service = PermissionService(db)
-    
+
     # Check permission
     if not current_user.is_superuser:
         if not service.user_has_permission(current_user.id, "roles.permissions.assign"):
             raise PermissionDenied("Cannot assign permissions to roles")
-    
+
     try:
         count = service.assign_permissions_to_role(
-            assignment.role_id,
-            assignment.permission_ids,
-            granted_by=current_user.id
+            assignment.role_id, assignment.permission_ids, granted_by=current_user.id
         )
         return {"message": f"Successfully assigned {count} permissions to role"}
     except ValueError as e:
@@ -130,7 +126,7 @@ def create_user_permission_override(
 ) -> dict:
     """Create a user-specific permission override (superuser only)."""
     service = PermissionService(db)
-    
+
     try:
         result = service.create_user_permission_override(
             override.user_id,
@@ -138,9 +134,9 @@ def create_user_permission_override(
             override.action,
             override.reason,
             override.expires_at,
-            created_by=current_user.id
+            created_by=current_user.id,
         )
-        return {"message": f"Permission override created", "override_id": result.id}
+        return {"message": "Permission override created", "override_id": result.id}
     except ValueError as e:
         raise NotFound(str(e))
     except BusinessLogicError as e:
@@ -164,17 +160,14 @@ def get_permission_audit_log(
 ) -> List[PermissionAuditLog]:
     """Get permission change audit logs."""
     service = PermissionService(db)
-    
+
     # Check permission
     if not current_user.is_superuser:
         if not service.user_has_permission(current_user.id, "system.audit.read"):
             raise PermissionDenied("Cannot view audit logs")
-    
+
     return service.get_permission_audit_log(
-        user_id=user_id,
-        permission_id=permission_id,
-        limit=limit,
-        offset=offset
+        user_id=user_id, permission_id=permission_id, limit=limit, offset=offset
     )
 
 
@@ -192,11 +185,11 @@ def list_permission_templates(
 ) -> List[PermissionTemplate]:
     """List available permission templates."""
     service = PermissionService(db)
-    
+
     # Check permission
     if not service.user_has_permission(current_user.id, "roles.templates.read"):
         raise PermissionDenied("Cannot view permission templates")
-    
+
     return service.list_permission_templates(is_active=is_active)
 
 
@@ -216,14 +209,14 @@ def create_permission_template(
 ) -> PermissionTemplate:
     """Create a new permission template (superuser only)."""
     service = PermissionService(db)
-    
+
     try:
         return service.create_permission_template(
             template.name,
             template.permission_ids,
             template.description,
             template.is_active,
-            created_by=current_user.id
+            created_by=current_user.id,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -244,7 +237,7 @@ def execute_bulk_permission_operation(
 ) -> PermissionBulkOperationResponse:
     """Execute bulk permission operations (superuser only)."""
     service = PermissionService(db)
-    
+
     try:
         return service.execute_bulk_permission_operation(
             operation.operation,
@@ -253,7 +246,7 @@ def execute_bulk_permission_operation(
             operation.permission_ids,
             operation.reason,
             operation.expires_at,
-            performed_by=current_user.id
+            performed_by=current_user.id,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

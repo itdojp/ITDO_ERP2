@@ -22,8 +22,12 @@ class RolePermissionAssignment(BaseModel):
     """Role permission assignment request."""
 
     role_id: int = Field(..., description="Role ID to assign permissions to")
-    permission_ids: List[int] = Field(..., description="List of permission IDs to assign")
-    granted_by: Optional[int] = Field(None, description="User ID who grants the permissions")
+    permission_ids: List[int] = Field(
+        ..., description="List of permission IDs to assign"
+    )
+    granted_by: Optional[int] = Field(
+        None, description="User ID who grants the permissions"
+    )
 
 
 class UserPermissionOverride(BaseModel):
@@ -33,18 +37,29 @@ class UserPermissionOverride(BaseModel):
     permission_id: int = Field(..., description="Permission ID")
     action: str = Field(..., description="Action: 'grant' or 'revoke'")
     reason: Optional[str] = Field(None, description="Reason for override")
-    expires_at: Optional[datetime] = Field(None, description="When the override expires")
+    expires_at: Optional[datetime] = Field(
+        None, description="When the override expires"
+    )
 
 
 class PermissionInheritanceInfo(BaseModel):
     """Information about permission inheritance."""
 
     permission: PermissionDetail
-    source: str = Field(..., description="Source of permission: 'direct', 'role', 'department', 'organization'")
-    source_id: Optional[int] = Field(None, description="ID of the source (role_id, department_id, etc.)")
+    source: str = Field(
+        ...,
+        description="Source of permission: 'direct', 'role', 'department', 'organization'",
+    )
+    source_id: Optional[int] = Field(
+        None, description="ID of the source (role_id, department_id, etc.)"
+    )
     source_name: Optional[str] = Field(None, description="Name of the source")
-    inherited_at: Optional[datetime] = Field(None, description="When the permission was inherited")
-    can_override: bool = Field(False, description="Whether this permission can be overridden")
+    inherited_at: Optional[datetime] = Field(
+        None, description="When the permission was inherited"
+    )
+    can_override: bool = Field(
+        False, description="Whether this permission can be overridden"
+    )
 
 
 class UserEffectivePermissions(BaseModel):
@@ -64,7 +79,9 @@ class PermissionAuditLog(BaseModel):
     id: int
     user_id: int
     permission_id: int
-    action: str = Field(..., description="Action taken: 'granted', 'revoked', 'expired'")
+    action: str = Field(
+        ..., description="Action taken: 'granted', 'revoked', 'expired'"
+    )
     performed_by: int
     performed_at: datetime
     reason: Optional[str] = None
@@ -76,16 +93,24 @@ class PermissionCheckRequest(BaseModel):
     """Request to check if user has specific permissions."""
 
     user_id: int
-    permission_codes: List[str] = Field(..., description="List of permission codes to check")
-    context: Optional[dict] = Field(None, description="Additional context for permission evaluation")
+    permission_codes: List[str] = Field(
+        ..., description="List of permission codes to check"
+    )
+    context: Optional[dict] = Field(
+        None, description="Additional context for permission evaluation"
+    )
 
 
 class PermissionCheckResponse(BaseModel):
     """Response for permission check."""
 
     user_id: int
-    results: dict[str, bool] = Field(..., description="Map of permission code to allowed status")
-    missing_permissions: List[str] = Field(..., description="List of permissions the user doesn't have")
+    results: dict[str, bool] = Field(
+        ..., description="Map of permission code to allowed status"
+    )
+    missing_permissions: List[str] = Field(
+        ..., description="List of permissions the user doesn't have"
+    )
     evaluation_time: datetime = Field(default_factory=datetime.utcnow)
 
 
@@ -106,7 +131,9 @@ class PermissionTemplateCreate(BaseModel):
 
     name: str = Field(..., min_length=1, max_length=200)
     description: Optional[str] = Field(None, max_length=500)
-    permission_ids: List[int] = Field(..., description="List of permission IDs in this template")
+    permission_ids: List[int] = Field(
+        ..., description="List of permission IDs in this template"
+    )
     is_active: bool = Field(True)
 
 
@@ -114,11 +141,15 @@ class PermissionBulkOperation(BaseModel):
     """Bulk permission operation request."""
 
     operation: str = Field(..., description="Operation type: 'grant', 'revoke', 'sync'")
-    target_type: str = Field(..., description="Target type: 'users', 'roles', 'departments'")
+    target_type: str = Field(
+        ..., description="Target type: 'users', 'roles', 'departments'"
+    )
     target_ids: List[int] = Field(..., description="List of target IDs")
     permission_ids: List[int] = Field(..., description="List of permission IDs")
     reason: Optional[str] = Field(None, description="Reason for bulk operation")
-    expires_at: Optional[datetime] = Field(None, description="When these permissions expire")
+    expires_at: Optional[datetime] = Field(
+        None, description="When these permissions expire"
+    )
 
 
 class PermissionBulkOperationResponse(BaseModel):

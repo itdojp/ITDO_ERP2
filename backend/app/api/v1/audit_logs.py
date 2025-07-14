@@ -42,14 +42,14 @@ def list_audit_logs(
 ) -> List[AuditLogDetail]:
     """List audit logs with filtering."""
     service = AuditLogService(db)
-    
+
     # Check permission
     if not current_user.is_superuser:
         # Regular users can only view their own logs
         if filter.user_id and filter.user_id != current_user.id:
             raise PermissionDenied("Cannot view other users' audit logs")
         filter.user_id = current_user.id
-    
+
     return service.list_audit_logs(filter, limit, offset)
 
 
@@ -83,7 +83,7 @@ def export_audit_logs(
 ) -> StreamingResponse:
     """Export audit logs in various formats (admin only)."""
     service = AuditLogService(db)
-    
+
     # Generate export
     file_content, filename, content_type = service.export_audit_logs(
         export_request.filter,
@@ -92,7 +92,7 @@ def export_audit_logs(
         export_request.exclude_fields,
         export_request.timezone,
     )
-    
+
     return StreamingResponse(
         file_content,
         media_type=content_type,
@@ -230,24 +230,18 @@ def generate_audit_trail_report(
 ) -> AuditTrailReport:
     """Generate comprehensive audit trail report (admin only)."""
     service = AuditLogService(db)
-    
+
     # Validate date range
     if period_end <= period_start:
-        raise HTTPException(
-            status_code=400,
-            detail="End date must be after start date"
-        )
-    
+        raise HTTPException(status_code=400, detail="End date must be after start date")
+
     if period_end - period_start > timedelta(days=90):
         raise HTTPException(
-            status_code=400,
-            detail="Report period cannot exceed 90 days"
+            status_code=400, detail="Report period cannot exceed 90 days"
         )
-    
+
     return service.generate_audit_trail_report(
-        period_start,
-        period_end,
-        generated_by=current_user.id
+        period_start, period_end, generated_by=current_user.id
     )
 
 
@@ -266,13 +260,11 @@ def cleanup_audit_logs(
 ) -> dict:
     """Clean up audit logs based on retention policies (admin only)."""
     service = AuditLogService(db)
-    
+
     deleted_count, archived_count = service.cleanup_audit_logs(
-        apply_retention_policies,
-        archive_before_delete,
-        performed_by=current_user.id
+        apply_retention_policies, archive_before_delete, performed_by=current_user.id
     )
-    
+
     return {
         "message": "Audit log cleanup completed",
         "deleted_count": deleted_count,
