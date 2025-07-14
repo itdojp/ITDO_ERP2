@@ -85,6 +85,7 @@ def test_get_role_permission_matrix(
     admin_token: str,
 ) -> None:
     """Test getting role permission matrix."""
+    from tests.conftest import create_auth_headers
     response = client.get(
         f"/api/v1/role-permissions/role/{test_role.id}/matrix",
         params={"organization_id": test_organization.id},
@@ -106,6 +107,7 @@ def test_search_permissions(
     client: TestClient, test_admin_user: User, admin_token: str
 ) -> None:
     """Test searching permissions."""
+    from tests.conftest import create_auth_headers
     response = client.get(
         "/api/v1/role-permissions/search",
         params={"query": "user"},
