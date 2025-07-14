@@ -348,7 +348,11 @@ class TestRoleAPI(
         role = RoleFactory.create_with_organization(db_session, test_organization)
         user = UserFactory.create(db_session)
 
-        assignment_data = {"user_id": user.id, "role_id": role.id}
+        assignment_data = {
+            "user_id": user.id,
+            "role_id": role.id,
+            "organization_id": test_organization.id
+        }
 
         response = client.post(
             f"{self.endpoint_prefix}/assign",
@@ -374,7 +378,11 @@ class TestRoleAPI(
         role = RoleFactory.create_with_organization(db_session, test_organization)
         user = UserFactory.create(db_session)
 
-        assignment_data = {"user_id": user.id, "role_id": role.id}
+        assignment_data = {
+            "user_id": user.id,
+            "role_id": role.id,
+            "organization_id": test_organization.id
+        }
 
         # First assignment should succeed
         response = client.post(
@@ -407,7 +415,11 @@ class TestRoleAPI(
         user = UserFactory.create(db_session)
 
         # First assign the role
-        assignment_data = {"user_id": user.id, "role_id": role.id}
+        assignment_data = {
+            "user_id": user.id,
+            "role_id": role.id,
+            "organization_id": test_organization.id
+        }
 
         assign_response = client.post(
             f"{self.endpoint_prefix}/assign",
@@ -458,7 +470,11 @@ class TestRoleAPI(
 
         # Assign both roles to user
         for role in [role1, role2]:
-            assignment_data = {"user_id": user.id, "role_id": role.id}
+            assignment_data = {
+            "user_id": user.id,
+            "role_id": role.id,
+            "organization_id": test_organization.id
+        }
             client.post(
                 f"{self.endpoint_prefix}/assign",
                 json=assignment_data,
@@ -495,7 +511,11 @@ class TestRoleAPI(
 
         # Assign both roles to user
         for role in [role1, role2]:
-            assignment_data = {"user_id": user.id, "role_id": role.id}
+            assignment_data = {
+            "user_id": user.id,
+            "role_id": role.id,
+            "organization_id": test_organization.id
+        }
             client.post(
                 f"{self.endpoint_prefix}/assign",
                 json=assignment_data,
@@ -602,7 +622,11 @@ class TestRoleAPI(
         user = UserFactory.create(db_session)
 
         # Assign role to user
-        assignment_data = {"user_id": user.id, "role_id": role.id}
+        assignment_data = {
+            "user_id": user.id,
+            "role_id": role.id,
+            "organization_id": test_organization.id
+        }
         client.post(
             f"{self.endpoint_prefix}/assign",
             json=assignment_data,
@@ -713,7 +737,11 @@ class TestRolePermissions:
         assert response.status_code == 403
 
         # Test assign permission
-        assignment_data = {"user_id": user.id, "role_id": role.id}
+        assignment_data = {
+            "user_id": user.id,
+            "role_id": role.id,
+            "organization_id": test_organization.id
+        }
         response = client.post(
             "/api/v1/roles/assign",
             json=assignment_data,
