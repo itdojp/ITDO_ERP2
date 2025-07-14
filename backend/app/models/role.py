@@ -386,7 +386,9 @@ class RolePermission(BaseModel):
 
     # Indexes and constraints
     __table_args__ = (
-        UniqueConstraint("role_id", "permission_id", name="ix_role_permissions_role_perm"),
+        UniqueConstraint(
+            "role_id", "permission_id", name="ix_role_permissions_role_perm"
+        ),
         Index("ix_role_permissions_role_id", "role_id"),
         Index("ix_role_permissions_permission_id", "permission_id"),
     )
