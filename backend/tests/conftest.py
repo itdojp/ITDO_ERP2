@@ -133,17 +133,61 @@ def isolate_test_data() -> dict[str, str]:
     }
 
 
-@pytest.fixture(autouse=True)
-def clean_test_database(db_session: Session) -> Generator[None]:
-    """テスト前に関連テーブルをクリア"""
-    yield  # テスト実行
+def _cleanup_all_tables() -> None:
+    """Systematically clean all tables in proper order."""
+    try:
+        with engine.begin() as conn:
+            # Disable foreign key checks for SQLite to allow clean deletion
+            if "sqlite" in str(engine.url):
+                conn.execute(text("PRAGMA foreign_keys = OFF"))
+            
+            # Get all table names from metadata in reverse dependency order
+            tables_to_clear = reversed(Base.metadata.sorted_tables)
+            
+            for table in tables_to_clear:
+                try:
+                    # Use table.delete() for proper SQLAlchemy syntax
+                    conn.execute(table.delete())
+                except Exception as e:
+                    # Log but don't fail - table might not exist or have constraints
+                    print(f"Warning: Could not clear table {table.name}: {e}")
+            
+            # Reset autoincrement sequences for SQLite
+            if "sqlite" in str(engine.url):
+                try:
+                    conn.execute(text("DELETE FROM sqlite_sequence"))
+                    conn.execute(text("PRAGMA foreign_keys = ON"))
+                except Exception:
+                    pass
+            
+            # For PostgreSQL, reset sequences
+            elif "postgresql" in str(engine.url):
+                try:
+                    # Reset all sequences
+                    for table in Base.metadata.sorted_tables:
+                        if hasattr(table.c, 'id') and hasattr(table.c.id, 'autoincrement'):
+                            sequence_name = f"{table.name}_id_seq"
+                            conn.execute(text(f"ALTER SEQUENCE {sequence_name} RESTART WITH 1"))
+                except Exception as e:
+                    print(f"Warning: Could not reset PostgreSQL sequences: {e}")
+                    
+    except Exception as e:
+        print(f"ERROR in _cleanup_all_tables: {e}")
+        # Don't raise - cleanup errors shouldn't fail tests
 
-    # テスト後のクリーンアップは db_session fixture で処理される
+
+@pytest.fixture(autouse=True)
+def clean_test_database() -> Generator[None]:
+    """Ensure clean database state before each test."""
+    # Clean before test runs
+    _cleanup_all_tables()
+    yield  # テスト実行
+    # Cleanup after test is handled by db_session fixture transaction rollback
 
 
 @pytest.fixture
 def db_session() -> Generator[Session]:
-    """Create a clean database session for each test."""
+    """Create a clean database session for each test with proper isolation."""
     # Ensure tables exist before each test
     try:
         # Force metadata refresh
@@ -153,62 +197,31 @@ def db_session() -> Generator[Session]:
         print(f"db_session: ERROR creating tables: {e}")
         raise
 
-    # Create session
+    # Create session with autocommit=False for transaction control
     session = TestingSessionLocal()
-
+    
+    # Start a nested transaction (savepoint) for complete isolation
+    transaction = session.begin()
+    
     try:
         yield session
     except Exception:
-        session.rollback()
+        # Rollback any changes made during the test
+        transaction.rollback()
         raise
     finally:
-        # Always rollback to ensure clean state
-        session.rollback()
+        # Always rollback the entire transaction to ensure clean state
+        try:
+            transaction.rollback()
+        except Exception:
+            # Transaction might already be rolled back
+            pass
+        
         session.close()
-
-        # For SQLite, just clear data without dropping tables to preserve structure
-        with engine.begin() as conn:
-            # Clear data in reverse order to respect foreign keys
-            table_order = [
-                "tasks",
-                "user_roles",
-                "role_permissions",
-                "inheritance_audit_logs",
-                "inheritance_conflict_resolutions",
-                "role_inheritance_rules",
-                "permission_dependencies",
-                "cross_tenant_audit_logs",
-                "cross_tenant_permission_rules",
-                "user_transfer_requests",
-                "organization_invitations",
-                "user_organizations",
-                "password_history",
-                "user_sessions",
-                "user_activity_logs",
-                "user_privacy_settings",
-                "user_preferences",
-                "audit_logs",
-                "project_members",
-                "project_milestones",
-                "projects",
-                "users",
-                "roles",
-                "permissions",
-                "departments",
-                "organizations",
-            ]
-            for table in table_order:
-                try:
-                    conn.execute(text(f"DELETE FROM {table}"))
-                except Exception:
-                    # Table might not exist, ignore
-                    pass
-            # Reset autoincrement for SQLite (if exists)
-            try:
-                conn.execute(text("DELETE FROM sqlite_sequence"))
-            except Exception:
-                # sqlite_sequence might not exist, ignore
-                pass
+        
+        # Additional cleanup: Clear all data systematically for SQLite
+        # This ensures complete isolation between tests
+        _cleanup_all_tables()
 
 
 @pytest.fixture
