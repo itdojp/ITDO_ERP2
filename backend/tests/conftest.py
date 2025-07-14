@@ -56,35 +56,6 @@ def db_session() -> Generator[Session, None, None]:
         yield session
     finally:
         session.close()
-        # Clean up test data using safe DELETE order in PostgreSQL
-        if "postgresql" in str(engine.url):
-            # For PostgreSQL, use DELETE in dependency order to avoid
-            # foreign key violations
-            with engine.begin() as conn:
-                from sqlalchemy import text
-
-                # Simple approach: Delete in safe order
-                table_order = [
-                    "user_roles",
-                    "role_permissions",
-                    "password_history",
-                    "user_sessions",
-                    "user_activity_logs",
-                    "audit_logs",
-                    "project_members",
-                    "project_milestones",
-                    "projects",
-                    "users",
-                    "roles",
-                    "permissions",
-                    "departments",
-                    "organizations",
-                ]
-                for table in table_order:
-                    conn.execute(text(f'DELETE FROM "{table}"'))
-        else:
-            # For SQLite, drop all tables
-            Base.metadata.drop_all(bind=engine)
 
 
 @pytest.fixture
@@ -245,6 +216,52 @@ def test_permissions(db_session: Session) -> Dict[str, list[Permission]]:
 def test_role_system(db_session: Session) -> Dict[str, Any]:
     """Create a complete role system with permissions."""
     return RoleFactory.create_complete_role_system(db_session)
+
+
+# Database Cleanup Fixtures
+
+
+@pytest.fixture(autouse=True)
+def cleanup_database(db_session: Session) -> Generator[None, None, None]:
+    """Automatically clean up database after each test to ensure isolation."""
+    yield
+    # Clean up test data after each test
+    if "postgresql" in str(engine.url):
+        # For PostgreSQL, use DELETE in dependency order
+        with engine.begin() as conn:
+            from sqlalchemy import text
+            
+            # Tables to clean in reverse dependency order
+            table_order = [
+                "tasks",  # Add tasks table
+                "user_roles",
+                "role_permissions",
+                "password_history",
+                "user_sessions",
+                "user_activity_logs",
+                "audit_logs",
+                "project_members",
+                "project_milestones",
+                "projects",
+                "users",
+                "roles",
+                "permissions",
+                "departments",
+                "organizations",
+            ]
+            
+            for table in table_order:
+                try:
+                    conn.execute(text(f'DELETE FROM "{table}"'))
+                except Exception:
+                    # Table might not exist, skip
+                    pass
+            
+            conn.commit()
+    else:
+        # For SQLite, recreate all tables
+        Base.metadata.drop_all(bind=engine)
+        Base.metadata.create_all(bind=engine)
 
 
 # Complete System Fixtures
