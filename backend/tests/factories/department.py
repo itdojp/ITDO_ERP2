@@ -51,6 +51,8 @@ class DepartmentFactory(BaseFactory):
             ),
             "budget": fake.random_int(min=1000000, max=50000000),
             "display_order": fake.random_int(min=1, max=100),
+            "depth": 0,  # Default to root level
+            "path": f"/{fake.random_int(min=1, max=9999)}/",  # Temporary path
             "is_active": True,
         }
 
@@ -82,6 +84,12 @@ class DepartmentFactory(BaseFactory):
         """Create a department with a parent department."""
         kwargs["parent_id"] = parent_department.id
         kwargs["organization_id"] = parent_department.organization_id
+        # Generate hierarchical path and depth
+        parent_depth = getattr(parent_department, 'depth', 0) or 0
+        parent_path = getattr(parent_department, 'path', '/') or '/'
+        kwargs["depth"] = parent_depth + 1
+        # Use a temporary path since the department ID isn't available yet
+        kwargs["path"] = f"{parent_path.rstrip('/')}/{fake.random_int(min=1, max=9999)}/"
         return cls.create(db_session, **kwargs)
 
     @classmethod

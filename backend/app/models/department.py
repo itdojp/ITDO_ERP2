@@ -107,6 +107,18 @@ class Department(SoftDeletableModel):
         String(50), nullable=True, comment="Cost center code for accounting"
     )
 
+    # Hierarchy fields
+    depth: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        nullable=True,
+        comment="Hierarchy depth (0 = root)",
+    )
+    path: Mapped[Optional[str]] = mapped_column(
+        String(500),
+        nullable=True,
+        comment="Hierarchical path (e.g., /1/2/3/)",
+    )
+
     # Display order
     display_order: Mapped[int] = mapped_column(
         Integer,
