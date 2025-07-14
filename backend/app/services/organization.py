@@ -208,6 +208,7 @@ class OrganizationService:
         # Parse settings JSON if it's a string
         if isinstance(data.get("settings"), str):
             import json
+
             try:
                 data["settings"] = (
                     json.loads(data["settings"]) if data["settings"] else {}
