@@ -234,6 +234,7 @@ class DepartmentService:
             parent_name=parent_name,
             manager_id=department.manager_id,
             manager_name=manager_name,
+            department_type=department.department_type,
             user_count=user_count,
             sub_department_count=sub_department_count,
         )

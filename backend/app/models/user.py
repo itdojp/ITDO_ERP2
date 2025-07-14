@@ -206,7 +206,13 @@ class User(SoftDeletableModel):
     def is_password_expired(self) -> bool:
         """Check if password has expired (90 days)."""
         expiry_date = self.password_changed_at + timedelta(days=90)
-        return datetime.now(timezone.utc) > expiry_date
+        # Handle both timezone-aware and naive datetimes
+        if expiry_date.tzinfo is None:
+            # If expiry_date is naive, compare with naive datetime
+            return datetime.now() > expiry_date
+        else:
+            # If expiry_date is timezone-aware, compare with timezone-aware datetime
+            return datetime.now(timezone.utc) > expiry_date
 
     def create_session(
         self,
