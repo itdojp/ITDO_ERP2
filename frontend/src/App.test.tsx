@@ -30,15 +30,15 @@ function renderWithProviders(component: React.ReactElement) {
 }
 
 describe('HomePage', () => {
-  it('renders welcome message', () => {
+  it('renders welcome message', async () => {
     renderWithProviders(<HomePage />)
-    expect(screen.getByText('Welcome to ITDO ERP System')).toBeInTheDocument()
+    expect(await screen.findByText('Welcome to ITDO ERP System')).toBeInTheDocument()
   })
 
-  it('displays modules sections', () => {
+  it('displays modules sections', async () => {
     renderWithProviders(<HomePage />)
-    expect(screen.getByText('Module 1')).toBeInTheDocument()
-    expect(screen.getByText('Module 2')).toBeInTheDocument()
-    expect(screen.getByText('Module 3')).toBeInTheDocument()
+    expect(await screen.findByText('Module 1')).toBeInTheDocument()
+    expect(await screen.findByText('Module 2')).toBeInTheDocument()
+    expect(await screen.findByText('Module 3')).toBeInTheDocument()
   })
 })
