@@ -25,7 +25,7 @@ from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, text, inspect
+from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -133,65 +133,18 @@ def isolate_test_data() -> dict[str, str]:
     }
 
 
-def _cleanup_all_tables() -> None:
-    """Systematically clean all tables in proper order."""
-    try:
-        with engine.begin() as conn:
-            # Disable foreign key checks for SQLite to allow clean deletion
-            if "sqlite" in str(engine.url):
-                conn.execute(text("PRAGMA foreign_keys = OFF"))
-
-            # Get all table names from metadata in reverse dependency order
-            tables_to_clear = reversed(Base.metadata.sorted_tables)
-
-            for table in tables_to_clear:
-                try:
-                    # Use table.delete() for proper SQLAlchemy syntax
-                    conn.execute(table.delete())
-                except Exception as e:
-                    # Log but don't fail - table might not exist or have constraints
-                    print(f"Warning: Could not clear table {table.name}: {e}")
-
-            # Reset autoincrement sequences for SQLite
-            if "sqlite" in str(engine.url):
-                try:
-                    conn.execute(text("DELETE FROM sqlite_sequence"))
-                    conn.execute(text("PRAGMA foreign_keys = ON"))
-                except Exception:
-                    pass
-
-            # For PostgreSQL, reset sequences
-            elif "postgresql" in str(engine.url):
-                try:
-                    # Reset all sequences
-                    for table in Base.metadata.sorted_tables:
-                        if hasattr(table.c, "id") and hasattr(
-                            table.c.id, "autoincrement"
-                        ):
-                            sequence_name = f"{table.name}_id_seq"
-                            conn.execute(
-                                text(f"ALTER SEQUENCE {sequence_name} RESTART WITH 1")
-                            )
-                except Exception as e:
-                    print(f"Warning: Could not reset PostgreSQL sequences: {e}")
-
-    except Exception as e:
-        print(f"ERROR in _cleanup_all_tables: {e}")
-        # Don't raise - cleanup errors shouldn't fail tests
-
-
 @pytest.fixture(autouse=True)
-def clean_test_database() -> Generator[None]:
-    """Ensure clean database state before each test."""
-    # Clean before test runs
-    _cleanup_all_tables()
-    yield  # テスト実行
-    # Cleanup after test is handled by db_session fixture transaction rollback
+def clean_test_database(db_session: Session) -> Generator[None]:
+    """Ensure clean database state for each test."""
+    # No pre-test cleanup needed - transaction isolation handles this
+    yield  # Test execution
+
+    # No post-test cleanup needed - transaction rollback handles this
 
 
 @pytest.fixture
 def db_session() -> Generator[Session]:
-    """Create a clean database session for each test with proper isolation."""
+    """Create a clean database session for each test with transaction isolation."""
     # Ensure tables exist before each test
     try:
         # Force metadata refresh
@@ -201,36 +154,29 @@ def db_session() -> Generator[Session]:
         print(f"db_session: ERROR creating tables: {e}")
         raise
 
-    # Create session with autocommit=False for transaction control
-    session = TestingSessionLocal()
+    # Create connection and begin transaction
+    connection = engine.connect()
+    transaction = connection.begin()
 
-    # Start a nested transaction (savepoint) for complete isolation
-    transaction = session.begin()
+    # Create session bound to the transaction
+    session = TestingSessionLocal(bind=connection)
 
     try:
         yield session
     except Exception:
-        # Rollback any changes made during the test
+        # Rollback transaction on error
         transaction.rollback()
         raise
     finally:
-        # Always rollback the entire transaction to ensure clean state
-        try:
-            transaction.rollback()
-        except Exception:
-            # Transaction might already be rolled back
-            pass
-
+        # Always rollback transaction to ensure clean state
         session.close()
-
-        # Additional cleanup: Clear all data systematically for SQLite
-        # This ensures complete isolation between tests
-        _cleanup_all_tables()
+        transaction.rollback()
+        connection.close()
 
 
 @pytest.fixture
 def client(db_session: Session) -> Generator[TestClient]:
-    """Create a test client with overridden database dependency."""
+    """Create a test client with properly isolated database dependency."""
 
     # Verify tables exist before creating client
     with engine.connect() as conn:
@@ -241,10 +187,13 @@ def client(db_session: Session) -> Generator[TestClient]:
             Base.metadata.create_all(bind=engine)
 
     def override_get_db() -> Generator[Session]:
+        """Override database dependency to use isolated test session."""
         try:
-            # Use the same session for all requests
+            # CRITICAL: Use the same connection as the test session
+            # This ensures all operations are part of the same transaction
             yield db_session
         finally:
+            # Don't commit or rollback here - let the db_session fixture handle it
             pass
 
     # Override the database dependency to use our test session

@@ -71,13 +71,7 @@ class TestUsersAPI:
 
         # Then: Should return 403
         assert response.status_code == 403
-        # Check if response has the expected error structure
-        response_data = response.json()
-        if "code" in response_data:
-            assert response_data["code"] == "AUTH004"
-        else:
-            # Handle case where response might have different structure
-            assert "detail" in response_data or "message" in response_data
+        assert response.json()["detail"]["code"] == "AUTH004"
 
     def test_create_user_no_auth(self, client: TestClient) -> None:
         """Test creating user without authentication."""
@@ -91,7 +85,7 @@ class TestUsersAPI:
             },
         )
 
-        # Then: Should return 403 (Forbidden) for missing authentication
+        # Then: Should return 403 (FastAPI returns 403 for missing auth)
         assert response.status_code == 403
 
     def test_create_user_weak_password(
@@ -144,7 +138,7 @@ class TestUsersAPI:
         # When: Getting current user without auth
         response = client.get("/api/v1/users/me")
 
-        # Then: Should return 403 (Forbidden) for missing authentication
+        # Then: Should return 403 (FastAPI returns 403 for missing auth)
         assert response.status_code == 403
 
     def test_get_current_user_invalid_token(self, client: TestClient) -> None:
