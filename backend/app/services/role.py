@@ -190,7 +190,7 @@ class RoleService:
             )
             self.db.add(role_perm)
 
-        self.db.flush()
+        self.db.commit()
         return role
 
     # Role assignment

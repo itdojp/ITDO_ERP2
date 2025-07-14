@@ -356,10 +356,10 @@ class RolePermission(BaseModel):
     __tablename__ = "role_permissions"
 
     role_id: Mapped[RoleId] = mapped_column(
-        Integer, ForeignKey("roles.id"), primary_key=True, comment="Role ID"
+        Integer, ForeignKey("roles.id"), nullable=False, comment="Role ID"
     )
     permission_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("permissions.id"), primary_key=True, comment="Permission ID"
+        Integer, ForeignKey("permissions.id"), nullable=False, comment="Permission ID"
     )
 
     # Additional metadata
@@ -386,7 +386,7 @@ class RolePermission(BaseModel):
 
     # Indexes and constraints
     __table_args__ = (
-        UniqueConstraint("role_id", "permission_id", name="uq_role_permissions"),
+        UniqueConstraint("role_id", "permission_id", name="ix_role_permissions_role_perm"),
         Index("ix_role_permissions_role_id", "role_id"),
         Index("ix_role_permissions_permission_id", "permission_id"),
     )

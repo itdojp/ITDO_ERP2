@@ -241,12 +241,10 @@ class TestRoleAPI(
 
         assert response.status_code == 200
         data = response.json()
-        assert "direct_permissions" in data
-        assert "inherited_permissions" in data
-        assert "all_permission_codes" in data
+        assert "permission_list" in data
 
         # Admin should have many permissions
-        assert len(data["all_permission_codes"]) > 0
+        assert len(data["permission_list"]) > 0
 
     def test_get_role_permissions_include_inherited(
         self, client: TestClient, test_role_system: dict[str, Any], admin_token: str
@@ -273,8 +271,8 @@ class TestRoleAPI(
         data_without_inherited = response.json()
 
         # With inherited should have more or equal permissions
-        assert len(data_with_inherited["all_permission_codes"]) >= len(
-            data_without_inherited["all_permission_codes"]
+        assert len(data_with_inherited["permission_list"]) >= len(
+            data_without_inherited["permission_list"]
         )
 
     def test_update_role_permissions(
@@ -309,7 +307,7 @@ class TestRoleAPI(
         )
 
         permissions_data = permissions_response.json()
-        assigned_codes = permissions_data["all_permission_codes"]
+        assigned_codes = [perm["code"] for perm in permissions_data["permission_list"]]
 
         for code in permission_codes:
             assert code in assigned_codes
