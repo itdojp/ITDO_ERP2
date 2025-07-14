@@ -640,7 +640,7 @@ class TestAuthServiceEdgeCases:
 
             # Reset time to present
             mock_datetime.now.return_value = datetime.now(timezone.utc)
-            mock_datetime.utcnow.return_value = datetime.utcnow()
+            mock_datetime.utcnow.return_value = datetime.now(timezone.utc).replace(tzinfo=None)
 
             # When: Using token with future iat
             result = auth_service.get_current_user(db_session, future_token)

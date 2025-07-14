@@ -2,7 +2,7 @@
 
 import csv
 import io
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional, Union
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -62,7 +62,7 @@ def create_user_extended(
             content=ErrorResponse(
                 detail=str(e),
                 code="INSUFFICIENT_PERMISSIONS",
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
             ).model_dump(),
         )
     except Exception as e:
@@ -73,7 +73,7 @@ def create_user_extended(
                 content=ErrorResponse(
                     detail="User with this email already exists",
                     code="USER_ALREADY_EXISTS",
-                    timestamp=datetime.utcnow(),
+                    timestamp=datetime.now(timezone.utc),
                 ).model_dump(),
             )
         raise
@@ -142,7 +142,7 @@ def get_user_detail(
             content=ErrorResponse(
                 detail="User not found",
                 code="USER_NOT_FOUND",
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
             ).model_dump(),
         )
     except PermissionDenied:
@@ -151,7 +151,7 @@ def get_user_detail(
             content=ErrorResponse(
                 detail="Access denied",
                 code="ACCESS_DENIED",
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
             ).model_dump(),
         )
 
@@ -195,7 +195,7 @@ def update_user(
             content=ErrorResponse(
                 detail="User not found",
                 code="USER_NOT_FOUND",
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
             ).model_dump(),
         )
     except PermissionDenied:
@@ -205,7 +205,7 @@ def update_user(
             content=ErrorResponse(
                 detail="Access denied",
                 code="ACCESS_DENIED",
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
             ).model_dump(),
         )
 
@@ -245,7 +245,7 @@ def change_password(
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
             content=ErrorResponse(
-                detail=str(e), code="INVALID_PASSWORD", timestamp=datetime.utcnow()
+                detail=str(e), code="INVALID_PASSWORD", timestamp=datetime.now(timezone.utc)
             ).model_dump(),
         )
     except PermissionDenied:
@@ -255,7 +255,7 @@ def change_password(
             content=ErrorResponse(
                 detail="Access denied",
                 code="ACCESS_DENIED",
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
             ).model_dump(),
         )
 
@@ -291,7 +291,7 @@ def reset_password(
             content=ErrorResponse(
                 detail="User not found",
                 code="USER_NOT_FOUND",
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
             ).model_dump(),
         )
     except PermissionDenied:
@@ -301,7 +301,7 @@ def reset_password(
             content=ErrorResponse(
                 detail="Access denied",
                 code="ACCESS_DENIED",
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
             ).model_dump(),
         )
 
@@ -369,7 +369,7 @@ def assign_role(
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content=ErrorResponse(
-                detail=str(e), code="NOT_FOUND", timestamp=datetime.utcnow()
+                detail=str(e), code="NOT_FOUND", timestamp=datetime.now(timezone.utc)
             ).model_dump(),
         )
     except PermissionDenied:
@@ -379,7 +379,7 @@ def assign_role(
             content=ErrorResponse(
                 detail="Access denied",
                 code="ACCESS_DENIED",
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
             ).model_dump(),
         )
 

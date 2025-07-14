@@ -1,5 +1,6 @@
 """Factory for Department model."""
 
+import uuid
 from typing import Any, Dict, List
 
 from app.models.department import Department
@@ -18,7 +19,7 @@ class DepartmentFactory(BaseFactory):
     def _get_default_attributes(cls) -> Dict[str, Any]:
         """Get default attributes for creating Department instances."""
         return {
-            "code": fake.bothify(text="DEPT-####"),
+            "code": f"DEPT-{uuid.uuid4().hex[:8].upper()}-{fake.random_int(min=1000, max=9999)}",
             "name": fake.random_element(
                 elements=(
                     "総務部",
@@ -52,9 +53,7 @@ class DepartmentFactory(BaseFactory):
             "budget": fake.random_int(min=1000000, max=50000000),
             "display_order": fake.random_int(min=1, max=100),
             "is_active": True,
-            # TODO: Add path and depth fields once migration is created
-            # "path": "/",
-            # "depth": 0,
+            "path": "/",  # Required field for hierarchical path
         }
 
     @classmethod
@@ -85,9 +84,8 @@ class DepartmentFactory(BaseFactory):
         """Create a department with a parent department."""
         kwargs["parent_id"] = parent_department.id
         kwargs["organization_id"] = parent_department.organization_id
-        # TODO: Calculate path and depth based on parent once migration is created
-        # kwargs["path"] = f"{parent_department.path}{parent_department.id}/"
-        # kwargs["depth"] = parent_department.depth + 1
+        # Calculate path based on parent
+        kwargs["path"] = f"{parent_department.path}{parent_department.id}/"
         return cls.create(db_session, **kwargs)
 
     @classmethod
@@ -194,7 +192,7 @@ class DepartmentFactory(BaseFactory):
     def create_minimal(cls, db_session, organization_id: int, **kwargs) -> Department:
         """Create a department with minimal required fields."""
         minimal_attrs = {
-            "code": fake.bothify(text="DEPT-####"),
+            "code": f"DEPT-{uuid.uuid4().hex[:8].upper()}-{fake.random_int(min=1000, max=9999)}",
             "name": fake.word(),
             "organization_id": organization_id,
             "is_active": True,

@@ -1,7 +1,7 @@
 """Permission management service."""
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from sqlalchemy import or_
@@ -51,7 +51,7 @@ class PermissionService:
                 UserRole.is_active == True,
                 or_(
                     UserRole.expires_at.is_(None),
-                    UserRole.expires_at > datetime.utcnow(),
+                    UserRole.expires_at > datetime.now(timezone.utc),
                 ),
             )
             .all()
@@ -271,8 +271,8 @@ class PermissionService:
                 description="Full system access",
                 permissions=[self._permission_to_detail(p) for p in admin_perms],
                 is_active=True,
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow(),
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc),
             )
         )
 
@@ -289,8 +289,8 @@ class PermissionService:
                 description="Department management permissions",
                 permissions=[self._permission_to_detail(p) for p in manager_perms],
                 is_active=True,
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow(),
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc),
             )
         )
 
@@ -307,8 +307,8 @@ class PermissionService:
                 description="Basic user permissions",
                 permissions=[self._permission_to_detail(p) for p in user_perms],
                 is_active=True,
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow(),
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc),
             )
         )
 
@@ -342,8 +342,8 @@ class PermissionService:
             description=description,
             permissions=[self._permission_to_detail(p) for p in permissions],
             is_active=is_active,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc),
         )
 
     def execute_bulk_permission_operation(

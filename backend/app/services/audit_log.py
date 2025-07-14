@@ -4,7 +4,7 @@ import csv
 import io
 import json
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Tuple
 
 from sqlalchemy import func
@@ -209,8 +209,8 @@ class AuditLogService:
                 retention_days=90,
                 archive_enabled=True,
                 is_active=True,
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow(),
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc),
             ),
             AuditLogRetentionPolicy(
                 id=2,
@@ -220,8 +220,8 @@ class AuditLogService:
                 retention_days=365,
                 archive_enabled=True,
                 is_active=True,
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow(),
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc),
             ),
         ]
 
@@ -236,8 +236,8 @@ class AuditLogService:
         """Create audit log retention policy."""
         # Mock implementation
         policy.id = 3
-        policy.created_at = datetime.utcnow()
-        policy.updated_at = datetime.utcnow()
+        policy.created_at = datetime.now(timezone.utc)
+        policy.updated_at = datetime.now(timezone.utc)
         return policy
 
     def list_audit_alerts(
@@ -258,8 +258,8 @@ class AuditLogService:
                 alert_channels=["email"],
                 alert_recipients=["security@example.com"],
                 is_active=True,
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow(),
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc),
             ),
         ]
 
@@ -276,8 +276,8 @@ class AuditLogService:
         return AuditLogAlert(
             id=2,
             **alert.dict(),
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc),
         )
 
     def update_audit_alert(
@@ -292,7 +292,7 @@ class AuditLogService:
                     id=alert_id,
                     **alert.dict(),
                     created_at=existing.created_at,
-                    updated_at=datetime.utcnow(),
+                    updated_at=datetime.now(timezone.utc),
                 )
         raise ValueError(f"Alert with id {alert_id} not found")
 
@@ -345,7 +345,7 @@ class AuditLogService:
 
         return AuditTrailReport(
             report_id=str(uuid.uuid4()),
-            generated_at=datetime.utcnow(),
+            generated_at=datetime.now(timezone.utc),
             generated_by=generated_by,
             period_start=period_start,
             period_end=period_end,
@@ -373,7 +373,7 @@ class AuditLogService:
             policies = self.list_retention_policies(is_active=True)
 
             for policy in policies:
-                cutoff_date = datetime.utcnow() - timedelta(days=policy.retention_days)
+                cutoff_date = datetime.now(timezone.utc) - timedelta(days=policy.retention_days)
 
                 # Find logs to delete
                 query = self.db.query(AuditLog).filter(
@@ -448,7 +448,7 @@ class AuditLogService:
 
         # Convert to bytes
         output_bytes = io.BytesIO(output.getvalue().encode("utf-8"))
-        filename = f"audit_logs_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
+        filename = f"audit_logs_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.csv"
 
         return output_bytes, filename, "text/csv"
 
@@ -477,6 +477,6 @@ class AuditLogService:
         # Convert to JSON with custom encoder for datetime
         json_str = json.dumps(data, default=str, indent=2)
         output_bytes = io.BytesIO(json_str.encode("utf-8"))
-        filename = f"audit_logs_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.json"
+        filename = f"audit_logs_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json"
 
         return output_bytes, filename, "application/json"

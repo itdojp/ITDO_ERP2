@@ -3,7 +3,7 @@
 import asyncio
 import time
 from contextlib import contextmanager
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 from typing import Any, Awaitable, Callable, Dict, Generator, Optional, TypeVar
 
@@ -302,7 +302,7 @@ class HealthChecker:
                 # Skip if checked recently
                 if (
                     name in self.last_check_time
-                    and datetime.now() - self.last_check_time[name]
+                    and datetime.now(timezone.utc) - self.last_check_time[name]
                     < self.check_interval
                 ):
                     continue
@@ -318,26 +318,26 @@ class HealthChecker:
                 results[name] = {
                     "healthy": healthy,
                     "duration": duration,
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 }
 
                 if not healthy:
                     overall_healthy = False
 
-                self.last_check_time[name] = datetime.now()
+                self.last_check_time[name] = datetime.now(timezone.utc)
 
             except Exception as e:
                 results[name] = {
                     "healthy": False,
                     "error": str(e),
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 }
                 overall_healthy = False
 
         return {
             "healthy": overall_healthy,
             "checks": results,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
 

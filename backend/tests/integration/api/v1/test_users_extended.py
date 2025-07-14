@@ -5,7 +5,7 @@ Following TDD approach - Red phase: Writing tests before implementation.
 """
 
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
@@ -308,7 +308,7 @@ class TestUserManagementAPI:
             json={
                 "role_id": new_role.id,
                 "organization_id": org.id,
-                "expires_at": (datetime.utcnow() + timedelta(days=30)).isoformat(),
+                "expires_at": (datetime.now(timezone.utc) + timedelta(days=30)).isoformat(),
             },
             headers={"Authorization": f"Bearer {admin_token}"},
         )

@@ -124,10 +124,10 @@ class TestUserSecurityFeatures:
         """TEST-SEC-USER-005: 権限昇格攻撃の防止をテスト."""
         # Given: 一般ユーザー
         user = create_test_user(db_session)
-        org = create_test_organization()
-        user_role = create_test_role(code="USER", permissions=["read:own"])
-        admin_role = create_test_role(code="ADMIN", permissions=["*"])
-        create_test_user_role(user=user, role=user_role, organization=org)
+        org = create_test_organization(db_session)
+        user_role = create_test_role(db_session, code="USER", permissions=["read:own"])
+        admin_role = create_test_role(db_session, code="ADMIN", permissions=["*"])
+        create_test_user_role(db_session, user=user, role=user_role, organization=org)
         db_session.commit()
 
         # When/Then: 自分に管理者ロールを付与しようとして失敗
@@ -143,15 +143,15 @@ class TestUserSecurityFeatures:
         user1 = create_test_user(db_session, email="user1@org1.com")
         user2 = create_test_user(db_session, email="user2@org2.com")
 
-        role = create_test_role(code="USER")
-        create_test_user_role(user=user1, role=role, organization=org1)
-        create_test_user_role(user=user2, role=role, organization=org2)
+        role = create_test_role(db_session, code="USER")
+        create_test_user_role(db_session, user=user1, role=role, organization=org1)
+        create_test_user_role(db_session, user=user2, role=role, organization=org2)
         db_session.commit()
 
         # When: user1がuser2の情報にアクセス
         from app.services.user import UserService
 
-        service = UserService()
+        service = UserService(db_session)
 
         # Then: アクセス拒否
         with pytest.raises(PermissionDenied):
@@ -168,7 +168,7 @@ class TestUserSecurityFeatures:
         # When: 悪意のある検索クエリ
         from app.services.user import UserService
 
-        service = UserService()
+        service = UserService(db_session)
         malicious_queries = [
             "'; DROP TABLE users; --",
             "' OR '1'='1",
@@ -279,10 +279,10 @@ class TestUserSecurityFeatures:
     def test_role_permission_boundary(self, db_session: Session) -> None:
         """TEST-SEC-USER-012: ロール権限境界のテストをテスト."""
         # Given: 階層的な組織構造
-        org = create_test_organization()
-        parent_dept = create_test_department(organization=org, name="親部門")
+        org = create_test_organization(db_session)
+        parent_dept = create_test_department(db_session, organization_id=org.id, name="親部門")
         child_dept = create_test_department(
-            organization=org, parent=parent_dept, name="子部門"
+            db_session, organization_id=org.id, parent_id=parent_dept.id, name="子部門"
         )
 
         # 部門管理者
@@ -321,7 +321,7 @@ class TestUserSecurityFeatures:
         # When: 重要操作の実行
         from app.services.user import UserService
 
-        service = UserService()
+        service = UserService(db_session)
         service.delete_user(user_id=user.id, deleter=admin, db=db_session)
 
         # Then: 監査ログが改ざん不可能な形で記録
@@ -377,8 +377,10 @@ class TestUserSecurityFeatures:
 
         # When: データベースに保存
         # 直接SQLで取得（ORMを通さない）
+        from sqlalchemy import text
         raw_data = db_session.execute(
-            f"SELECT phone FROM users WHERE id = {user.id}"
+            text("SELECT phone FROM users WHERE id = :user_id"),
+            {"user_id": user.id}
         ).first()
 
         # Then: 暗号化されている（平文ではない）

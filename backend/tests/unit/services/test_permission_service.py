@@ -1,6 +1,6 @@
 """Unit tests for permission service."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 from sqlalchemy.orm import Session
@@ -182,7 +182,7 @@ class TestPermissionService:
             permission.id,
             "grant",
             reason="Special access needed",
-            expires_at=datetime.utcnow() + timedelta(days=30),
+            expires_at=datetime.now(timezone.utc) + timedelta(days=30),
             created_by=1,
         )
 

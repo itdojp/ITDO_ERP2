@@ -1,6 +1,6 @@
 """Task management service."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from sqlalchemy.orm import Session, joinedload
@@ -101,7 +101,7 @@ class TaskService:
             setattr(task, field, value)
 
         task.updated_by = user.id
-        task.updated_at = datetime.utcnow()
+        task.updated_at = datetime.now(timezone.utc)
 
         db.commit()
         db.refresh(task)
@@ -120,7 +120,7 @@ class TaskService:
             raise PermissionDenied("User is not active")
 
         # Soft delete
-        task.deleted_at = datetime.utcnow()
+        task.deleted_at = datetime.now(timezone.utc)
         task.deleted_by = user.id
         task.is_deleted = True
 
@@ -199,10 +199,10 @@ class TaskService:
         # Update status
         task.status = status_update.status.value
         if status_update.status.value == "completed":
-            task.completed_at = datetime.utcnow()
+            task.completed_at = datetime.now(timezone.utc)
 
         task.updated_by = user.id
-        task.updated_at = datetime.utcnow()
+        task.updated_at = datetime.now(timezone.utc)
 
         db.commit()
         db.refresh(task)
@@ -245,7 +245,7 @@ class TaskService:
 
         task.assignee_id = assignee_id
         task.updated_by = user.id
-        task.updated_at = datetime.utcnow()
+        task.updated_at = datetime.now(timezone.utc)
 
         db.commit()
         db.refresh(task)
@@ -269,7 +269,7 @@ class TaskService:
 
         task.assignee_id = None
         task.updated_by = user.id
-        task.updated_at = datetime.utcnow()
+        task.updated_at = datetime.now(timezone.utc)
 
         db.commit()
         db.refresh(task)
@@ -300,7 +300,7 @@ class TaskService:
 
         task.due_date = due_date
         task.updated_by = user.id
-        task.updated_at = datetime.utcnow()
+        task.updated_at = datetime.now(timezone.utc)
 
         db.commit()
         db.refresh(task)
@@ -314,7 +314,7 @@ class TaskService:
         if not user.is_active:
             raise PermissionDenied("User is not active")
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         overdue_tasks = (
             db.query(Task)
             .options(
@@ -360,7 +360,7 @@ class TaskService:
 
         task.priority = priority
         task.updated_by = user.id
-        task.updated_at = datetime.utcnow()
+        task.updated_at = datetime.now(timezone.utc)
 
         db.commit()
         db.refresh(task)
@@ -389,7 +389,7 @@ class TaskService:
 
         task.parent_task_id = depends_on
         task.updated_by = user.id
-        task.updated_at = datetime.utcnow()
+        task.updated_at = datetime.now(timezone.utc)
 
         db.commit()
 
@@ -430,7 +430,7 @@ class TaskService:
 
         task.parent_task_id = None
         task.updated_by = user.id
-        task.updated_at = datetime.utcnow()
+        task.updated_at = datetime.now(timezone.utc)
 
         db.commit()
 
@@ -453,9 +453,9 @@ class TaskService:
                 if task:
                     task.status = bulk_data.status.value
                     if bulk_data.status.value == "completed":
-                        task.completed_at = datetime.utcnow()
+                        task.completed_at = datetime.now(timezone.utc)
                     task.updated_by = user.id
-                    task.updated_at = datetime.utcnow()
+                    task.updated_at = datetime.now(timezone.utc)
                     updated_count += 1
                 else:
                     failed_count += 1
