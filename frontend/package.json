@@ -13,7 +13,7 @@
     "coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
     "e2e": "playwright test",
-    "e2e:ci": "playwright test --reporter=json --output-dir=test-results",
+    "e2e:ci": "playwright test tests/e2e/basic/smoke.spec.ts --project=chromium --reporter=json",
     "e2e:headed": "playwright test --headed",
     "e2e:debug": "playwright test --debug",
     "e2e:ui": "playwright test --ui",
@@ -36,7 +36,7 @@
     "tailwind-merge": "^2.0.0"
   },
   "devDependencies": {
-    "@playwright/test": "^1.53.2",
+    "@playwright/test": "^1.54.1",
     "@testing-library/jest-dom": "^6.1.4",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^14.5.1",

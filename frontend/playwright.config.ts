@@ -9,11 +9,11 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0, // Reduce retries for faster execution
   workers: 1, // Single worker for stability
-  timeout: 60000, // Increase timeout for CI
+  timeout: 30000, // Reduce timeout for faster CI
   expect: {
-    timeout: 15000,
+    timeout: 10000,
   },
-  globalTimeout: process.env.CI ? 10 * 60 * 1000 : undefined, // 10 minutes for CI
+  globalTimeout: process.env.CI ? 5 * 60 * 1000 : undefined, // 5 minutes for CI
   reporter: [
     ['html', { 
       outputFolder: 'playwright-report',

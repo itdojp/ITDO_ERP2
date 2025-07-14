@@ -55,13 +55,13 @@ test.describe('Basic Smoke Tests', () => {
     });
     
     // Navigate to the application
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 15000 });
     
-    // Wait for page to load completely
-    await page.waitForLoadState('networkidle', { timeout: 10000 });
+    // Wait for page to load completely with reduced timeout
+    await page.waitForLoadState('networkidle', { timeout: 8000 });
     
-    // Allow for some async operations to complete
-    await page.waitForTimeout(2000);
+    // Reduced wait time for faster CI
+    await page.waitForTimeout(1000);
     
     // Check for critical errors only
     if (criticalErrors.length > 0) {
