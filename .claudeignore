@@ -99,4 +99,4 @@ Desktop.ini
 uploads/
 migrations/versions/
 alembic/versions/
-scripts/claude-code-automation/
+scripts/claude-code-automation/scripts/claude-code-automation/
