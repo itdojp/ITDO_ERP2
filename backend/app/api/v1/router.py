@@ -13,6 +13,8 @@ from app.api.v1 import (
     role_permission_ui,
     roles,
     tasks,
+    user_preferences,
+    user_privacy,
     user_profile,
     users,
     users_extended,
@@ -45,6 +47,12 @@ api_router.include_router(
     cross_tenant_permissions.router, prefix="/cross-tenant", tags=["cross-tenant"]
 )
 api_router.include_router(tasks.router, prefix="/tasks", tags=["tasks"])
+api_router.include_router(
+    user_preferences.router, prefix="/users/preferences", tags=["user-preferences"]
+)
+api_router.include_router(
+    user_privacy.router, prefix="/users/privacy", tags=["user-privacy"]
+)
 
 
 @api_router.get("/ping")

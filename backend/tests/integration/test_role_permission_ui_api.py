@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.models.organization import Organization
 from app.models.role import Role
 from app.models.user import User
+from tests.conftest import create_auth_headers
 from tests.factories import OrganizationFactory, RoleFactory, UserFactory
 
 
@@ -25,6 +26,13 @@ def test_admin_user(db_session: Session) -> User:
 
 
 @pytest.fixture
+def admin_token(test_admin_user: User) -> str:
+    """Create admin user token for testing."""
+    from app.core.security import create_access_token
+    return create_access_token(data={"sub": str(test_admin_user.id)})
+
+
+@pytest.fixture
 def test_role(db_session: Session) -> Role:
     """Create test role."""
     import uuid
@@ -35,10 +43,10 @@ def test_role(db_session: Session) -> Role:
 
 
 def test_get_permission_definitions(
-    client: TestClient, test_admin_user: User, auth_headers: dict
+    client: TestClient, test_admin_user: User, admin_token: str
 ) -> None:
     """Test getting permission definitions."""
-    response = client.get("/api/v1/role-permissions/definitions", headers=auth_headers)
+    response = client.get("/api/v1/role-permissions/definitions", headers=create_auth_headers(admin_token))
 
     assert response.status_code == 200
     data = response.json()
@@ -54,10 +62,10 @@ def test_get_permission_definitions(
 
 
 def test_get_permission_ui_structure(
-    client: TestClient, test_admin_user: User, auth_headers: dict
+    client: TestClient, test_admin_user: User, admin_token: str
 ) -> None:
     """Test getting permission UI structure."""
-    response = client.get("/api/v1/role-permissions/structure", headers=auth_headers)
+    response = client.get("/api/v1/role-permissions/structure", headers=create_auth_headers(admin_token))
 
     assert response.status_code == 200
     data = response.json()
@@ -74,13 +82,13 @@ def test_get_role_permission_matrix(
     test_admin_user: User,
     test_organization: Organization,
     test_role: Role,
-    auth_headers: dict,
+    admin_token: str,
 ) -> None:
     """Test getting role permission matrix."""
     response = client.get(
         f"/api/v1/role-permissions/role/{test_role.id}/matrix",
         params={"organization_id": test_organization.id},
-        headers=auth_headers,
+        headers=create_auth_headers(admin_token),
     )
 
     assert response.status_code == 200
@@ -95,13 +103,13 @@ def test_get_role_permission_matrix(
 
 
 def test_search_permissions(
-    client: TestClient, test_admin_user: User, auth_headers: dict
+    client: TestClient, test_admin_user: User, admin_token: str
 ) -> None:
     """Test searching permissions."""
     response = client.get(
         "/api/v1/role-permissions/search",
         params={"query": "user"},
-        headers=auth_headers,
+        headers=create_auth_headers(admin_token),
     )
 
     assert response.status_code == 200
