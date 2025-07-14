@@ -36,7 +36,8 @@ class BaseFactory(ABC):
     @classmethod
     def build(cls, **kwargs: Any) -> Any:
         """Build a model instance without saving to database."""
-        attributes = cls.build_dict(**kwargs)
+        attributes = cls._get_default_attributes()
+        attributes.update(kwargs)
         # Use the class variable directly
         return cls.model_class(**attributes)
 
