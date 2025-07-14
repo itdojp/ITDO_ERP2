@@ -48,7 +48,7 @@ class Organization(Base):
     industry: Optional[str] = Column(String(100))
     capital: Optional[int] = Column(Integer)
     employee_count: Optional[int] = Column(Integer)
-    fiscal_year_start: Optional[int] = Column(Integer, default=4)
+    fiscal_year_end: Optional[str] = Column(String(5))
     parent_id: Optional[int] = Column(Integer, ForeignKey("organizations.id"))
     is_active: bool = Column(Boolean, default=True)
     settings: Optional[str] = Column(Text)
@@ -96,7 +96,7 @@ class Organization(Base):
         industry: Optional[str] = None,
         capital: Optional[int] = None,
         employee_count: Optional[int] = None,
-        fiscal_year_start: Optional[int] = None,
+        fiscal_year_end: Optional[str] = None,
         parent_id: Optional[int] = None,
         is_active: bool = True,
     ) -> "Organization":
@@ -119,7 +119,7 @@ class Organization(Base):
             industry=industry,
             capital=capital,
             employee_count=employee_count,
-            fiscal_year_start=fiscal_year_start,
+            fiscal_year_end=fiscal_year_end,
             parent_id=parent_id,
             is_active=is_active,
             created_by=created_by,
