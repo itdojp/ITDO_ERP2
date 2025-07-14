@@ -87,6 +87,7 @@ class OrganizationService:
         # Convert settings dict to JSON string for database storage
         if data.get("settings") and isinstance(data["settings"], dict):
             import json
+
             data["settings"] = json.dumps(data["settings"])
 
         if created_by:
@@ -127,6 +128,7 @@ class OrganizationService:
         # Convert settings dict to JSON string for database storage
         if data.get("settings") and isinstance(data["settings"], dict):
             import json
+
             data["settings"] = json.dumps(data["settings"])
 
         if updated_by:
@@ -135,6 +137,7 @@ class OrganizationService:
         # Update organization - use the repository's update method directly
         if data:
             from sqlalchemy import update
+
             self.db.execute(
                 update(self.repository.model)
                 .where(self.repository.model.id == organization_id)
@@ -233,6 +236,7 @@ class OrganizationService:
         # Parse settings JSON string to dict if it exists
         if data.get("settings") and isinstance(data["settings"], str):
             import json
+
             try:
                 data["settings"] = json.loads(data["settings"])
             except (json.JSONDecodeError, TypeError):

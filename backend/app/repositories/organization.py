@@ -53,6 +53,7 @@ class OrganizationRepository(
 
     def get_all_subsidiaries(self, parent_id: OrganizationId) -> List[Organization]:
         """Get all subsidiaries recursively."""
+
         # Use a simple recursive approach for now to avoid complex CTE issues
         def get_children_recursive(org_id: int) -> List[Organization]:
             direct_children = list(
