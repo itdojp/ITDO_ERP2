@@ -323,6 +323,17 @@ class User(SoftDeletableModel):
         """Get active sessions."""
         return [s for s in self.sessions if s.is_valid()]
 
+    @property
+    def requires_password_change(self) -> bool:
+        """Check if user requires password change."""
+        # Check if password is expired (e.g., older than 90 days)
+        if self.password_updated_at:
+            from datetime import datetime, timezone, timedelta
+            expiry_days = 90  # Could be configurable
+            password_age = datetime.now(timezone.utc) - self.password_updated_at
+            return password_age > timedelta(days=expiry_days)
+        return True  # No password update date means it should be changed
+
     def assign_to_organization(
         self, db: Session, organization: "Organization", role: "Role", assigned_by: int
     ) -> "UserRole":
@@ -517,6 +528,10 @@ class User(SoftDeletableModel):
             local = local[:3] + "*" * 6
 
         return f"{local}@{parts[1]}"
+
+    def validate_password_strength(self, password: str) -> None:
+        """Validate password meets security requirements (instance method)."""
+        self._validate_password_strength(password)
 
     @staticmethod
     def _mask_phone(phone: str) -> str:
