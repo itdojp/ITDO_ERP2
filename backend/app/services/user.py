@@ -651,7 +651,9 @@ class UserService:
 
         return user
 
-    def get_user_settings(self, user_id: int, requester: User, db: Session) -> Dict[str, Any]:
+    def get_user_settings(
+        self, user_id: int, requester: User, db: Session
+    ) -> Dict[str, Any]:
         """Get user personal settings."""
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
@@ -696,7 +698,9 @@ class UserService:
         # For now, return the updated settings
         return settings
 
-    def get_privacy_settings(self, user_id: int, requester: User, db: Session) -> Dict[str, Any]:
+    def get_privacy_settings(
+        self, user_id: int, requester: User, db: Session
+    ) -> Dict[str, Any]:
         """Get user privacy settings."""
         user = db.query(User).filter(User.id == user_id).first()
         if not user:

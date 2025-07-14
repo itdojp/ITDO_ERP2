@@ -49,7 +49,7 @@ class TestOrganizationModel:
     def test_duplicate_organization_code(self, db_session) -> None:
         """TEST-ORG-002: 重複する組織コードが拒否されることを確認."""
         # Given: 既存組織
-        org1 = create_test_organization(db_session, code="ITDO")
+        create_test_organization(db_session, code="ITDO")
 
         # When/Then: 同じコードで作成時に例外
         org2 = Organization(code="ITDO", name="新組織")
@@ -61,7 +61,9 @@ class TestOrganizationModel:
     def test_update_organization(self, db_session) -> None:
         """TEST-ORG-003: 組織情報が更新できることを確認."""
         # Given: 既存組織
-        org = create_test_organization(db_session, name="旧名称", email="old@example.com")
+        org = create_test_organization(
+            db_session, name="旧名称", email="old@example.com"
+        )
         original_created_at = org.created_at
 
         # When: 更新

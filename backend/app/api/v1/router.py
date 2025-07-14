@@ -8,9 +8,9 @@ from app.api.v1 import (
     organizations,
     roles,
     tasks,
+    user_profile,
     users,
     users_extended,
-    user_profile,
 )
 from app.core.database import get_db
 

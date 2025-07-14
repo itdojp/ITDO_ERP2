@@ -162,9 +162,13 @@ class TestOrganizationAPI:
     ) -> None:
         """組織更新APIが正しく動作することを確認."""
         # Given: 組織と組織管理者
-        org = create_test_organization(db_session, name="旧名称", email="old@example.com")
+        org = create_test_organization(
+            db_session, name="旧名称", email="old@example.com"
+        )
         admin = create_test_user(db_session)
-        admin_role = create_test_role(db_session, code="ORG_ADMIN", permissions=["org:*"])
+        admin_role = create_test_role(
+            db_session, code="ORG_ADMIN", permissions=["org:*"]
+        )
         create_test_user_role(db_session, user=admin, role=admin_role, organization=org)
 
         headers = get_auth_header(admin)

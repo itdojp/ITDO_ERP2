@@ -19,7 +19,7 @@ class TestUserProfileService:
     def test_update_profile_image_self(
         self, service: UserService, db_session: Session
     ) -> None:
-        """TEST-PROFILE-001: ユーザーが自分のプロファイル画像を更新できることをテスト."""
+        """TEST-PROFILE-001: ユーザーが自分のプロファイル画像を更新."""
         # Given: ユーザー
         user = create_test_user(db_session)
         db_session.commit()
@@ -37,7 +37,7 @@ class TestUserProfileService:
     def test_update_profile_image_permission_denied(
         self, service: UserService, db_session: Session
     ) -> None:
-        """TEST-PROFILE-002: 他のユーザーのプロファイル画像更新が拒否されることをテスト."""
+        """TEST-PROFILE-002: 他のユーザーのプロファイル画像更新が拒否."""
         # Given: 2人のユーザー
         user1 = create_test_user(db_session)
         user2 = create_test_user(db_session)
@@ -52,7 +52,7 @@ class TestUserProfileService:
     def test_update_profile_image_admin_can_update(
         self, service: UserService, db_session: Session
     ) -> None:
-        """TEST-PROFILE-003: システム管理者が他のユーザーの画像を更新できることをテスト."""
+        """TEST-PROFILE-003: システム管理者が他のユーザーの画像を更新."""
         # Given: 一般ユーザーとシステム管理者
         user = create_test_user(db_session)
         admin = create_test_user(db_session, is_superuser=True)
@@ -126,7 +126,7 @@ class TestUserProfileService:
     def test_get_privacy_settings_self(
         self, service: UserService, db_session: Session
     ) -> None:
-        """TEST-PROFILE-007: ユーザーが自分のプライバシー設定を取得できることをテスト."""
+        """TEST-PROFILE-007: ユーザーが自分のプライバシー設定を取得."""
         # Given: ユーザー
         user = create_test_user(db_session)
         db_session.commit()
@@ -144,7 +144,7 @@ class TestUserProfileService:
     def test_update_privacy_settings_self(
         self, service: UserService, db_session: Session
     ) -> None:
-        """TEST-PROFILE-008: ユーザーが自分のプライバシー設定を更新できることをテスト."""
+        """TEST-PROFILE-008: ユーザーが自分のプライバシー設定を更新."""
         # Given: ユーザー
         user = create_test_user(db_session)
         db_session.commit()
@@ -168,7 +168,7 @@ class TestUserProfileService:
     def test_update_profile_image_user_not_found(
         self, service: UserService, db_session: Session
     ) -> None:
-        """TEST-PROFILE-009: 存在しないユーザーのプロファイル画像更新時にエラーをテスト."""
+        """TEST-PROFILE-009: 存在しないユーザーの画像更新時にエラー."""
         # Given: システム管理者
         admin = create_test_user(db_session, is_superuser=True)
         db_session.commit()
