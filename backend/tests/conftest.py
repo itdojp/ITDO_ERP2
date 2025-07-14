@@ -46,94 +46,85 @@ if (
 else:
     # For integration tests, use PostgreSQL
     engine = create_engine(SQLALCHEMY_DATABASE_URL)
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=True, bind=engine)
 
 
 @pytest.fixture
 def db_session() -> Generator[Session, None, None]:
-    """Create a clean database session for each test."""
-    # Create tables
-    Base.metadata.create_all(bind=engine)
+    """Create a clean database session for each test with transaction isolation."""
+    # Ensure tables exist before each test
+    try:
+        # Force metadata refresh
+        Base.metadata.create_all(bind=engine, checkfirst=True)
+        print(f"db_session: Created tables: {list(Base.metadata.tables.keys())}")
+    except Exception as e:
+        print(f"db_session: ERROR creating tables: {e}")
+        raise
 
-    # Clean up any existing data BEFORE the test
-    if "postgresql" in str(engine.url):
-        with engine.begin() as conn:
-            from sqlalchemy import text
-            # Delete in safe order
-            table_order = [
-                "user_roles",
-                "role_permissions",
-                "password_history",
-                "user_sessions",
-                "user_activity_logs",
-                "audit_logs",
-                "project_members",
-                "project_milestones",
-                "projects",
-                "users",
-                "roles",
-                "permissions",
-                "departments",
-                "organizations",
-            ]
-            for table in table_order:
-                conn.execute(text(f'DELETE FROM "{table}"'))
+    # Create connection and begin transaction
+    connection = engine.connect()
+    transaction = connection.begin()
 
-    # Create session
-    session = TestingSessionLocal()
+    # Create session bound to the transaction
+    session = TestingSessionLocal(bind=connection)
 
     try:
         yield session
+    except Exception:
+        # Rollback transaction on error
+        transaction.rollback()
+        raise
     finally:
+        # Always rollback transaction to ensure clean state
         session.close()
-        # Clean up test data using safe DELETE order in PostgreSQL
-        if "postgresql" in str(engine.url):
-            # For PostgreSQL, use DELETE in dependency order to avoid
-            # foreign key violations
-            with engine.begin() as conn:
-                from sqlalchemy import text
-
-                # Simple approach: Delete in safe order
-                table_order = [
-                    "user_roles",
-                    "role_permissions",
-                    "password_history",
-                    "user_sessions",
-                    "user_activity_logs",
-                    "audit_logs",
-                    "project_members",
-                    "project_milestones",
-                    "projects",
-                    "users",
-                    "roles",
-                    "permissions",
-                    "departments",
-                    "organizations",
-                ]
-                for table in table_order:
-                    conn.execute(text(f'DELETE FROM "{table}"'))
-        else:
-            # For SQLite, drop all tables
-            Base.metadata.drop_all(bind=engine)
+        transaction.rollback()
+        connection.close()
 
 
 @pytest.fixture
 def client(db_session: Session) -> Generator[TestClient, None, None]:
-    """Create a test client with overridden database dependency."""
+    """Create a test client with properly isolated database dependency."""
+
+    # Verify tables exist before creating client
+    with engine.connect() as conn:
+        from sqlalchemy import inspect
+        inspector = inspect(conn)
+        tables = inspector.get_table_names()
+        if len(tables) == 0:
+            # Recreate tables if missing
+            Base.metadata.create_all(bind=engine)
 
     def override_get_db() -> Generator[Session, None, None]:
+        """Override database dependency to use isolated test session."""
         try:
+            # CRITICAL: Use the same connection as the test session
+            # This ensures all operations are part of the same transaction
             yield db_session
         finally:
+            # Don't commit or rollback here - let the db_session fixture handle it
             pass
 
+    # Override the database dependency to use our test session
     app.dependency_overrides[get_db] = override_get_db
 
-    with TestClient(app) as test_client:
-        yield test_client
+    # Also override the app's database engine to use our test engine
+    from app.core import database as app_database
 
-    # Clear overrides
-    app.dependency_overrides.clear()
+    original_engine = app_database.engine
+    original_session_local = app_database.SessionLocal
+
+    app_database.engine = engine
+    app_database.SessionLocal = TestingSessionLocal
+
+    try:
+        with TestClient(app) as test_client:
+            yield test_client
+    finally:
+        # Restore original database settings
+        app_database.engine = original_engine
+        app_database.SessionLocal = original_session_local
+        # Clear overrides
+        app.dependency_overrides.clear()
 
 
 # User Fixtures
