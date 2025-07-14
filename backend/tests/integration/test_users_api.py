@@ -106,7 +106,7 @@ class TestUsersAPI:
         # Then: Should return 422
         assert response.status_code == 422
         response_data = response.json()
-        
+
         # Handle both structured error responses and FastAPI default responses
         if isinstance(response_data.get("detail"), list):
             # FastAPI validation error format
