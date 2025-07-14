@@ -91,6 +91,7 @@ class TestUserPrivacyAPI:
         """Test checking if profile is visible."""
         # Create another user to test visibility
         from tests.factories import UserFactory
+
         other_user = UserFactory.create_with_password(
             db_session, email="other@test.com", password="password123"
         )
@@ -119,10 +120,7 @@ class TestUserPrivacyAPI:
         """Test updating privacy settings without authentication."""
         update_data = {"profile_visibility": "private"}
 
-        response = client.put(
-            "/api/v1/users/privacy/me", 
-            json=update_data
-        )
+        response = client.put("/api/v1/users/privacy/me", json=update_data)
 
         assert response.status_code == 403
 

@@ -94,10 +94,7 @@ class TestUserPreferencesAPI:
         """Test updating preferences without authentication."""
         update_data = {"language": "ja"}
 
-        response = client.put(
-            "/api/v1/users/preferences/me", 
-            json=update_data
-        )
+        response = client.put("/api/v1/users/preferences/me", json=update_data)
 
         assert response.status_code == 403
 

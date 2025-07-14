@@ -29,6 +29,7 @@ def test_admin_user(db_session: Session) -> User:
 def admin_token(test_admin_user: User) -> str:
     """Create admin user token for testing."""
     from app.core.security import create_access_token
+
     return create_access_token(data={"sub": str(test_admin_user.id)})
 
 
@@ -46,7 +47,9 @@ def test_get_permission_definitions(
     client: TestClient, test_admin_user: User, admin_token: str
 ) -> None:
     """Test getting permission definitions."""
-    response = client.get("/api/v1/role-permissions/definitions", headers=create_auth_headers(admin_token))
+    response = client.get(
+        "/api/v1/role-permissions/definitions", headers=create_auth_headers(admin_token)
+    )
 
     assert response.status_code == 200
     data = response.json()
@@ -65,7 +68,9 @@ def test_get_permission_ui_structure(
     client: TestClient, test_admin_user: User, admin_token: str
 ) -> None:
     """Test getting permission UI structure."""
-    response = client.get("/api/v1/role-permissions/structure", headers=create_auth_headers(admin_token))
+    response = client.get(
+        "/api/v1/role-permissions/structure", headers=create_auth_headers(admin_token)
+    )
 
     assert response.status_code == 200
     data = response.json()
@@ -86,6 +91,7 @@ def test_get_role_permission_matrix(
 ) -> None:
     """Test getting role permission matrix."""
     from tests.conftest import create_auth_headers
+
     response = client.get(
         f"/api/v1/role-permissions/role/{test_role.id}/matrix",
         params={"organization_id": test_organization.id},
@@ -108,6 +114,7 @@ def test_search_permissions(
 ) -> None:
     """Test searching permissions."""
     from tests.conftest import create_auth_headers
+
     response = client.get(
         "/api/v1/role-permissions/search",
         params={"query": "user"},

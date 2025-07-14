@@ -140,10 +140,10 @@ def _cleanup_all_tables() -> None:
             # Disable foreign key checks for SQLite to allow clean deletion
             if "sqlite" in str(engine.url):
                 conn.execute(text("PRAGMA foreign_keys = OFF"))
-            
+
             # Get all table names from metadata in reverse dependency order
             tables_to_clear = reversed(Base.metadata.sorted_tables)
-            
+
             for table in tables_to_clear:
                 try:
                     # Use table.delete() for proper SQLAlchemy syntax
@@ -151,7 +151,7 @@ def _cleanup_all_tables() -> None:
                 except Exception as e:
                     # Log but don't fail - table might not exist or have constraints
                     print(f"Warning: Could not clear table {table.name}: {e}")
-            
+
             # Reset autoincrement sequences for SQLite
             if "sqlite" in str(engine.url):
                 try:
@@ -159,18 +159,22 @@ def _cleanup_all_tables() -> None:
                     conn.execute(text("PRAGMA foreign_keys = ON"))
                 except Exception:
                     pass
-            
+
             # For PostgreSQL, reset sequences
             elif "postgresql" in str(engine.url):
                 try:
                     # Reset all sequences
                     for table in Base.metadata.sorted_tables:
-                        if hasattr(table.c, 'id') and hasattr(table.c.id, 'autoincrement'):
+                        if hasattr(table.c, "id") and hasattr(
+                            table.c.id, "autoincrement"
+                        ):
                             sequence_name = f"{table.name}_id_seq"
-                            conn.execute(text(f"ALTER SEQUENCE {sequence_name} RESTART WITH 1"))
+                            conn.execute(
+                                text(f"ALTER SEQUENCE {sequence_name} RESTART WITH 1")
+                            )
                 except Exception as e:
                     print(f"Warning: Could not reset PostgreSQL sequences: {e}")
-                    
+
     except Exception as e:
         print(f"ERROR in _cleanup_all_tables: {e}")
         # Don't raise - cleanup errors shouldn't fail tests
@@ -199,10 +203,10 @@ def db_session() -> Generator[Session]:
 
     # Create session with autocommit=False for transaction control
     session = TestingSessionLocal()
-    
+
     # Start a nested transaction (savepoint) for complete isolation
     transaction = session.begin()
-    
+
     try:
         yield session
     except Exception:
@@ -216,9 +220,9 @@ def db_session() -> Generator[Session]:
         except Exception:
             # Transaction might already be rolled back
             pass
-        
+
         session.close()
-        
+
         # Additional cleanup: Clear all data systematically for SQLite
         # This ensures complete isolation between tests
         _cleanup_all_tables()
