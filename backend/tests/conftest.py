@@ -2,6 +2,7 @@
 
 # Use PostgreSQL for integration tests (same as development)
 import os
+import sys
 from typing import Any, Dict, Generator
 
 import pytest
@@ -29,8 +30,13 @@ SQLALCHEMY_DATABASE_URL = os.getenv(
     "DATABASE_URL", "postgresql://itdo_user:itdo_password@localhost:5432/itdo_erp"
 )
 
-# For SQLite tests (unit tests)
-if "unit" in os.getenv("PYTEST_CURRENT_TEST", ""):
+# For SQLite tests (unit tests) - check for both unit test patterns
+if (
+    "unit" in os.getenv("PYTEST_CURRENT_TEST", "")
+    or "tests/unit" in os.getenv("PYTEST_CURRENT_TEST", "")
+    or os.getenv("USE_SQLITE", "false").lower() == "true"
+    or "tests/unit" in " ".join(sys.argv)  # Check command line args
+):
     SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
     engine = create_engine(
         SQLALCHEMY_DATABASE_URL,
