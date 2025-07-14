@@ -146,6 +146,7 @@ class TestUserPrivacyService:
 
         # Mock same organization membership
         from unittest import mock
+
         with mock.patch(
             "app.services.user_privacy.UserPrivacyService._users_in_same_organization",
             return_value=True,
@@ -157,6 +158,7 @@ class TestUserPrivacyService:
 
         # Mock different organization
         from unittest import mock
+
         with mock.patch(
             "app.services.user_privacy.UserPrivacyService._users_in_same_organization",
             return_value=False,
@@ -178,6 +180,7 @@ class TestUserPrivacyService:
 
         # Mock same department membership
         from unittest import mock
+
         with mock.patch(
             "app.services.user_privacy.UserPrivacyService._users_in_same_department",
             return_value=True,
@@ -189,6 +192,7 @@ class TestUserPrivacyService:
 
         # Mock different department
         from unittest import mock
+
         with mock.patch(
             "app.services.user_privacy.UserPrivacyService._users_in_same_department",
             return_value=False,
