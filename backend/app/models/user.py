@@ -154,7 +154,7 @@ class User(SoftDeletableModel):
     def update(self, db: Session, **kwargs: Any) -> None:
         """Update user attributes."""
         for key, value in kwargs.items():
-            if hasattr(self, key) and key not in ["id", "created_at"]:
+            if hasattr(self, key) and key not in ["id", "created_at", "updated_at"]:
                 # Hash password if updating
                 if key == "password":
                     self._validate_password_strength(value)
@@ -162,6 +162,9 @@ class User(SoftDeletableModel):
                     key = "hashed_password"
                     self.password_changed_at = datetime.now(timezone.utc)
                 setattr(self, key, value)
+
+        # Always update the updated_at timestamp
+        self.updated_at = datetime.now(timezone.utc)
 
         db.add(self)
         db.flush()
@@ -221,11 +224,20 @@ class User(SoftDeletableModel):
         """Check if account is locked."""
         if not self.locked_until:
             return False
-        return datetime.now(timezone.utc) < self.locked_until
+        # Handle both timezone-aware and naive datetimes
+        now = datetime.now(timezone.utc)
+        locked_until = self.locked_until
+        if locked_until.tzinfo is None:
+            locked_until = locked_until.replace(tzinfo=timezone.utc)
+        return now < locked_until
 
     def is_password_expired(self) -> bool:
         """Check if password has expired (90 days)."""
-        expiry_date = self.password_changed_at + timedelta(days=90)
+        # Handle both timezone-aware and naive datetimes
+        password_changed_at = self.password_changed_at
+        if password_changed_at.tzinfo is None:
+            password_changed_at = password_changed_at.replace(tzinfo=timezone.utc)
+        expiry_date = password_changed_at + timedelta(days=90)
         return datetime.now(timezone.utc) > expiry_date
 
     def create_session(
@@ -246,11 +258,13 @@ class User(SoftDeletableModel):
             .filter(
                 UserSession.user_id == self.id,
                 UserSession.is_active,
-                UserSession.expires_at > datetime.now(timezone.utc),
             )
             .order_by(UserSession.created_at)
             .all()
         )
+
+        # Filter active sessions manually to handle timezone issues
+        active_sessions = [s for s in active_sessions if not s.is_expired()]
 
         if len(active_sessions) >= 5:
             # Invalidate oldest session

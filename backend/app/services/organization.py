@@ -206,7 +206,7 @@ class OrganizationService:
 
         # Build response
         data = organization.to_dict()
-        
+
         # Parse settings JSON string to dict
         if data.get("settings") and isinstance(data["settings"], str):
             try:
@@ -215,7 +215,7 @@ class OrganizationService:
                 data["settings"] = {}
         elif not data.get("settings"):
             data["settings"] = {}
-            
+
         data["parent"] = organization.parent.to_dict() if organization.parent else None
         data["full_address"] = organization.full_address
         data["is_subsidiary"] = organization.is_subsidiary
