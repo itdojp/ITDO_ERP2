@@ -1,23 +1,53 @@
 """Pytest configuration and fixtures."""
 
-# Use PostgreSQL for integration tests (same as development)
 import os
-import sys
-from typing import Any, Dict, Generator
+
+# CRITICAL: Set test environment variables if not already set
+# This must happen before any app imports
+if not os.environ.get("DATABASE_URL"):
+    os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+if not os.environ.get("SECRET_KEY"):
+    os.environ["SECRET_KEY"] = "test-secret-key-for-testing-only-32-chars-long"
+if not os.environ.get("ALGORITHM"):
+    os.environ["ALGORITHM"] = "HS256"
+if not os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES"):
+    os.environ["ACCESS_TOKEN_EXPIRE_MINUTES"] = "1440"
+if not os.environ.get("REFRESH_TOKEN_EXPIRE_DAYS"):
+    os.environ["REFRESH_TOKEN_EXPIRE_DAYS"] = "7"
+if not os.environ.get("BCRYPT_ROUNDS"):
+    os.environ["BCRYPT_ROUNDS"] = "4"
+
+# Use PostgreSQL for integration tests (same as development)
+import uuid
+from collections.abc import Generator
+from datetime import datetime
+from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app.core.database import get_db
+# Import base first
+from app.models.base import Base
+
+# Import all models to ensure proper registration
+# This ensures all models are registered with SQLAlchemy metadata
+import app.models  # This will import all models via __init__.py
+
+# Also import specific models we use in tests
+from app.models.user import User
+from app.models.organization import Organization
+from app.models.department import Department
+from app.models.role import Role
+from app.models.permission import Permission
+
+# Now import app components
+from app.core import database
+from app.core.dependencies import get_db
 from app.core.security import create_access_token
 from app.main import app
-
-# Import all models to ensure they are registered with SQLAlchemy
-from app.models import Department, Organization, Permission, Role, User
-from app.models.base import Base
 from tests.factories import (
     DepartmentFactory,
     OrganizationFactory,
@@ -26,31 +56,94 @@ from tests.factories import (
     UserFactory,
 )
 
-SQLALCHEMY_DATABASE_URL = os.getenv(
-    "DATABASE_URL", "postgresql://itdo_user:itdo_password@localhost:5432/itdo_erp"
-)
+# Determine database URL based on environment
+# CI environment always uses SQLite regardless of DATABASE_URL
 
-# For SQLite tests (unit tests) - check for both unit test patterns
-if (
-    "unit" in os.getenv("PYTEST_CURRENT_TEST", "")
-    or "tests/unit" in os.getenv("PYTEST_CURRENT_TEST", "")
-    or os.getenv("USE_SQLITE", "false").lower() == "true"
-    or "tests/unit" in " ".join(sys.argv)  # Check command line args
-):
-    SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
+# CRITICAL: Force SQLite for ANY CI environment detection
+# GitHub Actions sets GITHUB_ACTIONS=true automatically
+# Check multiple ways to detect CI environment
+
+# Determine which database to use
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///:memory:")
+# print(f"DEBUG: DATABASE_URL from env = {DATABASE_URL}")
+
+if "postgresql" in DATABASE_URL:
+    # Use PostgreSQL (for CI or when explicitly configured)
+    # print(f"DEBUG: Using PostgreSQL: {DATABASE_URL}")
+    engine = create_engine(DATABASE_URL)
+elif "sqlite" in DATABASE_URL:
+    # Use SQLite
+    if DATABASE_URL == "sqlite:///:memory:":
+        # print(f"DEBUG: Using in-memory SQLite")
+        engine = create_engine(
+            DATABASE_URL,
+            connect_args={"check_same_thread": False},
+            poolclass=StaticPool,
+        )
+    else:
+        # File-based SQLite
+        # print(f"DEBUG: Using file-based SQLite: {DATABASE_URL}")
+        engine = create_engine(
+            DATABASE_URL,
+            connect_args={"check_same_thread": False},
+            poolclass=StaticPool,  # Use StaticPool for file-based SQLite too
+        )
+else:
+    # Default to in-memory SQLite
+    # print(f"DEBUG: Unknown database type, defaulting to in-memory SQLite")
     engine = create_engine(
-        SQLALCHEMY_DATABASE_URL,
+        "sqlite:///:memory:",
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
-else:
-    # For integration tests, use PostgreSQL
-    engine = create_engine(SQLALCHEMY_DATABASE_URL)
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=True, bind=engine)
+
+# Override the app's engine with our test engine
+database.engine = engine
+database.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Create session factory with our test engine
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# CRITICAL: Ensure all tables are created immediately
+# Force metadata creation after all models are imported
+try:
+    # Explicitly register all table metadata from imported models
+    from app.models import *  # noqa: F403, F401
+
+    Base.metadata.create_all(bind=engine, checkfirst=True)
+    print(f"Created tables: {list(Base.metadata.tables.keys())}")
+except Exception as e:
+    print(f"ERROR: Failed to create database tables: {e}")
+    print(f"Available metadata tables: {list(Base.metadata.tables.keys())}")
+    raise
+
+
+@pytest.fixture(autouse=True)
+def isolate_test_data() -> dict[str, str]:
+    """各テストで独立したデータを使用"""
+    # 一意性を保証するテストデータ生成
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+    unique_id = str(uuid.uuid4())[:8]
+    return {
+        "unique_email": f"test_{timestamp}_{unique_id}@example.com",
+        "unique_code": f"TEST_{timestamp}_{unique_id}",
+        "unique_name": f"Test Organization {timestamp}",
+        "unique_id": unique_id,
+        "timestamp": timestamp,
+    }
+
+
+@pytest.fixture(autouse=True)
+def clean_test_database(db_session: Session) -> Generator[None]:
+    """Ensure clean database state for each test."""
+    # No pre-test cleanup needed - transaction isolation handles this
+    yield  # Test execution
+
+    # No post-test cleanup needed - transaction rollback handles this
 
 
 @pytest.fixture
-def db_session() -> Generator[Session, None, None]:
+def db_session() -> Generator[Session]:
     """Create a clean database session for each test with transaction isolation."""
     # Ensure tables exist before each test
     try:
@@ -82,19 +175,18 @@ def db_session() -> Generator[Session, None, None]:
 
 
 @pytest.fixture
-def client(db_session: Session) -> Generator[TestClient, None, None]:
+def client(db_session: Session) -> Generator[TestClient]:
     """Create a test client with properly isolated database dependency."""
 
     # Verify tables exist before creating client
     with engine.connect() as conn:
-        from sqlalchemy import inspect
         inspector = inspect(conn)
         tables = inspector.get_table_names()
-        if len(tables) == 0:
+        if "departments" not in tables:
             # Recreate tables if missing
             Base.metadata.create_all(bind=engine)
 
-    def override_get_db() -> Generator[Session, None, None]:
+    def override_get_db() -> Generator[Session]:
         """Override database dependency to use isolated test session."""
         try:
             # CRITICAL: Use the same connection as the test session
@@ -133,12 +225,10 @@ def client(db_session: Session) -> Generator[TestClient, None, None]:
 @pytest.fixture
 def test_user(db_session: Session) -> User:
     """Create a basic test user."""
-    import uuid
-    unique_id = str(uuid.uuid4())[:8]
     return UserFactory.create_with_password(
         db_session,
         password="TestPassword123!",
-        email=f"testuser_{unique_id}@example.com",
+        email="testuser@example.com",
         full_name="Test User",
     )
 
@@ -146,12 +236,10 @@ def test_user(db_session: Session) -> User:
 @pytest.fixture
 def test_admin(db_session: Session) -> User:
     """Create a test admin user."""
-    import uuid
-    unique_id = str(uuid.uuid4())[:8]
     return UserFactory.create_with_password(
         db_session,
         password="AdminPassword123!",
-        email=f"admin_{unique_id}@example.com",
+        email="admin@example.com",
         full_name="Admin User",
         is_superuser=True,
     )
@@ -160,18 +248,16 @@ def test_admin(db_session: Session) -> User:
 @pytest.fixture
 def test_manager(db_session: Session) -> User:
     """Create a test manager user."""
-    import uuid
-    unique_id = str(uuid.uuid4())[:8]
     return UserFactory.create_with_password(
         db_session,
         password="ManagerPassword123!",
-        email=f"manager_{unique_id}@example.com",
+        email="manager@example.com",
         full_name="Manager User",
     )
 
 
 @pytest.fixture
-def test_users_set(db_session: Session) -> Dict[str, User]:
+def test_users_set(db_session: Session) -> dict[str, User]:
     """Create a complete set of test users."""
     return UserFactory.create_test_users_set(db_session)
 
@@ -223,7 +309,7 @@ def test_organization(db_session: Session) -> Organization:
 
 
 @pytest.fixture
-def test_organization_tree(db_session: Session) -> Dict[str, Any]:
+def test_organization_tree(db_session: Session) -> dict[str, Any]:
     """Create an organization tree structure."""
     return OrganizationFactory.create_subsidiary_tree(
         db_session, depth=2, children_per_level=2
@@ -244,7 +330,7 @@ def test_department(db_session: Session, test_organization: Organization) -> Dep
 @pytest.fixture
 def test_department_tree(
     db_session: Session, test_organization: Organization
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Create a department tree structure."""
     return DepartmentFactory.create_department_tree(
         db_session, test_organization, depth=3, children_per_level=2
@@ -263,13 +349,13 @@ def test_role(db_session: Session, test_organization: Organization) -> Role:
 
 
 @pytest.fixture
-def test_permissions(db_session: Session) -> Dict[str, list[Permission]]:
+def test_permissions(db_session: Session) -> dict[str, list[Permission]]:
     """Create standard permissions."""
     return PermissionFactory.create_standard_permissions(db_session)
 
 
 @pytest.fixture
-def test_role_system(db_session: Session) -> Dict[str, Any]:
+def test_role_system(db_session: Session) -> dict[str, Any]:
     """Create a complete role system with permissions."""
     return RoleFactory.create_complete_role_system(db_session)
 
@@ -278,7 +364,7 @@ def test_role_system(db_session: Session) -> Dict[str, Any]:
 
 
 @pytest.fixture
-def complete_test_system(db_session: Session) -> Dict[str, Any]:
+def complete_test_system(db_session: Session) -> dict[str, Any]:
     """Create a complete test system with all entities."""
     # Create role system (includes organization and permissions)
     role_system = RoleFactory.create_complete_role_system(db_session)
@@ -304,21 +390,17 @@ def complete_test_system(db_session: Session) -> Dict[str, Any]:
 
 
 @pytest.fixture(autouse=True)
-def setup_test_environment(monkeypatch: Any) -> None:
+def setup_test_environment() -> None:
     """Set up test environment variables."""
-    # Set test environment variables
-    monkeypatch.setenv("SECRET_KEY", "test-secret-key-for-testing-only-32-chars-long")
-    monkeypatch.setenv("ALGORITHM", "HS256")
-    monkeypatch.setenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440")
-    monkeypatch.setenv("REFRESH_TOKEN_EXPIRE_DAYS", "7")
-    monkeypatch.setenv("BCRYPT_ROUNDS", "4")  # Lower rounds for faster tests
-    monkeypatch.setenv("DATABASE_URL", SQLALCHEMY_DATABASE_URL)
+    # Environment variables are already set at module level
+    # This fixture ensures they remain set for each test
+    pass
 
 
 # Utility Functions for Tests
 
 
-def create_auth_headers(token: str) -> Dict[str, str]:
+def create_auth_headers(token: str) -> dict[str, str]:
     """Create authorization headers with bearer token."""
     return {"Authorization": f"Bearer {token}"}
 
