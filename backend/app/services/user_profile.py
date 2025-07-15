@@ -183,7 +183,9 @@ class UserProfileService:
             language=prefs.language,
             timezone=prefs.timezone,
             date_format=prefs.date_format,
-            time_format="24h" if prefs.time_format not in ["12h", "24h"] else ("12h" if prefs.time_format == "12h" else "24h"),
+            time_format="24h"
+            if prefs.time_format not in ["12h", "24h"]
+            else ("12h" if prefs.time_format == "12h" else "24h"),
             notification_email=prefs.notifications_email,
             notification_push=prefs.notifications_push,
             updated_at=prefs.updated_at,
@@ -251,7 +253,9 @@ class UserProfileService:
             language=prefs.language,
             timezone=prefs.timezone,
             date_format=prefs.date_format,
-            time_format="24h" if prefs.time_format not in ["12h", "24h"] else ("12h" if prefs.time_format == "12h" else "24h"),
+            time_format="24h"
+            if prefs.time_format not in ["12h", "24h"]
+            else ("12h" if prefs.time_format == "12h" else "24h"),
             notification_email=prefs.notifications_email,
             notification_push=prefs.notifications_push,
             updated_at=prefs.updated_at,
@@ -439,12 +443,28 @@ class UserProfileService:
         return UserProfileResponse(
             id=int(response_data["id"]) if response_data["id"] is not None else 0,  # type: ignore[arg-type]
             full_name=str(response_data["full_name"]),
-            email=str(response_data.get("email")) if response_data.get("email") is not None else None,
-            phone=str(response_data.get("phone")) if response_data.get("phone") is not None else None,
-            profile_image_url=str(response_data.get("profile_image_url")) if response_data.get("profile_image_url") is not None else None,
-            bio=str(response_data.get("bio")) if response_data.get("bio") is not None else None,
-            location=str(response_data.get("location")) if response_data.get("location") is not None else None,
-            website=str(response_data.get("website")) if response_data.get("website") is not None else None,
-            is_online=bool(response_data.get("is_online")) if response_data.get("is_online") is not None else None,
-            last_seen_at=response_data.get("last_seen_at") if isinstance(response_data.get("last_seen_at"), datetime) else None  # type: ignore[arg-type]
+            email=str(response_data.get("email"))
+            if response_data.get("email") is not None
+            else None,
+            phone=str(response_data.get("phone"))
+            if response_data.get("phone") is not None
+            else None,
+            profile_image_url=str(response_data.get("profile_image_url"))
+            if response_data.get("profile_image_url") is not None
+            else None,
+            bio=str(response_data.get("bio"))
+            if response_data.get("bio") is not None
+            else None,
+            location=str(response_data.get("location"))
+            if response_data.get("location") is not None
+            else None,
+            website=str(response_data.get("website"))
+            if response_data.get("website") is not None
+            else None,
+            is_online=bool(response_data.get("is_online"))
+            if response_data.get("is_online") is not None
+            else None,
+            last_seen_at=response_data.get("last_seen_at")
+            if isinstance(response_data.get("last_seen_at"), datetime)
+            else None,  # type: ignore[arg-type]
         )

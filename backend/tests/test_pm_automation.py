@@ -32,7 +32,7 @@ def test_project(test_db_session: Session):
         name="Test Project",
         organization_id=1,
         owner_id=1,
-        status="active"
+        status="active",
     )
     test_db_session.add(project)
     test_db_session.commit()
@@ -47,7 +47,7 @@ def test_user(test_db_session: Session):
         email="test@example.com",
         full_name="Test User",
         is_active=True,
-        organization_id=1
+        organization_id=1,
     )
     test_db_session.add(user)
     test_db_session.commit()
@@ -271,9 +271,7 @@ class TestPMAutomationService:
     ):
         """Test invalid assignment strategy handling."""
         with pytest.raises(ValueError, match="Unknown assignment strategy"):
-            await pm_service.auto_assign_tasks(
-                test_project.id, "invalid", test_user
-            )
+            await pm_service.auto_assign_tasks(test_project.id, "invalid", test_user)
 
     async def test_invalid_optimization_type(
         self, pm_service: PMAutomationService, test_project: Project, test_user: User
@@ -289,9 +287,7 @@ class TestPMAutomationService:
     ):
         """Test invalid prediction type handling."""
         with pytest.raises(ValueError, match="Unknown prediction type"):
-            await pm_service.predictive_analytics(
-                test_project.id, "invalid", test_user
-            )
+            await pm_service.predictive_analytics(test_project.id, "invalid", test_user)
 
 
 class TestPMAutomationAPI:
@@ -397,7 +393,11 @@ class TestPMAutomationIntegration:
         assert analytics_result["prediction_type"] == "completion_date"
 
     async def test_automation_with_existing_tasks(
-        self, pm_service: PMAutomationService, test_project: Project, test_user: User, test_db_session: Session
+        self,
+        pm_service: PMAutomationService,
+        test_project: Project,
+        test_user: User,
+        test_db_session: Session,
     ):
         """Test automation with existing tasks."""
         # Create some existing tasks
@@ -406,7 +406,7 @@ class TestPMAutomationIntegration:
             project_id=test_project.id,
             created_by=test_user.id,
             organization_id=1,
-            status="in_progress"
+            status="in_progress",
         )
         test_db_session.add(existing_task)
         test_db_session.commit()
@@ -425,11 +425,7 @@ class TestPMAutomationIntegration:
         """Test error handling in automation."""
         # Test with non-existent project
         with pytest.raises(Exception):  # Should raise NotFound
-            await pm_service.auto_create_project_structure(
-                999, "agile", test_user
-            )
+            await pm_service.auto_create_project_structure(999, "agile", test_user)
 
         with pytest.raises(Exception):  # Should raise NotFound
-            await pm_service.generate_progress_report(
-                999, "weekly", test_user
-            )
+            await pm_service.generate_progress_report(999, "weekly", test_user)

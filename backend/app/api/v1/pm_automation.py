@@ -21,10 +21,10 @@ async def auto_create_project_structure(
     current_user: User = Depends(get_current_active_user),
 ) -> Dict[str, Any]:
     """Automatically create project structure based on template.
-    
+
     Supported templates:
     - agile: Agile/Scrum project structure
-    - waterfall: Waterfall project structure  
+    - waterfall: Waterfall project structure
     - kanban: Kanban project structure
     """
     try:
@@ -35,7 +35,9 @@ async def auto_create_project_structure(
         return {
             "success": True,
             "data": result,
-            "message": f"Project structure created successfully using {template_type} template"
+            "message": (
+                f"Project structure created successfully using {template_type} template"
+            ),
         }
     except NotFound as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
@@ -46,7 +48,7 @@ async def auto_create_project_structure(
     except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create project structure"
+            detail="Failed to create project structure",
         )
 
 
@@ -58,7 +60,7 @@ async def auto_assign_tasks(
     current_user: User = Depends(get_current_active_user),
 ) -> Dict[str, Any]:
     """Automatically assign tasks to team members.
-    
+
     Supported strategies:
     - balanced: Distribute tasks evenly among team members
     - skill_based: Assign based on skills and expertise
@@ -70,7 +72,7 @@ async def auto_assign_tasks(
         return {
             "success": True,
             "data": result,
-            "message": f"Tasks assigned successfully using {strategy} strategy"
+            "message": f"Tasks assigned successfully using {strategy} strategy",
         }
     except NotFound as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
@@ -81,7 +83,7 @@ async def auto_assign_tasks(
     except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to assign tasks"
+            detail="Failed to assign tasks",
         )
 
 
@@ -93,7 +95,7 @@ async def generate_progress_report(
     current_user: User = Depends(get_current_active_user),
 ) -> Dict[str, Any]:
     """Generate automated progress report.
-    
+
     Supported report types:
     - daily: Daily progress report
     - weekly: Weekly progress report
@@ -101,11 +103,15 @@ async def generate_progress_report(
     """
     try:
         service = PMAutomationService(db)
-        result = await service.generate_progress_report(project_id, report_type, current_user)
+        result = await service.generate_progress_report(
+            project_id, report_type, current_user
+        )
         return {
             "success": True,
             "data": result,
-            "message": f"{report_type.capitalize()} progress report generated successfully"
+            "message": (
+                f"{report_type.capitalize()} progress report generated successfully"
+            ),
         }
     except NotFound as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
@@ -114,7 +120,7 @@ async def generate_progress_report(
     except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to generate progress report"
+            detail="Failed to generate progress report",
         )
 
 
@@ -126,7 +132,7 @@ async def optimize_project_schedule(
     current_user: User = Depends(get_current_active_user),
 ) -> Dict[str, Any]:
     """Automatically optimize project schedule.
-    
+
     Supported optimization types:
     - critical_path: Critical path method optimization
     - resource_leveling: Resource leveling optimization
@@ -140,7 +146,9 @@ async def optimize_project_schedule(
         return {
             "success": True,
             "data": result,
-            "message": f"Schedule optimization completed using {optimization_type} method"
+            "message": (
+                f"Schedule optimization completed using {optimization_type} method"
+            ),
         }
     except NotFound as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
@@ -149,7 +157,7 @@ async def optimize_project_schedule(
     except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to optimize project schedule"
+            detail="Failed to optimize project schedule",
         )
 
 
@@ -161,7 +169,7 @@ async def get_predictive_analytics(
     current_user: User = Depends(get_current_active_user),
 ) -> Dict[str, Any]:
     """Generate predictive analytics for project.
-    
+
     Supported prediction types:
     - completion_date: Predict project completion date
     - budget_forecast: Forecast budget usage
@@ -175,7 +183,7 @@ async def get_predictive_analytics(
         return {
             "success": True,
             "data": result,
-            "message": f"Predictive analytics generated for {prediction_type}"
+            "message": f"Predictive analytics generated for {prediction_type}",
         }
     except NotFound as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
@@ -184,7 +192,7 @@ async def get_predictive_analytics(
     except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to generate predictive analytics"
+            detail="Failed to generate predictive analytics",
         )
 
 
@@ -216,16 +224,16 @@ async def get_automation_dashboard(
                 "progress_report": progress_report,
                 "completion_prediction": completion_prediction,
                 "risk_analysis": risk_analysis,
-                "last_updated": progress_report.get("generated_at")
+                "last_updated": progress_report.get("generated_at"),
             },
-            "message": "Automation dashboard data retrieved successfully"
+            "message": "Automation dashboard data retrieved successfully",
         }
     except NotFound as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve dashboard data"
+            detail="Failed to retrieve dashboard data",
         )
 
 
@@ -238,31 +246,28 @@ async def get_available_templates() -> Dict[str, Any]:
             "description": "アジャイル開発に適したプロジェクト構造",
             "features": ["スプリント計画", "ユーザーストーリー", "レトロスペクティブ"],
             "typical_duration": "2-6 months",
-            "team_size": "3-9 members"
+            "team_size": "3-9 members",
         },
         "waterfall": {
             "name": "Waterfall",
             "description": "ウォーターフォール開発に適したプロジェクト構造",
             "features": ["フェーズゲート", "詳細計画", "品質管理"],
             "typical_duration": "6-24 months",
-            "team_size": "5-20 members"
+            "team_size": "5-20 members",
         },
         "kanban": {
             "name": "Kanban",
             "description": "カンバン方式に適したプロジェクト構造",
             "features": ["継続的フロー", "WIP制限", "リードタイム最適化"],
             "typical_duration": "継続的",
-            "team_size": "2-8 members"
-        }
+            "team_size": "2-8 members",
+        },
     }
 
     return {
         "success": True,
-        "data": {
-            "templates": templates,
-            "total_templates": len(templates)
-        },
-        "message": "Available templates retrieved successfully"
+        "data": {"templates": templates, "total_templates": len(templates)},
+        "message": "Available templates retrieved successfully",
     }
 
 
@@ -274,27 +279,24 @@ async def get_assignment_strategies() -> Dict[str, Any]:
             "name": "Balanced Assignment",
             "description": "タスクをチームメンバーに均等に分散",
             "best_for": "チームの経験が似ている場合",
-            "considerations": ["作業負荷の平準化", "公平性の確保"]
+            "considerations": ["作業負荷の平準化", "公平性の確保"],
         },
         "skill_based": {
             "name": "Skill-based Assignment",
             "description": "スキルと専門性に基づいてタスクを割り当て",
             "best_for": "多様なスキルセットを持つチーム",
-            "considerations": ["スキルの向上", "品質の確保"]
+            "considerations": ["スキルの向上", "品質の確保"],
         },
         "workload_based": {
             "name": "Workload-based Assignment",
             "description": "現在の作業負荷に基づいてタスクを割り当て",
             "best_for": "メンバーの作業量にばらつきがある場合",
-            "considerations": ["リソース効率", "ボトルネックの回避"]
-        }
+            "considerations": ["リソース効率", "ボトルネックの回避"],
+        },
     }
 
     return {
         "success": True,
-        "data": {
-            "strategies": strategies,
-            "total_strategies": len(strategies)
-        },
-        "message": "Available assignment strategies retrieved successfully"
+        "data": {"strategies": strategies, "total_strategies": len(strategies)},
+        "message": "Available assignment strategies retrieved successfully",
     }

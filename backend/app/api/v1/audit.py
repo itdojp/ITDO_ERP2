@@ -11,7 +11,6 @@ from app.core.exceptions import NotFound, PermissionDenied
 from app.models.user import User
 from app.schemas.audit import (
     AuditLogBulkIntegrityResult,
-    AuditLogFilter,
     AuditLogListResponse,
     AuditLogSearch,
     AuditLogStats,

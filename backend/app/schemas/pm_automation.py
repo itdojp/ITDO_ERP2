@@ -9,7 +9,9 @@ from pydantic import BaseModel, Field
 class ProjectStructureRequest(BaseModel):
     """Request schema for project structure creation."""
 
-    template_type: str = Field(..., description="Template type (agile, waterfall, kanban)")
+    template_type: str = Field(
+        ..., description="Template type (agile, waterfall, kanban)"
+    )
     customizations: Optional[Dict[str, Any]] = Field(
         None, description="Custom template parameters"
     )
@@ -28,9 +30,7 @@ class TaskAssignmentRequest(BaseModel):
     """Request schema for task assignment."""
 
     strategy: str = Field(..., description="Assignment strategy")
-    filters: Optional[Dict[str, Any]] = Field(
-        None, description="Task filters"
-    )
+    filters: Optional[Dict[str, Any]] = Field(None, description="Task filters")
     dry_run: bool = Field(False, description="Dry run without actual assignment")
 
 
@@ -67,7 +67,9 @@ class ProjectStatistics(BaseModel):
 class CompletionTrend(BaseModel):
     """Completion trend schema."""
 
-    daily_completions: Dict[str, int] = Field(..., description="Daily completion counts")
+    daily_completions: Dict[str, int] = Field(
+        ..., description="Daily completion counts"
+    )
     average_daily_completion: float = Field(..., description="Average daily completion")
     trend_direction: str = Field(..., description="Trend direction (up, down, stable)")
 
@@ -100,7 +102,9 @@ class ProgressReportResponse(BaseModel):
     statistics: ProjectStatistics = Field(..., description="Project statistics")
     trends: CompletionTrend = Field(..., description="Completion trends")
     risks: List[ProjectRisk] = Field(..., description="Identified risks")
-    recommendations: List[ProjectRecommendation] = Field(..., description="Recommendations")
+    recommendations: List[ProjectRecommendation] = Field(
+        ..., description="Recommendations"
+    )
     generated_at: datetime = Field(..., description="Report generation timestamp")
     generated_by: Optional[int] = Field(None, description="Report generator user ID")
 
@@ -122,7 +126,9 @@ class ScheduleOptimizationResponse(BaseModel):
     status: str = Field(..., description="Optimization status")
     recommendations: List[str] = Field(..., description="Optimization recommendations")
     time_saved: Optional[int] = Field(None, description="Estimated time saved in days")
-    efficiency_gain: Optional[float] = Field(None, description="Efficiency gain percentage")
+    efficiency_gain: Optional[float] = Field(
+        None, description="Efficiency gain percentage"
+    )
 
 
 class PredictiveAnalyticsRequest(BaseModel):
@@ -136,11 +142,15 @@ class PredictiveAnalyticsRequest(BaseModel):
 class CompletionDatePrediction(BaseModel):
     """Completion date prediction schema."""
 
-    predicted_completion: Optional[datetime] = Field(None, description="Predicted completion date")
+    predicted_completion: Optional[datetime] = Field(
+        None, description="Predicted completion date"
+    )
     confidence: str = Field(..., description="Confidence level")
     based_on: str = Field(..., description="Prediction basis")
     velocity_tasks_per_day: float = Field(..., description="Current velocity")
-    factors_considered: List[str] = Field(default_factory=list, description="Factors considered")
+    factors_considered: List[str] = Field(
+        default_factory=list, description="Factors considered"
+    )
 
 
 class BudgetForecast(BaseModel):
@@ -189,7 +199,9 @@ class AutomationDashboardResponse(BaseModel):
     )
     risk_analysis: PredictiveAnalyticsResponse = Field(..., description="Risk analysis")
     last_updated: datetime = Field(..., description="Last update timestamp")
-    automation_score: Optional[float] = Field(None, description="Automation effectiveness score")
+    automation_score: Optional[float] = Field(
+        None, description="Automation effectiveness score"
+    )
 
 
 class ProjectTemplate(BaseModel):
@@ -216,17 +228,25 @@ class AssignmentStrategy(BaseModel):
 class TemplatesResponse(BaseModel):
     """Response schema for templates listing."""
 
-    templates: Dict[str, ProjectTemplate] = Field(..., description="Available templates")
+    templates: Dict[str, ProjectTemplate] = Field(
+        ..., description="Available templates"
+    )
     total_templates: int = Field(..., description="Total number of templates")
-    recommended_template: Optional[str] = Field(None, description="Recommended template")
+    recommended_template: Optional[str] = Field(
+        None, description="Recommended template"
+    )
 
 
 class StrategiesResponse(BaseModel):
     """Response schema for strategies listing."""
 
-    strategies: Dict[str, AssignmentStrategy] = Field(..., description="Available strategies")
+    strategies: Dict[str, AssignmentStrategy] = Field(
+        ..., description="Available strategies"
+    )
     total_strategies: int = Field(..., description="Total number of strategies")
-    recommended_strategy: Optional[str] = Field(None, description="Recommended strategy")
+    recommended_strategy: Optional[str] = Field(
+        None, description="Recommended strategy"
+    )
 
 
 class AutomationMetrics(BaseModel):
@@ -234,9 +254,13 @@ class AutomationMetrics(BaseModel):
 
     tasks_automated: int = Field(..., description="Number of tasks automated")
     time_saved_hours: float = Field(..., description="Time saved in hours")
-    efficiency_improvement: float = Field(..., description="Efficiency improvement percentage")
+    efficiency_improvement: float = Field(
+        ..., description="Efficiency improvement percentage"
+    )
     error_reduction: float = Field(..., description="Error reduction percentage")
-    user_satisfaction: Optional[float] = Field(None, description="User satisfaction score")
+    user_satisfaction: Optional[float] = Field(
+        None, description="User satisfaction score"
+    )
 
 
 class AutomationSummary(BaseModel):
@@ -244,7 +268,9 @@ class AutomationSummary(BaseModel):
 
     project_id: int = Field(..., description="Project ID")
     automation_enabled: bool = Field(..., description="Automation status")
-    last_automation_run: Optional[datetime] = Field(None, description="Last automation run")
+    last_automation_run: Optional[datetime] = Field(
+        None, description="Last automation run"
+    )
     metrics: AutomationMetrics = Field(..., description="Automation metrics")
     active_automations: List[str] = Field(..., description="Active automation types")
     recommendations: List[str] = Field(..., description="Automation recommendations")
@@ -257,4 +283,6 @@ class PMAutomationResponse(BaseModel):
     success: bool = Field(..., description="Operation success status")
     data: Any = Field(..., description="Response data")
     message: str = Field(..., description="Response message")
-    timestamp: datetime = Field(default_factory=datetime.now, description="Response timestamp")
+    timestamp: datetime = Field(
+        default_factory=datetime.now, description="Response timestamp"
+    )

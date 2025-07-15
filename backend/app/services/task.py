@@ -132,14 +132,16 @@ class TaskService:
         # 2. The task assignee
         # 3. Have 'task.delete' permission in the task's project organization
         can_delete = (
-            task.reporter_id == user.id or
-            task.assignee_id == user.id or
-            user.is_superuser
+            task.reporter_id == user.id
+            or task.assignee_id == user.id
+            or user.is_superuser
         )
 
         # Check organization-level permissions if user is not directly involved
         if not can_delete and task.project and task.project.organization_id:
-            can_delete = user.has_permission("task.delete", task.project.organization_id)
+            can_delete = user.has_permission(
+                "task.delete", task.project.organization_id
+            )
 
         if not can_delete:
             raise PermissionDenied("Insufficient permissions to delete this task")
@@ -227,14 +229,16 @@ class TaskService:
         # 2. The task assignee
         # 3. Have 'task.update' permission in the task's project organization
         can_update = (
-            task.reporter_id == user.id or
-            task.assignee_id == user.id or
-            user.is_superuser
+            task.reporter_id == user.id
+            or task.assignee_id == user.id
+            or user.is_superuser
         )
 
         # Check organization-level permissions if user is not directly involved
         if not can_update and task.project and task.project.organization_id:
-            can_update = user.has_permission("task.update", task.project.organization_id)
+            can_update = user.has_permission(
+                "task.update", task.project.organization_id
+            )
 
         if not can_update:
             raise PermissionDenied("Insufficient permissions to update this task")
@@ -268,10 +272,7 @@ class TaskService:
 
         audit_logs = (
             db.query(AuditLog)
-            .filter(
-                AuditLog.resource_type == "Task",
-                AuditLog.resource_id == task_id
-            )
+            .filter(AuditLog.resource_type == "Task", AuditLog.resource_id == task_id)
             .order_by(AuditLog.created_at.desc())
             .all()
         )
@@ -279,14 +280,16 @@ class TaskService:
         # Convert audit logs to history items
         history_items = []
         for log in audit_logs:
-            history_items.append({
-                "id": log.id,
-                "action": log.action,
-                "changes": log.changes,
-                "user_id": log.user_id,
-                "created_at": log.created_at,
-                "ip_address": log.ip_address
-            })
+            history_items.append(
+                {
+                    "id": log.id,
+                    "action": log.action,
+                    "changes": log.changes,
+                    "user_id": log.user_id,
+                    "created_at": log.created_at,
+                    "ip_address": log.ip_address,
+                }
+            )
 
         return TaskHistoryResponse(items=history_items, total=len(history_items))
 
@@ -314,14 +317,13 @@ class TaskService:
         # 1. The task creator/reporter
         # 2. Have 'task.assign' permission in the task's project organization
         # 3. Are a project manager or have management role
-        can_assign = (
-            task.reporter_id == user.id or
-            user.is_superuser
-        )
+        can_assign = task.reporter_id == user.id or user.is_superuser
 
         # Check organization-level permissions
         if not can_assign and task.project and task.project.organization_id:
-            can_assign = user.has_permission("task.assign", task.project.organization_id)
+            can_assign = user.has_permission(
+                "task.assign", task.project.organization_id
+            )
 
         if not can_assign:
             raise PermissionDenied("Insufficient permissions to assign this task")
@@ -353,14 +355,16 @@ class TaskService:
         # 2. The currently assigned user (self-unassignment)
         # 3. Have 'task.assign' permission in the task's project organization
         can_unassign = (
-            task.reporter_id == user.id or
-            task.assignee_id == user.id or
-            user.is_superuser
+            task.reporter_id == user.id
+            or task.assignee_id == user.id
+            or user.is_superuser
         )
 
         # Check organization-level permissions
         if not can_unassign and task.project and task.project.organization_id:
-            can_unassign = user.has_permission("task.assign", task.project.organization_id)
+            can_unassign = user.has_permission(
+                "task.assign", task.project.organization_id
+            )
 
         if not can_unassign:
             raise PermissionDenied("Insufficient permissions to unassign this task")
@@ -405,14 +409,16 @@ class TaskService:
         # 2. The task assignee
         # 3. Have 'task.update' permission in the task's project organization
         can_update = (
-            task.reporter_id == user.id or
-            task.assignee_id == user.id or
-            user.is_superuser
+            task.reporter_id == user.id
+            or task.assignee_id == user.id
+            or user.is_superuser
         )
 
         # Check organization-level permissions if user is not directly involved
         if not can_update and task.project and task.project.organization_id:
-            can_update = user.has_permission("task.update", task.project.organization_id)
+            can_update = user.has_permission(
+                "task.update", task.project.organization_id
+            )
 
         if not can_update:
             raise PermissionDenied("Insufficient permissions to update this task")
@@ -483,14 +489,16 @@ class TaskService:
         # 2. The task assignee
         # 3. Have 'task.update' permission in the task's project organization
         can_update = (
-            task.reporter_id == user.id or
-            task.assignee_id == user.id or
-            user.is_superuser
+            task.reporter_id == user.id
+            or task.assignee_id == user.id
+            or user.is_superuser
         )
 
         # Check organization-level permissions if user is not directly involved
         if not can_update and task.project and task.project.organization_id:
-            can_update = user.has_permission("task.update", task.project.organization_id)
+            can_update = user.has_permission(
+                "task.update", task.project.organization_id
+            )
 
         if not can_update:
             raise PermissionDenied("Insufficient permissions to update this task")
@@ -622,7 +630,9 @@ class TaskService:
         # Users can search tasks in organizations they belong to
         user_org_ids = [org.id for org in user.get_organizations()]
         if not user_org_ids and not user.is_superuser:
-            raise PermissionDenied("User must belong to at least one organization to search tasks")
+            raise PermissionDenied(
+                "User must belong to at least one organization to search tasks"
+            )
 
         # Search in title and description
         search_filter = or_(
@@ -730,7 +740,7 @@ class TaskService:
             estimated_hours=task.estimated_hours,
             actual_hours=task.actual_hours,
             assignees=assignees,
-            tags=getattr(task, 'tags', []) or [],
+            tags=getattr(task, "tags", []) or [],
             created_at=task.created_at,
             updated_at=task.updated_at,
             created_by=created_by,
