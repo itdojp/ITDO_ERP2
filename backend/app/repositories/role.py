@@ -19,6 +19,7 @@ class RoleRepository(BaseRepository[Role, RoleCreate, RoleUpdate]):
         """Get role by code."""
         return self.db.scalar(select(self.model).where(self.model.code == code))
 
+<<<<<<< HEAD
     def get_by_name_and_organization(
         self, name: str, organization_id: int
     ) -> Role | None:
@@ -30,6 +31,8 @@ class RoleRepository(BaseRepository[Role, RoleCreate, RoleUpdate]):
             .where(~self.model.is_deleted)
         )
 
+=======
+>>>>>>> main
     def get_system_roles(self) -> list[Role]:
         """Get system roles."""
         return list(

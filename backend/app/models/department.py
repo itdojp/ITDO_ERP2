@@ -61,7 +61,11 @@ class Department(SoftDeletableModel):
     path: Mapped[str] = mapped_column(
         String(1000),
         nullable=False,
+<<<<<<< HEAD
         default="",
+=======
+        default="/",
+>>>>>>> main
         index=True,
         comment="Materialized path for efficient hierarchy queries",
     )
@@ -131,6 +135,21 @@ class Department(SoftDeletableModel):
         comment="Display order within the same level",
     )
 
+    # Hierarchy management fields
+    path: Mapped[Optional[str]] = mapped_column(
+        String(500),
+        nullable=True,
+        index=True,
+        comment="Materialized path for efficient hierarchy queries (e.g., '1.2.3')",
+    )
+    depth: Mapped[int] = mapped_column(
+        Integer,
+        default=0,
+        nullable=False,
+        index=True,
+        comment="Depth level in hierarchy (0 for root departments)",
+    )
+
     # Additional fields
     description: Mapped[str | None] = mapped_column(
         Text, nullable=True, comment="Department description or mission"
@@ -191,7 +210,8 @@ class Department(SoftDeletableModel):
     @property
     def current_headcount(self) -> int:
         """Get current number of users in the department."""
-        return self.users.filter_by(is_active=True).count()  # type: ignore[no-any-return]
+        # type: ignore[no-any-return]
+        return self.users.filter_by(is_active=True).count()
 
     @property
     def is_over_headcount(self) -> bool:
@@ -234,3 +254,19 @@ class Department(SoftDeletableModel):
                 unique_users.append(user)
 
         return unique_users
+
+    def update_path(self) -> None:
+        """Update the materialized path for this department."""
+        if self.parent_id is None:
+            self.path = str(self.id)
+            self.depth = 0
+        else:
+            parent_path = self.parent.path or str(self.parent_id)
+            self.path = f"{parent_path}.{self.id}"
+            self.depth = (self.parent.depth or 0) + 1
+
+    def update_subtree_paths(self) -> None:
+        """Update paths for all sub-departments recursively."""
+        for sub_dept in self.sub_departments:
+            sub_dept.update_path()
+            sub_dept.update_subtree_paths()

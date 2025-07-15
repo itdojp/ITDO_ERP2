@@ -15,6 +15,7 @@ from app.core.exceptions import (
 from app.models.organization import Organization
 from app.models.permission import Permission
 from app.models.role import Role, RolePermission, UserRole
+from app.models.user import User
 from app.repositories.role import RoleRepository
 from app.schemas.role import (
     BulkRoleAssignment,
@@ -195,7 +196,7 @@ class RoleService:
             )
             self.db.add(role_perm)
 
-        self.db.flush()
+        self.db.commit()
         return role
 
     # Role assignment
@@ -346,7 +347,10 @@ class RoleService:
         active_only: bool = True,
         limit: int = 100,
         organization_id: OrganizationId | None = None,
+<<<<<<< HEAD
         filters: dict[str, Any] | None = None,
+=======
+>>>>>>> main
     ) -> tuple[list[Role], int]:
         """List roles with filtering."""
         query = select(Role).where(~Role.is_deleted)
@@ -385,12 +389,20 @@ class RoleService:
         return list(roles), total
 
     def get_user_roles(
+<<<<<<< HEAD
         self, user_id: UserId, organization_id: OrganizationId | None = None
+=======
+        self,
+        user_id: UserId,
+        organization_id: OrganizationId | None = None,
+        active_only: bool = True,
+>>>>>>> main
     ) -> list[UserRoleResponse]:
         """Get all roles for a user."""
-        query = select(UserRole).where(
-            and_(UserRole.user_id == user_id, UserRole.is_active)
-        )
+        query = select(UserRole).where(UserRole.user_id == user_id)
+
+        if active_only:
+            query = query.where(UserRole.is_active)
 
         if organization_id:
             query = query.where(UserRole.organization_id == organization_id)
@@ -406,9 +418,7 @@ class RoleService:
         responses = []
         for ur in user_roles:
             if ur.is_valid:
-                responses.append(
-                    UserRoleResponse.model_validate(ur, from_attributes=True)
-                )
+                responses.append(self.get_user_role_response(ur))
 
         return responses
 
@@ -513,19 +523,43 @@ class RoleService:
         organization_id: OrganizationId | None = None,
     ) -> bool:
         """Check if user has specific permission."""
+<<<<<<< HEAD
         # Get user's active roles
         query = (
             select(UserRole)
             .join(Role)
+=======
+        # Get user
+        user = self.db.scalar(select(User).where(User.id == user_id))
+        if not user:
+            return False
+
+        # Check if user is superuser (has all permissions)
+        if user.is_superuser:
+            return True
+
+        # Check if user has the specific permission through role assignments
+        query = (
+            select(Permission)
+            .join(RolePermission)
+            .join(Role)
+            .join(UserRole)
+>>>>>>> main
             .where(
                 and_(
                     UserRole.user_id == user_id,
                     UserRole.is_active,
                     Role.is_active,
+<<<<<<< HEAD
+=======
+                    Permission.code == permission_code,
+                    Permission.is_active,
+>>>>>>> main
                 )
             )
         )
 
+<<<<<<< HEAD
         if organization_id:
             query = query.where(
                 or_(
@@ -555,6 +589,15 @@ class RoleService:
                 parent = parent.parent_role
 
         return False
+=======
+        # Filter by organization if provided
+        if organization_id:
+            query = query.where(UserRole.organization_id == organization_id)
+
+        # Check if any matching permission exists
+        permission = self.db.scalar(query)
+        return permission is not None
+>>>>>>> main
 
     def is_role_in_use(self, role_id: RoleId) -> bool:
         """Check if role is assigned to any users."""
@@ -567,4 +610,30 @@ class RoleService:
 
     def get_user_role_response(self, user_role: UserRole) -> UserRoleResponse:
         """Get user role response."""
-        return UserRoleResponse.model_validate(user_role, from_attributes=True)
+        # Load relationships if not already loaded
+        user_role_with_relations = self.db.get(
+            UserRole,
+            user_role.id,
+            options=[
+                selectinload(UserRole.role),
+                selectinload(UserRole.organization),
+                selectinload(UserRole.department),
+                selectinload(UserRole.assigned_by_user),
+                selectinload(UserRole.approved_by_user),
+            ],
+        )
+
+        # Use the new factory method to properly handle relationships
+        from app.schemas.role import UserRoleInfo
+
+        user_role_info = UserRoleInfo.from_user_role_model(user_role_with_relations)
+
+        # Add audit info and convert to UserRoleResponse
+        return UserRoleResponse(
+            **user_role_info.model_dump(),
+            effective_permissions=user_role_with_relations.get_effective_permissions(),
+            created_at=user_role_with_relations.created_at,
+            created_by=user_role_with_relations.created_by,
+            updated_at=user_role_with_relations.updated_at,
+            updated_by=user_role_with_relations.updated_by,
+        )

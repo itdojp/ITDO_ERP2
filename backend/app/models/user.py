@@ -59,6 +59,7 @@ class User(SoftDeletableModel):
     password_must_change: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Relationships
+<<<<<<< HEAD
     roles: Mapped[list["Role"]] = relationship(
         "Role",
         secondary="user_roles",
@@ -66,6 +67,8 @@ class User(SoftDeletableModel):
         secondaryjoin="UserRole.role_id == Role.id",
         back_populates="users",
     )
+=======
+>>>>>>> main
     user_roles: Mapped[list["UserRole"]] = relationship(
         "UserRole", back_populates="user", foreign_keys="UserRole.user_id"
     )
@@ -409,17 +412,23 @@ class User(SoftDeletableModel):
                 user_role.organization_id == organization_id
                 and not user_role.is_expired
             ):
-                # Handle permissions stored as JSON
+                # Handle permissions stored as JSON dict
                 if user_role.role and user_role.role.permissions:
+<<<<<<< HEAD
                     # If permissions is a dict, extract permission codes
+=======
+                    # Permissions is always a dict according to the model
+>>>>>>> main
                     if isinstance(user_role.role.permissions, dict):
                         # Handle various dict structures
                         if "codes" in user_role.role.permissions:
-                            permissions.update(user_role.role.permissions["codes"])
+                            codes = user_role.role.permissions["codes"]
+                            if isinstance(codes, list):
+                                permissions.update(codes)
                         elif "permissions" in user_role.role.permissions:
-                            permissions.update(
-                                user_role.role.permissions["permissions"]
-                            )
+                            perms = user_role.role.permissions["permissions"]
+                            if isinstance(perms, list):
+                                permissions.update(perms)
                         else:
                             # Try to extract values that look like permission codes
                             for key, value in user_role.role.permissions.items():

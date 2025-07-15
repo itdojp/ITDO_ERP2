@@ -18,7 +18,6 @@ skip_in_ci = pytest.mark.skipif(
     reason="Skip integration tests in CI due to SQLite database setup issues",
 )
 
-
 class TestCriticalTaskDepartmentIntegration:
     """Critical integration tests for Task-Department functionality."""
 

@@ -129,12 +129,15 @@ class Organization(SoftDeletableModel):
         lazy="dynamic",
         cascade="all, delete-orphan",
     )
+<<<<<<< HEAD
     roles: Mapped[list["Role"]] = relationship(
         "Role",
         back_populates="organization",
         lazy="dynamic",
         cascade="all, delete-orphan",
     )
+=======
+>>>>>>> main
     users: Mapped[list["User"]] = relationship(
         "User",
         secondary="user_roles",

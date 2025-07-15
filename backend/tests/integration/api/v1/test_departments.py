@@ -1,6 +1,9 @@
 """Integration tests for Department API endpoints."""
 
+<<<<<<< HEAD
 import os
+=======
+>>>>>>> main
 from typing import Any
 
 import pytest

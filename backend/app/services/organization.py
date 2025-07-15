@@ -202,6 +202,18 @@ class OrganizationService:
 
         # Build response
         data = organization.to_dict()
+
+        # Parse settings JSON if it's a string
+        if isinstance(data.get("settings"), str):
+            import json
+
+            try:
+                data["settings"] = (
+                    json.loads(data["settings"]) if data["settings"] else {}
+                )
+            except json.JSONDecodeError:
+                data["settings"] = {}
+
         data["parent"] = organization.parent.to_dict() if organization.parent else None
         data["full_address"] = organization.full_address
         data["is_subsidiary"] = organization.is_subsidiary
