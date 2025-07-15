@@ -53,67 +53,24 @@ class RoleService:
                 raise PermissionDenied("システムロール作成には管理者権限が必要です")
 
         # Check if role code already exists
-        existing_role = Role.get_by_code(db, data.code)
+        existing_role = db.query(Role).filter(Role.code == data.code).first()
         if existing_role:
             raise ValueError(f"ロールコード '{data.code}' は既に存在します")
 
         # Create role
-        role = Role.create(
-            db=db,
+        role = Role(
             code=data.code,
             name=data.name,
             description=data.description,
-            permissions=data.permissions,
             created_by=user.id,
         )
+        db.add(role)
+        db.commit()
+        db.refresh(role)
 
         return role
 
     def assign_role_to_user(
-<<<<<<< Updated upstream
-=======
-        self, assignment: UserRoleAssignment, assigned_by: UserId
-    ) -> UserRole:
-        """Assign a role to a user."""
-        # Check if assignment already exists
-        existing = self.db.scalar(
-            select(UserRole).where(
-                and_(
-                    UserRole.user_id == assignment.user_id,
-                    UserRole.role_id == assignment.role_id,
-                    UserRole.organization_id == assignment.organization_id,
-                    UserRole.is_active,
-                )
-            )
-        )
-
-        if existing:
-            raise AlreadyExistsError("User already has this role assignment")
-
-        # Create assignment
-        user_role = UserRole(
-            user_id=assignment.user_id,
-            role_id=assignment.role_id,
-            organization_id=assignment.organization_id,
-            department_id=assignment.department_id,
-            assigned_by=assigned_by,
-            valid_from=assignment.valid_from,
-            expires_at=assignment.expires_at,
-            is_active=True,
-            created_by=assigned_by,
-            updated_by=assigned_by,
-        )
-
-        self.db.add(user_role)
-        self.db.flush()
-        
-        # Reload with relationships
-        self.db.refresh(user_role, ["role", "organization", "department", "assigned_by_user", "approved_by_user"])
-
-        return user_role
-
-    def remove_role_from_user(
->>>>>>> Stashed changes
         self,
         user_id: int,
         role_id: int,
@@ -175,8 +132,7 @@ class RoleService:
             raise ValueError("このロール割り当ては既に存在します")
 
         # Create user role assignment
-        user_role = UserRole.create(
-            db=db,
+        user_role = UserRole(
             user_id=user_id,
             role_id=role_id,
             organization_id=organization_id,
@@ -184,6 +140,9 @@ class RoleService:
             assigned_by=assigner.id,
             expires_at=expires_at,
         )
+        db.add(user_role)
+        db.commit()
+        db.refresh(user_role)
 
         return user_role
 
@@ -474,22 +433,12 @@ class RoleService:
         if department_id is not None:
             query = query.filter(UserRole.department_id == department_id)
 
-<<<<<<< Updated upstream
         if not include_expired:
             query = query.filter(
                 or_(
                     UserRole.expires_at.is_(None),
                     UserRole.expires_at > datetime.now(timezone.utc),
                 )
-=======
-        user_roles = self.db.scalars(
-            query.options(
-                selectinload(UserRole.role),
-                selectinload(UserRole.organization),
-                selectinload(UserRole.department),
-                selectinload(UserRole.assigned_by_user),
-                selectinload(UserRole.approved_by_user),
->>>>>>> Stashed changes
             )
 
         return query.all()
@@ -590,7 +539,11 @@ class RoleService:
 
         # Update role
         update_data = data.dict(exclude_unset=True)
-        role.update(db=db, updated_by=updater.id, **update_data)
+        for field, value in update_data.items():
+            setattr(role, field, value)
+        role.updated_by = updater.id
+        db.commit()
+        db.refresh(role)
 
         return role
 
@@ -637,8 +590,7 @@ class RoleService:
             )
 
         # Soft delete
-        role.delete()
-        db.add(role)
+        role.soft_delete(deleter.id)
         db.commit()
 
         return True

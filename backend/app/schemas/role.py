@@ -66,28 +66,8 @@ class UserRoleResponse(UserRoleBase):
     """User role response schema."""
 
     id: int
-<<<<<<< Updated upstream
     assigned_by: Optional[int] = None
     assigned_at: datetime
-=======
-    user_id: int
-    role: RoleBasic
-    organization: OrganizationBasic
-    department: Optional[DepartmentBasic] = None
-    assigned_by: Optional[UserBasic] = Field(None, alias="assigned_by_user")
-    assigned_at: datetime
-    valid_from: datetime
-    expires_at: Optional[datetime] = None
-    is_active: bool
-    is_primary: bool
-    is_expired: bool
-    is_valid: bool
-    days_until_expiry: Optional[int] = None
-    notes: Optional[str] = None
-    approval_status: Optional[str] = None
-    approved_by: Optional[UserBasic] = Field(None, alias="approved_by_user")
-    approved_at: Optional[datetime] = None
->>>>>>> Stashed changes
 
     class Config:
         from_attributes = True
