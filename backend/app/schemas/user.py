@@ -13,7 +13,10 @@ class UserBase(BaseModel):
     full_name: str = Field(
         ..., min_length=1, max_length=100, description="User full name"
     )
-    phone: str | None = Field(None, max_length=20, description="User phone number")
+    phone: str | None = Field(None, max_length=20, description="Phone number")
+    profile_image_url: str | None = Field(
+        None, max_length=500, description="Profile image URL"
+    )
     is_active: bool = Field(default=True, description="Whether user is active")
 
 

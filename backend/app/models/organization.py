@@ -129,12 +129,6 @@ class Organization(SoftDeletableModel):
         lazy="dynamic",
         cascade="all, delete-orphan",
     )
-    roles: Mapped[list["Role"]] = relationship(
-        "Role",
-        back_populates="organization",
-        lazy="dynamic",
-        cascade="all, delete-orphan",
-    )
     users: Mapped[list["User"]] = relationship(
         "User",
         secondary="user_roles",
@@ -142,6 +136,12 @@ class Organization(SoftDeletableModel):
         secondaryjoin="UserRole.user_id == User.id",
         viewonly=True,
         lazy="dynamic",
+    )
+    roles: Mapped[list["Role"]] = relationship(
+        "Role",
+        back_populates="organization",
+        lazy="dynamic",
+        cascade="all, delete-orphan",
     )
 
     # Multi-tenant user relationships

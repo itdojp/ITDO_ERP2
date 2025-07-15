@@ -5,18 +5,20 @@ for managing roles and permissions in the ITDO ERP System.
 """
 
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional
 
 from sqlalchemy import (
     Boolean,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
     UniqueConstraint,
     func,
 )
+from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import AuditableModel, Base, SoftDeletableModel
@@ -47,7 +49,9 @@ class Role(SoftDeletableModel):
         index=True,
         comment="Unique role code within organization",
     )
-    name: Mapped[str] = mapped_column(String(200), nullable=False, comment="Role name")
+    name: Mapped[str] = mapped_column(
+        String(200), nullable=False, comment="Role display name"
+    )
     name_en: Mapped[str | None] = mapped_column(
         String(200), nullable=True, comment="Role name in English"
     )
@@ -79,7 +83,7 @@ class Role(SoftDeletableModel):
         Integer, nullable=False, default=0, comment="Hierarchy depth"
     )
 
-    # Organization relationship
+    # Organization scope
     organization_id: Mapped[OrganizationId | None] = mapped_column(
         Integer,
         ForeignKey("organizations.id"),
@@ -135,6 +139,14 @@ class Role(SoftDeletableModel):
     users_count: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0, comment="Cached count of users"
     )
+    
+    # UI Display fields
+    icon: Mapped[str | None] = mapped_column(
+        String(50), nullable=True, comment="Icon name or class for UI"
+    )
+    color: Mapped[str | None] = mapped_column(
+        String(7), nullable=True, comment="Color code for UI (hex format)"
+    )
 
     # Relationships
     organization: Mapped["Organization | None"] = relationship(
@@ -157,7 +169,7 @@ class Role(SoftDeletableModel):
         back_populates="roles",
     )
     user_roles: Mapped[list["UserRole"]] = relationship(
-        "UserRole", back_populates="role", cascade="all, delete-orphan"
+        "UserRole", back_populates="role", cascade="all, delete-orphan", lazy="dynamic"
     )
     permissions: Mapped[list["Permission"]] = relationship(
         "Permission", secondary="role_permissions", back_populates="roles"
@@ -372,7 +384,7 @@ class UserRole(AuditableModel):
         nullable=False,
         comment="Organization context",
     )
-    department_id: Mapped[int | None] = mapped_column(
+    department_id: Mapped[DepartmentId | None] = mapped_column(
         Integer,
         ForeignKey("departments.id", ondelete="SET NULL"),
         nullable=True,
@@ -380,20 +392,36 @@ class UserRole(AuditableModel):
     )
 
     # Assignment details
-    assigned_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        nullable=False,
-        comment="When role was assigned",
-    )
     assigned_by: Mapped[UserId | None] = mapped_column(
         Integer,
         ForeignKey("users.id"),
         nullable=True,
         comment="User who assigned the role",
     )
+    assigned_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        comment="When the role was assigned",
+    )
+
+    # Validity period
+    valid_from: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        comment="When the role becomes valid",
+    )
+    valid_to: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="When the role validity ends (deprecated, use expires_at)",
+    )
     expires_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True, comment="When role assignment expires"
+        DateTime(timezone=True),
+        nullable=True,
+        index=True,
+        comment="When the role expires (null = never)",
     )
 
     # Status
@@ -401,7 +429,31 @@ class UserRole(AuditableModel):
         Boolean, nullable=False, default=True, comment="Whether assignment is active"
     )
     is_primary: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=False, comment="Whether this is primary role"
+        Boolean,
+        default=False,
+        nullable=False,
+        comment="Whether this is the user's primary role",
+    )
+
+    # Notes
+    notes: Mapped[str | None] = mapped_column(
+        Text, nullable=True, comment="Notes about this role assignment"
+    )
+
+    # Approval workflow
+    approval_status: Mapped[str | None] = mapped_column(
+        String(50),
+        nullable=True,
+        comment="Approval status (pending, approved, rejected)",
+    )
+    approved_by: Mapped[UserId | None] = mapped_column(
+        Integer,
+        ForeignKey("users.id"),
+        nullable=True,
+        comment="User who approved this role assignment",
+    )
+    approved_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, comment="When the role was approved"
     )
 
     # Relationships
@@ -415,24 +467,85 @@ class UserRole(AuditableModel):
     department: Mapped["Department | None"] = relationship(
         "Department", foreign_keys=[department_id]
     )
-    assigner: Mapped["User | None"] = relationship("User", foreign_keys=[assigned_by])
+    assigned_by_user: Mapped[Optional["User"]] = relationship(
+        "User", foreign_keys=[assigned_by], lazy="joined"
+    )
+    approved_by_user: Mapped[Optional["User"]] = relationship(
+        "User", foreign_keys=[approved_by], lazy="joined"
+    )
+
+    def __repr__(self) -> str:
+        """String representation."""
+        return (
+            f"<UserRole(user_id={self.user_id}, role_id={self.role_id}, "
+            f"org_id={self.organization_id}, dept_id={self.department_id})>"
+        )
+
+    @property
+    def is_expired(self) -> bool:
+        """Check if role assignment is expired."""
+        if not self.expires_at:
+            return False
+        now = datetime.now(UTC)
+        expires_at = (
+            self.expires_at
+            if self.expires_at.tzinfo
+            else self.expires_at.replace(tzinfo=UTC)
+        )
+        return now > expires_at
 
     @property
     def is_valid(self) -> bool:
         """Check if role assignment is currently valid."""
+        now = datetime.now(UTC)
+
+        # Check if active
         if not self.is_active:
             return False
 
-        if self.expires_at and self.expires_at < datetime.now(UTC):
+        # Ensure timezone-aware datetime comparison
+        valid_from = (
+            self.valid_from
+            if self.valid_from.tzinfo
+            else self.valid_from.replace(tzinfo=UTC)
+        )
+
+        # Check validity period
+        if now < valid_from:
+            return False
+
+        # Check expiration
+        if self.expires_at:
+            expires_at = (
+                self.expires_at
+                if self.expires_at.tzinfo
+                else self.expires_at.replace(tzinfo=UTC)
+            )
+            if now > expires_at:
+                return False
+
+        # Check approval if required
+        if self.approval_status == "pending":
             return False
 
         return True
 
     @property
-    def is_expired(self) -> bool:
-        """Check if role assignment has expired."""
-        return self.expires_at is not None and self.expires_at < datetime.now(UTC)
+    def days_until_expiry(self) -> int | None:
+        """Get days until expiry (None if no expiry date)."""
+        if not self.expires_at:
+            return None
 
+        now = datetime.now(UTC)
+        expires_at = (
+            self.expires_at
+            if self.expires_at.tzinfo
+            else self.expires_at.replace(tzinfo=UTC)
+        )
+        delta = expires_at - now
+        return delta.days
+
+    
     def get_effective_permissions(self) -> dict[str, Any]:
         """Get effective permissions for this role assignment."""
         if not self.is_valid:
@@ -447,10 +560,10 @@ class RolePermission(Base):
     __tablename__ = "role_permissions"
 
     role_id: Mapped[RoleId] = mapped_column(
-        Integer, ForeignKey("roles.id"), primary_key=True, comment="Role ID"
+        Integer, ForeignKey("roles.id"), nullable=False, comment="Role ID"
     )
     permission_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("permissions.id"), primary_key=True, comment="Permission ID"
+        Integer, ForeignKey("permissions.id"), nullable=False, comment="Permission ID"
     )
 
     # Grant details
@@ -488,3 +601,19 @@ class RolePermission(Base):
     permission: Mapped["Permission"] = relationship(
         "Permission", back_populates="role_permissions", lazy="joined"
     )
+
+    # Indexes and constraints
+    __table_args__ = (
+        UniqueConstraint(
+            "role_id", "permission_id", name="ix_role_permissions_role_perm"
+        ),
+        Index("ix_role_permissions_role_id", "role_id"),
+        Index("ix_role_permissions_permission_id", "permission_id"),
+    )
+
+    def __repr__(self) -> str:
+        """String representation."""
+        return (
+            f"<RolePermission(role_id={self.role_id}, "
+            f"permission_id={self.permission_id})>"
+        )

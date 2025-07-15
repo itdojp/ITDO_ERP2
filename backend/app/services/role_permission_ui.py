@@ -4,7 +4,11 @@ from typing import Any, Dict, List
 
 from sqlalchemy.orm import Session
 
+
 from app.core.exceptions import NotFound, PermissionDenied
+
+from app.core.exceptions import NotFound
+
 from app.models.role import Role
 from app.models.user import User
 from app.schemas.role_permission_ui import (
@@ -68,9 +72,18 @@ class RolePermissionUIService:
         enforce_dependencies: bool = False,
     ) -> PermissionMatrix:
         """Update role permissions."""
+
+
+        # Permission check
+        if not hasattr(updater, "is_superuser") or not updater.is_superuser:
+            # TODO: Implement proper permission check
+            pass
+
+
         role = self.db.query(Role).filter(Role.id == role_id).first()
         if not role:
             raise NotFound("ロールが見つかりません")
+
 
         # Permission check
         if not hasattr(updater, "is_superuser") or not updater.is_superuser:
@@ -85,10 +98,13 @@ class RolePermissionUIService:
             else:
                 raise PermissionDenied("ロール権限を更新する権限がありません")
 
+
+
         # Enforce dependencies if requested
         final_permissions = update_data.permissions.copy()
         if enforce_dependencies:
             final_permissions = self._enforce_permission_dependencies(final_permissions)
+
 
         # Update permissions in database using RolePermission model
         from app.models.permission import Permission
@@ -126,6 +142,13 @@ class RolePermissionUIService:
                 if role_permission:
                     self.db.delete(role_permission)
 
+        # Update permissions in database
+        # TODO: Implement permission updates using RolePermission model
+        for permission_code, enabled in final_permissions.items():
+            # Placeholder - implement actual permission update logic
+            pass
+
+
         self.db.commit()
 
         # Return updated matrix
@@ -139,6 +162,7 @@ class RolePermissionUIService:
         copier: User,
     ) -> PermissionMatrix:
         """Copy permissions from one role to another."""
+
         # Permission check - copier needs role management permissions
         if not hasattr(copier, "is_superuser") or not copier.is_superuser:
             # Check if user has role management permissions in the organization
@@ -148,6 +172,12 @@ class RolePermissionUIService:
                     raise PermissionDenied("ロール権限をコピーする権限がありません")
             else:
                 raise PermissionDenied("ロール権限をコピーする権限がありません")
+
+        # Permission check
+        if not hasattr(copier, "is_superuser") or not copier.is_superuser:
+            # TODO: Implement proper permission check
+            pass
+
 
         source_matrix = self.get_role_permission_matrix(source_role_id, organization_id)
 
@@ -210,6 +240,7 @@ class RolePermissionUIService:
     ) -> List[PermissionMatrix]:
         """Bulk update permissions for multiple roles."""
         if not hasattr(updater, "is_superuser") or not updater.is_superuser:
+
             # Check if user has role management permissions for bulk operations
             if hasattr(updater, "has_permission"):
                 has_permission = updater.has_permission("role.manage", organization_id)
@@ -217,6 +248,10 @@ class RolePermissionUIService:
                     raise PermissionDenied("一括権限更新を行う権限がありません")
             else:
                 raise PermissionDenied("一括権限更新を行う権限がありません")
+
+            # TODO: Implement proper permission check
+            pass
+
 
         results = []
         for role_id, permissions in role_permissions.items():
@@ -461,7 +496,11 @@ class RolePermissionUIService:
                     codes.append(permission.code)
         return codes
 
+
     def _get_permission_by_code(self, code: str) -> PermissionDefinition | None:
+
+    def _get_permission_by_code(self, code: str) -> PermissionDefinition:
+
         """Get permission definition by code."""
         for category in self._permission_definitions:
             for group in category.groups:

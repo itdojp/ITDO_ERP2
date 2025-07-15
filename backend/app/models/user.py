@@ -409,9 +409,9 @@ class User(SoftDeletableModel):
                 user_role.organization_id == organization_id
                 and not user_role.is_expired
             ):
-                # Handle permissions from role
+                # Handle permissions from role - use many-to-many relationship
                 if user_role.role and user_role.role.permissions:
-                    # permissions is a list of Permission objects
+                    # permissions is a list of Permission objects through many-to-many
                     for permission in user_role.role.permissions:
                         permissions.add(permission.code)
 

@@ -163,6 +163,8 @@ class DepartmentResponse(
     is_parent_department: bool = False
     current_headcount: int = 0
     is_over_headcount: bool = False
+    path: str | None = None
+    depth: int = 0
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -183,6 +185,9 @@ class DepartmentTree(BaseModel):
     current_headcount: int = 0
     headcount_limit: int | None = None
     user_count: int = 0
+    path: str | None = None
+    depth: int = 0
+    display_order: int = 0
     children: list["DepartmentTree"] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)

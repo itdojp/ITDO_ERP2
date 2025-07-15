@@ -224,6 +224,7 @@ def get_organization_users(
 ) -> List[UserOrganization]:
     """Get all users for an organization."""
     service = MultiTenantService(db)
+
     # Check organization-level permissions
     if not current_user.is_superuser:
         # Check if user has permission in this organization
@@ -233,6 +234,14 @@ def get_organization_users(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Insufficient permissions to view organization users",
             )
+
+    # TODO: Add proper organization-level permission checking
+    if not current_user.is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Insufficient permissions to view organization users",
+        )
+
 
     return service.get_organization_users(organization_id, include_inactive)
 
@@ -268,6 +277,7 @@ def get_organization_users_summary(
 ) -> OrganizationUsersSummary:
     """Get summary of organization's users."""
     service = MultiTenantService(db)
+
     # Check organization-level permissions
     if not current_user.is_superuser:
         # Check if user has permission in this organization
@@ -277,6 +287,14 @@ def get_organization_users_summary(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Insufficient permissions to view organization summary",
             )
+
+    # TODO: Add proper organization-level permission checking
+    if not current_user.is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Insufficient permissions to view organization summary",
+        )
+
 
     return service.get_organization_users_summary(organization_id)
 
