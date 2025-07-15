@@ -225,7 +225,9 @@ class TestTokenSecurityEdgeCases:
         settings = get_settings()
 
         # Token without 'sub' claim
-        payload_no_sub = {"exp": (datetime.now(timezone.utc) + timedelta(hours=1)).timestamp()}
+        payload_no_sub = {
+            "exp": (datetime.now(timezone.utc) + timedelta(hours=1)).timestamp()
+        }
         token_no_sub = jwt.encode(
             payload_no_sub, settings.SECRET_KEY, algorithm=settings.ALGORITHM
         )
