@@ -45,6 +45,29 @@ class RoleResponse(RoleBase):
     class Config:
         from_attributes = True
 
+    @classmethod
+    def from_orm(cls, role):
+        """Custom method to convert from ORM model."""
+        # Convert permissions dict to list
+        permissions = []
+        if role.permissions:
+            permissions = [perm for perm, granted in role.permissions.items() if granted]
+        
+        data = {
+            "id": role.id,
+            "code": role.code,
+            "name": role.name,
+            "description": role.description,
+            "permissions": permissions,
+            "is_system": role.is_system,
+            "is_active": role.is_active,
+            "created_at": role.created_at,
+            "updated_at": role.updated_at,
+            "created_by": role.created_by,
+            "updated_by": role.updated_by,
+        }
+        return cls(**data)
+
 
 class UserRoleBase(BaseModel):
     """Base user role schema."""

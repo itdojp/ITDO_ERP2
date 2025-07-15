@@ -29,15 +29,15 @@ class TestRoleManagementAPI:
     @pytest.fixture
     def test_role(self, db_session: Session, test_admin: User) -> Role:
         """Create test role."""
-        role = Role.create(
-            db=db_session,
+        role = Role(
             code="TEST_ROLE",
             name="Test Role",
             description="Test role for API testing",
-            permissions=["read:test", "write:test"],
             created_by=test_admin.id,
         )
+        db_session.add(role)
         db_session.commit()
+        db_session.refresh(role)
         return role
 
     def test_assign_role_to_user(
@@ -82,13 +82,13 @@ class TestRoleManagementAPI:
     ) -> None:
         """Test duplicate role assignment."""
         # Given: Existing assignment
-        existing_assignment = UserRole.create(
-            db=db_session,
+        existing_assignment = UserRole(
             user_id=test_user.id,
             role_id=test_role.id,
             organization_id=test_organization.id,
             assigned_by=1,  # Admin user ID
         )
+        db_session.add(existing_assignment)
         db_session.commit()
 
         # When: Attempting duplicate assignment
@@ -118,13 +118,13 @@ class TestRoleManagementAPI:
     ) -> None:
         """Test getting user roles."""
         # Given: User with assigned role
-        user_role = UserRole.create(
-            db=db_session,
+        user_role = UserRole(
             user_id=test_user.id,
             role_id=test_role.id,
             organization_id=test_organization.id,
             assigned_by=1,  # Admin user ID
         )
+        db_session.add(user_role)
         db_session.commit()
 
         # When: Getting user roles
@@ -153,13 +153,13 @@ class TestRoleManagementAPI:
     ) -> None:
         """Test removing role from user."""
         # Given: User with assigned role
-        user_role = UserRole.create(
-            db=db_session,
+        user_role = UserRole(
             user_id=test_user.id,
             role_id=test_role.id,
             organization_id=test_organization.id,
             assigned_by=1,  # Admin user ID
         )
+        db_session.add(user_role)
         db_session.commit()
 
         # When: Removing role from user

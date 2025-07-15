@@ -53,16 +53,8 @@ class Permission(BaseModel):
         comment="Whether this is a system permission",
     )
 
-    # Relationships
-    roles: Mapped[list["Role"]] = relationship(
-        "Role", secondary="role_permissions", back_populates="permissions"
-    )
-    role_permissions: Mapped[list["RolePermission"]] = relationship(
-        "RolePermission",
-        back_populates="permission",
-        cascade="all, delete-orphan",
-        overlaps="roles",
-    )
+    # Relationships - simplified to avoid complex RolePermission model
+    # For now, permissions are managed directly in Role.permissions JSON field
 
     # Indexes and constraints
     __table_args__ = (
