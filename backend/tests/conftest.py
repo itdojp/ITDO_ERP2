@@ -290,6 +290,7 @@ def complete_test_system(db_session: Session) -> Dict[str, Any]:
 def reset_faker_unique() -> Generator[None, None, None]:
     """Reset Faker unique state before each test to prevent duplicate key errors."""
     from tests.factories import fake
+
     fake.unique.clear()
     yield
     fake.unique.clear()

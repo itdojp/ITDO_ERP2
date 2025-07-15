@@ -17,6 +17,7 @@ class UserFactory(BaseFactory):
     def _get_default_attributes(cls) -> Dict[str, Any]:
         """Get default attributes for creating User instances."""
         import uuid
+
         unique_id = str(uuid.uuid4())[:8]
         return {
             "email": f"test_{unique_id}@example.com",  # UUID-based unique email
@@ -50,6 +51,7 @@ class UserFactory(BaseFactory):
         """Create an admin user."""
         kwargs["is_superuser"] = True
         import uuid
+
         default_email = f"admin_{str(uuid.uuid4())[:8]}@example.com"
         kwargs["email"] = kwargs.get("email", default_email)
         return cls.create(db_session, **kwargs)
