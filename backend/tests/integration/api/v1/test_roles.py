@@ -351,7 +351,7 @@ class TestRoleAPI(
         assignment_data = {
             "user_id": user.id,
             "role_id": role.id,
-            "organization_id": test_organization.id
+            "organization_id": test_organization.id,
         }
 
         response = client.post(
@@ -384,7 +384,7 @@ class TestRoleAPI(
         assignment_data = {
             "user_id": user.id,
             "role_id": role.id,
-            "organization_id": test_organization.id
+            "organization_id": test_organization.id,
         }
 
         # First assignment should succeed
@@ -421,7 +421,7 @@ class TestRoleAPI(
         assignment_data = {
             "user_id": user.id,
             "role_id": role.id,
-            "organization_id": test_organization.id
+            "organization_id": test_organization.id,
         }
 
         assign_response = client.post(
@@ -474,10 +474,10 @@ class TestRoleAPI(
         # Assign both roles to user
         for role in [role1, role2]:
             assignment_data = {
-            "user_id": user.id,
-            "role_id": role.id,
-            "organization_id": test_organization.id
-        }
+                "user_id": user.id,
+                "role_id": role.id,
+                "organization_id": test_organization.id,
+            }
             client.post(
                 f"{self.endpoint_prefix}/assign",
                 json=assignment_data,
@@ -515,10 +515,10 @@ class TestRoleAPI(
         # Assign both roles to user
         for role in [role1, role2]:
             assignment_data = {
-            "user_id": user.id,
-            "role_id": role.id,
-            "organization_id": test_organization.id
-        }
+                "user_id": user.id,
+                "role_id": role.id,
+                "organization_id": role.organization_id,
+            }
             client.post(
                 f"{self.endpoint_prefix}/assign",
                 json=assignment_data,
@@ -628,7 +628,7 @@ class TestRoleAPI(
         assignment_data = {
             "user_id": user.id,
             "role_id": role.id,
-            "organization_id": test_organization.id
+            "organization_id": test_organization.id,
         }
         client.post(
             f"{self.endpoint_prefix}/assign",
@@ -743,7 +743,7 @@ class TestRolePermissions:
         assignment_data = {
             "user_id": user.id,
             "role_id": role.id,
-            "organization_id": test_organization.id
+            "organization_id": test_organization.id,
         }
         response = client.post(
             "/api/v1/roles/assign",
