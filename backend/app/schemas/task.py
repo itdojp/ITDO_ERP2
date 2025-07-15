@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -28,46 +28,53 @@ class TaskBase(BaseModel):
     """Base task schema."""
 
     title: str = Field(..., max_length=200, description="Task title")
-    description: Optional[str] = Field(
+    description: str | None = Field(
         None, max_length=5000, description="Task description"
     )
     project_id: int = Field(..., description="Project ID")
-    parent_task_id: Optional[int] = Field(None, description="Parent task ID")
+    parent_task_id: int | None = Field(None, description="Parent task ID")
     priority: TaskPriority = Field(TaskPriority.MEDIUM, description="Task priority")
-    due_date: Optional[datetime] = Field(None, description="Due date")
-    estimated_hours: Optional[float] = Field(None, ge=0, description="Estimated hours")
+    due_date: datetime | None = Field(None, description="Due date")
+    estimated_hours: float | None = Field(None, ge=0, description="Estimated hours")
 
 
 class TaskCreate(TaskBase):
     """Schema for creating a task."""
 
-    assignee_ids: Optional[List[int]] = Field(None, description="List of assignee IDs")
-    tags: Optional[List[str]] = Field(None, description="Task tags")
+    assignee_ids: list[int] | None = Field(None, description="List of assignee IDs")
+    tags: list[str] | None = Field(None, description="Task tags")
+    # CRITICAL: Department integration fields for Phase 3
+    department_id: int | None = Field(
+        None, description="Department ID for task assignment"
+    )
+    department_visibility: str = Field(
+        default="department_hierarchy", description="Visibility scope"
+    )
 
 
 class TaskUpdate(BaseModel):
     """Schema for updating a task."""
 
-    title: Optional[str] = Field(None, max_length=200)
-    description: Optional[str] = Field(None, max_length=5000)
-    priority: Optional[TaskPriority] = None
-    due_date: Optional[datetime] = None
-    estimated_hours: Optional[float] = Field(None, ge=0)
-    actual_hours: Optional[float] = Field(None, ge=0)
+    title: str | None = Field(None, max_length=200)
+    description: str | None = Field(None, max_length=5000)
+    priority: TaskPriority | None = None
+    due_date: datetime | None = None
+    estimated_hours: float | None = Field(None, ge=0)
+    actual_hours: float | None = Field(None, ge=0)
 
 
 class TaskStatusUpdate(BaseModel):
     """Schema for updating task status."""
 
     status: TaskStatus
-    comment: Optional[str] = Field(None, max_length=1000)
+    comment: str | None = Field(None, max_length=1000)
 
 
 class TaskAssignment(BaseModel):
     """Schema for task assignment."""
 
     user_id: int
-    role: Optional[str] = Field(None, max_length=50)
+    role: str | None = Field(None, max_length=50)
 
 
 class TaskDependency(BaseModel):
@@ -92,24 +99,39 @@ class ProjectInfo(BaseModel):
     name: str
 
 
+class DepartmentBasic(BaseModel):
+    """Department basic information for task responses."""
+
+    id: int
+    name: str
+    code: str
+
+    class Config:
+        from_attributes = True
+
+
 class TaskResponse(BaseModel):
     """Task response schema."""
 
     id: int
     title: str
-    description: Optional[str]
+    description: str | None
     project: ProjectInfo
-    parent_task_id: Optional[int]
+    parent_task_id: int | None
     status: TaskStatus
     priority: TaskPriority
-    due_date: Optional[datetime]
-    estimated_hours: Optional[float]
-    actual_hours: Optional[float]
-    assignees: List[UserInfo]
-    tags: List[str]
+    due_date: datetime | None
+    estimated_hours: float | None
+    actual_hours: float | None
+    assignees: list[UserInfo]
+    tags: list[str]
     created_at: datetime
     updated_at: datetime
     created_by: UserInfo
+    # CRITICAL: Department integration fields for Phase 3
+    department_id: int | None = None
+    department_visibility: str = "department_hierarchy"
+    department: DepartmentBasic | None = None
 
     class Config:
         from_attributes = True
@@ -118,7 +140,7 @@ class TaskResponse(BaseModel):
 class TaskListResponse(BaseModel):
     """Response for task list with pagination."""
 
-    items: List[TaskResponse]
+    items: list[TaskResponse]
     total: int
     page: int
     page_size: int
@@ -129,24 +151,23 @@ class TaskHistoryItem(BaseModel):
     """Task history item schema."""
 
     id: int
-    field_name: str
-    old_value: Optional[str]
-    new_value: Optional[str]
-    changed_by: UserInfo
-    changed_at: datetime
+    action: str
+    user_name: str
+    timestamp: datetime
+    changes: dict[str, Any]
 
 
 class TaskHistoryResponse(BaseModel):
     """Response for task history."""
 
-    items: List[TaskHistoryItem]
+    items: list[TaskHistoryItem]
     total: int
 
 
 class BulkStatusUpdate(BaseModel):
     """Schema for bulk status update."""
 
-    task_ids: List[int] = Field(..., min_length=1)
+    task_ids: list[int] = Field(..., min_length=1)
     status: TaskStatus
 
 
@@ -155,4 +176,4 @@ class BulkUpdateResponse(BaseModel):
 
     updated_count: int
     failed_count: int
-    errors: Optional[List[dict[str, Any]]] = None
+    errors: list[dict[str, Any]] | None = None

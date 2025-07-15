@@ -1,6 +1,6 @@
 """Dependency injection utilities."""
 
-from typing import Generator
+from collections.abc import Generator
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -14,7 +14,7 @@ from app.services.auth import AuthService
 security = HTTPBearer()
 
 
-def get_db() -> Generator[Session, None, None]:
+def get_db() -> Generator[Session]:
     """Get database session."""
     db = SessionLocal()
     try:

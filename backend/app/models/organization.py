@@ -1,6 +1,6 @@
 """Organization model implementation."""
 
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import Boolean, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -10,7 +10,12 @@ from app.types import OrganizationId
 
 if TYPE_CHECKING:
     from app.models.department import Department
+    from app.models.role import Role
     from app.models.user import User
+    from app.models.user_organization import (
+        OrganizationInvitation,
+        UserOrganization,
+    )
 
 
 class Organization(SoftDeletableModel):
@@ -29,63 +34,61 @@ class Organization(SoftDeletableModel):
     name: Mapped[str] = mapped_column(
         String(200), nullable=False, comment="Organization name"
     )
-    name_kana: Mapped[Optional[str]] = mapped_column(
+    name_kana: Mapped[str | None] = mapped_column(
         String(200), nullable=True, comment="Organization name in Katakana"
     )
-    name_en: Mapped[Optional[str]] = mapped_column(
+    name_en: Mapped[str | None] = mapped_column(
         String(200), nullable=True, comment="Organization name in English"
     )
 
     # Contact information
-    phone: Mapped[Optional[str]] = mapped_column(
+    phone: Mapped[str | None] = mapped_column(
         String(20), nullable=True, comment="Main phone number"
     )
-    fax: Mapped[Optional[str]] = mapped_column(
+    fax: Mapped[str | None] = mapped_column(
         String(20), nullable=True, comment="Fax number"
     )
-    email: Mapped[Optional[str]] = mapped_column(
+    email: Mapped[str | None] = mapped_column(
         String(255), nullable=True, comment="Main email address"
     )
-    website: Mapped[Optional[str]] = mapped_column(
+    website: Mapped[str | None] = mapped_column(
         String(255), nullable=True, comment="Website URL"
     )
 
     # Address information
-    postal_code: Mapped[Optional[str]] = mapped_column(
+    postal_code: Mapped[str | None] = mapped_column(
         String(10), nullable=True, comment="Postal/Zip code"
     )
-    prefecture: Mapped[Optional[str]] = mapped_column(
+    prefecture: Mapped[str | None] = mapped_column(
         String(50), nullable=True, comment="Prefecture/State"
     )
-    city: Mapped[Optional[str]] = mapped_column(
-        String(100), nullable=True, comment="City"
-    )
-    address_line1: Mapped[Optional[str]] = mapped_column(
+    city: Mapped[str | None] = mapped_column(String(100), nullable=True, comment="City")
+    address_line1: Mapped[str | None] = mapped_column(
         String(255), nullable=True, comment="Address line 1"
     )
-    address_line2: Mapped[Optional[str]] = mapped_column(
+    address_line2: Mapped[str | None] = mapped_column(
         String(255), nullable=True, comment="Address line 2"
     )
 
     # Business information
-    business_type: Mapped[Optional[str]] = mapped_column(
+    business_type: Mapped[str | None] = mapped_column(
         String(100), nullable=True, comment="Type of business"
     )
-    industry: Mapped[Optional[str]] = mapped_column(
+    industry: Mapped[str | None] = mapped_column(
         String(100), nullable=True, comment="Industry category"
     )
-    capital: Mapped[Optional[int]] = mapped_column(
+    capital: Mapped[int | None] = mapped_column(
         Integer, nullable=True, comment="Capital amount in JPY"
     )
-    employee_count: Mapped[Optional[int]] = mapped_column(
+    employee_count: Mapped[int | None] = mapped_column(
         Integer, nullable=True, comment="Number of employees"
     )
-    fiscal_year_end: Mapped[Optional[str]] = mapped_column(
+    fiscal_year_end: Mapped[str | None] = mapped_column(
         String(5), nullable=True, comment="Fiscal year end (MM-DD)"
     )
 
     # Hierarchy
-    parent_id: Mapped[Optional[OrganizationId]] = mapped_column(
+    parent_id: Mapped[OrganizationId | None] = mapped_column(
         Integer,
         ForeignKey("organizations.id"),
         nullable=True,
@@ -101,15 +104,15 @@ class Organization(SoftDeletableModel):
     )
 
     # Settings (JSON)
-    settings: Mapped[Optional[str]] = mapped_column(
+    settings: Mapped[str | None] = mapped_column(
         Text, nullable=True, comment="Organization-specific settings in JSON format"
     )
 
     # Additional information
-    description: Mapped[Optional[str]] = mapped_column(
+    description: Mapped[str | None] = mapped_column(
         Text, nullable=True, comment="Organization description"
     )
-    logo_url: Mapped[Optional[str]] = mapped_column(
+    logo_url: Mapped[str | None] = mapped_column(
         String(255), nullable=True, comment="URL to organization logo"
     )
 
@@ -117,16 +120,16 @@ class Organization(SoftDeletableModel):
     parent: Mapped[Optional["Organization"]] = relationship(
         "Organization", remote_side="Organization.id", lazy="joined"
     )
-    subsidiaries: Mapped[List["Organization"]] = relationship(
+    subsidiaries: Mapped[list["Organization"]] = relationship(
         "Organization", back_populates="parent", lazy="select"
     )
-    departments: Mapped[List["Department"]] = relationship(
+    departments: Mapped[list["Department"]] = relationship(
         "Department",
         back_populates="organization",
         lazy="dynamic",
         cascade="all, delete-orphan",
     )
-    users: Mapped[List["User"]] = relationship(
+    users: Mapped[list["User"]] = relationship(
         "User",
         secondary="user_roles",
         primaryjoin="Organization.id == UserRole.organization_id",
@@ -134,13 +137,30 @@ class Organization(SoftDeletableModel):
         viewonly=True,
         lazy="dynamic",
     )
+    roles: Mapped[list["Role"]] = relationship(
+        "Role", back_populates="organization", lazy="dynamic"
+    )
+
+    # Multi-tenant user relationships
+    user_memberships: Mapped[list["UserOrganization"]] = relationship(
+        "UserOrganization",
+        foreign_keys="UserOrganization.organization_id",
+        back_populates="organization",
+        cascade="all, delete-orphan",
+    )
+    invitations: Mapped[list["OrganizationInvitation"]] = relationship(
+        "OrganizationInvitation",
+        foreign_keys="OrganizationInvitation.organization_id",
+        back_populates="organization",
+        cascade="all, delete-orphan",
+    )
 
     def __repr__(self) -> str:
         """String representation."""
         return f"<Organization(id={self.id}, code='{self.code}', name='{self.name}')>"
 
     @property
-    def full_address(self) -> Optional[str]:
+    def full_address(self) -> str | None:
         """Get full formatted address."""
         parts = []
         if self.postal_code:
@@ -166,7 +186,7 @@ class Organization(SoftDeletableModel):
         """Check if this organization has subsidiaries."""
         return len(self.subsidiaries) > 0
 
-    def get_all_subsidiaries(self) -> List["Organization"]:
+    def get_all_subsidiaries(self) -> list["Organization"]:
         """Get all subsidiaries recursively."""
         result = []
         for subsidiary in self.subsidiaries:
@@ -174,7 +194,7 @@ class Organization(SoftDeletableModel):
             result.extend(subsidiary.get_all_subsidiaries())
         return result
 
-    def get_hierarchy_path(self) -> List["Organization"]:
+    def get_hierarchy_path(self) -> list["Organization"]:
         """Get the full hierarchy path from root to this organization."""
         path = [self]
         current = self
