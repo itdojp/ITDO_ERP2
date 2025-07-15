@@ -367,8 +367,8 @@ class TestRoleService:
             organization_id=test_organization.id,
         )
 
-        # Then: Should return role permissions
-        assert permissions == ["read:test", "write:test"]
+        # Then: Should return role permissions as dict
+        assert permissions == {"read:test": True, "write:test": True}
 
     def test_get_role_permissions_role_not_found(
         self,
@@ -679,7 +679,7 @@ class TestRoleService:
 
         # Verify role is soft deleted
         db_session.refresh(test_role)
-        assert test_role.is_active is False
+        assert test_role.deleted_at is not None
 
     def test_delete_role_with_active_assignments(
         self,
