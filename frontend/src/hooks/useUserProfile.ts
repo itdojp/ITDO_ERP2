@@ -6,8 +6,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { userProfileApi } from '../services/userProfileApi'
 import type {
   User,
-  UserPreferences,
-  UserPrivacySettings,
   UserProfileUpdate,
   UserPreferencesUpdate,
   UserPrivacyUpdate,

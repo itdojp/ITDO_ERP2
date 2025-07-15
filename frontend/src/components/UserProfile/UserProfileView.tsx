@@ -6,7 +6,6 @@
 import React from 'react'
 import { User, Mail, Phone, MapPin, Globe, Calendar, Users, Building } from 'lucide-react'
 import { useUserProfile, useCheckProfileVisibility } from '../../hooks/useUserProfile'
-import type { User as UserType } from '../../types/user'
 
 interface UserProfileViewProps {
   userId: number
