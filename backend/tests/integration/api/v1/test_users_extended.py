@@ -362,8 +362,12 @@ class TestUserManagementAPI:
         # Given: 複数ロールのユーザー
         org = OrganizationFactory.create()
         user = UserFactory.create(db_session)
-        RoleFactory.create(db_session, code="READER", permissions=["read:users", "read:reports"])
-        RoleFactory.create(db_session, code="WRITER", permissions=["write:reports", "delete:own"])
+        RoleFactory.create(
+            db_session, code="READER", permissions=["read:users", "read:reports"]
+        )
+        RoleFactory.create(
+            db_session, code="WRITER", permissions=["write:reports", "delete:own"]
+        )
         # TODO: Implement create_test_user_role functionality
         # create_test_user_role(user=user, role=role1, organization=org)
         # create_test_user_role(user=user, role=role2, organization=org)
