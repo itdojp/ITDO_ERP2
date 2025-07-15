@@ -67,9 +67,15 @@ class TestUserRepository:
         test_id = f"{id(self)}-{id(db_session)}"
 
         # Create test users
-        UserFactory.create(db_session, full_name="John Doe", email=f"john-{test_id}@example.com")
-        UserFactory.create(db_session, full_name="Jane Smith", email=f"jane-{test_id}@example.com")
-        UserFactory.create(db_session, full_name="Bob Johnson", email=f"bob-{test_id}@example.com")
+        UserFactory.create(
+            db_session, full_name="John Doe", email=f"john-{test_id}@example.com"
+        )
+        UserFactory.create(
+            db_session, full_name="Jane Smith", email=f"jane-{test_id}@example.com"
+        )
+        UserFactory.create(
+            db_session, full_name="Bob Johnson", email=f"bob-{test_id}@example.com"
+        )
 
         # Search by name
         results, count = repository.search_users(query="John")
@@ -120,23 +126,25 @@ class TestUserRepository:
 
         # Create users with different lock states
         locked_user = UserFactory.create(
-            db_session, 
-            email=f"locked-{test_id}@test.example", 
-            locked_until=datetime.now(timezone.utc) + timedelta(minutes=30)
+            db_session,
+            email=f"locked-{test_id}@test.example",
+            locked_until=datetime.now(timezone.utc) + timedelta(minutes=30),
         )
         expired_lock_user = UserFactory.create(
-            db_session, 
+            db_session,
             email=f"expired-{test_id}@test.example",
-            locked_until=datetime.now(timezone.utc) - timedelta(minutes=1)
+            locked_until=datetime.now(timezone.utc) - timedelta(minutes=1),
         )
-        normal_user = UserFactory.create(db_session, email=f"normal-{test_id}@test.example", locked_until=None)
+        normal_user = UserFactory.create(
+            db_session, email=f"normal-{test_id}@test.example", locked_until=None
+        )
 
         locked_users = repository.get_locked_users()
 
         # Check that our locked user is in the results
         locked_user_ids = [user.id for user in locked_users]
         assert locked_user.id in locked_user_ids
-        
+
         # Verify that expired lock and normal users are not in results
         assert expired_lock_user.id not in locked_user_ids
         assert normal_user.id not in locked_user_ids
@@ -163,7 +171,7 @@ class TestUserRepository:
         # Check that our expired user is in the results
         expired_user_ids = [user.id for user in expired_users]
         assert old_password.id in expired_user_ids
-        
+
         # Verify that recent password user is not in results
         assert recent_password.id not in expired_user_ids
 
@@ -226,21 +234,19 @@ class TestUserRepository:
 
         # Create different types of users
         active_superuser = UserFactory.create(
-            db_session, 
+            db_session,
             email=f"superuser-{test_id}@test.example",
-            is_superuser=True, 
-            is_active=True
+            is_superuser=True,
+            is_active=True,
         )
         inactive_superuser = UserFactory.create(
-            db_session, 
+            db_session,
             email=f"inactive.superuser-{test_id}@test.example",
-            is_superuser=True, 
-            is_active=False
+            is_superuser=True,
+            is_active=False,
         )
         regular_user = UserFactory.create(
-            db_session, 
-            email=f"regular-{test_id}@test.example",
-            is_superuser=False
+            db_session, email=f"regular-{test_id}@test.example", is_superuser=False
         )
 
         superusers = repository.get_superusers()
@@ -248,7 +254,7 @@ class TestUserRepository:
         # Check that our active superuser is in the results
         superuser_ids = [user.id for user in superusers]
         assert active_superuser.id in superuser_ids
-        
+
         # Verify that inactive superuser and regular user are not in results
         assert inactive_superuser.id not in superuser_ids
         assert regular_user.id not in superuser_ids
