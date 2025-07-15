@@ -1,7 +1,7 @@
 """Factory classes for creating test data."""
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Type, TypeVar
+from typing import Any, TypeVar
 
 from faker import Faker
 from sqlalchemy.orm import Session
@@ -16,17 +16,17 @@ T = TypeVar("T", bound=SoftDeletableModel)
 class BaseFactory(ABC):
     """Base factory class for creating test model instances."""
 
-    model_class: Type[T]  # Abstract class variable to be overridden in subclasses
+    model_class: type[T]  # Abstract class variable to be overridden in subclasses
 
     @classmethod
-    def build_dict(cls, **kwargs: Any) -> Dict[str, Any]:
+    def build_dict(cls, **kwargs: Any) -> dict[str, Any]:
         """Build a dictionary of attributes for model creation."""
         defaults = cls._get_default_attributes()
         defaults.update(kwargs)
         return defaults
 
     @classmethod
-    def build_update_dict(cls, **kwargs: Any) -> Dict[str, Any]:
+    def build_update_dict(cls, **kwargs: Any) -> dict[str, Any]:
         """Build a dictionary of attributes for model updates."""
         # For updates, we typically want a subset of fields
         defaults = cls._get_update_attributes()
@@ -65,12 +65,12 @@ class BaseFactory(ABC):
 
     @classmethod
     @abstractmethod
-    def _get_default_attributes(cls) -> Dict[str, Any]:
+    def _get_default_attributes(cls) -> dict[str, Any]:
         """Get default attributes for creating instances."""
         pass
 
     @classmethod
-    def _get_update_attributes(cls) -> Dict[str, Any]:
+    def _get_update_attributes(cls) -> dict[str, Any]:
         """Get default attributes for updating instances."""
         # By default, return a subset of create attributes
         defaults = cls._get_default_attributes()
@@ -80,21 +80,38 @@ class BaseFactory(ABC):
 
 
 # Re-export factory classes
+<<<<<<< HEAD
+from tests.factories.audit import AuditLogFactory  # noqa: E402
+from tests.factories.department import (  # noqa: E402
+    DepartmentFactory,
+    create_test_department,
+)
+from tests.factories.organization import (  # noqa: E402
+    OrganizationFactory,
+    create_test_organization,
+)
+from tests.factories.role import (  # noqa: E402
+=======
+from tests.factories.audit import AuditLogFactory
 from tests.factories.department import DepartmentFactory, create_test_department
 from tests.factories.organization import OrganizationFactory, create_test_organization
 from tests.factories.role import (
+>>>>>>> main
     PermissionFactory,
     RoleFactory,
+    UserRoleFactory,
     create_test_role,
     create_test_user_role,
 )
-from tests.factories.user import UserFactory, create_test_user
+from tests.factories.user import UserFactory, create_test_user  # noqa: E402
 
 __all__ = [
     "BaseFactory",
+    "AuditLogFactory",
     "OrganizationFactory",
     "DepartmentFactory",
     "RoleFactory",
+    "UserRoleFactory",
     "PermissionFactory",
     "UserFactory",
     "create_test_user",

@@ -1,7 +1,7 @@
 """Extended user schemas."""
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
@@ -12,10 +12,10 @@ class UserCreateExtended(UserBase):
     """Extended user creation schema with organization/role assignment."""
 
     password: str = Field(..., min_length=8, description="User password")
-    phone: Optional[str] = Field(None, max_length=20, description="Phone number")
+    phone: str | None = Field(None, max_length=20, description="Phone number")
     organization_id: int = Field(..., description="Organization ID")
-    department_id: Optional[int] = Field(None, description="Department ID")
-    role_ids: List[int] = Field(..., description="List of role IDs to assign")
+    department_id: int | None = Field(None, description="Department ID")
+    role_ids: list[int] = Field(..., description="List of role IDs to assign")
 
     @field_validator("password")
     @classmethod
@@ -58,21 +58,21 @@ class UserBasic(BaseModel):
 class UserUpdate(BaseModel):
     """User update schema."""
 
-    full_name: Optional[str] = Field(None, min_length=1, max_length=100)
-    phone: Optional[str] = Field(None, max_length=20)
-    profile_image_url: Optional[str] = Field(None, max_length=500)
-    is_active: Optional[bool] = None
+    full_name: str | None = Field(None, min_length=1, max_length=100)
+    phone: str | None = Field(None, max_length=20)
+    profile_image_url: str | None = Field(None, max_length=500)
+    is_active: bool | None = None
 
 
 class UserResponseExtended(UserResponse):
     """Extended user response with additional fields."""
 
-    phone: Optional[str] = None
-    profile_image_url: Optional[str] = None
-    last_login_at: Optional[datetime] = None
-    organizations: List["OrganizationBasic"] = []
-    departments: List["DepartmentBasic"] = []
-    roles: List["UserRoleInfo"] = []
+    phone: str | None = None
+    profile_image_url: str | None = None
+    last_login_at: datetime | None = None
+    organizations: list["OrganizationBasic"] = []
+    departments: list["DepartmentBasic"] = []
+    roles: list["UserRoleInfo"] = []
 
 
 class PasswordChange(BaseModel):
@@ -109,17 +109,17 @@ class PasswordChange(BaseModel):
 class UserSearchParams(BaseModel):
     """User search parameters."""
 
-    search: Optional[str] = Field(None, description="Search term")
-    organization_id: Optional[int] = Field(None, description="Filter by organization")
-    department_id: Optional[int] = Field(None, description="Filter by department")
-    role_id: Optional[int] = Field(None, description="Filter by role")
-    is_active: Optional[bool] = Field(None, description="Filter by active status")
+    search: str | None = Field(None, description="Search term")
+    organization_id: int | None = Field(None, description="Filter by organization")
+    department_id: int | None = Field(None, description="Filter by department")
+    role_id: int | None = Field(None, description="Filter by role")
+    is_active: bool | None = Field(None, description="Filter by active status")
 
 
 class UserListResponse(BaseModel):
     """Paginated user list response."""
 
-    items: List[UserResponseExtended]
+    items: list[UserResponseExtended]
     total: int
     page: int
     limit: int
@@ -130,8 +130,8 @@ class RoleAssignment(BaseModel):
 
     role_id: int = Field(..., description="Role ID")
     organization_id: int = Field(..., description="Organization ID")
-    department_id: Optional[int] = Field(None, description="Department ID")
-    expires_at: Optional[datetime] = Field(None, description="Expiration date")
+    department_id: int | None = Field(None, description="Department ID")
+    expires_at: datetime | None = Field(None, description="Expiration date")
 
 
 class UserRoleInfo(BaseModel):
@@ -141,7 +141,7 @@ class UserRoleInfo(BaseModel):
     organization: "OrganizationBasic"
     department: Optional["DepartmentBasic"] = None
     assigned_at: datetime
-    expires_at: Optional[datetime] = None
+    expires_at: datetime | None = None
 
     class Config:
         from_attributes = True
@@ -150,7 +150,7 @@ class UserRoleInfo(BaseModel):
 class PermissionListResponse(BaseModel):
     """User permissions response."""
 
-    permissions: List[str] = Field(..., description="List of permissions")
+    permissions: list[str] = Field(..., description="List of permissions")
     organization_id: int = Field(..., description="Organization context")
 
 
@@ -159,7 +159,7 @@ class UserImport(BaseModel):
 
     email: EmailStr
     full_name: str
-    phone: Optional[str] = None
+    phone: str | None = None
 
 
 class BulkImportRequest(BaseModel):
@@ -167,7 +167,7 @@ class BulkImportRequest(BaseModel):
 
     organization_id: int
     role_id: int
-    users: List[UserImport]
+    users: list[UserImport]
 
 
 class BulkImportResponse(BaseModel):
@@ -175,8 +175,8 @@ class BulkImportResponse(BaseModel):
 
     success_count: int
     error_count: int
-    created_users: List[UserResponseExtended]
-    errors: List[Dict[str, Any]] = []
+    created_users: list[UserResponseExtended]
+    errors: list[dict[str, Any]] = []
 
 
 class UserExportFormat(BaseModel):
@@ -191,8 +191,8 @@ class UserActivity(BaseModel):
     """User activity log entry."""
 
     action: str
-    details: Dict[str, Any]
-    ip_address: Optional[str]
+    details: dict[str, Any]
+    ip_address: str | None
     created_at: datetime
 
     class Config:
@@ -202,14 +202,14 @@ class UserActivity(BaseModel):
 class UserActivityListResponse(BaseModel):
     """User activity list response."""
 
-    items: List[UserActivity]
+    items: list[UserActivity]
     total: int
 
 
 # Import these at the end to avoid circular imports
-from app.schemas.department_basic import DepartmentBasic
-from app.schemas.organization_basic import OrganizationBasic
-from app.schemas.role_basic import RoleBasic
+from app.schemas.department_basic import DepartmentBasic  # noqa: E402
+from app.schemas.organization_basic import OrganizationBasic  # noqa: E402
+from app.schemas.role_basic import RoleBasic  # noqa: E402
 
 # Update forward refs
 UserResponseExtended.model_rebuild()

@@ -1,6 +1,6 @@
 """Permission model for RBAC system."""
 
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, Index, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -8,7 +8,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import BaseModel
 
 if TYPE_CHECKING:
-    from app.models.role import RolePermission
+    from app.models.permission_inheritance import PermissionDependency
+    from app.models.role import Role, RolePermission
 
 
 class Permission(BaseModel):
@@ -31,7 +32,7 @@ class Permission(BaseModel):
     )
 
     # Detailed description
-    description: Mapped[Optional[str]] = mapped_column(
+    description: Mapped[str | None] = mapped_column(
         Text, nullable=True, comment="Permission description"
     )
 
@@ -54,11 +55,32 @@ class Permission(BaseModel):
     )
 
     # Relationships
-    role_permissions: Mapped[List["RolePermission"]] = relationship(
+<<<<<<< HEAD
+    roles: Mapped[list["Role"]] = relationship(
+        "Role", secondary="role_permissions", back_populates="permissions"
+    )
+=======
+>>>>>>> main
+    role_permissions: Mapped[list["RolePermission"]] = relationship(
         "RolePermission",
         back_populates="permission",
         cascade="all, delete-orphan",
         lazy="select",
+    )
+    roles: Mapped[list["Role"]] = relationship(
+        "Role",
+        secondary="role_permissions",
+        back_populates="permissions",
+        primaryjoin="Permission.id == RolePermission.permission_id",
+        secondaryjoin="RolePermission.role_id == Role.id",
+    )
+
+    # Permission dependencies
+    dependencies: Mapped[list["PermissionDependency"]] = relationship(
+        "PermissionDependency",
+        foreign_keys="PermissionDependency.permission_id",
+        back_populates="permission",
+        cascade="all, delete-orphan",
     )
 
     # Indexes and constraints

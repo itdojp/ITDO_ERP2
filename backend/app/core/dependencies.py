@@ -1,6 +1,6 @@
 """Dependency injection utilities."""
 
-from typing import Generator
+from collections.abc import Generator
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -14,7 +14,7 @@ from app.services.auth import AuthService
 security = HTTPBearer()
 
 
-def get_db() -> Generator[Session, None, None]:
+def get_db() -> Generator[Session]:
     """Get database session."""
     db = SessionLocal()
     try:
@@ -57,7 +57,19 @@ def get_current_superuser(
 ) -> User:
     """Get current superuser."""
     if not current_user.is_superuser:
+        from datetime import datetime
+
+        from app.schemas.error import ErrorResponse
+
+        # Create error response compatible with test expectations
+        error_detail = ErrorResponse(
+            detail="Not enough permissions",
+            code="AUTH004",
+            timestamp=datetime.utcnow(),
+        ).model_dump()
+
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=error_detail,
         )
     return current_user

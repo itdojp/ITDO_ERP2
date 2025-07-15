@@ -1,7 +1,6 @@
 """Performance testing with Locust for ITDO ERP API endpoints."""
 
 import random
-from typing import Dict
 
 from locust import HttpUser, between, events, task
 from locust.exception import RescheduleTask
@@ -67,7 +66,7 @@ class ERPAPIUser(HttpUser):
         else:
             response.failure(f"Organization creation failed: {response.status_code}")
 
-    def get_auth_headers(self) -> Dict[str, str]:
+    def get_auth_headers(self) -> dict[str, str]:
         """Get authorization headers."""
         if not self.auth_token:
             self.login()
@@ -286,7 +285,7 @@ class ReadOnlyUser(HttpUser):
         if response.status_code == 200:
             self.auth_token = response.json().get("access_token")
 
-    def get_auth_headers(self) -> Dict[str, str]:
+    def get_auth_headers(self) -> dict[str, str]:
         """Get authorization headers."""
         return {"Authorization": f"Bearer {self.auth_token}"}
 

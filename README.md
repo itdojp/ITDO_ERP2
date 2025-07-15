@@ -65,9 +65,22 @@ GitHub Actionsによる包括的な品質保証：
 - **セキュリティ**: ゼロ既知脆弱性を維持
 - **パフォーマンス**: API応答時間 <200ms
 
+## Claude Code Optimization
+
+For efficient Claude Code usage and cost optimization:
+
+1. **Monitoring Script**: Run `./scripts/claude-usage-monitor.sh` for usage analysis
+2. **Optimization Guide**: See [Claude Code Optimization Guide](docs/CLAUDE_CODE_OPTIMIZATION_GUIDE.md)
+3. **Configuration**: `.claudeignore` and `.gitignore` are optimized for minimal token usage
+4. **Best Practices**: 
+   - Use `/compact` every 2-4 hours
+   - Keep sessions focused and specific
+   - Regular cache cleanup for optimal performance
+
 ## Documentation
 
 - [Claude Code Usage Guide](docs/claude-code-usage-guide.md) - Claude Code使用方法
+- [Claude Code Optimization Guide](docs/CLAUDE_CODE_OPTIMIZATION_GUIDE.md) - 使用量最適化ガイド
 - [Development Environment Setup](docs/development-environment-setup.md) - 環境構築手順
 - [Architecture](docs/architecture.md)
 - [Development Guide](docs/development-guide.md)

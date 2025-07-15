@@ -1,7 +1,15 @@
 import json
 from typing import Any, List, Optional, Union
 
-from pydantic import AnyUrl, Field, PostgresDsn, ValidationInfo, field_validator
+from pydantic import (
+    AnyHttpUrl,
+    AnyUrl,
+    Field,
+    PostgresDsn,
+    ValidationInfo,
+    field_validator,
+    model_validator,
+)
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -62,12 +70,14 @@ class Settings(BaseSettings):
         return self.BACKEND_CORS_ORIGINS
 
     # データベース設定
-    POSTGRES_SERVER: str = "localhost"
-    POSTGRES_USER: str = "itdo_user"
-    POSTGRES_PASSWORD: str = "itdo_password"
-    POSTGRES_DB: str = "itdo_erp"
-    POSTGRES_PORT: int = 5432
-    DATABASE_URL: Optional[Union[PostgresDsn, AnyUrl]] = None
+    POSTGRES_SERVER: str = Field(default="localhost", description="PostgreSQL server")
+    POSTGRES_USER: str = Field(default="itdo_user", description="PostgreSQL user")
+    POSTGRES_PASSWORD: str = Field(
+        default="itdo_password", description="PostgreSQL password"
+    )
+    POSTGRES_DB: str = Field(default="itdo_erp", description="PostgreSQL database")
+    POSTGRES_PORT: int = Field(default=5432, description="PostgreSQL port")
+    DATABASE_URL: PostgresDsn | AnyUrl | None = None
 
     # Test environment overrides
     @property
@@ -77,35 +87,41 @@ class Settings(BaseSettings):
             return "itdo_erp_test"
         return self.POSTGRES_DB
 
-    @field_validator("DATABASE_URL", mode="before")
-    @classmethod
-    def assemble_db_connection(cls, v: Optional[str], info: ValidationInfo) -> Any:
-        if isinstance(v, str):
-            return v
-        values = info.data if hasattr(info, "data") else {}
-        # Use test database for test environment
-        env = values.get("ENVIRONMENT", "development")
-        is_test_env = env in ("test", "testing") or values.get("TESTING")
-        db_name = "itdo_erp_test" if is_test_env else "itdo_erp"
-        return (
-            f"postgresql://{values.get('POSTGRES_USER', 'itdo_user')}:"
-            f"{values.get('POSTGRES_PASSWORD', 'itdo_password')}@"
-            f"{values.get('POSTGRES_SERVER', 'localhost')}:"
-            f"{values.get('POSTGRES_PORT', 5432)}/"
-            f"{db_name}"
-        )
+    @model_validator(mode="after")
+    def assemble_db_connection(self) -> "Settings":
+        if self.DATABASE_URL is None:
+            # Use test database for test environment
+            db_name = self.postgres_db_name
+            db_url = (
+                f"postgresql://{self.POSTGRES_USER}:"
+                f"{self.POSTGRES_PASSWORD}@"
+                f"{self.POSTGRES_SERVER}:"
+                f"{self.POSTGRES_PORT}/{db_name}"
+            )
+            # Convert string to PostgresDsn type
+            self.DATABASE_URL = PostgresDsn(db_url)
+        return self
 
     # Redis設定
     REDIS_URL: str = "redis://localhost:6379"
 
     # Keycloak設定
-    KEYCLOAK_URL: str = "http://localhost:8080"
-    KEYCLOAK_REALM: str = "itdo-erp"
-    KEYCLOAK_CLIENT_ID: str = "itdo-erp-client"
-    KEYCLOAK_CLIENT_SECRET: str = ""
+    KEYCLOAK_URL: str = Field(
+        default="http://localhost:8080", description="Keycloak URL"
+    )
+    KEYCLOAK_REALM: str = Field(default="itdo-erp", description="Keycloak realm")
+    KEYCLOAK_CLIENT_ID: str = Field(
+        default="itdo-erp-client", description="Keycloak client ID"
+    )
+    KEYCLOAK_CLIENT_SECRET: str = Field(
+        default="", description="Keycloak client secret"
+    )
 
     # セキュリティ設定
-    SECRET_KEY: str = "your-secret-key-change-this-in-production"
+    SECRET_KEY: str = Field(
+        default="test-secret-key-for-development-only",
+        description="Secret key for JWT tokens",
+    )
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
@@ -130,3 +146,8 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+def get_settings() -> Settings:
+    """Get application settings instance."""
+    return settings

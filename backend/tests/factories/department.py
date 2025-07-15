@@ -1,6 +1,6 @@
 """Factory for Department model."""
 
-from typing import Any, Dict, List
+from typing import Any
 
 from app.models.department import Department
 from app.models.organization import Organization
@@ -15,7 +15,7 @@ class DepartmentFactory(BaseFactory):
     model_class = Department  # Model class for this factory
 
     @classmethod
-    def _get_default_attributes(cls) -> Dict[str, Any]:
+    def _get_default_attributes(cls) -> dict[str, Any]:
         """Get default attributes for creating Department instances."""
         return {
             "code": fake.bothify(text="DEPT-####"),
@@ -51,13 +51,23 @@ class DepartmentFactory(BaseFactory):
             ),
             "budget": fake.random_int(min=1000000, max=50000000),
             "display_order": fake.random_int(min=1, max=100),
-            "depth": 0,  # Default to root level
-            "path": f"/{fake.random_int(min=1, max=9999)}/",  # Temporary path
+            "level": 1,
+            "path": "",
+            "sort_order": fake.random_int(min=1, max=100),
             "is_active": True,
+<<<<<<< HEAD
+            # TODO: Add path and depth fields once migration is created
+            # "path": "/",  # Default root path
+            # "depth": 0,  # Default root depth
+=======
+            # CRITICAL: Materialized path fields for hierarchy
+            "path": "/",  # Default root path
+            "depth": 0,  # Default root depth
+>>>>>>> main
         }
 
     @classmethod
-    def _get_update_attributes(cls) -> Dict[str, Any]:
+    def _get_update_attributes(cls) -> dict[str, Any]:
         """Get default attributes for updating Department instances."""
         return {
             "name": fake.random_element(
@@ -84,12 +94,15 @@ class DepartmentFactory(BaseFactory):
         """Create a department with a parent department."""
         kwargs["parent_id"] = parent_department.id
         kwargs["organization_id"] = parent_department.organization_id
-        # Generate hierarchical path and depth
-        parent_depth = getattr(parent_department, 'depth', 0) or 0
-        parent_path = getattr(parent_department, 'path', '/') or '/'
-        kwargs["depth"] = parent_depth + 1
-        # Use a temporary path since the department ID isn't available yet
-        kwargs["path"] = f"{parent_path.rstrip('/')}/{fake.random_int(min=1, max=9999)}/"
+<<<<<<< HEAD
+        # TODO: Set up materialized path hierarchy once migration is created
+        # kwargs["path"] = f"{parent_department.path}{parent_department.id}/"
+        # kwargs["depth"] = parent_department.depth + 1
+=======
+        # CRITICAL: Set up materialized path hierarchy
+        kwargs["path"] = f"{parent_department.path}{parent_department.id}/"
+        kwargs["depth"] = parent_department.depth + 1
+>>>>>>> main
         return cls.create(db_session, **kwargs)
 
     @classmethod
@@ -130,6 +143,7 @@ class DepartmentFactory(BaseFactory):
                     name=child_name,
                     name_en=child_name_en,
                     code=child_code,
+                    level=current_depth + 1,
                     department_type="operational"
                     if current_depth == depth - 1
                     else "support",
@@ -207,7 +221,7 @@ class DepartmentFactory(BaseFactory):
     @classmethod
     def create_ordered_list(
         cls, db_session, organization: Organization, count: int = 5
-    ) -> List[Department]:
+    ) -> list[Department]:
         """Create a list of departments with specific display order."""
         departments = []
         for i in range(count):

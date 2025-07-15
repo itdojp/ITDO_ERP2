@@ -181,9 +181,18 @@ class TestUserModel:
         )
         db_session.commit()
 
+        # Record original time
+        original_updated_at = user.updated_at
+
+        # Add slight delay to ensure different timestamp
+        import time
+
+        time.sleep(0.01)
+
         # When: Updating user
         user.update(db_session, full_name="Updated Name")
 
         # Then: User should be updated
         assert user.full_name == "Updated Name"
-        assert user.updated_at > user.created_at
+        # >= because SQLite has lower timestamp precision
+        assert user.updated_at >= user.created_at

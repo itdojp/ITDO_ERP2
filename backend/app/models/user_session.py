@@ -1,7 +1,7 @@
 """User session model."""
 
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -24,9 +24,9 @@ class UserSession(BaseModel):
     session_token: Mapped[str] = mapped_column(
         String(255), unique=True, nullable=False, index=True
     )
-    refresh_token: Mapped[Optional[str]] = mapped_column(String(255), unique=True)
-    ip_address: Mapped[Optional[str]] = mapped_column(String(45))  # IPv6 support
-    user_agent: Mapped[Optional[str]] = mapped_column(Text)
+    refresh_token: Mapped[str | None] = mapped_column(String(255), unique=True)
+    ip_address: Mapped[str | None] = mapped_column(String(45))  # IPv6 support
+    user_agent: Mapped[str | None] = mapped_column(Text)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     expires_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False
@@ -40,19 +40,20 @@ class UserSession(BaseModel):
 
     # Security flags
     requires_verification: Mapped[bool] = mapped_column(Boolean, default=False)
-    security_alert: Mapped[Optional[str]] = mapped_column(String(50))
+    security_alert: Mapped[str | None] = mapped_column(String(50))
 
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="sessions")
 
     def is_expired(self) -> bool:
         """Check if session is expired."""
-        # Ensure timezone-aware comparison
-        expires_at = self.expires_at
-        if expires_at.tzinfo is None:
-            expires_at = expires_at.replace(tzinfo=timezone.utc)
-
-        return datetime.now(timezone.utc) > expires_at
+        # Handle both timezone-aware and naive datetimes
+        if self.expires_at.tzinfo is None:
+            # If expires_at is naive, compare with naive datetime
+            return datetime.now() > self.expires_at
+        else:
+            # If expires_at is timezone-aware, compare with timezone-aware datetime
+            return datetime.now(timezone.utc) > self.expires_at
 
     def is_valid(self) -> bool:
         """Check if session is valid."""

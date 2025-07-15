@@ -1,0 +1,46 @@
+# Claude Code Automation 設定ファイル例
+# 実際の使用時は project.conf にコピーして編集
+
+# プロジェクト設定
+PROJECT_NAME="ITDO_ERP2"
+PROJECT_DIR="/mnt/c/work/ITDO_ERP2"
+GITHUB_REPO="itdojp/ITDO_ERP2"
+
+# エージェント定義
+AGENTS=("CC01" "CC02" "CC03")
+
+# タスク管理設定
+TASK_CHECK_INTERVAL=900   # 15分（秒）
+MAX_AUTO_FIX_ATTEMPTS=3
+AUTO_REPORT_TIME="18:00"
+
+# GitHub設定
+GH_LABEL_PREFIX="claude-code"
+GH_LABEL_TASK="claude-code-task"
+
+# 通知設定（将来実装）
+NOTIFICATION_ENABLED=false
+NOTIFICATION_WEBHOOK=""
+
+# ログ設定
+LOG_LEVEL="INFO"
+LOG_DIR="./logs"
+LOG_RETENTION_DAYS=7
+
+# セキュリティ設定
+SAFE_COMMANDS_ONLY=true
+ALLOWED_COMMANDS=(
+    "cd"
+    "git"
+    "gh"
+    "make"
+    "pytest"
+    "npm"
+    "uv"
+    "ruff"
+    "mypy"
+)
+
+# カスタムコマンド
+CUSTOM_INIT_SCRIPT=""
+CUSTOM_CLEANUP_SCRIPT=""

@@ -2,10 +2,11 @@
 
 import asyncio
 import time
+from collections.abc import Awaitable, Callable, Generator
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from functools import wraps
-from typing import Any, Awaitable, Callable, Dict, Generator, Optional, TypeVar
+from typing import Any, TypeVar
 
 import structlog
 from fastapi import Request, Response
@@ -175,18 +176,18 @@ def setup_tracing(service_name: str = "itdo-erp-backend") -> None:
 
     # Add span processor
     span_processor = BatchSpanProcessor(jaeger_exporter)
-    trace.get_tracer_provider().add_span_processor(span_processor)
+    trace.get_tracer_provider().add_span_processor(span_processor)  # type: ignore
 
     # Instrument frameworks
     FastAPIInstrumentor.instrument()
     SQLAlchemyInstrumentor.instrument()
-    RedisInstrumentor.instrument()
+    RedisInstrumentor.instrument()  # type: ignore
 
 
 F = TypeVar("F", bound=Callable[..., Any])
 
 
-def trace_function(operation_name: Optional[str] = None) -> Callable[[F], F]:
+def trace_function(operation_name: str | None = None) -> Callable[[F], F]:
     """Decorator to trace function execution."""
 
     def decorator(func: F) -> F:
@@ -240,7 +241,7 @@ def trace_function(operation_name: Optional[str] = None) -> Callable[[F], F]:
 
 
 @contextmanager
-def database_query_timer(operation: str, table: str) -> Generator[None, None, None]:
+def database_query_timer(operation: str, table: str) -> Generator[None]:
     """Context manager for timing database queries."""
     start_time = time.time()
 
@@ -263,36 +264,36 @@ def database_query_timer(operation: str, table: str) -> Generator[None, None, No
         )
 
 
-def log_business_event(event_type: str, details: Dict[str, Any]) -> None:
+def log_business_event(event_type: str, details: dict[str, Any]) -> None:
     """Log business events for analytics."""
     logger.info("Business event", event_type=event_type, **details)
 
     # Update business metrics
     if event_type == "organization_created":
-        BUSINESS_METRICS["organizations_created"].inc()
+        BUSINESS_METRICS["organizations_created"].inc()  # type: ignore
     elif event_type == "department_created":
-        BUSINESS_METRICS["departments_created"].inc()
+        BUSINESS_METRICS["departments_created"].inc()  # type: ignore
     elif event_type == "role_created":
-        BUSINESS_METRICS["roles_created"].inc()
+        BUSINESS_METRICS["roles_created"].inc()  # type: ignore
     elif event_type == "user_login":
-        BUSINESS_METRICS["login_attempts"].labels(status="success").inc()
+        BUSINESS_METRICS["login_attempts"].labels(status="success").inc()  # type: ignore
     elif event_type == "user_login_failed":
-        BUSINESS_METRICS["login_attempts"].labels(status="failed").inc()
+        BUSINESS_METRICS["login_attempts"].labels(status="failed").inc()  # type: ignore
 
 
 class HealthChecker:
     """Health check implementation."""
 
     def __init__(self) -> None:
-        self.checks: Dict[str, Callable[[], bool]] = {}
-        self.last_check_time: Dict[str, datetime] = {}
+        self.checks: dict[str, Callable[[], bool]] = {}
+        self.last_check_time: dict[str, datetime] = {}
         self.check_interval = timedelta(seconds=30)
 
     def register_check(self, name: str, check_func: Callable[[], bool]) -> None:
         """Register a health check function."""
         self.checks[name] = check_func
 
-    async def run_checks(self) -> Dict[str, Any]:
+    async def run_checks(self) -> dict[str, Any]:
         """Run all health checks."""
         results = {}
         overall_healthy = True
@@ -406,11 +407,11 @@ def setup_health_checks(
 
 def get_metrics() -> str:
     """Get Prometheus metrics."""
-    return generate_latest()  # type: ignore[no-any-return]
+    return generate_latest().decode("utf-8")
 
 
 # Performance monitoring decorator
-def monitor_performance(metric_name: Optional[str] = None) -> Callable[[F], F]:
+def monitor_performance(metric_name: str | None = None) -> Callable[[F], F]:
     """Decorator to monitor function performance."""
 
     def decorator(func: F) -> F:

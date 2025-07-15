@@ -1,6 +1,6 @@
 """Organization service implementation."""
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from sqlalchemy.orm import Session
 
@@ -25,15 +25,13 @@ class OrganizationService:
         self.db = db
         self.repository = OrganizationRepository(Organization, db)
 
-    def get_organization(
-        self, organization_id: OrganizationId
-    ) -> Optional[Organization]:
+    def get_organization(self, organization_id: OrganizationId) -> Organization | None:
         """Get organization by ID."""
         return self.repository.get(organization_id)
 
     def list_organizations(
-        self, skip: int = 0, limit: int = 100, filters: Optional[Dict[str, Any]] = None
-    ) -> Tuple[List[Organization], int]:
+        self, skip: int = 0, limit: int = 100, filters: dict[str, Any] | None = None
+    ) -> tuple[list[Organization], int]:
         """List organizations with pagination."""
         organizations = self.repository.get_multi(
             skip=skip, limit=limit, filters=filters
@@ -46,8 +44,8 @@ class OrganizationService:
         query: str,
         skip: int = 0,
         limit: int = 100,
-        filters: Optional[Dict[str, Any]] = None,
-    ) -> Tuple[List[Organization], int]:
+        filters: dict[str, Any] | None = None,
+    ) -> tuple[list[Organization], int]:
         """Search organizations by name."""
         # Get all matching organizations
         all_results = self.repository.search_by_name(query)
@@ -72,30 +70,35 @@ class OrganizationService:
         return paginated_results, total
 
     def create_organization(
-        self, organization_data: OrganizationCreate, created_by: Optional[UserId] = None
+        self, organization_data: OrganizationCreate, created_by: UserId | None = None
     ) -> Organization:
         """Create a new organization."""
         # Add audit fields
         data = organization_data.model_dump()
+
+        # Convert settings dict to JSON string for database storage
+        if data.get("settings") and isinstance(data["settings"], dict):
+            import json
+
+            data["settings"] = json.dumps(data["settings"])
+
         if created_by:
             data["created_by"] = created_by
             data["updated_by"] = created_by
 
-        # Convert settings dict to JSON string for database storage
-        import json
-
-        if data.get("settings") and isinstance(data["settings"], dict):
-            data["settings"] = json.dumps(data["settings"])
-
-        # Create organization directly - let IntegrityError be handled by API layer
-        return self.repository.create(data)
+        # Create organization - pass dict directly to avoid schema validation issues
+        db_obj = self.repository.model(**data)
+        self.db.add(db_obj)
+        self.db.commit()
+        self.db.refresh(db_obj)
+        return db_obj
 
     def update_organization(
         self,
         organization_id: OrganizationId,
         organization_data: OrganizationUpdate,
-        updated_by: Optional[UserId] = None,
-    ) -> Optional[Organization]:
+        updated_by: UserId | None = None,
+    ) -> Organization | None:
         """Update organization details."""
         # Check if organization exists
         organization = self.repository.get(organization_id)
@@ -106,14 +109,31 @@ class OrganizationService:
 
         # Add audit fields
         data = organization_data.model_dump(exclude_unset=True)
+
+        # Convert settings dict to JSON string for database storage
+        if data.get("settings") and isinstance(data["settings"], dict):
+            import json
+
+            data["settings"] = json.dumps(data["settings"])
+
         if updated_by:
             data["updated_by"] = updated_by
 
-        # Update organization
-        return self.repository.update(organization_id, OrganizationUpdate(**data))
+        # Update organization - use the repository's update method directly
+        if data:
+            from sqlalchemy import update
+
+            self.db.execute(
+                update(self.repository.model)
+                .where(self.repository.model.id == organization_id)
+                .values(**data)
+            )
+            self.db.commit()
+
+        return self.repository.get(organization_id)
 
     def delete_organization(
-        self, organization_id: OrganizationId, deleted_by: Optional[UserId] = None
+        self, organization_id: OrganizationId, deleted_by: UserId | None = None
     ) -> bool:
         """Soft delete an organization."""
         organization = self.repository.get(organization_id)
@@ -126,8 +146,8 @@ class OrganizationService:
         return True
 
     def activate_organization(
-        self, organization_id: OrganizationId, updated_by: Optional[UserId] = None
-    ) -> Optional[Organization]:
+        self, organization_id: OrganizationId, updated_by: UserId | None = None
+    ) -> Organization | None:
         """Activate an inactive organization."""
         org = self.repository.update(
             organization_id, OrganizationUpdate(is_active=True)
@@ -138,8 +158,8 @@ class OrganizationService:
         return org
 
     def deactivate_organization(
-        self, organization_id: OrganizationId, updated_by: Optional[UserId] = None
-    ) -> Optional[Organization]:
+        self, organization_id: OrganizationId, updated_by: UserId | None = None
+    ) -> Organization | None:
         """Deactivate an active organization."""
         org = self.repository.update(
             organization_id, OrganizationUpdate(is_active=False)
@@ -149,11 +169,11 @@ class OrganizationService:
             self.db.commit()
         return org
 
-    def get_direct_subsidiaries(self, parent_id: OrganizationId) -> List[Organization]:
+    def get_direct_subsidiaries(self, parent_id: OrganizationId) -> list[Organization]:
         """Get direct subsidiaries of an organization."""
         return self.repository.get_subsidiaries(parent_id)
 
-    def get_all_subsidiaries(self, parent_id: OrganizationId) -> List[Organization]:
+    def get_all_subsidiaries(self, parent_id: OrganizationId) -> list[Organization]:
         """Get all subsidiaries recursively."""
         return self.repository.get_all_subsidiaries(parent_id)
 
@@ -197,6 +217,18 @@ class OrganizationService:
 
         # Build response
         data = organization.to_dict()
+
+        # Parse settings JSON if it's a string
+        if isinstance(data.get("settings"), str):
+            import json
+
+            try:
+                data["settings"] = (
+                    json.loads(data["settings"]) if data["settings"] else {}
+                )
+            except json.JSONDecodeError:
+                data["settings"] = {}
+
         data["parent"] = organization.parent.to_dict() if organization.parent else None
         data["full_address"] = organization.full_address
         data["is_subsidiary"] = organization.is_subsidiary
@@ -216,7 +248,7 @@ class OrganizationService:
 
         return OrganizationResponse.model_validate(data)
 
-    def get_organization_tree(self) -> List[OrganizationTree]:
+    def get_organization_tree(self) -> list[OrganizationTree]:
         """Get organization hierarchy tree."""
         # Get root organizations
         roots = self.repository.get_root_organizations()
@@ -243,7 +275,7 @@ class OrganizationService:
         self,
         user_id: UserId,
         permission: str,
-        organization_id: Optional[OrganizationId] = None,
+        organization_id: OrganizationId | None = None,
     ) -> bool:
         """Check if user has permission for organizations."""
         # Get user roles
@@ -264,9 +296,9 @@ class OrganizationService:
     def update_settings(
         self,
         organization_id: OrganizationId,
-        settings: Dict[str, Any],
-        updated_by: Optional[UserId] = None,
-    ) -> Optional[Organization]:
+        settings: dict[str, Any],
+        updated_by: UserId | None = None,
+    ) -> Organization | None:
         """Update organization settings."""
         org = self.repository.update_settings(organization_id, settings)
         if org and updated_by:

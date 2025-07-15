@@ -20,6 +20,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import SoftDeletableModel
 
 if TYPE_CHECKING:
+    from app.models.department import Department
     from app.models.project import Project
     from app.models.user import User
 
@@ -80,6 +81,22 @@ class Task(SoftDeletableModel):
         Integer, ForeignKey("users.id"), nullable=False, index=True
     )
 
+    # CRITICAL: Department integration fields for Phase 3
+    department_id: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        ForeignKey("departments.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+        comment="Department assignment for hierarchical task management",
+    )
+    department_visibility: Mapped[str] = mapped_column(
+        String(50),
+        default="department_hierarchy",
+        nullable=False,
+        comment="Visibility scope: personal, department, "
+        "department_hierarchy, organization",
+    )
+
     # Time tracking
     estimated_hours: Mapped[Optional[float]] = mapped_column(nullable=True)
     actual_hours: Mapped[Optional[float]] = mapped_column(nullable=True)
@@ -126,6 +143,11 @@ class Task(SoftDeletableModel):
     # Task history/audit
     task_history: Mapped[List["TaskHistory"]] = relationship(
         "TaskHistory", back_populates="task", cascade="all, delete-orphan"
+    )
+
+    # CRITICAL: Department relationship for hierarchical task management
+    department: Mapped[Optional["Department"]] = relationship(
+        "Department", back_populates="tasks", lazy="select"
     )
 
     def __repr__(self) -> str:

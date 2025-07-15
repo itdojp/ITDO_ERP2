@@ -35,6 +35,20 @@ ITDO ERP System v2 - Modern ERP system with hybrid development environment.
 - `scripts/` - Development and deployment scripts
 - `Makefile` - Common development commands
 
+## 📚 必読文書 (REQUIRED READING)
+
+**⚠️ 作業開始前に必ず読むこと:**
+
+1. **[Branch Management & Cleanup Plan](docs/maintenance/BRANCH_CLEANUP_PLAN.md)**
+   - 未マージブランチの管理方針
+   - 安全な削除手順とバックアップ方法
+   - 現在の19個の未マージブランチの処理計画
+
+2. **[Merge Workflow Best Practices](docs/workflow/MERGE_WORKFLOW_BEST_PRACTICES.md)**
+   - 適切なPRマージワークフローの確立
+   - 今後のブランチ蓄積問題の防止策
+   - GitHub自動削除設定の重要性
+
 ## Development Workflow
 
 ### Critical Constraints
@@ -43,12 +57,14 @@ ITDO ERP System v2 - Modern ERP system with hybrid development environment.
 3. **uv Tool Usage**: Use `uv` for Python, not pip/activate
 4. **Type Safety**: No `any` types, strict type checking required
 5. **Issue-Driven Development**: All work starts from GitHub Issues
-6. **MANDATORY - Issue Assignment Protocol**: When starting work on an issue, you MUST follow these steps:
+6. **MANDATORY - Proper PR Merge**: Always use `gh pr merge [PR] --squash --delete-branch` 
+7. **MANDATORY - Issue Assignment Protocol**: When starting work on an issue, you MUST follow these steps:
    - Post issue assignment comment: `I'm starting work on this issue.`
    - Create feature branch: `feature/issue-{number}-short-description` or `fix/issue-{number}-short-description`
    - Create Draft PR immediately after first commit with title: `[WIP] #{issue-number}: {description}`
    - Follow TDD approach: Write tests first, then implementation
    - Update PR from Draft to Ready when implementation is complete
+   - **CRITICAL**: Use `gh pr merge [PR] --squash --delete-branch` to prevent branch accumulation
 
 ### Development Environment Setup
 ```bash
