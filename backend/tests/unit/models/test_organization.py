@@ -28,7 +28,7 @@ class TestOrganizationModel:
             "phone": "03-1234-5678",
             "email": "info@itdo.jp",
             "website": "https://itdo.jp",
-            "fiscal_year_start": 4,
+            "fiscal_year_end": "03-31",
         }
 
         # When: 組織作成
@@ -41,7 +41,7 @@ class TestOrganizationModel:
         assert org.code == "ITDO"
         assert org.name == "株式会社ITDO"
         assert org.email == "info@itdo.jp"
-        assert org.fiscal_year_start == 4
+        assert org.fiscal_year_end == "03-31"
         assert org.is_active is True
         assert isinstance(org.created_at, datetime)
         assert isinstance(org.updated_at, datetime)
@@ -106,12 +106,12 @@ class TestOrganizationModel:
 
     def test_organization_validation(self, db_session) -> None:
         """組織データのバリデーションが動作することを確認."""
-        # Invalid fiscal year start
+        # Invalid fiscal year end format
         with pytest.raises(ValueError):
             org = Organization(
                 code="INVALID",
                 name="無効な組織",
-                fiscal_year_start=13,  # 1-12の範囲外
+                fiscal_year_end="invalid",  # 無効な形式
             )
             org.validate()
 

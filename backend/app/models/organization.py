@@ -168,8 +168,11 @@ class Organization(Base):
         if not self.name or len(self.name.strip()) == 0:
             raise ValueError("組織名は必須です")
 
-        if self.fiscal_year_start < 1 or self.fiscal_year_start > 12:
-            raise ValueError("会計年度開始月は1-12の範囲で入力してください")
+        if self.fiscal_year_end and len(self.fiscal_year_end) > 0:
+            import re
+
+            if not re.match(r"^\d{2}-\d{2}$", self.fiscal_year_end):
+                raise ValueError("会計年度終了日はMM-DD形式で入力してください")
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert organization to dictionary."""
@@ -183,7 +186,7 @@ class Organization(Base):
             "phone": self.phone,
             "email": self.email,
             "website": self.website,
-            "fiscal_year_start": self.fiscal_year_start,
+            "fiscal_year_end": self.fiscal_year_end,
             "is_active": self.is_active,
             "created_at": self.created_at,
             "updated_at": self.updated_at,

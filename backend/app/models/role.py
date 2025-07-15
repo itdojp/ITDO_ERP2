@@ -297,7 +297,10 @@ class UserRole(AuditableModel):
 
     def __repr__(self) -> str:
         """String representation."""
-        return f"<UserRole(user_id={self.user_id}, role_id={self.role_id}, org_id={self.organization_id})>"
+        return (
+            f"<UserRole(user_id={self.user_id}, role_id={self.role_id}, "
+            f"org_id={self.organization_id})>"
+        )
 
     @property
     def is_expired(self) -> bool:
