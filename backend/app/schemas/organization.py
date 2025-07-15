@@ -1,7 +1,11 @@
 """Organization schemas."""
 
 import json
+<<<<<<< HEAD
+from typing import Any, Dict, List, Optional
+=======
 from typing import Any
+>>>>>>> origin/main
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 

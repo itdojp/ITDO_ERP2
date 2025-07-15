@@ -151,11 +151,10 @@ class TaskHistoryItem(BaseModel):
     """Task history item schema."""
 
     id: int
-    field_name: str
-    old_value: str | None
-    new_value: str | None
-    changed_by: UserInfo
-    changed_at: datetime
+    action: str
+    user_name: str
+    timestamp: datetime
+    changes: dict[str, Any]
 
 
 class TaskHistoryResponse(BaseModel):

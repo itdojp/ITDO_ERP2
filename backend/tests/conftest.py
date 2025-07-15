@@ -162,6 +162,36 @@ def db_session() -> Generator[Session]:
         yield session
     finally:
         session.close()
+        # Clean up test data using safe DELETE order in PostgreSQL
+        if "postgresql" in str(engine.url):
+            # For PostgreSQL, use DELETE in dependency order to avoid
+            # foreign key violations
+            with engine.begin() as conn:
+                from sqlalchemy import text
+
+                # Simple approach: Delete in safe order
+                table_order = [
+                    "user_roles",
+                    "role_permissions",
+                    "password_history",
+                    "user_sessions",
+                    "user_activity_logs",
+                    "audit_logs",
+                    "tasks",  # Tasks must be deleted before projects
+                    "project_members",
+                    "project_milestones",
+                    "projects",
+                    "users",
+                    "roles",
+                    "permissions",
+                    "departments",
+                    "organizations",
+                ]
+                for table in table_order:
+                    conn.execute(text(f'DELETE FROM "{table}"'))
+        else:
+            # For SQLite, drop all tables
+            Base.metadata.drop_all(bind=engine)
 
 
 @pytest.fixture
