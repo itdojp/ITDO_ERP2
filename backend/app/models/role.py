@@ -147,15 +147,23 @@ class Role(SoftDeletableModel):
         back_populates="roles",
     )
     user_roles: Mapped[list["UserRole"]] = relationship(
-        "UserRole", back_populates="role", cascade="all, delete-orphan", overlaps="users"
+        "UserRole",
+        back_populates="role",
+        cascade="all, delete-orphan",
+        overlaps="users",
     )
     permissions: Mapped[list["Permission"]] = relationship(
-        "Permission", secondary="role_permissions", back_populates="roles", overlaps="role_permissions"
+        "Permission",
+        secondary="role_permissions",
+        back_populates="roles",
+        overlaps="role_permissions",
     )
     role_permissions: Mapped[list["RolePermission"]] = relationship(
-        "RolePermission", back_populates="role", cascade="all, delete-orphan", overlaps="permissions,roles"
+        "RolePermission",
+        back_populates="role",
+        cascade="all, delete-orphan",
+        overlaps="permissions,roles",
     )
-
 
     def __repr__(self) -> str:
         """String representation."""
@@ -385,7 +393,9 @@ class UserRole(AuditableModel):
     user: Mapped["User"] = relationship(
         "User", back_populates="user_roles", foreign_keys=[user_id], overlaps="roles"
     )
-    role: Mapped["Role"] = relationship("Role", back_populates="user_roles", overlaps="users")
+    role: Mapped["Role"] = relationship(
+        "Role", back_populates="user_roles", overlaps="users"
+    )
     organization: Mapped["Organization"] = relationship(
         "Organization", foreign_keys=[organization_id]
     )
@@ -460,9 +470,14 @@ class RolePermission(Base):
 
     # Relationships
     role: Mapped["Role"] = relationship(
-        "Role", back_populates="role_permissions", lazy="joined", overlaps="permissions,roles"
+        "Role",
+        back_populates="role_permissions",
+        lazy="joined",
+        overlaps="permissions,roles",
     )
     permission: Mapped["Permission"] = relationship(
-        "Permission", back_populates="role_permissions", lazy="joined", overlaps="permissions,roles"
+        "Permission",
+        back_populates="role_permissions",
+        lazy="joined",
+        overlaps="permissions,roles",
     )
-

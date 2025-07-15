@@ -58,7 +58,10 @@ class Permission(BaseModel):
         "Role", secondary="role_permissions", back_populates="permissions"
     )
     role_permissions: Mapped[list["RolePermission"]] = relationship(
-        "RolePermission", back_populates="permission", cascade="all, delete-orphan", overlaps="roles"
+        "RolePermission",
+        back_populates="permission",
+        cascade="all, delete-orphan",
+        overlaps="roles",
     )
 
     # Indexes and constraints
