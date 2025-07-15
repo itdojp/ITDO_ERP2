@@ -48,7 +48,7 @@ class PermissionService:
             self.db.query(UserRole)
             .filter(
                 UserRole.user_id == user_id,
-                UserRole.is_active == True,
+                UserRole.is_active,
                 or_(
                     UserRole.expires_at.is_(None),
                     UserRole.expires_at > datetime.utcnow(),
@@ -64,7 +64,7 @@ class PermissionService:
                 .join(Permission)
                 .filter(
                     RolePermission.role_id == user_role.role_id,
-                    Permission.is_active == True,
+                    Permission.is_active,
                 )
                 .all()
             )

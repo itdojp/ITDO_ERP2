@@ -48,7 +48,9 @@ class PermissionInheritanceInfo(BaseModel):
     permission: PermissionDetail
     source: str = Field(
         ...,
-        description="Source of permission: 'direct', 'role', 'department', 'organization'",
+        description=(
+            "Source of permission: 'direct', 'role', 'department', 'organization'"
+        ),
     )
     source_id: Optional[int] = Field(
         None, description="ID of the source (role_id, department_id, etc.)"
