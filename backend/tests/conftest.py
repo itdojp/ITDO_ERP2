@@ -287,6 +287,15 @@ def complete_test_system(db_session: Session) -> Dict[str, Any]:
 
 
 @pytest.fixture(autouse=True)
+def reset_faker_unique() -> Generator[None, None, None]:
+    """Reset Faker unique state before each test to prevent duplicate key errors."""
+    from tests.factories import fake
+    fake.unique.clear()
+    yield
+    fake.unique.clear()
+
+
+@pytest.fixture(autouse=True)
 def setup_test_environment(monkeypatch: Any) -> None:
     """Set up test environment variables."""
     # Set test environment variables
