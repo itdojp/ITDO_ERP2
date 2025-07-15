@@ -81,10 +81,10 @@ class User(SoftDeletableModel):
 
     # Task relationships
     assigned_tasks: Mapped[list["Task"]] = relationship(
-        "Task", foreign_keys="Task.assignee_id", back_populates="assignee"
+        "Task", foreign_keys="Task.assigned_to", back_populates="assignee"
     )
-    reported_tasks: Mapped[list["Task"]] = relationship(
-        "Task", foreign_keys="Task.reporter_id", back_populates="reporter"
+    created_tasks: Mapped[list["Task"]] = relationship(
+        "Task", foreign_keys="Task.created_by", back_populates="creator"
     )
 
     # User preferences and privacy settings
@@ -248,14 +248,16 @@ class User(SoftDeletableModel):
 
     def is_password_expired(self) -> bool:
         """Check if password has expired (90 days)."""
-        expiry_date = self.password_changed_at + timedelta(days=90)
-        # Handle both timezone-aware and naive datetimes
-        if expiry_date.tzinfo is None:
-            # If expiry_date is naive, compare with naive datetime
-            return datetime.now() > expiry_date
-        else:
-            # If expiry_date is timezone-aware, compare with timezone-aware datetime
-            return datetime.now(timezone.utc) > expiry_date
+        if not self.password_changed_at:
+            return True
+
+        # Ensure timezone-aware comparison
+        password_changed = self.password_changed_at
+        if password_changed.tzinfo is None:
+            password_changed = password_changed.replace(tzinfo=timezone.utc)
+
+        expiry_date = password_changed + timedelta(days=90)
+        return datetime.now(timezone.utc) > expiry_date
 
     def create_session(
         self,

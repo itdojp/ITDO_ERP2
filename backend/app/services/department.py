@@ -237,6 +237,7 @@ class DepartmentService:
             department_type=department.department_type,
             user_count=user_count,
             sub_department_count=sub_department_count,
+            department_type=department.department_type,
         )
 
     def get_department_response(self, department: Department) -> DepartmentResponse:

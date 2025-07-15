@@ -153,7 +153,13 @@ def create_organization(
         raise
     except IntegrityError as e:
         db.rollback()
-        if "organizations_code_key" in str(e):
+        # Check for duplicate code constraint
+        error_str = str(e)
+        if (
+            "organizations_code_key" in error_str
+            or "duplicate key value violates unique constraint" in error_str.lower()
+            or "unique constraint" in error_str.lower()
+        ):
             return JSONResponse(
                 status_code=status.HTTP_409_CONFLICT,
                 content=ErrorResponse(
@@ -230,7 +236,13 @@ def update_organization(
         raise
     except IntegrityError as e:
         db.rollback()
-        if "organizations_code_key" in str(e):
+        # Check for duplicate code constraint
+        error_str = str(e)
+        if (
+            "organizations_code_key" in error_str
+            or "duplicate key value violates unique constraint" in error_str.lower()
+            or "unique constraint" in error_str.lower()
+        ):
             return JSONResponse(
                 status_code=status.HTTP_409_CONFLICT,
                 content=ErrorResponse(

@@ -255,8 +255,6 @@ class PermissionInheritanceService:
 
         def collect_dependencies(perm_id: int) -> None:
 
-        def collect_dependencies(perm_id: int):
-
             if perm_id in visited:
                 return
             visited.add(perm_id)
@@ -473,8 +471,6 @@ class PermissionInheritanceService:
 
 
         def collect_permissions(current_role_id: int, depth: int = 0) -> None:
-
-        def collect_permissions(current_role_id: int, depth: int = 0):
 
             if current_role_id in visited_roles or depth > 10:  # Prevent infinite loops
                 return

@@ -499,8 +499,6 @@ class RolePermissionUIService:
 
     def _get_permission_by_code(self, code: str) -> PermissionDefinition | None:
 
-    def _get_permission_by_code(self, code: str) -> PermissionDefinition:
-
         """Get permission definition by code."""
         for category in self._permission_definitions:
             for group in category.groups:

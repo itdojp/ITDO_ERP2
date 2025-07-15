@@ -4,9 +4,11 @@ import os
 import uuid
 from collections.abc import Generator
 from datetime import datetime
+from typing import Any
 
 import pytest
-from sqlalchemy import create_engine
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -15,10 +17,17 @@ if not os.environ.get("DATABASE_URL"):
     os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 if not os.environ.get("SECRET_KEY"):
     os.environ["SECRET_KEY"] = "test-secret-key-for-testing-only-32-chars-long"
+if not os.environ.get("ALGORITHM"):
+    os.environ["ALGORITHM"] = "HS256"
+if not os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES"):
+    os.environ["ACCESS_TOKEN_EXPIRE_MINUTES"] = "1440"
+if not os.environ.get("REFRESH_TOKEN_EXPIRE_DAYS"):
+    os.environ["REFRESH_TOKEN_EXPIRE_DAYS"] = "7"
+if not os.environ.get("BCRYPT_ROUNDS"):
+    os.environ["BCRYPT_ROUNDS"] = "4"
 
 # Import base first
 from app.models.base import Base
-
 # Import all models to ensure proper registration
 import app.models  # This will import all models via __init__.py
 

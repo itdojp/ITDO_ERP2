@@ -136,6 +136,8 @@ class Department(SoftDeletableModel):
         String(50), nullable=True, comment="Cost center code for accounting"
     )
 
+    # Hierarchy fields already defined above as CRITICAL materialized path fields
+
     # Display order
     display_order: Mapped[int] = mapped_column(
         Integer,

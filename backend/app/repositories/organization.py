@@ -86,10 +86,13 @@ class OrganizationRepository(
 
         org_cte = org_cte.union_all(recursive_part)
 
-        # Final query to get the full organization objects
+        # Final query to get full organization data
         return list(
             self.db.scalars(
-                select(self.model).join(org_cte, self.model.id == org_cte.c.id)
+                select(self.model)
+                .join(org_cte, self.model.id == org_cte.c.id)
+                .where(~self.model.is_deleted)
+                .order_by(self.model.name)
             )
         )
 

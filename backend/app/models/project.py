@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List, Optional
 
 from sqlalchemy import Date, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -55,7 +55,7 @@ class Project(SoftDeletableModel):
     owner: Mapped["User"] = relationship("User", foreign_keys=[owner_id], lazy="joined")
 
     # Task relationship
-    tasks: Mapped[list["Task"]] = relationship(
+    tasks: Mapped[List["Task"]] = relationship(
         "Task", back_populates="project", cascade="all, delete-orphan"
     )
 

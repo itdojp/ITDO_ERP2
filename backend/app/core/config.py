@@ -1,4 +1,5 @@
-from typing import Any
+import json
+from typing import Any, List, Optional, Union
 
 from pydantic import (
     AnyHttpUrl,
@@ -18,16 +19,55 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
 
     # CORS設定
-    BACKEND_CORS_ORIGINS: list[AnyHttpUrl] = []
+    BACKEND_CORS_ORIGINS: Any = Field(
+        default="http://localhost:3000,http://127.0.0.1:3000"
+    )
 
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
-    def assemble_cors_origins(cls, v: str | list[str]) -> list[str] | str:
-        if isinstance(v, str) and not v.startswith("["):
-            return [i.strip() for i in v.split(",")]
-        elif isinstance(v, (list, str)):
+    def assemble_cors_origins(cls, v: Union[str, List[str], None]) -> List[str]:
+        """Parse CORS origins from string or list."""
+        default_origins = ["http://localhost:3000", "http://127.0.0.1:3000"]
+
+        if v is None:
+            return default_origins
+
+        if isinstance(v, list):
             return v
-        raise ValueError(v)
+
+        # Handle string values
+        if isinstance(v, str):
+            v_stripped = v.strip()
+            if not v_stripped:
+                return default_origins
+
+            # Handle comma-separated values FIRST (before JSON)
+            if "," in v_stripped and not v_stripped.startswith("["):
+                origins = [
+                    origin.strip() for origin in v_stripped.split(",") if origin.strip()
+                ]
+                return origins if origins else default_origins
+
+            # Try JSON parsing for array format
+            if v_stripped.startswith("["):
+                try:
+                    parsed = json.loads(v_stripped)
+                    if isinstance(parsed, list):
+                        return parsed
+                except json.JSONDecodeError:
+                    pass
+
+            # Single value
+            return [v_stripped]
+
+        # For any other type, return default
+        return default_origins
+
+    @property
+    def cors_origins_list(self) -> List[str]:
+        """CORS origins as a list for use in middleware."""
+        # The validator ensures BACKEND_CORS_ORIGINS is always a list
+        return self.BACKEND_CORS_ORIGINS
 
     # データベース設定
     POSTGRES_SERVER: str = Field(default="localhost", description="PostgreSQL server")
@@ -39,14 +79,24 @@ class Settings(BaseSettings):
     POSTGRES_PORT: int = Field(default=5432, description="PostgreSQL port")
     DATABASE_URL: PostgresDsn | AnyUrl | None = None
 
+    # Test environment overrides
+    @property
+    def postgres_db_name(self) -> str:
+        """Get the correct database name based on environment."""
+        if self.ENVIRONMENT in ("test", "testing") or self.TESTING:
+            return "itdo_erp_test"
+        return self.POSTGRES_DB
+
     @model_validator(mode="after")
     def assemble_db_connection(self) -> "Settings":
         if self.DATABASE_URL is None:
+            # Use test database for test environment
+            db_name = self.postgres_db_name
             db_url = (
                 f"postgresql://{self.POSTGRES_USER}:"
                 f"{self.POSTGRES_PASSWORD}@"
                 f"{self.POSTGRES_SERVER}:"
-                f"{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+                f"{self.POSTGRES_PORT}/{db_name}"
             )
             # Convert string to PostgresDsn type
             self.DATABASE_URL = PostgresDsn(db_url)
@@ -80,8 +130,19 @@ class Settings(BaseSettings):
 
     # 開発環境フラグ
     DEBUG: bool = False
+    ENVIRONMENT: str = "development"
+    TESTING: bool = False
+    LOG_LEVEL: str = "INFO"
+    API_V1_PREFIX: str = "/api/v1"
 
-    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=True,
+        # Don't try to parse complex fields automatically
+        json_schema_extra={
+            "env_parse_none_str": "null",
+        },
+    )
 
 
 settings = Settings()
