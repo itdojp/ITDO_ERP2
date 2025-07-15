@@ -72,7 +72,14 @@ class UserPreferencesService:
             return self.get_preferences(user_id)
         except NotFound:
             # Return default preferences
+<<<<<<< HEAD
             default_data = UserPreferencesCreate()
+=======
+            from datetime import datetime
+
+            default_data = UserPreferencesCreate()
+            now = datetime.utcnow()
+>>>>>>> main
             return UserPreferencesResponse(
                 id=0,  # Temporary ID for default
                 user_id=user_id,
@@ -83,8 +90,13 @@ class UserPreferencesService:
                 notifications_push=default_data.notifications_push,
                 date_format=default_data.date_format,
                 time_format=default_data.time_format,
+<<<<<<< HEAD
                 created_at=None,
                 updated_at=None,
+=======
+                created_at=now,
+                updated_at=now,
+>>>>>>> main
             )
 
     def update_preferences(

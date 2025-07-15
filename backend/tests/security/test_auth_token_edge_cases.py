@@ -1,6 +1,7 @@
 """Edge case tests for authentication token security."""
 
 import time
+<<<<<<< HEAD
 from datetime import datetime, timedelta
 
 import pytest
@@ -8,6 +9,15 @@ from jose import jwt
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+=======
+from datetime import datetime, timedelta, timezone
+
+import jwt
+import pytest
+from sqlalchemy.orm import Session
+
+from app.core.config import get_settings
+>>>>>>> main
 from app.core.security import create_access_token, verify_token
 from app.models.user import User
 from app.services.auth import AuthService
@@ -20,13 +30,22 @@ class TestTokenSecurityEdgeCases:
     @pytest.fixture
     def auth_service(self, db_session: Session) -> AuthService:
         """Create auth service instance."""
+<<<<<<< HEAD
         return AuthService(db_session)
+=======
+        return AuthService()
+>>>>>>> main
 
     @pytest.fixture
     def user(self, db_session: Session) -> User:
         """Create test user."""
+<<<<<<< HEAD
         return UserFactory.create(
             db_session, email="tokentest@example.com", password="password123"
+=======
+        return UserFactory.create_with_password(
+            db_session, password="password123", email="tokentest@example.com"
+>>>>>>> main
         )
 
     def test_token_with_tampered_payload(self, user: User) -> None:
@@ -55,12 +74,24 @@ class TestTokenSecurityEdgeCases:
 
     def test_token_with_wrong_algorithm(self, user: User) -> None:
         """Test token with different signing algorithm."""
+<<<<<<< HEAD
         current_settings = settings
+=======
+        settings = get_settings()
+>>>>>>> main
 
         # Create token with different algorithm
         payload = {
             "sub": str(user.id),
+<<<<<<< HEAD
             "exp": datetime.utcnow() + timedelta(minutes=30),
+=======
+
+            "exp": datetime.now(timezone.utc) + timedelta(minutes=30),
+
+            "exp": datetime.utcnow() + timedelta(minutes=30),
+
+>>>>>>> main
         }
 
         # Try with 'none' algorithm (should be rejected)
@@ -73,9 +104,13 @@ class TestTokenSecurityEdgeCases:
 
         # Try with different algorithm
         try:
+<<<<<<< HEAD
             rs256_token = jwt.encode(
                 payload, current_settings.SECRET_KEY, algorithm="RS256"
             )
+=======
+            rs256_token = jwt.encode(payload, settings.SECRET_KEY, algorithm="RS256")
+>>>>>>> main
             with pytest.raises(Exception):
                 verify_token(rs256_token)
         except Exception:
@@ -93,7 +128,15 @@ class TestTokenSecurityEdgeCases:
         assert payload["sub"] == str(user.id)
 
         # Change user password
+<<<<<<< HEAD
         user.change_password(db_session, "password123", "newpassword456")
+=======
+
+        user.change_password(db_session, "password123", "NewPassword456!")
+
+        user.change_password(db_session, "password123", "newpassword456")
+
+>>>>>>> main
         db_session.commit()
 
         # Old token should still be valid (until expiry)
@@ -104,16 +147,30 @@ class TestTokenSecurityEdgeCases:
     def test_token_with_future_issued_time(self, user: User) -> None:
         """Test token with future issued time."""
         # Create token with future issued time
+<<<<<<< HEAD
         future_time = datetime.utcnow() + timedelta(hours=1)
+=======
+
+        future_time = datetime.now(timezone.utc) + timedelta(hours=1)
+
+        future_time = datetime.utcnow() + timedelta(hours=1)
+
+>>>>>>> main
         payload = {
             "sub": str(user.id),
             "iat": future_time.timestamp(),
             "exp": (future_time + timedelta(hours=1)).timestamp(),
         }
 
+<<<<<<< HEAD
         current_settings = settings
         future_token = jwt.encode(
             payload, current_settings.SECRET_KEY, algorithm=current_settings.ALGORITHM
+=======
+        settings = get_settings()
+        future_token = jwt.encode(
+            payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+>>>>>>> main
         )
 
         # Should be rejected (depending on JWT library configuration)
@@ -126,12 +183,25 @@ class TestTokenSecurityEdgeCases:
     def test_token_with_very_long_expiry(self, user: User) -> None:
         """Test token with extremely long expiry time."""
         # Create token with 100-year expiry
+<<<<<<< HEAD
         far_future = datetime.utcnow() + timedelta(days=365 * 100)
         payload = {"sub": str(user.id), "exp": far_future.timestamp()}
 
         current_settings = settings
         long_token = jwt.encode(
             payload, current_settings.SECRET_KEY, algorithm=current_settings.ALGORITHM
+=======
+
+        far_future = datetime.now(timezone.utc) + timedelta(days=365 * 100)
+
+        far_future = datetime.utcnow() + timedelta(days=365 * 100)
+
+        payload = {"sub": str(user.id), "exp": far_future.timestamp()}
+
+        settings = get_settings()
+        long_token = jwt.encode(
+            payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+>>>>>>> main
         )
 
         # Should still validate (but may be rejected by application logic)
@@ -143,9 +213,15 @@ class TestTokenSecurityEdgeCases:
         # Create token with negative timestamp
         payload = {"sub": str(user.id), "exp": -1}
 
+<<<<<<< HEAD
         current_settings = settings
         negative_token = jwt.encode(
             payload, current_settings.SECRET_KEY, algorithm=current_settings.ALGORITHM
+=======
+        settings = get_settings()
+        negative_token = jwt.encode(
+            payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+>>>>>>> main
         )
 
         # Should be rejected as expired
@@ -173,7 +249,11 @@ class TestTokenSecurityEdgeCases:
         def refresh_token_func():
             try:
                 # Attempt to refresh token
+<<<<<<< HEAD
                 new_tokens = auth_service.refresh_token(refresh_token)
+=======
+                new_tokens = auth_service.refresh_tokens(db_session, refresh_token)
+>>>>>>> main
                 results.put(new_tokens)
             except Exception as e:
                 errors.put(e)
@@ -203,15 +283,29 @@ class TestTokenSecurityEdgeCases:
         # Create token with extra claims
         payload = {
             "sub": str(user.id),
+<<<<<<< HEAD
             "exp": (datetime.utcnow() + timedelta(hours=1)).timestamp(),
+=======
+
+            "exp": (datetime.now(timezone.utc) + timedelta(hours=1)).timestamp(),
+
+            "exp": (datetime.utcnow() + timedelta(hours=1)).timestamp(),
+
+>>>>>>> main
             "admin": True,  # Unexpected claim
             "permissions": ["read", "write", "delete"],  # Unexpected claim
             "custom_data": {"key": "value"},  # Unexpected claim
         }
 
+<<<<<<< HEAD
         current_settings = settings
         extra_claims_token = jwt.encode(
             payload, current_settings.SECRET_KEY, algorithm=current_settings.ALGORITHM
+=======
+        settings = get_settings()
+        extra_claims_token = jwt.encode(
+            payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+>>>>>>> main
         )
 
         # Should still validate basic token structure
@@ -224,6 +318,7 @@ class TestTokenSecurityEdgeCases:
 
     def test_token_without_required_claims(self, user: User) -> None:
         """Test token missing required claims."""
+<<<<<<< HEAD
         current_settings = settings
 
         # Token without 'sub' claim
@@ -232,6 +327,20 @@ class TestTokenSecurityEdgeCases:
             payload_no_sub,
             current_settings.SECRET_KEY,
             algorithm=current_settings.ALGORITHM,
+=======
+        settings = get_settings()
+
+        # Token without 'sub' claim
+
+        payload_no_sub = {
+            "exp": (datetime.now(timezone.utc) + timedelta(hours=1)).timestamp()
+        }
+
+        payload_no_sub = {"exp": (datetime.utcnow() + timedelta(hours=1)).timestamp()}
+
+        token_no_sub = jwt.encode(
+            payload_no_sub, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+>>>>>>> main
         )
 
         # Should handle missing required claims
@@ -241,9 +350,13 @@ class TestTokenSecurityEdgeCases:
         # Token without 'exp' claim
         payload_no_exp = {"sub": str(user.id)}
         token_no_exp = jwt.encode(
+<<<<<<< HEAD
             payload_no_exp,
             current_settings.SECRET_KEY,
             algorithm=current_settings.ALGORITHM,
+=======
+            payload_no_exp, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+>>>>>>> main
         )
 
         # Should still validate (depending on JWT library settings)
@@ -271,17 +384,32 @@ class TestTokenSecurityEdgeCases:
 
     def test_token_with_malformed_subject(self, user: User) -> None:
         """Test token with malformed subject claim."""
+<<<<<<< HEAD
         current_settings = settings
+=======
+        settings = get_settings()
+>>>>>>> main
 
         # Token with non-numeric user ID
         payload_string_id = {
             "sub": "not_a_number",
+<<<<<<< HEAD
             "exp": (datetime.utcnow() + timedelta(hours=1)).timestamp(),
         }
         token_string_id = jwt.encode(
             payload_string_id,
             current_settings.SECRET_KEY,
             algorithm=current_settings.ALGORITHM,
+=======
+
+            "exp": (datetime.now(timezone.utc) + timedelta(hours=1)).timestamp(),
+
+            "exp": (datetime.utcnow() + timedelta(hours=1)).timestamp(),
+
+        }
+        token_string_id = jwt.encode(
+            payload_string_id, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+>>>>>>> main
         )
 
         # Should validate at JWT level but may fail at application level
@@ -291,12 +419,23 @@ class TestTokenSecurityEdgeCases:
         # Token with empty subject
         payload_empty_sub = {
             "sub": "",
+<<<<<<< HEAD
             "exp": (datetime.utcnow() + timedelta(hours=1)).timestamp(),
         }
         token_empty_sub = jwt.encode(
             payload_empty_sub,
             current_settings.SECRET_KEY,
             algorithm=current_settings.ALGORITHM,
+=======
+
+            "exp": (datetime.now(timezone.utc) + timedelta(hours=1)).timestamp(),
+
+            "exp": (datetime.utcnow() + timedelta(hours=1)).timestamp(),
+
+        }
+        token_empty_sub = jwt.encode(
+            payload_empty_sub, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+>>>>>>> main
         )
 
         result = verify_token(token_empty_sub)
@@ -334,14 +473,28 @@ class TestTokenSecurityEdgeCases:
         # Create token with Unicode data
         payload = {
             "sub": str(user.id),
+<<<<<<< HEAD
             "exp": (datetime.utcnow() + timedelta(hours=1)).timestamp(),
+=======
+
+            "exp": (datetime.now(timezone.utc) + timedelta(hours=1)).timestamp(),
+
+            "exp": (datetime.utcnow() + timedelta(hours=1)).timestamp(),
+
+>>>>>>> main
             "name": "用户名🔒",
             "emoji": "🚀🔐💯",
         }
 
+<<<<<<< HEAD
         current_settings = settings
         unicode_token = jwt.encode(
             payload, current_settings.SECRET_KEY, algorithm=current_settings.ALGORITHM
+=======
+        settings = get_settings()
+        unicode_token = jwt.encode(
+            payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+>>>>>>> main
         )
 
         # Should handle Unicode data properly
@@ -356,6 +509,7 @@ class TestTokenSecurityEdgeCases:
         large_data = "x" * 50000  # 50KB of data
         payload = {
             "sub": str(user.id),
+<<<<<<< HEAD
             "exp": (datetime.utcnow() + timedelta(hours=1)).timestamp(),
             "large_field": large_data,
         }
@@ -366,6 +520,20 @@ class TestTokenSecurityEdgeCases:
                 payload,
                 current_settings.SECRET_KEY,
                 algorithm=current_settings.ALGORITHM,
+=======
+
+            "exp": (datetime.now(timezone.utc) + timedelta(hours=1)).timestamp(),
+
+            "exp": (datetime.utcnow() + timedelta(hours=1)).timestamp(),
+
+            "large_field": large_data,
+        }
+
+        settings = get_settings()
+        try:
+            large_token = jwt.encode(
+                payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+>>>>>>> main
             )
 
             # Should handle large tokens (within JWT limits)

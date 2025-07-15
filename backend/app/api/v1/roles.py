@@ -8,6 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_active_user, get_db
+from app.core.exceptions import AlreadyExists
 from app.models.user import User
 from app.schemas.common import DeleteResponse, ErrorResponse, PaginatedResponse
 from app.schemas.role import (
@@ -62,7 +63,9 @@ def list_roles(
     if search:
         roles, total = service.search_roles(search, skip, limit, filters)
     else:
-        roles, total = service.list_roles(skip, active_only, limit, organization_id)
+        roles, total = service.list_roles(
+            skip, active_only, limit, organization_id, filters
+        )
 
     # Convert to summary
     items = [service.get_role_summary(role) for role in roles]
@@ -223,7 +226,7 @@ def create_role(
     try:
         role = service.create_role(role_data, created_by=current_user.id)
         return service.get_role_response(role)
-    except ValueError as e:
+    except (ValueError, AlreadyExists) as e:
         return JSONResponse(
             status_code=status.HTTP_409_CONFLICT,
             content=ErrorResponse(detail=str(e), code="DUPLICATE_NAME").model_dump(),
@@ -587,6 +590,6 @@ def get_user_roles(
         )
 
     service = RoleService(db)
-    user_role_responses = service.get_user_roles(user_id)
+    user_role_responses = service.get_user_roles(user_id, organization_id, active_only)
 
     return user_role_responses  # Already UserRoleResponse objects

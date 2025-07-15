@@ -3,7 +3,10 @@
 import io
 from pathlib import Path
 
+<<<<<<< HEAD
 import pytest
+=======
+>>>>>>> main
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
@@ -14,7 +17,10 @@ from tests.conftest import create_auth_headers
 class TestUserProfile:
     """Test cases for user profile endpoints."""
 
+<<<<<<< HEAD
     @pytest.mark.skip(reason="User profile update API needs implementation fixes")
+=======
+>>>>>>> main
     def test_update_profile_success(
         self, client: TestClient, db_session: Session, user_token: str, test_user: User
     ) -> None:

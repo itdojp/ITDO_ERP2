@@ -1,10 +1,18 @@
-"""Alembic environment configuration."""
-
+import os
+import sys
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config, pool
 
 from alembic import context
+
+# Add the app directory to sys.path so we can import our models
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+
+from app.core.config import Settings
+from app.core.database import Base
+
+# Import all models to ensure they are registered with SQLAlchemy
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -21,6 +29,20 @@ from app.models import *  # noqa: F403, F401, E402 - Import all models for autog
 from app.models.base import Base  # noqa: E402
 
 target_metadata = Base.metadata
+
+# Set database URL from settings or environment variable
+database_url = os.getenv("DATABASE_URL")
+if not database_url:
+    try:
+        settings = Settings()
+        if settings.DATABASE_URL:
+            database_url = str(settings.DATABASE_URL)
+    except Exception:
+        # Fallback for testing
+        database_url = "postgresql://postgres:password@localhost:5432/test_db"
+
+if database_url:
+    config.set_main_option("sqlalchemy.url", database_url)
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -59,14 +81,8 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    from app.core.config import settings
-
-    # Override the URL with the settings DATABASE_URL
-    configuration = config.get_section(config.config_ini_section)
-    configuration["sqlalchemy.url"] = str(settings.DATABASE_URL)
-
     connectable = engine_from_config(
-        configuration,
+        config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )

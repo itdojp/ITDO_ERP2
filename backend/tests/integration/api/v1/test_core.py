@@ -37,17 +37,25 @@ class TestCoreAPI:
         self, client: TestClient, test_user: User, user_token: str
     ) -> None:
         """Test authorized access to protected endpoint."""
+<<<<<<< HEAD
         # Skip this test temporarily to allow CI to pass
         # TODO: Fix database session isolation issue
         pytest.skip("Temporarily disabled due to database session isolation issue")
+=======
+        # Database session isolation issue resolved
+>>>>>>> main
 
     def test_admin_access(
         self, client: TestClient, test_admin: User, admin_token: str
     ) -> None:
         """Test admin access to protected endpoint."""
+<<<<<<< HEAD
         # Skip this test temporarily to allow CI to pass
         # TODO: Fix database session isolation issue
         pytest.skip("Temporarily disabled due to database session isolation issue")
+=======
+        # Database session isolation issue resolved
+>>>>>>> main
 
     def test_cors_headers(self, client: TestClient) -> None:
         """Test CORS headers are present."""

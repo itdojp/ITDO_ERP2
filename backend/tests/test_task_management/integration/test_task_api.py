@@ -5,11 +5,20 @@ from datetime import UTC, datetime, timedelta
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from app.main import app
 from app.models.user import User
 
 
 class TestTaskAPI:
     """Integration test suite for Task API endpoints."""
+
+    def setup_method(self):
+        """Set up test fixtures."""
+        self.client = TestClient(app)
+
+    def teardown_method(self):
+        """Clean up after tests."""
+        pass
 
     def test_create_task_api(
         self, client: TestClient, test_user: User, user_token: str, db_session: Session
@@ -41,7 +50,7 @@ class TestTaskAPI:
     def test_list_tasks_api(self):
         """Test TASK-I-002: GET /api/v1/tasks."""
         # Act
-        response = self.client.get("/api/v1/tasks", headers=self.headers)
+        response = TestClient(app).get("/api/v1/tasks")
 
         # Assert
         # This will fail until API is implemented
@@ -61,7 +70,7 @@ class TestTaskAPI:
         task_id = 1
 
         # Act
-        response = self.client.get(f"/api/v1/tasks/{task_id}", headers=self.headers)
+        response = TestClient(app).get(f"/api/v1/tasks/{task_id}")
 
         # Assert
         # This will fail until API is implemented
@@ -81,9 +90,7 @@ class TestTaskAPI:
         update_data = {"title": "更新されたタスク", "description": "更新された説明"}
 
         # Act
-        response = self.client.patch(
-            f"/api/v1/tasks/{task_id}", json=update_data, headers=self.headers
-        )
+        response = TestClient(app).patch(f"/api/v1/tasks/{task_id}", json=update_data)
 
         # Assert
         # This will fail until API is implemented
@@ -101,7 +108,7 @@ class TestTaskAPI:
         task_id = 1
 
         # Act
-        response = self.client.delete(f"/api/v1/tasks/{task_id}", headers=self.headers)
+        response = TestClient(app).delete(f"/api/v1/tasks/{task_id}")
 
         # Assert
         # This will fail until API is implemented
@@ -117,8 +124,8 @@ class TestTaskAPI:
         status_data = {"status": "in_progress", "comment": "作業開始"}
 
         # Act
-        response = self.client.post(
-            f"/api/v1/tasks/{task_id}/status", json=status_data, headers=self.headers
+        response = TestClient(app).post(
+            f"/api/v1/tasks/{task_id}/status", json=status_data
         )
 
         # Assert
@@ -136,9 +143,7 @@ class TestTaskAPI:
         bulk_data = {"task_ids": [1, 2, 3], "status": "completed"}
 
         # Act
-        response = self.client.post(
-            "/api/v1/tasks/bulk/status", json=bulk_data, headers=self.headers
-        )
+        response = TestClient(app).post("/api/v1/tasks/bulk/status", json=bulk_data)
 
         # Assert
         # This will fail until API is implemented
@@ -155,9 +160,7 @@ class TestTaskAPI:
         search_keyword = "テスト"
 
         # Act
-        response = self.client.get(
-            f"/api/v1/tasks?q={search_keyword}", headers=self.headers
-        )
+        response = TestClient(app).get(f"/api/v1/tasks?q={search_keyword}")
 
         # Assert
         # This will fail until API is implemented
@@ -176,22 +179,15 @@ class TestTaskAPIFilters:
     def setup_method(self):
         """Set up test fixtures."""
         self.client = TestClient(app)
-        app.dependency_overrides[get_db] = get_test_db
-
-        self.test_user = create_test_user()
-        self.test_token = create_test_jwt_token(self.test_user)
-        self.headers = {"Authorization": f"Bearer {self.test_token}"}
 
     def teardown_method(self):
         """Clean up after tests."""
-        app.dependency_overrides.clear()
+        pass
 
     def test_filter_by_status(self):
         """Test filtering tasks by status."""
         # Act
-        response = self.client.get(
-            "/api/v1/tasks?status=in_progress", headers=self.headers
-        )
+        response = TestClient(app).get("/api/v1/tasks?status=in_progress")
 
         # Assert
         # This will fail until API is implemented
@@ -206,7 +202,7 @@ class TestTaskAPIFilters:
     def test_filter_by_priority(self):
         """Test filtering tasks by priority."""
         # Act
-        response = self.client.get("/api/v1/tasks?priority=high", headers=self.headers)
+        response = TestClient(app).get("/api/v1/tasks?priority=high")
 
         # Assert
         # This will fail until API is implemented
@@ -221,7 +217,7 @@ class TestTaskAPIFilters:
     def test_filter_by_assignee(self):
         """Test filtering tasks by assignee."""
         # Act
-        response = self.client.get("/api/v1/tasks?assignee_id=2", headers=self.headers)
+        response = TestClient(app).get("/api/v1/tasks?assignee_id=2")
 
         # Assert
         # This will fail until API is implemented
@@ -241,9 +237,8 @@ class TestTaskAPIFilters:
         end_date = (datetime.now(UTC) + timedelta(days=7)).isoformat()
 
         # Act
-        response = self.client.get(
-            f"/api/v1/tasks?due_date_start={start_date}&due_date_end={end_date}",
-            headers=self.headers,
+        response = TestClient(app).get(
+            f"/api/v1/tasks?due_date_start={start_date}&due_date_end={end_date}"
         )
 
         # Assert
@@ -265,20 +260,15 @@ class TestTaskAPIPagination:
     def setup_method(self):
         """Set up test fixtures."""
         self.client = TestClient(app)
-        app.dependency_overrides[get_db] = get_test_db
-
-        self.test_user = create_test_user()
-        self.test_token = create_test_jwt_token(self.test_user)
-        self.headers = {"Authorization": f"Bearer {self.test_token}"}
 
     def teardown_method(self):
         """Clean up after tests."""
-        app.dependency_overrides.clear()
+        pass
 
     def test_pagination_default(self):
         """Test default pagination settings."""
         # Act
-        response = self.client.get("/api/v1/tasks", headers=self.headers)
+        response = TestClient(app).get("/api/v1/tasks")
 
         # Assert
         # This will fail until API is implemented
@@ -293,7 +283,7 @@ class TestTaskAPIPagination:
     def test_pagination_custom_page_size(self):
         """Test custom page size."""
         # Act
-        response = self.client.get("/api/v1/tasks?page_size=5", headers=self.headers)
+        response = TestClient(app).get("/api/v1/tasks?page_size=5")
 
         # Assert
         # This will fail until API is implemented
@@ -308,9 +298,7 @@ class TestTaskAPIPagination:
     def test_pagination_second_page(self):
         """Test accessing second page."""
         # Act
-        response = self.client.get(
-            "/api/v1/tasks?page=2&page_size=10", headers=self.headers
-        )
+        response = TestClient(app).get("/api/v1/tasks?page=2&page_size=10")
 
         # Assert
         # This will fail until API is implemented
@@ -329,21 +317,16 @@ class TestTaskAPISorting:
     def setup_method(self):
         """Set up test fixtures."""
         self.client = TestClient(app)
-        app.dependency_overrides[get_db] = get_test_db
-
-        self.test_user = create_test_user()
-        self.test_token = create_test_jwt_token(self.test_user)
-        self.headers = {"Authorization": f"Bearer {self.test_token}"}
 
     def teardown_method(self):
         """Clean up after tests."""
-        app.dependency_overrides.clear()
+        pass
 
     def test_sort_by_created_at(self):
         """Test sorting by creation date."""
         # Act
-        response = self.client.get(
-            "/api/v1/tasks?sort_by=created_at&sort_order=desc", headers=self.headers
+        response = TestClient(app).get(
+            "/api/v1/tasks?sort_by=created_at&sort_order=desc"
         )
 
         # Assert
@@ -360,9 +343,7 @@ class TestTaskAPISorting:
     def test_sort_by_priority(self):
         """Test sorting by priority."""
         # Act
-        response = self.client.get(
-            "/api/v1/tasks?sort_by=priority&sort_order=asc", headers=self.headers
-        )
+        response = TestClient(app).get("/api/v1/tasks?sort_by=priority&sort_order=asc")
 
         # Assert
         # This will fail until API is implemented
@@ -375,9 +356,7 @@ class TestTaskAPISorting:
     def test_sort_by_due_date(self):
         """Test sorting by due date."""
         # Act
-        response = self.client.get(
-            "/api/v1/tasks?sort_by=due_date&sort_order=asc", headers=self.headers
-        )
+        response = TestClient(app).get("/api/v1/tasks?sort_by=due_date&sort_order=asc")
 
         # Assert
         # This will fail until API is implemented

@@ -3,10 +3,6 @@
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, Optional
 
-if TYPE_CHECKING:
-    from app.models.user_preferences import UserPreferences
-    from app.models.user_privacy import UserPrivacySettings
-
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, desc, func
 from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
 
@@ -20,6 +16,9 @@ if TYPE_CHECKING:
     from app.models.role import Role, UserRole
     from app.models.task import Task
     from app.models.user_activity_log import UserActivityLog
+    from app.models.user_organization import UserOrganization
+    from app.models.user_preferences import UserPreferences
+    from app.models.user_privacy import UserPrivacySettings
     from app.models.user_session import UserSession
 
 # Re-export for backwards compatibility
@@ -47,6 +46,11 @@ class User(SoftDeletableModel):
     organization_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("organizations.id"), nullable=True
     )
+
+    # Profile fields
+    bio: Mapped[str | None] = mapped_column(String(500))
+    location: Mapped[str | None] = mapped_column(String(100))
+    website: Mapped[str | None] = mapped_column(String(255))
 
     # Security fields
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -86,6 +90,7 @@ class User(SoftDeletableModel):
         "Task", foreign_keys="Task.reporter_id", back_populates="reporter"
     )
 
+<<<<<<< HEAD
     # User preferences relationship
     preferences: Mapped["UserPreferences"] = relationship(
         "UserPreferences", back_populates="user", uselist=False
@@ -94,6 +99,28 @@ class User(SoftDeletableModel):
     # User privacy settings relationship
     privacy_settings: Mapped["UserPrivacySettings"] = relationship(
         "UserPrivacySettings", back_populates="user", uselist=False
+=======
+    # User preferences and privacy settings
+    preferences: Mapped["UserPreferences | None"] = relationship(
+        "UserPreferences",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+    privacy_settings: Mapped["UserPrivacySettings | None"] = relationship(
+        "UserPrivacySettings",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+
+    # Multi-tenant organization relationships
+    organization_memberships: Mapped[list["UserOrganization"]] = relationship(
+        "UserOrganization",
+        foreign_keys="UserOrganization.user_id",
+        back_populates="user",
+        cascade="all, delete-orphan",
+>>>>>>> main
     )
 
     @classmethod
@@ -396,8 +423,9 @@ class User(SoftDeletableModel):
                 user_role.organization_id == organization_id
                 and not user_role.is_expired
             ):
-                # Handle permissions stored as JSON
+                # Handle permissions from role - use many-to-many relationship
                 if user_role.role and user_role.role.permissions:
+<<<<<<< HEAD
                     # If permissions is a dict, extract permission codes
                     if isinstance(user_role.role.permissions, dict):
                         # Handle various dict structures
@@ -414,6 +442,11 @@ class User(SoftDeletableModel):
                                     permissions.update(value)
                                 elif isinstance(value, str) and ":" in value:
                                     permissions.add(value)
+=======
+                    # permissions is a list of Permission objects through many-to-many
+                    for permission in user_role.role.permissions:
+                        permissions.add(permission.code)
+>>>>>>> main
 
         return list(permissions)
 
@@ -436,10 +469,11 @@ class User(SoftDeletableModel):
         """Check if user has permission in department."""
         for user_role in self.user_roles:
             if user_role.department_id == department_id and not user_role.is_expired:
-                # TODO: Implement role permission checking
-                # if user_role.role.has_permission(permission):
-                #     return True
-                pass
+                # Check if role has permission
+                if user_role.role and user_role.role.permissions:
+                    for perm in user_role.role.permissions:
+                        if perm.code == permission:
+                            return True
         return False
 
     def can_access_user(self, target_user: "User") -> bool:
@@ -588,6 +622,18 @@ class User(SoftDeletableModel):
     def assign_role_to_self(self, role: "Role", organization: "Organization") -> None:
         """Attempt to assign role to self (should fail for security)."""
         raise PermissionDenied("ユーザーは自分自身にロールを割り当てることはできません")
+
+    def is_online(self) -> bool:
+        """Check if user is currently online (active within last 15 minutes)."""
+        if not self.last_login_at:
+            return False
+
+        from datetime import datetime, timedelta, timezone
+
+        now = datetime.now(timezone.utc)
+        online_threshold = now - timedelta(minutes=15)
+
+        return self.last_login_at > online_threshold
 
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email={self.email})>"

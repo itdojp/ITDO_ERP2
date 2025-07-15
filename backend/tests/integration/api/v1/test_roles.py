@@ -81,6 +81,12 @@ class TestRoleAPI(
     @pytest.mark.skip(
         reason="Role create endpoint not working properly in test environment"
     )
+<<<<<<< HEAD
+=======
+
+    # Override base test method to provide organization_id
+
+>>>>>>> main
     def test_create_endpoint_success(
         self, client: TestClient, admin_token: str, test_organization: Organization
     ) -> None:
@@ -101,7 +107,14 @@ class TestRoleAPI(
         validated_data = self.response_schema_class.model_validate(data)
         assert validated_data.name == payload["name"]
 
+<<<<<<< HEAD
     @pytest.mark.skip(reason="Role permission check not working properly in PostgreSQL")
+=======
+
+    @pytest.mark.skip(reason="Role permission check not working properly in PostgreSQL")
+
+
+>>>>>>> main
     def test_create_endpoint_forbidden(
         self, client: TestClient, user_token: str, test_organization: Organization
     ) -> None:
@@ -116,7 +129,14 @@ class TestRoleAPI(
 
         assert response.status_code == 403
 
+<<<<<<< HEAD
     @pytest.mark.skip(reason="Role permission check not working properly in PostgreSQL")
+=======
+
+    @pytest.mark.skip(reason="Role permission check not working properly in PostgreSQL")
+
+
+>>>>>>> main
     def test_update_endpoint_forbidden(
         self,
         client: TestClient,
@@ -141,7 +161,14 @@ class TestRoleAPI(
         # Should be forbidden unless user has specific permissions
         assert response.status_code in [403, 404]
 
+<<<<<<< HEAD
     @pytest.mark.skip(reason="Role permission check not working properly in PostgreSQL")
+=======
+
+    @pytest.mark.skip(reason="Role permission check not working properly in PostgreSQL")
+
+
+>>>>>>> main
     def test_delete_endpoint_forbidden(
         self,
         client: TestClient,
@@ -269,6 +296,10 @@ class TestRoleAPI(
         assert response.status_code == 200
         data = response.json()
         assert "permission_list" in data
+<<<<<<< HEAD
+=======
+
+>>>>>>> main
         assert isinstance(data["permission_list"], list)
 
         # Admin should have many permissions
@@ -281,6 +312,14 @@ class TestRoleAPI(
             assert "code" in perm
             assert "name" in perm
             assert "category" in perm
+<<<<<<< HEAD
+=======
+
+
+        # Admin should have many permissions
+        assert len(data["permission_list"]) > 0
+
+>>>>>>> main
 
     def test_get_role_permissions_include_inherited(
         self, client: TestClient, test_role_system: dict[str, Any], admin_token: str
@@ -307,6 +346,10 @@ class TestRoleAPI(
         data_without_inherited = response.json()
 
         # With inherited should have more or equal permissions
+<<<<<<< HEAD
+=======
+
+>>>>>>> main
         # Count permission codes from permission_list
         codes_with_inherited = {
             p["code"] for p in data_with_inherited.get("permission_list", [])
@@ -316,6 +359,14 @@ class TestRoleAPI(
         }
 
         assert len(codes_with_inherited) >= len(codes_without_inherited)
+<<<<<<< HEAD
+=======
+
+        assert len(data_with_inherited["permission_list"]) >= len(
+            data_without_inherited["permission_list"]
+        )
+>>>>>>> main
+
 
     def test_update_role_permissions(
         self,
@@ -349,13 +400,27 @@ class TestRoleAPI(
         )
 
         permissions_data = permissions_response.json()
+<<<<<<< HEAD
+=======
+
+>>>>>>> main
         # Check if permissions were assigned - exact structure may vary
         assert permissions_response.status_code == 200
         # Basic validation that response contains permission data
         assert (
             "permissions" in permissions_data or "permission_list" in permissions_data
         )
+<<<<<<< HEAD
 
+=======
+
+        assigned_codes = [perm["code"] for perm in permissions_data["permission_list"]]
+
+        for code in permission_codes:
+            assert code in assigned_codes
+
+
+>>>>>>> main
     @pytest.mark.skip(reason="Role permissions validation needs API implementation fix")
     def test_update_role_permissions_invalid_codes(
         self,
@@ -394,7 +459,11 @@ class TestRoleAPI(
         role = RoleFactory.create_with_organization(db_session, test_organization)
         user = UserFactory.create(db_session)
 
-        assignment_data = {"user_id": user.id, "role_id": role.id}
+        assignment_data = {
+            "user_id": user.id,
+            "role_id": role.id,
+            "organization_id": test_organization.id,
+        }
 
         response = client.post(
             f"{self.endpoint_prefix}/assign",
@@ -402,10 +471,13 @@ class TestRoleAPI(
             headers=create_auth_headers(admin_token),
         )
 
+        if response.status_code != 201:
+            print(f"Response status: {response.status_code}")
+            print(f"Response body: {response.text}")
         assert response.status_code == 201
         data = response.json()
         assert data["user_id"] == user.id
-        assert data["role_id"] == role.id
+        assert data["role"]["id"] == role.id
         assert data["is_active"] is True
 
     @pytest.mark.skip(reason="Role assignment API needs schema validation fixes")
@@ -421,7 +493,11 @@ class TestRoleAPI(
         role = RoleFactory.create_with_organization(db_session, test_organization)
         user = UserFactory.create(db_session)
 
-        assignment_data = {"user_id": user.id, "role_id": role.id}
+        assignment_data = {
+            "user_id": user.id,
+            "role_id": role.id,
+            "organization_id": test_organization.id,
+        }
 
         # First assignment should succeed
         response = client.post(
@@ -455,7 +531,11 @@ class TestRoleAPI(
         user = UserFactory.create(db_session)
 
         # First assign the role
-        assignment_data = {"user_id": user.id, "role_id": role.id}
+        assignment_data = {
+            "user_id": user.id,
+            "role_id": role.id,
+            "organization_id": test_organization.id,
+        }
 
         assign_response = client.post(
             f"{self.endpoint_prefix}/assign",
@@ -507,11 +587,18 @@ class TestRoleAPI(
 
         # Assign both roles to user
         for role in [role1, role2]:
-            assignment_data = {"user_id": user.id, "role_id": role.id}
-            client.post(
+            assignment_data = {
+                "user_id": user.id,
+                "role_id": role.id,
+                "organization_id": test_organization.id,
+            }
+            assign_response = client.post(
                 f"{self.endpoint_prefix}/assign",
                 json=assignment_data,
                 headers=create_auth_headers(admin_token),
+            )
+            assert assign_response.status_code == 201, (
+                f"Assignment failed: {assign_response.text}"
             )
 
         # Get user roles
@@ -525,7 +612,7 @@ class TestRoleAPI(
         assert len(data) == 2
 
         # Verify both roles are returned
-        role_ids = [assignment["role_id"] for assignment in data]
+        role_ids = [assignment["role"]["id"] for assignment in data]
         assert role1.id in role_ids
         assert role2.id in role_ids
 
@@ -545,7 +632,11 @@ class TestRoleAPI(
 
         # Assign both roles to user
         for role in [role1, role2]:
-            assignment_data = {"user_id": user.id, "role_id": role.id}
+            assignment_data = {
+                "user_id": user.id,
+                "role_id": role.id,
+                "organization_id": role.organization_id,
+            }
             client.post(
                 f"{self.endpoint_prefix}/assign",
                 json=assignment_data,
@@ -561,7 +652,7 @@ class TestRoleAPI(
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 1
-        assert data[0]["role_id"] == role1.id
+        assert data[0]["role"]["id"] == role1.id
 
     @pytest.mark.skip(reason="Role creation API needs implementation fixes")
     def test_create_role_with_parent(
@@ -654,6 +745,10 @@ class TestRoleAPI(
         role = RoleFactory.create_with_organization(db_session, test_organization)
         user = UserFactory.create(db_session)
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> main
         # For now, create the role assignment directly in the database
         # to bypass the response schema issues
         from app.models.role import UserRole
@@ -666,6 +761,21 @@ class TestRoleAPI(
             is_active=True,
             created_by=1,
             updated_by=1,
+<<<<<<< HEAD
+=======
+
+        # Assign role to user
+        assignment_data = {
+            "user_id": user.id,
+            "role_id": role.id,
+            "organization_id": test_organization.id,
+        }
+        client.post(
+            f"{self.endpoint_prefix}/assign",
+            json=assignment_data,
+            headers=create_auth_headers(admin_token),
+
+>>>>>>> main
         )
         db_session.add(user_role)
         db_session.commit()
@@ -781,7 +891,11 @@ class TestRolePermissions:
         assert response.status_code == 403
 
         # Test assign permission
-        assignment_data = {"user_id": user.id, "role_id": role.id}
+        assignment_data = {
+            "user_id": user.id,
+            "role_id": role.id,
+            "organization_id": test_organization.id,
+        }
         response = client.post(
             "/api/v1/roles/assign",
             json=assignment_data,

@@ -1,7 +1,7 @@
 """Task management service."""
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Dict, Optional
 
 from sqlalchemy.orm import Session, joinedload
 
@@ -20,10 +20,47 @@ from app.schemas.task import (
     TaskStatusUpdate,
     TaskUpdate,
 )
+from app.services.audit import AuditLogger
+from app.services.permission import permission_service
 
 
 class TaskService:
     """Service for managing tasks."""
+
+    def _log_task_change(
+        self,
+        action: str,
+        task: Task,
+        user: User,
+        db: Session,
+        old_values: Optional[Dict[str, Any]] = None,
+        new_values: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """Log task changes to audit log."""
+        changes = {}
+
+        if old_values and new_values:
+            # Record specific field changes
+            for field, new_value in new_values.items():
+                old_value = old_values.get(field)
+                if old_value != new_value:
+                    changes[field] = {"old": old_value, "new": new_value}
+        elif new_values:
+            # For creation, record all values
+            changes = {"created": new_values}
+        elif old_values:
+            # For deletion, record deleted values
+            changes = {"deleted": old_values}
+
+        AuditLogger.log(
+            action=action,
+            resource_type="task",
+            resource_id=task.id,
+            user=user,
+            changes=changes,
+            db=db,
+            organization_id=getattr(user, "organization_id", None),
+        )
 
     def create_task(
         self, task_data: TaskCreate, user: User, db: Session
@@ -34,10 +71,20 @@ class TaskService:
         if not project:
             raise NotFound("Project not found")
 
-        # TODO: Check project access permissions
-        # For now, just check if user is active
-        if not user.is_active:
-            raise PermissionDenied("User is not active")
+        # Check task creation permissions
+        permission_service.require_permission(
+            user, "task.create", organization_id=user.organization_id, db=db
+        )
+
+        # Check project access permissions
+        permission_service.require_permission(
+            user, "project.view", organization_id=user.organization_id, db=db
+        )
+
+        # Check if user has project access through roles
+        user_org_ids = [org.id for org in user.get_organizations()]
+        if project.organization_id not in user_org_ids:
+            raise PermissionDenied("User does not have access to this project")
 
         # Create task
         task = Task(
@@ -59,6 +106,24 @@ class TaskService:
         db.commit()
         db.refresh(task)
 
+        # Log task creation
+        self._log_task_change(
+            action="create",
+            task=task,
+            user=user,
+            db=db,
+            new_values={
+                "title": task.title,
+                "description": task.description,
+                "status": task.status,
+                "priority": task.priority,
+                "project_id": task.project_id,
+                "assignee_id": task.assignee_id,
+                "due_date": task.due_date.isoformat() if task.due_date else None,
+                "estimated_hours": task.estimated_hours,
+            },
+        )
+
         return self._task_to_response(task)
 
     def get_task(self, task_id: int, user: User, db: Session) -> TaskResponse:
@@ -77,10 +142,21 @@ class TaskService:
         if not task:
             raise NotFound("Task not found")
 
-        # TODO: Check task access permissions
-        # For now, just check if user is active
-        if not user.is_active:
-            raise PermissionDenied("User is not active")
+        # Check task view permissions
+        # User can view tasks they created or are assigned to (owner-based access)
+        # or if they have general task.view permission
+        has_general_permission = permission_service.has_permission(
+            user, "task.view", organization_id=user.organization_id, db=db
+        )
+        is_task_owner = task.reporter_id == user.id or task.assignee_id == user.id
+
+        if not has_general_permission and not is_task_owner:
+            raise PermissionDenied("No access to this task")
+
+        # Check if user has access to the task's project
+        user_org_ids = [org.id for org in user.get_organizations()]
+        if task.project.organization_id not in user_org_ids:
+            raise PermissionDenied("User does not have access to this task")
 
         return self._task_to_response(task)
 
@@ -92,13 +168,31 @@ class TaskService:
         if not task:
             raise NotFound("Task not found")
 
-        # TODO: Check task update permissions
-        # For now, just check if user is active
-        if not user.is_active:
-            raise PermissionDenied("User is not active")
+        # Check task update permissions
+        # User can update tasks they created or are assigned to (owner-based access)
+        # or if they have general task.edit permission
+        has_general_permission = permission_service.has_permission(
+            user, "task.edit", organization_id=user.organization_id, db=db
+        )
+        is_task_owner = task.reporter_id == user.id or task.assignee_id == user.id
+
+        if not has_general_permission and not is_task_owner:
+            raise PermissionDenied("No permission to update this task")
+
+        # Capture old values for audit log
+        old_values = {
+            "title": task.title,
+            "description": task.description,
+            "status": task.status,
+            "priority": task.priority,
+            "assignee_id": task.assignee_id,
+            "due_date": task.due_date.isoformat() if task.due_date else None,
+            "estimated_hours": task.estimated_hours,
+        }
 
         # Update fields
-        for field, value in update_data.model_dump(exclude_unset=True).items():
+        update_dict = update_data.model_dump(exclude_unset=True)
+        for field, value in update_dict.items():
             setattr(task, field, value)
 
         task.updated_by = user.id
@@ -106,6 +200,27 @@ class TaskService:
 
         db.commit()
         db.refresh(task)
+
+        # Capture new values for audit log
+        new_values = {
+            "title": task.title,
+            "description": task.description,
+            "status": task.status,
+            "priority": task.priority,
+            "assignee_id": task.assignee_id,
+            "due_date": task.due_date.isoformat() if task.due_date else None,
+            "estimated_hours": task.estimated_hours,
+        }
+
+        # Log task update
+        self._log_task_change(
+            action="update",
+            task=task,
+            user=user,
+            db=db,
+            old_values=old_values,
+            new_values=new_values,
+        )
 
         return self._task_to_response(task)
 
@@ -115,10 +230,47 @@ class TaskService:
         if not task:
             raise NotFound("Task not found")
 
-        # TODO: Check task delete permissions
-        # For now, just check if user is active
-        if not user.is_active:
-            raise PermissionDenied("User is not active")
+        # Check task delete permissions
+        # Only users with task.delete permission or task creators can delete tasks
+        has_delete_permission = permission_service.has_permission(
+            user, "task.delete", organization_id=user.organization_id, db=db
+        )
+        is_task_creator = task.reporter_id == user.id
+
+        if not has_delete_permission and not is_task_creator:
+            raise PermissionDenied("No permission to delete this task")
+
+        # Capture task values before deletion for audit log
+        old_values = {
+            "title": task.title,
+            "description": task.description,
+            "status": task.status,
+            "priority": task.priority,
+            "project_id": task.project_id,
+            "assignee_id": task.assignee_id,
+            "due_date": task.due_date.isoformat() if task.due_date else None,
+            "estimated_hours": task.estimated_hours,
+        }
+
+        # Check if user can delete this task
+        # Users can delete tasks if they are:
+        # 1. The task creator/reporter
+        # 2. The task assignee
+        # 3. Have 'task.delete' permission in the task's project organization
+        can_delete = (
+            task.reporter_id == user.id
+            or task.assignee_id == user.id
+            or user.is_superuser
+        )
+
+        # Check organization-level permissions if user is not directly involved
+        if not can_delete and task.project and task.project.organization_id:
+            can_delete = user.has_permission(
+                "task.delete", task.project.organization_id
+            )
+
+        if not can_delete:
+            raise PermissionDenied("Insufficient permissions to delete this task")
 
         # Soft delete
         task.deleted_at = datetime.utcnow()
@@ -126,6 +278,16 @@ class TaskService:
         task.is_deleted = True
 
         db.commit()
+
+        # Log task deletion
+        self._log_task_change(
+            action="delete",
+            task=task,
+            user=user,
+            db=db,
+            old_values=old_values,
+        )
+
         return True
 
     def list_tasks(
@@ -144,6 +306,18 @@ class TaskService:
             joinedload(Task.assignee),
             joinedload(Task.reporter),
         )
+
+        # Apply permission-based filtering
+        # If user doesn't have general task.view permission, only show their own tasks
+        has_general_permission = permission_service.has_permission(
+            user, "task.view", organization_id=user.organization_id, db=db
+        )
+
+        if not has_general_permission:
+            # Filter to only tasks user created or is assigned to
+            query = query.filter(
+                (Task.reporter_id == user.id) | (Task.assignee_id == user.id)
+            )
 
         # Apply filters
         if filters.get("project_id"):
@@ -193,9 +367,40 @@ class TaskService:
         if not task:
             raise NotFound("Task not found")
 
-        # TODO: Check task update permissions
-        if not user.is_active:
-            raise PermissionDenied("User is not active")
+        # Check task update permissions
+        # User can update status of tasks they created or are assigned to
+        # (owner-based access)
+        # or if they have general task.edit permission
+        has_general_permission = permission_service.has_permission(
+            user, "task.edit", organization_id=user.organization_id, db=db
+        )
+        is_task_owner = task.reporter_id == user.id or task.assignee_id == user.id
+
+        if not has_general_permission and not is_task_owner:
+            raise PermissionDenied("No permission to update this task status")
+
+        # Capture old status for audit log
+        old_status = task.status
+
+        # Check if user can update this task
+        # Users can update tasks if they are:
+        # 1. The task creator/reporter
+        # 2. The task assignee
+        # 3. Have 'task.update' permission in the task's project organization
+        can_update = (
+            task.reporter_id == user.id
+            or task.assignee_id == user.id
+            or user.is_superuser
+        )
+
+        # Check organization-level permissions if user is not directly involved
+        if not can_update and task.project and task.project.organization_id:
+            can_update = user.has_permission(
+                "task.update", task.project.organization_id
+            )
+
+        if not can_update:
+            raise PermissionDenied("Insufficient permissions to update this task")
 
         # Update status
         task.status = status_update.status.value
@@ -208,22 +413,68 @@ class TaskService:
         db.commit()
         db.refresh(task)
 
+        # Log status change
+        self._log_task_change(
+            action="update_status",
+            task=task,
+            user=user,
+            db=db,
+            old_values={"status": old_status},
+            new_values={"status": status_update.status.value},
+        )
+
         return self._task_to_response(task)
 
     def get_task_history(
         self, task_id: int, user: User, db: Session
     ) -> TaskHistoryResponse:
         """Get task change history."""
-        # For now, return empty history
-        # TODO: Implement actual audit log retrieval
         task = db.query(Task).filter(Task.id == task_id).first()
         if not task:
             raise NotFound("Task not found")
 
-        if not user.is_active:
-            raise PermissionDenied("User is not active")
+        # Check task view permissions
+        # User can view history of tasks they created or are assigned to
+        # (owner-based access)
+        # or if they have general task.view permission
+        has_general_permission = permission_service.has_permission(
+            user, "task.view", organization_id=user.organization_id, db=db
+        )
+        is_task_owner = task.reporter_id == user.id or task.assignee_id == user.id
 
-        return TaskHistoryResponse(items=[], total=0)
+        if not has_general_permission and not is_task_owner:
+            raise PermissionDenied("No access to this task history")
+
+        # Get audit logs for this task
+        from app.models.audit import AuditLog
+
+        audit_logs = (
+            db.query(AuditLog)
+            .filter(AuditLog.resource_type == "task", AuditLog.resource_id == task_id)
+            .order_by(AuditLog.created_at.desc())
+            .all()
+        )
+
+        # Convert audit logs to history items
+        from app.schemas.task import TaskHistoryItem
+
+        history_items = []
+        for log in audit_logs:
+            # Get user info for the log
+            log_user = db.query(User).filter(User.id == log.user_id).first()
+            user_name = log_user.full_name if log_user else "Unknown User"
+
+            history_items.append(
+                TaskHistoryItem(
+                    id=log.id,
+                    action=log.action,
+                    user_name=user_name,
+                    timestamp=log.created_at,
+                    changes=log.changes or {},
+                )
+            )
+
+        return TaskHistoryResponse(items=history_items, total=len(history_items))
 
     def assign_user(
         self, task_id: int, assignee_id: int, user: User, db: Session
@@ -240,9 +491,41 @@ class TaskService:
         if not assignee:
             raise NotFound("User not found")
 
-        # TODO: Check assignment permissions
-        if not user.is_active:
-            raise PermissionDenied("User is not active")
+        # Check assignment permissions
+        # User can assign tasks they created or if they have task.edit permission
+        has_general_permission = permission_service.has_permission(
+            user, "task.edit", organization_id=user.organization_id, db=db
+        )
+        is_task_creator = task.reporter_id == user.id
+
+        if not has_general_permission and not is_task_creator:
+            raise PermissionDenied("No permission to assign this task")
+
+        # Check if assignee is in the same organization
+        if hasattr(assignee, "organization_id") and hasattr(user, "organization_id"):
+            if assignee.organization_id != user.organization_id:
+                raise PermissionDenied(
+                    "Cannot assign task to user from different organization"
+                )
+
+        # Capture old assignee for audit log
+        old_assignee_id = task.assignee_id
+
+        # Check if user can assign this task
+        # Users can assign tasks if they are:
+        # 1. The task creator/reporter
+        # 2. Have 'task.assign' permission in the task's project organization
+        # 3. Are a project manager or have management role
+        can_assign = task.reporter_id == user.id or user.is_superuser
+
+        # Check organization-level permissions
+        if not can_assign and task.project and task.project.organization_id:
+            can_assign = user.has_permission(
+                "task.assign", task.project.organization_id
+            )
+
+        if not can_assign:
+            raise PermissionDenied("Insufficient permissions to assign this task")
 
         task.assignee_id = assignee_id
         task.updated_by = user.id
@@ -250,6 +533,16 @@ class TaskService:
 
         db.commit()
         db.refresh(task)
+
+        # Log assignment change
+        self._log_task_change(
+            action="assign_user",
+            task=task,
+            user=user,
+            db=db,
+            old_values={"assignee_id": old_assignee_id},
+            new_values={"assignee_id": assignee_id},
+        )
 
         return self._task_to_response(task)
 
@@ -261,12 +554,41 @@ class TaskService:
         if not task:
             raise NotFound("Task not found")
 
-        # TODO: Check unassignment permissions
-        if not user.is_active:
-            raise PermissionDenied("User is not active")
+        # Check unassignment permissions
+        # User can unassign tasks they created or if they have task.edit permission
+        has_general_permission = permission_service.has_permission(
+            user, "task.edit", organization_id=user.organization_id, db=db
+        )
+        is_task_creator = task.reporter_id == user.id
+
+        if not has_general_permission and not is_task_creator:
+            raise PermissionDenied("No permission to unassign this task")
+
+        # Check if user can unassign this task
+        # Users can unassign tasks if they are:
+        # 1. The task creator/reporter
+        # 2. The currently assigned user (self-unassignment)
+        # 3. Have 'task.assign' permission in the task's project organization
+        can_unassign = (
+            task.reporter_id == user.id
+            or task.assignee_id == user.id
+            or user.is_superuser
+        )
+
+        # Check organization-level permissions
+        if not can_unassign and task.project and task.project.organization_id:
+            can_unassign = user.has_permission(
+                "task.assign", task.project.organization_id
+            )
+
+        if not can_unassign:
+            raise PermissionDenied("Insufficient permissions to unassign this task")
 
         if task.assignee_id != assignee_id:
             raise BusinessLogicError("User is not assigned to this task")
+
+        # Capture old assignee for audit log
+        old_assignee_id = task.assignee_id
 
         task.assignee_id = None
         task.updated_by = user.id
@@ -274,6 +596,16 @@ class TaskService:
 
         db.commit()
         db.refresh(task)
+
+        # Log unassignment change
+        self._log_task_change(
+            action="unassign_user",
+            task=task,
+            user=user,
+            db=db,
+            old_values={"assignee_id": old_assignee_id},
+            new_values={"assignee_id": None},
+        )
 
         return self._task_to_response(task)
 
@@ -295,9 +627,37 @@ class TaskService:
         if not task:
             raise NotFound("Task not found")
 
-        # TODO: Check task update permissions
-        if not user.is_active:
-            raise PermissionDenied("User is not active")
+        # Check task update permissions
+        # User can update due date of tasks they created or are assigned to
+        # (owner-based access)
+        # or if they have general task.edit permission
+        has_general_permission = permission_service.has_permission(
+            user, "task.edit", organization_id=user.organization_id, db=db
+        )
+        is_task_owner = task.reporter_id == user.id or task.assignee_id == user.id
+
+        if not has_general_permission and not is_task_owner:
+            raise PermissionDenied("No permission to update this task due date")
+
+        # Check if user can update this task
+        # Users can update tasks if they are:
+        # 1. The task creator/reporter
+        # 2. The task assignee
+        # 3. Have 'task.update' permission in the task's project organization
+        can_update = (
+            task.reporter_id == user.id
+            or task.assignee_id == user.id
+            or user.is_superuser
+        )
+
+        # Check organization-level permissions if user is not directly involved
+        if not can_update and task.project and task.project.organization_id:
+            can_update = user.has_permission(
+                "task.update", task.project.organization_id
+            )
+
+        if not can_update:
+            raise PermissionDenied("Insufficient permissions to update this task")
 
         task.due_date = due_date
         task.updated_by = user.id
@@ -355,9 +715,37 @@ class TaskService:
                 f"Invalid priority. Must be one of: {valid_priorities}"
             )
 
-        # TODO: Check task update permissions
-        if not user.is_active:
-            raise PermissionDenied("User is not active")
+        # Check task update permissions
+        # User can update priority of tasks they created or are assigned to
+        # (owner-based access)
+        # or if they have general task.edit permission
+        has_general_permission = permission_service.has_permission(
+            user, "task.edit", organization_id=user.organization_id, db=db
+        )
+        is_task_owner = task.reporter_id == user.id or task.assignee_id == user.id
+
+        if not has_general_permission and not is_task_owner:
+            raise PermissionDenied("No permission to update this task priority")
+
+        # Check if user can update this task
+        # Users can update tasks if they are:
+        # 1. The task creator/reporter
+        # 2. The task assignee
+        # 3. Have 'task.update' permission in the task's project organization
+        can_update = (
+            task.reporter_id == user.id
+            or task.assignee_id == user.id
+            or user.is_superuser
+        )
+
+        # Check organization-level permissions if user is not directly involved
+        if not can_update and task.project and task.project.organization_id:
+            can_update = user.has_permission(
+                "task.update", task.project.organization_id
+            )
+
+        if not can_update:
+            raise PermissionDenied("Insufficient permissions to update this task")
 
         task.priority = priority
         task.updated_by = user.id
@@ -479,9 +867,16 @@ class TaskService:
         """Search tasks by keyword."""
         from sqlalchemy import or_
 
-        # TODO: Check search permissions
+        # Check search permissions
         if not user.is_active:
             raise PermissionDenied("User is not active")
+
+        # Users can search tasks in organizations they belong to
+        user_org_ids = [org.id for org in user.get_organizations()]
+        if not user_org_ids and not user.is_superuser:
+            raise PermissionDenied(
+                "User must belong to at least one organization to search tasks"
+            )
 
         # Search in title and description
         search_filter = or_(
@@ -589,7 +984,7 @@ class TaskService:
             estimated_hours=task.estimated_hours,
             actual_hours=task.actual_hours,
             assignees=assignees,
-            tags=[],  # TODO: Implement tags
+            tags=getattr(task, "tags", []) or [],
             created_at=task.created_at,
             updated_at=task.updated_at,
             created_by=created_by,

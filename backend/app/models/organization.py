@@ -12,6 +12,10 @@ if TYPE_CHECKING:
     from app.models.department import Department
     from app.models.role import Role
     from app.models.user import User
+    from app.models.user_organization import (
+        OrganizationInvitation,
+        UserOrganization,
+    )
 
 
 class Organization(SoftDeletableModel):
@@ -125,12 +129,6 @@ class Organization(SoftDeletableModel):
         lazy="dynamic",
         cascade="all, delete-orphan",
     )
-    roles: Mapped[list["Role"]] = relationship(
-        "Role",
-        back_populates="organization",
-        lazy="dynamic",
-        cascade="all, delete-orphan",
-    )
     users: Mapped[list["User"]] = relationship(
         "User",
         secondary="user_roles",
@@ -138,6 +136,26 @@ class Organization(SoftDeletableModel):
         secondaryjoin="UserRole.user_id == User.id",
         viewonly=True,
         lazy="dynamic",
+    )
+    roles: Mapped[list["Role"]] = relationship(
+        "Role",
+        back_populates="organization",
+        lazy="dynamic",
+        cascade="all, delete-orphan",
+    )
+
+    # Multi-tenant user relationships
+    user_memberships: Mapped[list["UserOrganization"]] = relationship(
+        "UserOrganization",
+        foreign_keys="UserOrganization.organization_id",
+        back_populates="organization",
+        cascade="all, delete-orphan",
+    )
+    invitations: Mapped[list["OrganizationInvitation"]] = relationship(
+        "OrganizationInvitation",
+        foreign_keys="OrganizationInvitation.organization_id",
+        back_populates="organization",
+        cascade="all, delete-orphan",
     )
 
     def __repr__(self) -> str:

@@ -48,8 +48,25 @@ class TestOrganizationAPI(
         """Schema class for API responses."""
         return OrganizationResponse
 
+<<<<<<< HEAD
     # Use inherited test_create_endpoint_success from BaseAPITestCase
 
+=======
+
+    # Use inherited test_create_endpoint_success from BaseAPITestCase
+
+    def create_valid_payload(self, **overrides):
+        """Create a valid payload for create operations."""
+        payload = super().create_valid_payload(**overrides)
+        # Convert settings from JSON string to dict for API
+        if "settings" in payload and isinstance(payload["settings"], str):
+            import json
+
+            payload["settings"] = json.loads(payload["settings"])
+        return payload
+
+
+>>>>>>> main
     # Custom test methods specific to Organization API
 
     def test_tree_endpoint_success(

@@ -51,10 +51,19 @@ class DepartmentFactory(BaseFactory):
             ),
             "budget": fake.random_int(min=1000000, max=50000000),
             "display_order": fake.random_int(min=1, max=100),
+            "level": 1,
+            "path": "",
+            "sort_order": fake.random_int(min=1, max=100),
             "is_active": True,
+<<<<<<< HEAD
             # TODO: Add path and depth fields once migration is created
             # "path": "/",  # Default root path
             # "depth": 0,  # Default root depth
+=======
+            # CRITICAL: Materialized path fields for hierarchy
+            "path": "/",  # Default root path
+            "depth": 0,  # Default root depth
+>>>>>>> main
         }
 
     @classmethod
@@ -85,9 +94,15 @@ class DepartmentFactory(BaseFactory):
         """Create a department with a parent department."""
         kwargs["parent_id"] = parent_department.id
         kwargs["organization_id"] = parent_department.organization_id
+<<<<<<< HEAD
         # TODO: Set up materialized path hierarchy once migration is created
         # kwargs["path"] = f"{parent_department.path}{parent_department.id}/"
         # kwargs["depth"] = parent_department.depth + 1
+=======
+        # CRITICAL: Set up materialized path hierarchy
+        kwargs["path"] = f"{parent_department.path}{parent_department.id}/"
+        kwargs["depth"] = parent_department.depth + 1
+>>>>>>> main
         return cls.create(db_session, **kwargs)
 
     @classmethod
@@ -128,6 +143,7 @@ class DepartmentFactory(BaseFactory):
                     name=child_name,
                     name_en=child_name_en,
                     code=child_code,
+                    level=current_depth + 1,
                     department_type="operational"
                     if current_depth == depth - 1
                     else "support",
