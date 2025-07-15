@@ -59,16 +59,6 @@ class User(SoftDeletableModel):
     password_must_change: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Relationships
-<<<<<<< HEAD
-    roles: Mapped[list["Role"]] = relationship(
-        "Role",
-        secondary="user_roles",
-        primaryjoin="User.id == UserRole.user_id",
-        secondaryjoin="UserRole.role_id == Role.id",
-        back_populates="users",
-    )
-=======
->>>>>>> main
     user_roles: Mapped[list["UserRole"]] = relationship(
         "UserRole", back_populates="user", foreign_keys="UserRole.user_id"
     )
@@ -414,11 +404,7 @@ class User(SoftDeletableModel):
             ):
                 # Handle permissions stored as JSON dict
                 if user_role.role and user_role.role.permissions:
-<<<<<<< HEAD
-                    # If permissions is a dict, extract permission codes
-=======
                     # Permissions is always a dict according to the model
->>>>>>> main
                     if isinstance(user_role.role.permissions, dict):
                         # Handle various dict structures
                         if "codes" in user_role.role.permissions:

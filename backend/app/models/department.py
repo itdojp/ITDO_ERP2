@@ -61,11 +61,7 @@ class Department(SoftDeletableModel):
     path: Mapped[str] = mapped_column(
         String(1000),
         nullable=False,
-<<<<<<< HEAD
-        default="",
-=======
         default="/",
->>>>>>> main
         index=True,
         comment="Materialized path for efficient hierarchy queries",
     )

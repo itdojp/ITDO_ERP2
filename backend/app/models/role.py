@@ -1,21 +1,14 @@
-"""Role model implementation for RBAC (Role-Based Access Control).
+"""Role and UserRole models implementation."""
 
-<<<<<<< HEAD
-This module defines the Role, UserRole, and RolePermission models
-for managing roles and permissions in the ITDO ERP System.
-"""
-
-from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Any
-=======
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Optional
->>>>>>> main
 
 from sqlalchemy import (
+    JSON,
     Boolean,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -24,40 +17,25 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import AuditableModel, Base, SoftDeletableModel
+from app.models.base import AuditableModel, BaseModel, SoftDeletableModel
 from app.types import DepartmentId, OrganizationId, RoleId, UserId
 
 if TYPE_CHECKING:
     from app.models.department import Department
     from app.models.organization import Organization
     from app.models.permission import Permission
-    from app.models.permission_inheritance import RoleInheritanceRule
     from app.models.user import User
 
 
 class Role(SoftDeletableModel):
-    """Role model for RBAC."""
+    """Role model representing a set of permissions."""
 
     __tablename__ = "roles"
-    __table_args__ = (
-        UniqueConstraint(
-            "organization_id", "code", name="uq_role_org_code"
-        ),  # Unique code per org
-    )
 
     # Basic fields
     code: Mapped[str] = mapped_column(
-        String(50),
-        nullable=False,
-        index=True,
-        comment="Unique role code within organization",
+        String(50), unique=True, nullable=False, index=True, comment="Unique role code"
     )
-<<<<<<< HEAD
-    name: Mapped[str] = mapped_column(String(200), nullable=False, comment="Role name")
-    name_en: Mapped[str | None] = mapped_column(
-        String(200), nullable=True, comment="Role name in English"
-    )
-=======
     name: Mapped[str] = mapped_column(
         String(200), nullable=False, comment="Role display name"
     )
@@ -66,54 +44,30 @@ class Role(SoftDeletableModel):
     )
 
     # Role details
->>>>>>> main
     description: Mapped[str | None] = mapped_column(
         Text, nullable=True, comment="Role description"
     )
-
-    # Type and hierarchy
     role_type: Mapped[str] = mapped_column(
         String(50),
         nullable=False,
         default="custom",
-        comment="Role type (system, organization, custom)",
-    )
-    parent_id: Mapped[RoleId | None] = mapped_column(
-        Integer,
-        ForeignKey("roles.id"),
-        nullable=True,
-        index=True,
-        comment="Parent role for inheritance",
-    )
-    level: Mapped[int] = mapped_column(
-        Integer, nullable=False, default=0, comment="Role hierarchy level"
+        comment="Type of role (system, organization, custom)",
     )
 
-<<<<<<< HEAD
-    # Organization relationship
-=======
     # Organization scope
->>>>>>> main
     organization_id: Mapped[OrganizationId | None] = mapped_column(
         Integer,
         ForeignKey("organizations.id"),
         nullable=True,
         index=True,
-        comment="Organization this role belongs to",
+        comment="Organization ID if role is organization-specific",
     )
 
-<<<<<<< HEAD
-    # Department scope (optional)
-    department_id: Mapped[DepartmentId | None] = mapped_column(
-=======
     # Hierarchy
     parent_id: Mapped[RoleId | None] = mapped_column(
->>>>>>> main
         Integer,
-        ForeignKey("departments.id"),
+        ForeignKey("roles.id"),
         nullable=True,
-<<<<<<< HEAD
-=======
         comment="Parent role ID for role inheritance",
     )
 
@@ -138,98 +92,31 @@ class Role(SoftDeletableModel):
         Boolean,
         default=True,
         nullable=False,
->>>>>>> main
         index=True,
-        comment="Department scope for this role",
-    )
-
-    # Scope and permissions
-    scope: Mapped[str] = mapped_column(
-        String(50),
-        nullable=False,
-        default="organization",
-        comment="Role scope (system, organization, department)",
-    )
-    max_users: Mapped[int | None] = mapped_column(
-        Integer, nullable=True, comment="Maximum users for this role"
-    )
-    priority: Mapped[int] = mapped_column(
-        Integer, nullable=False, default=0, comment="Role priority for conflicts"
-    )
-
-    # Status flags
-    is_active: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=True, comment="Whether role is active"
+        comment="Whether the role is active",
     )
     is_system: Mapped[bool] = mapped_column(
         Boolean,
-        nullable=False,
         default=False,
-        comment="Whether this is a system role",
-    )
-    is_default: Mapped[bool] = mapped_column(
-        Boolean,
         nullable=False,
-        default=False,
-        comment="Whether this is a default role for new users",
+        comment="Whether this is a system role (cannot be modified)",
     )
 
-    # Metadata
-    permissions_count: Mapped[int] = mapped_column(
-        Integer, nullable=False, default=0, comment="Cached count of permissions"
+    # Display
+    display_order: Mapped[int] = mapped_column(
+        Integer, default=0, nullable=False, comment="Display order for UI"
     )
-<<<<<<< HEAD
-    users_count: Mapped[int] = mapped_column(
-        Integer, nullable=False, default=0, comment="Cached count of users"
-=======
     icon: Mapped[str | None] = mapped_column(
         String(50), nullable=True, comment="Icon name or class for UI"
     )
     color: Mapped[str | None] = mapped_column(
         String(7), nullable=True, comment="Color code for UI (hex format)"
->>>>>>> main
     )
 
     # Relationships
-    organization: Mapped["Organization | None"] = relationship(
-        "Organization", back_populates="roles"
+    parent: Mapped[Optional["Role"]] = relationship(
+        "Role", remote_side="Role.id", back_populates="child_roles", lazy="joined"
     )
-<<<<<<< HEAD
-    department: Mapped["Department | None"] = relationship("Department")
-    parent: Mapped["Role | None"] = relationship(
-        "Role", remote_side="Role.id", backref="children"
-    )
-
-    # Many-to-many relationships
-    users: Mapped[list["User"]] = relationship(
-        "User",
-        secondary="user_roles",
-        primaryjoin="Role.id == UserRole.role_id",
-        secondaryjoin="UserRole.user_id == User.id",
-        back_populates="roles",
-    )
-    user_roles: Mapped[list["UserRole"]] = relationship(
-        "UserRole", back_populates="role", cascade="all, delete-orphan"
-    )
-    permissions: Mapped[list["Permission"]] = relationship(
-        "Permission", secondary="role_permissions", back_populates="roles"
-    )
-    role_permissions: Mapped[list["RolePermission"]] = relationship(
-        "RolePermission", back_populates="role", cascade="all, delete-orphan"
-    )
-
-    # Inheritance relationships
-    parent_inheritance_rules: Mapped[list["RoleInheritanceRule"]] = relationship(
-        "RoleInheritanceRule",
-        foreign_keys="RoleInheritanceRule.child_role_id",
-        back_populates="child_role",
-        cascade="all, delete-orphan",
-    )
-    child_inheritance_rules: Mapped[list["RoleInheritanceRule"]] = relationship(
-        "RoleInheritanceRule",
-        foreign_keys="RoleInheritanceRule.parent_role_id",
-        back_populates="parent_role",
-=======
     child_roles: Mapped[list["Role"]] = relationship(
         "Role", back_populates="parent", lazy="select"
     )
@@ -239,239 +126,96 @@ class Role(SoftDeletableModel):
     role_permissions: Mapped[list["RolePermission"]] = relationship(
         "RolePermission",
         back_populates="role",
->>>>>>> main
         cascade="all, delete-orphan",
+        lazy="select",
     )
 
     def __repr__(self) -> str:
         """String representation."""
-        return f"<Role({self.code}, org={self.organization_id})>"
+        return f"<Role(id={self.id}, code='{self.code}', name='{self.name}')>"
 
-    def has_permission(self, permission_code: str) -> bool:
-        """Check if role has a specific permission.
+    @property
+    def is_inherited(self) -> bool:
+        """Check if this role inherits from another role."""
+        return self.parent_id is not None
 
-<<<<<<< HEAD
-        Args:
-            permission_code: Permission code to check
-=======
     def get_all_permissions(self) -> dict[str, Any]:
         """Get all permissions including inherited ones."""
         all_permissions = {}
->>>>>>> main
 
-        Returns:
-            True if role has the permission
-        """
-        # Check direct permissions
-        for rp in self.role_permissions:
-            if rp.permission.code == permission_code and rp.is_granted:
-                return True
-
-        # Check inherited permissions from parent
+        # Get inherited permissions recursively
         if self.parent:
-            return self.parent.has_permission(permission_code)
+            all_permissions.update(self.parent.get_all_permissions())
 
-        return False
+        # Override with own permissions
+        all_permissions.update(self.permissions)
 
-    def get_all_permissions(self) -> dict[str, Any]:
-        """Get all permissions including inherited ones.
+        return all_permissions
 
-        Returns:
-            Dictionary of permission codes to permission details
-        """
-        permissions = {}
+    def has_permission(self, permission: str) -> bool:
+        """Check if role has a specific permission."""
+        all_permissions = self.get_all_permissions()
 
-        # Get inherited permissions first (can be overridden)
-        if self.parent:
-            permissions.update(self.parent.get_all_permissions())
+        # Handle nested permissions (e.g., "users.create")
+        parts = permission.split(".")
+        current = all_permissions
 
-        # Add/override with direct permissions
-        for rp in self.role_permissions:
-            if rp.is_granted:
-                permissions[rp.permission.code] = {
-                    "id": rp.permission.id,
-                    "code": rp.permission.code,
-                    "name": rp.permission.name,
-                    "category": rp.permission.category,
-                    "inherited": False,
-                }
+        for part in parts:
+            if not isinstance(current, dict) or part not in current:
+                return False
+            current = current[part]
 
-        return permissions
+        return bool(current)
 
-    def add_permission(
-        self, permission: "Permission", granted_by: UserId | None = None
-    ) -> None:
-        """Add a permission to this role.
-
-        Args:
-            permission: Permission to add
-            granted_by: User who granted the permission
-        """
-        # Check if already exists
-        for rp in self.role_permissions:
-            if rp.permission_id == permission.id:
-                rp.is_granted = True
-                rp.granted_at = datetime.now(UTC)
-                rp.granted_by = granted_by
-                return
-
-        # Create new role-permission association
-        from app.models.role import RolePermission
-
-        role_perm = RolePermission(
-            role_id=self.id,
-            permission_id=permission.id,
-            is_granted=True,
-            granted_at=datetime.now(UTC),
-            granted_by=granted_by,
-        )
-        self.role_permissions.append(role_perm)
-        self.permissions_count = len(
-            [rp for rp in self.role_permissions if rp.is_granted]
-        )
-
-    def remove_permission(self, permission: "Permission") -> None:
-        """Remove a permission from this role.
-
-        Args:
-            permission: Permission to remove
-        """
-        for rp in self.role_permissions:
-            if rp.permission_id == permission.id:
-                rp.is_granted = False
-                break
-
-        self.permissions_count = len(
-            [rp for rp in self.role_permissions if rp.is_granted]
-        )
-
-    def assign_to_user(
-        self,
-        user: "User",
-        assigned_by: UserId | None = None,
-        expires_at: datetime | None = None,
-    ) -> "UserRole":
-        """Assign this role to a user.
-
-        Args:
-            user: User to assign role to
-            assigned_by: User who assigned the role
-            expires_at: Optional expiration datetime
-
-        Returns:
-            UserRole association object
-        """
-        from app.models.role import UserRole
-
-        # Check if already assigned
-        for ur in self.user_roles:
-            if ur.user_id == user.id:
-                ur.is_active = True
-                ur.assigned_at = datetime.now(UTC)
-                ur.assigned_by = assigned_by
-                ur.expires_at = expires_at
-                return ur
-
-        # Create new assignment
-        user_role = UserRole(
-            user_id=user.id,
-            role_id=self.id,
-            organization_id=self.organization_id,
-            assigned_at=datetime.now(UTC),
-            assigned_by=assigned_by,
-            expires_at=expires_at,
-            is_active=True,
-        )
-        self.user_roles.append(user_role)
-        self.users_count = len([ur for ur in self.user_roles if ur.is_active])
-        return user_role
-
-    def validate_scope(self, user: "User") -> bool:
-        """Validate if user is in the correct scope for this role.
-
-        Args:
-            user: User to validate
-
-        Returns:
-            True if user is in correct scope
-        """
-        if self.scope == "system":
-            return True
-
-        if self.scope == "organization":
-            # Check if user has any role in this organization
-            return any(
-                ur.organization_id == self.organization_id
-                for ur in user.user_roles
-                if not ur.is_expired
-            )
-
-        if self.scope == "department":
-            # Check if user has any role in this organization and department
-            return any(
-                ur.organization_id == self.organization_id
-                and ur.department_id == self.department_id
-                for ur in user.user_roles
-                if not ur.is_expired
-            )
-
-        return False
+    def get_users_count(self) -> int:
+        """Get count of users with this role."""
+        return len([ur for ur in self.user_roles if ur.is_active])
 
 
 class UserRole(AuditableModel):
-    """Association table between users and roles with additional metadata."""
+    """Association between users and roles with organizational context."""
 
     __tablename__ = "user_roles"
     __table_args__ = (
         UniqueConstraint(
-            "user_id", "role_id", "organization_id", name="uq_user_role_org"
+            "user_id",
+            "role_id",
+            "organization_id",
+            "department_id",
+            name="uq_user_role_org_dept",
         ),
+        # Note: expires_at and is_active already have index=True in column definitions
     )
 
-    # Primary keys
+    # Foreign keys
     user_id: Mapped[UserId] = mapped_column(
-        Integer, ForeignKey("users.id"), nullable=False, comment="User ID"
+        Integer, ForeignKey("users.id"), nullable=False, index=True, comment="User ID"
     )
     role_id: Mapped[RoleId] = mapped_column(
-        Integer, ForeignKey("roles.id"), nullable=False, comment="Role ID"
+        Integer, ForeignKey("roles.id"), nullable=False, index=True, comment="Role ID"
     )
     organization_id: Mapped[OrganizationId] = mapped_column(
         Integer,
         ForeignKey("organizations.id"),
         nullable=False,
-        comment="Organization context",
+        index=True,
+        comment="Organization context for the role",
     )
-<<<<<<< HEAD
-    department_id: Mapped[int | None] = mapped_column(
-=======
     department_id: Mapped[DepartmentId | None] = mapped_column(
->>>>>>> main
         Integer,
-        ForeignKey("departments.id", ondelete="SET NULL"),
+        ForeignKey("departments.id"),
         nullable=True,
+        index=True,
         comment="Department context (optional)",
     )
 
     # Assignment details
-<<<<<<< HEAD
-    assigned_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        nullable=False,
-        comment="When role was assigned",
-    )
-=======
->>>>>>> main
     assigned_by: Mapped[UserId | None] = mapped_column(
         Integer,
         ForeignKey("users.id"),
         nullable=True,
-        comment="User who assigned the role",
+        comment="User who assigned this role",
     )
-<<<<<<< HEAD
-    expires_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True, comment="When role assignment expires"
-=======
     assigned_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -496,17 +240,17 @@ class UserRole(AuditableModel):
         nullable=True,
         index=True,
         comment="When the role expires (null = never)",
->>>>>>> main
     )
 
     # Status
     is_active: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=True, comment="Whether assignment is active"
+        Boolean,
+        default=True,
+        nullable=False,
+        index=True,
+        comment="Whether the role assignment is active",
     )
     is_primary: Mapped[bool] = mapped_column(
-<<<<<<< HEAD
-        Boolean, nullable=False, default=False, comment="Whether this is primary role"
-=======
         Boolean,
         default=False,
         nullable=False,
@@ -532,23 +276,19 @@ class UserRole(AuditableModel):
     )
     approved_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True, comment="When the role was approved"
->>>>>>> main
     )
 
     # Relationships
     user: Mapped["User"] = relationship(
-        "User", back_populates="user_roles", foreign_keys=[user_id]
+        "User", foreign_keys=[user_id], back_populates="user_roles"
     )
-    role: Mapped["Role"] = relationship("Role", back_populates="user_roles")
-    organization: Mapped["Organization"] = relationship(
-        "Organization", foreign_keys=[organization_id]
+    role: Mapped["Role"] = relationship(
+        "Role", back_populates="user_roles", lazy="joined"
     )
-    department: Mapped["Department | None"] = relationship(
-        "Department", foreign_keys=[department_id]
+    organization: Mapped["Organization"] = relationship("Organization", lazy="joined")
+    department: Mapped[Optional["Department"]] = relationship(
+        "Department", lazy="joined"
     )
-<<<<<<< HEAD
-    assigner: Mapped["User | None"] = relationship("User", foreign_keys=[assigned_by])
-=======
     assigned_by_user: Mapped[Optional["User"]] = relationship(
         "User", foreign_keys=[assigned_by], lazy="joined"
     )
@@ -575,17 +315,10 @@ class UserRole(AuditableModel):
             else self.expires_at.replace(tzinfo=UTC)
         )
         return now > expires_at
->>>>>>> main
 
     @property
     def is_valid(self) -> bool:
         """Check if role assignment is currently valid."""
-<<<<<<< HEAD
-        if not self.is_active:
-            return False
-
-        if self.expires_at and self.expires_at < datetime.now(UTC):
-=======
         now = datetime.now(UTC)
 
         # Check if active
@@ -615,18 +348,11 @@ class UserRole(AuditableModel):
 
         # Check approval if required
         if self.approval_status == "pending":
->>>>>>> main
             return False
 
         return True
 
     @property
-<<<<<<< HEAD
-    def is_expired(self) -> bool:
-        """Check if role assignment has expired."""
-        return self.expires_at is not None and self.expires_at < datetime.now(UTC)
-
-=======
     def days_until_expiry(self) -> int | None:
         """Get days until expiry (None if no expiry date)."""
         if not self.expires_at:
@@ -641,7 +367,6 @@ class UserRole(AuditableModel):
         delta = expires_at - now
         return delta.days
 
->>>>>>> main
     def get_effective_permissions(self) -> dict[str, Any]:
         """Get effective permissions for this role assignment."""
         if not self.is_valid:
@@ -650,7 +375,7 @@ class UserRole(AuditableModel):
         return self.role.get_all_permissions()
 
 
-class RolePermission(Base):
+class RolePermission(BaseModel):
     """Association table between roles and permissions."""
 
     __tablename__ = "role_permissions"
@@ -662,14 +387,11 @@ class RolePermission(Base):
         Integer, ForeignKey("permissions.id"), nullable=False, comment="Permission ID"
     )
 
-    # Grant details
-    is_granted: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=True, comment="Whether permission is granted"
-    )
-    granted_at: Mapped[datetime | None] = mapped_column(
+    # Additional metadata
+    granted_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
-        nullable=True,
+        nullable=False,
         comment="When permission was granted",
     )
     granted_by: Mapped[UserId | None] = mapped_column(
@@ -679,17 +401,6 @@ class RolePermission(Base):
         comment="User who granted the permission",
     )
 
-    # Add timestamps for compatibility
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now(),
-        nullable=False,
-    )
-
     # Relationships
     role: Mapped["Role"] = relationship(
         "Role", back_populates="role_permissions", lazy="joined"
@@ -697,8 +408,6 @@ class RolePermission(Base):
     permission: Mapped["Permission"] = relationship(
         "Permission", back_populates="role_permissions", lazy="joined"
     )
-<<<<<<< HEAD
-=======
 
     # Indexes and constraints
     __table_args__ = (
@@ -715,4 +424,3 @@ class RolePermission(Base):
             f"<RolePermission(role_id={self.role_id}, "
             f"permission_id={self.permission_id})>"
         )
->>>>>>> main

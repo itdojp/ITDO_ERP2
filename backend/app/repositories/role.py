@@ -19,20 +19,6 @@ class RoleRepository(BaseRepository[Role, RoleCreate, RoleUpdate]):
         """Get role by code."""
         return self.db.scalar(select(self.model).where(self.model.code == code))
 
-<<<<<<< HEAD
-    def get_by_name_and_organization(
-        self, name: str, organization_id: int
-    ) -> Role | None:
-        """Get role by name within organization."""
-        return self.db.scalar(
-            select(self.model)
-            .where(self.model.name == name)
-            .where(self.model.organization_id == organization_id)
-            .where(~self.model.is_deleted)
-        )
-
-=======
->>>>>>> main
     def get_system_roles(self) -> list[Role]:
         """Get system roles."""
         return list(
@@ -40,7 +26,7 @@ class RoleRepository(BaseRepository[Role, RoleCreate, RoleUpdate]):
                 select(self.model)
                 .where(self.model.is_system)
                 .where(~self.model.is_deleted)
-                .order_by(self.model.name)
+                .order_by(self.model.display_order, self.model.name)
             )
         )
 
@@ -51,7 +37,7 @@ class RoleRepository(BaseRepository[Role, RoleCreate, RoleUpdate]):
                 select(self.model)
                 .where(self.model.role_type == role_type)
                 .where(~self.model.is_deleted)
-                .order_by(self.model.name)
+                .order_by(self.model.display_order, self.model.name)
             )
         )
 
@@ -62,7 +48,7 @@ class RoleRepository(BaseRepository[Role, RoleCreate, RoleUpdate]):
                 select(self.model)
                 .where(self.model.parent_id.is_(None))
                 .where(~self.model.is_deleted)
-                .order_by(self.model.name)
+                .order_by(self.model.display_order, self.model.name)
             )
         )
 
@@ -73,7 +59,7 @@ class RoleRepository(BaseRepository[Role, RoleCreate, RoleUpdate]):
                 select(self.model)
                 .where(self.model.parent_id == parent_id)
                 .where(~self.model.is_deleted)
-                .order_by(self.model.name)
+                .order_by(self.model.display_order, self.model.name)
             )
         )
 
@@ -142,8 +128,11 @@ class RoleRepository(BaseRepository[Role, RoleCreate, RoleUpdate]):
             role_type="custom",
             organization_id=organization_id,
             parent_id=source.parent_id,
-            permissions={},
+            permissions=source.permissions if include_permissions else {},
             is_system=False,
+            display_order=source.display_order,
+            icon=source.icon,
+            color=source.color,
             is_active=True,
         )
 

@@ -1,15 +1,7 @@
 """Organization schemas."""
 
 import json
-<<<<<<< HEAD
 from typing import Any
-=======
-<<<<<<< HEAD
-from typing import Any, Dict, List, Optional
-=======
-from typing import Any
->>>>>>> origin/main
->>>>>>> main
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -171,15 +163,10 @@ class OrganizationResponse(
         """Parse settings JSON string to dict."""
         if isinstance(v, str):
             try:
-<<<<<<< HEAD
-                parsed = json.loads(v)
-                return parsed if isinstance(parsed, dict) else {}
-=======
                 result = json.loads(v)
                 if isinstance(result, dict):
                     return result
                 return {}
->>>>>>> main
             except (json.JSONDecodeError, TypeError):
                 return {}
         return v or {}

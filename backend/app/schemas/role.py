@@ -3,24 +3,12 @@
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.schemas.common import AuditInfo, SoftDeleteInfo
 from app.schemas.department import DepartmentBasic
 from app.schemas.organization import OrganizationBasic
 from app.schemas.user import UserBasic
-
-
-class PermissionBasic(BaseModel):
-    """Basic permission information."""
-
-    id: int
-    code: str
-    name: str
-    category: str
-    description: str | None = None
-
-    model_config = ConfigDict(from_attributes=True)
 
 
 class RoleBase(BaseModel):
@@ -44,8 +32,6 @@ class RolePermissions(BaseModel):
         default_factory=dict, description="Role permissions"
     )
 
-<<<<<<< HEAD
-=======
     @field_validator("permissions")
     @classmethod
     def validate_permissions(cls, v: dict[str, Any]) -> dict[str, Any]:
@@ -53,7 +39,6 @@ class RolePermissions(BaseModel):
         # Add custom validation logic here
         return v
 
->>>>>>> main
 
 class RoleDisplay(BaseModel):
     """Role display settings."""
@@ -178,10 +163,7 @@ class UserRoleInfo(BaseModel):
     department: DepartmentBasic | None = None
     assigned_by: UserBasic | None = None
     assigned_at: datetime
-<<<<<<< HEAD
-=======
     valid_from: datetime
->>>>>>> main
     expires_at: datetime | None = None
     is_active: bool
     is_primary: bool
@@ -263,8 +245,6 @@ class RoleSummary(RoleBasic):
     model_config = ConfigDict(from_attributes=True)
 
 
-<<<<<<< HEAD
-=======
 class PermissionBasic(BaseModel):
     """Basic permission information."""
 
@@ -277,7 +257,6 @@ class PermissionBasic(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
->>>>>>> main
 class RoleWithPermissions(RoleResponse):
     """Role with permissions information."""
 

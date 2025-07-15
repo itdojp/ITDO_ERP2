@@ -13,14 +13,10 @@ class UserBase(BaseModel):
     full_name: str = Field(
         ..., min_length=1, max_length=100, description="User full name"
     )
-<<<<<<< HEAD
-    phone: str | None = Field(None, max_length=20, description="User phone number")
-=======
     phone: str | None = Field(None, max_length=20, description="Phone number")
     profile_image_url: str | None = Field(
         None, max_length=500, description="Profile image URL"
     )
->>>>>>> main
     is_active: bool = Field(default=True, description="Whether user is active")
 
 
@@ -57,10 +53,6 @@ class UserResponse(UserBase):
     """User response schema."""
 
     id: int = Field(..., description="User ID")
-    phone: str | None = Field(None, max_length=20, description="User phone number")
-    profile_image_url: str | None = Field(
-        None, max_length=500, description="Profile image URL"
-    )
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: datetime = Field(..., description="Last update timestamp")
 
