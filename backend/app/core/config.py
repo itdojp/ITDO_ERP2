@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from pydantic import AnyHttpUrl, AnyUrl, PostgresDsn, validator
 from pydantic_settings import BaseSettings
@@ -10,11 +10,11 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
 
     # CORS設定
-    BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = []
+    BACKEND_CORS_ORIGINS: list[AnyHttpUrl] = []
 
     @validator("BACKEND_CORS_ORIGINS", pre=True)
     @classmethod
-    def assemble_cors_origins(cls, v: Union[str, List[str]]) -> Union[List[str], str]:
+    def assemble_cors_origins(cls, v: str | list[str]) -> list[str] | str:
         if isinstance(v, str) and not v.startswith("["):
             return [i.strip() for i in v.split(",")]
         elif isinstance(v, (list, str)):
@@ -27,11 +27,11 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str = "itdo_password"
     POSTGRES_DB: str = "itdo_erp"
     POSTGRES_PORT: int = 5432
-    DATABASE_URL: Optional[Union[PostgresDsn, AnyUrl]] = None
+    DATABASE_URL: PostgresDsn | AnyUrl | None = None
 
     @validator("DATABASE_URL", pre=True)
     @classmethod
-    def assemble_db_connection(cls, v: Optional[str], values: Dict[str, Any]) -> Any:
+    def assemble_db_connection(cls, v: str | None, values: dict[str, Any]) -> Any:
         if isinstance(v, str):
             return v
         return (

@@ -1,6 +1,6 @@
 """Factory for Role and Permission models."""
 
-from typing import Any, Dict, List
+from typing import Any
 
 from app.models.organization import Organization
 from app.models.permission import Permission
@@ -16,7 +16,7 @@ class PermissionFactory(BaseFactory):
     model_class = Permission  # Model class for this factory
 
     @classmethod
-    def _get_default_attributes(cls) -> Dict[str, Any]:
+    def _get_default_attributes(cls) -> dict[str, Any]:
         """Get default attributes for creating Permission instances."""
         return {
             "code": fake.bothify(text="perm.###.####"),
@@ -55,7 +55,7 @@ class PermissionFactory(BaseFactory):
         }
 
     @classmethod
-    def _get_update_attributes(cls) -> Dict[str, Any]:
+    def _get_update_attributes(cls) -> dict[str, Any]:
         """Get default attributes for updating Permission instances."""
         return {
             "name": fake.word(),
@@ -85,7 +85,7 @@ class PermissionFactory(BaseFactory):
         return cls.create(db_session, **kwargs)
 
     @classmethod
-    def create_standard_permissions(cls, db_session) -> Dict[str, List[Permission]]:
+    def create_standard_permissions(cls, db_session) -> dict[str, list[Permission]]:
         """Create a standard set of permissions for all categories."""
         permissions = {}
 
@@ -120,7 +120,7 @@ class RoleFactory(BaseFactory):
     model_class = Role  # Model class for this factory
 
     @classmethod
-    def _get_default_attributes(cls) -> Dict[str, Any]:
+    def _get_default_attributes(cls) -> dict[str, Any]:
         """Get default attributes for creating Role instances."""
         return {
             "code": fake.bothify(text="role.###.####"),
@@ -151,7 +151,7 @@ class RoleFactory(BaseFactory):
         }
 
     @classmethod
-    def _get_update_attributes(cls) -> Dict[str, Any]:
+    def _get_update_attributes(cls) -> dict[str, Any]:
         """Get default attributes for updating Role instances."""
         return {
             "name": fake.word(),
@@ -177,7 +177,7 @@ class RoleFactory(BaseFactory):
 
     @classmethod
     def create_with_permissions(
-        cls, db_session, permissions: List[Permission], **kwargs
+        cls, db_session, permissions: list[Permission], **kwargs
     ) -> Role:
         """Create a role with specific permissions."""
         role = cls.create(db_session, **kwargs)
@@ -320,7 +320,7 @@ class RoleFactory(BaseFactory):
 
     @classmethod
     def _assign_permissions_to_role(
-        cls, db_session, role: Role, permissions: List[Permission]
+        cls, db_session, role: Role, permissions: list[Permission]
     ):
         """Helper method to assign permissions to a role."""
         for permission in permissions:

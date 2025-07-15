@@ -1,6 +1,6 @@
 """Unit tests for TaskService."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -54,7 +54,7 @@ class TestTaskService:
             description="タスクの説明",
             project_id=1,
             priority=TaskPriority.MEDIUM,
-            due_date=datetime.now(timezone.utc) + timedelta(days=7),
+            due_date=datetime.now(UTC) + timedelta(days=7),
         )
 
         # Mock project exists
@@ -71,8 +71,8 @@ class TestTaskService:
         mock_task.project_id = task_data.project_id
         mock_task.status = "not_started"
         mock_task.priority = "medium"
-        mock_task.created_at = datetime.now(timezone.utc)
-        mock_task.updated_at = datetime.now(timezone.utc)
+        mock_task.created_at = datetime.now(UTC)
+        mock_task.updated_at = datetime.now(UTC)
         mock_task.project = mock_project
         mock_task.assignee = None
         mock_task.reporter = self.test_user
@@ -843,7 +843,7 @@ class TestTaskDueDateAndPriority:
         """Test TASK-U-021: 期限設定成功."""
         # Arrange
         task_id = 1
-        due_date = datetime.now(timezone.utc) + timedelta(days=7)
+        due_date = datetime.now(UTC) + timedelta(days=7)
 
         # Mock existing task
         mock_task = MagicMock(spec=Task)
@@ -864,7 +864,7 @@ class TestTaskDueDateAndPriority:
         """Test TASK-U-022: 過去の期限設定."""
         # Arrange
         task_id = 1
-        due_date = datetime.now(timezone.utc) - timedelta(days=1)
+        due_date = datetime.now(UTC) - timedelta(days=1)
 
         # Mock existing task
         mock_task = MagicMock(spec=Task)

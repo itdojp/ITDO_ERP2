@@ -1,4 +1,4 @@
-.PHONY: help dev test test-full lint typecheck clean setup-dev start-data stop-data status build security-scan pre-commit verify check-merge-ready check-core-tests check-phase-status
+.PHONY: help dev test test-full lint typecheck clean setup-dev start-data stop-data status build security-scan pre-commit verify check-merge-ready check-core-tests check-phase-status agent-tasks agent-status agent-report
 
 help:
 	@echo "利用可能なコマンド:"
@@ -19,6 +19,11 @@ help:
 	@echo "  make check-merge-ready - マージ準備チェック（Phase 1）"
 	@echo "  make check-core-tests  - 基盤テスト実行"
 	@echo "  make check-phase-status - 開発フェーズ状況確認"
+	@echo ""
+	@echo "エージェント管理:"
+	@echo "  make agent-tasks   - Claude Codeエージェントにタスク配布"
+	@echo "  make agent-status  - エージェントの状態確認"
+	@echo "  make agent-report  - 本日の進捗レポート"
 
 dev:
 	@echo "開発サーバーを起動中..."
@@ -142,3 +147,17 @@ check-phase-status:
 	@echo "  - 基盤テスト 100% 合格継続（4週間）"
 	@echo "  - 主要機能のサービス層実装完了"
 	@echo "  - 警告テスト数 < 10個"
+
+# エージェント管理コマンド
+agent-tasks:
+	@./scripts/claude-code-automation/pm/distribute-tasks.sh
+
+agent-status:
+	@./scripts/claude-code-automation/pm/agent-status.sh
+
+agent-report:
+	@./scripts/claude-code-automation/claude-code report
+
+# エージェント自動化コマンド
+claude-code:
+	@./scripts/claude-code-automation/claude-code help

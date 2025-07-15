@@ -1,6 +1,6 @@
 """Role API endpoints."""
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, status
 from fastapi.responses import JSONResponse
@@ -37,12 +37,12 @@ router = APIRouter(prefix="/roles", tags=["roles"])
 def list_roles(
     skip: int = Query(0, ge=0, description="Number of items to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Number of items to return"),
-    organization_id: Optional[OrganizationId] = Query(
+    organization_id: OrganizationId | None = Query(
         None, description="Filter by organization"
     ),
-    search: Optional[str] = Query(None, description="Search query"),
+    search: str | None = Query(None, description="Search query"),
     active_only: bool = Query(True, description="Only return active roles"),
-    role_type: Optional[str] = Query(None, description="Filter by role type"),
+    role_type: str | None = Query(None, description="Filter by role type"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ) -> PaginatedResponse[RoleSummary]:
@@ -50,7 +50,7 @@ def list_roles(
     service = RoleService(db)
 
     # Build filters
-    filters: Dict[str, Any] = {}
+    filters: dict[str, Any] = {}
     if organization_id:
         filters["organization_id"] = organization_id
     if active_only:
@@ -72,7 +72,7 @@ def list_roles(
 
 @router.get(
     "/organization/{organization_id}/tree",
-    response_model=List[RoleTree],
+    response_model=list[RoleTree],
     responses={
         401: {"model": ErrorResponse, "description": "Unauthorized"},
         404: {"model": ErrorResponse, "description": "Organization not found"},
@@ -82,7 +82,7 @@ def get_role_tree(
     organization_id: OrganizationId = Path(..., description="Organization ID"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> List[RoleTree]:
+) -> list[RoleTree]:
     """Get role hierarchy tree for an organization."""
     service = RoleService(db)
 
@@ -100,16 +100,16 @@ def get_role_tree(
 
 @router.get(
     "/permissions",
-    response_model=List[PermissionBasic],
+    response_model=list[PermissionBasic],
     responses={
         401: {"model": ErrorResponse, "description": "Unauthorized"},
     },
 )
 def list_all_permissions(
-    category: Optional[str] = Query(None, description="Filter by permission category"),
+    category: str | None = Query(None, description="Filter by permission category"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> List[PermissionBasic]:
+) -> list[PermissionBasic]:
     """List all available permissions."""
     service = RoleService(db)
     return service.list_all_permissions(category)
@@ -181,7 +181,7 @@ def create_role(
     role_data: RoleCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> Union[RoleResponse, JSONResponse]:
+) -> RoleResponse | JSONResponse:
     """Create a new role."""
     # Check permissions
     service = RoleService(db)
@@ -255,7 +255,7 @@ def update_role(
     role_data: RoleUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> Union[RoleResponse, JSONResponse]:
+) -> RoleResponse | JSONResponse:
     """Update role details."""
     service = RoleService(db)
     role = service.get_role(role_id)
@@ -331,10 +331,10 @@ def update_role(
 )
 def update_role_permissions(
     role_id: int = Path(..., description="Role ID"),
-    permission_codes: List[str] = Body(..., description="List of permission codes"),
+    permission_codes: list[str] = Body(..., description="List of permission codes"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> Union[RoleResponse, JSONResponse]:
+) -> RoleResponse | JSONResponse:
     """Update role permissions."""
     service = RoleService(db)
     role = service.get_role(role_id)
@@ -388,7 +388,7 @@ def delete_role(
     role_id: int = Path(..., description="Role ID"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> Union[DeleteResponse, JSONResponse]:
+) -> DeleteResponse | JSONResponse:
     """Delete (soft delete) a role."""
     service = RoleService(db)
     role = service.get_role(role_id)
@@ -447,7 +447,7 @@ def assign_role_to_user(
     assignment: UserRoleAssignment,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> Union[UserRoleResponse, JSONResponse]:
+) -> UserRoleResponse | JSONResponse:
     """Assign a role to a user."""
     service = RoleService(db)
 
@@ -508,7 +508,7 @@ def remove_role_from_user(
     role_id: int = Path(..., description="Role ID"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> Union[DeleteResponse, JSONResponse]:
+) -> DeleteResponse | JSONResponse:
     """Remove a role from a user."""
     service = RoleService(db)
 
@@ -563,7 +563,7 @@ def remove_role_from_user(
 
 @router.get(
     "/user/{user_id}",
-    response_model=List[UserRoleResponse],
+    response_model=list[UserRoleResponse],
     responses={
         401: {"model": ErrorResponse, "description": "Unauthorized"},
         404: {"model": ErrorResponse, "description": "User not found"},
@@ -571,13 +571,13 @@ def remove_role_from_user(
 )
 def get_user_roles(
     user_id: UserId = Path(..., description="User ID"),
-    organization_id: Optional[OrganizationId] = Query(
+    organization_id: OrganizationId | None = Query(
         None, description="Filter by organization"
     ),
     active_only: bool = Query(True, description="Only return active assignments"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> List[UserRoleResponse]:
+) -> list[UserRoleResponse]:
     """Get all roles assigned to a user."""
     # Check if user exists
     user = db.query(User).filter(User.id == user_id).first()
@@ -587,6 +587,6 @@ def get_user_roles(
         )
 
     service = RoleService(db)
-    user_role_responses = service.get_user_roles(user_id)
+    user_role_responses = service.get_user_roles(user_id, organization_id, active_only)
 
     return user_role_responses  # Already UserRoleResponse objects
