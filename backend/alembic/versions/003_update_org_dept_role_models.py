@@ -1,7 +1,7 @@
 """Update organization, department, and role models
 
-Revision ID: 003
-Revises: 002
+Revision ID: 003b
+Revises: 003
 Create Date: 2025-01-06
 
 """
@@ -12,8 +12,8 @@ from sqlalchemy.dialects.postgresql import JSON
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = "003"
-down_revision = "002"
+revision = "003b"
+down_revision = "003"
 branch_labels = None
 depends_on = None
 

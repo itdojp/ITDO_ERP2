@@ -1,8 +1,9 @@
 """Department API endpoints."""
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query
+from fastapi import status as http_status
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -19,7 +20,9 @@ from app.schemas.department import (
     DepartmentUpdate,
     DepartmentWithUsers,
 )
+from app.schemas.task import TaskListResponse
 from app.services.department import DepartmentService
+from app.services.task import TaskService
 from app.types import OrganizationId
 
 router = APIRouter(prefix="/departments", tags=["departments"])
@@ -35,14 +38,12 @@ router = APIRouter(prefix="/departments", tags=["departments"])
 def list_departments(
     skip: int = Query(0, ge=0, description="Number of items to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Number of items to return"),
-    organization_id: Optional[OrganizationId] = Query(
+    organization_id: OrganizationId | None = Query(
         None, description="Filter by organization"
     ),
-    search: Optional[str] = Query(None, description="Search query"),
+    search: str | None = Query(None, description="Search query"),
     active_only: bool = Query(True, description="Only return active departments"),
-    department_type: Optional[str] = Query(
-        None, description="Filter by department type"
-    ),
+    department_type: str | None = Query(None, description="Filter by department type"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ) -> PaginatedResponse[DepartmentSummary]:
@@ -50,7 +51,7 @@ def list_departments(
     service = DepartmentService(db)
 
     # Build filters
-    filters: Dict[str, Any] = {}
+    filters: dict[str, Any] = {}
     if organization_id:
         filters["organization_id"] = organization_id
     if active_only:
@@ -74,7 +75,7 @@ def list_departments(
 
 @router.get(
     "/organization/{organization_id}/tree",
-    response_model=List[DepartmentTree],
+    response_model=list[DepartmentTree],
     responses={
         401: {"model": ErrorResponse, "description": "Unauthorized"},
         404: {"model": ErrorResponse, "description": "Organization not found"},
@@ -84,7 +85,7 @@ def get_department_tree(
     organization_id: OrganizationId = Path(..., description="Organization ID"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> List[DepartmentTree]:
+) -> list[DepartmentTree]:
     """Get department hierarchy tree for an organization."""
     service = DepartmentService(db)
 
@@ -94,7 +95,7 @@ def get_department_tree(
     org_service = OrganizationService(db)
     if not org_service.get_organization(organization_id):
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found"
+            status_code=http_status.HTTP_404_NOT_FOUND, detail="Organization not found"
         )
 
     return service.get_department_tree(organization_id)
@@ -102,7 +103,7 @@ def get_department_tree(
 
 @router.put(
     "/reorder",
-    response_model=Dict[str, str],
+    response_model=dict[str, str],
     responses={
         401: {"model": ErrorResponse, "description": "Unauthorized"},
         403: {"model": ErrorResponse, "description": "Insufficient permissions"},
@@ -110,16 +111,16 @@ def get_department_tree(
     },
 )
 def reorder_departments(
-    department_ids: List[int] = Body(
+    department_ids: list[int] = Body(
         ..., description="List of department IDs in new order"
     ),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> Union[Dict[str, str], JSONResponse]:
+) -> dict[str, str] | JSONResponse:
     """Update display order for multiple departments."""
     if not department_ids:
         return JSONResponse(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=http_status.HTTP_400_BAD_REQUEST,
             content=ErrorResponse(
                 detail="No department IDs provided", code="INVALID_REQUEST"
             ).model_dump(),
@@ -133,7 +134,7 @@ def reorder_departments(
         dept = service.get_department(dept_id)
         if not dept:
             return JSONResponse(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=http_status.HTTP_400_BAD_REQUEST,
                 content=ErrorResponse(
                     detail=f"Department {dept_id} not found", code="INVALID_DEPARTMENT"
                 ).model_dump(),
@@ -147,7 +148,7 @@ def reorder_departments(
                 current_user.id, "departments.reorder", org_id
             ):
                 return JSONResponse(
-                    status_code=status.HTTP_403_FORBIDDEN,
+                    status_code=http_status.HTTP_403_FORBIDDEN,
                     content=ErrorResponse(
                         detail="Insufficient permissions to reorder departments",
                         code="PERMISSION_DENIED",
@@ -179,7 +180,7 @@ def get_department(
 
     if not department:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Department not found"
+            status_code=http_status.HTTP_404_NOT_FOUND, detail="Department not found"
         )
 
     return service.get_department_response(department)
@@ -207,7 +208,7 @@ def get_department_users(
 
     if not department:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Department not found"
+            status_code=http_status.HTTP_404_NOT_FOUND, detail="Department not found"
         )
 
     return service.get_department_with_users(department, include_sub_departments)
@@ -216,7 +217,7 @@ def get_department_users(
 @router.post(
     "/",
     response_model=DepartmentResponse,
-    status_code=status.HTTP_201_CREATED,
+    status_code=http_status.HTTP_201_CREATED,
     responses={
         401: {"model": ErrorResponse, "description": "Unauthorized"},
         403: {"model": ErrorResponse, "description": "Insufficient permissions"},
@@ -228,7 +229,7 @@ def create_department(
     department_data: DepartmentCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> Union[DepartmentResponse, JSONResponse]:
+) -> DepartmentResponse | JSONResponse:
     """Create a new department."""
     # Check permissions
     service = DepartmentService(db)
@@ -237,7 +238,7 @@ def create_department(
             current_user.id, "departments.create", department_data.organization_id
         ):
             return JSONResponse(
-                status_code=status.HTTP_403_FORBIDDEN,
+                status_code=http_status.HTTP_403_FORBIDDEN,
                 content=ErrorResponse(
                     detail="Insufficient permissions to create departments",
                     code="PERMISSION_DENIED",
@@ -250,7 +251,7 @@ def create_department(
     org_service = OrganizationService(db)
     if not org_service.get_organization(department_data.organization_id):
         return JSONResponse(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             content=ErrorResponse(
                 detail="Organization not found", code="ORGANIZATION_NOT_FOUND"
             ).model_dump(),
@@ -261,7 +262,7 @@ def create_department(
         parent = service.get_department(department_data.parent_id)
         if not parent or parent.organization_id != department_data.organization_id:
             return JSONResponse(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=http_status.HTTP_400_BAD_REQUEST,
                 content=ErrorResponse(
                     detail="Invalid parent department", code="INVALID_PARENT"
                 ).model_dump(),
@@ -274,13 +275,13 @@ def create_department(
         return service.get_department_response(department)
     except ValueError as e:
         return JSONResponse(
-            status_code=status.HTTP_409_CONFLICT,
+            status_code=http_status.HTTP_409_CONFLICT,
             content=ErrorResponse(detail=str(e), code="DUPLICATE_CODE").model_dump(),
         )
     except IntegrityError:
         db.rollback()
         return JSONResponse(
-            status_code=status.HTTP_409_CONFLICT,
+            status_code=http_status.HTTP_409_CONFLICT,
             content=ErrorResponse(
                 detail="Department code already exists in this organization",
                 code="DUPLICATE_CODE",
@@ -304,14 +305,14 @@ def update_department(
     department_data: DepartmentUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> Union[DepartmentResponse, JSONResponse]:
+) -> DepartmentResponse | JSONResponse:
     """Update department details."""
     service = DepartmentService(db)
     department = service.get_department(department_id)
 
     if not department:
         return JSONResponse(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             content=ErrorResponse(
                 detail="Department not found", code="NOT_FOUND"
             ).model_dump(),
@@ -323,7 +324,7 @@ def update_department(
             current_user.id, "departments.update", department.organization_id
         ):
             return JSONResponse(
-                status_code=status.HTTP_403_FORBIDDEN,
+                status_code=http_status.HTTP_403_FORBIDDEN,
                 content=ErrorResponse(
                     detail="Insufficient permissions to update this department",
                     code="PERMISSION_DENIED",
@@ -337,7 +338,7 @@ def update_department(
     ):
         if department_data.parent_id == department_id:
             return JSONResponse(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=http_status.HTTP_400_BAD_REQUEST,
                 content=ErrorResponse(
                     detail="Department cannot be its own parent", code="INVALID_PARENT"
                 ).model_dump(),
@@ -347,7 +348,7 @@ def update_department(
             parent = service.get_department(department_data.parent_id)
             if not parent or parent.organization_id != department.organization_id:
                 return JSONResponse(
-                    status_code=status.HTTP_400_BAD_REQUEST,
+                    status_code=http_status.HTTP_400_BAD_REQUEST,
                     content=ErrorResponse(
                         detail="Invalid parent department", code="INVALID_PARENT"
                     ).model_dump(),
@@ -359,13 +360,13 @@ def update_department(
         )
         if not updated_department:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
+                status_code=http_status.HTTP_404_NOT_FOUND,
                 detail="Department not found after update",
             )
         return service.get_department_response(updated_department)
     except ValueError as e:
         return JSONResponse(
-            status_code=status.HTTP_409_CONFLICT,
+            status_code=http_status.HTTP_409_CONFLICT,
             content=ErrorResponse(detail=str(e), code="DUPLICATE_CODE").model_dump(),
         )
 
@@ -384,14 +385,14 @@ def delete_department(
     department_id: int = Path(..., description="Department ID"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> Union[DeleteResponse, JSONResponse]:
+) -> DeleteResponse | JSONResponse:
     """Delete (soft delete) a department."""
     service = DepartmentService(db)
     department = service.get_department(department_id)
 
     if not department:
         return JSONResponse(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             content=ErrorResponse(
                 detail="Department not found", code="NOT_FOUND"
             ).model_dump(),
@@ -403,7 +404,7 @@ def delete_department(
             current_user.id, "departments.delete", department.organization_id
         ):
             return JSONResponse(
-                status_code=status.HTTP_403_FORBIDDEN,
+                status_code=http_status.HTTP_403_FORBIDDEN,
                 content=ErrorResponse(
                     detail="Insufficient permissions to delete departments",
                     code="PERMISSION_DENIED",
@@ -413,7 +414,7 @@ def delete_department(
     # Check for sub-departments
     if service.has_sub_departments(department_id):
         return JSONResponse(
-            status_code=status.HTTP_409_CONFLICT,
+            status_code=http_status.HTTP_409_CONFLICT,
             content=ErrorResponse(
                 detail="Cannot delete department with active sub-departments",
                 code="HAS_SUB_DEPARTMENTS",
@@ -430,7 +431,7 @@ def delete_department(
 
 @router.get(
     "/{department_id}/sub-departments",
-    response_model=List[DepartmentBasic],
+    response_model=list[DepartmentBasic],
     responses={
         401: {"model": ErrorResponse, "description": "Unauthorized"},
         404: {"model": ErrorResponse, "description": "Department not found"},
@@ -441,14 +442,14 @@ def get_sub_departments(
     recursive: bool = Query(False, description="Get all sub-departments recursively"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> List[DepartmentBasic]:
+) -> list[DepartmentBasic]:
     """Get sub-departments of a department."""
     service = DepartmentService(db)
 
     # Check if department exists
     if not service.get_department(department_id):
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Department not found"
+            status_code=http_status.HTTP_404_NOT_FOUND, detail="Department not found"
         )
 
     if recursive:
@@ -457,3 +458,52 @@ def get_sub_departments(
         sub_departments = service.get_direct_sub_departments(department_id)
 
     return [DepartmentBasic.model_validate(dept.to_dict()) for dept in sub_departments]
+
+
+# CRITICAL: Task Integration Endpoints for Phase 3
+
+
+@router.get(
+    "/{department_id}/tasks",
+    response_model=TaskListResponse,
+    responses={
+        401: {"model": ErrorResponse, "description": "Unauthorized"},
+        404: {"model": ErrorResponse, "description": "Department not found"},
+    },
+)
+def get_department_tasks_via_department_endpoint(
+    department_id: int = Path(..., description="Department ID"),
+    include_subdepartments: bool = Query(
+        True, description="Include subdepartment tasks"
+    ),
+    status: str | None = Query(None, description="Filter by status"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> TaskListResponse:
+    """Get tasks for a department via department endpoint."""
+    department_service = DepartmentService(db)
+    task_service = TaskService()
+
+    # Check if department exists
+    if not department_service.get_department(department_id):
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND, detail="Department not found"
+        )
+
+    try:
+        return task_service.get_department_tasks(
+            department_id=department_id,
+            user=current_user,
+            db=db,
+            include_subdepartments=include_subdepartments,
+            status_filter=status,
+            page=page,
+            page_size=page_size,
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get department tasks: {str(e)}",
+        )

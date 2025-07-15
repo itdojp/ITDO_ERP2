@@ -1,7 +1,14 @@
-from typing import Any, Dict, List, Optional, Union
+import json
+from typing import Any, List, Union
 
-from pydantic import AnyHttpUrl, AnyUrl, PostgresDsn, validator
-from pydantic_settings import BaseSettings
+from pydantic import (
+    AnyUrl,
+    Field,
+    PostgresDsn,
+    field_validator,
+    model_validator,
+)
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -10,48 +17,109 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
 
     # CORS設定
-    BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = []
+    BACKEND_CORS_ORIGINS: Any = Field(
+        default="http://localhost:3000,http://127.0.0.1:3000"
+    )
 
-    @validator("BACKEND_CORS_ORIGINS", pre=True)
+    @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
-    def assemble_cors_origins(cls, v: Union[str, List[str]]) -> Union[List[str], str]:
-        if isinstance(v, str) and not v.startswith("["):
-            return [i.strip() for i in v.split(",")]
-        elif isinstance(v, (list, str)):
+    def assemble_cors_origins(cls, v: Union[str, List[str], None]) -> List[str]:
+        """Parse CORS origins from string or list."""
+        default_origins = ["http://localhost:3000", "http://127.0.0.1:3000"]
+
+        if v is None:
+            return default_origins
+
+        if isinstance(v, list):
             return v
-        raise ValueError(v)
+
+        # Handle string values
+        if isinstance(v, str):
+            v_stripped = v.strip()
+            if not v_stripped:
+                return default_origins
+
+            # Handle comma-separated values FIRST (before JSON)
+            if "," in v_stripped and not v_stripped.startswith("["):
+                origins = [
+                    origin.strip() for origin in v_stripped.split(",") if origin.strip()
+                ]
+                return origins if origins else default_origins
+
+            # Try JSON parsing for array format
+            if v_stripped.startswith("["):
+                try:
+                    parsed = json.loads(v_stripped)
+                    if isinstance(parsed, list):
+                        return parsed
+                except json.JSONDecodeError:
+                    pass
+
+            # Single value
+            return [v_stripped]
+
+        # For any other type, return default
+        return default_origins
+
+    @property
+    def cors_origins_list(self) -> List[str]:
+        """CORS origins as a list for use in middleware."""
+        # The validator ensures BACKEND_CORS_ORIGINS is always a list
+        return self.BACKEND_CORS_ORIGINS
 
     # データベース設定
-    POSTGRES_SERVER: str = "localhost"
-    POSTGRES_USER: str = "itdo_user"
-    POSTGRES_PASSWORD: str = "itdo_password"
-    POSTGRES_DB: str = "itdo_erp"
-    POSTGRES_PORT: int = 5432
-    DATABASE_URL: Optional[Union[PostgresDsn, AnyUrl]] = None
+    POSTGRES_SERVER: str = Field(default="localhost", description="PostgreSQL server")
+    POSTGRES_USER: str = Field(default="itdo_user", description="PostgreSQL user")
+    POSTGRES_PASSWORD: str = Field(
+        default="itdo_password", description="PostgreSQL password"
+    )
+    POSTGRES_DB: str = Field(default="itdo_erp", description="PostgreSQL database")
+    POSTGRES_PORT: int = Field(default=5432, description="PostgreSQL port")
+    DATABASE_URL: PostgresDsn | AnyUrl | None = None
 
-    @validator("DATABASE_URL", pre=True)
-    @classmethod
-    def assemble_db_connection(cls, v: Optional[str], values: Dict[str, Any]) -> Any:
-        if isinstance(v, str):
-            return v
-        return (
-            f"postgresql://{values.get('POSTGRES_USER')}:"
-            f"{values.get('POSTGRES_PASSWORD')}@"
-            f"{values.get('POSTGRES_SERVER')}:"
-            f"{values.get('POSTGRES_PORT')}/{values.get('POSTGRES_DB')}"
-        )
+    # Test environment overrides
+    @property
+    def postgres_db_name(self) -> str:
+        """Get the correct database name based on environment."""
+        if self.ENVIRONMENT in ("test", "testing") or self.TESTING:
+            return "itdo_erp_test"
+        return self.POSTGRES_DB
+
+    @model_validator(mode="after")
+    def assemble_db_connection(self) -> "Settings":
+        if self.DATABASE_URL is None:
+            # Use test database for test environment
+            db_name = self.postgres_db_name
+            db_url = (
+                f"postgresql://{self.POSTGRES_USER}:"
+                f"{self.POSTGRES_PASSWORD}@"
+                f"{self.POSTGRES_SERVER}:"
+                f"{self.POSTGRES_PORT}/{db_name}"
+            )
+            # Convert string to PostgresDsn type
+            self.DATABASE_URL = PostgresDsn(db_url)
+        return self
 
     # Redis設定
     REDIS_URL: str = "redis://localhost:6379"
 
     # Keycloak設定
-    KEYCLOAK_URL: str = "http://localhost:8080"
-    KEYCLOAK_REALM: str = "itdo-erp"
-    KEYCLOAK_CLIENT_ID: str = "itdo-erp-client"
-    KEYCLOAK_CLIENT_SECRET: str = ""
+    KEYCLOAK_URL: str = Field(
+        default="http://localhost:8080", description="Keycloak URL"
+    )
+    KEYCLOAK_REALM: str = Field(default="itdo-erp", description="Keycloak realm")
+    KEYCLOAK_CLIENT_ID: str = Field(
+        default="itdo-erp-client", description="Keycloak client ID"
+    )
+    KEYCLOAK_CLIENT_SECRET: str = Field(
+        default="", description="Keycloak client secret"
+    )
 
     # セキュリティ設定
-    SECRET_KEY: str = "your-secret-key-change-this-in-production"
+    SECRET_KEY: str = Field(
+        default="test-secret-key-for-development-only",
+        description="Secret key for JWT tokens",
+    )
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
@@ -60,10 +128,24 @@ class Settings(BaseSettings):
 
     # 開発環境フラグ
     DEBUG: bool = False
+    ENVIRONMENT: str = "development"
+    TESTING: bool = False
+    LOG_LEVEL: str = "INFO"
+    API_V1_PREFIX: str = "/api/v1"
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=True,
+        # Don't try to parse complex fields automatically
+        json_schema_extra={
+            "env_parse_none_str": "null",
+        },
+    )
 
 
 settings = Settings()
+
+
+def get_settings() -> Settings:
+    """Get application settings instance."""
+    return settings

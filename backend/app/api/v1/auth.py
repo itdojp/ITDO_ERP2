@@ -1,7 +1,5 @@
 """Authentication endpoints."""
 
-from typing import Union
-
 from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
@@ -24,7 +22,7 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 )
 def login(
     request: LoginRequest, db: Session = Depends(get_db)
-) -> Union[TokenResponse, JSONResponse]:
+) -> TokenResponse | JSONResponse:
     """User login endpoint."""
     # Authenticate user
     user = AuthService.authenticate_user(db, request.email, request.password)
@@ -50,21 +48,25 @@ def login(
 )
 def refresh_token(
     request: RefreshRequest, db: Session = Depends(get_db)
-) -> Union[TokenResponse, JSONResponse]:
+) -> TokenResponse | JSONResponse:
     """Refresh access token."""
     # Refresh tokens
     tokens = AuthService.refresh_tokens(db, request.refresh_token)
     if not tokens:
         # Determine error type based on token validation
         try:
+            from app.core.exceptions import ExpiredTokenError, InvalidTokenError
             from app.core.security import verify_token
 
             verify_token(request.refresh_token)
-            # Token is valid but not a refresh token or user issue
-            error_code = "AUTH003"
-        except Exception:
-            # Token is expired or invalid
+            # Token is valid format but user/refresh issue
             error_code = "AUTH002"
+        except ExpiredTokenError:
+            error_code = "AUTH002"  # Expired token
+        except InvalidTokenError:
+            error_code = "AUTH003"  # Invalid format
+        except Exception:
+            error_code = "AUTH003"  # Other invalid format
 
         return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,

@@ -1,7 +1,7 @@
 """Role and UserRole repository implementation."""
 
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from sqlalchemy import func, or_, select, update
 from sqlalchemy.orm import joinedload
@@ -15,55 +15,66 @@ from app.types import DepartmentId, OrganizationId, RoleId, UserId
 class RoleRepository(BaseRepository[Role, RoleCreate, RoleUpdate]):
     """Repository for role operations."""
 
-    def get_by_code(self, code: str) -> Optional[Role]:
+    def get_by_code(self, code: str) -> Role | None:
         """Get role by code."""
         return self.db.scalar(select(self.model).where(self.model.code == code))
 
-    def get_system_roles(self) -> List[Role]:
+    def get_by_name_and_organization(
+        self, name: str, organization_id: int
+    ) -> Role | None:
+        """Get role by name within organization."""
+        return self.db.scalar(
+            select(self.model)
+            .where(self.model.name == name)
+            .where(self.model.organization_id == organization_id)
+            .where(~self.model.is_deleted)
+        )
+
+    def get_system_roles(self) -> list[Role]:
         """Get system roles."""
         return list(
             self.db.scalars(
                 select(self.model)
                 .where(self.model.is_system)
                 .where(~self.model.is_deleted)
-                .order_by(self.model.display_order, self.model.name)
+                .order_by(self.model.name)
             )
         )
 
-    def get_by_type(self, role_type: str) -> List[Role]:
+    def get_by_type(self, role_type: str) -> list[Role]:
         """Get roles by type."""
         return list(
             self.db.scalars(
                 select(self.model)
                 .where(self.model.role_type == role_type)
                 .where(~self.model.is_deleted)
-                .order_by(self.model.display_order, self.model.name)
+                .order_by(self.model.name)
             )
         )
 
-    def get_root_roles(self) -> List[Role]:
+    def get_root_roles(self) -> list[Role]:
         """Get root roles (without parent)."""
         return list(
             self.db.scalars(
                 select(self.model)
                 .where(self.model.parent_id.is_(None))
                 .where(~self.model.is_deleted)
-                .order_by(self.model.display_order, self.model.name)
+                .order_by(self.model.name)
             )
         )
 
-    def get_child_roles(self, parent_id: RoleId) -> List[Role]:
+    def get_child_roles(self, parent_id: RoleId) -> list[Role]:
         """Get direct child roles."""
         return list(
             self.db.scalars(
                 select(self.model)
                 .where(self.model.parent_id == parent_id)
                 .where(~self.model.is_deleted)
-                .order_by(self.model.display_order, self.model.name)
+                .order_by(self.model.name)
             )
         )
 
-    def get_with_parent(self, id: int) -> Optional[Role]:
+    def get_with_parent(self, id: int) -> Role | None:
         """Get role with parent loaded."""
         return self.db.scalar(
             select(self.model)
@@ -71,7 +82,7 @@ class RoleRepository(BaseRepository[Role, RoleCreate, RoleUpdate]):
             .where(self.model.id == id)
         )
 
-    def search_by_name(self, query: str) -> List[Role]:
+    def search_by_name(self, query: str) -> list[Role]:
         """Search roles by name."""
         search_term = f"%{query}%"
         return list(
@@ -90,7 +101,7 @@ class RoleRepository(BaseRepository[Role, RoleCreate, RoleUpdate]):
             )
         )
 
-    def validate_unique_code(self, code: str, exclude_id: Optional[int] = None) -> bool:
+    def validate_unique_code(self, code: str, exclude_id: int | None = None) -> bool:
         """Validate if role code is unique."""
         query = select(func.count(self.model.id)).where(self.model.code == code)
         if exclude_id:
@@ -98,9 +109,7 @@ class RoleRepository(BaseRepository[Role, RoleCreate, RoleUpdate]):
         count = self.db.scalar(query) or 0
         return count == 0
 
-    def update_permissions(
-        self, id: int, permissions: Dict[str, Any]
-    ) -> Optional[Role]:
+    def update_permissions(self, id: int, permissions: dict[str, Any]) -> Role | None:
         """Update role permissions."""
         role = self.get(id)
         if role and not role.is_system:
@@ -130,11 +139,8 @@ class RoleRepository(BaseRepository[Role, RoleCreate, RoleUpdate]):
             role_type="custom",
             organization_id=organization_id,
             parent_id=source.parent_id,
-            permissions=source.permissions if include_permissions else {},
+            permissions={},
             is_system=False,
-            display_order=source.display_order,
-            icon=source.icon,
-            color=source.color,
             is_active=True,
         )
 
@@ -146,7 +152,7 @@ class UserRoleRepository(BaseRepository[UserRole, UserRoleCreate, UserRoleUpdate
 
     def get_user_roles(
         self, user_id: UserId, active_only: bool = True, valid_only: bool = False
-    ) -> List[UserRole]:
+    ) -> list[UserRole]:
         """Get all roles for a user."""
         query = select(self.model).where(self.model.user_id == user_id)
 
@@ -154,7 +160,7 @@ class UserRoleRepository(BaseRepository[UserRole, UserRoleCreate, UserRoleUpdate
             query = query.where(self.model.is_active)
 
         if valid_only:
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             query = query.where(self.model.valid_from <= now)
             query = query.where(
                 or_(self.model.expires_at.is_(None), self.model.expires_at > now)
@@ -168,7 +174,7 @@ class UserRoleRepository(BaseRepository[UserRole, UserRoleCreate, UserRoleUpdate
 
         return list(self.db.scalars(query))
 
-    def get_primary_role(self, user_id: UserId) -> Optional[UserRole]:
+    def get_primary_role(self, user_id: UserId) -> UserRole | None:
         """Get user's primary role."""
         return self.db.scalar(
             select(self.model)
@@ -184,7 +190,7 @@ class UserRoleRepository(BaseRepository[UserRole, UserRoleCreate, UserRoleUpdate
 
     def get_by_organization(
         self, user_id: UserId, organization_id: OrganizationId
-    ) -> List[UserRole]:
+    ) -> list[UserRole]:
         """Get user roles in specific organization."""
         return list(
             self.db.scalars(
@@ -199,9 +205,9 @@ class UserRoleRepository(BaseRepository[UserRole, UserRoleCreate, UserRoleUpdate
     def get_by_role(
         self,
         role_id: RoleId,
-        organization_id: Optional[OrganizationId] = None,
+        organization_id: OrganizationId | None = None,
         active_only: bool = True,
-    ) -> List[UserRole]:
+    ) -> list[UserRole]:
         """Get all users with specific role."""
         query = select(self.model).where(self.model.role_id == role_id)
 
@@ -224,8 +230,8 @@ class UserRoleRepository(BaseRepository[UserRole, UserRoleCreate, UserRoleUpdate
         user_id: UserId,
         role_id: RoleId,
         organization_id: OrganizationId,
-        department_id: Optional[DepartmentId] = None,
-        assigned_by: Optional[UserId] = None,
+        department_id: DepartmentId | None = None,
+        assigned_by: UserId | None = None,
         **kwargs: Any,
     ) -> UserRole:
         """Assign a role to user."""
@@ -243,7 +249,7 @@ class UserRoleRepository(BaseRepository[UserRole, UserRoleCreate, UserRoleUpdate
             if not existing.is_active:
                 existing.is_active = True
                 existing.assigned_by = assigned_by
-                existing.assigned_at = datetime.now(timezone.utc)
+                existing.assigned_at = datetime.now(UTC)
                 self.db.commit()
                 self.db.refresh(existing)
             return existing
@@ -265,7 +271,7 @@ class UserRoleRepository(BaseRepository[UserRole, UserRoleCreate, UserRoleUpdate
         user_id: UserId,
         role_id: RoleId,
         organization_id: OrganizationId,
-        department_id: Optional[DepartmentId] = None,
+        department_id: DepartmentId | None = None,
     ) -> bool:
         """Revoke a role from user."""
         result = self.db.execute(
@@ -299,9 +305,9 @@ class UserRoleRepository(BaseRepository[UserRole, UserRoleCreate, UserRoleUpdate
         self.db.commit()
         return result.rowcount > 0
 
-    def get_expiring_roles(self, days: int = 30) -> List[UserRole]:
+    def get_expiring_roles(self, days: int = 30) -> list[UserRole]:
         """Get roles expiring within specified days."""
-        future_date = datetime.now(timezone.utc) + timedelta(days=days)
+        future_date = datetime.now(UTC) + timedelta(days=days)
 
         return list(
             self.db.scalars(
@@ -309,7 +315,7 @@ class UserRoleRepository(BaseRepository[UserRole, UserRoleCreate, UserRoleUpdate
                 .where(self.model.is_active)
                 .where(self.model.expires_at.is_not(None))
                 .where(self.model.expires_at <= future_date)
-                .where(self.model.expires_at > datetime.now(timezone.utc))
+                .where(self.model.expires_at > datetime.now(UTC))
                 .options(
                     joinedload(self.model.user),
                     joinedload(self.model.role),
@@ -318,15 +324,13 @@ class UserRoleRepository(BaseRepository[UserRole, UserRoleCreate, UserRoleUpdate
             )
         )
 
-    def approve_role(
-        self, user_role_id: int, approved_by: UserId
-    ) -> Optional[UserRole]:
+    def approve_role(self, user_role_id: int, approved_by: UserId) -> UserRole | None:
         """Approve a pending role assignment."""
         user_role = self.get(user_role_id)
         if user_role and user_role.approval_status == "pending":
             user_role.approval_status = "approved"
             user_role.approved_by = approved_by
-            user_role.approved_at = datetime.now(timezone.utc)
+            user_role.approved_at = datetime.now(UTC)
             self.db.commit()
             self.db.refresh(user_role)
         return user_role
