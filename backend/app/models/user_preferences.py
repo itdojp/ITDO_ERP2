@@ -1,11 +1,7 @@
 """User preferences model."""
 
 from datetime import datetime
-<<<<<<< HEAD
-from typing import TYPE_CHECKING
-=======
 from typing import TYPE_CHECKING, Any
->>>>>>> main
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, func
 from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
@@ -86,11 +82,7 @@ class UserPreferences(BaseModel):
         db.flush()
         return preferences
 
-<<<<<<< HEAD
-    def update(self, db: Session, **kwargs) -> "UserPreferences":
-=======
     def update(self, db: Session, **kwargs: Any) -> "UserPreferences":
->>>>>>> main
         """Update user preferences."""
         for key, value in kwargs.items():
             if hasattr(self, key) and value is not None:

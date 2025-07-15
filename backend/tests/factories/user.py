@@ -50,7 +50,10 @@ class UserFactory(BaseFactory):
     def create_admin(cls, db_session, **kwargs) -> User:
         """Create an admin user."""
         kwargs["is_superuser"] = True
-        kwargs["email"] = kwargs.get("email", fake.unique.email())
+        import uuid
+
+        default_email = f"admin_{str(uuid.uuid4())[:8]}@example.com"
+        kwargs["email"] = kwargs.get("email", default_email)
         return cls.create(db_session, **kwargs)
 
     @classmethod

@@ -43,9 +43,6 @@ class User(SoftDeletableModel):
     department_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("departments.id"), nullable=True
     )
-    organization_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("organizations.id"), nullable=True
-    )
 
     # Profile fields
     bio: Mapped[str | None] = mapped_column(String(500))
@@ -110,7 +107,6 @@ class User(SoftDeletableModel):
         foreign_keys="UserOrganization.user_id",
         back_populates="user",
         cascade="all, delete-orphan",
->>>>>>> main
     )
 
     @classmethod
