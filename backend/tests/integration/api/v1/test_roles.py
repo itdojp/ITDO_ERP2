@@ -366,7 +366,7 @@ class TestRoleAPI(
         assert response.status_code == 201
         data = response.json()
         assert data["user_id"] == user.id
-        assert data["role_id"] == role.id
+        assert data["role"]["id"] == role.id
         assert data["is_active"] is True
 
     def test_assign_role_duplicate_assignment(
@@ -495,7 +495,7 @@ class TestRoleAPI(
         assert len(data) == 2
 
         # Verify both roles are returned
-        role_ids = [assignment["role_id"] for assignment in data]
+        role_ids = [assignment["role"]["id"] for assignment in data]
         assert role1.id in role_ids
         assert role2.id in role_ids
 
@@ -534,7 +534,7 @@ class TestRoleAPI(
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 1
-        assert data[0]["role_id"] == role1.id
+        assert data[0]["role"]["id"] == role1.id
 
     def test_create_role_with_parent(
         self,

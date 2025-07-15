@@ -515,4 +515,30 @@ class RoleService:
 
     def get_user_role_response(self, user_role: UserRole) -> UserRoleResponse:
         """Get user role response."""
-        return UserRoleResponse.model_validate(user_role, from_attributes=True)
+        # Load relationships if not already loaded
+        user_role_with_relations = self.db.get(
+            UserRole,
+            user_role.id,
+            options=[
+                selectinload(UserRole.role),
+                selectinload(UserRole.organization),
+                selectinload(UserRole.department),
+                selectinload(UserRole.assigned_by_user),
+                selectinload(UserRole.approved_by_user),
+            ],
+        )
+
+        # Use the new factory method to properly handle relationships
+        from app.schemas.role import UserRoleInfo
+
+        user_role_info = UserRoleInfo.from_user_role_model(user_role_with_relations)
+
+        # Add audit info and convert to UserRoleResponse
+        return UserRoleResponse(
+            **user_role_info.model_dump(),
+            effective_permissions=user_role_with_relations.get_effective_permissions(),
+            created_at=user_role_with_relations.created_at,
+            created_by=user_role_with_relations.created_by,
+            updated_at=user_role_with_relations.updated_at,
+            updated_by=user_role_with_relations.updated_by,
+        )

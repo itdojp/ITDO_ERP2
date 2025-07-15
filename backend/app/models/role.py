@@ -308,7 +308,13 @@ class UserRole(AuditableModel):
         """Check if role assignment is expired."""
         if not self.expires_at:
             return False
-        return datetime.now(UTC) > self.expires_at
+        now = datetime.now(UTC)
+        expires_at = (
+            self.expires_at
+            if self.expires_at.tzinfo
+            else self.expires_at.replace(tzinfo=UTC)
+        )
+        return now > expires_at
 
     @property
     def is_valid(self) -> bool:
@@ -319,13 +325,26 @@ class UserRole(AuditableModel):
         if not self.is_active:
             return False
 
+        # Ensure timezone-aware datetime comparison
+        valid_from = (
+            self.valid_from
+            if self.valid_from.tzinfo
+            else self.valid_from.replace(tzinfo=UTC)
+        )
+
         # Check validity period
-        if now < self.valid_from:
+        if now < valid_from:
             return False
 
         # Check expiration
-        if self.expires_at and now > self.expires_at:
-            return False
+        if self.expires_at:
+            expires_at = (
+                self.expires_at
+                if self.expires_at.tzinfo
+                else self.expires_at.replace(tzinfo=UTC)
+            )
+            if now > expires_at:
+                return False
 
         # Check approval if required
         if self.approval_status == "pending":
@@ -339,7 +358,13 @@ class UserRole(AuditableModel):
         if not self.expires_at:
             return None
 
-        delta = self.expires_at - datetime.now(UTC)
+        now = datetime.now(UTC)
+        expires_at = (
+            self.expires_at
+            if self.expires_at.tzinfo
+            else self.expires_at.replace(tzinfo=UTC)
+        )
+        delta = expires_at - now
         return delta.days
 
     def get_effective_permissions(self) -> dict[str, Any]:
