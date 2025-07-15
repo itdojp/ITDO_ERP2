@@ -13,7 +13,7 @@ import type {
 } from '../types/user'
 
 // Query Keys
-export const USER_PROFILE_KEYS = {
+const USER_PROFILE_KEYS = {
   all: ['userProfile'] as const,
   profile: (userId: number) => [...USER_PROFILE_KEYS.all, 'profile', userId] as const,
   preferences: () => [...USER_PROFILE_KEYS.all, 'preferences'] as const,
@@ -34,7 +34,7 @@ export const useUserProfile = (userId: number) => {
   })
 }
 
-export const useCurrentUser = () => {
+const useCurrentUser = () => {
   return useQuery({
     queryKey: USER_PROFILE_KEYS.currentUser(),
     queryFn: () => userProfileApi.getCurrentUser(),
@@ -113,7 +113,7 @@ export const useUserPreferences = () => {
   })
 }
 
-export const useUpdatePreferences = () => {
+const useUpdatePreferences = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -124,7 +124,7 @@ export const useUpdatePreferences = () => {
   })
 }
 
-export const useCreatePreferences = () => {
+const useCreatePreferences = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -135,7 +135,7 @@ export const useCreatePreferences = () => {
   })
 }
 
-export const useResetPreferences = () => {
+const useResetPreferences = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -146,14 +146,14 @@ export const useResetPreferences = () => {
   })
 }
 
-export const useLocaleInfo = () => {
+const useLocaleInfo = () => {
   return useQuery({
     queryKey: USER_PROFILE_KEYS.locale(),
     queryFn: () => userProfileApi.getLocaleInfo(),
   })
 }
 
-export const useUpdateLanguage = () => {
+const useUpdateLanguage = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -164,7 +164,7 @@ export const useUpdateLanguage = () => {
   })
 }
 
-export const useUpdateTimezone = () => {
+const useUpdateTimezone = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -175,7 +175,7 @@ export const useUpdateTimezone = () => {
   })
 }
 
-export const useUpdateTheme = () => {
+const useUpdateTheme = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -186,7 +186,7 @@ export const useUpdateTheme = () => {
   })
 }
 
-export const useToggleEmailNotifications = () => {
+const useToggleEmailNotifications = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -197,7 +197,7 @@ export const useToggleEmailNotifications = () => {
   })
 }
 
-export const useTogglePushNotifications = () => {
+const useTogglePushNotifications = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -209,14 +209,14 @@ export const useTogglePushNotifications = () => {
 }
 
 // Privacy Hooks
-export const useUserPrivacySettings = () => {
+const useUserPrivacySettings = () => {
   return useQuery({
     queryKey: USER_PROFILE_KEYS.privacy(),
     queryFn: () => userProfileApi.getPrivacySettings(),
   })
 }
 
-export const useUpdatePrivacySettings = () => {
+const useUpdatePrivacySettings = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -227,7 +227,7 @@ export const useUpdatePrivacySettings = () => {
   })
 }
 
-export const useCreatePrivacySettings = () => {
+const useCreatePrivacySettings = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -238,7 +238,7 @@ export const useCreatePrivacySettings = () => {
   })
 }
 
-export const useSetAllPrivate = () => {
+const useSetAllPrivate = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -250,7 +250,7 @@ export const useSetAllPrivate = () => {
 }
 
 // User Search Hooks
-export const useSearchUsers = (params: UserSearchParams = {}) => {
+const useSearchUsers = (params: UserSearchParams = {}) => {
   return useQuery({
     queryKey: USER_PROFILE_KEYS.users(params),
     queryFn: () => userProfileApi.searchUsers(params),
@@ -266,7 +266,7 @@ export const useCheckProfileVisibility = (userId: number) => {
   })
 }
 
-export const useCheckEmailVisibility = (userId: number) => {
+const useCheckEmailVisibility = (userId: number) => {
   return useQuery({
     queryKey: USER_PROFILE_KEYS.privacyCheck('email', userId),
     queryFn: () => userProfileApi.checkEmailVisibility(userId),
@@ -274,7 +274,7 @@ export const useCheckEmailVisibility = (userId: number) => {
   })
 }
 
-export const useCheckPhoneVisibility = (userId: number) => {
+const useCheckPhoneVisibility = (userId: number) => {
   return useQuery({
     queryKey: USER_PROFILE_KEYS.privacyCheck('phone', userId),
     queryFn: () => userProfileApi.checkPhoneVisibility(userId),
@@ -282,7 +282,7 @@ export const useCheckPhoneVisibility = (userId: number) => {
   })
 }
 
-export const useGetFilteredUserData = (userId: number) => {
+const useGetFilteredUserData = (userId: number) => {
   return useQuery({
     queryKey: USER_PROFILE_KEYS.privacyCheck('filtered', userId),
     queryFn: () => userProfileApi.getFilteredUserData(userId),

@@ -291,3 +291,5 @@ export const UserProfileEdit: React.FC<UserProfileEditProps> = ({
     </div>
   )
 }
+
+export default UserProfileEdit
