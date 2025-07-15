@@ -1,6 +1,7 @@
 """Factory for User model."""
 
-from typing import Any, Dict
+import uuid
+from typing import Any
 
 from sqlalchemy.orm import Session
 
@@ -14,10 +15,12 @@ class UserFactory(BaseFactory):
     model_class = User  # Model class for this factory
 
     @classmethod
-    def _get_default_attributes(cls) -> Dict[str, Any]:
+    def _get_default_attributes(cls) -> dict[str, Any]:
         """Get default attributes for creating User instances."""
+        # Use UUID for guaranteed uniqueness
+        unique_id = str(uuid.uuid4())[:8]
         return {
-            "email": fake.unique.email(),
+            "email": f"test-{unique_id}@example.com",
             "full_name": fake.name(),
             "phone": fake.phone_number(),
             "is_active": True,
@@ -27,7 +30,7 @@ class UserFactory(BaseFactory):
         }
 
     @classmethod
-    def _get_update_attributes(cls) -> Dict[str, Any]:
+    def _get_update_attributes(cls) -> dict[str, Any]:
         """Get default attributes for updating User instances."""
         return {
             "full_name": fake.name(),

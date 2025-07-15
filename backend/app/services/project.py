@@ -1,6 +1,6 @@
 """Project service implementation (stub for type checking)."""
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 from sqlalchemy.orm import Session
 
@@ -15,14 +15,14 @@ class ProjectService:
         """Initialize service with database session."""
         self.db = db
 
-    def get_project(self, project_id: int, user_id: UserId) -> Optional[Project]:
+    def get_project(self, project_id: int, user_id: UserId) -> Project | None:
         """Get a project by ID if user has access."""
         # Stub implementation
         return self.db.get(Project, project_id)
 
     def get_project_statistics(
         self, project_id: int, user_id: UserId
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Get project statistics."""
         # Stub implementation
         return {
@@ -52,9 +52,9 @@ class ProjectService:
     def list_projects(
         self,
         user_id: UserId,
-        organization_id: Optional[int] = None,
-        department_id: Optional[int] = None,
-        status: Optional[str] = None,
+        organization_id: int | None = None,
+        department_id: int | None = None,
+        status: str | None = None,
         skip: int = 0,
         limit: int = 10,
     ) -> tuple[list[Project], int]:

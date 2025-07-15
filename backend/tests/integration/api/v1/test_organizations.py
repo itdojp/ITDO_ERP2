@@ -33,8 +33,54 @@ def get_auth_header(user) -> dict:
 class TestOrganizationAPI:
     """Test cases for Organization API endpoints."""
 
+<<<<<<< HEAD
     def test_create_organization_api(
         self, client: TestClient, db_session: Session
+=======
+    @property
+    def endpoint_prefix(self) -> str:
+        """API endpoint prefix."""
+        return "/api/v1/organizations"
+
+    @property
+    def factory_class(self):
+        """Factory class for creating test instances."""
+        return OrganizationFactory
+
+    @property
+    def create_schema_class(self):
+        """Schema class for create operations."""
+        return OrganizationCreate
+
+    @property
+    def update_schema_class(self):
+        """Schema class for update operations."""
+        return OrganizationUpdate
+
+    @property
+    def response_schema_class(self):
+        """Schema class for API responses."""
+        return OrganizationResponse
+
+
+    # Use inherited test_create_endpoint_success from BaseAPITestCase
+
+    def create_valid_payload(self, **overrides):
+        """Create a valid payload for create operations."""
+        payload = super().create_valid_payload(**overrides)
+        # Convert settings from JSON string to dict for API
+        if "settings" in payload and isinstance(payload["settings"], str):
+            import json
+
+            payload["settings"] = json.loads(payload["settings"])
+        return payload
+
+
+    # Custom test methods specific to Organization API
+
+    def test_tree_endpoint_success(
+        self, client: TestClient, db_session: Session, admin_token: str
+>>>>>>> origin/main
     ) -> None:
         """TEST-API-ORG-001: 組織作成APIが正しく動作することを確認."""
         # Given: システム管理者トークン

@@ -1,68 +1,121 @@
-"""Role Management API endpoints."""
+"""Role API endpoints."""
 
-from typing import Dict, List, Optional, Union
+from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, status
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_active_user, get_db
+from app.core.exceptions import AlreadyExists
 from app.models.user import User
-from app.schemas.common import DeleteResponse, ErrorResponse
+from app.schemas.common import DeleteResponse, ErrorResponse, PaginatedResponse
 from app.schemas.role import (
+    PermissionBasic,
     RoleCreate,
-    RoleList,
     RoleResponse,
+    RoleSummary,
+    RoleTree,
     RoleUpdate,
-    UserRoleCreate,
+    RoleWithPermissions,
+    UserRoleAssignment,
     UserRoleResponse,
 )
 from app.services.role import RoleService
+from app.types import OrganizationId, UserId
 
 router = APIRouter(prefix="/roles", tags=["roles"])
 
 
 @router.get(
     "/",
-    response_model=RoleList,
+    response_model=PaginatedResponse[RoleSummary],
     responses={
         401: {"model": ErrorResponse, "description": "Unauthorized"},
-        403: {"model": ErrorResponse, "description": "Insufficient permissions"},
     },
 )
 def list_roles(
-    page: int = Query(1, ge=1, description="Page number"),
-    limit: int = Query(10, ge=1, le=100, description="Items per page"),
-    search: Optional[str] = Query(None, description="Search query"),
-    include_system: bool = Query(True, description="Include system roles"),
-    organization_id: Optional[int] = Query(None, description="Organization context"),
+    skip: int = Query(0, ge=0, description="Number of items to skip"),
+    limit: int = Query(100, ge=1, le=1000, description="Number of items to return"),
+    organization_id: OrganizationId | None = Query(
+        None, description="Filter by organization"
+    ),
+    search: str | None = Query(None, description="Search query"),
+    active_only: bool = Query(True, description="Only return active roles"),
+    role_type: str | None = Query(None, description="Filter by role type"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> Union[RoleList, JSONResponse]:
-    """
-    List roles with pagination and filtering.
+) -> PaginatedResponse[RoleSummary]:
+    """List roles with pagination and filtering."""
+    service = RoleService(db)
 
-    Returns a paginated list of roles with optional search and filtering.
-    """
-    try:
-        service = RoleService()
-        return service.get_roles(
-            requester=current_user,
-            db=db,
-            organization_id=organization_id,
-            page=page,
-            limit=limit,
-            search=search,
-            include_system=include_system,
+    # Build filters
+    filters: dict[str, Any] = {}
+    if organization_id:
+        filters["organization_id"] = organization_id
+    if active_only:
+        filters["is_active"] = True
+    if role_type:
+        filters["role_type"] = role_type  # Keep as string, will be handled in service
+
+    # Get roles
+    if search:
+        roles, total = service.search_roles(search, skip, limit, filters)
+    else:
+        roles, total = service.list_roles(
+            skip, active_only, limit, organization_id, filters
         )
-    except Exception as e:
-        return JSONResponse(
-            status_code=status.HTTP_403_FORBIDDEN,
-            content=ErrorResponse(
-                detail=str(e),
-                error_code="PERMISSION_DENIED",
-            ).model_dump(),
+
+    # Convert to summary
+    items = [service.get_role_summary(role) for role in roles]
+
+    return PaginatedResponse(items=items, total=total, skip=skip, limit=limit)
+
+
+@router.get(
+    "/organization/{organization_id}/tree",
+    response_model=list[RoleTree],
+    responses={
+        401: {"model": ErrorResponse, "description": "Unauthorized"},
+        404: {"model": ErrorResponse, "description": "Organization not found"},
+    },
+)
+def get_role_tree(
+    organization_id: OrganizationId = Path(..., description="Organization ID"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> list[RoleTree]:
+    """Get role hierarchy tree for an organization."""
+    service = RoleService(db)
+
+    # Verify organization exists
+    from app.services.organization import OrganizationService
+
+    org_service = OrganizationService(db)
+    if not org_service.get_organization(organization_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found"
         )
+
+    return service.get_role_tree(organization_id)
+
+
+@router.get(
+    "/permissions",
+    response_model=list[PermissionBasic],
+    responses={
+        401: {"model": ErrorResponse, "description": "Unauthorized"},
+    },
+)
+def list_all_permissions(
+    category: str | None = Query(None, description="Filter by permission category"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> list[PermissionBasic]:
+    """List all available permissions."""
+    service = RoleService(db)
+    return service.list_all_permissions(category)
 
 
 @router.get(
@@ -70,46 +123,50 @@ def list_roles(
     response_model=RoleResponse,
     responses={
         401: {"model": ErrorResponse, "description": "Unauthorized"},
-        403: {"model": ErrorResponse, "description": "Insufficient permissions"},
         404: {"model": ErrorResponse, "description": "Role not found"},
     },
 )
 def get_role(
     role_id: int = Path(..., description="Role ID"),
-    organization_id: Optional[int] = Query(None, description="Organization context"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> Union[RoleResponse, JSONResponse]:
-    """
-    Get role details by ID.
+) -> RoleResponse:
+    """Get role details."""
+    service = RoleService(db)
+    role = service.get_role(role_id)
 
-    Returns detailed information about a specific role.
-    """
-    try:
-        service = RoleService()
-        role = service.get_role_by_id(
-            role_id=role_id,
-            requester=current_user,
-            db=db,
-            organization_id=organization_id,
+    if not role:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Role not found"
         )
-        return RoleResponse.model_validate(role)
-    except Exception as e:
-        if "見つかりません" in str(e):
-            return JSONResponse(
-                status_code=status.HTTP_404_NOT_FOUND,
-                content=ErrorResponse(
-                    detail=str(e),
-                    error_code="NOT_FOUND",
-                ).model_dump(),
-            )
-        return JSONResponse(
-            status_code=status.HTTP_403_FORBIDDEN,
-            content=ErrorResponse(
-                detail=str(e),
-                error_code="PERMISSION_DENIED",
-            ).model_dump(),
+
+    return service.get_role_response(role)
+
+
+@router.get(
+    "/{role_id}/permissions",
+    response_model=RoleWithPermissions,
+    responses={
+        401: {"model": ErrorResponse, "description": "Unauthorized"},
+        404: {"model": ErrorResponse, "description": "Role not found"},
+    },
+)
+def get_role_permissions(
+    role_id: int = Path(..., description="Role ID"),
+    include_inherited: bool = Query(True, description="Include inherited permissions"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> RoleWithPermissions:
+    """Get role with permission details."""
+    service = RoleService(db)
+    role = service.get_role(role_id)
+
+    if not role:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Role not found"
         )
+
+    return service.get_role_with_permissions(role, include_inherited)
 
 
 @router.post(
@@ -119,45 +176,68 @@ def get_role(
     responses={
         401: {"model": ErrorResponse, "description": "Unauthorized"},
         403: {"model": ErrorResponse, "description": "Insufficient permissions"},
-        409: {"model": ErrorResponse, "description": "Role code already exists"},
+        404: {"model": ErrorResponse, "description": "Organization not found"},
+        409: {"model": ErrorResponse, "description": "Role name already exists"},
     },
 )
 def create_role(
     role_data: RoleCreate,
-    organization_id: Optional[int] = Query(None, description="Organization context"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> Union[RoleResponse, JSONResponse]:
-    """
-    Create a new role.
-
-    Creates a new role with the specified permissions and metadata.
-    """
-    try:
-        service = RoleService()
-        role = service.create_role(
-            data=role_data,
-            user=current_user,
-            db=db,
-            organization_id=organization_id,
-        )
-        return RoleResponse.model_validate(role)
-    except ValueError as e:
-        if "既に存在します" in str(e):
+) -> RoleResponse | JSONResponse:
+    """Create a new role."""
+    # Check permissions
+    service = RoleService(db)
+    if not current_user.is_superuser:
+        if not service.user_has_permission(
+            current_user.id, "roles.create", role_data.organization_id
+        ):
             return JSONResponse(
-                status_code=status.HTTP_409_CONFLICT,
+                status_code=status.HTTP_403_FORBIDDEN,
                 content=ErrorResponse(
-                    detail=str(e),
-                    error_code="DUPLICATE_CODE",
+                    detail="Insufficient permissions to create roles",
+                    code="PERMISSION_DENIED",
                 ).model_dump(),
             )
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    except Exception as e:
+
+    # Verify organization exists
+    from app.services.organization import OrganizationService
+
+    org_service = OrganizationService(db)
+    if not org_service.get_organization(role_data.organization_id):
         return JSONResponse(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=status.HTTP_404_NOT_FOUND,
             content=ErrorResponse(
-                detail=str(e),
-                error_code="PERMISSION_DENIED",
+                detail="Organization not found", code="ORGANIZATION_NOT_FOUND"
+            ).model_dump(),
+        )
+
+    # Verify parent role if specified
+    if role_data.parent_id:
+        parent = service.get_role(role_data.parent_id)
+        if not parent or parent.organization_id != role_data.organization_id:
+            return JSONResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                content=ErrorResponse(
+                    detail="Invalid parent role", code="INVALID_PARENT"
+                ).model_dump(),
+            )
+
+    try:
+        role = service.create_role(role_data, created_by=current_user.id)
+        return service.get_role_response(role)
+    except (ValueError, AlreadyExists) as e:
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content=ErrorResponse(detail=str(e), code="DUPLICATE_NAME").model_dump(),
+        )
+    except IntegrityError:
+        db.rollback()
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content=ErrorResponse(
+                detail="Role name already exists in this organization",
+                code="DUPLICATE_NAME",
             ).model_dump(),
         )
 
@@ -169,153 +249,77 @@ def create_role(
         401: {"model": ErrorResponse, "description": "Unauthorized"},
         403: {"model": ErrorResponse, "description": "Insufficient permissions"},
         404: {"model": ErrorResponse, "description": "Role not found"},
+        409: {"model": ErrorResponse, "description": "Role name already exists"},
     },
 )
 def update_role(
+    role_id: int = Path(..., description="Role ID"),
+    *,
     role_data: RoleUpdate,
-    role_id: int = Path(..., description="Role ID"),
-    organization_id: Optional[int] = Query(None, description="Organization context"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> Union[RoleResponse, JSONResponse]:
-    """
-    Update role details.
+) -> RoleResponse | JSONResponse:
+    """Update role details."""
+    service = RoleService(db)
+    role = service.get_role(role_id)
 
-    Updates role information including name, description, and permissions.
-    """
-    try:
-        service = RoleService()
-        role = service.update_role(
-            role_id=role_id,
-            data=role_data,
-            updater=current_user,
-            db=db,
-            organization_id=organization_id,
-        )
-        return RoleResponse.model_validate(role)
-    except Exception as e:
-        if "見つかりません" in str(e):
-            return JSONResponse(
-                status_code=status.HTTP_404_NOT_FOUND,
-                content=ErrorResponse(
-                    detail=str(e),
-                    error_code="NOT_FOUND",
-                ).model_dump(),
-            )
+    if not role:
         return JSONResponse(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=status.HTTP_404_NOT_FOUND,
             content=ErrorResponse(
-                detail=str(e),
-                error_code="PERMISSION_DENIED",
+                detail="Role not found", code="NOT_FOUND"
             ).model_dump(),
         )
 
+    # Check permissions
+    if not current_user.is_superuser:
+        if not service.user_has_permission(
+            current_user.id, "roles.update", role.organization_id
+        ):
+            return JSONResponse(
+                status_code=status.HTTP_403_FORBIDDEN,
+                content=ErrorResponse(
+                    detail="Insufficient permissions to update this role",
+                    code="PERMISSION_DENIED",
+                ).model_dump(),
+            )
 
-@router.delete(
-    "/{role_id}",
-    response_model=DeleteResponse,
-    responses={
-        401: {"model": ErrorResponse, "description": "Unauthorized"},
-        403: {"model": ErrorResponse, "description": "Insufficient permissions"},
-        404: {"model": ErrorResponse, "description": "Role not found"},
-        409: {"model": ErrorResponse, "description": "Role has active assignments"},
-    },
-)
-def delete_role(
-    role_id: int = Path(..., description="Role ID"),
-    organization_id: Optional[int] = Query(None, description="Organization context"),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
-) -> Union[DeleteResponse, JSONResponse]:
-    """
-    Delete a role.
+    # Verify parent role if being changed
+    if role_data.parent_id is not None and role_data.parent_id != role.parent_id:
+        if role_data.parent_id == role_id:
+            return JSONResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                content=ErrorResponse(
+                    detail="Role cannot be its own parent", code="INVALID_PARENT"
+                ).model_dump(),
+            )
 
-    Performs soft delete on the role. Cannot delete system roles or roles with
-    active assignments.
-    """
+        if role_data.parent_id:
+            parent = service.get_role(role_data.parent_id)
+            if not parent or parent.organization_id != role.organization_id:
+                return JSONResponse(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    content=ErrorResponse(
+                        detail="Invalid parent role", code="INVALID_PARENT"
+                    ).model_dump(),
+                )
+
     try:
-        service = RoleService()
-        success = service.delete_role(
-            role_id=role_id,
-            deleter=current_user,
-            db=db,
-            organization_id=organization_id,
+        updated_role = service.update_role(
+            role_id, role_data, updated_by=current_user.id
         )
-        return DeleteResponse(
-            success=success,
-            message="Role deleted successfully",
-        )
+        if updated_role is None:
+            return JSONResponse(
+                status_code=status.HTTP_404_NOT_FOUND,
+                content=ErrorResponse(
+                    detail="Role not found", code="ROLE_NOT_FOUND"
+                ).model_dump(),
+            )
+        return service.get_role_response(updated_role)
     except ValueError as e:
-        if "削除できません" in str(e):
-            return JSONResponse(
-                status_code=status.HTTP_409_CONFLICT,
-                content=ErrorResponse(
-                    detail=str(e),
-                    error_code="CANNOT_DELETE",
-                ).model_dump(),
-            )
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    except Exception as e:
-        if "見つかりません" in str(e):
-            return JSONResponse(
-                status_code=status.HTTP_404_NOT_FOUND,
-                content=ErrorResponse(
-                    detail=str(e),
-                    error_code="NOT_FOUND",
-                ).model_dump(),
-            )
         return JSONResponse(
-            status_code=status.HTTP_403_FORBIDDEN,
-            content=ErrorResponse(
-                detail=str(e),
-                error_code="PERMISSION_DENIED",
-            ).model_dump(),
-        )
-
-
-@router.get(
-    "/{role_id}/permissions",
-    response_model=List[str],
-    responses={
-        401: {"model": ErrorResponse, "description": "Unauthorized"},
-        403: {"model": ErrorResponse, "description": "Insufficient permissions"},
-        404: {"model": ErrorResponse, "description": "Role not found"},
-    },
-)
-def get_role_permissions(
-    role_id: int = Path(..., description="Role ID"),
-    organization_id: Optional[int] = Query(None, description="Organization context"),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
-) -> Union[List[str], JSONResponse]:
-    """
-    Get permissions for a specific role.
-
-    Returns the list of permissions granted to the role.
-    """
-    try:
-        service = RoleService()
-        return service.get_role_permissions(
-            role_id=role_id,
-            requester=current_user,
-            db=db,
-            organization_id=organization_id,
-        )
-    except Exception as e:
-        if "見つかりません" in str(e):
-            return JSONResponse(
-                status_code=status.HTTP_404_NOT_FOUND,
-                content=ErrorResponse(
-                    detail=str(e),
-                    error_code="NOT_FOUND",
-                ).model_dump(),
-            )
-        return JSONResponse(
-            status_code=status.HTTP_403_FORBIDDEN,
-            content=ErrorResponse(
-                detail=str(e),
-                error_code="PERMISSION_DENIED",
-            ).model_dump(),
+            status_code=status.HTTP_409_CONFLICT,
+            content=ErrorResponse(detail=str(e), code="DUPLICATE_NAME").model_dump(),
         )
 
 
@@ -329,157 +333,172 @@ def get_role_permissions(
     },
 )
 def update_role_permissions(
-    permissions: List[str],
     role_id: int = Path(..., description="Role ID"),
-    organization_id: Optional[int] = Query(None, description="Organization context"),
+    permission_codes: list[str] = Body(..., description="List of permission codes"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> Union[RoleResponse, JSONResponse]:
-    """
-    Update permissions for a role.
+) -> RoleResponse | JSONResponse:
+    """Update role permissions."""
+    service = RoleService(db)
+    role = service.get_role(role_id)
 
-    Updates the list of permissions granted to the role.
-    """
-    try:
-        service = RoleService()
-        role = service.update_role_permissions(
-            role_id=role_id,
-            permissions=permissions,
-            updater=current_user,
-            db=db,
-            organization_id=organization_id,
+    if not role:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content=ErrorResponse(
+                detail="Role not found", code="NOT_FOUND"
+            ).model_dump(),
         )
-        return RoleResponse.model_validate(role)
-    except Exception as e:
-        if "見つかりません" in str(e):
+
+    # Check permissions
+    if not current_user.is_superuser:
+        if not service.user_has_permission(
+            current_user.id, "roles.update_permissions", role.organization_id
+        ):
             return JSONResponse(
-                status_code=status.HTTP_404_NOT_FOUND,
+                status_code=status.HTTP_403_FORBIDDEN,
                 content=ErrorResponse(
-                    detail=str(e),
-                    error_code="NOT_FOUND",
+                    detail="Insufficient permissions to update role permissions",
+                    code="PERMISSION_DENIED",
                 ).model_dump(),
             )
+
+    try:
+        updated_role = service.update_role_permissions(
+            role_id, permission_codes, updated_by=current_user.id
+        )
+        return service.get_role_response(updated_role)
+    except ValueError as e:
         return JSONResponse(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=status.HTTP_400_BAD_REQUEST,
             content=ErrorResponse(
-                detail=str(e),
-                error_code="PERMISSION_DENIED",
+                detail=str(e), code="INVALID_PERMISSION"
             ).model_dump(),
         )
 
 
+@router.delete(
+    "/{role_id}",
+    response_model=DeleteResponse,
+    responses={
+        401: {"model": ErrorResponse, "description": "Unauthorized"},
+        403: {"model": ErrorResponse, "description": "Insufficient permissions"},
+        404: {"model": ErrorResponse, "description": "Role not found"},
+        409: {"model": ErrorResponse, "description": "Role is in use"},
+    },
+)
+def delete_role(
+    role_id: int = Path(..., description="Role ID"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> DeleteResponse | JSONResponse:
+    """Delete (soft delete) a role."""
+    service = RoleService(db)
+    role = service.get_role(role_id)
+
+    if not role:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content=ErrorResponse(
+                detail="Role not found", code="NOT_FOUND"
+            ).model_dump(),
+        )
+
+    # Check permissions
+    if not current_user.is_superuser:
+        if not service.user_has_permission(
+            current_user.id, "roles.delete", role.organization_id
+        ):
+            return JSONResponse(
+                status_code=status.HTTP_403_FORBIDDEN,
+                content=ErrorResponse(
+                    detail="Insufficient permissions to delete roles",
+                    code="PERMISSION_DENIED",
+                ).model_dump(),
+            )
+
+    # Check if role is in use
+    if service.is_role_in_use(role_id):
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content=ErrorResponse(
+                detail="Cannot delete role that is assigned to users",
+                code="ROLE_IN_USE",
+            ).model_dump(),
+        )
+
+    # Perform soft delete
+    success = service.delete_role(role_id, deleted_by=current_user.id)
+
+    return DeleteResponse(
+        success=success, message="Role deleted successfully", id=role_id
+    )
+
+
 @router.post(
-    "/assignments",
+    "/assign",
     response_model=UserRoleResponse,
     status_code=status.HTTP_201_CREATED,
     responses={
         401: {"model": ErrorResponse, "description": "Unauthorized"},
         403: {"model": ErrorResponse, "description": "Insufficient permissions"},
         404: {"model": ErrorResponse, "description": "User or role not found"},
-        409: {"model": ErrorResponse, "description": "Role assignment already exists"},
+        409: {"model": ErrorResponse, "description": "Assignment already exists"},
     },
 )
 def assign_role_to_user(
-    assignment_data: UserRoleCreate,
+    assignment: UserRoleAssignment,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> Union[UserRoleResponse, JSONResponse]:
-    """
-    Assign a role to a user.
+) -> UserRoleResponse | JSONResponse:
+    """Assign a role to a user."""
+    service = RoleService(db)
 
-    Creates a new role assignment for a user within an organization/department context.
-    """
-    try:
-        service = RoleService()
-        user_role = service.assign_role_to_user(
-            user_id=assignment_data.user_id,
-            role_id=assignment_data.role_id,
-            organization_id=assignment_data.organization_id,
-            assigner=current_user,
-            db=db,
-            department_id=assignment_data.department_id,
-            expires_at=assignment_data.expires_at,
+    # Get role to check organization
+    role = service.get_role(assignment.role_id)
+    if not role:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content=ErrorResponse(
+                detail="Role not found", code="ROLE_NOT_FOUND"
+            ).model_dump(),
         )
-        return UserRoleResponse.model_validate(user_role)
+
+    # Check permissions
+    if not current_user.is_superuser:
+        if not service.user_has_permission(
+            current_user.id, "roles.assign", role.organization_id
+        ):
+            return JSONResponse(
+                status_code=status.HTTP_403_FORBIDDEN,
+                content=ErrorResponse(
+                    detail="Insufficient permissions to assign roles",
+                    code="PERMISSION_DENIED",
+                ).model_dump(),
+            )
+
+    # Check if user exists
+    user = db.query(User).filter(User.id == assignment.user_id).first()
+    if not user:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content=ErrorResponse(
+                detail="User not found", code="USER_NOT_FOUND"
+            ).model_dump(),
+        )
+
+    try:
+        user_role = service.assign_role_to_user(assignment, assigned_by=current_user.id)
+        return service.get_user_role_response(user_role)
     except ValueError as e:
-        if "既に存在します" in str(e):
-            return JSONResponse(
-                status_code=status.HTTP_409_CONFLICT,
-                content=ErrorResponse(
-                    detail=str(e),
-                    error_code="DUPLICATE_ASSIGNMENT",
-                ).model_dump(),
-            )
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    except Exception as e:
-        if "見つかりません" in str(e):
-            return JSONResponse(
-                status_code=status.HTTP_404_NOT_FOUND,
-                content=ErrorResponse(
-                    detail=str(e),
-                    error_code="NOT_FOUND",
-                ).model_dump(),
-            )
         return JSONResponse(
-            status_code=status.HTTP_403_FORBIDDEN,
-            content=ErrorResponse(
-                detail=str(e),
-                error_code="PERMISSION_DENIED",
-            ).model_dump(),
-        )
-
-
-@router.get(
-    "/assignments/users/{user_id}",
-    response_model=List[UserRoleResponse],
-    responses={
-        401: {"model": ErrorResponse, "description": "Unauthorized"},
-        403: {"model": ErrorResponse, "description": "Insufficient permissions"},
-        404: {"model": ErrorResponse, "description": "User not found"},
-    },
-)
-def get_user_roles(
-    user_id: int = Path(..., description="User ID"),
-    organization_id: Optional[int] = Query(None, description="Organization filter"),
-    include_expired: bool = Query(False, description="Include expired assignments"),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
-) -> Union[List[UserRoleResponse], JSONResponse]:
-    """
-    Get roles assigned to a user.
-
-    Returns all role assignments for a specific user, optionally filtered by
-    organization.
-    """
-    try:
-        service = RoleService()
-        return service.get_user_roles(
-            user_id=user_id,
-            requester=current_user,
-            db=db,
-            organization_id=organization_id,
-            include_expired=include_expired,
-        )
-    except Exception as e:
-        if "見つかりません" in str(e):
-            return JSONResponse(
-                status_code=status.HTTP_404_NOT_FOUND,
-                content=ErrorResponse(
-                    detail=str(e),
-                    error_code="NOT_FOUND",
-                ).model_dump(),
-            )
-        return JSONResponse(
-            status_code=status.HTTP_403_FORBIDDEN,
-            content=ErrorResponse(
-                detail=str(e),
-                error_code="PERMISSION_DENIED",
-            ).model_dump(),
+            status_code=status.HTTP_409_CONFLICT,
+            content=ErrorResponse(detail=str(e), code="ASSIGNMENT_EXISTS").model_dump(),
         )
 
 
 @router.delete(
-    "/assignments/users/{user_id}/roles/{role_id}",
+    "/assign/{user_id}/{role_id}",
     response_model=DeleteResponse,
     responses={
         401: {"model": ErrorResponse, "description": "Unauthorized"},
@@ -488,168 +507,89 @@ def get_user_roles(
     },
 )
 def remove_role_from_user(
-    user_id: int = Path(..., description="User ID"),
+    user_id: UserId = Path(..., description="User ID"),
     role_id: int = Path(..., description="Role ID"),
-    organization_id: int = Query(..., description="Organization ID"),
-    department_id: Optional[int] = Query(None, description="Department ID"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> Union[DeleteResponse, JSONResponse]:
-    """
-    Remove a role assignment from a user.
+) -> DeleteResponse | JSONResponse:
+    """Remove a role from a user."""
+    service = RoleService(db)
 
-    Removes a specific role assignment for a user within the given
-    organization/department context.
-    """
-    try:
-        service = RoleService()
-        success = service.remove_role_from_user(
-            user_id=user_id,
-            role_id=role_id,
-            organization_id=organization_id,
-            remover=current_user,
-            db=db,
-            department_id=department_id,
+    # Get role to check organization
+    role = service.get_role(role_id)
+    if not role:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content=ErrorResponse(
+                detail="Role not found", code="ROLE_NOT_FOUND"
+            ).model_dump(),
         )
 
-        if not success:
+    # Check permissions
+    if not current_user.is_superuser:
+        if not service.user_has_permission(
+            current_user.id, "roles.unassign", role.organization_id
+        ):
             return JSONResponse(
-                status_code=status.HTTP_404_NOT_FOUND,
+                status_code=status.HTTP_403_FORBIDDEN,
                 content=ErrorResponse(
-                    detail="Role assignment not found",
-                    error_code="NOT_FOUND",
+                    detail="Insufficient permissions to remove role assignments",
+                    code="PERMISSION_DENIED",
                 ).model_dump(),
             )
 
-        return DeleteResponse(
-            success=success,
-            message="Role assignment removed successfully",
-        )
-    except Exception as e:
+    # Ensure organization_id is not None
+    if role.organization_id is None:
         return JSONResponse(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=status.HTTP_400_BAD_REQUEST,
             content=ErrorResponse(
-                detail=str(e),
-                error_code="PERMISSION_DENIED",
+                detail="Role must have an organization", code="INVALID_ROLE"
             ).model_dump(),
         )
+
+    success = service.remove_role_from_user(
+        user_id, role_id, role.organization_id, current_user.id
+    )
+
+    if not success:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content=ErrorResponse(
+                detail="Role assignment not found", code="ASSIGNMENT_NOT_FOUND"
+            ).model_dump(),
+        )
+
+    return DeleteResponse(
+        success=success, message="Role removed from user successfully", id=role_id
+    )
 
 
 @router.get(
-    "/{role_id}/users",
-    response_model=List[Dict[str, Union[int, str, bool]]],
+    "/user/{user_id}",
+    response_model=list[UserRoleResponse],
     responses={
         401: {"model": ErrorResponse, "description": "Unauthorized"},
-        403: {"model": ErrorResponse, "description": "Insufficient permissions"},
-        404: {"model": ErrorResponse, "description": "Role not found"},
-    },
-)
-def get_users_with_role(
-    role_id: int = Path(..., description="Role ID"),
-    organization_id: int = Query(..., description="Organization ID"),
-    department_id: Optional[int] = Query(None, description="Department ID"),
-    include_expired: bool = Query(False, description="Include expired assignments"),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
-) -> Union[List[Dict[str, Union[int, str, bool]]], JSONResponse]:
-    """
-    Get users with a specific role.
-
-    Returns all users that have been assigned the specified role within the
-    given context.
-    """
-    try:
-        service = RoleService()
-        users = service.get_users_with_role(
-            role_id=role_id,
-            organization_id=organization_id,
-            requester=current_user,
-            db=db,
-            department_id=department_id,
-            include_expired=include_expired,
-        )
-
-        return [
-            {
-                "id": user.id,
-                "email": user.email,
-                "full_name": user.full_name,
-                "is_active": user.is_active,
-            }
-            for user in users
-        ]
-    except Exception as e:
-        if "見つかりません" in str(e):
-            return JSONResponse(
-                status_code=status.HTTP_404_NOT_FOUND,
-                content=ErrorResponse(
-                    detail=str(e),
-                    error_code="NOT_FOUND",
-                ).model_dump(),
-            )
-        return JSONResponse(
-            status_code=status.HTTP_403_FORBIDDEN,
-            content=ErrorResponse(
-                detail=str(e),
-                error_code="PERMISSION_DENIED",
-            ).model_dump(),
-        )
-
-
-@router.post(
-    "/check-permission",
-    response_model=Dict[str, Union[int, str, bool, None]],
-    responses={
-        401: {"model": ErrorResponse, "description": "Unauthorized"},
-        403: {"model": ErrorResponse, "description": "Insufficient permissions"},
         404: {"model": ErrorResponse, "description": "User not found"},
     },
 )
-def check_user_permission(
-    user_id: int = Query(..., description="User ID"),
-    permission: str = Query(..., description="Permission to check"),
-    organization_id: int = Query(..., description="Organization ID"),
-    department_id: Optional[int] = Query(None, description="Department ID"),
+def get_user_roles(
+    user_id: UserId = Path(..., description="User ID"),
+    organization_id: OrganizationId | None = Query(
+        None, description="Filter by organization"
+    ),
+    active_only: bool = Query(True, description="Only return active assignments"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> Union[Dict[str, Union[int, str, bool, None]], JSONResponse]:
-    """
-    Check if a user has a specific permission.
-
-    Validates whether a user has the specified permission within the given
-    organization/department context.
-    """
-    try:
-        service = RoleService()
-        has_permission = service.check_user_permission(
-            user_id=user_id,
-            permission=permission,
-            organization_id=organization_id,
-            requester=current_user,
-            db=db,
-            department_id=department_id,
+) -> list[UserRoleResponse]:
+    """Get all roles assigned to a user."""
+    # Check if user exists
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
 
-        return {
-            "user_id": user_id,
-            "permission": permission,
-            "organization_id": organization_id,
-            "department_id": department_id,
-            "has_permission": has_permission,
-        }
-    except Exception as e:
-        if "見つかりません" in str(e):
-            return JSONResponse(
-                status_code=status.HTTP_404_NOT_FOUND,
-                content=ErrorResponse(
-                    detail=str(e),
-                    error_code="NOT_FOUND",
-                ).model_dump(),
-            )
-        return JSONResponse(
-            status_code=status.HTTP_403_FORBIDDEN,
-            content=ErrorResponse(
-                detail=str(e),
-                error_code="PERMISSION_DENIED",
-            ).model_dump(),
-        )
+    service = RoleService(db)
+    user_role_responses = service.get_user_roles(user_id, organization_id, active_only)
+
+    return user_role_responses  # Already UserRoleResponse objects

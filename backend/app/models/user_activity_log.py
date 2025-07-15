@@ -1,7 +1,7 @@
 """User activity log model."""
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -22,9 +22,9 @@ class UserActivityLog(BaseModel):
         Integer, ForeignKey("users.id"), nullable=False, index=True
     )
     action: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
-    details: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict)
-    ip_address: Mapped[Optional[str]] = mapped_column(String(45))
-    user_agent: Mapped[Optional[str]] = mapped_column(Text)
+    details: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    ip_address: Mapped[str | None] = mapped_column(String(45))
+    user_agent: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), index=True
     )

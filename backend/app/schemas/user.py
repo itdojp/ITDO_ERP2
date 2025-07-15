@@ -2,7 +2,6 @@
 
 import re
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
@@ -13,6 +12,10 @@ class UserBase(BaseModel):
     email: EmailStr = Field(..., description="User email address")
     full_name: str = Field(
         ..., min_length=1, max_length=100, description="User full name"
+    )
+    phone: str | None = Field(None, max_length=20, description="Phone number")
+    profile_image_url: str | None = Field(
+        None, max_length=500, description="Profile image URL"
     )
     is_active: bool = Field(default=True, description="Whether user is active")
 
@@ -50,6 +53,10 @@ class UserResponse(UserBase):
     """User response schema."""
 
     id: int = Field(..., description="User ID")
+    phone: str | None = Field(None, max_length=20, description="User phone number")
+    profile_image_url: str | None = Field(
+        None, max_length=500, description="Profile image URL"
+    )
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: datetime = Field(..., description="Last update timestamp")
 
@@ -70,9 +77,12 @@ class UserInDB(UserResponse):
 class UserUpdate(BaseModel):
     """User update schema."""
 
-    full_name: Optional[str] = Field(None, min_length=1, max_length=100)
-    phone: Optional[str] = Field(None, max_length=20)
-    is_active: Optional[bool] = None
+    full_name: str | None = Field(None, min_length=1, max_length=100)
+    phone: str | None = Field(None, max_length=20)
+    profile_image_url: str | None = Field(
+        None, max_length=500, description="Profile image URL"
+    )
+    is_active: bool | None = None
 
 
 # UserCreateExtended is defined in user_extended.py

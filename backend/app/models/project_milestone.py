@@ -1,7 +1,7 @@
 """Project milestone model implementation (stub for type checking)."""
 
 from datetime import date
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, Date, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
@@ -20,14 +20,14 @@ class ProjectMilestone(SoftDeletableModel):
         Integer, ForeignKey("projects.id"), nullable=False
     )
     name: Mapped[str] = mapped_column(String(200), nullable=False)
-    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    due_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="pending")
     completion_percentage: Mapped[int] = mapped_column(
         Integer, default=0, nullable=False
     )
-    planned_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
-    actual_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    planned_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    actual_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     is_overdue: Mapped[bool] = mapped_column(default=False, nullable=False)
     is_critical: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 

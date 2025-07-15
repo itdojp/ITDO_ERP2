@@ -1,6 +1,6 @@
 """Factory for Department model."""
 
-from typing import Any, Dict, List
+from typing import Any
 
 from app.models.department import Department
 from app.models.organization import Organization
@@ -15,7 +15,7 @@ class DepartmentFactory(BaseFactory):
     model_class = Department  # Model class for this factory
 
     @classmethod
-    def _get_default_attributes(cls) -> Dict[str, Any]:
+    def _get_default_attributes(cls) -> dict[str, Any]:
         """Get default attributes for creating Department instances."""
         return {
             "code": fake.bothify(text="DEPT-####"),
@@ -55,10 +55,13 @@ class DepartmentFactory(BaseFactory):
             "path": "",
             "sort_order": fake.random_int(min=1, max=100),
             "is_active": True,
+            # CRITICAL: Materialized path fields for hierarchy
+            "path": "/",  # Default root path
+            "depth": 0,  # Default root depth
         }
 
     @classmethod
-    def _get_update_attributes(cls) -> Dict[str, Any]:
+    def _get_update_attributes(cls) -> dict[str, Any]:
         """Get default attributes for updating Department instances."""
         return {
             "name": fake.random_element(
@@ -85,6 +88,9 @@ class DepartmentFactory(BaseFactory):
         """Create a department with a parent department."""
         kwargs["parent_id"] = parent_department.id
         kwargs["organization_id"] = parent_department.organization_id
+        # CRITICAL: Set up materialized path hierarchy
+        kwargs["path"] = f"{parent_department.path}{parent_department.id}/"
+        kwargs["depth"] = parent_department.depth + 1
         return cls.create(db_session, **kwargs)
 
     @classmethod
@@ -203,7 +209,7 @@ class DepartmentFactory(BaseFactory):
     @classmethod
     def create_ordered_list(
         cls, db_session, organization: Organization, count: int = 5
-    ) -> List[Department]:
+    ) -> list[Department]:
         """Create a list of departments with specific display order."""
         departments = []
         for i in range(count):

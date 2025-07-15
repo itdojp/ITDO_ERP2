@@ -4,7 +4,8 @@ This module provides a generic API router with full type safety
 and standard CRUD operations.
 """
 
-from typing import Any, Callable, Generic, List, Optional, Type
+from collections.abc import Callable
+from typing import Any, Generic
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
@@ -32,14 +33,14 @@ class BaseAPIRouter(
         self,
         *,
         prefix: str,
-        tags: List[str],
-        model: Type[ModelType],
-        repository: Type[BaseRepository[ModelType, CreateSchemaType, UpdateSchemaType]],
-        create_schema: Type[CreateSchemaType],
-        update_schema: Type[UpdateSchemaType],
-        response_schema: Type[ResponseSchemaType],
-        get_current_user_fn: Optional[Callable[..., Any]] = None,
-        dependencies: Optional[List[Any]] = None,
+        tags: list[str],
+        model: type[ModelType],
+        repository: type[BaseRepository[ModelType, CreateSchemaType, UpdateSchemaType]],
+        create_schema: type[CreateSchemaType],
+        update_schema: type[UpdateSchemaType],
+        response_schema: type[ResponseSchemaType],
+        get_current_user_fn: Callable[..., Any] | None = None,
+        dependencies: list[Any] | None = None,
     ):
         """Initialize base API router with configurations."""
         self.model = model
@@ -72,8 +73,8 @@ class BaseAPIRouter(
             limit: int = Query(
                 100, ge=1, le=1000, description="Number of items to return"
             ),
-            search: Optional[str] = Query(None, description="Search query"),
-            sort_by: Optional[str] = Query(None, description="Field to sort by"),
+            search: str | None = Query(None, description="Search query"),
+            sort_by: str | None = Query(None, description="Field to sort by"),
             sort_order: str = Query(
                 "asc", regex="^(asc|desc)$", description="Sort order"
             ),
@@ -215,12 +216,12 @@ class BaseAPIRouter(
 
             return DeleteResponse(success=True, message=message, id=item_id)
 
-        @self.router.post("/bulk", response_model=List[ResponseSchemaType])
+        @self.router.post("/bulk", response_model=list[ResponseSchemaType])
         async def create_items_bulk(
-            items_in: List[CreateSchemaType],
+            items_in: list[CreateSchemaType],
             db: Session = Depends(get_db),
             current_user: User = Depends(self.get_current_user_fn),
-        ) -> List[ResponseSchemaType]:
+        ) -> list[ResponseSchemaType]:
             """Create multiple items in bulk."""
             if not items_in:
                 raise HTTPException(
@@ -255,7 +256,7 @@ class BaseAPIRouter(
 
         @self.router.delete("/bulk", response_model=DeleteResponse)
         async def delete_items_bulk(
-            item_ids: List[int] = Query(..., description="List of item IDs to delete"),
+            item_ids: list[int] = Query(..., description="List of item IDs to delete"),
             db: Session = Depends(get_db),
             current_user: User = Depends(self.get_current_user_fn),
         ) -> DeleteResponse:

@@ -4,17 +4,23 @@ This module provides base model classes with common functionality
 for all database models.
 """
 
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, TypeVar
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-from app.core.database import Base
 from app.types import UserId
 
-# if TYPE_CHECKING:
-#     pass  # No type checking imports needed for base models
+if TYPE_CHECKING:
+    pass
+
+
+# Create base class for all models using SQLAlchemy 2.0 style
+class Base(DeclarativeBase):
+    """Base class for all models."""
+
+    pass
 
 
 # Type variable for model types
@@ -26,7 +32,9 @@ class BaseModel(Base):
 
     __abstract__ = True
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, index=True, autoincrement=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -41,12 +49,12 @@ class BaseModel(Base):
         """Default string representation."""
         return f"<{self.__class__.__name__}(id={self.id})>"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert model to dictionary."""
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
     @classmethod
-    def get_column_names(cls) -> List[str]:
+    def get_column_names(cls) -> list[str]:
         """Get list of column names."""
         return [c.name for c in cls.__table__.columns]
 
@@ -56,10 +64,10 @@ class AuditableModel(BaseModel):
 
     __abstract__ = True
 
-    created_by: Mapped[Optional[UserId]] = mapped_column(
+    created_by: Mapped[UserId | None] = mapped_column(
         Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
-    updated_by: Mapped[Optional[UserId]] = mapped_column(
+    updated_by: Mapped[UserId | None] = mapped_column(
         Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
 
@@ -72,10 +80,10 @@ class SoftDeletableModel(AuditableModel):
 
     __abstract__ = True
 
-    deleted_at: Mapped[Optional[datetime]] = mapped_column(
+    deleted_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True, index=True
     )
-    deleted_by: Mapped[Optional[UserId]] = mapped_column(
+    deleted_by: Mapped[UserId | None] = mapped_column(
         Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     is_deleted: Mapped[bool] = mapped_column(
@@ -85,10 +93,10 @@ class SoftDeletableModel(AuditableModel):
     # Relationship to deleter user (commented out to avoid circular imports
     # and typing issues). This can be added manually in specific models if needed
 
-    def soft_delete(self, deleted_by: Optional[UserId] = None) -> None:
+    def soft_delete(self, deleted_by: UserId | None = None) -> None:
         """Perform soft delete on the model."""
         self.is_deleted = True
-        self.deleted_at = datetime.now(timezone.utc)
+        self.deleted_at = datetime.now(UTC)
         if deleted_by:
             self.deleted_by = deleted_by
 

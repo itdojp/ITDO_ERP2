@@ -1,6 +1,10 @@
 """Department service."""
 
+<<<<<<< HEAD
 from typing import List, Optional, Tuple
+=======
+from typing import Any
+>>>>>>> origin/main
 
 from sqlalchemy.orm import Session
 
@@ -21,9 +25,61 @@ class DepartmentService:
     def __init__(self, db: Session):
         """Initialize service with database session."""
         self.db = db
+<<<<<<< HEAD
 
     def create_department(
         self, data: dict, organization_id: int, user: User
+=======
+        self.repository = DepartmentRepository(Department, db)
+
+    def get_department(self, department_id: DepartmentId) -> Department | None:
+        """Get department by ID."""
+        return self.repository.get(department_id)
+
+    def list_departments(
+        self, skip: int = 0, limit: int = 100, filters: dict[str, Any] | None = None
+    ) -> tuple[list[Department], int]:
+        """List departments with pagination."""
+        departments = self.repository.get_multi(skip=skip, limit=limit, filters=filters)
+        total = self.repository.get_count(filters=filters)
+        return departments, total
+
+    def search_departments(
+        self,
+        query: str,
+        skip: int = 0,
+        limit: int = 100,
+        organization_id: OrganizationId | None = None,
+    ) -> tuple[list[Department], int]:
+        """Search departments by name."""
+        # Build search conditions
+        search_condition = or_(
+            Department.name.ilike(f"%{query}%"),
+            Department.name_en.ilike(f"%{query}%"),
+            Department.code.ilike(f"%{query}%"),
+        )
+
+        conditions = [search_condition, ~Department.is_deleted]
+        if organization_id:
+            conditions.append(Department.organization_id == organization_id)
+
+        # Get all matching departments
+        all_results = (
+            self.db.query(Department)
+            .filter(and_(*conditions))
+            .order_by(Department.updated_at.desc())
+            .all()
+        )
+
+        # Apply pagination
+        total = len(all_results)
+        paginated_results = all_results[skip : skip + limit]
+
+        return paginated_results, total
+
+    def create_department(
+        self, department_data: DepartmentCreate, created_by: UserId | None = None
+>>>>>>> origin/main
     ) -> Department:
         """Create a new department."""
         # Check organization access
@@ -51,6 +107,7 @@ class DepartmentService:
 
     def get_departments(
         self,
+<<<<<<< HEAD
         user: User,
         organization_id: Optional[int] = None,
         page: int = 1,
@@ -58,6 +115,17 @@ class DepartmentService:
     ) -> DepartmentList:
         """Get departments accessible by user."""
         query = self.db.query(Department).filter(Department.is_active)
+=======
+        department_id: DepartmentId,
+        department_data: DepartmentUpdate,
+        updated_by: UserId | None = None,
+    ) -> Department | None:
+        """Update department details."""
+        # Check if department exists
+        department = self.repository.get(department_id)
+        if not department:
+            return None
+>>>>>>> origin/main
 
         # Filter by organization
         if organization_id:
@@ -85,8 +153,52 @@ class DepartmentService:
             query.order_by(
                 Department.organization_id, Department.sort_order, Department.code
             )
+<<<<<<< HEAD
             .offset(offset)
             .limit(limit)
+=======
+
+            if existing:
+                raise ValueError(
+                    f"Department code '{department_data.code}' "
+                    "already exists in this organization"
+                )
+
+        # Add audit fields
+        data = department_data.model_dump(exclude_unset=True)
+        if updated_by:
+            data["updated_by"] = updated_by
+
+        # Update department
+        return self.repository.update(department_id, DepartmentUpdate(**data))
+
+    def delete_department(
+        self, department_id: DepartmentId, deleted_by: UserId | None = None
+    ) -> bool:
+        """Soft delete a department."""
+        department = self.repository.get(department_id)
+        if not department:
+            return False
+
+        # Perform soft delete
+        department.soft_delete(deleted_by=deleted_by)
+        self.db.commit()
+        return True
+
+    def get_department_tree(
+        self, organization_id: OrganizationId
+    ) -> list[DepartmentTree]:
+        """Get department hierarchy tree for an organization."""
+        # Get root departments
+        roots = (
+            self.db.query(Department)
+            .filter(
+                Department.organization_id == organization_id,
+                Department.parent_id.is_(None),
+                ~Department.is_deleted,
+            )
+            .order_by(Department.display_order, Department.name)
+>>>>>>> origin/main
             .all()
         )
 
@@ -247,6 +359,7 @@ class DepartmentService:
             name_en=department.name_en,
             organization_id=department.organization_id,
             parent_id=department.parent_id,
+<<<<<<< HEAD
             is_active=department.is_active,
             department_type=department.department_type,
             display_order=department.display_order,
@@ -258,12 +371,159 @@ class DepartmentService:
     def get_department_tree(self, organization_id: int) -> List[DepartmentTree]:
         """Get department hierarchy tree for an organization."""
         departments = (
+=======
+            parent_name=parent_name,
+            manager_id=department.manager_id,
+            manager_name=manager_name,
+            department_type=department.department_type,
+            user_count=user_count,
+            sub_department_count=sub_department_count,
+        )
+
+    def get_department_response(self, department: Department) -> DepartmentResponse:
+        """Get full department response."""
+        # Load related data if needed
+        if department.parent_id and not hasattr(department, "parent"):
+            loaded_dept = self.repository.get(department.id)
+            if loaded_dept:
+                department = loaded_dept
+
+        # Get manager info
+        if department.manager_id:
+            manager_obj = (
+                self.db.query(User).filter(User.id == department.manager_id).first()
+            )
+            if manager_obj:
+                from app.schemas.user import UserBasic
+
+                UserBasic(
+                    id=manager_obj.id,
+                    email=manager_obj.email,
+                    full_name=manager_obj.full_name,
+                    is_active=manager_obj.is_active,
+                )
+
+        # Build response using Pydantic
+        return DepartmentResponse.model_validate(department, from_attributes=True)
+
+    def get_department_with_users(
+        self, department: Department, include_sub_departments: bool = False
+    ) -> DepartmentWithUsers:
+        """Get department with user list."""
+        # Get department IDs to include
+        department_ids = [department.id]
+        if include_sub_departments:
+            sub_depts = self.get_all_sub_departments(department.id)
+            department_ids.extend([d.id for d in sub_depts])
+
+        # Get users
+        from sqlalchemy import select
+
+        users = list(
+            self.db.scalars(
+                select(User)
+                .where(User.department_id.in_(department_ids), User.is_active)
+                .order_by(User.full_name)
+            )
+        )
+
+        # Convert to UserBasic for DepartmentWithUsers
+        from app.schemas.user import UserBasic
+
+        user_basics = [
+            UserBasic(
+                id=user.id,
+                email=user.email,
+                full_name=user.full_name,
+                is_active=user.is_active,
+            )
+            for user in users
+        ]
+
+        # Get department response
+        dept_response = self.get_department_response(department)
+
+        return DepartmentWithUsers(
+            **dept_response.model_dump(),
+            users=user_basics,
+            total_users=len(user_basics),
+        )
+
+    def get_direct_sub_departments(self, parent_id: DepartmentId) -> list[Department]:
+        """Get direct sub-departments."""
+        return (
+            self.db.query(Department)
+            .filter(Department.parent_id == parent_id, ~Department.is_deleted)
+            .order_by(Department.display_order, Department.name)
+            .all()
+        )
+
+    def get_all_sub_departments(self, parent_id: DepartmentId) -> list[Department]:
+        """Get all sub-departments recursively."""
+        result = []
+
+        def collect_children(dept_id: DepartmentId) -> None:
+            children = self.get_direct_sub_departments(dept_id)
+            for child in children:
+                result.append(child)
+                collect_children(child.id)
+
+        collect_children(parent_id)
+        return result
+
+    def has_sub_departments(self, department_id: DepartmentId) -> bool:
+        """Check if department has active sub-departments."""
+        return (
+>>>>>>> origin/main
             self.db.query(Department)
             .filter(
                 Department.organization_id == organization_id,
                 Department.is_active,
             )
+<<<<<<< HEAD
             .order_by(Department.level, Department.sort_order)
+=======
+            .first()
+            is not None
+        )
+
+    def get_department_user_count(self, department_id: DepartmentId) -> int:
+        """Get count of active users in department."""
+        return (
+            self.db.query(User)
+            .filter(User.department_id == department_id, User.is_active)
+            .count()
+        )
+
+    def get_sub_department_count(self, parent_id: DepartmentId) -> int:
+        """Get count of direct sub-departments."""
+        return (
+            self.db.query(Department)
+            .filter(Department.parent_id == parent_id, ~Department.is_deleted)
+            .count()
+        )
+
+    def update_display_order(self, department_ids: list[DepartmentId]) -> None:
+        """Update display order for departments."""
+        for i, dept_id in enumerate(department_ids):
+            dept = self.repository.get(dept_id)
+            if dept:
+                dept.display_order = i + 1  # Changed from i to i + 1
+        self.db.commit()
+
+    def user_has_permission(
+        self, user_id: UserId, permission: str, organization_id: OrganizationId
+    ) -> bool:
+        """Check if user has permission for departments in an organization."""
+        # Get user roles for the organization
+        user_roles = (
+            self.db.query(UserRole)
+            .filter(
+                UserRole.user_id == user_id,
+                UserRole.organization_id == organization_id,
+                UserRole.is_active,
+            )
+>>>>>>> origin/main
             .all()
         )
 
