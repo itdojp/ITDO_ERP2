@@ -559,10 +559,10 @@ class RolePermission(Base):
     __tablename__ = "role_permissions"
 
     role_id: Mapped[RoleId] = mapped_column(
-        Integer, ForeignKey("roles.id"), nullable=False, comment="Role ID"
+        Integer, ForeignKey("roles.id"), primary_key=True, comment="Role ID"
     )
     permission_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("permissions.id"), nullable=False, comment="Permission ID"
+        Integer, ForeignKey("permissions.id"), primary_key=True, comment="Permission ID"
     )
 
     # Grant details

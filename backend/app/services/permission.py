@@ -619,5 +619,5 @@ class PermissionService:
         return [p.code for p in permissions]
 
 
-# Global permission service instance
-permission_service = PermissionService()
+# Global permission service instance - will be initialized later
+permission_service = None
