@@ -360,6 +360,9 @@ class TestRoleAPI(
             headers=create_auth_headers(admin_token),
         )
 
+        if response.status_code != 201:
+            print(f"Response status: {response.status_code}")
+            print(f"Response body: {response.text}")
         assert response.status_code == 201
         data = response.json()
         assert data["user_id"] == user.id
