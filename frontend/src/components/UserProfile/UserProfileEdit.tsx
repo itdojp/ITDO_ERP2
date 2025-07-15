@@ -67,7 +67,7 @@ export const UserProfileEdit: React.FC<UserProfileEditProps> = ({
       
       onSave?.()
     } catch (error) {
-      console.error('Failed to update profile:', error)
+      // Error is handled by mutation state
     }
   }
 
@@ -91,7 +91,7 @@ export const UserProfileEdit: React.FC<UserProfileEditProps> = ({
       setImagePreview(null)
       setSelectedFile(null)
     } catch (error) {
-      console.error('Failed to delete image:', error)
+      // Error is handled by mutation state
     }
   }
 
