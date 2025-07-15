@@ -18,7 +18,6 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
-from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import AuditableModel, Base, SoftDeletableModel
@@ -139,7 +138,7 @@ class Role(SoftDeletableModel):
     users_count: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0, comment="Cached count of users"
     )
-    
+
     # UI Display fields
     icon: Mapped[str | None] = mapped_column(
         String(50), nullable=True, comment="Icon name or class for UI"
@@ -545,7 +544,7 @@ class UserRole(AuditableModel):
         delta = expires_at - now
         return delta.days
 
-    
+
     def get_effective_permissions(self) -> dict[str, Any]:
         """Get effective permissions for this role assignment."""
         if not self.is_valid:

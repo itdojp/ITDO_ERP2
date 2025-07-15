@@ -409,7 +409,7 @@ def cleanup_database(db_session: Session) -> Generator[None, None, None]:
         # For PostgreSQL, use DELETE in dependency order
         with engine.begin() as conn:
             from sqlalchemy import text
-            
+
             # Tables to clean in reverse dependency order
             table_order = [
                 "tasks",  # Add tasks table
@@ -428,14 +428,14 @@ def cleanup_database(db_session: Session) -> Generator[None, None, None]:
                 "departments",
                 "organizations",
             ]
-            
+
             for table in table_order:
                 try:
                     conn.execute(text(f'DELETE FROM "{table}"'))
                 except Exception:
                     # Table might not exist, skip
                     pass
-            
+
             conn.commit()
     else:
         # For SQLite, recreate all tables

@@ -1,11 +1,7 @@
 """Edge case tests for authentication token security."""
 
 import time
-
 from datetime import datetime, timedelta, timezone
-
-from datetime import datetime, timedelta
-
 
 import jwt
 import pytest

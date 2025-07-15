@@ -116,12 +116,13 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
 
     def get_locked_users(self) -> list[User]:
         """Get all locked users."""
+        now_utc = datetime.now(timezone.utc)
         return list(
             self.db.scalars(
                 select(User).where(
                     and_(
                         User.locked_until.is_not(None),
-                        User.locked_until > datetime.now(timezone.utc),
+                        User.locked_until > now_utc,
                     )
                 )
             )

@@ -5,15 +5,12 @@ for all database models.
 """
 
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import Any, TypeVar
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from app.types import UserId
-
-if TYPE_CHECKING:
-    pass
 
 
 # Create base class for all models using SQLAlchemy 2.0 style
