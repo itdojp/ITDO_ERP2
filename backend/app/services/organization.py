@@ -1,52 +1,23 @@
-"""Organization service."""
+"""Organization service implementation."""
 
-<<<<<<< HEAD
-from typing import Optional
-=======
 from typing import Any
->>>>>>> origin/main
 
-from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import NotFound, PermissionDenied
 from app.models.organization import Organization
-from app.models.user import User
+from app.models.role import UserRole
+from app.repositories.organization import OrganizationRepository
 from app.schemas.organization import (
     OrganizationCreate,
-    OrganizationList,
     OrganizationResponse,
+    OrganizationSummary,
+    OrganizationTree,
     OrganizationUpdate,
 )
+from app.types import OrganizationId, UserId
 
 
 class OrganizationService:
-<<<<<<< HEAD
-    """Organization service class."""
-
-    def create_organization(
-        self, data: OrganizationCreate, user: User, db: Session
-    ) -> Organization:
-        """Create a new organization."""
-        # Check if user is system admin
-        if not user.is_superuser:
-            raise PermissionDenied("システム管理者権限が必要です")
-
-        # Create organization
-        org = Organization.create(
-            db=db,
-            code=data.code,
-            name=data.name,
-            name_kana=data.name_kana,
-            postal_code=data.postal_code,
-            address_line1=data.address,
-            phone=data.phone,
-            email=data.email,
-            website=data.website,
-            fiscal_year_start=data.fiscal_year_start,
-            created_by=user.id,
-        )
-=======
     """Service for organization business logic."""
 
     def __init__(self, db: Session):
@@ -127,31 +98,9 @@ class OrganizationService:
         self.db.commit()
         self.db.refresh(db_obj)
         return db_obj
->>>>>>> origin/main
 
-        # Log audit
-        self._log_audit(
-            "create",
-            "organization",
-            org.id,
-            user,
-            {"code": data.code, "name": data.name},
-        )
-
-        return org
-
-    def get_organizations(
+    def update_organization(
         self,
-<<<<<<< HEAD
-        user: User,
-        db: Session,
-        page: int = 1,
-        limit: int = 10,
-        search: Optional[str] = None,
-    ) -> OrganizationList:
-        """Get organizations accessible by user."""
-        query = db.query(Organization).filter(Organization.is_active)
-=======
         organization_id: OrganizationId,
         organization_data: OrganizationUpdate,
         updated_by: UserId | None = None,
@@ -161,17 +110,15 @@ class OrganizationService:
         organization = self.repository.get(organization_id)
         if not organization:
             return None
->>>>>>> origin/main
 
-        # Apply search filter
-        if search:
-            query = query.filter(
-                or_(
-                    Organization.name.ilike(f"%{search}%"),
-                    Organization.code.ilike(f"%{search}%"),
+        # Validate unique code if being changed
+        if organization_data.code and organization_data.code != organization.code:
+            if not self.repository.validate_unique_code(
+                organization_data.code, exclude_id=organization_id
+            ):
+                raise ValueError(
+                    f"Organization code '{organization_data.code}' already exists"
                 )
-<<<<<<< HEAD
-=======
 
         # Add audit fields
         data = organization_data.model_dump(exclude_unset=True)
@@ -322,36 +269,10 @@ class OrganizationService:
                 level=level,
                 parent_id=org.parent_id,
                 children=children,
->>>>>>> origin/main
             )
 
-        # Apply access control
-        if not user.is_superuser:
-            # Get organizations user belongs to
-            user_org_ids = [
-                ur.organization_id for ur in user.user_roles if not ur.is_expired()
-            ]
+        return [build_tree(root) for root in roots]
 
-<<<<<<< HEAD
-            if user_org_ids:
-                query = query.filter(Organization.id.in_(user_org_ids))
-            else:
-                # User has no organization access
-                query = query.filter(Organization.id == -1)  # No results
-
-        # Get total count
-        total = query.count()
-
-        # Apply pagination
-        offset = (page - 1) * limit
-        items = query.order_by(Organization.code).offset(offset).limit(limit).all()
-
-        return OrganizationList(
-            items=[OrganizationResponse.from_orm(org) for org in items],
-            total=total,
-            page=page,
-            limit=limit,
-=======
     def user_has_permission(
         self,
         user_id: UserId,
@@ -362,94 +283,20 @@ class OrganizationService:
         # Get user roles
         user_roles = self.db.query(UserRole).filter(
             UserRole.user_id == user_id, UserRole.is_active
->>>>>>> origin/main
         )
 
-    def get_organization(self, org_id: int, user: User, db: Session) -> Organization:
-        """Get organization by ID."""
-        org = db.query(Organization).filter(Organization.id == org_id).first()
-        if not org:
-            raise NotFound("組織が見つかりません")
+        if organization_id:
+            user_roles = user_roles.filter(UserRole.organization_id == organization_id)
 
-        # Check access
-        if not user.is_superuser and not self._has_organization_access(user, org_id):
-            raise PermissionDenied("この組織へのアクセス権限がありません")
-
-        return org
-
-    def update_organization(
-        self, org_id: int, data: OrganizationUpdate, user: User, db: Session
-    ) -> Organization:
-        """Update organization."""
-        org = self.get_organization(org_id, user, db)
-
-        # Check permission
-        if not self._has_organization_admin_permission(user, org_id):
-            raise PermissionDenied("組織管理者権限が必要です")
-
-        # Update organization
-        update_data = data.dict(exclude_unset=True)
-        org.update(db=db, updated_by=user.id, **update_data)
-
-        # Log audit
-        self._log_audit("update", "organization", org.id, user, update_data)
-
-        return org
-
-    def delete_organization(self, org_id: int, user: User, db: Session) -> None:
-        """Delete organization (soft delete)."""
-        org = self.get_organization(org_id, user, db)
-
-        # Check permission - only system admin can delete
-        if not user.is_superuser:
-            raise PermissionDenied("システム管理者権限が必要です")
-
-        # Soft delete
-        org.soft_delete(db=db, deleted_by=user.id)
-
-        # Log audit
-        self._log_audit("delete", "organization", org.id, user, {})
-
-    def _has_organization_access(self, user: User, org_id: int) -> bool:
-        """Check if user has access to organization."""
-        if user.is_superuser:
-            return True
-
-        for user_role in user.user_roles:
-            if user_role.organization_id == org_id and not user_role.is_expired():
+        # Check permissions
+        for user_role in user_roles.all():
+            if user_role.is_valid and user_role.role.has_permission(permission):
                 return True
 
         return False
 
-    def _has_organization_admin_permission(self, user: User, org_id: int) -> bool:
-        """Check if user has admin permission for organization."""
-        if user.is_superuser:
-            return True
-
-        for user_role in user.user_roles:
-            if (
-                user_role.organization_id == org_id
-                and not user_role.is_expired()
-                and user_role.role.has_permission("org:*")
-            ):
-                return True
-
-        return False
-
-    def _log_audit(
+    def update_settings(
         self,
-<<<<<<< HEAD
-        action: str,
-        resource_type: str,
-        resource_id: int,
-        user: User,
-        changes: dict,
-    ) -> None:
-        """Log audit event."""
-        # Mock implementation for now
-        # In real implementation, this would use AuditLogger
-        pass
-=======
         organization_id: OrganizationId,
         settings: dict[str, Any],
         updated_by: UserId | None = None,
@@ -460,4 +307,3 @@ class OrganizationService:
             org.updated_by = updated_by
             self.db.commit()
         return org
->>>>>>> origin/main

@@ -45,26 +45,6 @@ from app.core import database
 from app.core.dependencies import get_db
 from app.core.security import create_access_token
 from app.main import app
-<<<<<<< HEAD
-from app.models.audit import AuditLog
-from app.models.base import Base
-from app.models.department import Department
-
-# Import all models to ensure they are registered with SQLAlchemy
-# Import in order to avoid circular dependencies
-from app.models.organization import Organization
-from app.models.password_history import PasswordHistory
-from app.models.permission import Permission
-from app.models.project import Project
-from app.models.project_member import ProjectMember
-from app.models.project_milestone import ProjectMilestone
-from app.models.role import Role, UserRole
-from app.models.task import Task
-from app.models.user import User
-from app.models.user_activity_log import UserActivityLog
-from app.models.user_session import UserSession
-=======
->>>>>>> origin/main
 from tests.factories import (
     DepartmentFactory,
     OrganizationFactory,
@@ -73,27 +53,6 @@ from tests.factories import (
     UserFactory,
 )
 
-<<<<<<< HEAD
-SQLALCHEMY_DATABASE_URL = os.getenv(
-    "DATABASE_URL", "postgresql://itdo_user:itdo_password@localhost:5432/itdo_erp"
-)
-
-# For SQLite tests (unit tests)
-# Check if running unit tests by environment variable or test path
-running_unit_tests = (
-    "unit" in os.getenv("PYTEST_CURRENT_TEST", "")
-    or "tests/unit" in os.getcwd()
-    or any("tests/unit" in arg for arg in __import__("sys").argv)
-)
-
-if running_unit_tests:
-    SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
-    engine = create_engine(
-        SQLALCHEMY_DATABASE_URL,
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-=======
 # Determine database URL based on environment
 # CI environment uses PostgreSQL from containers when available
 if os.getenv("CI") or "GITHUB_ACTIONS" in os.environ:
@@ -139,7 +98,6 @@ elif os.getenv("DATABASE_URL"):
             connect_args={"check_same_thread": False},
             poolclass=StaticPool,
         )
->>>>>>> origin/main
 else:
     # For local development - try PostgreSQL first, fallback to SQLite
     try:
@@ -451,7 +409,7 @@ def cleanup_database(db_session: Session) -> Generator[None, None, None]:
         # For PostgreSQL, use DELETE in dependency order
         with engine.begin() as conn:
             from sqlalchemy import text
-            
+
             # Tables to clean in reverse dependency order
             table_order = [
                 "tasks",  # Add tasks table
@@ -470,14 +428,14 @@ def cleanup_database(db_session: Session) -> Generator[None, None, None]:
                 "departments",
                 "organizations",
             ]
-            
+
             for table in table_order:
                 try:
                     conn.execute(text(f'DELETE FROM "{table}"'))
                 except Exception:
                     # Table might not exist, skip
                     pass
-            
+
             conn.commit()
     else:
         # For SQLite, recreate all tables

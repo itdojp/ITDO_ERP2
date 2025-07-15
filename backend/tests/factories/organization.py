@@ -1,12 +1,8 @@
 """Factory for Organization model."""
 
-<<<<<<< HEAD
-from typing import Any, Dict
-=======
 import json
 import uuid
 from typing import Any
->>>>>>> origin/main
 
 from app.models.organization import Organization
 from tests.factories import BaseFactory, fake
@@ -25,51 +21,23 @@ class OrganizationFactory(BaseFactory):
         return {
             "code": f"ORG-{unique_id}",
             "name": fake.company(),
-            "name_kana": fake.kana_name(),
             "name_en": fake.company(),
+            "description": fake.catch_phrase(),
+            "business_type": fake.random_element(
+                elements=("株式会社", "有限会社", "合同会社", "個人事業主")
+            ),
+            "industry": fake.random_element(
+                elements=("IT", "製造業", "小売業", "金融業", "教育", "医療")
+            ),
             "postal_code": fake.postcode(),
             "prefecture": fake.prefecture(),
             "city": fake.city(),
-            "address_line1": fake.address(),
-            "address_line2": fake.street_address(),
+            "address_line1": fake.street_address(),
+            "address_line2": fake.building_name(),
             "phone": fake.phone_number(),
             "fax": fake.phone_number(),
             "email": f"org-{unique_id}@example.com",
             "website": fake.url(),
-<<<<<<< HEAD
-            "business_type": fake.random_element(
-                elements=(
-                    "製造業",
-                    "サービス業",
-                    "小売業",
-                    "情報通信業",
-                    "建設業",
-                    "金融業",
-                    "不動産業",
-                    "運輸業",
-                )
-            ),
-            "industry": fake.random_element(
-                elements=(
-                    "IT",
-                    "製造",
-                    "金融",
-                    "小売",
-                    "サービス",
-                    "建設",
-                    "医療",
-                    "教育",
-                )
-            ),
-            "capital": fake.random_int(min=1000000, max=1000000000),
-            "employee_count": fake.random_int(min=1, max=10000),
-            "fiscal_year_end": fake.random_element(
-                elements=("03/31", "06/30", "09/30", "12/31")
-            ),
-            "is_active": True,
-            "created_by": None,  # Will be set in tests if needed
-            "updated_by": None,  # Will be set in tests if needed
-=======
             "capital": fake.random_int(min=1000000, max=100000000),
             "employee_count": fake.random_int(min=1, max=1000),
             "is_active": True,
@@ -78,7 +46,6 @@ class OrganizationFactory(BaseFactory):
                 "timezone": "Asia/Tokyo",
                 "currency": "JPY",
             },
->>>>>>> origin/main
         }
 
     @classmethod

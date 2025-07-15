@@ -121,6 +121,7 @@ class UserService:
             user.id,
             creator,
             {"email": user.email, "organization_id": data.organization_id},
+            db,
         )
 
         return user
@@ -224,7 +225,7 @@ class UserService:
         user.update(db, **update_data)
 
         # Log audit
-        self._log_audit("update", "user", user.id, updater, update_data)
+        self._log_audit("update", "user", user.id, updater, update_data, db)
 
         return user
 
@@ -250,7 +251,7 @@ class UserService:
 
         # Log audit
         self._log_audit(
-            "password_change", "user", user.id, changer, {"user_id": user.id}
+            "password_change", "user", user.id, changer, {"user_id": user.id}, db
         )
 
     def reset_password(self, user_id: int, resetter: User, db: Session) -> str:
@@ -287,7 +288,7 @@ class UserService:
 
         # Log audit
         self._log_audit(
-            "password_reset", "user", user.id, resetter, {"user_id": user.id}
+            "password_reset", "user", user.id, resetter, {"user_id": user.id}, db
         )
 
         return temp_password
@@ -345,6 +346,7 @@ class UserService:
                 "organization_id": organization_id,
                 "department_id": department_id,
             },
+            db,
         )
 
         return user_role
@@ -386,6 +388,7 @@ class UserService:
                 user_id,
                 remover,
                 {"role_id": role_id, "organization_id": organization_id},
+                db,
             )
 
     def delete_user(self, user_id: int, deleter: User, db: Session) -> None:
@@ -417,7 +420,7 @@ class UserService:
         user.soft_delete(deleted_by=deleter.id)
 
         # Log audit
-        self._log_audit("delete", "user", user.id, deleter, {})
+        self._log_audit("delete", "user", user.id, deleter, {}, db)
 
     def get_user_permissions(
         self, user_id: int, organization_id: int, db: Session
@@ -623,140 +626,14 @@ class UserService:
         random.shuffle(password_parts)
         return "".join(password_parts)
 
-    def update_profile_image(
-        self, user_id: int, image_url: str, updater: User, db: Session
-    ) -> User:
-        """Update user profile image."""
-        user = db.query(User).filter(User.id == user_id).first()
-        if not user:
-            raise NotFound("ユーザーが見つかりません")
-
-        # Permission check (only self or admin)
-        if updater.id != user.id and not updater.is_superuser:
-            raise PermissionDenied("プロファイル画像を変更する権限がありません")
-
-        # Update profile image
-        old_image_url = user.profile_image_url
-        user.profile_image_url = image_url
-        db.commit()
-
-        # Log audit
-        self._log_audit(
-            "profile_image_update",
-            "user",
-            user.id,
-            updater,
-            {"old_image_url": old_image_url, "new_image_url": image_url},
-        )
-
-        return user
-
-    def get_user_settings(
-        self, user_id: int, requester: User, db: Session
-    ) -> Dict[str, Any]:
-        """Get user personal settings."""
-        user = db.query(User).filter(User.id == user_id).first()
-        if not user:
-            raise NotFound("ユーザーが見つかりません")
-
-        # Permission check (only self or admin)
-        if requester.id != user.id and not requester.is_superuser:
-            raise PermissionDenied("設定を表示する権限がありません")
-
-        # Default settings if not set
-        default_settings = {
-            "language": "ja",
-            "timezone": "Asia/Tokyo",
-            "theme": "light",
-            "notifications_email": True,
-            "notifications_browser": True,
-        }
-
-        # Merge with stored settings (if any)
-        # This would typically be stored in a separate user_settings table
-        # For now, return defaults
-        return default_settings
-
-    def update_user_settings(
-        self, user_id: int, settings: Dict[str, Any], updater: User, db: Session
-    ) -> Dict[str, Any]:
-        """Update user personal settings."""
-        user = db.query(User).filter(User.id == user_id).first()
-        if not user:
-            raise NotFound("ユーザーが見つかりません")
-
-        # Permission check (only self or admin)
-        if updater.id != user.id and not updater.is_superuser:
-            raise PermissionDenied("設定を変更する権限がありません")
-
-        # Log audit
-        self._log_audit(
-            "settings_update", "user", user.id, updater, {"settings": settings}
-        )
-
-        # In a real implementation, save to user_settings table
-        # For now, return the updated settings
-        return settings
-
-    def get_privacy_settings(
-        self, user_id: int, requester: User, db: Session
-    ) -> Dict[str, Any]:
-        """Get user privacy settings."""
-        user = db.query(User).filter(User.id == user_id).first()
-        if not user:
-            raise NotFound("ユーザーが見つかりません")
-
-        # Permission check (only self or admin)
-        if requester.id != user.id and not requester.is_superuser:
-            raise PermissionDenied("プライバシー設定を表示する権限がありません")
-
-        # Default privacy settings
-        default_privacy = {
-            "profile_visibility": "organization",
-            "contact_visibility": "organization",
-            "activity_visibility": "organization",
-            "search_visibility": True,
-        }
-
-        # In a real implementation, get from user_privacy_settings table
-        return default_privacy
-
-    def update_privacy_settings(
-        self, user_id: int, privacy_settings: Dict[str, Any], updater: User, db: Session
-    ) -> Dict[str, Any]:
-        """Update user privacy settings."""
-        user = db.query(User).filter(User.id == user_id).first()
-        if not user:
-            raise NotFound("ユーザーが見つかりません")
-
-        # Permission check (only self or admin)
-        if updater.id != user.id and not updater.is_superuser:
-            raise PermissionDenied("プライバシー設定を変更する権限がありません")
-
-        # Log audit
-        self._log_audit(
-            "privacy_settings_update",
-            "user",
-            user.id,
-            updater,
-            {"privacy_settings": privacy_settings},
-        )
-
-        # In a real implementation, save to user_privacy_settings table
-        return privacy_settings
-
     def _log_audit(
         self,
         action: str,
         resource_type: str,
         resource_id: int,
         user: User,
-<<<<<<< HEAD
-        changes: Dict[str, Any],
-=======
         changes: dict[str, Any],
         db: Session,
->>>>>>> origin/main
     ) -> None:
         """Log audit trail."""
         from app.services.audit import AuditLogger
@@ -767,4 +644,5 @@ class UserService:
             resource_id=resource_id,
             user=user,
             changes=changes,
+            db=db,
         )

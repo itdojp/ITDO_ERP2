@@ -1,13 +1,14 @@
-"""Role schemas."""
+"""Role and UserRole schemas."""
 
 from datetime import datetime
-<<<<<<< HEAD
-from typing import List, Optional
-=======
 from typing import Any
->>>>>>> origin/main
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from app.schemas.common import AuditInfo, SoftDeleteInfo
+from app.schemas.department import DepartmentBasic
+from app.schemas.organization import OrganizationBasic
+from app.schemas.user import UserBasic
 
 
 class PermissionBasic(BaseModel):
@@ -23,14 +24,8 @@ class PermissionBasic(BaseModel):
 
 
 class RoleBase(BaseModel):
-    """Base role schema."""
+    """Base schema for role."""
 
-<<<<<<< HEAD
-    code: str = Field(..., min_length=1, max_length=50, description="ロールコード")
-    name: str = Field(..., min_length=1, max_length=255, description="ロール名")
-    description: Optional[str] = Field(None, description="説明")
-    permissions: List[str] = Field(default_factory=list, description="権限リスト")
-=======
     code: str = Field(..., min_length=1, max_length=50, description="Unique role code")
     name: str = Field(
         ..., min_length=1, max_length=200, description="Role display name"
@@ -40,15 +35,11 @@ class RoleBase(BaseModel):
     )
     description: str | None = Field(None, max_length=1000)
     is_active: bool = Field(True, description="Whether the role is active")
->>>>>>> origin/main
 
 
-class RoleCreate(RoleBase):
-    """Role creation schema."""
+class RolePermissions(BaseModel):
+    """Role permissions schema."""
 
-<<<<<<< HEAD
-    pass
-=======
     permissions: dict[str, Any] = Field(
         default_factory=dict, description="Role permissions"
     )
@@ -77,19 +68,11 @@ class RoleCreate(RoleBase, RolePermissions, RoleDisplay):
     role_type: str = Field("custom", max_length=50, description="Type of role")
     parent_id: int | None = Field(None, description="Parent role ID for inheritance")
     is_system: bool = Field(False, description="Whether this is a system role")
->>>>>>> origin/main
 
 
 class RoleUpdate(BaseModel):
-    """Role update schema."""
+    """Schema for updating a role."""
 
-<<<<<<< HEAD
-    name: Optional[str] = Field(
-        None, min_length=1, max_length=255, description="ロール名"
-    )
-    description: Optional[str] = Field(None, description="説明")
-    permissions: Optional[List[str]] = Field(None, description="権限リスト")
-=======
     code: str | None = Field(None, min_length=1, max_length=50)
     name: str | None = Field(None, min_length=1, max_length=200)
     name_en: str | None = Field(None, max_length=200)
@@ -100,21 +83,12 @@ class RoleUpdate(BaseModel):
     display_order: int | None = Field(None, ge=0)
     icon: str | None = Field(None, max_length=50)
     color: str | None = Field(None, pattern=r"^#[0-9A-Fa-f]{6}$")
->>>>>>> origin/main
 
 
-class RoleResponse(RoleBase):
-    """Role response schema."""
+class RoleBasic(BaseModel):
+    """Basic role information."""
 
     id: int
-<<<<<<< HEAD
-    is_system: bool
-    is_active: bool
-    created_at: datetime
-    updated_at: datetime
-    created_by: Optional[int] = None
-    updated_by: Optional[int] = None
-=======
     code: str
     name: str
     name_en: str | None = None
@@ -154,51 +128,23 @@ class RoleTree(BaseModel):
     user_count: int = 0
     permission_count: int = 0
     children: list["RoleTree"] = Field(default_factory=list)
->>>>>>> origin/main
 
-    class Config:
-        from_attributes = True
-
-    @field_validator("permissions", mode="before")
-    @classmethod
-    def convert_permissions_dict_to_list(cls, v):
-        """Convert permissions dict to list format."""
-        if isinstance(v, dict):
-            return [perm for perm, granted in v.items() if granted]
-        return v
+    model_config = ConfigDict(from_attributes=True)
 
 
+# UserRole schemas
 class UserRoleBase(BaseModel):
-    """Base user role schema."""
+    """Base schema for user role assignment."""
 
-<<<<<<< HEAD
-    user_id: int = Field(..., description="ユーザーID")
-    role_id: int = Field(..., description="ロールID")
-    organization_id: int = Field(..., description="組織ID")
-    department_id: Optional[int] = Field(None, description="部門ID")
-    expires_at: Optional[datetime] = Field(None, description="有効期限")
-=======
     user_id: int = Field(..., description="User ID")
     role_id: int = Field(..., description="Role ID")
     organization_id: int = Field(..., description="Organization ID")
     department_id: int | None = Field(None, description="Department ID")
->>>>>>> origin/main
 
 
 class UserRoleCreate(UserRoleBase):
-    """User role creation schema."""
+    """Schema for creating a user role assignment."""
 
-<<<<<<< HEAD
-    pass
-
-
-class UserRoleResponse(UserRoleBase):
-    """User role response schema."""
-
-    id: int
-    assigned_by: Optional[int] = None
-    assigned_at: datetime
-=======
     valid_from: datetime = Field(default_factory=datetime.utcnow)
     expires_at: datetime | None = None
     is_primary: bool = Field(False, description="Whether this is the primary role")
@@ -239,10 +185,8 @@ class UserRoleInfo(BaseModel):
     approval_status: str | None = None
     approved_by: UserBasic | None = None
     approved_at: datetime | None = None
->>>>>>> origin/main
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     @classmethod
     def from_user_role_model(cls, user_role: Any) -> "UserRoleInfo":
@@ -281,18 +225,9 @@ class UserRoleInfo(BaseModel):
         )
 
 
-class RoleList(BaseModel):
-    """Role list response schema."""
+class UserRoleResponse(UserRoleInfo, AuditInfo):
+    """Full user role response schema."""
 
-<<<<<<< HEAD
-    items: List[RoleResponse]
-    total: int
-    page: int = 1
-    limit: int = 10
-
-    class Config:
-        from_attributes = True
-=======
     effective_permissions: dict[str, Any] = Field(default_factory=dict)
 
     model_config = ConfigDict(from_attributes=True)
@@ -344,4 +279,3 @@ class UserRoleAssignment(BaseModel):
 
 # Update forward references
 RoleTree.model_rebuild()
->>>>>>> origin/main

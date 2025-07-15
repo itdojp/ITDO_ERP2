@@ -1,13 +1,5 @@
 """Department schemas."""
 
-<<<<<<< HEAD
-from __future__ import annotations
-
-from datetime import datetime
-from typing import Optional
-
-from pydantic import BaseModel, Field
-=======
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.common import AuditInfo, SoftDeleteInfo
@@ -27,19 +19,11 @@ class UserSummary(BaseModel):
     department_name: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
->>>>>>> origin/main
 
 
 class DepartmentBase(BaseModel):
-    """Base department schema."""
+    """Base schema for department."""
 
-<<<<<<< HEAD
-    code: str = Field(..., min_length=1, max_length=50, description="部門コード")
-    name: str = Field(..., min_length=1, max_length=255, description="部門名")
-    name_kana: Optional[str] = Field(None, max_length=255, description="部門名（カナ）")
-    description: Optional[str] = Field(None, description="説明")
-    sort_order: int = Field(0, ge=0, description="並び順")
-=======
     code: str = Field(..., min_length=1, max_length=50, description="Department code")
     name: str = Field(..., min_length=1, max_length=200, description="Department name")
     name_kana: str | None = Field(
@@ -52,16 +36,11 @@ class DepartmentBase(BaseModel):
         None, max_length=50, description="Short name or abbreviation"
     )
     is_active: bool = Field(True, description="Whether the department is active")
->>>>>>> origin/main
 
 
-class DepartmentCreate(DepartmentBase):
-    """Department creation schema."""
+class DepartmentContactInfo(BaseModel):
+    """Department contact information."""
 
-<<<<<<< HEAD
-    organization_id: int = Field(..., description="組織ID")
-    parent_id: Optional[int] = Field(None, description="親部門ID")
-=======
     phone: str | None = Field(None, max_length=20, pattern=r"^[\d\-\+\(\)]+$")
     fax: str | None = Field(None, max_length=20, pattern=r"^[\d\-\+\(\)]+$")
     email: str | None = Field(
@@ -95,20 +74,11 @@ class DepartmentCreate(
     parent_id: int | None = Field(None, description="Parent department ID")
     manager_id: int | None = Field(None, description="Department manager user ID")
     description: str | None = Field(None, max_length=1000)
->>>>>>> origin/main
 
 
 class DepartmentUpdate(BaseModel):
-    """Department update schema."""
+    """Schema for updating a department."""
 
-<<<<<<< HEAD
-    name: Optional[str] = Field(
-        None, min_length=1, max_length=255, description="部門名"
-    )
-    name_kana: Optional[str] = Field(None, max_length=255, description="部門名（カナ）")
-    description: Optional[str] = Field(None, description="説明")
-    sort_order: Optional[int] = Field(None, ge=0, description="並び順")
-=======
     code: str | None = Field(None, min_length=1, max_length=50)
     name: str | None = Field(None, min_length=1, max_length=200)
     name_kana: str | None = Field(None, max_length=200)
@@ -135,46 +105,14 @@ class DepartmentUpdate(BaseModel):
     parent_id: int | None = None
     manager_id: int | None = None
     description: str | None = Field(None, max_length=1000)
->>>>>>> origin/main
 
 
 class DepartmentBasic(BaseModel):
-    """Basic department schema for references."""
-
-    id: int
-    code: str = Field(..., max_length=50, description="Department code")
-    name: str = Field(..., max_length=100, description="Department name")
-
-    class Config:
-        from_attributes = True
-
-
-class DepartmentResponse(DepartmentBase):
-    """Department response schema."""
-
-    id: int
-    organization_id: int
-    parent_id: Optional[int] = None
-    level: int
-    path: str
-    is_active: bool
-    created_at: datetime
-    updated_at: datetime
-    created_by: Optional[int] = None
-    updated_by: Optional[int] = None
-
-    class Config:
-        from_attributes = True
-
-
-class DepartmentSummary(BaseModel):
-    """Department summary schema."""
+    """Basic department information."""
 
     id: int
     code: str
     name: str
-<<<<<<< HEAD
-=======
     name_en: str | None = None
     short_name: str | None = None
     organization_id: int
@@ -198,20 +136,20 @@ class DepartmentSummary(DepartmentBasic):
     headcount_limit: int | None = None
     is_over_headcount: bool = False
     sub_department_count: int = 0
->>>>>>> origin/main
     user_count: int = 0
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
-class DepartmentTree(DepartmentBasic):
-    """Department tree schema with hierarchy."""
+class DepartmentResponse(
+    DepartmentBase,
+    DepartmentContactInfo,
+    DepartmentOperationalInfo,
+    AuditInfo,
+    SoftDeleteInfo,
+):
+    """Full department response schema."""
 
-<<<<<<< HEAD
-    children: list["DepartmentTree"] = []
-    level: int = 0
-=======
     id: int
     organization_id: int
     organization: OrganizationBasic
@@ -251,34 +189,18 @@ class DepartmentTree(BaseModel):
     depth: int = 0
     display_order: int = 0
     children: list["DepartmentTree"] = Field(default_factory=list)
->>>>>>> origin/main
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class DepartmentWithUsers(DepartmentResponse):
-    """Department with user information."""
+    """Department with user list."""
 
-<<<<<<< HEAD
-    user_count: int = 0
-    users: list = []
-=======
     users: list[UserBasic] = Field(default_factory=list)
     total_users: int = 0
->>>>>>> origin/main
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
-class DepartmentList(BaseModel):
-    """Department list response schema."""
-
-    items: list[DepartmentResponse]
-    total: int
-    page: int = 1
-    limit: int = 10
-
-    class Config:
-        from_attributes = True
+# Update forward references
+DepartmentTree.model_rebuild()

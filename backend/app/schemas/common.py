@@ -1,25 +1,17 @@
-"""Common schemas used across the API."""
+"""Common schemas used across the ITDO ERP System."""
 
-<<<<<<< HEAD
-from typing import Generic, Optional, TypeVar
-=======
 from datetime import datetime
 from typing import Any, Generic, TypeVar
->>>>>>> origin/main
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
+# Type variable for generic responses
 T = TypeVar("T")
 
 
 class ErrorResponse(BaseModel):
-    """Standard error response."""
+    """Standard error response schema."""
 
-<<<<<<< HEAD
-    detail: str
-    status_code: Optional[int] = None
-    error_code: Optional[str] = None
-=======
     detail: str = Field(..., description="Error message")
     code: str | None = Field(None, description="Error code")
     field: str | None = Field(None, description="Field that caused the error")
@@ -32,16 +24,11 @@ class ErrorResponse(BaseModel):
                 "field": None,
             }
         }
->>>>>>> origin/main
 
 
-class PaginationParams(BaseModel):
-    """Pagination parameters."""
+class SuccessResponse(BaseModel):
+    """Standard success response schema."""
 
-<<<<<<< HEAD
-    skip: int = 0
-    limit: int = 100
-=======
     success: bool = Field(True, description="Operation success status")
     message: str = Field(..., description="Success message")
     data: Any | None = Field(None, description="Additional data")
@@ -73,18 +60,11 @@ class DeleteResponse(BaseModel):
                 "count": 1,
             }
         }
->>>>>>> origin/main
 
 
 class PaginatedResponse(BaseModel, Generic[T]):
-    """Paginated response wrapper."""
+    """Generic paginated response schema."""
 
-<<<<<<< HEAD
-    items: list[T]
-    total: int
-    skip: int
-    limit: int
-=======
     items: list[T] = Field(..., description="List of items")
     total: int = Field(..., description="Total number of items")
     skip: int = Field(..., description="Number of items skipped")
@@ -109,16 +89,11 @@ class PaginatedResponse(BaseModel, Generic[T]):
                 "has_more": True,
             }
         }
->>>>>>> origin/main
 
 
-class DeleteResponse(BaseModel):
-    """Standard delete response."""
+class HealthCheckResponse(BaseModel):
+    """Health check response schema."""
 
-<<<<<<< HEAD
-    success: bool
-    message: str
-=======
     status: str = Field(..., description="Service status")
     timestamp: datetime = Field(..., description="Current timestamp")
     version: str = Field(..., description="API version")
@@ -252,4 +227,3 @@ __all__ = [
     "AuditInfo",
     "SoftDeleteInfo",
 ]
->>>>>>> origin/main

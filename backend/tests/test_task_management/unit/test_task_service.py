@@ -3,7 +3,6 @@
 from datetime import UTC, datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 
-
 import pytest
 from sqlalchemy.orm import Session
 

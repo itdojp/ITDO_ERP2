@@ -1,14 +1,15 @@
 """Agent Health Check API endpoints."""
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+
 # from app.core.monitoring import health_checker  # Temporary disabled due to missing structlog
-from app.schemas.common import HealthCheckResponse, AgentStatusResponse
+from app.schemas.common import AgentStatusResponse, HealthCheckResponse
 
 router = APIRouter()
 
@@ -19,7 +20,7 @@ async def get_comprehensive_health(db: Session = Depends(get_db)) -> Dict[str, A
     try:
         # Basic health checks without external monitoring system
         checks = {}
-        
+
         # Database connectivity check
         try:
             db.execute("SELECT 1")
@@ -34,19 +35,19 @@ async def get_comprehensive_health(db: Session = Depends(get_db)) -> Dict[str, A
                 "details": f"Database connection failed: {str(e)}",
                 "timestamp": datetime.utcnow().isoformat()
             }
-        
+
         # System health check
         checks["system"] = {
             "status": "healthy",
             "details": "System running normally",
             "timestamp": datetime.utcnow().isoformat()
         }
-        
+
         # Calculate overall health
         healthy_checks = sum(1 for check in checks.values() if check.get("status") == "healthy")
         total_checks = len(checks)
         overall_healthy = healthy_checks == total_checks
-        
+
         return {
             "overall_status": "healthy" if overall_healthy else "degraded",
             "timestamp": datetime.utcnow().isoformat(),
@@ -105,7 +106,7 @@ async def get_agent_status() -> List[Dict[str, Any]]:
             "note": "Intermittent responses to escalations"
         }
     ]
-    
+
     return agents
 
 
@@ -113,11 +114,11 @@ async def get_agent_status() -> List[Dict[str, Any]]:
 async def get_agent_status_by_id(agent_id: str) -> Dict[str, Any]:
     """Get detailed status for a specific agent."""
     agents = await get_agent_status()
-    
+
     for agent in agents:
         if agent["agent_id"] == agent_id:
             return agent
-    
+
     raise HTTPException(
         status_code=404,
         detail=f"Agent {agent_id} not found"
@@ -148,13 +149,13 @@ async def ping_agent(agent_id: str) -> Dict[str, Any]:
             "message": "Agent CC03 responding with delays"
         }
     }
-    
+
     if agent_id not in agent_responses:
         raise HTTPException(
             status_code=404,
             detail=f"Agent {agent_id} not found"
         )
-    
+
     return agent_responses[agent_id]
 
 
@@ -166,9 +167,9 @@ async def escalate_agent_issue(agent_id: str, priority: str = "normal") -> Dict[
         "urgent": "Level 2",
         "critical": "Level 3"
     }
-    
+
     escalation_level = escalation_levels.get(priority, "Level 1")
-    
+
     return {
         "escalation_id": f"ESC-{agent_id}-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}",
         "agent_id": agent_id,
@@ -186,7 +187,7 @@ async def get_system_metrics() -> Dict[str, Any]:
     """Get system performance metrics."""
     # Integration with multi-environment setup from Issue #147
     environments = ["dev", "staging", "prod"]
-    
+
     metrics = {
         "timestamp": datetime.utcnow().isoformat(),
         "environments": {},
@@ -199,7 +200,7 @@ async def get_system_metrics() -> Dict[str, Any]:
             "uptime": "99.5%"
         }
     }
-    
+
     # Environment-specific metrics
     for env in environments:
         metrics["environments"][env] = {
@@ -210,5 +211,5 @@ async def get_system_metrics() -> Dict[str, Any]:
             "cpu_usage": "15%",
             "last_deployment": datetime.utcnow().isoformat()
         }
-    
+
     return metrics
