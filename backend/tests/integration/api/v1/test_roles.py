@@ -483,7 +483,9 @@ class TestRoleAPI(
                 json=assignment_data,
                 headers=create_auth_headers(admin_token),
             )
-            assert assign_response.status_code == 201, f"Assignment failed: {assign_response.text}"
+            assert assign_response.status_code == 201, (
+                f"Assignment failed: {assign_response.text}"
+            )
 
         # Get user roles
         response = client.get(

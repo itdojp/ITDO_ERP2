@@ -342,11 +342,14 @@ class RoleService:
         return list(roles), total
 
     def get_user_roles(
-        self, user_id: UserId, organization_id: OrganizationId | None = None, active_only: bool = True
+        self,
+        user_id: UserId,
+        organization_id: OrganizationId | None = None,
+        active_only: bool = True,
     ) -> list[UserRoleResponse]:
         """Get all roles for a user."""
         query = select(UserRole).where(UserRole.user_id == user_id)
-        
+
         if active_only:
             query = query.where(UserRole.is_active)
 
