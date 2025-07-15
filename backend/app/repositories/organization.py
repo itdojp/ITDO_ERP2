@@ -3,7 +3,7 @@
 import json
 from typing import Any
 
-from sqlalchemy import func, or_, select, update
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import joinedload
 
 from app.models.organization import Organization

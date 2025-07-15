@@ -1,6 +1,5 @@
 """Pytest configuration and fixtures."""
 
-# Use PostgreSQL for integration tests (same as development)
 import os
 import uuid
 from collections.abc import Generator
@@ -9,17 +8,29 @@ from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app.core.database import get_db
+# Import base first
+from app.models.base import Base
+
+# Import all models to ensure proper registration
+# This ensures all models are registered with SQLAlchemy metadata
+import app.models  # This will import all models via __init__.py
+
+# Also import specific models we use in tests
+from app.models.user import User
+from app.models.organization import Organization
+from app.models.department import Department
+from app.models.role import Role
+from app.models.permission import Permission
+
+# Now import app components
+from app.core import database
+from app.core.dependencies import get_db
 from app.core.security import create_access_token
 from app.main import app
-
-# Import all models to ensure they are registered with SQLAlchemy
-from app.models import Department, Organization, Permission, Role, User
-from app.models.base import Base
 from tests.factories import (
     DepartmentFactory,
     OrganizationFactory,
@@ -92,7 +103,24 @@ else:
             connect_args={"check_same_thread": False},
             poolclass=StaticPool,
         )
+
+# Override the app's engine with our test engine
+database.engine = engine
+database.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# CRITICAL: Ensure all tables are created immediately
+# Force metadata creation after all models are imported
+try:
+    # Explicitly register all table metadata from imported models
+    from app.models import *  # noqa: F403, F401
+
+    Base.metadata.create_all(bind=engine, checkfirst=True)
+    print(f"Created tables: {list(Base.metadata.tables.keys())}")
+except Exception as e:
+    print(f"ERROR: Failed to create database tables: {e}")
+    print(f"Available metadata tables: {list(Base.metadata.tables.keys())}")
+    raise
 
 
 @pytest.fixture(autouse=True)
@@ -112,10 +140,11 @@ def isolate_test_data() -> dict[str, str]:
 
 @pytest.fixture(autouse=True)
 def clean_test_database(db_session: Session) -> Generator[None]:
-    """テスト前に関連テーブルをクリア"""
-    yield  # テスト実行
+    """Ensure clean database state for each test."""
+    # No pre-test cleanup needed - transaction isolation handles this
+    yield  # Test execution
 
-    # テスト後のクリーンアップは db_session fixture で処理される
+    # No post-test cleanup needed - transaction rollback handles this
 
 
 @pytest.fixture
@@ -128,8 +157,6 @@ def db_session() -> Generator[Session]:
     if "postgresql" in str(engine.url):
         # Use TRUNCATE for better performance and reset sequences
         with engine.begin() as conn:
-            from sqlalchemy import text
-
             # TRUNCATE in safe order (cleanup before test)
             table_order = [
                 "tasks",
@@ -160,15 +187,17 @@ def db_session() -> Generator[Session]:
 
     try:
         yield session
+    except Exception:
+        session.rollback()
+        raise
     finally:
+        # Always rollback transaction to ensure clean state
         session.close()
         # Clean up test data using safe DELETE order in PostgreSQL
         if "postgresql" in str(engine.url):
             # For PostgreSQL, use DELETE in dependency order to avoid
             # foreign key violations
             with engine.begin() as conn:
-                from sqlalchemy import text
-
                 # Simple approach: Delete in safe order
                 table_order = [
                     "user_roles",
@@ -200,17 +229,34 @@ def client(db_session: Session) -> Generator[TestClient]:
 
     def override_get_db() -> Generator[Session]:
         try:
+            # CRITICAL: Use the same connection as the test session
+            # This ensures all operations are part of the same transaction
             yield db_session
         finally:
+            # Don't commit or rollback here - let the db_session fixture handle it
             pass
 
+    # Override the database dependency to use our test session
     app.dependency_overrides[get_db] = override_get_db
 
-    with TestClient(app) as test_client:
-        yield test_client
+    # Also override the app's database engine to use our test engine
+    from app.core import database as app_database
 
-    # Clear overrides
-    app.dependency_overrides.clear()
+    original_engine = app_database.engine
+    original_session_local = app_database.SessionLocal
+
+    app_database.engine = engine
+    app_database.SessionLocal = TestingSessionLocal
+
+    try:
+        with TestClient(app) as test_client:
+            yield test_client
+    finally:
+        # Restore original database settings
+        app_database.engine = original_engine
+        app_database.SessionLocal = original_session_local
+        # Clear overrides
+        app.dependency_overrides.clear()
 
 
 # User Fixtures
@@ -384,15 +430,11 @@ def complete_test_system(db_session: Session) -> dict[str, Any]:
 
 
 @pytest.fixture(autouse=True)
-def setup_test_environment(monkeypatch: Any) -> None:
+def setup_test_environment() -> None:
     """Set up test environment variables."""
-    # Set test environment variables
-    monkeypatch.setenv("SECRET_KEY", "test-secret-key-for-testing-only-32-chars-long")
-    monkeypatch.setenv("ALGORITHM", "HS256")
-    monkeypatch.setenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440")
-    monkeypatch.setenv("REFRESH_TOKEN_EXPIRE_DAYS", "7")
-    monkeypatch.setenv("BCRYPT_ROUNDS", "4")  # Lower rounds for faster tests
-    monkeypatch.setenv("DATABASE_URL", SQLALCHEMY_DATABASE_URL)
+    # Environment variables are already set at module level
+    # This fixture ensures they remain set for each test
+    pass
 
 
 # Utility Functions for Tests

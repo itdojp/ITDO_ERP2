@@ -80,6 +80,7 @@ class BaseFactory(ABC):
 
 
 # Re-export factory classes
+from tests.factories.audit import AuditLogFactory
 from tests.factories.department import DepartmentFactory, create_test_department
 from tests.factories.organization import OrganizationFactory, create_test_organization
 from tests.factories.role import (
@@ -92,6 +93,7 @@ from tests.factories.user import UserFactory, create_test_user
 
 __all__ = [
     "BaseFactory",
+    "AuditLogFactory",
     "OrganizationFactory",
     "DepartmentFactory",
     "RoleFactory",

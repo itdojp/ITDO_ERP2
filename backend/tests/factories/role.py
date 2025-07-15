@@ -144,10 +144,6 @@ class RoleFactory(BaseFactory):
             ),
             "is_active": True,
             "is_system": False,
-            "full_path": "",
-            "depth": 0,
-            "permissions": {},
-            "display_order": 0,
         }
 
     @classmethod
@@ -340,10 +336,6 @@ class RoleFactory(BaseFactory):
             "organization_id": organization_id,
             "is_active": True,
             "is_system": False,
-            "full_path": "",
-            "depth": 0,
-            "permissions": {},
-            "display_order": 0,
         }
         minimal_attrs.update(kwargs)
         return cls.create(db_session, **minimal_attrs)

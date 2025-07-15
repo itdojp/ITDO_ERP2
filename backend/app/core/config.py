@@ -1,7 +1,7 @@
 from typing import Any
 
-from pydantic import AnyHttpUrl, AnyUrl, PostgresDsn, validator
-from pydantic_settings import BaseSettings
+from pydantic import AnyHttpUrl, AnyUrl, PostgresDsn, field_validator, model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     # CORS設定
     BACKEND_CORS_ORIGINS: list[AnyHttpUrl] = []
 
-    @validator("BACKEND_CORS_ORIGINS", pre=True)
+    @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: str | list[str]) -> list[str] | str:
         if isinstance(v, str) and not v.startswith("["):
@@ -29,17 +29,18 @@ class Settings(BaseSettings):
     POSTGRES_PORT: int = 5432
     DATABASE_URL: PostgresDsn | AnyUrl | None = None
 
-    @validator("DATABASE_URL", pre=True)
-    @classmethod
-    def assemble_db_connection(cls, v: str | None, values: dict[str, Any]) -> Any:
-        if isinstance(v, str):
-            return v
-        return (
-            f"postgresql://{values.get('POSTGRES_USER')}:"
-            f"{values.get('POSTGRES_PASSWORD')}@"
-            f"{values.get('POSTGRES_SERVER')}:"
-            f"{values.get('POSTGRES_PORT')}/{values.get('POSTGRES_DB')}"
-        )
+    @model_validator(mode="after")
+    def assemble_db_connection(self) -> "Settings":
+        if self.DATABASE_URL is None:
+            db_url = (
+                f"postgresql://{self.POSTGRES_USER}:"
+                f"{self.POSTGRES_PASSWORD}@"
+                f"{self.POSTGRES_SERVER}:"
+                f"{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+            )
+            # Convert string to PostgresDsn type
+            self.DATABASE_URL = PostgresDsn(db_url)
+        return self
 
     # Redis設定
     REDIS_URL: str = "redis://localhost:6379"
@@ -61,9 +62,12 @@ class Settings(BaseSettings):
     # 開発環境フラグ
     DEBUG: bool = False
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
 
 
 settings = Settings()
+
+
+def get_settings() -> Settings:
+    """Get application settings instance."""
+    return settings
