@@ -42,7 +42,7 @@ class AuditLogService:
         if filter.user_id:
             query = query.filter(AuditLog.user_id == filter.user_id)
         if filter.entity_type:
-            query = query.filter(AuditLog.entity_type == filter.entity_type)
+            query = query.filter(AuditLog.resource_type == filter.entity_type)
         if filter.entity_id:
             query = query.filter(AuditLog.entity_id == filter.entity_id)
         if filter.action:
@@ -95,7 +95,7 @@ class AuditLogService:
         if filter.user_id:
             query = query.filter(AuditLog.user_id == filter.user_id)
         if filter.entity_type:
-            query = query.filter(AuditLog.entity_type == filter.entity_type)
+            query = query.filter(AuditLog.resource_type == filter.entity_type)
         if filter.date_from:
             query = query.filter(AuditLog.created_at >= filter.date_from)
         if filter.date_to:
@@ -127,8 +127,8 @@ class AuditLogService:
         # Get counts by entity type
         by_entity_type = {}
         entity_counts = (
-            query.with_entities(AuditLog.entity_type, func.count(AuditLog.id))
-            .group_by(AuditLog.entity_type)
+            query.with_entities(AuditLog.resource_type, func.count(AuditLog.id))
+            .group_by(AuditLog.resource_type)
             .all()
         )
         for entity_type, count in entity_counts:
@@ -321,7 +321,7 @@ class AuditLogService:
         permission_filter = AuditLogFilter(
             date_from=period_start,
             date_to=period_end,
-            entity_type="permission",
+            resource_type="permission",
         )
         permission_changes = self.list_audit_logs(permission_filter, limit=100)
 
