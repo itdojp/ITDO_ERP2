@@ -176,7 +176,22 @@ class RoleFactory(BaseFactory):
         permission_codes = [perm.code for perm in permissions]
         kwargs["permissions"] = permission_codes
 
+<<<<<<< Updated upstream
         return cls.create(db_session, **kwargs)
+=======
+        # Add permissions to role
+        for permission in permissions:
+            role_permission = RolePermission(
+                role_id=role.id,
+                permission_id=permission.id,
+                granted_by=kwargs.get("created_by"),
+            )
+            db_session.add(role_permission)
+
+        db_session.flush()
+        db_session.refresh(role)
+        return role
+>>>>>>> Stashed changes
 
     @classmethod
     def create_role_hierarchy(
@@ -305,9 +320,14 @@ class RoleFactory(BaseFactory):
         # Convert permissions to list of permission codes
         permission_codes = [permission.code for permission in permissions]
 
+<<<<<<< Updated upstream
         # Update role permissions as list
         role.permissions = permission_codes
         db_session.commit()
+=======
+        # Use flush instead of commit to maintain test transaction boundaries
+        db_session.flush()
+>>>>>>> Stashed changes
 
     @classmethod
     def create_minimal(cls, db_session, **kwargs) -> Role:
@@ -350,7 +370,7 @@ def create_test_user_role(
     )
 
     db_session.add(user_role)
-    db_session.commit()
+    db_session.flush()
     db_session.refresh(user_role)
 
     return user_role

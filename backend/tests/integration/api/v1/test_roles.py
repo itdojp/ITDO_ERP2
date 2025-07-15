@@ -40,7 +40,45 @@ class TestRoleManagementAPI:
         db_session.commit()
         return role
 
+<<<<<<< Updated upstream
     def test_list_roles_success(
+=======
+    @property
+    def create_schema_class(self):
+        """Schema class for create operations."""
+        return RoleCreate
+
+    @property
+    def update_schema_class(self):
+        """Schema class for update operations."""
+        return RoleUpdate
+
+    @property
+    def response_schema_class(self):
+        """Schema class for API responses."""
+        return RoleResponse
+
+    def create_test_instance(self, db_session: Session, **kwargs: Any) -> Role:
+        """Create a test role instance with organization."""
+        if "organization_id" not in kwargs:
+            organization = OrganizationFactory.create(db_session)
+            kwargs["organization_id"] = organization.id
+        return self.factory_class.create(db_session, **kwargs)
+
+    def create_valid_payload(self, **overrides: Any) -> Dict[str, Any]:
+        """Create a valid payload for role creation."""
+        # Ensure we have an organization_id
+        if "organization_id" not in overrides:
+            # Create a default organization for the test
+            from tests.factories import OrganizationFactory
+            organization = OrganizationFactory.create()
+            overrides["organization_id"] = organization.id
+        return self.factory_class.build_dict(**overrides)
+
+    # Role-specific test methods
+
+    def test_role_tree_endpoint(
+>>>>>>> Stashed changes
         self,
         client: TestClient,
         admin_token: str,
@@ -156,6 +194,7 @@ class TestRoleManagementAPI:
         admin_token: str,
         test_organization: Organization,
     ) -> None:
+<<<<<<< Updated upstream
         """Test successful role creation."""
         # Given: Role creation data
         role_data = {
@@ -164,6 +203,74 @@ class TestRoleManagementAPI:
             "description": "A new role for testing",
             "permissions": ["read:new", "write:new"],
         }
+=======
+        """Test update role permissions endpoint."""
+        # Create a role
+        role = RoleFactory.create_with_organization(db_session, test_organization)
+
+        # Select some permissions
+        permission_codes = [perm.code for perm in test_permissions["users"][:3]]
+
+        response = client.put(
+            f"{self.endpoint_prefix}/{role.id}/permissions",
+            json=permission_codes,
+            headers=create_auth_headers(admin_token),
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["id"] == role.id
+
+        # Verify permissions were assigned
+        permissions_response = client.get(
+            f"{self.endpoint_prefix}/{role.id}/permissions",
+            headers=create_auth_headers(admin_token),
+        )
+
+        permissions_data = permissions_response.json()
+        assigned_codes = permissions_data["all_permission_codes"]
+
+        for code in permission_codes:
+            assert code in assigned_codes
+
+    def test_update_role_permissions_invalid_codes(
+        self,
+        client: TestClient,
+        test_organization: Organization,
+        db_session: Session,
+        admin_token: str,
+    ) -> None:
+        """Test update role permissions with invalid permission codes."""
+        # Create a role
+        role = RoleFactory.create_with_organization(db_session, test_organization)
+
+        # Use invalid permission codes
+        invalid_codes = ["invalid.permission", "another.invalid"]
+
+        response = client.put(
+            f"{self.endpoint_prefix}/{role.id}/permissions",
+            json=invalid_codes,
+            headers=create_auth_headers(admin_token),
+        )
+
+        assert response.status_code == 400
+        data = response.json()
+        assert "INVALID_PERMISSION" in data.get("code", "")
+
+    def test_assign_role_to_user(
+        self,
+        client: TestClient,
+        test_organization: Organization,
+        db_session: Session,
+        admin_token: str,
+    ) -> None:
+        """Test assign role to user endpoint."""
+        # Create role and user
+        role = RoleFactory.create_with_organization(db_session, test_organization)
+        user = UserFactory.create(db_session)
+
+        assignment_data = {"user_id": user.id, "role_id": role.id, "organization_id": test_organization.id}
+>>>>>>> Stashed changes
 
         # When: Creating role
         response = client.post(
@@ -176,6 +283,7 @@ class TestRoleManagementAPI:
         # Then: Should create role successfully
         assert response.status_code == 201
         data = response.json()
+<<<<<<< Updated upstream
         assert data["code"] == "NEW_ROLE"
         assert data["name"] == "New Role"
         assert data["description"] == "A new role for testing"
@@ -372,6 +480,11 @@ class TestRoleManagementAPI:
         assert data["user_id"] == test_user.id
         assert data["role_id"] == test_role.id
         assert data["organization_id"] == test_organization.id
+=======
+        assert data["user_id"] == user.id
+        assert data["role"]["id"] == role.id
+        assert data["is_active"] is True
+>>>>>>> Stashed changes
 
     def test_assign_role_duplicate_assignment(
         self,
@@ -383,6 +496,7 @@ class TestRoleManagementAPI:
         db_session: Session,
         test_admin: User,
     ) -> None:
+<<<<<<< Updated upstream
         """Test assigning role with duplicate assignment."""
         # Given: Existing role assignment
         UserRole.create(
@@ -391,6 +505,20 @@ class TestRoleManagementAPI:
             role_id=test_role.id,
             organization_id=test_organization.id,
             assigned_by=test_admin.id,
+=======
+        """Test assign role to user when assignment already exists."""
+        # Create role and user
+        role = RoleFactory.create_with_organization(db_session, test_organization)
+        user = UserFactory.create(db_session)
+
+        assignment_data = {"user_id": user.id, "role_id": role.id, "organization_id": test_organization.id}
+
+        # First assignment should succeed
+        response = client.post(
+            f"{self.endpoint_prefix}/assign",
+            json=assignment_data,
+            headers=create_auth_headers(admin_token),
+>>>>>>> Stashed changes
         )
         db_session.commit()
 
@@ -420,6 +548,7 @@ class TestRoleManagementAPI:
         db_session: Session,
         test_admin: User,
     ) -> None:
+<<<<<<< Updated upstream
         """Test getting user roles."""
         # Given: User with assigned role
         UserRole.create(
@@ -428,6 +557,20 @@ class TestRoleManagementAPI:
             role_id=test_role.id,
             organization_id=test_organization.id,
             assigned_by=test_admin.id,
+=======
+        """Test remove role from user endpoint."""
+        # Create role and user
+        role = RoleFactory.create_with_organization(db_session, test_organization)
+        user = UserFactory.create(db_session)
+
+        # First assign the role
+        assignment_data = {"user_id": user.id, "role_id": role.id, "organization_id": test_organization.id}
+
+        assign_response = client.post(
+            f"{self.endpoint_prefix}/assign",
+            json=assignment_data,
+            headers=create_auth_headers(admin_token),
+>>>>>>> Stashed changes
         )
         db_session.commit()
 
@@ -501,11 +644,64 @@ class TestRoleManagementAPI:
         )
         db_session.commit()
 
+<<<<<<< Updated upstream
         # When: Getting users with role
         response = client.get(
             f"/api/v1/roles/{test_role.id}/users",
             headers={"Authorization": f"Bearer {admin_token}"},
             params={"organization_id": test_organization.id},
+=======
+        # Assign both roles to user
+        for role in [role1, role2]:
+            assignment_data = {"user_id": user.id, "role_id": role.id, "organization_id": test_organization.id}
+            client.post(
+                f"{self.endpoint_prefix}/assign",
+                json=assignment_data,
+                headers=create_auth_headers(admin_token),
+            )
+
+        # Get user roles
+        response = client.get(
+            f"{self.endpoint_prefix}/user/{user.id}",
+            headers=create_auth_headers(admin_token),
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 2
+
+        # Verify both roles are returned
+        role_ids = [assignment["role"]["id"] for assignment in data]
+        assert role1.id in role_ids
+        assert role2.id in role_ids
+
+    def test_get_user_roles_with_organization_filter(
+        self, client: TestClient, db_session: Session, admin_token: str
+    ) -> None:
+        """Test get user roles filtered by organization."""
+        # Create two organizations with roles
+        org1 = OrganizationFactory.create(db_session)
+        org2 = OrganizationFactory.create(db_session)
+
+        role1 = RoleFactory.create_with_organization(db_session, org1)
+        role2 = RoleFactory.create_with_organization(db_session, org2)
+
+        user = UserFactory.create(db_session)
+
+        # Assign both roles to user
+        for role in [role1, role2]:
+            assignment_data = {"user_id": user.id, "role_id": role.id, "organization_id": role.organization_id}
+            client.post(
+                f"{self.endpoint_prefix}/assign",
+                json=assignment_data,
+                headers=create_auth_headers(admin_token),
+            )
+
+        # Get user roles filtered by org1
+        response = client.get(
+            f"{self.endpoint_prefix}/user/{user.id}?organization_id={org1.id}",
+            headers=create_auth_headers(admin_token),
+>>>>>>> Stashed changes
         )
 
         # Then: Should return users with role
@@ -513,8 +709,12 @@ class TestRoleManagementAPI:
         data = response.json()
         assert isinstance(data, list)
         assert len(data) == 1
+<<<<<<< Updated upstream
         assert data[0]["id"] == test_user.id
         assert data[0]["email"] == test_user.email
+=======
+        assert data[0]["role"]["id"] == role1.id
+>>>>>>> Stashed changes
 
     def test_check_user_permission_success(
         self,
@@ -612,7 +812,115 @@ class TestRoleManagementAPI:
         )
         db_session.commit()
 
+<<<<<<< Updated upstream
         # When: Getting user roles including expired
+=======
+        response = client.post(
+            self.endpoint_prefix, json=payload, headers=create_auth_headers(admin_token)
+        )
+
+        assert response.status_code == 400
+        data = response.json()
+        assert "INVALID_PARENT" in data.get("code", "")
+
+    def test_update_role_parent_validation(
+        self,
+        client: TestClient,
+        test_organization: Organization,
+        db_session: Session,
+        admin_token: str,
+    ) -> None:
+        """Test update role with parent validation."""
+        # Create role
+        role = RoleFactory.create_with_organization(db_session, test_organization)
+
+        # Try to make role its own parent
+        payload = {"parent_id": role.id}
+
+        response = client.put(
+            f"{self.endpoint_prefix}/{role.id}",
+            json=payload,
+            headers=create_auth_headers(admin_token),
+        )
+
+        assert response.status_code == 400
+        data = response.json()
+        assert "INVALID_PARENT" in data.get("code", "")
+
+    def test_delete_role_in_use(
+        self,
+        client: TestClient,
+        test_organization: Organization,
+        db_session: Session,
+        admin_token: str,
+    ) -> None:
+        """Test delete role that is assigned to users."""
+        # Create role and user
+        role = RoleFactory.create_with_organization(db_session, test_organization)
+        user = UserFactory.create(db_session)
+
+        # Assign role to user
+        assignment_data = {"user_id": user.id, "role_id": role.id, "organization_id": test_organization.id}
+        client.post(
+            f"{self.endpoint_prefix}/assign",
+            json=assignment_data,
+            headers=create_auth_headers(admin_token),
+        )
+
+        # Try to delete role
+        response = client.delete(
+            f"{self.endpoint_prefix}/{role.id}",
+            headers=create_auth_headers(admin_token),
+        )
+
+        assert response.status_code == 409
+        data = response.json()
+        assert "ROLE_IN_USE" in data.get("code", "")
+
+    def test_create_with_duplicate_name_in_organization(
+        self,
+        client: TestClient,
+        test_organization: Organization,
+        db_session: Session,
+        admin_token: str,
+    ) -> None:
+        """Test create role with duplicate name within organization."""
+        # Create first role
+        RoleFactory.create_with_organization(
+            db_session, test_organization, name="DUPLICATE"
+        )
+
+        # Try to create second role with same name in same organization
+        payload = RoleFactory.build_dict(
+            organization_id=test_organization.id, name="DUPLICATE"
+        )
+
+        response = client.post(
+            self.endpoint_prefix, json=payload, headers=create_auth_headers(admin_token)
+        )
+
+        assert response.status_code == 409
+        data = response.json()
+        assert "DUPLICATE_NAME" in data.get("code", "")
+
+    def test_list_with_role_type_filter(
+        self,
+        client: TestClient,
+        test_organization: Organization,
+        db_session: Session,
+        admin_token: str,
+    ) -> None:
+        """Test list roles with role type filter."""
+        # Create roles of different types
+        RoleFactory.create_by_type(
+            db_session, "system", organization_id=test_organization.id
+        )
+        RoleFactory.create_by_type(
+            db_session, "custom", organization_id=test_organization.id
+        )
+
+        # Filter by system type
+>>>>>>> Stashed changes
         response = client.get(
             f"/api/v1/roles/assignments/users/{test_user.id}",
             headers={"Authorization": f"Bearer {admin_token}"},
@@ -638,8 +946,34 @@ class TestRoleManagementAPI:
             },
         )
 
+<<<<<<< Updated upstream
         # Then: Should not return expired roles
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
         assert len(data) == 0
+=======
+        # Test update permission
+        update_payload = {"name": "Updated Name"}
+        response = client.put(
+            f"/api/v1/roles/{role.id}",
+            json=update_payload,
+            headers=create_auth_headers(user_token),
+        )
+        assert response.status_code == 403
+
+        # Test delete permission
+        response = client.delete(
+            f"/api/v1/roles/{role.id}", headers=create_auth_headers(user_token)
+        )
+        assert response.status_code == 403
+
+        # Test assign permission
+        assignment_data = {"user_id": user.id, "role_id": role.id, "organization_id": test_organization.id}
+        response = client.post(
+            "/api/v1/roles/assign",
+            json=assignment_data,
+            headers=create_auth_headers(user_token),
+        )
+        assert response.status_code == 403
+>>>>>>> Stashed changes
