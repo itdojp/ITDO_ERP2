@@ -3,7 +3,7 @@
 import csv
 import io
 from datetime import datetime
-from typing import Any, Dict, Optional, Union
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import JSONResponse, StreamingResponse
@@ -45,7 +45,7 @@ def create_user_extended(
     user_data: UserCreateExtended,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> Union[UserResponseExtended, JSONResponse]:
+) -> UserResponseExtended | JSONResponse:
     """Create a new user with organization and role assignment."""
     service = UserService(db)
 
@@ -89,11 +89,11 @@ def create_user_extended(
 def list_users(
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
-    search: Optional[str] = None,
-    organization_id: Optional[int] = None,
-    department_id: Optional[int] = None,
-    role_id: Optional[int] = None,
-    is_active: Optional[bool] = None,
+    search: str | None = None,
+    organization_id: int | None = None,
+    department_id: int | None = None,
+    role_id: int | None = None,
+    is_active: bool | None = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ) -> UserListResponse:
@@ -130,7 +130,7 @@ def get_user_detail(
     user_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> Union[UserResponseExtended, JSONResponse]:
+) -> UserResponseExtended | JSONResponse:
     """Get user details with roles and organizations."""
     service = UserService(db)
 
@@ -169,7 +169,7 @@ def update_user(
     user_data: UserUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> Union[UserResponseExtended, JSONResponse]:
+) -> UserResponseExtended | JSONResponse:
     """Update user information."""
     service = UserService(db)
 
@@ -212,7 +212,7 @@ def update_user(
 
 @router.put(
     "/{user_id}/password",
-    response_model=Dict[str, Any],
+    response_model=dict[str, Any],
     responses={
         400: {"model": ErrorResponse, "description": "Invalid password"},
         403: {"model": ErrorResponse, "description": "Access denied"},
@@ -224,7 +224,7 @@ def change_password(
     password_data: PasswordChange,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> Union[Dict[str, Any], JSONResponse]:
+) -> dict[str, Any] | JSONResponse:
     """Change user password."""
     service = UserService(db)
 
@@ -262,7 +262,7 @@ def change_password(
 
 @router.post(
     "/{user_id}/password/reset",
-    response_model=Dict[str, Any],
+    response_model=dict[str, Any],
     responses={
         403: {"model": ErrorResponse, "description": "Access denied"},
         404: {"model": ErrorResponse, "description": "User not found"},
@@ -272,7 +272,7 @@ def reset_password(
     user_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> Union[Dict[str, Any], JSONResponse]:
+) -> dict[str, Any] | JSONResponse:
     """Reset user password (admin only)."""
     service = UserService(db)
 
@@ -308,7 +308,7 @@ def reset_password(
 
 @router.post(
     "/{user_id}/roles",
-    response_model=Dict[str, Any],
+    response_model=dict[str, Any],
     status_code=status.HTTP_201_CREATED,
     responses={
         403: {"model": ErrorResponse, "description": "Access denied"},
@@ -320,7 +320,7 @@ def assign_role(
     assignment: RoleAssignment,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> Union[Dict[str, Any], JSONResponse]:
+) -> dict[str, Any] | JSONResponse:
     """Assign role to user."""
     service = UserService(db)
 
@@ -553,7 +553,7 @@ def export_users(
     format: str = Query("csv", pattern="^(csv|xlsx|json)$"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> Union[StreamingResponse, JSONResponse]:
+) -> StreamingResponse | JSONResponse:
     """Export user list."""
     service = UserService(db)
 

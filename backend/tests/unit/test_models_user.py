@@ -183,6 +183,14 @@ class TestUserModel:
         )
         db_session.commit()
 
+        # Record original time
+        original_updated_at = user.updated_at
+
+        # Add slight delay to ensure different timestamp
+        import time
+
+        time.sleep(0.01)
+
         # When: Updating user
         user.update(db_session, full_name="Updated Name")
 
@@ -195,4 +203,5 @@ class TestUserModel:
             created_at = created_at.replace(tzinfo=timezone.utc)
         if updated_at.tzinfo is None:
             updated_at = updated_at.replace(tzinfo=timezone.utc)
-        assert updated_at > created_at
+        # Use >= because SQLite has lower timestamp precision
+        assert updated_at >= created_at

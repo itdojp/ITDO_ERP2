@@ -3,7 +3,7 @@
 This module provides a generic repository pattern implementation with full type safety.
 """
 
-from typing import Any, Dict, Generic, List, Optional, Type
+from typing import Any, Generic
 
 from sqlalchemy import and_, delete, func, select, update
 from sqlalchemy.orm import Session
@@ -14,16 +14,16 @@ from app.types import CreateSchemaType, ModelType, SearchParams, UpdateSchemaTyp
 class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     """Base repository providing CRUD operations with type safety."""
 
-    def __init__(self, model: Type[ModelType], db: Session):
+    def __init__(self, model: type[ModelType], db: Session):
         """Initialize repository with model class and database session."""
         self.model = model
         self.db = db
 
-    def get(self, id: int) -> Optional[ModelType]:
+    def get(self, id: int) -> ModelType | None:
         """Get a single record by ID."""
         return self.db.scalar(select(self.model).where(getattr(self.model, "id") == id))
 
-    def get_by_ids(self, ids: List[int]) -> List[ModelType]:
+    def get_by_ids(self, ids: list[int]) -> list[ModelType]:
         """Get multiple records by IDs."""
         return list(
             self.db.scalars(
@@ -32,8 +32,8 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         )
 
     def get_multi(
-        self, skip: int = 0, limit: int = 100, filters: Optional[Dict[str, Any]] = None
-    ) -> List[ModelType]:
+        self, skip: int = 0, limit: int = 100, filters: dict[str, Any] | None = None
+    ) -> list[ModelType]:
         """Get multiple records with optional filtering."""
         query = select(self.model)
 
@@ -48,7 +48,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         query = query.offset(skip).limit(limit)
         return list(self.db.scalars(query))
 
-    def get_count(self, filters: Optional[Dict[str, Any]] = None) -> int:
+    def get_count(self, filters: dict[str, Any] | None = None) -> int:
         """Get total count of records with optional filtering."""
         query = select(func.count(getattr(self.model, "id")))
 
@@ -73,7 +73,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         self.db.refresh(db_obj)
         return db_obj
 
-    def create_multi(self, objs_in: List[CreateSchemaType]) -> List[ModelType]:
+    def create_multi(self, objs_in: list[CreateSchemaType]) -> list[ModelType]:
         """Create multiple records in a single transaction."""
         db_objs = []
         for obj_in in objs_in:
@@ -89,7 +89,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             self.db.refresh(db_obj)
         return db_objs
 
-    def update(self, id: int, obj_in: UpdateSchemaType) -> Optional[ModelType]:
+    def update(self, id: int, obj_in: UpdateSchemaType) -> ModelType | None:
         """Update a record by ID."""
         obj_data = (
             obj_in.model_dump(exclude_unset=True)
@@ -110,7 +110,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
         return self.get(id)
 
-    def update_multi(self, ids: List[int], obj_in: UpdateSchemaType) -> List[ModelType]:
+    def update_multi(self, ids: list[int], obj_in: UpdateSchemaType) -> list[ModelType]:
         """Update multiple records by IDs."""
         obj_data = (
             obj_in.model_dump(exclude_unset=True)
@@ -137,7 +137,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         self.db.commit()
         return result.rowcount > 0
 
-    def delete_multi(self, ids: List[int]) -> int:
+    def delete_multi(self, ids: list[int]) -> int:
         """Delete multiple records by IDs (hard delete)."""
         if not ids:
             return 0
@@ -157,7 +157,7 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         )
         return (result or 0) > 0
 
-    def search(self, params: SearchParams) -> tuple[List[ModelType], int]:
+    def search(self, params: SearchParams) -> tuple[list[ModelType], int]:
         """Search records with pagination."""
         query = select(self.model)
 
@@ -193,8 +193,8 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         return results, total_count
 
     def bulk_upsert(
-        self, objs_in: List[CreateSchemaType], unique_fields: List[str]
-    ) -> List[ModelType]:
+        self, objs_in: list[CreateSchemaType], unique_fields: list[str]
+    ) -> list[ModelType]:
         """Bulk insert or update records based on unique fields."""
         created = []
         updated = []
