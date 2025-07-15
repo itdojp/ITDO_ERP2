@@ -11,6 +11,18 @@ from app.schemas.organization import OrganizationBasic
 from app.schemas.user import UserBasic
 
 
+class PermissionBasic(BaseModel):
+    """Basic permission information."""
+
+    id: int
+    code: str
+    name: str
+    category: str
+    description: str | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class RoleBase(BaseModel):
     """Base schema for role."""
 
@@ -38,7 +50,6 @@ class RolePermissions(BaseModel):
         """Validate permissions structure."""
         # Add custom validation logic here
         return v
-
 
 class RoleDisplay(BaseModel):
     """Role display settings."""
@@ -241,18 +252,6 @@ class RoleSummary(RoleBasic):
     description: str | None = None
     user_count: int = 0
     permission_count: int = 0
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class PermissionBasic(BaseModel):
-    """Basic permission information."""
-
-    id: int
-    code: str
-    name: str
-    description: str | None = None
-    category: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

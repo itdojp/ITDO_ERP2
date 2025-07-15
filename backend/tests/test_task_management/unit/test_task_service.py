@@ -3,6 +3,7 @@
 from datetime import UTC, datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 
+
 import pytest
 from sqlalchemy.orm import Session
 
@@ -372,8 +373,6 @@ class TestTaskService:
 
         # Assert
         assert result.total == 3
-        assert result.page == 1
-        assert result.page_size == 20
         assert result.page == 1
         assert result.page_size == 20
 

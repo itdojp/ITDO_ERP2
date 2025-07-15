@@ -183,7 +183,13 @@ class UserProfileService:
             language=prefs.language,
             timezone=prefs.timezone,
             date_format=prefs.date_format,
+
+            time_format="24h"
+            if prefs.time_format not in ["12h", "24h"]
+            else ("12h" if prefs.time_format == "12h" else "24h"),
+
             time_format=prefs.time_format,
+
             notification_email=prefs.notifications_email,
             notification_push=prefs.notifications_push,
             updated_at=prefs.updated_at,
@@ -251,7 +257,13 @@ class UserProfileService:
             language=prefs.language,
             timezone=prefs.timezone,
             date_format=prefs.date_format,
+
+            time_format="24h"
+            if prefs.time_format not in ["12h", "24h"]
+            else ("12h" if prefs.time_format == "12h" else "24h"),
+
             time_format=prefs.time_format,
+
             notification_email=prefs.notifications_email,
             notification_push=prefs.notifications_push,
             updated_at=prefs.updated_at,
@@ -285,9 +297,15 @@ class UserProfileService:
             )
 
         return UserPrivacySettings(
+
+            profile_visibility=privacy.profile_visibility.value,
+            email_visibility=privacy.email_visibility.value,
+            phone_visibility=privacy.phone_visibility.value,
+
             profile_visibility=privacy.profile_visibility,
             email_visibility=privacy.email_visibility,
             phone_visibility=privacy.phone_visibility,
+
             allow_direct_messages=privacy.allow_direct_messages,
             show_online_status=privacy.show_online_status,
             updated_at=privacy.updated_at,
@@ -327,9 +345,15 @@ class UserProfileService:
         db.refresh(privacy)
 
         return UserPrivacySettings(
+
+            profile_visibility=privacy.profile_visibility.value,
+            email_visibility=privacy.email_visibility.value,
+            phone_visibility=privacy.phone_visibility.value,
+
             profile_visibility=privacy.profile_visibility,
             email_visibility=privacy.email_visibility,
             phone_visibility=privacy.phone_visibility,
+
             allow_direct_messages=privacy.allow_direct_messages,
             show_online_status=privacy.show_online_status,
             updated_at=privacy.updated_at,
@@ -354,7 +378,11 @@ class UserProfileService:
 
             # Convert to RGB if necessary
             if img.mode not in ("RGB", "RGBA"):
+
+                img = img.convert("RGB")  # type: ignore[assignment]
+
                 img = img.convert("RGB")
+
 
             # Resize to profile size
             img.thumbnail(self.PROFILE_IMAGE_SIZE, Image.Resampling.LANCZOS)
@@ -436,4 +464,35 @@ class UserProfileService:
             )
             response_data["last_seen_at"] = user.last_login_at
 
+
+        return UserProfileResponse(
+            id=int(response_data["id"]) if response_data["id"] is not None else 0,  # type: ignore[arg-type]
+            full_name=str(response_data["full_name"]),
+            email=str(response_data.get("email"))
+            if response_data.get("email") is not None
+            else None,
+            phone=str(response_data.get("phone"))
+            if response_data.get("phone") is not None
+            else None,
+            profile_image_url=str(response_data.get("profile_image_url"))
+            if response_data.get("profile_image_url") is not None
+            else None,
+            bio=str(response_data.get("bio"))
+            if response_data.get("bio") is not None
+            else None,
+            location=str(response_data.get("location"))
+            if response_data.get("location") is not None
+            else None,
+            website=str(response_data.get("website"))
+            if response_data.get("website") is not None
+            else None,
+            is_online=bool(response_data.get("is_online"))
+            if response_data.get("is_online") is not None
+            else None,
+            last_seen_at=response_data.get("last_seen_at")
+            if isinstance(response_data.get("last_seen_at"), datetime)
+            else None,  # type: ignore[arg-type]
+        )
+
         return UserProfileResponse(**response_data)
+

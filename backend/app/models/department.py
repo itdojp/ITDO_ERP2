@@ -131,20 +131,6 @@ class Department(SoftDeletableModel):
         comment="Display order within the same level",
     )
 
-    # Hierarchy management fields
-    path: Mapped[Optional[str]] = mapped_column(
-        String(500),
-        nullable=True,
-        index=True,
-        comment="Materialized path for efficient hierarchy queries (e.g., '1.2.3')",
-    )
-    depth: Mapped[int] = mapped_column(
-        Integer,
-        default=0,
-        nullable=False,
-        index=True,
-        comment="Depth level in hierarchy (0 for root departments)",
-    )
 
     # Additional fields
     description: Mapped[str | None] = mapped_column(

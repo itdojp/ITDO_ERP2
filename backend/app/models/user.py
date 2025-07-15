@@ -59,6 +59,13 @@ class User(SoftDeletableModel):
     password_must_change: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Relationships
+    roles: Mapped[list["Role"]] = relationship(
+        "Role",
+        secondary="user_roles",
+        primaryjoin="User.id == UserRole.user_id",
+        secondaryjoin="UserRole.role_id == Role.id",
+        back_populates="users",
+    )
     user_roles: Mapped[list["UserRole"]] = relationship(
         "UserRole", back_populates="user", foreign_keys="UserRole.user_id"
     )
@@ -402,26 +409,11 @@ class User(SoftDeletableModel):
                 user_role.organization_id == organization_id
                 and not user_role.is_expired
             ):
-                # Handle permissions stored as JSON dict
+                # Handle permissions from role - use many-to-many relationship
                 if user_role.role and user_role.role.permissions:
-                    # Permissions is always a dict according to the model
-                    if isinstance(user_role.role.permissions, dict):
-                        # Handle various dict structures
-                        if "codes" in user_role.role.permissions:
-                            codes = user_role.role.permissions["codes"]
-                            if isinstance(codes, list):
-                                permissions.update(codes)
-                        elif "permissions" in user_role.role.permissions:
-                            perms = user_role.role.permissions["permissions"]
-                            if isinstance(perms, list):
-                                permissions.update(perms)
-                        else:
-                            # Try to extract values that look like permission codes
-                            for key, value in user_role.role.permissions.items():
-                                if isinstance(value, list):
-                                    permissions.update(value)
-                                elif isinstance(value, str) and ":" in value:
-                                    permissions.add(value)
+                    # permissions is a list of Permission objects through many-to-many
+                    for permission in user_role.role.permissions:
+                        permissions.add(permission.code)
 
         return list(permissions)
 
@@ -444,10 +436,11 @@ class User(SoftDeletableModel):
         """Check if user has permission in department."""
         for user_role in self.user_roles:
             if user_role.department_id == department_id and not user_role.is_expired:
-                # TODO: Implement role permission checking
-                # if user_role.role.has_permission(permission):
-                #     return True
-                pass
+                # Check if role has permission
+                if user_role.role and user_role.role.permissions:
+                    for perm in user_role.role.permissions:
+                        if perm.code == permission:
+                            return True
         return False
 
     def can_access_user(self, target_user: "User") -> bool:

@@ -176,12 +176,12 @@ def setup_tracing(service_name: str = "itdo-erp-backend") -> None:
 
     # Add span processor
     span_processor = BatchSpanProcessor(jaeger_exporter)
-    trace.get_tracer_provider().add_span_processor(span_processor)
+    trace.get_tracer_provider().add_span_processor(span_processor)  # type: ignore
 
     # Instrument frameworks
     FastAPIInstrumentor.instrument()
     SQLAlchemyInstrumentor.instrument()
-    RedisInstrumentor.instrument()
+    RedisInstrumentor.instrument()  # type: ignore
 
 
 F = TypeVar("F", bound=Callable[..., Any])
@@ -270,15 +270,15 @@ def log_business_event(event_type: str, details: dict[str, Any]) -> None:
 
     # Update business metrics
     if event_type == "organization_created":
-        BUSINESS_METRICS["organizations_created"].inc()
+        BUSINESS_METRICS["organizations_created"].inc()  # type: ignore
     elif event_type == "department_created":
-        BUSINESS_METRICS["departments_created"].inc()
+        BUSINESS_METRICS["departments_created"].inc()  # type: ignore
     elif event_type == "role_created":
-        BUSINESS_METRICS["roles_created"].inc()
+        BUSINESS_METRICS["roles_created"].inc()  # type: ignore
     elif event_type == "user_login":
-        BUSINESS_METRICS["login_attempts"].labels(status="success").inc()
+        BUSINESS_METRICS["login_attempts"].labels(status="success").inc()  # type: ignore
     elif event_type == "user_login_failed":
-        BUSINESS_METRICS["login_attempts"].labels(status="failed").inc()
+        BUSINESS_METRICS["login_attempts"].labels(status="failed").inc()  # type: ignore
 
 
 class HealthChecker:
@@ -407,7 +407,7 @@ def setup_health_checks(
 
 def get_metrics() -> str:
     """Get Prometheus metrics."""
-    return generate_latest()  # type: ignore[no-any-return]
+    return generate_latest().decode("utf-8")
 
 
 # Performance monitoring decorator

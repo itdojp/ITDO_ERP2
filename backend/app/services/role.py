@@ -48,6 +48,16 @@ class RoleService:
         if self.repository.get_by_code(role_data.code):
             raise AlreadyExists(f"Role with code '{role_data.code}' already exists")
 
+        # Check if role name already exists within organization
+        if hasattr(role_data, "organization_id") and role_data.organization_id:
+            if self.repository.get_by_name_and_organization(
+                role_data.name, role_data.organization_id
+            ):
+                raise AlreadyExists(
+                    f"Role with name '{role_data.name}' already exists in "
+                    "this organization"
+                )
+
         # Check if organization exists if specified
         if hasattr(role_data, "organization_id") and role_data.organization_id:
             org = self.db.get(Organization, role_data.organization_id)
@@ -63,11 +73,7 @@ class RoleService:
             role_type=role_data.role_type,
             organization_id=getattr(role_data, "organization_id", None),
             parent_id=role_data.parent_id,
-            permissions=role_data.permissions,
             is_system=role_data.is_system,
-            display_order=role_data.display_order,
-            icon=role_data.icon,
-            color=role_data.color,
             created_by=created_by,
             updated_by=created_by,
         )
@@ -221,7 +227,6 @@ class RoleService:
             organization_id=assignment.organization_id,
             department_id=assignment.department_id,
             assigned_by=assigned_by,
-            valid_from=assignment.valid_from,
             expires_at=assignment.expires_at,
             is_active=True,
             created_by=assigned_by,
@@ -270,7 +275,34 @@ class RoleService:
 
     def get_role_response(self, role: Role) -> RoleResponse:
         """Convert role to response schema."""
-        return RoleResponse.model_validate(role, from_attributes=True)
+        # Convert role to dict and handle permissions field
+        role_dict = {
+            "id": role.id,
+            "code": role.code,
+            "name": role.name,
+            "name_en": getattr(role, "name_en", None),
+            "description": role.description,
+            "is_active": role.is_active,
+            "role_type": role.role_type,
+            "parent_id": role.parent_id,
+            "parent": role.parent,
+            "is_system": role.is_system,
+            "is_inherited": False,
+            "users_count": len(role.user_roles) if role.user_roles else 0,
+            "display_order": 0,
+            "icon": None,
+            "color": None,
+            "permissions": {},  # Initialize as empty dict instead of InstrumentedList
+            "all_permissions": {},
+            "created_at": role.created_at,
+            "updated_at": role.updated_at,
+            "deleted_at": role.deleted_at,
+            "created_by": role.created_by,
+            "updated_by": role.updated_by,
+            "deleted_by": role.deleted_by,
+            "is_deleted": role.is_deleted,
+        }
+        return RoleResponse.model_validate(role_dict)
 
     def get_role_tree(
         self, organization_id: OrganizationId | None = None
@@ -291,9 +323,7 @@ class RoleService:
 
         # Build tree recursively
         def build_tree(role: Role) -> RoleTree:
-            children = [
-                build_tree(child) for child in role.child_roles if child.is_active
-            ]
+            children = [build_tree(child) for child in role.children if child.is_active]
 
             return RoleTree(
                 id=role.id,
@@ -315,6 +345,7 @@ class RoleService:
         active_only: bool = True,
         limit: int = 100,
         organization_id: OrganizationId | None = None,
+        filters: dict[str, Any] | None = None,
     ) -> tuple[list[Role], int]:
         """List roles with filtering."""
         query = select(Role).where(~Role.is_deleted)
@@ -330,13 +361,24 @@ class RoleService:
                 )
             )
 
+        # Apply additional filters
+        if filters:
+            for key, value in filters.items():
+                if key == "role_type":
+                    query = query.where(Role.role_type == value)
+                elif key == "is_active":
+                    query = query.where(Role.is_active == value)
+                elif key == "organization_id":
+                    # Already handled above
+                    pass
+
         # Count total
         count_query = select(func.count()).select_from(query.subquery())
         total = self.db.scalar(count_query) or 0
 
         # Get paginated results
         roles = self.db.scalars(
-            query.order_by(Role.display_order, Role.name).offset(skip).limit(limit)
+            query.order_by(Role.name).offset(skip).limit(limit)
         ).all()
 
         return list(roles), total

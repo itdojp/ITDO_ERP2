@@ -277,8 +277,15 @@ class UserPrivacyService:
             return self._users_in_same_organization(viewer_id, target_user_id)
         elif visibility == VisibilityLevel.DEPARTMENT:
             return self._users_in_same_department(viewer_id, target_user_id)
+
+
+        # All enum values should be handled above
+        # This should never be reached, but required for type safety
+        raise ValueError(f"Unknown visibility level: {visibility}")  # pragma: no cover
+
         else:
             return False
+
 
     def _users_in_same_organization(self, user1_id: int, user2_id: int) -> bool:
         """Check if two users are in the same organization."""
