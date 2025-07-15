@@ -186,6 +186,7 @@ class TestUserModel:
 
         # Add slight delay to ensure different timestamp
         import time
+
         time.sleep(0.01)
 
         # When: Updating user
