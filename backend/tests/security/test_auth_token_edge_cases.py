@@ -1,7 +1,7 @@
 """Edge case tests for authentication token security."""
 
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import jwt
 import pytest
@@ -60,7 +60,7 @@ class TestTokenSecurityEdgeCases:
         # Create token with different algorithm
         payload = {
             "sub": str(user.id),
-            "exp": datetime.utcnow() + timedelta(minutes=30),
+            "exp": datetime.now(timezone.utc) + timedelta(minutes=30),
         }
 
         # Try with 'none' algorithm (should be rejected)
@@ -91,7 +91,7 @@ class TestTokenSecurityEdgeCases:
         assert payload["sub"] == str(user.id)
 
         # Change user password
-        user.change_password(db_session, "password123", "newpassword456")
+        user.change_password(db_session, "password123", "NewPassword456!")
         db_session.commit()
 
         # Old token should still be valid (until expiry)
@@ -102,7 +102,7 @@ class TestTokenSecurityEdgeCases:
     def test_token_with_future_issued_time(self, user: User) -> None:
         """Test token with future issued time."""
         # Create token with future issued time
-        future_time = datetime.utcnow() + timedelta(hours=1)
+        future_time = datetime.now(timezone.utc) + timedelta(hours=1)
         payload = {
             "sub": str(user.id),
             "iat": future_time.timestamp(),
@@ -124,7 +124,7 @@ class TestTokenSecurityEdgeCases:
     def test_token_with_very_long_expiry(self, user: User) -> None:
         """Test token with extremely long expiry time."""
         # Create token with 100-year expiry
-        far_future = datetime.utcnow() + timedelta(days=365 * 100)
+        far_future = datetime.now(timezone.utc) + timedelta(days=365 * 100)
         payload = {"sub": str(user.id), "exp": far_future.timestamp()}
 
         settings = get_settings()
@@ -201,7 +201,7 @@ class TestTokenSecurityEdgeCases:
         # Create token with extra claims
         payload = {
             "sub": str(user.id),
-            "exp": (datetime.utcnow() + timedelta(hours=1)).timestamp(),
+            "exp": (datetime.now(timezone.utc) + timedelta(hours=1)).timestamp(),
             "admin": True,  # Unexpected claim
             "permissions": ["read", "write", "delete"],  # Unexpected claim
             "custom_data": {"key": "value"},  # Unexpected claim
@@ -225,7 +225,7 @@ class TestTokenSecurityEdgeCases:
         settings = get_settings()
 
         # Token without 'sub' claim
-        payload_no_sub = {"exp": (datetime.utcnow() + timedelta(hours=1)).timestamp()}
+        payload_no_sub = {"exp": (datetime.now(timezone.utc) + timedelta(hours=1)).timestamp()}
         token_no_sub = jwt.encode(
             payload_no_sub, settings.SECRET_KEY, algorithm=settings.ALGORITHM
         )
@@ -270,7 +270,7 @@ class TestTokenSecurityEdgeCases:
         # Token with non-numeric user ID
         payload_string_id = {
             "sub": "not_a_number",
-            "exp": (datetime.utcnow() + timedelta(hours=1)).timestamp(),
+            "exp": (datetime.now(timezone.utc) + timedelta(hours=1)).timestamp(),
         }
         token_string_id = jwt.encode(
             payload_string_id, settings.SECRET_KEY, algorithm=settings.ALGORITHM
@@ -283,7 +283,7 @@ class TestTokenSecurityEdgeCases:
         # Token with empty subject
         payload_empty_sub = {
             "sub": "",
-            "exp": (datetime.utcnow() + timedelta(hours=1)).timestamp(),
+            "exp": (datetime.now(timezone.utc) + timedelta(hours=1)).timestamp(),
         }
         token_empty_sub = jwt.encode(
             payload_empty_sub, settings.SECRET_KEY, algorithm=settings.ALGORITHM
@@ -324,7 +324,7 @@ class TestTokenSecurityEdgeCases:
         # Create token with Unicode data
         payload = {
             "sub": str(user.id),
-            "exp": (datetime.utcnow() + timedelta(hours=1)).timestamp(),
+            "exp": (datetime.now(timezone.utc) + timedelta(hours=1)).timestamp(),
             "name": "用户名🔒",
             "emoji": "🚀🔐💯",
         }
@@ -346,7 +346,7 @@ class TestTokenSecurityEdgeCases:
         large_data = "x" * 50000  # 50KB of data
         payload = {
             "sub": str(user.id),
-            "exp": (datetime.utcnow() + timedelta(hours=1)).timestamp(),
+            "exp": (datetime.now(timezone.utc) + timedelta(hours=1)).timestamp(),
             "large_field": large_data,
         }
 
