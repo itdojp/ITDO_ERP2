@@ -1,5 +1,5 @@
-from typing import AsyncGenerator
 from collections.abc import Generator
+from typing import AsyncGenerator
 
 from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -43,7 +43,7 @@ async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
     """Get an asynchronous database session."""
     if AsyncSessionLocal is None:
         raise RuntimeError("Async database session not available (only available for PostgreSQL)")
-    
+
     async with AsyncSessionLocal() as session:
         try:
             yield session

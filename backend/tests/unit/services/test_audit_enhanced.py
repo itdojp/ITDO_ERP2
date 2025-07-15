@@ -16,41 +16,19 @@ from app.schemas.audit import (
 from app.services.audit import AuditLogger, AuditService
 from tests.factories import AuditLogFactory, OrganizationFactory, UserFactory
 
-<<<<<<< HEAD
-# Skip all tests in this class as AuditService enhanced functionality is
-# not implemented yet
-skip_enhanced_tests = pytest.mark.skipif(
-    True,
-    reason="Enhanced AuditService functionality not implemented - API/test mismatch",
-)
 
-
-@skip_enhanced_tests
-=======
-
->>>>>>> main
 class TestEnhancedAuditService:
     """Enhanced audit service functionality tests."""
 
     @pytest.fixture
-<<<<<<< HEAD
-    def audit_service(self) -> AuditService:
-=======
     def audit_service(self, db_session: Session) -> AuditService:
->>>>>>> main
         """Create audit service instance."""
         return AuditService()
 
     @pytest.fixture
-<<<<<<< HEAD
-    def audit_logger(self) -> AuditLogger:
-        """Create audit logger instance."""
-        return AuditLogger()
-=======
     def audit_logger(self, db_session: Session) -> AuditLogger:
         """Create audit logger instance."""
         return AuditLogger(db_session)
->>>>>>> main
 
     @pytest.fixture
     def organization(self, db_session: Session) -> Organization:
@@ -74,14 +52,10 @@ class TestEnhancedAuditService:
             db_session, password="password123", email="user@example.com"
         )
 
-<<<<<<< HEAD
-=======
-
     # AuditService.search_audit_logs now implemented
 
     @pytest.mark.skip(reason="AuditService.search_audit_logs not yet implemented")
 
->>>>>>> main
     def test_advanced_search_functionality(
         self,
         audit_service: AuditService,

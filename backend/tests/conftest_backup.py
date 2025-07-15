@@ -22,28 +22,26 @@ from datetime import datetime
 from typing import Any
 
 import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, inspect, text
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
-# Import base first
-from app.models.base import Base
 # Import all models to ensure proper registration
 # This ensures all models are registered with SQLAlchemy metadata
-import app.models  # This will import all models via __init__.py
+# Now import app components
+from app.core import database
+from app.core.security import create_access_token
+
+# Import base first
+from app.models.base import Base
+from app.models.department import Department
+from app.models.organization import Organization
+from app.models.permission import Permission
+from app.models.role import Role
 
 # Also import specific models we use in tests
 from app.models.user import User
-from app.models.organization import Organization
-from app.models.department import Department
-from app.models.role import Role
-from app.models.permission import Permission
 
-# Now import app components
-from app.core import database
-from app.core.dependencies import get_db
-from app.core.security import create_access_token
 # from app.main import app  # Temporarily disabled due to syntax errors in API modules
 from tests.factories import (
     DepartmentFactory,
@@ -331,9 +329,9 @@ def test_organization(db_session: Session) -> Organization:
     import uuid
     unique_id = str(uuid.uuid4())[:8]
     return OrganizationFactory.create(
-        db_session, 
-        name=f"テスト株式会社-{unique_id}", 
-        code=f"TEST-ORG-{unique_id}", 
+        db_session,
+        name=f"テスト株式会社-{unique_id}",
+        code=f"TEST-ORG-{unique_id}",
         industry="IT"
     )
 
@@ -355,8 +353,8 @@ def test_department(db_session: Session, test_organization: Organization) -> Dep
     import uuid
     unique_id = str(uuid.uuid4())[:8]
     return DepartmentFactory.create_with_organization(
-        db_session, test_organization, 
-        name=f"テスト部門-{unique_id}", 
+        db_session, test_organization,
+        name=f"テスト部門-{unique_id}",
         code=f"TEST-DEPT-{unique_id}"
     )
 
@@ -380,8 +378,8 @@ def test_role(db_session: Session, test_organization: Organization) -> Role:
     import uuid
     unique_id = str(uuid.uuid4())[:8]
     return RoleFactory.create_with_organization(
-        db_session, test_organization, 
-        name=f"テストロール-{unique_id}", 
+        db_session, test_organization,
+        name=f"テストロール-{unique_id}",
         role_type="custom"
     )
 

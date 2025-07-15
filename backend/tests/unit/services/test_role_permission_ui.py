@@ -43,20 +43,7 @@ class TestRolePermissionUIService:
         user = UserFactory.create_with_password(
             db_session, password="password123", email="orgadmin@example.com"
         )
-<<<<<<< HEAD
-        # Add org admin role with permission management
-        import uuid
-
-        admin_role = RoleFactory.create(
-            db_session,
-            code=f"ORG_ADMIN_{uuid.uuid4().hex[:8]}",
-            name="Organization Admin",
-            permissions={"role": {"manage": True}},
-        )
-        user.assign_role(admin_role, organization)
-=======
         # TODO: Implement role assignment with admin role
->>>>>>> main
         return user
 
     @pytest.fixture
@@ -114,12 +101,9 @@ class TestRolePermissionUIService:
         # Initially, most permissions should be False
         assert all(not enabled for enabled in matrix.permissions.values())
 
-<<<<<<< HEAD
-=======
     @pytest.mark.skip(
         reason="RolePermissionUIService.update_role_permissions not implemented yet"
     )
->>>>>>> main
     def test_update_role_permissions(
         self,
         ui_service: RolePermissionUIService,
@@ -150,10 +134,7 @@ class TestRolePermissionUIService:
         assert updated_matrix.permissions["user.update"] is False
         assert updated_matrix.permissions["user.delete"] is False
 
-<<<<<<< HEAD
-=======
     @pytest.mark.skip(reason="Depends on unimplemented update_role_permissions")
->>>>>>> main
     def test_copy_permissions_from_role(
         self,
         ui_service: RolePermissionUIService,
@@ -231,10 +212,7 @@ class TestRolePermissionUIService:
         assert isinstance(tree.inherited_permissions, dict)
         assert isinstance(tree.own_permissions, dict)
 
-<<<<<<< HEAD
-=======
     @pytest.mark.skip(reason="Depends on unimplemented update_role_permissions")
->>>>>>> main
     def test_bulk_update_permissions(
         self,
         ui_service: RolePermissionUIService,
@@ -272,18 +250,12 @@ class TestRolePermissionUIService:
         assert results[1].permissions["user.update"] is True
         assert results[2].permissions["user.delete"] is True
 
-<<<<<<< HEAD
-=======
     @pytest.mark.skip(reason="Depends on unimplemented update_role_permissions")
->>>>>>> main
     def test_get_effective_permissions(
         self,
         ui_service: RolePermissionUIService,
         organization: Organization,
-<<<<<<< HEAD
-=======
         admin_user: User,
->>>>>>> main
         db_session: Session,
     ) -> None:
         """Test getting effective permissions including inheritance."""
@@ -308,11 +280,7 @@ class TestRolePermissionUIService:
             role_id=parent_role.id,
             organization_id=organization.id,
             update_data=parent_update,
-<<<<<<< HEAD
-            updater=db_session.query(User).filter(User.is_superuser).first(),
-=======
             updater=admin_user,
->>>>>>> main
         )
 
         # Set child permissions (override one)
@@ -323,11 +291,7 @@ class TestRolePermissionUIService:
             role_id=child_role.id,
             organization_id=organization.id,
             update_data=child_update,
-<<<<<<< HEAD
-            updater=db_session.query(User).filter(User.is_superuser).first(),
-=======
             updater=admin_user,
->>>>>>> main
         )
 
         # Get effective permissions
@@ -374,12 +338,8 @@ class TestRolePermissionUIService:
 
         assert len(results) > 0
         assert all(
-<<<<<<< HEAD
-            "user" in p.code.lower() or "user" in p.name.lower() for p in results
-=======
             "user" in p.permission.code.lower() or "user" in p.permission.name.lower()
             for p in results
->>>>>>> main
         )
 
         # Search for create permissions
@@ -387,19 +347,12 @@ class TestRolePermissionUIService:
 
         assert len(create_results) > 0
         assert all(
-<<<<<<< HEAD
-            "create" in p.code.lower() or "create" in p.name.lower()
-            for p in create_results
-        )
-
-=======
             "create" in p.permission.code.lower()
             or "create" in p.permission.name.lower()
             for p in create_results
         )
 
     @pytest.mark.skip(reason="Depends on unimplemented update_role_permissions")
->>>>>>> main
     def test_permission_dependencies(
         self,
         ui_service: RolePermissionUIService,
@@ -423,10 +376,7 @@ class TestRolePermissionUIService:
         assert updated.permissions["user.read"] is True
         assert updated.permissions["user.delete"] is True
 
-<<<<<<< HEAD
-=======
     @pytest.mark.skip(reason="Depends on unimplemented update_role_permissions")
->>>>>>> main
     def test_permission_conflict_resolution(
         self,
         ui_service: RolePermissionUIService,
@@ -460,16 +410,12 @@ class TestRolePermissionUIService:
         )
 
         # Set conflicting permissions
-<<<<<<< HEAD
-        admin = db_session.query(User).filter(User.is_superuser).first()
-=======
         admin = UserFactory.create_with_password(
             db_session,
             password="password",
             email="conflict_admin@example.com",
             is_superuser=True,
         )
->>>>>>> main
 
         ui_service.update_role_permissions(
             grandparent.id,

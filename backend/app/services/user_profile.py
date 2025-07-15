@@ -188,7 +188,6 @@ class UserProfileService:
             if prefs.time_format not in ["12h", "24h"]
             else ("12h" if prefs.time_format == "12h" else "24h"),
 
-            time_format=prefs.time_format,
 
             notification_email=prefs.notifications_email,
             notification_push=prefs.notifications_push,
@@ -262,7 +261,6 @@ class UserProfileService:
             if prefs.time_format not in ["12h", "24h"]
             else ("12h" if prefs.time_format == "12h" else "24h"),
 
-            time_format=prefs.time_format,
 
             notification_email=prefs.notifications_email,
             notification_push=prefs.notifications_push,
@@ -297,15 +295,9 @@ class UserProfileService:
             )
 
         return UserPrivacySettings(
-
             profile_visibility=privacy.profile_visibility.value,
             email_visibility=privacy.email_visibility.value,
             phone_visibility=privacy.phone_visibility.value,
-
-            profile_visibility=privacy.profile_visibility,
-            email_visibility=privacy.email_visibility,
-            phone_visibility=privacy.phone_visibility,
-
             allow_direct_messages=privacy.allow_direct_messages,
             show_online_status=privacy.show_online_status,
             updated_at=privacy.updated_at,
@@ -345,15 +337,9 @@ class UserProfileService:
         db.refresh(privacy)
 
         return UserPrivacySettings(
-
             profile_visibility=privacy.profile_visibility.value,
             email_visibility=privacy.email_visibility.value,
             phone_visibility=privacy.phone_visibility.value,
-
-            profile_visibility=privacy.profile_visibility,
-            email_visibility=privacy.email_visibility,
-            phone_visibility=privacy.phone_visibility,
-
             allow_direct_messages=privacy.allow_direct_messages,
             show_online_status=privacy.show_online_status,
             updated_at=privacy.updated_at,
@@ -378,11 +364,7 @@ class UserProfileService:
 
             # Convert to RGB if necessary
             if img.mode not in ("RGB", "RGBA"):
-
                 img = img.convert("RGB")  # type: ignore[assignment]
-
-                img = img.convert("RGB")
-
 
             # Resize to profile size
             img.thumbnail(self.PROFILE_IMAGE_SIZE, Image.Resampling.LANCZOS)
@@ -493,6 +475,4 @@ class UserProfileService:
             if isinstance(response_data.get("last_seen_at"), datetime)
             else None,  # type: ignore[arg-type]
         )
-
-        return UserProfileResponse(**response_data)
 

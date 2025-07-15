@@ -31,7 +31,7 @@ from app.models.base import Base
 # Import all models to ensure proper registration
 import app.models  # This will import all models via __init__.py
 
-# Now import app components  
+# Now import app components
 from app.core import database
 from tests.factories import UserFactory, OrganizationFactory
 
@@ -76,12 +76,12 @@ def db_session() -> Generator[Session]:
     """Create a clean database session for each test."""
     # Ensure tables exist
     Base.metadata.create_all(bind=engine, checkfirst=True)
-    
+
     # Use transaction isolation for better test performance
     connection = engine.connect()
     transaction = connection.begin()
     session = TestingSessionLocal(bind=connection)
-    
+
     try:
         yield session
     except Exception:
@@ -106,6 +106,19 @@ def test_user(db_session: Session):
 
 
 @pytest.fixture
+def test_admin(db_session: Session):
+    """Create a test admin user."""
+    unique_id = str(uuid.uuid4())[:8]
+    return UserFactory.create_with_password(
+        db_session,
+        password="AdminPassword123!",
+        email=f"admin_{unique_id}@example.com",
+        full_name=f"Admin User {unique_id}",
+        is_superuser=True,
+    )
+
+
+@pytest.fixture
 def test_organization(db_session: Session):
     """Create a test organization."""
     unique_id = str(uuid.uuid4())[:8]
@@ -115,3 +128,29 @@ def test_organization(db_session: Session):
         code=f"TEST-ORG-{unique_id}",
         industry="IT"
     )
+
+
+@pytest.fixture
+def user_token(test_user):
+    """Create a token for the test user."""
+    from app.core.security import create_access_token
+    return create_access_token({"sub": str(test_user.id)})
+
+
+@pytest.fixture
+def admin_token(test_admin):
+    """Create a token for the test admin."""
+    from app.core.security import create_access_token
+    return create_access_token({"sub": str(test_admin.id)})
+
+
+@pytest.fixture
+def client():
+    """Create a test client."""
+    from app.main import app
+    return TestClient(app)
+
+
+def create_auth_headers(token: str) -> dict[str, str]:
+    """Create authorization headers for API requests."""
+    return {"Authorization": f"Bearer {token}"}

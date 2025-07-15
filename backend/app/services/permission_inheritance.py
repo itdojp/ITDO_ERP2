@@ -254,7 +254,6 @@ class PermissionInheritanceService:
 
 
         def collect_dependencies(perm_id: int) -> None:
-
             if perm_id in visited:
                 return
             visited.add(perm_id)
@@ -282,10 +281,7 @@ class PermissionInheritanceService:
 
     def get_inheritance_conflicts(self, role_id: int) -> list[InheritanceConflict]:
         """Get inheritance conflicts for a role."""
-
         conflicts: list[InheritanceConflict] = []
-
-        conflicts = []
 
 
         # Get all parent roles
@@ -390,9 +386,6 @@ class PermissionInheritanceService:
         )
 
         if existing_rp:
-
-            existing_rp.is_granted = bool(final_decision)
-
             existing_rp.is_granted = final_decision
 
         else:
@@ -471,7 +464,6 @@ class PermissionInheritanceService:
 
 
         def collect_permissions(current_role_id: int, depth: int = 0) -> None:
-
             if current_role_id in visited_roles or depth > 10:  # Prevent infinite loops
                 return
             visited_roles.add(current_role_id)
@@ -539,7 +531,6 @@ class PermissionInheritanceService:
             current_role_id: int,
             depth: int = 0,
             original_source_role_id: int | None = None,
-
         ) -> None:
             if current_role_id in visited_roles or depth > 10:
                 return

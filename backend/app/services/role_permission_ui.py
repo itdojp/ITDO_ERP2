@@ -4,11 +4,7 @@ from typing import Any, Dict, List
 
 from sqlalchemy.orm import Session
 
-
 from app.core.exceptions import NotFound, PermissionDenied
-
-from app.core.exceptions import NotFound
-
 from app.models.role import Role
 from app.models.user import User
 from app.schemas.role_permission_ui import (
