@@ -90,9 +90,7 @@ class TestTaskAPI:
         update_data = {"title": "更新されたタスク", "description": "更新された説明"}
 
         # Act
-        response = TestClient(app).patch(
-            f"/api/v1/tasks/{task_id}", json=update_data
-        )
+        response = TestClient(app).patch(f"/api/v1/tasks/{task_id}", json=update_data)
 
         # Assert
         # This will fail until API is implemented
@@ -145,9 +143,7 @@ class TestTaskAPI:
         bulk_data = {"task_ids": [1, 2, 3], "status": "completed"}
 
         # Act
-        response = TestClient(app).post(
-            "/api/v1/tasks/bulk/status", json=bulk_data
-        )
+        response = TestClient(app).post("/api/v1/tasks/bulk/status", json=bulk_data)
 
         # Assert
         # This will fail until API is implemented
@@ -164,9 +160,7 @@ class TestTaskAPI:
         search_keyword = "テスト"
 
         # Act
-        response = TestClient(app).get(
-            f"/api/v1/tasks?q={search_keyword}"
-        )
+        response = TestClient(app).get(f"/api/v1/tasks?q={search_keyword}")
 
         # Assert
         # This will fail until API is implemented
@@ -193,9 +187,7 @@ class TestTaskAPIFilters:
     def test_filter_by_status(self):
         """Test filtering tasks by status."""
         # Act
-        response = TestClient(app).get(
-            "/api/v1/tasks?status=in_progress"
-        )
+        response = TestClient(app).get("/api/v1/tasks?status=in_progress")
 
         # Assert
         # This will fail until API is implemented
@@ -306,9 +298,7 @@ class TestTaskAPIPagination:
     def test_pagination_second_page(self):
         """Test accessing second page."""
         # Act
-        response = TestClient(app).get(
-            "/api/v1/tasks?page=2&page_size=10"
-        )
+        response = TestClient(app).get("/api/v1/tasks?page=2&page_size=10")
 
         # Assert
         # This will fail until API is implemented
@@ -353,9 +343,7 @@ class TestTaskAPISorting:
     def test_sort_by_priority(self):
         """Test sorting by priority."""
         # Act
-        response = TestClient(app).get(
-            "/api/v1/tasks?sort_by=priority&sort_order=asc"
-        )
+        response = TestClient(app).get("/api/v1/tasks?sort_by=priority&sort_order=asc")
 
         # Assert
         # This will fail until API is implemented
@@ -368,9 +356,7 @@ class TestTaskAPISorting:
     def test_sort_by_due_date(self):
         """Test sorting by due date."""
         # Act
-        response = TestClient(app).get(
-            "/api/v1/tasks?sort_by=due_date&sort_order=asc"
-        )
+        response = TestClient(app).get("/api/v1/tasks?sort_by=due_date&sort_order=asc")
 
         # Assert
         # This will fail until API is implemented
