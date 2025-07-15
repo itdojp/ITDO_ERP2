@@ -17,13 +17,12 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import AuditableModel, BaseModel, SoftDeletableModel
+from app.models.base import AuditableModel, SoftDeletableModel
 from app.types import DepartmentId, OrganizationId, RoleId, UserId
 
 if TYPE_CHECKING:
     from app.models.department import Department
     from app.models.organization import Organization
-    from app.models.permission import Permission
     from app.models.user import User
 
 
@@ -127,13 +126,13 @@ class Role(SoftDeletableModel):
         "Organization", back_populates="roles", lazy="joined"
     )
     users: Mapped[list["User"]] = relationship(
-        "User", 
+        "User",
         secondary="user_roles",
         primaryjoin="Role.id == UserRole.role_id",
         secondaryjoin="UserRole.user_id == User.id",
-        back_populates="roles", 
+        back_populates="roles",
         lazy="select",
-        overlaps="user_roles"
+        overlaps="user_roles",
     )
 
     def __repr__(self) -> str:
@@ -316,5 +315,5 @@ class UserRole(AuditableModel):
         """Get effective permissions for this role assignment."""
         if not self.is_valid:
             return {}
-        
+
         return self.role.get_all_permissions()

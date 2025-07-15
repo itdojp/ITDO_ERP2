@@ -64,11 +64,11 @@ class RoleService:
             description=data.description,
             created_by=user.id,
         )
-        
+
         # Convert permissions list to dict
         if data.permissions:
             role.permissions = {perm: True for perm in data.permissions}
-        
+
         db.add(role)
         db.commit()
         db.refresh(role)

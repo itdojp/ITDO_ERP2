@@ -115,7 +115,9 @@ class TestOrganizationService:
     def test_update_organization_permission(self, service, db_session) -> None:
         """組織管理者のみ組織情報を更新できることを確認."""
         # Given: 組織と一般ユーザー
-        org = create_test_organization(db_session, )
+        org = create_test_organization(
+            db_session,
+        )
         user = create_test_user(db_session)
         user_role = create_test_role(db_session, code="USER")
         create_test_user_role(db_session, user=user, role=user_role, organization=org)
@@ -135,7 +137,9 @@ class TestOrganizationService:
         # Given: 組織と組織管理者
         org = create_test_organization(db_session, name="旧名称")
         admin = create_test_user(db_session)
-        admin_role = create_test_role(db_session, code="ORG_ADMIN", permissions=["org:*"])
+        admin_role = create_test_role(
+            db_session, code="ORG_ADMIN", permissions=["org:*"]
+        )
         create_test_user_role(db_session, user=admin, role=admin_role, organization=org)
         db_session.commit()
 
@@ -169,7 +173,9 @@ class TestOrganizationService:
     def test_organization_search(self, service, db_session) -> None:
         """組織検索が正しく動作することを確認."""
         # Given: 複数組織
-        org1 = create_test_organization(db_session, name="株式会社アルファ", code="ALPHA")
+        org1 = create_test_organization(
+            db_session, name="株式会社アルファ", code="ALPHA"
+        )
         create_test_organization(db_session, name="ベータ商事", code="BETA")
         create_test_organization(db_session, name="ガンマ工業", code="GAMMA")
 

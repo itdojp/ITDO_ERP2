@@ -45,7 +45,7 @@ class RoleResponse(RoleBase):
     class Config:
         from_attributes = True
 
-    @field_validator('permissions', mode='before')
+    @field_validator("permissions", mode="before")
     @classmethod
     def convert_permissions_dict_to_list(cls, v):
         """Convert permissions dict to list format."""

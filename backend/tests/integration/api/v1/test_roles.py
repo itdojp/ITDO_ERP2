@@ -1,7 +1,5 @@
 """Integration tests for Role Management API."""
 
-from datetime import datetime, timedelta
-
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
