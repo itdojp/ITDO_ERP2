@@ -48,6 +48,10 @@ class TestOrganizationAPI(
         """Schema class for API responses."""
         return OrganizationResponse
 
+<<<<<<< HEAD
+    # Use inherited test_create_endpoint_success from BaseAPITestCase
+
+=======
 
     # Use inherited test_create_endpoint_success from BaseAPITestCase
 
@@ -62,6 +66,7 @@ class TestOrganizationAPI(
         return payload
 
 
+>>>>>>> main
     # Custom test methods specific to Organization API
 
     def test_tree_endpoint_success(

@@ -1,0 +1,449 @@
+#  gh issue list --label "cc01,cc02,cc03" --json number,title,labels
+
+
+CC01
+[
+  {
+    "labels": [
+      {
+        "id": "LA_kwDOPGX2hs8AAAACEZKdqg",
+        "name": "bug",
+        "description": "Something isn't working",
+        "color": "d73a4a"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bgew",
+        "name": "cc01",
+        "description": "For Claude Code 1",
+        "color": "1D76DB"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bgpg",
+        "name": "cc02",
+        "description": "For Claude Code 2",
+        "color": "5319E7"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bg1g",
+        "name": "cc03",
+        "description": "For Claude Code 3",
+        "color": "B60205"
+      }
+    ],
+    "number": 109,
+    "title": "🔧 Test Database Isolation Issue - Root Cause of Test Failures"
+  },
+  {
+    "labels": [
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bgew",
+        "name": "cc01",
+        "description": "For Claude Code 1",
+        "color": "1D76DB"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bgpg",
+        "name": "cc02",
+        "description": "For Claude Code 2",
+        "color": "5319E7"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bg1g",
+        "name": "cc03",
+        "description": "For Claude Code 3",
+        "color": "B60205"
+      }
+    ],
+    "number": 106,
+    "title": "🎯 Phase 3 Final Push: Complete PR #98 Backend Tests"
+  },
+  {
+    "labels": [
+      {
+        "id": "LA_kwDOPGX2hs8AAAACEZKdqg",
+        "name": "bug",
+        "description": "Something isn't working",
+        "color": "d73a4a"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bgew",
+        "name": "cc01",
+        "description": "For Claude Code 1",
+        "color": "1D76DB"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bgpg",
+        "name": "cc02",
+        "description": "For Claude Code 2",
+        "color": "5319E7"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bg1g",
+        "name": "cc03",
+        "description": "For Claude Code 3",
+        "color": "B60205"
+      }
+    ],
+    "number": 105,
+    "title": "🚨 CRITICAL: PR #98 needs 1-line whitespace fix - IMMEDIATE ACTION REQUIRED"
+  },
+  {
+    "labels": [
+      {
+        "id": "LA_kwDOPGX2hs8AAAACEZKdqg",
+        "name": "bug",
+        "description": "Something isn't working",
+        "color": "d73a4a"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bgew",
+        "name": "cc01",
+        "description": "For Claude Code 1",
+        "color": "1D76DB"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bgpg",
+        "name": "cc02",
+        "description": "For Claude Code 2",
+        "color": "5319E7"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bg1g",
+        "name": "cc03",
+        "description": "For Claude Code 3",
+        "color": "B60205"
+      }
+    ],
+    "number": 104,
+    "title": "URGENT: Backend Integration Test Fixes for Multiple PRs"
+  },
+  {
+    "labels": [
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bc8w",
+        "name": "claude-code-task",
+        "description": "Claude Code agents task",
+        "color": "0052CC"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bgew",
+        "name": "cc01",
+        "description": "For Claude Code 1",
+        "color": "1D76DB"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bgpg",
+        "name": "cc02",
+        "description": "For Claude Code 2",
+        "color": "5319E7"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bg1g",
+        "name": "cc03",
+        "description": "For Claude Code 3",
+        "color": "B60205"
+      }
+    ],
+    "number": 99,
+    "title": "【全CC】2025-07-11 - 自動化ツール導入と作業開始指示"
+  }
+]
+
+
+CC02
+[
+  {
+    "labels": [
+      {
+        "id": "LA_kwDOPGX2hs8AAAACEZKdqg",
+        "name": "bug",
+        "description": "Something isn't working",
+        "color": "d73a4a"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bgew",
+        "name": "cc01",
+        "description": "For Claude Code 1",
+        "color": "1D76DB"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bgpg",
+        "name": "cc02",
+        "description": "For Claude Code 2",
+        "color": "5319E7"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bg1g",
+        "name": "cc03",
+        "description": "For Claude Code 3",
+        "color": "B60205"
+      }
+    ],
+    "number": 109,
+    "title": "🔧 Test Database Isolation Issue - Root Cause of Test Failures"
+  },
+  {
+    "labels": [
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bgew",
+        "name": "cc01",
+        "description": "For Claude Code 1",
+        "color": "1D76DB"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bgpg",
+        "name": "cc02",
+        "description": "For Claude Code 2",
+        "color": "5319E7"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bg1g",
+        "name": "cc03",
+        "description": "For Claude Code 3",
+        "color": "B60205"
+      }
+    ],
+    "number": 106,
+    "title": "🎯 Phase 3 Final Push: Complete PR #98 Backend Tests"
+  },
+  {
+    "labels": [
+      {
+        "id": "LA_kwDOPGX2hs8AAAACEZKdqg",
+        "name": "bug",
+        "description": "Something isn't working",
+        "color": "d73a4a"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bgew",
+        "name": "cc01",
+        "description": "For Claude Code 1",
+        "color": "1D76DB"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bgpg",
+        "name": "cc02",
+        "description": "For Claude Code 2",
+        "color": "5319E7"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bg1g",
+        "name": "cc03",
+        "description": "For Claude Code 3",
+        "color": "B60205"
+      }
+    ],
+    "number": 105,
+    "title": "🚨 CRITICAL: PR #98 needs 1-line whitespace fix - IMMEDIATE ACTION REQUIRED"
+  },
+  {
+    "labels": [
+      {
+        "id": "LA_kwDOPGX2hs8AAAACEZKdqg",
+        "name": "bug",
+        "description": "Something isn't working",
+        "color": "d73a4a"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bgew",
+        "name": "cc01",
+        "description": "For Claude Code 1",
+        "color": "1D76DB"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bgpg",
+        "name": "cc02",
+        "description": "For Claude Code 2",
+        "color": "5319E7"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bg1g",
+        "name": "cc03",
+        "description": "For Claude Code 3",
+        "color": "B60205"
+      }
+    ],
+    "number": 104,
+    "title": "URGENT: Backend Integration Test Fixes for Multiple PRs"
+  },
+  {
+    "labels": [
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bc8w",
+        "name": "claude-code-task",
+        "description": "Claude Code agents task",
+        "color": "0052CC"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bgew",
+        "name": "cc01",
+        "description": "For Claude Code 1",
+        "color": "1D76DB"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bgpg",
+        "name": "cc02",
+        "description": "For Claude Code 2",
+        "color": "5319E7"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bg1g",
+        "name": "cc03",
+        "description": "For Claude Code 3",
+        "color": "B60205"
+      }
+    ],
+    "number": 99,
+    "title": "【全CC】2025-07-11 - 自動化ツール導入と作業開始指示"
+  }
+]
+
+
+CC03
+[
+  {
+    "labels": [
+      {
+        "id": "LA_kwDOPGX2hs8AAAACEZKdqg",
+        "name": "bug",
+        "description": "Something isn't working",
+        "color": "d73a4a"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bgew",
+        "name": "cc01",
+        "description": "For Claude Code 1",
+        "color": "1D76DB"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bgpg",
+        "name": "cc02",
+        "description": "For Claude Code 2",
+        "color": "5319E7"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bg1g",
+        "name": "cc03",
+        "description": "For Claude Code 3",
+        "color": "B60205"
+      }
+    ],
+    "number": 109,
+    "title": "🔧 Test Database Isolation Issue - Root Cause of Test Failures"
+  },
+  {
+    "labels": [
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bgew",
+        "name": "cc01",
+        "description": "For Claude Code 1",
+        "color": "1D76DB"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bgpg",
+        "name": "cc02",
+        "description": "For Claude Code 2",
+        "color": "5319E7"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bg1g",
+        "name": "cc03",
+        "description": "For Claude Code 3",
+        "color": "B60205"
+      }
+    ],
+    "number": 106,
+    "title": "🎯 Phase 3 Final Push: Complete PR #98 Backend Tests"
+  },
+  {
+    "labels": [
+      {
+        "id": "LA_kwDOPGX2hs8AAAACEZKdqg",
+        "name": "bug",
+        "description": "Something isn't working",
+        "color": "d73a4a"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bgew",
+        "name": "cc01",
+        "description": "For Claude Code 1",
+        "color": "1D76DB"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bgpg",
+        "name": "cc02",
+        "description": "For Claude Code 2",
+        "color": "5319E7"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bg1g",
+        "name": "cc03",
+        "description": "For Claude Code 3",
+        "color": "B60205"
+      }
+    ],
+    "number": 105,
+    "title": "🚨 CRITICAL: PR #98 needs 1-line whitespace fix - IMMEDIATE ACTION REQUIRED"
+  },
+  {
+    "labels": [
+      {
+        "id": "LA_kwDOPGX2hs8AAAACEZKdqg",
+        "name": "bug",
+        "description": "Something isn't working",
+        "color": "d73a4a"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bgew",
+        "name": "cc01",
+        "description": "For Claude Code 1",
+        "color": "1D76DB"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bgpg",
+        "name": "cc02",
+        "description": "For Claude Code 2",
+        "color": "5319E7"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bg1g",
+        "name": "cc03",
+        "description": "For Claude Code 3",
+        "color": "B60205"
+      }
+    ],
+    "number": 104,
+    "title": "URGENT: Backend Integration Test Fixes for Multiple PRs"
+  },
+  {
+    "labels": [
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bc8w",
+        "name": "claude-code-task",
+        "description": "Claude Code agents task",
+        "color": "0052CC"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bgew",
+        "name": "cc01",
+        "description": "For Claude Code 1",
+        "color": "1D76DB"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bgpg",
+        "name": "cc02",
+        "description": "For Claude Code 2",
+        "color": "5319E7"
+      },
+      {
+        "id": "LA_kwDOPGX2hs8AAAACE_bg1g",
+        "name": "cc03",
+        "description": "For Claude Code 3",
+        "color": "B60205"
+      }
+    ],
+    "number": 99,
+    "title": "【全CC】2025-07-11 - 自動化ツール導入と作業開始指示"
+  }
+]
+

@@ -16,6 +16,11 @@ if not os.environ.get("REFRESH_TOKEN_EXPIRE_DAYS"):
     os.environ["REFRESH_TOKEN_EXPIRE_DAYS"] = "7"
 if not os.environ.get("BCRYPT_ROUNDS"):
     os.environ["BCRYPT_ROUNDS"] = "4"
+<<<<<<< HEAD
+
+# Use PostgreSQL for integration tests (same as development)
+=======
+>>>>>>> main
 import uuid
 from collections.abc import Generator
 from datetime import datetime
@@ -23,12 +28,20 @@ from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
+<<<<<<< HEAD
+from sqlalchemy import create_engine, text, inspect
+=======
 from sqlalchemy import create_engine, inspect, text
+>>>>>>> main
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 # Import base first
 from app.models.base import Base
+<<<<<<< HEAD
+
+=======
+>>>>>>> main
 # Import all models to ensure proper registration
 # This ensures all models are registered with SQLAlchemy metadata
 import app.models  # This will import all models via __init__.py
@@ -54,6 +67,47 @@ from tests.factories import (
 )
 
 # Determine database URL based on environment
+<<<<<<< HEAD
+# CI environment always uses SQLite regardless of DATABASE_URL
+
+# CRITICAL: Force SQLite for ANY CI environment detection
+# GitHub Actions sets GITHUB_ACTIONS=true automatically
+# Check multiple ways to detect CI environment
+
+# Determine which database to use
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///:memory:")
+# print(f"DEBUG: DATABASE_URL from env = {DATABASE_URL}")
+
+if "postgresql" in DATABASE_URL:
+    # Use PostgreSQL (for CI or when explicitly configured)
+    # print(f"DEBUG: Using PostgreSQL: {DATABASE_URL}")
+    engine = create_engine(DATABASE_URL)
+elif "sqlite" in DATABASE_URL:
+    # Use SQLite
+    if DATABASE_URL == "sqlite:///:memory:":
+        # print(f"DEBUG: Using in-memory SQLite")
+        engine = create_engine(
+            DATABASE_URL,
+            connect_args={"check_same_thread": False},
+            poolclass=StaticPool,
+        )
+    else:
+        # File-based SQLite
+        # print(f"DEBUG: Using file-based SQLite: {DATABASE_URL}")
+        engine = create_engine(
+            DATABASE_URL,
+            connect_args={"check_same_thread": False},
+            poolclass=StaticPool,  # Use StaticPool for file-based SQLite too
+        )
+else:
+    # Default to in-memory SQLite
+    # print(f"DEBUG: Unknown database type, defaulting to in-memory SQLite")
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+=======
 # CI environment uses PostgreSQL from containers when available
 if os.getenv("CI") or "GITHUB_ACTIONS" in os.environ:
     # In CI, try PostgreSQL service first, fallback to SQLite
@@ -117,10 +171,16 @@ else:
             connect_args={"check_same_thread": False},
             poolclass=StaticPool,
         )
+>>>>>>> main
 
 # Override the app's engine with our test engine
 database.engine = engine
 database.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+<<<<<<< HEAD
+
+# Create session factory with our test engine
+=======
+>>>>>>> main
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # CRITICAL: Ensure all tables are created immediately
@@ -128,6 +188,7 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engin
 try:
     # Explicitly register all table metadata from imported models
     from app.models import *  # noqa: F403, F401
+<<<<<<< HEAD
 
     Base.metadata.create_all(bind=engine, checkfirst=True)
     print(f"Created tables: {list(Base.metadata.tables.keys())}")
@@ -137,6 +198,112 @@ except Exception as e:
     raise
 
 
+@pytest.fixture(autouse=True)
+def isolate_test_data() -> dict[str, str]:
+    """各テストで独立したデータを使用"""
+    # 一意性を保証するテストデータ生成
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+    unique_id = str(uuid.uuid4())[:8]
+    return {
+        "unique_email": f"test_{timestamp}_{unique_id}@example.com",
+        "unique_code": f"TEST_{timestamp}_{unique_id}",
+        "unique_name": f"Test Organization {timestamp}",
+        "unique_id": unique_id,
+        "timestamp": timestamp,
+    }
+
+
+@pytest.fixture(autouse=True)
+def clean_test_database(db_session: Session) -> Generator[None]:
+    """テスト前に関連テーブルをクリア"""
+    yield  # テスト実行
+
+    # テスト後のクリーンアップは db_session fixture で処理される
+
+
+@pytest.fixture
+def db_session() -> Generator[Session]:
+    """Create a clean database session for each test."""
+    # Ensure tables exist before each test
+    try:
+        # Force metadata refresh
+        Base.metadata.create_all(bind=engine, checkfirst=True)
+        print(f"db_session: Created tables: {list(Base.metadata.tables.keys())}")
+    except Exception as e:
+        print(f"db_session: ERROR creating tables: {e}")
+        raise
+=======
+
+    Base.metadata.create_all(bind=engine, checkfirst=True)
+    print(f"Created tables: {list(Base.metadata.tables.keys())}")
+except Exception as e:
+    print(f"ERROR: Failed to create database tables: {e}")
+    print(f"Available metadata tables: {list(Base.metadata.tables.keys())}")
+    raise
+>>>>>>> main
+
+
+<<<<<<< HEAD
+    try:
+        yield session
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        # Always rollback to ensure clean state
+        session.rollback()
+        session.close()
+
+        # For SQLite, just clear data without dropping tables to preserve structure
+        with engine.begin() as conn:
+            # Clear data in reverse order to respect foreign keys
+            table_order = [
+                "tasks",
+                "user_roles",
+                "role_permissions",
+                "password_history",
+                "user_sessions",
+                "user_activity_logs",
+                "audit_logs",
+                "project_members",
+                "project_milestones",
+                "projects",
+                "users",
+                "roles",
+                "permissions",
+                "departments",
+                "organizations",
+            ]
+            for table in table_order:
+                try:
+                    conn.execute(text(f"DELETE FROM {table}"))
+                except Exception:
+                    # Table might not exist, ignore
+                    pass
+            # Reset autoincrement for SQLite (if exists)
+            try:
+                conn.execute(text("DELETE FROM sqlite_sequence"))
+            except Exception:
+                # sqlite_sequence might not exist, ignore
+                pass
+
+
+@pytest.fixture
+def client(db_session: Session) -> Generator[TestClient]:
+    """Create a test client with overridden database dependency."""
+
+    # Verify tables exist before creating client
+    with engine.connect() as conn:
+        inspector = inspect(conn)
+        tables = inspector.get_table_names()
+        if "departments" not in tables:
+            # Recreate tables if missing
+            Base.metadata.create_all(bind=engine)
+
+    def override_get_db() -> Generator[Session]:
+        try:
+            # Use the same session for all requests
+=======
 @pytest.fixture(autouse=True)
 def isolate_test_data() -> dict[str, str]:
     """各テストで独立したデータを使用"""
@@ -228,6 +395,7 @@ def client(db_session: Session) -> Generator[TestClient]:
         try:
             # CRITICAL: Use the same connection as the test session
             # This ensures all operations are part of the same transaction
+>>>>>>> main
             yield db_session
         finally:
             # Don't commit or rollback here - let the db_session fixture handle it

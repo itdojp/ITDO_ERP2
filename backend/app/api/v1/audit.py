@@ -1,11 +1,7 @@
 """Audit log API endpoints."""
 
 from datetime import datetime, timedelta, timezone
-
 from typing import Any, Dict, List, Optional
-
-from typing import Dict, List, Optional
-
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
@@ -15,10 +11,7 @@ from app.core.exceptions import NotFound, PermissionDenied
 from app.models.user import User
 from app.schemas.audit import (
     AuditLogBulkIntegrityResult,
-
-
     AuditLogFilter,
-
     AuditLogListResponse,
     AuditLogSearch,
     AuditLogStats,
@@ -43,6 +36,8 @@ def get_organization_audit_logs(
     date_to: Optional[datetime] = Query(None, description="Filter to date"),
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
+<<<<<<< HEAD
+=======
 
 ) -> Any:
     """Get audit logs for an organization."""
@@ -59,6 +54,7 @@ def get_organization_audit_logs(
             limit=limit,
             page=offset // limit + 1,
 
+>>>>>>> main
 ) -> AuditLogListResponse:
     """Get audit logs for an organization."""
     # Create filter params
@@ -81,7 +77,10 @@ def get_organization_audit_logs(
             limit=limit,
             offset=offset,
             filter_params=filter_params,
+<<<<<<< HEAD
+=======
 
+>>>>>>> main
         )
     except PermissionDenied:
         raise HTTPException(
@@ -98,20 +97,28 @@ def search_audit_logs(
     search_params: AuditLogSearch,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
+<<<<<<< HEAD
+) -> AuditLogListResponse:
+=======
 
 ) -> Any:
 
 ) -> AuditLogListResponse:
 
+>>>>>>> main
     """Advanced search for audit logs."""
     # Ensure organization ID matches
     search_params.organization_id = organization_id
 
+<<<<<<< HEAD
+    service = AuditService(db)
+=======
 
     service = AuditService()
 
     service = AuditService(db)
 
+>>>>>>> main
     try:
         return service.search_audit_logs(search_params, current_user)
     except PermissionDenied:
@@ -132,11 +139,15 @@ def get_audit_statistics(
     db: Session = Depends(get_db),
 ) -> AuditLogStats:
     """Get audit log statistics for an organization."""
+<<<<<<< HEAD
+    service = AuditService(db)
+=======
 
     service = AuditService()
 
     service = AuditService(db)
 
+>>>>>>> main
     try:
         return service.get_audit_statistics(
             organization_id=organization_id,
@@ -164,11 +175,15 @@ def export_audit_logs(
     db: Session = Depends(get_db),
 ) -> Response:
     """Export audit logs as CSV."""
+<<<<<<< HEAD
+    service = AuditService(db)
+=======
 
     service = AuditService()
 
     service = AuditService(db)
 
+>>>>>>> main
     try:
         csv_data = service.export_audit_logs_csv(
             organization_id=organization_id,
@@ -202,11 +217,15 @@ def verify_log_integrity(
     db: Session = Depends(get_db),
 ) -> Dict[str, bool]:
     """Verify the integrity of a single audit log."""
+<<<<<<< HEAD
+    service = AuditService(db)
+=======
 
     service = AuditService()
 
     service = AuditService(db)
 
+>>>>>>> main
     try:
         is_valid = service.verify_log_integrity(log_id, current_user)
         return {"valid": is_valid}
@@ -233,11 +252,15 @@ def verify_logs_integrity_bulk(
     db: Session = Depends(get_db),
 ) -> AuditLogBulkIntegrityResult:
     """Verify integrity of multiple audit logs (admin only)."""
+<<<<<<< HEAD
+    service = AuditService(db)
+=======
 
     service = AuditService()
 
     service = AuditService(db)
 
+>>>>>>> main
     try:
         return service.verify_logs_integrity_bulk(
             organization_id=organization_id,
@@ -262,11 +285,15 @@ def apply_retention_policy(
     db: Session = Depends(get_db),
 ) -> Dict[str, int]:
     """Apply retention policy to audit logs (admin only)."""
+<<<<<<< HEAD
+    service = AuditService(db)
+=======
 
     service = AuditService()
 
     service = AuditService(db)
 
+>>>>>>> main
     try:
         archived_count = service.apply_retention_policy(
             organization_id=organization_id,
@@ -288,11 +315,15 @@ def get_recent_activity(
     limit: int = Query(50, ge=1, le=500, description="Number of results"),
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
+<<<<<<< HEAD
+) -> AuditLogListResponse:
+=======
 
 ) -> Any:
 
 ) -> AuditLogListResponse:
 
+>>>>>>> main
     """Get recent audit activity for an organization."""
     # Calculate date range
     date_to = datetime.now(timezone.utc)
@@ -309,11 +340,15 @@ def get_recent_activity(
         sort_order="desc",
     )
 
+<<<<<<< HEAD
+    service = AuditService(db)
+=======
 
     service = AuditService()
 
     service = AuditService(db)
 
+>>>>>>> main
     try:
         return service.search_audit_logs(search_params, current_user)
     except PermissionDenied:
@@ -331,11 +366,15 @@ def get_available_actions(
 ) -> List[str]:
     """Get list of available actions in the audit logs."""
     # Permission check
+<<<<<<< HEAD
+    service = AuditService(db)
+=======
 
     service = AuditService()
 
     service = AuditService(db)
 
+>>>>>>> main
     if not service._can_access_organization_logs(current_user, organization_id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -363,11 +402,15 @@ def get_available_resource_types(
 ) -> List[str]:
     """Get list of available resource types in the audit logs."""
     # Permission check
+<<<<<<< HEAD
+    service = AuditService(db)
+=======
 
     service = AuditService()
 
     service = AuditService(db)
 
+>>>>>>> main
     if not service._can_access_organization_logs(current_user, organization_id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

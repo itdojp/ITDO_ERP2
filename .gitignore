@@ -75,6 +75,7 @@ logs/
 coverage/
 .nyc_output/
 test-results/
+test-reports/
 playwright-report/
 playwright/.cache/
 
@@ -82,6 +83,9 @@ playwright/.cache/
 tmp/
 temp/
 .cache/
+*.tmp
+*.temp
+*.bak
 
 # Build outputs
 backend/dist/
@@ -89,3 +93,11 @@ frontend/build/
 frontend/dist/
 e2e/test-results/
 e2e/playwright-report/
+
+# Project specific
+uploads/
+
+# Claude Code optimization - Added for usage reduction
+scripts/claude-code-automation/
+*.coverage
+.coverage.*

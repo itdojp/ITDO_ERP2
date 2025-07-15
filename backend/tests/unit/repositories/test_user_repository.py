@@ -168,6 +168,10 @@ class TestUserRepository:
         assert locked_user is not None
         assert locked_user.failed_login_attempts == 5
         assert locked_user.locked_until is not None
+<<<<<<< HEAD
+        # Just verify that locked_until was set
+        # (SQLite timezone issues make precise comparison unreliable)
+=======
 
         # Just verify that locked_until was set
         # (SQLite timezone issues make precise comparison unreliable)
@@ -179,6 +183,7 @@ class TestUserRepository:
             locked_until = locked_until.replace(tzinfo=timezone.utc)
         assert locked_until > now
 
+>>>>>>> main
 
     def test_reset_failed_login(self, db_session: Session) -> None:
         """Test resetting failed login attempts."""
