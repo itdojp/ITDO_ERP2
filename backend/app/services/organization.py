@@ -219,6 +219,8 @@ class OrganizationService:
         self, organization: Organization
     ) -> OrganizationResponse:
         """Get full organization response."""
+        import json
+
         # Load parent if needed
         if organization.parent_id and not organization.parent:
             org_with_parent = self.repository.get_with_parent(organization.id)
@@ -231,16 +233,14 @@ class OrganizationService:
         # Build response
         data = organization.to_dict()
 
-        # Parse settings JSON if it's a string
-        if isinstance(data.get("settings"), str):
-            import json
-
+        # Parse settings JSON string to dict
+        if data.get("settings") and isinstance(data["settings"], str):
             try:
-                data["settings"] = (
-                    json.loads(data["settings"]) if data["settings"] else {}
-                )
-            except json.JSONDecodeError:
+                data["settings"] = json.loads(data["settings"])
+            except (json.JSONDecodeError, TypeError):
                 data["settings"] = {}
+        elif not data.get("settings"):
+            data["settings"] = {}
 
         data["parent"] = organization.parent.to_dict() if organization.parent else None
         data["full_address"] = organization.full_address

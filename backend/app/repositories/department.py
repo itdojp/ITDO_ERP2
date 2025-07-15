@@ -1,6 +1,6 @@
 """Department repository implementation."""
 
-from typing import Any
+from typing import Any, List, Optional
 
 from sqlalchemy import func, or_, select, update
 from sqlalchemy.orm import joinedload

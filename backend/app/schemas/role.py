@@ -174,10 +174,7 @@ class UserRoleInfo(BaseModel):
     department: DepartmentBasic | None = None
     assigned_by: UserBasic | None = None
     assigned_at: datetime
-<<<<<<< HEAD
-=======
     valid_from: datetime
->>>>>>> main
     expires_at: datetime | None = None
     is_active: bool
     is_primary: bool

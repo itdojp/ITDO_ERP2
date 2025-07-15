@@ -182,6 +182,27 @@ class OrganizationRepository(
         self.db.refresh(db_obj)
         return db_obj
 
+    def update(self, id: int, obj_in: OrganizationUpdate) -> Organization | None:
+        """Update an organization with proper settings handling."""
+        obj_data = obj_in.model_dump(exclude_unset=True)
+
+        # Convert settings dict to JSON string for database storage
+        if "settings" in obj_data and isinstance(obj_data["settings"], dict):
+            obj_data["settings"] = json.dumps(obj_data["settings"])
+
+        # Get the existing organization
+        db_obj = self.get(id)
+        if not db_obj:
+            return None
+
+        # Update fields
+        for field, value in obj_data.items():
+            setattr(db_obj, field, value)
+
+        self.db.commit()
+        self.db.refresh(db_obj)
+        return db_obj
+
     def update_settings(self, id: int, settings: dict[str, Any]) -> Organization | None:
         """Update organization settings."""
         org = self.get(id)

@@ -170,11 +170,7 @@ class RoleService:
         if not role:
             raise NotFound(f"Role {role_id} not found")
 
-<<<<<<< HEAD
-        # Validate all permission codes first
-=======
         # Validate all permission codes exist
->>>>>>> main
         permission_ids = []
         invalid_codes = []
         for code in permission_codes:
@@ -184,11 +180,7 @@ class RoleService:
             else:
                 invalid_codes.append(code)
 
-<<<<<<< HEAD
-        # Raise error if any invalid permission codes found
-=======
         # Raise error if any invalid codes found
->>>>>>> main
         if invalid_codes:
             raise ValueError(f"Invalid permission codes: {', '.join(invalid_codes)}")
 
@@ -297,15 +289,9 @@ class RoleService:
             "is_system": role.is_system,
             "is_inherited": False,
             "users_count": len(role.user_roles) if role.user_roles else 0,
-<<<<<<< HEAD
-            "display_order": getattr(role, "display_order", 0),
-            "icon": getattr(role, "icon", None),
-            "color": getattr(role, "color", None),
-=======
             "display_order": 0,
             "icon": None,
             "color": None,
->>>>>>> main
             "permissions": {},  # Initialize as empty dict instead of InstrumentedList
             "all_permissions": {},
             "created_at": role.created_at,
@@ -316,11 +302,7 @@ class RoleService:
             "deleted_by": role.deleted_by,
             "is_deleted": role.is_deleted,
         }
-<<<<<<< HEAD
-        return RoleResponse(**role_dict)
-=======
         return RoleResponse.model_validate(role_dict)
->>>>>>> main
 
     def get_role_tree(
         self, organization_id: OrganizationId | None = None
@@ -363,10 +345,7 @@ class RoleService:
         active_only: bool = True,
         limit: int = 100,
         organization_id: OrganizationId | None = None,
-<<<<<<< HEAD
-=======
         filters: dict[str, Any] | None = None,
->>>>>>> main
     ) -> tuple[list[Role], int]:
         """List roles with filtering."""
         query = select(Role).where(~Role.is_deleted)
@@ -405,14 +384,10 @@ class RoleService:
         return list(roles), total
 
     def get_user_roles(
-<<<<<<< HEAD
-        self, user_id: UserId, organization_id: OrganizationId | None = None
-=======
         self,
         user_id: UserId,
         organization_id: OrganizationId | None = None,
         active_only: bool = True,
->>>>>>> main
     ) -> list[UserRoleResponse]:
         """Get all roles for a user."""
         query = select(UserRole).where(UserRole.user_id == user_id)
@@ -539,12 +514,6 @@ class RoleService:
         organization_id: OrganizationId | None = None,
     ) -> bool:
         """Check if user has specific permission."""
-<<<<<<< HEAD
-        # Get user's active roles
-        query = (
-            select(UserRole)
-            .join(Role)
-=======
         # Get user
         user = self.db.scalar(select(User).where(User.id == user_id))
         if not user:
@@ -560,52 +529,17 @@ class RoleService:
             .join(RolePermission)
             .join(Role)
             .join(UserRole)
->>>>>>> main
             .where(
                 and_(
                     UserRole.user_id == user_id,
                     UserRole.is_active,
                     Role.is_active,
-<<<<<<< HEAD
-=======
                     Permission.code == permission_code,
                     Permission.is_active,
->>>>>>> main
                 )
             )
         )
 
-<<<<<<< HEAD
-        if organization_id:
-            query = query.where(
-                or_(
-                    UserRole.organization_id == organization_id,
-                    UserRole.organization_id.is_(None),
-                )
-            )
-
-        user_roles = self.db.scalars(query).all()
-
-        # Check each role for the permission
-        for user_role in user_roles:
-            # Get role with permissions
-            role = user_role.role
-
-            # Check direct permissions
-            for perm in role.permissions:
-                if perm.code == permission_code:
-                    return True
-
-            # Check inherited permissions from parent roles
-            parent = role.parent_role
-            while parent:
-                for perm in parent.permissions:
-                    if perm.code == permission_code:
-                        return True
-                parent = parent.parent_role
-
-        return False
-=======
         # Filter by organization if provided
         if organization_id:
             query = query.where(UserRole.organization_id == organization_id)
@@ -613,7 +547,6 @@ class RoleService:
         # Check if any matching permission exists
         permission = self.db.scalar(query)
         return permission is not None
->>>>>>> main
 
     def is_role_in_use(self, role_id: RoleId) -> bool:
         """Check if role is assigned to any users."""

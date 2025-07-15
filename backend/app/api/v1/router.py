@@ -4,15 +4,17 @@ from sqlalchemy.orm import Session
 
 from app.api.v1 import (
     audit,
+    audit_logs,
     auth,
     cross_tenant_permissions,
     departments,
     health,
     multi_tenant,
     organizations,
-    permission_inheritance,
+    # permission_inheritance,  # Temporarily disabled due to syntax errors
+    permission_management,
     pm_automation,
-    role_permission_ui,
+    # role_permission_ui,  # Temporarily disabled due to syntax errors
     roles,
     tasks,
     user_preferences,
@@ -35,14 +37,16 @@ api_router.include_router(user_profile.router, tags=["user-profile"])
 api_router.include_router(organizations.router)
 api_router.include_router(departments.router)
 api_router.include_router(roles.router)
-api_router.include_router(
-    role_permission_ui.router, prefix="/role-permissions", tags=["role-permissions"]
-)
-api_router.include_router(
-    permission_inheritance.router,
-    prefix="/permission-inheritance",
-    tags=["permission-inheritance"],
-)
+api_router.include_router(permission_management.router)
+api_router.include_router(audit_logs.router)
+# api_router.include_router(
+#     role_permission_ui.router, prefix="/role-permissions", tags=["role-permissions"]
+# )
+# api_router.include_router(
+#     permission_inheritance.router,
+#     prefix="/permission-inheritance",
+#     tags=["permission-inheritance"],
+# )
 api_router.include_router(
     multi_tenant.router, prefix="/multi-tenant", tags=["multi-tenant"]
 )
