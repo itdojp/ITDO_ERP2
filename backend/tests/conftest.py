@@ -148,7 +148,6 @@ except Exception as e:
     print(f"Available metadata tables: {list(Base.metadata.tables.keys())}")
     raise
 
-
 @pytest.fixture(autouse=True)
 def isolate_test_data() -> dict[str, str]:
     """各テストで独立したデータを使用"""

@@ -43,6 +43,9 @@ class User(SoftDeletableModel):
     department_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("departments.id"), nullable=True
     )
+    organization_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("organizations.id"), nullable=True
+    )
 
     # Profile fields
     bio: Mapped[str | None] = mapped_column(String(500))
@@ -87,6 +90,16 @@ class User(SoftDeletableModel):
         "Task", foreign_keys="Task.reporter_id", back_populates="reporter"
     )
 
+<<<<<<< HEAD
+    # User preferences relationship
+    preferences: Mapped["UserPreferences"] = relationship(
+        "UserPreferences", back_populates="user", uselist=False
+    )
+
+    # User privacy settings relationship
+    privacy_settings: Mapped["UserPrivacySettings"] = relationship(
+        "UserPrivacySettings", back_populates="user", uselist=False
+=======
     # User preferences and privacy settings
     preferences: Mapped["UserPreferences | None"] = relationship(
         "UserPreferences",
@@ -107,6 +120,7 @@ class User(SoftDeletableModel):
         foreign_keys="UserOrganization.user_id",
         back_populates="user",
         cascade="all, delete-orphan",
+>>>>>>> main
     )
 
     @classmethod
@@ -433,9 +447,28 @@ class User(SoftDeletableModel):
             ):
                 # Handle permissions from role - use many-to-many relationship
                 if user_role.role and user_role.role.permissions:
+<<<<<<< HEAD
+                    # If permissions is a dict, extract permission codes
+                    if isinstance(user_role.role.permissions, dict):
+                        # Handle various dict structures
+                        if "codes" in user_role.role.permissions:
+                            permissions.update(user_role.role.permissions["codes"])
+                        elif "permissions" in user_role.role.permissions:
+                            permissions.update(
+                                user_role.role.permissions["permissions"]
+                            )
+                        else:
+                            # Try to extract values that look like permission codes
+                            for key, value in user_role.role.permissions.items():
+                                if isinstance(value, list):
+                                    permissions.update(value)
+                                elif isinstance(value, str) and ":" in value:
+                                    permissions.add(value)
+=======
                     # permissions is a list of Permission objects through many-to-many
                     for permission in user_role.role.permissions:
                         permissions.add(permission.code)
+>>>>>>> main
 
         return list(permissions)
 

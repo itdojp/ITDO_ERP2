@@ -4,11 +4,15 @@ from typing import Any, Dict, List
 
 from sqlalchemy.orm import Session
 
+<<<<<<< HEAD
+from app.core.exceptions import NotFound, PermissionDenied
+=======
 
 from app.core.exceptions import NotFound, PermissionDenied
 
 from app.core.exceptions import NotFound
 
+>>>>>>> main
 from app.models.role import Role
 from app.models.user import User
 from app.schemas.role_permission_ui import (
@@ -44,10 +48,15 @@ class RolePermissionUIService:
         if not role:
             raise NotFound("ロールが見つかりません")
 
+<<<<<<< HEAD
+        # Get role permissions for this organization
+        role_permissions = role.get_permissions_in_organization(organization_id)
+=======
         # Get role permissions
         role_permissions = [
             rp.permission.code for rp in role.role_permissions if rp.is_granted
         ]
+>>>>>>> main
 
         # Create permission matrix
         permissions = {}
@@ -72,6 +81,12 @@ class RolePermissionUIService:
         enforce_dependencies: bool = False,
     ) -> PermissionMatrix:
         """Update role permissions."""
+<<<<<<< HEAD
+        # Permission check
+        if not updater.is_superuser:
+            if not updater.has_permission("role.manage", organization_id):
+                raise PermissionDenied("権限を更新する権限がありません")
+=======
 
 
         # Permission check
@@ -79,11 +94,14 @@ class RolePermissionUIService:
             # TODO: Implement proper permission check
             pass
 
+>>>>>>> main
 
         role = self.db.query(Role).filter(Role.id == role_id).first()
         if not role:
             raise NotFound("ロールが見つかりません")
 
+<<<<<<< HEAD
+=======
 
         # Permission check
         if not hasattr(updater, "is_superuser") or not updater.is_superuser:
@@ -100,11 +118,20 @@ class RolePermissionUIService:
 
 
 
+>>>>>>> main
         # Enforce dependencies if requested
         final_permissions = update_data.permissions.copy()
         if enforce_dependencies:
             final_permissions = self._enforce_permission_dependencies(final_permissions)
 
+<<<<<<< HEAD
+        # Update permissions in database
+        for permission_code, enabled in final_permissions.items():
+            if enabled:
+                role.add_permission(permission_code, organization_id)
+            else:
+                role.remove_permission(permission_code, organization_id)
+=======
 
         # Update permissions in database using RolePermission model
         from app.models.permission import Permission
@@ -148,6 +175,7 @@ class RolePermissionUIService:
             # Placeholder - implement actual permission update logic
             pass
 
+>>>>>>> main
 
         self.db.commit()
 
@@ -162,6 +190,12 @@ class RolePermissionUIService:
         copier: User,
     ) -> PermissionMatrix:
         """Copy permissions from one role to another."""
+<<<<<<< HEAD
+        # Permission check
+        if not copier.is_superuser:
+            if not copier.has_permission("role.manage", organization_id):
+                raise PermissionDenied("権限をコピーする権限がありません")
+=======
 
         # Permission check - copier needs role management permissions
         if not hasattr(copier, "is_superuser") or not copier.is_superuser:
@@ -178,6 +212,7 @@ class RolePermissionUIService:
             # TODO: Implement proper permission check
             pass
 
+>>>>>>> main
 
         source_matrix = self.get_role_permission_matrix(source_role_id, organization_id)
 
@@ -202,19 +237,29 @@ class RolePermissionUIService:
         if role.parent_id:
             parent_role = self.db.query(Role).filter(Role.id == role.parent_id).first()
             if parent_role:
+<<<<<<< HEAD
+                parent_perms = parent_role.get_permissions_in_organization(
+                    organization_id
+                )
+=======
                 parent_perms = [
                     rp.permission.code
                     for rp in parent_role.role_permissions
                     if rp.is_granted
                 ]
+>>>>>>> main
                 for perm_code in self._get_all_permission_codes():
                     inherited_permissions[perm_code] = perm_code in parent_perms
 
         # Get own permissions
         own_permissions = {}
+<<<<<<< HEAD
+        role_perms = role.get_permissions_in_organization(organization_id)
+=======
         role_perms = [
             rp.permission.code for rp in role.role_permissions if rp.is_granted
         ]
+>>>>>>> main
         for perm_code in self._get_all_permission_codes():
             own_permissions[perm_code] = perm_code in role_perms
 
@@ -239,6 +284,11 @@ class RolePermissionUIService:
         updater: User,
     ) -> List[PermissionMatrix]:
         """Bulk update permissions for multiple roles."""
+<<<<<<< HEAD
+        if not updater.is_superuser:
+            if not updater.has_permission("role.manage", organization_id):
+                raise PermissionDenied("権限を一括更新する権限がありません")
+=======
         if not hasattr(updater, "is_superuser") or not updater.is_superuser:
 
             # Check if user has role management permissions for bulk operations
@@ -252,6 +302,7 @@ class RolePermissionUIService:
             # TODO: Implement proper permission check
             pass
 
+>>>>>>> main
 
         results = []
         for role_id, permissions in role_permissions.items():
@@ -496,11 +547,15 @@ class RolePermissionUIService:
                     codes.append(permission.code)
         return codes
 
+<<<<<<< HEAD
+    def _get_permission_by_code(self, code: str) -> PermissionDefinition:
+=======
 
     def _get_permission_by_code(self, code: str) -> PermissionDefinition | None:
 
     def _get_permission_by_code(self, code: str) -> PermissionDefinition:
 
+>>>>>>> main
         """Get permission definition by code."""
         for category in self._permission_definitions:
             for group in category.groups:

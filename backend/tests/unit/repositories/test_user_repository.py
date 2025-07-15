@@ -201,7 +201,6 @@ class TestUserRepository:
         if locked_until.tzinfo is None:
             locked_until = locked_until.replace(tzinfo=timezone.utc)
         assert locked_until > now
-
     def test_reset_failed_login(self, db_session: Session) -> None:
         """Test resetting failed login attempts."""
         repository = UserRepository(db_session)

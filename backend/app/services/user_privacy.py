@@ -52,7 +52,11 @@ class UserPrivacyService:
 
         self.db.commit()
 
+<<<<<<< HEAD
+        return PrivacySettingsResponse.from_orm(settings)
+=======
         return PrivacySettingsResponse.model_validate(settings)
+>>>>>>> main
 
     def get_settings(self, user_id: int) -> PrivacySettingsResponse:
         """Get user's privacy settings."""
@@ -65,7 +69,11 @@ class UserPrivacyService:
         if not settings:
             raise NotFound("プライバシー設定が見つかりません")
 
+<<<<<<< HEAD
+        return PrivacySettingsResponse.from_orm(settings)
+=======
         return PrivacySettingsResponse.model_validate(settings)
+>>>>>>> main
 
     def get_settings_or_default(self, user_id: int) -> PrivacySettingsResponse:
         """Get user's privacy settings or return defaults."""
@@ -73,10 +81,14 @@ class UserPrivacyService:
             return self.get_settings(user_id)
         except NotFound:
             # Return default settings
+<<<<<<< HEAD
+            default_data = PrivacySettingsCreate()
+=======
             from datetime import datetime
 
             default_data = PrivacySettingsCreate()
             now = datetime.utcnow()
+>>>>>>> main
             return PrivacySettingsResponse(
                 id=0,  # Temporary ID for defaults
                 user_id=user_id,
@@ -88,8 +100,13 @@ class UserPrivacyService:
                 allow_direct_messages=default_data.allow_direct_messages,
                 searchable_by_email=default_data.searchable_by_email,
                 searchable_by_name=default_data.searchable_by_name,
+<<<<<<< HEAD
+                created_at=None,
+                updated_at=None,
+=======
                 created_at=now,
                 updated_at=now,
+>>>>>>> main
             )
 
     def update_settings(
@@ -106,12 +123,20 @@ class UserPrivacyService:
             raise NotFound("プライバシー設定が見つかりません")
 
         # Update only provided fields
+<<<<<<< HEAD
+        update_data = data.dict(exclude_unset=True)
+=======
         update_data = data.model_dump(exclude_unset=True)
+>>>>>>> main
         settings.update(self.db, **update_data)
 
         self.db.commit()
 
+<<<<<<< HEAD
+        return PrivacySettingsResponse.from_orm(settings)
+=======
         return PrivacySettingsResponse.model_validate(settings)
+>>>>>>> main
 
     def set_all_private(self, user_id: int) -> PrivacySettingsResponse:
         """Set all privacy settings to most restrictive."""
@@ -140,7 +165,11 @@ class UserPrivacyService:
 
         self.db.commit()
 
+<<<<<<< HEAD
+        return PrivacySettingsResponse.from_orm(settings)
+=======
         return PrivacySettingsResponse.model_validate(settings)
+>>>>>>> main
 
     def can_view_profile(self, viewer_id: int, target_user_id: int) -> bool:
         """Check if viewer can see target user's profile."""
@@ -277,6 +306,11 @@ class UserPrivacyService:
             return self._users_in_same_organization(viewer_id, target_user_id)
         elif visibility == VisibilityLevel.DEPARTMENT:
             return self._users_in_same_department(viewer_id, target_user_id)
+<<<<<<< HEAD
+        else:
+            return False
+
+=======
 
 
         # All enum values should be handled above
@@ -287,6 +321,7 @@ class UserPrivacyService:
             return False
 
 
+>>>>>>> main
     def _users_in_same_organization(self, user1_id: int, user2_id: int) -> bool:
         """Check if two users are in the same organization."""
         user1 = self.db.query(User).filter(User.id == user1_id).first()

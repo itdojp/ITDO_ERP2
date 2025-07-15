@@ -185,9 +185,12 @@ class DepartmentTree(BaseModel):
     current_headcount: int = 0
     headcount_limit: int | None = None
     user_count: int = 0
+<<<<<<< HEAD
+=======
     path: str | None = None
     depth: int = 0
     display_order: int = 0
+>>>>>>> main
     children: list["DepartmentTree"] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)

@@ -224,4 +224,5 @@ dev = [
     "types-passlib>=1.7.7",
     "types-psutil>=7.0.0.20250601",
     "faker>=37.4.0",
+    "types-pytz>=2025.2.0.20250516",
 ]
