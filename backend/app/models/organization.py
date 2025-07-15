@@ -143,9 +143,6 @@ class Organization(SoftDeletableModel):
         viewonly=True,
         lazy="dynamic",
     )
-    roles: Mapped[list["Role"]] = relationship(
-        "Role", back_populates="organization", lazy="dynamic"
-    )
 
     # Multi-tenant user relationships
     user_memberships: Mapped[list["UserOrganization"]] = relationship(

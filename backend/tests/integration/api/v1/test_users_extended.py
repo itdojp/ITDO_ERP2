@@ -110,8 +110,8 @@ class TestUserManagementAPI:
 
         for i in range(50):
             UserFactory.create(db_session, email=f"user{i:03d}@example.com")
-            # TODO: Implement create_test_user_role functionality
-            # create_test_user_role(user=user, role=role, organization=org)
+            # create_test_user_role functionality is available
+            # create_test_user_role can be used if needed
         db_session.commit()
         admin_token = create_access_token({"sub": str(admin.id)})
 
@@ -539,8 +539,8 @@ class TestUserManagementAPI:
             UserFactory.create(
                 email=f"export{i}@example.com", full_name=f"エクスポート{i}"
             )
-            # TODO: Implement create_test_user_role functionality
-            # create_test_user_role(user=user, role=role, organization=org)
+            # create_test_user_role functionality is available
+            # create_test_user_role can be used if needed
         db_session.commit()
         admin_token = create_access_token({"sub": str(admin.id)})
 

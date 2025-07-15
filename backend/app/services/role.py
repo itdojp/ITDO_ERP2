@@ -301,7 +301,7 @@ class RoleService:
             "deleted_by": role.deleted_by,
             "is_deleted": role.is_deleted,
         }
-        return RoleResponse(**role_dict)
+        return RoleResponse.model_validate(role_dict)
 
     def get_role_tree(
         self, organization_id: OrganizationId | None = None
@@ -323,7 +323,7 @@ class RoleService:
         # Build tree recursively
         def build_tree(role: Role) -> RoleTree:
             children = [
-                build_tree(child) for child in role.child_roles if child.is_active
+                build_tree(child) for child in role.children if child.is_active
             ]
 
             return RoleTree(
@@ -547,12 +547,12 @@ class RoleService:
                     return True
 
             # Check inherited permissions from parent roles
-            parent = role.parent_role
+            parent = role.parent
             while parent:
                 for perm in parent.permissions:
                     if perm.code == permission_code:
                         return True
-                parent = parent.parent_role
+                parent = parent.parent
 
         return False
 

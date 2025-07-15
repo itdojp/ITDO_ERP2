@@ -7,9 +7,11 @@ from app.api.v1 import (
     auth,
     cross_tenant_permissions,
     departments,
+    health,
     multi_tenant,
     organizations,
     permission_inheritance,
+    pm_automation,
     role_permission_ui,
     roles,
     tasks,
@@ -24,6 +26,7 @@ from app.core.database import get_db
 api_router = APIRouter()
 
 # Include routers
+api_router.include_router(health.router)
 api_router.include_router(auth.router)
 api_router.include_router(audit.router, prefix="/audit", tags=["audit"])
 api_router.include_router(users.router)
@@ -53,6 +56,7 @@ api_router.include_router(
 api_router.include_router(
     user_privacy.router, prefix="/users/privacy", tags=["user-privacy"]
 )
+api_router.include_router(pm_automation.router)
 
 
 @api_router.get("/ping")

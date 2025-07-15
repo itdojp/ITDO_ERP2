@@ -172,11 +172,14 @@ def get_organization_cross_tenant_summary(
     db: Session = Depends(get_db),
 ) -> OrganizationCrossTenantSummary:
     """Get cross-tenant permission summary for an organization."""
-    # TODO: Add proper organization-level permission checking
+    # Check organization-level permissions
     if not current_user.is_superuser:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions to view organization summary",
+        # Check if user has permission in this organization
+        user_orgs = [org.id for org in current_user.get_organizations()]
+        if organization_id not in user_orgs:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Insufficient permissions to view organization summary",
         )
 
     service = CrossTenantPermissionService(db)

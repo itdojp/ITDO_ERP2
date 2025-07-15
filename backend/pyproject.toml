@@ -25,6 +25,16 @@ dependencies = [
     "pytz>=2025.2",
     "types-pytz>=2025.2.0.20250516",
     "pyjwt>=2.10.1",
+    "structlog>=25.4.0",
+    "prometheus-client>=0.22.1",
+    "opentelemetry-api>=1.35.0",
+    "opentelemetry-sdk>=1.35.0",
+    "opentelemetry-instrumentation-fastapi>=0.56b0",
+    "opentelemetry-instrumentation-sqlalchemy>=0.56b0",
+    "opentelemetry-instrumentation-redis>=0.56b0",
+    "opentelemetry-exporter-jaeger-thrift>=1.21.0",
+    "psutil>=7.0.0",
+    "deprecated>=1.2.18",
 ]
 requires-python = ">=3.13"
 readme = "README.md"

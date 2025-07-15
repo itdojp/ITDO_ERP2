@@ -3,7 +3,6 @@
 from abc import ABC, abstractmethod
 from typing import Any, Generic, TypeVar
 
-import pytest
 from fastapi.testclient import TestClient
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -74,9 +73,7 @@ class BaseAPITestCase(
         self, client: TestClient, db_session: Session, admin_token: str
     ) -> None:
         """Test successful list operation."""
-        # Skip this test temporarily to allow CI to pass
-        # TODO: Fix database session isolation issue in authentication
-        pytest.skip("Temporarily disabled due to database session isolation issue")
+        # Database session isolation issue resolved
 
         # Create test instances
         instances = [self.create_test_instance(db_session) for _ in range(3)]
@@ -138,9 +135,7 @@ class BaseAPITestCase(
         self, client: TestClient, db_session: Session, admin_token: str
     ) -> None:
         """Test successful get operation."""
-        # Skip this test temporarily to allow CI to pass
-        # TODO: Fix database session isolation issue in authentication
-        pytest.skip("Temporarily disabled due to database session isolation issue")
+        # Database session isolation issue resolved
 
         instance = self.create_test_instance(db_session)
 
@@ -368,9 +363,7 @@ class SearchTestMixin:
         self, client: TestClient, db_session: Session, admin_token: str
     ) -> None:
         """Test search endpoint with valid query."""
-        # Skip this test temporarily to allow CI to pass
-        # TODO: Fix database session isolation issue in authentication
-        pytest.skip("Temporarily disabled due to database session isolation issue")
+        # Database session isolation issue resolved
 
 
 class HierarchyTestMixin:

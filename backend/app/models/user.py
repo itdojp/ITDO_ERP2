@@ -409,24 +409,11 @@ class User(SoftDeletableModel):
                 user_role.organization_id == organization_id
                 and not user_role.is_expired
             ):
-                # Handle permissions stored as JSON
+                # Handle permissions from role
                 if user_role.role and user_role.role.permissions:
-                    # If permissions is a dict, extract permission codes
-                    if isinstance(user_role.role.permissions, dict):
-                        # Handle various dict structures
-                        if "codes" in user_role.role.permissions:
-                            permissions.update(user_role.role.permissions["codes"])
-                        elif "permissions" in user_role.role.permissions:
-                            permissions.update(
-                                user_role.role.permissions["permissions"]
-                            )
-                        else:
-                            # Try to extract values that look like permission codes
-                            for key, value in user_role.role.permissions.items():
-                                if isinstance(value, list):
-                                    permissions.update(value)
-                                elif isinstance(value, str) and ":" in value:
-                                    permissions.add(value)
+                    # permissions is a list of Permission objects
+                    for permission in user_role.role.permissions:
+                        permissions.add(permission.code)
 
         return list(permissions)
 
@@ -449,10 +436,11 @@ class User(SoftDeletableModel):
         """Check if user has permission in department."""
         for user_role in self.user_roles:
             if user_role.department_id == department_id and not user_role.is_expired:
-                # TODO: Implement role permission checking
-                # if user_role.role.has_permission(permission):
-                #     return True
-                pass
+                # Check if role has permission
+                if user_role.role and user_role.role.permissions:
+                    for perm in user_role.role.permissions:
+                        if perm.code == permission:
+                            return True
         return False
 
     def can_access_user(self, target_user: "User") -> bool:

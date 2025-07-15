@@ -15,7 +15,24 @@ class AuthService:
     @staticmethod
     def authenticate_user(db: Session, email: str, password: str) -> User | None:
         """Authenticate user and return user object."""
-        return User.authenticate(db, email, password)
+        # Strip whitespace from email
+        email = email.strip()
+
+        # Get user by email (case-insensitive)
+        user = db.query(User).filter(User.email.ilike(email)).first()
+        if not user:
+            return None
+
+        # Check if account is locked
+        if user.is_locked():
+            return None
+
+        # Verify password
+        from app.core.security import verify_password
+        if not verify_password(password, user.hashed_password):
+            return None
+
+        return user
 
     @staticmethod
     def create_tokens(user: User) -> TokenResponse:

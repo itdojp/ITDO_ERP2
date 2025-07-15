@@ -72,6 +72,12 @@ class Role(SoftDeletableModel):
     level: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0, comment="Role hierarchy level"
     )
+    full_path: Mapped[str | None] = mapped_column(
+        String(500), nullable=True, comment="Full hierarchical path"
+    )
+    depth: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, comment="Hierarchy depth"
+    )
 
     # Organization relationship
     organization_id: Mapped[OrganizationId | None] = mapped_column(
@@ -136,7 +142,10 @@ class Role(SoftDeletableModel):
     )
     department: Mapped["Department | None"] = relationship("Department")
     parent: Mapped["Role | None"] = relationship(
-        "Role", remote_side="Role.id", backref="children"
+        "Role", remote_side="Role.id", back_populates="children"
+    )
+    children: Mapped[list["Role"]] = relationship(
+        "Role", back_populates="parent", cascade="all, delete-orphan"
     )
 
     # Many-to-many relationships

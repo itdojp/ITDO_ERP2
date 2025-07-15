@@ -39,7 +39,7 @@ def admin_token(client: TestClient) -> str:
     return response.json()["access_token"]
 
 
-@pytest.mark.skip(reason="Audit API implementation pending")
+# Audit API implementation completed
 def test_get_organization_audit_logs(
     client: TestClient,
     test_admin_user: User,
@@ -88,7 +88,7 @@ def test_get_organization_audit_logs(
     assert "user_email" in log
 
 
-@pytest.mark.skip(reason="Audit API implementation pending")
+# Audit API implementation completed
 def test_search_audit_logs(
     client: TestClient,
     test_admin_user: User,
@@ -143,7 +143,7 @@ def test_search_audit_logs(
     assert "user.update" in actions
 
 
-@pytest.mark.skip(reason="Audit API implementation pending")
+# Audit API implementation completed
 def test_get_audit_statistics(
     client: TestClient,
     test_admin_user: User,
@@ -191,7 +191,7 @@ def test_get_audit_statistics(
     assert data["resource_type_counts"]["User"] == 5
 
 
-@pytest.mark.skip(reason="Audit API implementation pending")
+# Audit API implementation completed
 def test_export_audit_logs(
     client: TestClient,
     test_admin_user: User,
@@ -237,7 +237,7 @@ def test_export_audit_logs(
     assert "test.export" in data_row
 
 
-@pytest.mark.skip(reason="Audit API implementation pending")
+# Audit API implementation completed
 def test_get_recent_activity(
     client: TestClient,
     test_admin_user: User,
@@ -282,7 +282,7 @@ def test_get_recent_activity(
     assert data["items"][0]["action"] == "recent.action"
 
 
-@pytest.mark.skip(reason="Audit API implementation pending")
+# Audit API implementation completed
 def test_get_available_actions(
     client: TestClient,
     test_admin_user: User,
@@ -318,7 +318,7 @@ def test_get_available_actions(
         assert action in data
 
 
-@pytest.mark.skip(reason="Audit API implementation pending")
+# Audit API implementation completed
 def test_permission_denied_for_wrong_organization(
     client: TestClient, test_admin_user: User, db_session: Session
 ) -> None:
