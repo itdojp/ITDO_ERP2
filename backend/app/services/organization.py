@@ -1,6 +1,6 @@
 """Organization service implementation."""
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from sqlalchemy.orm import Session
 
@@ -25,15 +25,13 @@ class OrganizationService:
         self.db = db
         self.repository = OrganizationRepository(Organization, db)
 
-    def get_organization(
-        self, organization_id: OrganizationId
-    ) -> Optional[Organization]:
+    def get_organization(self, organization_id: OrganizationId) -> Organization | None:
         """Get organization by ID."""
         return self.repository.get(organization_id)
 
     def list_organizations(
-        self, skip: int = 0, limit: int = 100, filters: Optional[Dict[str, Any]] = None
-    ) -> Tuple[List[Organization], int]:
+        self, skip: int = 0, limit: int = 100, filters: dict[str, Any] | None = None
+    ) -> tuple[list[Organization], int]:
         """List organizations with pagination."""
         organizations = self.repository.get_multi(
             skip=skip, limit=limit, filters=filters
@@ -46,8 +44,8 @@ class OrganizationService:
         query: str,
         skip: int = 0,
         limit: int = 100,
-        filters: Optional[Dict[str, Any]] = None,
-    ) -> Tuple[List[Organization], int]:
+        filters: dict[str, Any] | None = None,
+    ) -> tuple[list[Organization], int]:
         """Search organizations by name."""
         # Get all matching organizations
         all_results = self.repository.search_by_name(query)
@@ -72,7 +70,7 @@ class OrganizationService:
         return paginated_results, total
 
     def create_organization(
-        self, organization_data: OrganizationCreate, created_by: Optional[UserId] = None
+        self, organization_data: OrganizationCreate, created_by: UserId | None = None
     ) -> Organization:
         """Create a new organization."""
         # Validate unique code
@@ -94,8 +92,8 @@ class OrganizationService:
         self,
         organization_id: OrganizationId,
         organization_data: OrganizationUpdate,
-        updated_by: Optional[UserId] = None,
-    ) -> Optional[Organization]:
+        updated_by: UserId | None = None,
+    ) -> Organization | None:
         """Update organization details."""
         # Check if organization exists
         organization = self.repository.get(organization_id)
@@ -120,7 +118,7 @@ class OrganizationService:
         return self.repository.update(organization_id, OrganizationUpdate(**data))
 
     def delete_organization(
-        self, organization_id: OrganizationId, deleted_by: Optional[UserId] = None
+        self, organization_id: OrganizationId, deleted_by: UserId | None = None
     ) -> bool:
         """Soft delete an organization."""
         organization = self.repository.get(organization_id)
@@ -133,8 +131,8 @@ class OrganizationService:
         return True
 
     def activate_organization(
-        self, organization_id: OrganizationId, updated_by: Optional[UserId] = None
-    ) -> Optional[Organization]:
+        self, organization_id: OrganizationId, updated_by: UserId | None = None
+    ) -> Organization | None:
         """Activate an inactive organization."""
         org = self.repository.update(
             organization_id, OrganizationUpdate(is_active=True)
@@ -145,8 +143,8 @@ class OrganizationService:
         return org
 
     def deactivate_organization(
-        self, organization_id: OrganizationId, updated_by: Optional[UserId] = None
-    ) -> Optional[Organization]:
+        self, organization_id: OrganizationId, updated_by: UserId | None = None
+    ) -> Organization | None:
         """Deactivate an active organization."""
         org = self.repository.update(
             organization_id, OrganizationUpdate(is_active=False)
@@ -156,11 +154,11 @@ class OrganizationService:
             self.db.commit()
         return org
 
-    def get_direct_subsidiaries(self, parent_id: OrganizationId) -> List[Organization]:
+    def get_direct_subsidiaries(self, parent_id: OrganizationId) -> list[Organization]:
         """Get direct subsidiaries of an organization."""
         return self.repository.get_subsidiaries(parent_id)
 
-    def get_all_subsidiaries(self, parent_id: OrganizationId) -> List[Organization]:
+    def get_all_subsidiaries(self, parent_id: OrganizationId) -> list[Organization]:
         """Get all subsidiaries recursively."""
         return self.repository.get_all_subsidiaries(parent_id)
 
@@ -224,7 +222,7 @@ class OrganizationService:
 
         return OrganizationResponse.model_validate(data)
 
-    def get_organization_tree(self) -> List[OrganizationTree]:
+    def get_organization_tree(self) -> list[OrganizationTree]:
         """Get organization hierarchy tree."""
         # Get root organizations
         roots = self.repository.get_root_organizations()
@@ -251,7 +249,7 @@ class OrganizationService:
         self,
         user_id: UserId,
         permission: str,
-        organization_id: Optional[OrganizationId] = None,
+        organization_id: OrganizationId | None = None,
     ) -> bool:
         """Check if user has permission for organizations."""
         # Get user roles
@@ -272,9 +270,9 @@ class OrganizationService:
     def update_settings(
         self,
         organization_id: OrganizationId,
-        settings: Dict[str, Any],
-        updated_by: Optional[UserId] = None,
-    ) -> Optional[Organization]:
+        settings: dict[str, Any],
+        updated_by: UserId | None = None,
+    ) -> Organization | None:
         """Update organization settings."""
         org = self.repository.update_settings(organization_id, settings)
         if org and updated_by:

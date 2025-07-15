@@ -1,11 +1,12 @@
 """Task management service."""
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.exceptions import BusinessLogicError, NotFound, PermissionDenied
+from app.models.department import Department
 from app.models.project import Project
 from app.models.task import Task
 from app.models.user import User
@@ -129,12 +130,12 @@ class TaskService:
 
     def list_tasks(
         self,
-        filters: Dict[str, Any],
+        filters: dict[str, Any],
         user: User,
         db: Session,
         page: int = 1,
         page_size: int = 20,
-        sort_by: Optional[str] = None,
+        sort_by: str | None = None,
         sort_order: str = "asc",
     ) -> TaskListResponse:
         """List tasks with filters and pagination."""
@@ -277,7 +278,7 @@ class TaskService:
         return self._task_to_response(task)
 
     def bulk_assign_users(
-        self, task_id: int, assignee_ids: List[int], user: User, db: Session
+        self, task_id: int, assignee_ids: list[int], user: User, db: Session
     ) -> TaskResponse:
         """Assign multiple users to a task."""
         # For now, assign the first user only (single assignee model)
@@ -369,7 +370,7 @@ class TaskService:
 
     def add_dependency(
         self, task_id: int, depends_on: int, user: User, db: Session
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Add task dependency."""
         # For now, use parent_task_id for simple hierarchy
         task = db.query(Task).filter(Task.id == task_id).first()
@@ -395,7 +396,7 @@ class TaskService:
 
         return {"task_id": task_id, "depends_on": depends_on, "status": "added"}
 
-    def get_dependencies(self, task_id: int, user: User, db: Session) -> Dict[str, Any]:
+    def get_dependencies(self, task_id: int, user: User, db: Session) -> dict[str, Any]:
         """Get task dependencies."""
         task = db.query(Task).filter(Task.id == task_id).first()
         if not task:
@@ -517,7 +518,13 @@ class TaskService:
 
     def _task_to_response(self, task: Task) -> TaskResponse:
         """Convert Task model to TaskResponse schema."""
-        from app.schemas.task import ProjectInfo, TaskPriority, TaskStatus, UserInfo
+        from app.schemas.task import (
+            DepartmentBasic,
+            ProjectInfo,
+            TaskPriority,
+            TaskStatus,
+            UserInfo,
+        )
 
         # Convert status string to enum
         status_map = {
@@ -561,6 +568,15 @@ class TaskService:
             email=task.reporter.email if task.reporter else "unknown@example.com",
         )
 
+        # Build department info if available
+        department_info = None
+        if task.department:
+            department_info = DepartmentBasic(
+                id=task.department.id,
+                name=task.department.name,
+                code=task.department.code,
+            )
+
         return TaskResponse(
             id=task.id,
             title=task.title,
@@ -577,4 +593,190 @@ class TaskService:
             created_at=task.created_at,
             updated_at=task.updated_at,
             created_by=created_by,
+            # CRITICAL: Department integration fields
+            department_id=task.department_id,
+            department_visibility=task.department_visibility or "department_hierarchy",
+            department=department_info,
+        )
+
+    # CRITICAL: Department Integration Methods for Phase 3
+
+    def create_department_task(
+        self, task_data: TaskCreate, user: User, db: Session, department_id: int
+    ) -> TaskResponse:
+        """Create a new task assigned to a department."""
+        # Check if department exists
+        department = db.query(Department).filter(Department.id == department_id).first()
+        if not department:
+            raise NotFound("Department not found")
+
+        # Check if project exists and user has access
+        project = db.query(Project).filter(Project.id == task_data.project_id).first()
+        if not project:
+            raise NotFound("Project not found")
+
+        # Basic permission check - can be enhanced with department-specific permissions
+        if not user.is_active:
+            raise PermissionDenied("User is not active")
+
+        # Create task with department assignment
+        task = Task(
+            title=task_data.title,
+            description=task_data.description,
+            status="not_started",
+            priority=task_data.priority.value,
+            project_id=task_data.project_id,
+            assignee_id=task_data.assignee_ids[0] if task_data.assignee_ids else None,
+            reporter_id=user.id,
+            parent_task_id=task_data.parent_task_id,
+            due_date=task_data.due_date,
+            start_date=None,
+            estimated_hours=task_data.estimated_hours,
+            created_by=user.id,
+            # CRITICAL: Department integration
+            department_id=department_id,
+            department_visibility="department_hierarchy",
+        )
+
+        db.add(task)
+        db.commit()
+        db.refresh(task)
+
+        return self._task_to_response(task)
+
+    def get_department_tasks(
+        self,
+        department_id: int,
+        user: User,
+        db: Session,
+        include_subdepartments: bool = True,
+        status_filter: str | None = None,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> TaskListResponse:
+        """Get tasks for a department with hierarchical support."""
+        # Check if department exists
+        department = db.query(Department).filter(Department.id == department_id).first()
+        if not department:
+            raise NotFound("Department not found")
+
+        # Basic permission check
+        if not user.is_active:
+            raise PermissionDenied("User is not active")
+
+        # Build query for department tasks
+        query = db.query(Task).options(
+            joinedload(Task.project),
+            joinedload(Task.assignee),
+            joinedload(Task.reporter),
+            joinedload(Task.department),
+        )
+
+        if include_subdepartments:
+            # Get all subdepartments using materialized path
+            subdept_query = db.query(Department).filter(
+                Department.path.like(f"{department.path}%")
+            )
+            department_ids = [dept.id for dept in subdept_query.all()]
+        else:
+            department_ids = [department_id]
+
+        # Filter by department IDs
+        query = query.filter(Task.department_id.in_(department_ids))
+
+        # Apply status filter if provided
+        if status_filter:
+            query = query.filter(Task.status == status_filter)
+
+        # Only show active tasks
+        query = query.filter(Task.is_deleted.is_(False))
+
+        # Count total
+        total = query.count()
+
+        # Apply pagination
+        offset = (page - 1) * page_size
+        tasks = query.offset(offset).limit(page_size).all()
+
+        # Calculate total pages
+        total_pages = (total + page_size - 1) // page_size if total > 0 else 0
+
+        return TaskListResponse(
+            items=[self._task_to_response(task) for task in tasks],
+            total=total,
+            page=page,
+            page_size=page_size,
+            total_pages=total_pages,
+        )
+
+    def assign_task_to_department(
+        self, task_id: int, department_id: int, user: User, db: Session
+    ) -> TaskResponse:
+        """Assign an existing task to a department."""
+        # Get task
+        task = db.query(Task).filter(Task.id == task_id).first()
+        if not task:
+            raise NotFound("Task not found")
+
+        # Check if department exists
+        department = db.query(Department).filter(Department.id == department_id).first()
+        if not department:
+            raise NotFound("Department not found")
+
+        # Basic permission check
+        if not user.is_active:
+            raise PermissionDenied("User is not active")
+
+        # Update task with department assignment
+        task.department_id = department_id
+        task.department_visibility = "department_hierarchy"
+        task.updated_by = user.id
+        task.updated_at = datetime.utcnow()
+
+        db.commit()
+        db.refresh(task)
+
+        return self._task_to_response(task)
+
+    def get_tasks_by_visibility(
+        self,
+        user: User,
+        db: Session,
+        visibility_scope: str = "department_hierarchy",
+        page: int = 1,
+        page_size: int = 20,
+    ) -> TaskListResponse:
+        """Get tasks based on visibility scope and user's department context."""
+        if not user.is_active:
+            raise PermissionDenied("User is not active")
+
+        query = db.query(Task).options(
+            joinedload(Task.project),
+            joinedload(Task.assignee),
+            joinedload(Task.reporter),
+            joinedload(Task.department),
+        )
+
+        # Filter by visibility scope
+        query = query.filter(Task.department_visibility == visibility_scope)
+
+        # Only show active tasks
+        query = query.filter(Task.is_deleted.is_(False))
+
+        # Count total
+        total = query.count()
+
+        # Apply pagination
+        offset = (page - 1) * page_size
+        tasks = query.offset(offset).limit(page_size).all()
+
+        # Calculate total pages
+        total_pages = (total + page_size - 1) // page_size if total > 0 else 0
+
+        return TaskListResponse(
+            items=[self._task_to_response(task) for task in tasks],
+            total=total,
+            page=page,
+            page_size=page_size,
+            total_pages=total_pages,
         )
