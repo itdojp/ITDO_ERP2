@@ -122,22 +122,26 @@ def client(db_session: Session) -> Generator[TestClient, None, None]:
 @pytest.fixture
 def test_user(db_session: Session) -> User:
     """Create a basic test user."""
+    import uuid
+    unique_id = str(uuid.uuid4())[:8]
     return UserFactory.create_with_password(
         db_session,
         password="TestPassword123!",
-        email="testuser@example.com",
-        full_name="Test User",
+        email=f"testuser_{unique_id}@example.com",
+        full_name=f"Test User {unique_id}",
     )
 
 
 @pytest.fixture
 def test_admin(db_session: Session) -> User:
     """Create a test admin user."""
+    import uuid
+    unique_id = str(uuid.uuid4())[:8]
     return UserFactory.create_with_password(
         db_session,
         password="AdminPassword123!",
-        email="admin@example.com",
-        full_name="Admin User",
+        email=f"admin_{unique_id}@example.com",
+        full_name=f"Admin User {unique_id}",
         is_superuser=True,
     )
 
@@ -145,11 +149,13 @@ def test_admin(db_session: Session) -> User:
 @pytest.fixture
 def test_manager(db_session: Session) -> User:
     """Create a test manager user."""
+    import uuid
+    unique_id = str(uuid.uuid4())[:8]
     return UserFactory.create_with_password(
         db_session,
         password="ManagerPassword123!",
-        email="manager@example.com",
-        full_name="Manager User",
+        email=f"manager_{unique_id}@example.com",
+        full_name=f"Manager User {unique_id}",
     )
 
 
@@ -200,8 +206,13 @@ def manager_token(test_manager: User) -> str:
 @pytest.fixture
 def test_organization(db_session: Session) -> Organization:
     """Create a test organization."""
+    import uuid
+    unique_id = str(uuid.uuid4())[:8]
     return OrganizationFactory.create(
-        db_session, name="テスト株式会社", code="TEST-ORG", industry="IT"
+        db_session, 
+        name=f"テスト株式会社-{unique_id}", 
+        code=f"TEST-ORG-{unique_id}", 
+        industry="IT"
     )
 
 
@@ -219,8 +230,12 @@ def test_organization_tree(db_session: Session) -> Dict[str, Any]:
 @pytest.fixture
 def test_department(db_session: Session, test_organization: Organization) -> Department:
     """Create a test department."""
+    import uuid
+    unique_id = str(uuid.uuid4())[:8]
     return DepartmentFactory.create_with_organization(
-        db_session, test_organization, name="テスト部門", code="TEST-DEPT"
+        db_session, test_organization, 
+        name=f"テスト部門-{unique_id}", 
+        code=f"TEST-DEPT-{unique_id}"
     )
 
 
@@ -240,8 +255,12 @@ def test_department_tree(
 @pytest.fixture
 def test_role(db_session: Session, test_organization: Organization) -> Role:
     """Create a test role."""
+    import uuid
+    unique_id = str(uuid.uuid4())[:8]
     return RoleFactory.create_with_organization(
-        db_session, test_organization, name="テストロール", role_type="custom"
+        db_session, test_organization, 
+        name=f"テストロール-{unique_id}", 
+        role_type="custom"
     )
 
 
