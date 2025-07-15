@@ -11,14 +11,19 @@ from app.core.config import settings
 engine = create_engine(str(settings.DATABASE_URL))
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Async engine and session
-async_database_url = str(settings.DATABASE_URL).replace(
-    "postgresql://", "postgresql+asyncpg://"
-)
-async_engine = create_async_engine(async_database_url)
-AsyncSessionLocal = async_sessionmaker(
-    async_engine, class_=AsyncSession, expire_on_commit=False
-)
+# Async engine and session (only for PostgreSQL)
+async_engine = None
+AsyncSessionLocal = None
+
+# Only create async engine if using PostgreSQL
+if str(settings.DATABASE_URL).startswith("postgresql"):
+    async_database_url = str(settings.DATABASE_URL).replace(
+        "postgresql://", "postgresql+asyncpg://"
+    )
+    async_engine = create_async_engine(async_database_url)
+    AsyncSessionLocal = async_sessionmaker(
+        async_engine, class_=AsyncSession, expire_on_commit=False
+    )
 
 
 def get_db() -> Generator[Session]:
@@ -36,6 +41,9 @@ def get_sync_session() -> Session:
 
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
     """Get an asynchronous database session."""
+    if AsyncSessionLocal is None:
+        raise RuntimeError("Async database session not available (only available for PostgreSQL)")
+    
     async with AsyncSessionLocal() as session:
         try:
             yield session

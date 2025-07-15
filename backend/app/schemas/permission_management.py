@@ -1,7 +1,7 @@
 """Permission management schemas."""
 
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -87,8 +87,8 @@ class PermissionAuditLog(BaseModel):
     performed_by: int
     performed_at: datetime
     reason: Optional[str] = None
-    previous_state: Optional[dict] = None
-    new_state: Optional[dict] = None
+    previous_state: dict[str, Any] | None = None
+    new_state: dict[str, Any] | None = None
 
 
 class PermissionCheckRequest(BaseModel):
@@ -98,7 +98,7 @@ class PermissionCheckRequest(BaseModel):
     permission_codes: List[str] = Field(
         ..., description="List of permission codes to check"
     )
-    context: Optional[dict] = Field(
+    context: dict[str, Any] | None = Field(
         None, description="Additional context for permission evaluation"
     )
 
@@ -160,5 +160,5 @@ class PermissionBulkOperationResponse(BaseModel):
     operation_id: str
     success_count: int
     failure_count: int
-    failures: Optional[List[dict]] = None
+    failures: list[dict[str, Any]] | None = None
     completed_at: datetime = Field(default_factory=datetime.utcnow)

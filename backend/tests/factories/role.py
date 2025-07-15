@@ -371,3 +371,19 @@ def create_test_user_role(
     db_session.refresh(user_role)
 
     return user_role
+
+
+class UserRoleFactory(BaseFactory):
+    """Factory for creating UserRole test instances."""
+
+    model_class = Role  # We don't have a specific model, so use Role temporarily
+
+    @classmethod
+    def _get_default_attributes(cls) -> dict[str, Any]:
+        """Get default attributes for creating UserRole instances."""
+        return {}
+
+    @classmethod
+    def create(cls, db_session, user, role, organization, department=None, **kwargs):
+        """Create a test user role association."""
+        return create_test_user_role(db_session, user, role, organization, department, **kwargs)

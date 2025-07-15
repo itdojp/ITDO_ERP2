@@ -283,9 +283,6 @@ class UserPrivacyService:
         # This should never be reached, but required for type safety
         raise ValueError(f"Unknown visibility level: {visibility}")  # pragma: no cover
 
-        else:
-            return False
-
 
     def _users_in_same_organization(self, user1_id: int, user2_id: int) -> bool:
         """Check if two users are in the same organization."""
