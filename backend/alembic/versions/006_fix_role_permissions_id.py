@@ -38,7 +38,8 @@ def upgrade() -> None:
     # Create sequence for the id column (PostgreSQL specific)
     op.execute("CREATE SEQUENCE role_permissions_id_seq")
     op.execute(
-        "ALTER TABLE role_permissions ALTER COLUMN id SET DEFAULT nextval('role_permissions_id_seq')"
+        "ALTER TABLE role_permissions ALTER COLUMN id SET DEFAULT "
+        "nextval('role_permissions_id_seq')"
     )
 
     # Populate existing rows with sequential ids

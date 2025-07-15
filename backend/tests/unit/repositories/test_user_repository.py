@@ -31,13 +31,14 @@ class TestUserRepository:
     def test_get_by_email(self, db_session: Session) -> None:
         """Test getting user by email."""
         repository = UserRepository(db_session)
-        user = UserFactory.create(db_session, email="unique@example.com")
+        test_email = f"unique-{id(self)}-{id(db_session)}@example.com"
+        user = UserFactory.create(db_session, email=test_email)
 
-        found_user = repository.get_by_email("unique@example.com")
+        found_user = repository.get_by_email(test_email)
 
         assert found_user is not None
         assert found_user.id == user.id
-        assert found_user.email == "unique@example.com"
+        assert found_user.email == test_email
 
     def test_get_by_email_not_found(self, db_session: Session) -> None:
         """Test getting non-existent user by email."""
@@ -63,17 +64,23 @@ class TestUserRepository:
     def test_search_users(self, db_session: Session) -> None:
         """Test searching users."""
         repository = UserRepository(db_session)
+        test_id = f"{id(self)}-{id(db_session)}"
 
         # Create test users
-        UserFactory.create(db_session, full_name="John Doe", email="john@example.com")
-        UserFactory.create(db_session, full_name="Jane Smith", email="jane@example.com")
-        UserFactory.create(db_session, full_name="Bob Johnson", email="bob@example.com")
+        UserFactory.create(
+            db_session, full_name="John Doe", email=f"john-{test_id}@example.com"
+        )
+        UserFactory.create(
+            db_session, full_name="Jane Smith", email=f"jane-{test_id}@example.com"
+        )
+        UserFactory.create(
+            db_session, full_name="Bob Johnson", email=f"bob-{test_id}@example.com"
+        )
 
         # Search by name
         results, count = repository.search_users(query="John")
 
-        assert count == 2
-        assert len(results) == 2
+        assert count >= 2  # May include other Johns from different tests
         user_names = [u.full_name for u in results]
         assert "John Doe" in user_names
         assert "Bob Johnson" in user_names
@@ -115,39 +122,58 @@ class TestUserRepository:
     def test_get_locked_users(self, db_session: Session) -> None:
         """Test getting locked users."""
         repository = UserRepository(db_session)
+        test_id = f"{id(self)}-{id(db_session)}"
 
         # Create users with different lock states
         locked_user = UserFactory.create(
-            db_session, locked_until=datetime.now(timezone.utc) + timedelta(minutes=30)
+            db_session,
+            email=f"locked-{test_id}@test.example",
+            locked_until=datetime.now(timezone.utc) + timedelta(minutes=30),
         )
-        UserFactory.create(
-            db_session, locked_until=datetime.now(timezone.utc) - timedelta(minutes=1)
+        expired_lock_user = UserFactory.create(
+            db_session,
+            email=f"expired-{test_id}@test.example",
+            locked_until=datetime.now(timezone.utc) - timedelta(minutes=1),
         )
-        UserFactory.create(db_session, locked_until=None)
+        normal_user = UserFactory.create(
+            db_session, email=f"normal-{test_id}@test.example", locked_until=None
+        )
 
         locked_users = repository.get_locked_users()
 
-        assert len(locked_users) == 1
-        assert locked_users[0].id == locked_user.id
+        # Check that our locked user is in the results
+        locked_user_ids = [user.id for user in locked_users]
+        assert locked_user.id in locked_user_ids
+
+        # Verify that expired lock and normal users are not in results
+        assert expired_lock_user.id not in locked_user_ids
+        assert normal_user.id not in locked_user_ids
 
     def test_get_users_with_expired_passwords(self, db_session: Session) -> None:
         """Test getting users with expired passwords."""
         repository = UserRepository(db_session)
+        test_id = f"{id(self)}-{id(db_session)}"
 
         # Create users with different password ages
         old_password = UserFactory.create(
             db_session,
+            email=f"expired-{test_id}@test.example",
             password_changed_at=datetime.now(timezone.utc) - timedelta(days=100),
         )
-        UserFactory.create(
+        recent_password = UserFactory.create(
             db_session,
+            email=f"recent-{test_id}@test.example",
             password_changed_at=datetime.now(timezone.utc) - timedelta(days=30),
         )
 
         expired_users = repository.get_users_with_expired_passwords(days=90)
 
-        assert len(expired_users) == 1
-        assert expired_users[0].id == old_password.id
+        # Check that our expired user is in the results
+        expired_user_ids = [user.id for user in expired_users]
+        assert old_password.id in expired_user_ids
+
+        # Verify that recent password user is not in results
+        assert recent_password.id not in expired_user_ids
 
     def test_increment_failed_login(self, db_session: Session) -> None:
         """Test incrementing failed login attempts."""
@@ -194,21 +220,41 @@ class TestUserRepository:
     def test_exists_by_email(self, db_session: Session) -> None:
         """Test checking if user exists by email."""
         repository = UserRepository(db_session)
-        UserFactory.create(db_session, email="exists@example.com")
+        test_id = f"{id(self)}-{id(db_session)}"
+        test_email = f"exists-{test_id}@example.com"
+        UserFactory.create(db_session, email=test_email)
 
-        assert repository.exists_by_email("exists@example.com") is True
-        assert repository.exists_by_email("notexists@example.com") is False
+        assert repository.exists_by_email(test_email) is True
+        assert repository.exists_by_email(f"notexists-{test_id}@example.com") is False
 
     def test_get_superusers(self, db_session: Session) -> None:
         """Test getting superuser accounts."""
         repository = UserRepository(db_session)
+        test_id = f"{id(self)}-{id(db_session)}"
 
         # Create different types of users
-        superuser = UserFactory.create(db_session, is_superuser=True, is_active=True)
-        UserFactory.create(db_session, is_superuser=True, is_active=False)
-        UserFactory.create(db_session, is_superuser=False)
+        active_superuser = UserFactory.create(
+            db_session,
+            email=f"superuser-{test_id}@test.example",
+            is_superuser=True,
+            is_active=True,
+        )
+        inactive_superuser = UserFactory.create(
+            db_session,
+            email=f"inactive.superuser-{test_id}@test.example",
+            is_superuser=True,
+            is_active=False,
+        )
+        regular_user = UserFactory.create(
+            db_session, email=f"regular-{test_id}@test.example", is_superuser=False
+        )
 
         superusers = repository.get_superusers()
 
-        assert len(superusers) == 1
-        assert superusers[0].id == superuser.id
+        # Check that our active superuser is in the results
+        superuser_ids = [user.id for user in superusers]
+        assert active_superuser.id in superuser_ids
+
+        # Verify that inactive superuser and regular user are not in results
+        assert inactive_superuser.id not in superuser_ids
+        assert regular_user.id not in superuser_ids

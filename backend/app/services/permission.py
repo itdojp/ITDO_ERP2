@@ -48,7 +48,7 @@ class PermissionService:
             self.db.query(UserRole)
             .filter(
                 UserRole.user_id == user_id,
-                UserRole.is_active == True,
+                UserRole.is_active,
                 or_(
                     UserRole.expires_at.is_(None),
                     UserRole.expires_at > datetime.utcnow(),
@@ -64,7 +64,7 @@ class PermissionService:
                 .join(Permission)
                 .filter(
                     RolePermission.role_id == user_role.role_id,
-                    Permission.is_active == True,
+                    Permission.is_active,
                 )
                 .all()
             )
@@ -223,7 +223,7 @@ class PermissionService:
         offset: int = 0,
     ) -> List[PermissionAuditLog]:
         """Get permission change audit logs."""
-        query = self.db.query(AuditLog).filter(AuditLog.entity_type == "permission")
+        query = self.db.query(AuditLog).filter(AuditLog.resource_type == "permission")
 
         if user_id:
             query = query.filter(AuditLog.user_id == user_id)
@@ -424,8 +424,8 @@ class PermissionService:
         audit_log = AuditLog(
             user_id=performed_by or user_id,
             action=action,
-            entity_type="permission",
-            entity_id=permission_id,
+            resource_type="permission",
+            resource_id=permission_id,
             changes={
                 "target_type": target_type,
                 "target_id": target_id,
