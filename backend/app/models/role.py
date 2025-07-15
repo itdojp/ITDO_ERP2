@@ -127,7 +127,12 @@ class Role(SoftDeletableModel):
         "Organization", back_populates="roles", lazy="joined"
     )
     users: Mapped[list["User"]] = relationship(
-        "User", secondary="user_roles", back_populates="roles", lazy="select"
+        "User", 
+        secondary="user_roles",
+        primaryjoin="Role.id == UserRole.role_id",
+        secondaryjoin="UserRole.user_id == User.id",
+        back_populates="roles", 
+        lazy="select"
     )
 
     def __repr__(self) -> str:

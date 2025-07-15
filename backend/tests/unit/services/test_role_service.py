@@ -76,7 +76,7 @@ class TestRoleService:
         assert role.code == "NEW_ROLE"
         assert role.name == "New Role"
         assert role.description == "New role description"
-        assert role.permissions == ["read:new", "write:new"]
+        assert role.permissions == {"read:new": True, "write:new": True}
         assert role.created_by == test_admin.id
         assert not role.is_system
 

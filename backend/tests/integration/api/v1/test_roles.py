@@ -58,12 +58,14 @@ class TestRoleManagementAPI:
 
         # When: Assigning role to user
         response = client.post(
-            "/api/v1/roles/assign",
+            "/api/v1/roles/assignments",
             json=assignment_data,
             headers={"Authorization": f"Bearer {admin_token}"},
         )
 
         # Then: Should succeed
+        if response.status_code != 201:
+            print(f"Error response: {response.status_code} - {response.text}")
         assert response.status_code == 201
         data = response.json()
         assert data["user_id"] == test_user.id
@@ -99,7 +101,7 @@ class TestRoleManagementAPI:
         }
 
         response = client.post(
-            "/api/v1/roles/assign",
+            "/api/v1/roles/assignments",
             json=assignment_data,
             headers={"Authorization": f"Bearer {admin_token}"},
         )
@@ -129,7 +131,7 @@ class TestRoleManagementAPI:
 
         # When: Getting user roles
         response = client.get(
-            f"/api/v1/roles/users/{test_user.id}",
+            f"/api/v1/roles/assignments/users/{test_user.id}",
             headers={"Authorization": f"Bearer {admin_token}"},
             params={"organization_id": test_organization.id},
         )
@@ -164,7 +166,7 @@ class TestRoleManagementAPI:
 
         # When: Removing role from user
         response = client.delete(
-            f"/api/v1/roles/users/{test_user.id}/roles/{test_role.id}",
+            f"/api/v1/roles/assignments/users/{test_user.id}/roles/{test_role.id}",
             headers={"Authorization": f"Bearer {admin_token}"},
             params={"organization_id": test_organization.id},
         )
