@@ -43,9 +43,6 @@ class User(SoftDeletableModel):
     department_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("departments.id"), nullable=True
     )
-    organization_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("organizations.id"), nullable=True
-    )
 
     # Profile fields
     bio: Mapped[str | None] = mapped_column(String(500))
@@ -90,16 +87,6 @@ class User(SoftDeletableModel):
         "Task", foreign_keys="Task.reporter_id", back_populates="reporter"
     )
 
-<<<<<<< HEAD
-    # User preferences relationship
-    preferences: Mapped["UserPreferences"] = relationship(
-        "UserPreferences", back_populates="user", uselist=False
-    )
-
-    # User privacy settings relationship
-    privacy_settings: Mapped["UserPrivacySettings"] = relationship(
-        "UserPrivacySettings", back_populates="user", uselist=False
-=======
     # User preferences and privacy settings
     preferences: Mapped["UserPreferences | None"] = relationship(
         "UserPreferences",
@@ -120,7 +107,6 @@ class User(SoftDeletableModel):
         foreign_keys="UserOrganization.user_id",
         back_populates="user",
         cascade="all, delete-orphan",
->>>>>>> main
     )
 
     @classmethod
@@ -167,10 +153,6 @@ class User(SoftDeletableModel):
     @classmethod
     def authenticate(cls, db: Session, email: str, password: str) -> Optional["User"]:
         """Authenticate user by email and password."""
-        # Check for None values
-        if email is None or password is None:
-            return None
-
         # Get user by email
         user = cls.get_by_email(db, email)
         if not user:
@@ -180,24 +162,8 @@ class User(SoftDeletableModel):
         if not user.is_active:
             return None
 
-        # Check if account is locked
-        if user.is_locked():
-            return None
-
-        # Check if account is expired (if account_expires_at attribute exists)
-        if (
-            hasattr(user, "account_expires_at")
-            and user.account_expires_at
-            and user.account_expires_at < datetime.now(timezone.utc)
-        ):
-            return None
-
         # Verify password
-        try:
-            if not verify_password(password, user.hashed_password):
-                return None
-        except Exception:
-            # Handle bcrypt errors (e.g., NULL bytes in password)
+        if not verify_password(password, user.hashed_password):
             return None
 
         return user
@@ -205,7 +171,7 @@ class User(SoftDeletableModel):
     def update(self, db: Session, **kwargs: Any) -> None:
         """Update user attributes."""
         for key, value in kwargs.items():
-            if hasattr(self, key) and key not in ["id", "created_at", "updated_at"]:
+            if hasattr(self, key) and key not in ["id", "created_at"]:
                 # Hash password if updating
                 if key == "password":
                     self._validate_password_strength(value)
@@ -213,9 +179,6 @@ class User(SoftDeletableModel):
                     key = "hashed_password"
                     self.password_changed_at = datetime.now()
                 setattr(self, key, value)
-
-        # Always update the updated_at timestamp
-        self.updated_at = datetime.now(timezone.utc)
 
         db.add(self)
         db.flush()
@@ -276,20 +239,23 @@ class User(SoftDeletableModel):
         if not self.locked_until:
             return False
         # Handle both timezone-aware and naive datetimes
-        now = datetime.now(timezone.utc)
-        locked_until = self.locked_until
-        if locked_until.tzinfo is None:
-            locked_until = locked_until.replace(tzinfo=timezone.utc)
-        return now < locked_until
+        if self.locked_until.tzinfo is None:
+            # If locked_until is naive, compare with naive datetime
+            return datetime.now() < self.locked_until
+        else:
+            # If locked_until is timezone-aware, compare with timezone-aware datetime
+            return datetime.now(timezone.utc) < self.locked_until
 
     def is_password_expired(self) -> bool:
         """Check if password has expired (90 days)."""
+        expiry_date = self.password_changed_at + timedelta(days=90)
         # Handle both timezone-aware and naive datetimes
-        password_changed_at = self.password_changed_at
-        if password_changed_at.tzinfo is None:
-            password_changed_at = password_changed_at.replace(tzinfo=timezone.utc)
-        expiry_date = password_changed_at + timedelta(days=90)
-        return datetime.now(timezone.utc) > expiry_date
+        if expiry_date.tzinfo is None:
+            # If expiry_date is naive, compare with naive datetime
+            return datetime.now() > expiry_date
+        else:
+            # If expiry_date is timezone-aware, compare with timezone-aware datetime
+            return datetime.now(timezone.utc) > expiry_date
 
     def create_session(
         self,
@@ -309,13 +275,11 @@ class User(SoftDeletableModel):
             .filter(
                 UserSession.user_id == self.id,
                 UserSession.is_active,
+                UserSession.expires_at > datetime.now(),
             )
             .order_by(UserSession.created_at)
             .all()
         )
-
-        # Filter active sessions manually to handle timezone issues
-        active_sessions = [s for s in active_sessions if not s.is_expired()]
 
         if len(active_sessions) >= 5:
             # Invalidate oldest session
@@ -447,28 +411,9 @@ class User(SoftDeletableModel):
             ):
                 # Handle permissions from role - use many-to-many relationship
                 if user_role.role and user_role.role.permissions:
-<<<<<<< HEAD
-                    # If permissions is a dict, extract permission codes
-                    if isinstance(user_role.role.permissions, dict):
-                        # Handle various dict structures
-                        if "codes" in user_role.role.permissions:
-                            permissions.update(user_role.role.permissions["codes"])
-                        elif "permissions" in user_role.role.permissions:
-                            permissions.update(
-                                user_role.role.permissions["permissions"]
-                            )
-                        else:
-                            # Try to extract values that look like permission codes
-                            for key, value in user_role.role.permissions.items():
-                                if isinstance(value, list):
-                                    permissions.update(value)
-                                elif isinstance(value, str) and ":" in value:
-                                    permissions.add(value)
-=======
                     # permissions is a list of Permission objects through many-to-many
                     for permission in user_role.role.permissions:
                         permissions.add(permission.code)
->>>>>>> main
 
         return list(permissions)
 
