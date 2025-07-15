@@ -33,6 +33,7 @@ class TestRoleManagementAPI:
             code="TEST_ROLE",
             name="Test Role",
             description="Test role for API testing",
+            permissions={"read:test": True, "write:test": True},
             created_by=test_admin.id,
         )
         db_session.add(role)
@@ -80,6 +81,7 @@ class TestRoleManagementAPI:
         test_organization: Organization,
         test_role: Role,
         test_user: User,
+        test_admin: User,
         db_session: Session,
     ) -> None:
         """Test duplicate role assignment."""
@@ -88,7 +90,7 @@ class TestRoleManagementAPI:
             user_id=test_user.id,
             role_id=test_role.id,
             organization_id=test_organization.id,
-            assigned_by=1,  # Admin user ID
+            assigned_by=test_admin.id,  # Admin user ID
         )
         db_session.add(existing_assignment)
         db_session.commit()
@@ -116,6 +118,7 @@ class TestRoleManagementAPI:
         test_organization: Organization,
         test_role: Role,
         test_user: User,
+        test_admin: User,
         db_session: Session,
     ) -> None:
         """Test getting user roles."""
@@ -124,7 +127,7 @@ class TestRoleManagementAPI:
             user_id=test_user.id,
             role_id=test_role.id,
             organization_id=test_organization.id,
-            assigned_by=1,  # Admin user ID
+            assigned_by=test_admin.id,  # Admin user ID
         )
         db_session.add(user_role)
         db_session.commit()
@@ -151,6 +154,7 @@ class TestRoleManagementAPI:
         test_organization: Organization,
         test_role: Role,
         test_user: User,
+        test_admin: User,
         db_session: Session,
     ) -> None:
         """Test removing role from user."""
@@ -159,7 +163,7 @@ class TestRoleManagementAPI:
             user_id=test_user.id,
             role_id=test_role.id,
             organization_id=test_organization.id,
-            assigned_by=1,  # Admin user ID
+            assigned_by=test_admin.id,  # Admin user ID
         )
         db_session.add(user_role)
         db_session.commit()
@@ -227,6 +231,8 @@ class TestRoleManagementAPI:
         )
 
         # Then: Should succeed
+        if response.status_code != 201:
+            print(f"Error response: {response.status_code} - {response.text}")
         assert response.status_code == 201
         data = response.json()
         assert data["code"] == "NEW_ROLE"

@@ -132,7 +132,8 @@ class Role(SoftDeletableModel):
         primaryjoin="Role.id == UserRole.role_id",
         secondaryjoin="UserRole.user_id == User.id",
         back_populates="roles", 
-        lazy="select"
+        lazy="select",
+        overlaps="user_roles"
     )
 
     def __repr__(self) -> str:

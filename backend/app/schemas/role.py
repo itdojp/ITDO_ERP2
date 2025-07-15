@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class RoleBase(BaseModel):
@@ -45,28 +45,13 @@ class RoleResponse(RoleBase):
     class Config:
         from_attributes = True
 
+    @field_validator('permissions', mode='before')
     @classmethod
-    def from_orm(cls, role):
-        """Custom method to convert from ORM model."""
-        # Convert permissions dict to list
-        permissions = []
-        if role.permissions:
-            permissions = [perm for perm, granted in role.permissions.items() if granted]
-        
-        data = {
-            "id": role.id,
-            "code": role.code,
-            "name": role.name,
-            "description": role.description,
-            "permissions": permissions,
-            "is_system": role.is_system,
-            "is_active": role.is_active,
-            "created_at": role.created_at,
-            "updated_at": role.updated_at,
-            "created_by": role.created_by,
-            "updated_by": role.updated_by,
-        }
-        return cls(**data)
+    def convert_permissions_dict_to_list(cls, v):
+        """Convert permissions dict to list format."""
+        if isinstance(v, dict):
+            return [perm for perm, granted in v.items() if granted]
+        return v
 
 
 class UserRoleBase(BaseModel):

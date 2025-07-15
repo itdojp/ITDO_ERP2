@@ -37,15 +37,16 @@ class TestRoleService:
     @pytest.fixture
     def test_role(self, db_session: Session, test_admin: User):
         """Create test role."""
-        role = Role.create(
-            db=db_session,
+        role = Role(
             code="TEST_ROLE",
             name="Test Role",
             description="Test role description",
-            permissions=["read:test", "write:test"],
+            permissions={"read:test": True, "write:test": True},
             created_by=test_admin.id,
         )
+        db_session.add(role)
         db_session.commit()
+        db_session.refresh(role)
         return role
 
     def test_create_role_success(
@@ -217,13 +218,13 @@ class TestRoleService:
     ):
         """Test getting user roles."""
         # Given: User with assigned role
-        UserRole.create(
-            db=db_session,
+        user_role = UserRole(
             user_id=test_user.id,
             role_id=test_role.id,
             organization_id=test_organization.id,
             assigned_by=test_admin.id,
         )
+        db_session.add(user_role)
         db_session.commit()
 
         # When: Getting user roles
@@ -294,13 +295,13 @@ class TestRoleService:
     ):
         """Test successful role removal."""
         # Given: User with assigned role
-        UserRole.create(
-            db=db_session,
+        user_role = UserRole(
             user_id=test_user.id,
             role_id=test_role.id,
             organization_id=test_organization.id,
             assigned_by=test_admin.id,
         )
+        db_session.add(user_role)
         db_session.commit()
 
         # When: Removing role from user
@@ -420,15 +421,16 @@ class TestRoleService:
     ):
         """Test updating permissions for system role."""
         # Given: System role
-        system_role = Role.create(
-            db=db_session,
+        system_role = Role(
             code="SYSTEM_ROLE",
             name="System Role",
-            permissions=["*"],
+            permissions={"*": True},
             is_system=True,
             created_by=test_admin.id,
         )
+        db_session.add(system_role)
         db_session.commit()
+        db_session.refresh(system_role)
 
         # When/Then: Updating system role permissions should raise PermissionDenied
         with pytest.raises(
@@ -453,13 +455,13 @@ class TestRoleService:
     ):
         """Test checking user permission."""
         # Given: User with role that has specific permission
-        UserRole.create(
-            db=db_session,
+        user_role = UserRole(
             user_id=test_user.id,
             role_id=test_role.id,
             organization_id=test_organization.id,
             assigned_by=test_admin.id,
         )
+        db_session.add(user_role)
         db_session.commit()
 
         # Mock the user.has_permission method
@@ -491,13 +493,13 @@ class TestRoleService:
     ):
         """Test getting users with specific role."""
         # Given: User with assigned role
-        UserRole.create(
-            db=db_session,
+        user_role = UserRole(
             user_id=test_user.id,
             role_id=test_role.id,
             organization_id=test_organization.id,
             assigned_by=test_admin.id,
         )
+        db_session.add(user_role)
         db_session.commit()
 
         # When: Getting users with role
@@ -524,14 +526,14 @@ class TestRoleService:
         """Test getting users with role excludes expired assignments."""
         # Given: User with expired role assignment
         expired_date = datetime.utcnow() - timedelta(days=1)
-        UserRole.create(
-            db=db_session,
+        user_role = UserRole(
             user_id=test_user.id,
             role_id=test_role.id,
             organization_id=test_organization.id,
             assigned_by=test_admin.id,
             expires_at=expired_date,
         )
+        db_session.add(user_role)
         db_session.commit()
 
         # When: Getting users with role (excluding expired)
@@ -632,15 +634,16 @@ class TestRoleService:
     ):
         """Test updating system role."""
         # Given: System role
-        system_role = Role.create(
-            db=db_session,
+        system_role = Role(
             code="SYSTEM_ROLE",
             name="System Role",
-            permissions=["*"],
+            permissions={"*": True},
             is_system=True,
             created_by=test_admin.id,
         )
+        db_session.add(system_role)
         db_session.commit()
+        db_session.refresh(system_role)
 
         update_data = RoleUpdate(name="Updated System Role")
 
@@ -689,13 +692,13 @@ class TestRoleService:
     ):
         """Test deleting role with active assignments."""
         # Given: Role with active assignment
-        UserRole.create(
-            db=db_session,
+        user_role = UserRole(
             user_id=test_user.id,
             role_id=test_role.id,
             organization_id=test_organization.id,
             assigned_by=test_admin.id,
         )
+        db_session.add(user_role)
         db_session.commit()
 
         # When/Then: Deleting role with active assignments should raise ValueError
@@ -718,15 +721,16 @@ class TestRoleService:
     ):
         """Test deleting system role."""
         # Given: System role
-        system_role = Role.create(
-            db=db_session,
+        system_role = Role(
             code="SYSTEM_ROLE",
             name="System Role",
-            permissions=["*"],
+            permissions={"*": True},
             is_system=True,
             created_by=test_admin.id,
         )
+        db_session.add(system_role)
         db_session.commit()
+        db_session.refresh(system_role)
 
         # When/Then: Deleting system role should raise PermissionDenied
         with pytest.raises(PermissionDenied, match="システムロールは削除できません"):
