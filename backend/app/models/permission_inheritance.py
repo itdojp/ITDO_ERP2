@@ -1,7 +1,7 @@
 """Permission inheritance models."""
 
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -87,7 +87,7 @@ class RoleInheritanceRule(BaseModel):
     created_by: Mapped[int] = mapped_column(
         Integer, ForeignKey("users.id"), nullable=False
     )
-    updated_at: Mapped[datetime | None] = mapped_column(
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), onupdate=func.now()
     )
     updated_by: Mapped[int | None] = mapped_column(
@@ -168,7 +168,7 @@ class InheritanceAuditLog(BaseModel):
         Integer, ForeignKey("roles.id"), nullable=False, index=True
     )
     action: Mapped[str] = mapped_column(String(50), nullable=False)
-    details: Mapped[dict] = mapped_column(JSON, nullable=False)
+    details: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
 
     # Audit metadata
     performed_by: Mapped[int] = mapped_column(
