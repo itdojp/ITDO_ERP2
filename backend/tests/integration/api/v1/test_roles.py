@@ -478,11 +478,12 @@ class TestRoleAPI(
                 "role_id": role.id,
                 "organization_id": test_organization.id,
             }
-            client.post(
+            assign_response = client.post(
                 f"{self.endpoint_prefix}/assign",
                 json=assignment_data,
                 headers=create_auth_headers(admin_token),
             )
+            assert assign_response.status_code == 201, f"Assignment failed: {assign_response.text}"
 
         # Get user roles
         response = client.get(

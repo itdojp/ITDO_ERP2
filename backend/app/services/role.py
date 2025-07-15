@@ -342,12 +342,13 @@ class RoleService:
         return list(roles), total
 
     def get_user_roles(
-        self, user_id: UserId, organization_id: OrganizationId | None = None
+        self, user_id: UserId, organization_id: OrganizationId | None = None, active_only: bool = True
     ) -> list[UserRoleResponse]:
         """Get all roles for a user."""
-        query = select(UserRole).where(
-            and_(UserRole.user_id == user_id, UserRole.is_active)
-        )
+        query = select(UserRole).where(UserRole.user_id == user_id)
+        
+        if active_only:
+            query = query.where(UserRole.is_active)
 
         if organization_id:
             query = query.where(UserRole.organization_id == organization_id)
@@ -363,9 +364,7 @@ class RoleService:
         responses = []
         for ur in user_roles:
             if ur.is_valid:
-                responses.append(
-                    UserRoleResponse.model_validate(ur, from_attributes=True)
-                )
+                responses.append(self.get_user_role_response(ur))
 
         return responses
 
