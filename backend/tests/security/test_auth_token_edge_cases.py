@@ -20,13 +20,13 @@ class TestTokenSecurityEdgeCases:
     @pytest.fixture
     def auth_service(self, db_session: Session) -> AuthService:
         """Create auth service instance."""
-        return AuthService(db_session)
+        return AuthService()
 
     @pytest.fixture
     def user(self, db_session: Session) -> User:
         """Create test user."""
-        return UserFactory.create(
-            db_session, email="tokentest@example.com", password="password123"
+        return UserFactory.create_with_password(
+            db_session, password="password123", email="tokentest@example.com"
         )
 
     def test_token_with_tampered_payload(self, user: User) -> None:
@@ -171,7 +171,7 @@ class TestTokenSecurityEdgeCases:
         def refresh_token_func():
             try:
                 # Attempt to refresh token
-                new_tokens = auth_service.refresh_token(refresh_token)
+                new_tokens = auth_service.refresh_tokens(db_session, refresh_token)
                 results.put(new_tokens)
             except Exception as e:
                 errors.put(e)
