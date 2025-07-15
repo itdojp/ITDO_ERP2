@@ -36,8 +36,7 @@ class BaseFactory(ABC):
     @classmethod
     def build(cls, **kwargs: Any) -> Any:
         """Build a model instance without saving to database."""
-        attributes = cls._get_default_attributes()
-        attributes.update(kwargs)
+        attributes = cls.build_dict(**kwargs)
         # Use the class variable directly
         return cls.model_class(**attributes)
 
@@ -81,30 +80,17 @@ class BaseFactory(ABC):
 
 
 # Re-export factory classes
-<<<<<<< HEAD
-from tests.factories.audit import AuditLogFactory  # noqa: E402
-from tests.factories.department import (  # noqa: E402
-    DepartmentFactory,
-    create_test_department,
-)
-from tests.factories.organization import (  # noqa: E402
-    OrganizationFactory,
-    create_test_organization,
-)
-from tests.factories.role import (  # noqa: E402
-=======
 from tests.factories.audit import AuditLogFactory
 from tests.factories.department import DepartmentFactory, create_test_department
 from tests.factories.organization import OrganizationFactory, create_test_organization
 from tests.factories.role import (
->>>>>>> main
     PermissionFactory,
     RoleFactory,
-    UserRoleFactory,
-    create_test_role,
-    create_test_user_role,
+    # UserRoleFactory,  # Temporarily disabled
+    # create_test_role,  # Temporarily disabled
+    # create_test_user_role,  # Temporarily disabled
 )
-from tests.factories.user import UserFactory, create_test_user  # noqa: E402
+from tests.factories.user import UserFactory, create_test_user
 
 __all__ = [
     "BaseFactory",
@@ -112,13 +98,13 @@ __all__ = [
     "OrganizationFactory",
     "DepartmentFactory",
     "RoleFactory",
-    "UserRoleFactory",
+    # "UserRoleFactory",  # Temporarily disabled
     "PermissionFactory",
     "UserFactory",
     "create_test_user",
     "create_test_organization",
     "create_test_department",
-    "create_test_role",
-    "create_test_user_role",
+    # "create_test_role",  # Temporarily disabled
+    # "create_test_user_role",  # Temporarily disabled
     "fake",
 ]

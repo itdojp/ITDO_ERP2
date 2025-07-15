@@ -17,30 +17,47 @@ class DepartmentFactory(BaseFactory):
     @classmethod
     def _get_default_attributes(cls) -> dict[str, Any]:
         """Get default attributes for creating Department instances."""
-        import uuid
-        import time
-        # Use longer unique ID with timestamp to avoid collisions
-        unique_id = f"{int(time.time() * 1000)}-{str(uuid.uuid4())[:8]}"
         return {
-            "code": f"DEPT-{unique_id}",
-            "name": f"Test Department {unique_id}",
-            "name_en": f"Test Dept {unique_id}",
-            "description": "Test department description",
-            "department_type": "operational",
-            "budget": 10000000,  # Fixed value for consistency
-            "display_order": 1,
+            "code": fake.bothify(text="DEPT-####"),
+            "name": fake.random_element(
+                elements=(
+                    "総務部",
+                    "人事部",
+                    "経理部",
+                    "営業部",
+                    "開発部",
+                    "マーケティング部",
+                    "企画部",
+                    "法務部",
+                    "情報システム部",
+                )
+            ),
+            "name_en": fake.random_element(
+                elements=(
+                    "General Affairs",
+                    "Human Resources",
+                    "Accounting",
+                    "Sales",
+                    "Development",
+                    "Marketing",
+                    "Planning",
+                    "Legal",
+                    "Information Systems",
+                )
+            ),
+            "description": fake.text(max_nb_chars=200),
+            "department_type": fake.random_element(
+                elements=("operational", "support", "management")
+            ),
+            "budget": fake.random_int(min=1000000, max=50000000),
+            "display_order": fake.random_int(min=1, max=100),
             "level": 1,
+            "path": "",
             "sort_order": fake.random_int(min=1, max=100),
             "is_active": True,
-<<<<<<< HEAD
-            # TODO: Add path and depth fields once migration is created
-            # "path": "/",  # Default root path
-            # "depth": 0,  # Default root depth
-=======
             # CRITICAL: Materialized path fields for hierarchy
             "path": "/",  # Default root path
             "depth": 0,  # Default root depth
->>>>>>> main
         }
 
     @classmethod
@@ -71,15 +88,9 @@ class DepartmentFactory(BaseFactory):
         """Create a department with a parent department."""
         kwargs["parent_id"] = parent_department.id
         kwargs["organization_id"] = parent_department.organization_id
-<<<<<<< HEAD
-        # TODO: Set up materialized path hierarchy once migration is created
-        # kwargs["path"] = f"{parent_department.path}{parent_department.id}/"
-        # kwargs["depth"] = parent_department.depth + 1
-=======
         # CRITICAL: Set up materialized path hierarchy
         kwargs["path"] = f"{parent_department.path}{parent_department.id}/"
         kwargs["depth"] = parent_department.depth + 1
->>>>>>> main
         return cls.create(db_session, **kwargs)
 
     @classmethod

@@ -545,9 +545,6 @@ class PermissionInheritanceService:
             original_source_role_id: int | None = None,
 
         ) -> None:
-
-        ):
-
             if current_role_id in visited_roles or depth > 10:
                 return
             visited_roles.add(current_role_id)
