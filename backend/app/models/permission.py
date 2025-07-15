@@ -1,14 +1,14 @@
 """Permission model for RBAC system."""
 
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import Boolean, Index, String, Text, UniqueConstraint
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import BaseModel
 
-# if TYPE_CHECKING:
-#     pass  # RolePermission model has been removed
+if TYPE_CHECKING:
+    from app.models.role import Role, RolePermission
 
 
 class Permission(BaseModel):
@@ -53,7 +53,13 @@ class Permission(BaseModel):
         comment="Whether this is a system permission",
     )
 
-    # Relationships (RolePermission relationship removed due to model removal)
+    # Relationships
+    roles: Mapped[list["Role"]] = relationship(
+        "Role", secondary="role_permissions", back_populates="permissions"
+    )
+    role_permissions: Mapped[list["RolePermission"]] = relationship(
+        "RolePermission", back_populates="permission", cascade="all, delete-orphan", overlaps="roles"
+    )
 
     # Indexes and constraints
     __table_args__ = (

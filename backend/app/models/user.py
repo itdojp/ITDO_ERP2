@@ -69,6 +69,19 @@ class User(SoftDeletableModel):
         "UserActivityLog", back_populates="user", cascade="all, delete-orphan"
     )
 
+    # Role relationships
+    user_roles: Mapped[List["UserRole"]] = relationship(
+        "UserRole", back_populates="user", cascade="all, delete-orphan", 
+        foreign_keys="UserRole.user_id", overlaps="roles"
+    )
+    roles: Mapped[List["Role"]] = relationship(
+        "Role",
+        secondary="user_roles",
+        primaryjoin="User.id == UserRole.user_id",
+        secondaryjoin="UserRole.role_id == Role.id",
+        back_populates="users",
+    )
+
     # Task relationships
     assigned_tasks: Mapped[List["Task"]] = relationship(
         "Task", foreign_keys="Task.assignee_id", back_populates="assignee"
