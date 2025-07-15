@@ -1,6 +1,21 @@
 """Pytest configuration and fixtures."""
 
 import os
+
+# CRITICAL: Set test environment variables if not already set
+# This must happen before any app imports
+if not os.environ.get("DATABASE_URL"):
+    os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+if not os.environ.get("SECRET_KEY"):
+    os.environ["SECRET_KEY"] = "test-secret-key-for-testing-only-32-chars-long"
+if not os.environ.get("ALGORITHM"):
+    os.environ["ALGORITHM"] = "HS256"
+if not os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES"):
+    os.environ["ACCESS_TOKEN_EXPIRE_MINUTES"] = "1440"
+if not os.environ.get("REFRESH_TOKEN_EXPIRE_DAYS"):
+    os.environ["REFRESH_TOKEN_EXPIRE_DAYS"] = "7"
+if not os.environ.get("BCRYPT_ROUNDS"):
+    os.environ["BCRYPT_ROUNDS"] = "4"
 import uuid
 from collections.abc import Generator
 from datetime import datetime
@@ -14,7 +29,6 @@ from sqlalchemy.pool import StaticPool
 
 # Import base first
 from app.models.base import Base
-
 # Import all models to ensure proper registration
 # This ensures all models are registered with SQLAlchemy metadata
 import app.models  # This will import all models via __init__.py
@@ -149,13 +163,27 @@ def clean_test_database(db_session: Session) -> Generator[None]:
 
 @pytest.fixture
 def db_session() -> Generator[Session]:
-    """Create a clean database session for each test."""
-    # Create tables
-    Base.metadata.create_all(bind=engine)
+    """Create a clean database session for each test with transaction isolation."""
+    # Ensure tables exist before each test
+    Base.metadata.create_all(bind=engine, checkfirst=True)
 
-    # Clean database before test
-    if "postgresql" in str(engine.url):
-        # Use TRUNCATE for better performance and reset sequences
+    # Use transaction isolation for better test performance and isolation
+    if "sqlite" in str(engine.url):
+        # For SQLite, use transaction isolation
+        connection = engine.connect()
+        transaction = connection.begin()
+        session = TestingSessionLocal(bind=connection)
+        try:
+            yield session
+        except Exception:
+            transaction.rollback()
+            raise
+        finally:
+            session.close()
+            transaction.rollback()
+            connection.close()
+    else:
+        # For PostgreSQL, clean database before test for complete isolation
         with engine.begin() as conn:
             # TRUNCATE in safe order (cleanup before test)
             table_order = [
@@ -176,51 +204,20 @@ def db_session() -> Generator[Session]:
                 "organizations",
             ]
             for table in table_order:
-                conn.execute(text(f'TRUNCATE TABLE "{table}" RESTART IDENTITY CASCADE'))
-    else:
-        # For SQLite, drop and recreate all tables for complete isolation
-        Base.metadata.drop_all(bind=engine)
-        Base.metadata.create_all(bind=engine)
-
-    # Create session
-    session = TestingSessionLocal()
-
-    try:
-        yield session
-    except Exception:
-        session.rollback()
-        raise
-    finally:
-        # Always rollback transaction to ensure clean state
-        session.close()
-        # Clean up test data using safe DELETE order in PostgreSQL
-        if "postgresql" in str(engine.url):
-            # For PostgreSQL, use DELETE in dependency order to avoid
-            # foreign key violations
-            with engine.begin() as conn:
-                # Simple approach: Delete in safe order
-                table_order = [
-                    "user_roles",
-                    "role_permissions",
-                    "password_history",
-                    "user_sessions",
-                    "user_activity_logs",
-                    "audit_logs",
-                    "tasks",  # Tasks must be deleted before projects
-                    "project_members",
-                    "project_milestones",
-                    "projects",
-                    "users",
-                    "roles",
-                    "permissions",
-                    "departments",
-                    "organizations",
-                ]
-                for table in table_order:
-                    conn.execute(text(f'DELETE FROM "{table}"'))
-        else:
-            # For SQLite, drop all tables
-            Base.metadata.drop_all(bind=engine)
+                try:
+                    conn.execute(text(f'TRUNCATE TABLE "{table}" RESTART IDENTITY CASCADE'))
+                except Exception:
+                    # Table might not exist, skip
+                    pass
+        # Create regular session for PostgreSQL
+        session = TestingSessionLocal()
+        try:
+            yield session
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
 
 
 @pytest.fixture
@@ -398,6 +395,52 @@ def test_permissions(db_session: Session) -> dict[str, list[Permission]]:
 def test_role_system(db_session: Session) -> dict[str, Any]:
     """Create a complete role system with permissions."""
     return RoleFactory.create_complete_role_system(db_session)
+
+
+# Database Cleanup Fixtures
+
+
+@pytest.fixture(autouse=True)
+def cleanup_database(db_session: Session) -> Generator[None, None, None]:
+    """Automatically clean up database after each test to ensure isolation."""
+    yield
+    # Clean up test data after each test
+    if "postgresql" in str(engine.url):
+        # For PostgreSQL, use DELETE in dependency order
+        with engine.begin() as conn:
+            from sqlalchemy import text
+            
+            # Tables to clean in reverse dependency order
+            table_order = [
+                "tasks",  # Add tasks table
+                "user_roles",
+                "role_permissions",
+                "password_history",
+                "user_sessions",
+                "user_activity_logs",
+                "audit_logs",
+                "project_members",
+                "project_milestones",
+                "projects",
+                "users",
+                "roles",
+                "permissions",
+                "departments",
+                "organizations",
+            ]
+            
+            for table in table_order:
+                try:
+                    conn.execute(text(f'DELETE FROM "{table}"'))
+                except Exception:
+                    # Table might not exist, skip
+                    pass
+            
+            conn.commit()
+    else:
+        # For SQLite, recreate all tables
+        Base.metadata.drop_all(bind=engine)
+        Base.metadata.create_all(bind=engine)
 
 
 # Complete System Fixtures

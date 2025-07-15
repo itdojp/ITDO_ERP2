@@ -81,12 +81,23 @@ class OrganizationService:
 
         # Add audit fields
         data = organization_data.model_dump()
+
+        # Convert settings dict to JSON string for database storage
+        if data.get("settings") and isinstance(data["settings"], dict):
+            import json
+
+            data["settings"] = json.dumps(data["settings"])
+
         if created_by:
             data["created_by"] = created_by
             data["updated_by"] = created_by
 
-        # Create organization
-        return self.repository.create(OrganizationCreate(**data))
+        # Create organization - pass dict directly to avoid schema validation issues
+        db_obj = self.repository.model(**data)
+        self.db.add(db_obj)
+        self.db.commit()
+        self.db.refresh(db_obj)
+        return db_obj
 
     def update_organization(
         self,
@@ -111,11 +122,28 @@ class OrganizationService:
 
         # Add audit fields
         data = organization_data.model_dump(exclude_unset=True)
+
+        # Convert settings dict to JSON string for database storage
+        if data.get("settings") and isinstance(data["settings"], dict):
+            import json
+
+            data["settings"] = json.dumps(data["settings"])
+
         if updated_by:
             data["updated_by"] = updated_by
 
-        # Update organization
-        return self.repository.update(organization_id, OrganizationUpdate(**data))
+        # Update organization - use the repository's update method directly
+        if data:
+            from sqlalchemy import update
+
+            self.db.execute(
+                update(self.repository.model)
+                .where(self.repository.model.id == organization_id)
+                .values(**data)
+            )
+            self.db.commit()
+
+        return self.repository.get(organization_id)
 
     def delete_organization(
         self, organization_id: OrganizationId, deleted_by: UserId | None = None

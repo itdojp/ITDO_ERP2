@@ -187,7 +187,7 @@ class DepartmentTree(BaseModel):
     current_headcount: int = 0
     headcount_limit: int | None = None
     user_count: int = 0
-    path: Optional[str] = None
+    path: str | None = None
     depth: int = 0
     display_order: int = 0
     children: List["DepartmentTree"] = Field(default_factory=list)
