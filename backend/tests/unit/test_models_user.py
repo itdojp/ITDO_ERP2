@@ -183,11 +183,11 @@ class TestUserModel:
 
         # Record original time
         original_updated_at = user.updated_at
-        
+
         # Add slight delay to ensure different timestamp
         import time
         time.sleep(0.01)
-        
+
         # When: Updating user
         user.update(db_session, full_name="Updated Name")
 
