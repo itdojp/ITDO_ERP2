@@ -71,7 +71,7 @@ class User(SoftDeletableModel):
 
     # Role relationships
     user_roles: Mapped[List["UserRole"]] = relationship(
-        "UserRole", back_populates="user", cascade="all, delete-orphan", 
+        "UserRole", back_populates="user", cascade="all, delete-orphan",
         foreign_keys="UserRole.user_id", overlaps="roles"
     )
     roles: Mapped[List["Role"]] = relationship(
