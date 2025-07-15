@@ -117,10 +117,14 @@ class AuditService:
 
         # Apply search filters
         if search_criteria.organization_id:
-            query = query.filter(AuditLog.organization_id == search_criteria.organization_id)
+            query = query.filter(
+                AuditLog.organization_id == search_criteria.organization_id
+            )
 
         if search_criteria.resource_types:
-            query = query.filter(AuditLog.resource_type.in_(search_criteria.resource_types))
+            query = query.filter(
+                AuditLog.resource_type.in_(search_criteria.resource_types)
+            )
 
         if search_criteria.actions:
             query = query.filter(AuditLog.action.in_(search_criteria.actions))
@@ -230,9 +234,13 @@ class AuditService:
         logs = query.order_by(AuditLog.created_at.desc()).all()
 
         # Simple CSV format
-        csv_rows = ["ID,Action,Resource Type,Resource ID,User ID,Organization ID,Created At"]
+        csv_rows = [
+            "ID,Action,Resource Type,Resource ID,User ID,Organization ID,Created At"
+        ]
         for log in logs:
-            csv_rows.append(f"{log.id},{log.action},{log.resource_type},{log.resource_id},{log.user_id},{log.organization_id},{log.created_at}")
+            csv_rows.append(
+                f"{log.id},{log.action},{log.resource_type},{log.resource_id},{log.user_id},{log.organization_id},{log.created_at}"
+            )
 
         return "\n".join(csv_rows)
 
@@ -257,21 +265,24 @@ class AuditService:
         logs = query.order_by(AuditLog.created_at.desc()).all()
 
         if format == "json":
-            return json.dumps([
-                {
-                    "id": log.id,
-                    "action": log.action,
-                    "resource_type": log.resource_type,
-                    "resource_id": log.resource_id,
-                    "user_id": log.user_id,
-                    "organization_id": log.organization_id,
-                    "changes": log.changes,
-                    "ip_address": log.ip_address,
-                    "user_agent": log.user_agent,
-                    "created_at": log.created_at.isoformat(),
-                }
-                for log in logs
-            ], indent=2)
+            return json.dumps(
+                [
+                    {
+                        "id": log.id,
+                        "action": log.action,
+                        "resource_type": log.resource_type,
+                        "resource_id": log.resource_id,
+                        "user_id": log.user_id,
+                        "organization_id": log.organization_id,
+                        "changes": log.changes,
+                        "ip_address": log.ip_address,
+                        "user_agent": log.user_agent,
+                        "created_at": log.created_at.isoformat(),
+                    }
+                    for log in logs
+                ],
+                indent=2,
+            )
         else:
             raise ValueError(f"Unsupported export format: {format}")
 
@@ -400,7 +411,10 @@ class AuditService:
             if log.changes:
                 filtered_changes = {}
                 for key, value in log.changes.items():
-                    if any(sensitive_field in key.lower() for sensitive_field in sensitive_fields):
+                    if any(
+                        sensitive_field in key.lower()
+                        for sensitive_field in sensitive_fields
+                    ):
                         filtered_changes[key] = "***REDACTED***"
                     else:
                         filtered_changes[key] = value
@@ -428,7 +442,9 @@ class AuditService:
         if organization_id:
             query = query.filter(AuditLog.organization_id == organization_id)
 
-        return query.order_by(AuditLog.created_at.desc()).offset(offset).limit(limit).all()
+        return (
+            query.order_by(AuditLog.created_at.desc()).offset(offset).limit(limit).all()
+        )
 
     def apply_retention_policy(
         self,

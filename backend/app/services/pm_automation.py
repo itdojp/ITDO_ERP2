@@ -568,7 +568,9 @@ class PMAutomationService:
                     "type": "activity_risk",
                     "severity": "medium",
                     "description": "過去7日間活動がありません",
-                    "recommendation": "プロジェクトの状況確認とチーム状況の見直しが必要です",
+                    "recommendation": (
+                        "プロジェクトの状況確認とチーム状況の見直しが必要です"
+                    ),
                 }
             )
 
@@ -587,7 +589,9 @@ class PMAutomationService:
                     "type": "performance",
                     "priority": "high",
                     "title": "進捗改善",
-                    "description": "完了率が低いです。タスクの見直しとリソース配分の最適化を検討してください。",
+                    "description": (
+                        "完了率が低いです。タスクの見直しとリソース配分の最適化を検討してください。"
+                    ),
                 }
             )
         elif stats["completion_rate"] > 80:
@@ -607,7 +611,10 @@ class PMAutomationService:
                     "type": "schedule",
                     "priority": "high",
                     "title": "期限管理",
-                    "description": f"{stats['overdue_tasks']}個のタスクが期限超過しています。優先度の見直しが必要です。",
+                    "description": (
+                        f"{stats['overdue_tasks']}個のタスクが期限超過しています。"
+                        "優先度の見直しが必要です。"
+                    ),
                 }
             )
 
