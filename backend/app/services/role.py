@@ -322,9 +322,7 @@ class RoleService:
 
         # Build tree recursively
         def build_tree(role: Role) -> RoleTree:
-            children = [
-                build_tree(child) for child in role.children if child.is_active
-            ]
+            children = [build_tree(child) for child in role.children if child.is_active]
 
             return RoleTree(
                 id=role.id,

@@ -61,5 +61,6 @@ async def health_check() -> dict[str, str]:
 async def metrics_endpoint() -> Response:
     """Prometheus metrics endpoint."""
     from app.core.monitoring import get_metrics
+
     metrics_data = get_metrics()
     return Response(content=metrics_data, media_type="text/plain")

@@ -180,7 +180,7 @@ def get_organization_cross_tenant_summary(
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Insufficient permissions to view organization summary",
-        )
+            )
 
     service = CrossTenantPermissionService(db)
     try:

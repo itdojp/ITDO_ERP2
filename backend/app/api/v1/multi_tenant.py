@@ -275,8 +275,8 @@ def get_organization_users_summary(
         if organization_id not in user_orgs:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions to view organization summary",
-        )
+                detail="Insufficient permissions to view organization summary",
+            )
 
     return service.get_organization_users_summary(organization_id)
 

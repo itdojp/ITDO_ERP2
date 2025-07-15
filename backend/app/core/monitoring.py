@@ -407,7 +407,7 @@ def setup_health_checks(
 
 def get_metrics() -> str:
     """Get Prometheus metrics."""
-    return generate_latest().decode('utf-8')
+    return generate_latest().decode("utf-8")
 
 
 # Performance monitoring decorator
