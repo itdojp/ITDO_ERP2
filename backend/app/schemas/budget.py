@@ -51,11 +51,16 @@ class ExpenseCategoryResponse(ExpenseCategoryBase, BaseResponse):
 
 class BudgetItemBase(BaseModel):
     """Base schema for budget items."""
-    
-    name: str = Field(..., max_length=200, description="Item name")
-    description: Optional[str] = Field(None, description="Item description")
+
+    name: str = Field(..., max_length=200, description="Budget item name")
+    description: Optional[str] = Field(None, description="Budget item description")
     expense_category_id: int = Field(..., description="Expense category ID")
-    budgeted_amount: Decimal = Field(..., description="Budgeted amount")
+    quantity: Decimal = Field(Decimal("1.000"), ge=0, description="Quantity")
+    unit: Optional[str] = Field(None, max_length=50, description="Unit of measurement")
+    unit_price: Decimal = Field(Decimal("0.00"), ge=0, description="Unit price")
+    budgeted_amount: Decimal = Field(..., ge=0, description="Budgeted amount")
+    sort_order: int = Field(0, description="Sort order")
+    monthly_breakdown: Optional[str] = Field(None, description="Monthly breakdown (JSON)")
 
 
 class BudgetItemCreate(BudgetItemBase):
@@ -65,44 +70,57 @@ class BudgetItemCreate(BudgetItemBase):
 
 class BudgetItemUpdate(BaseModel):
     """Schema for updating budget items."""
-    
-    name: Optional[str] = Field(None, max_length=200)
-    description: Optional[str] = Field(None)
-    expense_category_id: Optional[int] = Field(None)
-    budgeted_amount: Optional[Decimal] = Field(None)
+
+    name: Optional[str] = Field(None, max_length=200, description="Budget item name")
+    description: Optional[str] = Field(None, description="Budget item description")
+    expense_category_id: Optional[int] = Field(None, description="Expense category ID")
+    quantity: Optional[Decimal] = Field(None, ge=0, description="Quantity")
+    unit: Optional[str] = Field(None, max_length=50, description="Unit of measurement")
+    unit_price: Optional[Decimal] = Field(None, ge=0, description="Unit price")
+    budgeted_amount: Optional[Decimal] = Field(None, ge=0, description="Budgeted amount")
+    sort_order: Optional[int] = Field(None, description="Sort order")
+    monthly_breakdown: Optional[str] = Field(None, description="Monthly breakdown (JSON)")
 
 
 class BudgetItemResponse(BudgetItemBase, BaseResponse):
     """Schema for budget item responses."""
-    
+
     id: int
     budget_id: int
     actual_amount: Decimal
+    committed_amount: Decimal
     variance_amount: Decimal
     variance_percentage: Decimal
-    
+    remaining_amount: Decimal
+    utilization_percentage: Decimal
+    is_over_budget: bool
+
     # Relationships
-    expense_category: Optional[ExpenseCategoryResponse] = None
-    
+    expense_category: Optional[ExpenseCategoryResponse] = Field(None, description="Expense category details")
+
     class Config:
         from_attributes = True
 
 
 class BudgetBase(BaseModel):
     """Base schema for budgets."""
-    
+
     code: str = Field(..., max_length=50, description="Budget code")
     name: str = Field(..., max_length=200, description="Budget name")
     description: Optional[str] = Field(None, description="Budget description")
-    budget_type: str = Field(..., description="Budget type")
-    fiscal_year: int = Field(..., description="Fiscal year")
-    start_date: date = Field(..., description="Start date")
-    end_date: date = Field(..., description="End date")
-    total_amount: Decimal = Field(..., description="Total amount")
-    project_id: Optional[int] = Field(None, description="Project ID")
-    department_id: Optional[int] = Field(None, description="Department ID")
-    alert_threshold: Decimal = Field(Decimal("80.00"), description="Alert threshold")
-    is_alert_enabled: bool = Field(True, description="Alert enabled")
+    budget_type: str = Field(..., description="Budget type: project/department/annual/quarterly/monthly")
+    fiscal_year: int = Field(..., ge=2000, le=2100, description="Fiscal year")
+    budget_period: str = Field("annual", description="Budget period: annual/quarterly/monthly")
+    start_date: date = Field(..., description="Budget start date")
+    end_date: date = Field(..., description="Budget end date")
+    total_amount: Decimal = Field(..., ge=0, description="Total budget amount")
+    currency: str = Field("JPY", max_length=3, description="Currency code")
+    alert_threshold: Decimal = Field(Decimal("80.00"), ge=0, le=100, description="Alert threshold percentage")
+    is_alert_enabled: bool = Field(True, description="Whether alerts are enabled")
+
+    # Optional foreign keys
+    project_id: Optional[int] = Field(None, description="Project ID for project budgets")
+    department_id: Optional[int] = Field(None, description="Department ID for department budgets")
 
     @validator('end_date')
     def validate_end_date(cls, v, values):
@@ -117,58 +135,88 @@ class BudgetBase(BaseModel):
             raise ValueError(f'Budget type must be one of: {", ".join(allowed_types)}')
         return v
 
+    @validator('budget_period')
+    def validate_budget_period(cls, v):
+        allowed_periods = ['annual', 'quarterly', 'monthly']
+        if v not in allowed_periods:
+            raise ValueError(f'Budget period must be one of: {", ".join(allowed_periods)}')
+        return v
+
 
 class BudgetCreate(BudgetBase):
     """Schema for creating budgets."""
-    
+
     budget_items: List[BudgetItemCreate] = Field(default_factory=list, description="Budget items")
 
 
 class BudgetUpdate(BaseModel):
     """Schema for updating budgets."""
-    
-    name: Optional[str] = Field(None, max_length=200)
-    description: Optional[str] = Field(None)
-    budget_type: Optional[str] = Field(None)
-    fiscal_year: Optional[int] = Field(None)
-    start_date: Optional[date] = Field(None)
-    end_date: Optional[date] = Field(None)
-    total_amount: Optional[Decimal] = Field(None)
-    project_id: Optional[int] = Field(None)
-    department_id: Optional[int] = Field(None)
-    alert_threshold: Optional[Decimal] = Field(None)
-    is_alert_enabled: Optional[bool] = Field(None)
+
+    code: Optional[str] = Field(None, max_length=50, description="Budget code")
+    name: Optional[str] = Field(None, max_length=200, description="Budget name")
+    description: Optional[str] = Field(None, description="Budget description")
+    budget_type: Optional[str] = Field(None, description="Budget type")
+    fiscal_year: Optional[int] = Field(None, ge=2000, le=2100, description="Fiscal year")
+    budget_period: Optional[str] = Field(None, description="Budget period")
+    start_date: Optional[date] = Field(None, description="Budget start date")
+    end_date: Optional[date] = Field(None, description="Budget end date")
+    total_amount: Optional[Decimal] = Field(None, ge=0, description="Total budget amount")
+    currency: Optional[str] = Field(None, max_length=3, description="Currency code")
+    alert_threshold: Optional[Decimal] = Field(None, ge=0, le=100, description="Alert threshold percentage")
+    is_alert_enabled: Optional[bool] = Field(None, description="Whether alerts are enabled")
+    project_id: Optional[int] = Field(None, description="Project ID")
+    department_id: Optional[int] = Field(None, description="Department ID")
+
+    @validator('end_date')
+    def validate_end_date(cls, v, values):
+        if v and 'start_date' in values and values['start_date'] and v <= values['start_date']:
+            raise ValueError('End date must be after start date')
+        return v
 
 
 class BudgetResponse(BudgetBase, BaseResponse):
     """Schema for budget responses."""
-    
+
     id: int
     organization_id: int
     status: str
+    approval_level: int
     approved_amount: Optional[Decimal]
     actual_amount: Decimal
+    committed_amount: Decimal
     remaining_amount: Decimal
+    variance_amount: Decimal
+    variance_percentage: Decimal
     approved_by: Optional[int]
     approved_at: Optional[datetime]
-    
+    submitted_at: Optional[datetime]
+
     # Computed properties
     utilization_percentage: Decimal
+    available_amount: Decimal
     is_over_budget: bool
     is_alert_threshold_exceeded: bool
-    
+    is_active: bool
+    is_editable: bool
+    days_remaining: int
+    progress_percentage: Decimal
+
     # Relationships
-    budget_items: List[BudgetItemResponse] = Field(default_factory=list)
-    
+    organization: Optional[dict] = Field(None, description="Organization details")
+    project: Optional[dict] = Field(None, description="Project details")
+    department: Optional[dict] = Field(None, description="Department details")
+    approved_by_user: Optional[dict] = Field(None, description="Approver details")
+    budget_items: List[BudgetItemResponse] = Field(default_factory=list, description="Budget items")
+
     class Config:
         from_attributes = True
 
 
 class BudgetStatusUpdate(BaseModel):
     """Schema for updating budget status."""
-    
-    action: str = Field(..., description="Action: submit, approve, reject, activate, close")
-    comments: Optional[str] = Field(None, description="Status change comments")
+
+    action: str = Field(..., description="Action to perform: submit/approve/reject/activate/close")
+    comments: Optional[str] = Field(None, description="Comments for the action")
 
     @validator('action')
     def validate_action(cls, v):
@@ -178,9 +226,72 @@ class BudgetStatusUpdate(BaseModel):
         return v
 
 
+class BudgetVarianceReport(BaseModel):
+    """Schema for budget variance reports."""
+
+    budget_id: int
+    budget_name: str
+    budget_code: str
+    fiscal_year: int
+    total_budget: Decimal
+    total_actual: Decimal
+    total_variance: Decimal
+    total_variance_percentage: Decimal
+
+    # Item-level variances
+    item_variances: List[dict] = Field(default_factory=list, description="Item-level variance details")
+
+    # Summary by category
+    category_summary: List[dict] = Field(default_factory=list, description="Variance summary by category")
+
+    class Config:
+        from_attributes = True
+
+
+class BudgetUtilizationReport(BaseModel):
+    """Schema for budget utilization reports."""
+
+    budget_id: int
+    budget_name: str
+    budget_code: str
+    fiscal_year: int
+    total_budget: Decimal
+    total_actual: Decimal
+    total_committed: Decimal
+    total_available: Decimal
+    utilization_percentage: Decimal
+
+    # Time-based utilization
+    monthly_utilization: List[dict] = Field(default_factory=list, description="Monthly utilization")
+
+    # Category-based utilization
+    category_utilization: List[dict] = Field(default_factory=list, description="Category utilization")
+
+    class Config:
+        from_attributes = True
+
+
+class BudgetAlertSettings(BaseModel):
+    """Schema for budget alert settings."""
+
+    threshold_percentage: Decimal = Field(..., ge=0, le=100, description="Alert threshold percentage")
+    is_enabled: bool = Field(True, description="Whether alerts are enabled")
+    notification_emails: List[str] = Field(default_factory=list, description="Email addresses for notifications")
+
+    @validator('notification_emails')
+    def validate_emails(cls, v):
+        # Basic email validation
+        import re
+        email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        for email in v:
+            if not re.match(email_regex, email):
+                raise ValueError(f'Invalid email format: {email}')
+        return v
+
+
 class BudgetListResponse(BaseModel):
     """Schema for budget list responses."""
-    
+
     items: List[BudgetResponse]
     total: int
     page: int
@@ -188,14 +299,28 @@ class BudgetListResponse(BaseModel):
     has_next: bool
     has_prev: bool
 
+    class Config:
+        from_attributes = True
+
 
 class BudgetSummary(BaseModel):
-    """Schema for budget summary analytics."""
-    
+    """Schema for budget summary."""
+
     total_budgets: int
     total_budget_amount: Decimal
     total_actual_amount: Decimal
     total_variance_amount: Decimal
-    variance_percentage: Decimal
+    total_variance_percentage: Decimal
+
+    # Status breakdown
+    status_breakdown: dict = Field(default_factory=dict, description="Budget count by status")
+
+    # Type breakdown
+    type_breakdown: dict = Field(default_factory=dict, description="Budget count by type")
+
+    # Alert information
     over_budget_count: int
     alert_threshold_exceeded_count: int
+
+    class Config:
+        from_attributes = True

@@ -183,12 +183,9 @@ class UserProfileService:
             language=prefs.language,
             timezone=prefs.timezone,
             date_format=prefs.date_format,
-
             time_format="24h"
             if prefs.time_format not in ["12h", "24h"]
-            else ("12h" if prefs.time_format == "12h" else "24h"),
-
-
+            else prefs.time_format,
             notification_email=prefs.notifications_email,
             notification_push=prefs.notifications_push,
             updated_at=prefs.updated_at,
@@ -256,12 +253,9 @@ class UserProfileService:
             language=prefs.language,
             timezone=prefs.timezone,
             date_format=prefs.date_format,
-
             time_format="24h"
             if prefs.time_format not in ["12h", "24h"]
-            else ("12h" if prefs.time_format == "12h" else "24h"),
-
-
+            else prefs.time_format,
             notification_email=prefs.notifications_email,
             notification_push=prefs.notifications_push,
             updated_at=prefs.updated_at,
@@ -446,7 +440,6 @@ class UserProfileService:
             )
             response_data["last_seen_at"] = user.last_login_at
 
-
         return UserProfileResponse(
             id=int(response_data["id"]) if response_data["id"] is not None else 0,  # type: ignore[arg-type]
             full_name=str(response_data["full_name"]),
@@ -475,4 +468,3 @@ class UserProfileService:
             if isinstance(response_data.get("last_seen_at"), datetime)
             else None,  # type: ignore[arg-type]
         )
-

@@ -213,6 +213,37 @@ class SoftDeleteInfo(BaseModel):
     )
 
 
+class AgentStatusResponse(BaseModel):
+    """Agent status response schema for cost optimization monitoring."""
+
+    agent_id: str = Field(..., description="Agent identifier")
+    status: str = Field(..., description="Agent status (online, offline, busy)")
+    environment: str = Field(..., description="Environment (development, staging, production)")
+    last_seen: datetime = Field(..., description="Last activity timestamp")
+    task_count: int = Field(..., description="Number of active tasks")
+    cost_reduction: float | None = Field(None, description="Cost reduction percentage")
+    escalation_level: int = Field(0, description="Current escalation level (0-3)")
+    performance_metrics: dict[str, Any] | None = Field(None, description="Performance metrics")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "agent_id": "CC01",
+                "status": "online", 
+                "environment": "production",
+                "last_seen": "2024-01-06T12:00:00Z",
+                "task_count": 3,
+                "cost_reduction": 68.4,
+                "escalation_level": 0,
+                "performance_metrics": {
+                    "response_time_ms": 1200,
+                    "success_rate": 0.95,
+                    "error_count": 1
+                }
+            }
+        }
+
+
 # Export all common schemas
 __all__ = [
     "ErrorResponse",
@@ -226,4 +257,5 @@ __all__ = [
     "SearchRequest",
     "AuditInfo",
     "SoftDeleteInfo",
+    "AgentStatusResponse",
 ]
