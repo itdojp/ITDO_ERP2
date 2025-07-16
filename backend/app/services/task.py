@@ -286,15 +286,11 @@ class TaskService:
             user_obj = db.query(User).filter(User.id == log.user_id).first()
             if user_obj:
                 changed_by = UserInfo(
-                    id=user_obj.id,
-                    name=user_obj.full_name,
-                    email=user_obj.email
+                    id=user_obj.id, name=user_obj.full_name, email=user_obj.email
                 )
             else:
                 changed_by = UserInfo(
-                    id=log.user_id,
-                    name="Unknown User",
-                    email="unknown@example.com"
+                    id=log.user_id, name="Unknown User", email="unknown@example.com"
                 )
 
             # Parse changes if they exist
@@ -321,7 +317,7 @@ class TaskService:
                                     else None
                                 ),
                                 changed_by=changed_by,
-                                changed_at=log.created_at
+                                changed_at=log.created_at,
                             )
                         )
 
@@ -340,7 +336,7 @@ class TaskService:
                         old_value=None,
                         new_value=str(changes) if changes else None,
                         changed_by=changed_by,
-                        changed_at=log.created_at
+                        changed_at=log.created_at,
                     )
                 )
 
