@@ -6,15 +6,15 @@ from app.api.v1 import (
     audit,
     audit_logs,
     auth,
-    budgets,
+    # budgets,  # Temporarily disabled due to schema issues
     cross_tenant_permissions,
-    customer_activities,
-    customers,
+    # customer_activities,  # Disable if needed
+    # customers,  # Disable if needed
     departments,
-    expense_categories,
+    # expense_categories,  # Disable if needed
     health,
     multi_tenant,
-    opportunities,
+    # opportunities,  # Disabled due to auth import issue
     organizations,
     # permission_inheritance,  # Temporarily disabled due to syntax errors
     permission_management,
