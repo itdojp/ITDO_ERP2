@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from sqlalchemy import func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.models.audit import AuditLog
 from app.models.user import User
@@ -56,6 +56,10 @@ class AuditLogger:
 class AuditService:
     """Service for querying audit logs."""
 
+    def __init__(self, db: Session | None = None):
+        """Initialize audit service."""
+        self.db = db
+
     def get_audit_logs(
         self,
         user: User,
@@ -67,11 +71,25 @@ class AuditService:
         limit: int = 20,
     ) -> dict[str, Any]:
         """Get audit logs with filtering."""
-        query = db.query(AuditLog)
+        query = db.query(AuditLog).options(joinedload(AuditLog.user))
 
         # Filter by organization if not superuser
         if not user.is_superuser:
             user_org_ids = [o.id for o in user.get_organizations()]
+            # If user has no organizations, they can't access any audit logs
+            if not user_org_ids:
+                from app.core.exceptions import PermissionDenied
+
+                raise PermissionDenied("No organization access")
+
+            # If a specific organization is requested, check access
+            if organization_id and organization_id not in user_org_ids:
+                from app.core.exceptions import PermissionDenied
+
+                raise PermissionDenied(
+                    "Insufficient permissions to access organization audit logs"
+                )
+
             query = query.filter(AuditLog.organization_id.in_(user_org_ids))
 
         # Apply filters
@@ -92,11 +110,39 @@ class AuditService:
         offset = (page - 1) * limit
         items = query.offset(offset).limit(limit).all()
 
+        # Calculate pagination info
+        total_pages = (total + limit - 1) // limit
+        has_next = page < total_pages
+        has_prev = page > 1
+
+        # Convert to response format
+        response_items = []
+        for item in items:
+            response_item = {
+                "id": item.id,
+                "user_id": item.user_id,
+                "action": item.action,
+                "resource_type": item.resource_type,
+                "resource_id": item.resource_id,
+                "organization_id": item.organization_id,
+                "changes": item.changes,
+                "ip_address": item.ip_address,
+                "user_agent": item.user_agent,
+                "created_at": item.created_at,
+                "checksum": item.checksum or "",
+                "user_email": item.user.email if item.user else None,
+                "user_full_name": item.user.full_name if item.user else None,
+            }
+            response_items.append(response_item)
+
         return {
-            "items": items,
+            "items": response_items,
             "total": total,
             "page": page,
             "limit": limit,
+            "pages": total_pages,
+            "has_next": has_next,
+            "has_prev": has_prev,
         }
 
     def search_audit_logs(
@@ -107,20 +153,43 @@ class AuditService:
     ) -> dict[str, Any]:
         """Advanced search for audit logs."""
         if db is None:
-            raise ValueError("Database session is required")
-        query = db.query(AuditLog)
+            if self.db is None:
+                raise ValueError("Database session is required")
+            db = self.db
+        query = db.query(AuditLog).options(joinedload(AuditLog.user))
 
         # Filter by organization if not superuser
         if not user.is_superuser:
             user_org_ids = [o.id for o in user.get_organizations()]
+            # If user has no organizations, they can't access any audit logs
+            if not user_org_ids:
+                from app.core.exceptions import PermissionDenied
+
+                raise PermissionDenied("No organization access")
+
+            # If a specific organization is requested, check access
+            if (
+                search_criteria.organization_id
+                and search_criteria.organization_id not in user_org_ids
+            ):
+                from app.core.exceptions import PermissionDenied
+
+                raise PermissionDenied(
+                    "Insufficient permissions to access organization audit logs"
+                )
+
             query = query.filter(AuditLog.organization_id.in_(user_org_ids))
 
         # Apply search filters
         if search_criteria.organization_id:
-            query = query.filter(AuditLog.organization_id == search_criteria.organization_id)
+            query = query.filter(
+                AuditLog.organization_id == search_criteria.organization_id
+            )
 
         if search_criteria.resource_types:
-            query = query.filter(AuditLog.resource_type.in_(search_criteria.resource_types))
+            query = query.filter(
+                AuditLog.resource_type.in_(search_criteria.resource_types)
+            )
 
         if search_criteria.actions:
             query = query.filter(AuditLog.action.in_(search_criteria.actions))
@@ -142,11 +211,40 @@ class AuditService:
         offset = search_criteria.offset
         items = query.offset(offset).limit(search_criteria.limit).all()
 
+        # Calculate pagination info
+        page = offset // search_criteria.limit + 1
+        total_pages = (total + search_criteria.limit - 1) // search_criteria.limit
+        has_next = page < total_pages
+        has_prev = page > 1
+
+        # Convert to response format
+        response_items = []
+        for item in items:
+            response_item = {
+                "id": item.id,
+                "user_id": item.user_id,
+                "action": item.action,
+                "resource_type": item.resource_type,
+                "resource_id": item.resource_id,
+                "organization_id": item.organization_id,
+                "changes": item.changes,
+                "ip_address": item.ip_address,
+                "user_agent": item.user_agent,
+                "created_at": item.created_at,
+                "checksum": item.checksum or "",
+                "user_email": item.user.email if item.user else None,
+                "user_full_name": item.user.full_name if item.user else None,
+            }
+            response_items.append(response_item)
+
         return {
-            "items": items,
+            "items": response_items,
             "total": total,
-            "offset": offset,
+            "page": page,
             "limit": search_criteria.limit,
+            "pages": total_pages,
+            "has_next": has_next,
+            "has_prev": has_prev,
         }
 
     def get_audit_statistics(
@@ -158,6 +256,10 @@ class AuditService:
         db: Session | None = None,
     ) -> dict[str, Any]:
         """Get audit log statistics."""
+        if db is None:
+            if self.db is None:
+                raise ValueError("Database session is required")
+            db = self.db
         query = db.query(AuditLog)
 
         # Filter by organization if not superuser
@@ -189,12 +291,29 @@ class AuditService:
             .all()
         )
 
+        # Count unique users
+        unique_users = query.with_entities(AuditLog.user_id).distinct().count()
+
+        # Count unique actions
+        unique_actions = query.with_entities(AuditLog.action).distinct().count()
+
+        # Count unique resource types
+        unique_resource_types = (
+            query.with_entities(AuditLog.resource_type).distinct().count()
+        )
+
         return {
             "total_logs": total_logs,
+            "unique_users": unique_users,
+            "unique_actions": unique_actions,
+            "unique_resource_types": unique_resource_types,
             "date_from": date_from,
             "date_to": date_to,
             "action_counts": {action: count for action, count in action_counts},
-            "resource_counts": {resource: count for resource, count in resource_counts},
+            "resource_type_counts": {
+                resource: count for resource, count in resource_counts
+            },
+            "daily_counts": {},  # TODO: Implement daily counts
         }
 
     def export_audit_logs_csv(
@@ -208,7 +327,11 @@ class AuditService:
         db: Session | None = None,
     ) -> str:
         """Export audit logs as CSV."""
-        query = db.query(AuditLog)
+        if db is None:
+            if self.db is None:
+                raise ValueError("Database session is required")
+            db = self.db
+        query = db.query(AuditLog).options(joinedload(AuditLog.user))
 
         # Filter by organization if not superuser
         if not requester.is_superuser:
@@ -230,9 +353,14 @@ class AuditService:
         logs = query.order_by(AuditLog.created_at.desc()).all()
 
         # Simple CSV format
-        csv_rows = ["ID,Action,Resource Type,Resource ID,User ID,Organization ID,Created At"]
+        csv_rows = [
+            "ID,action,resource_type,Resource ID,User ID,Organization ID,Created At,timestamp,user_email"
+        ]
         for log in logs:
-            csv_rows.append(f"{log.id},{log.action},{log.resource_type},{log.resource_id},{log.user_id},{log.organization_id},{log.created_at}")
+            user_email = log.user.email if log.user else ""
+            csv_rows.append(
+                f"{log.id},{log.action},{log.resource_type},{log.resource_id},{log.user_id},{log.organization_id},{log.created_at},{log.created_at},{user_email}"
+            )
 
         return "\n".join(csv_rows)
 
@@ -257,21 +385,24 @@ class AuditService:
         logs = query.order_by(AuditLog.created_at.desc()).all()
 
         if format == "json":
-            return json.dumps([
-                {
-                    "id": log.id,
-                    "action": log.action,
-                    "resource_type": log.resource_type,
-                    "resource_id": log.resource_id,
-                    "user_id": log.user_id,
-                    "organization_id": log.organization_id,
-                    "changes": log.changes,
-                    "ip_address": log.ip_address,
-                    "user_agent": log.user_agent,
-                    "created_at": log.created_at.isoformat(),
-                }
-                for log in logs
-            ], indent=2)
+            return json.dumps(
+                [
+                    {
+                        "id": log.id,
+                        "action": log.action,
+                        "resource_type": log.resource_type,
+                        "resource_id": log.resource_id,
+                        "user_id": log.user_id,
+                        "organization_id": log.organization_id,
+                        "changes": log.changes,
+                        "ip_address": log.ip_address,
+                        "user_agent": log.user_agent,
+                        "created_at": log.created_at.isoformat(),
+                    }
+                    for log in logs
+                ],
+                indent=2,
+            )
         else:
             raise ValueError(f"Unsupported export format: {format}")
 
@@ -282,6 +413,10 @@ class AuditService:
         db: Session | None = None,
     ) -> bool:
         """Verify integrity of a specific audit log."""
+        if db is None:
+            if self.db is None:
+                raise ValueError("Database session is required")
+            db = self.db
         audit_log = db.query(AuditLog).filter(AuditLog.id == log_id).first()
         if not audit_log:
             return False
@@ -318,6 +453,10 @@ class AuditService:
         db: Session | None = None,
     ) -> dict[str, Any]:
         """Verify integrity of multiple audit logs."""
+        if db is None:
+            if self.db is None:
+                raise ValueError("Database session is required")
+            db = self.db
         query = db.query(AuditLog)
 
         # Filter by organization if not superuser
@@ -400,7 +539,10 @@ class AuditService:
             if log.changes:
                 filtered_changes = {}
                 for key, value in log.changes.items():
-                    if any(sensitive_field in key.lower() for sensitive_field in sensitive_fields):
+                    if any(
+                        sensitive_field in key.lower()
+                        for sensitive_field in sensitive_fields
+                    ):
                         filtered_changes[key] = "***REDACTED***"
                     else:
                         filtered_changes[key] = value
@@ -418,6 +560,10 @@ class AuditService:
         db: Session | None = None,
     ) -> list[AuditLog]:
         """Get audit logs for organization."""
+        if db is None:
+            if self.db is None:
+                raise ValueError("Database session is required")
+            db = self.db
         query = db.query(AuditLog)
 
         # Filter by organization if not superuser
@@ -428,7 +574,9 @@ class AuditService:
         if organization_id:
             query = query.filter(AuditLog.organization_id == organization_id)
 
-        return query.order_by(AuditLog.created_at.desc()).offset(offset).limit(limit).all()
+        return (
+            query.order_by(AuditLog.created_at.desc()).offset(offset).limit(limit).all()
+        )
 
     def apply_retention_policy(
         self,
@@ -440,6 +588,11 @@ class AuditService:
         """Apply retention policy to audit logs."""
         if not requester.is_superuser:
             raise PermissionError("Only superusers can apply retention policies")
+
+        if db is None:
+            if self.db is None:
+                raise ValueError("Database session is required")
+            db = self.db
 
         cutoff_date = datetime.now() - timedelta(days=retention_days)
         query = db.query(AuditLog).filter(AuditLog.created_at < cutoff_date)

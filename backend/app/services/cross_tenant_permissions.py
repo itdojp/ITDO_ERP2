@@ -127,6 +127,9 @@ class CrossTenantPermissionService:
             .first()
         )
 
+        if not source_org:
+            raise NotFound("Source organization not found")
+
         if not self._can_manage_cross_tenant_rules(updated_by, source_org):
             raise PermissionDenied(
                 "Insufficient permissions to update cross-tenant rules"
@@ -165,6 +168,9 @@ class CrossTenantPermissionService:
             .filter(Organization.id == rule.source_organization_id)
             .first()
         )
+
+        if not source_org:
+            raise NotFound("Source organization not found")
 
         if not self._can_manage_cross_tenant_rules(deleted_by, source_org):
             raise PermissionDenied(
@@ -245,6 +251,15 @@ class CrossTenantPermissionService:
                     reason = f"Denied by rule {rule.id}: {rule.permission_pattern}"
                     break
 
+        # Convert model objects to schema objects for matching_rules
+        from app.schemas.cross_tenant_permissions import (
+            CrossTenantPermissionRule as RuleSchema,
+        )
+
+        matching_rules_schema = [
+            RuleSchema.model_validate(rule) for rule in matching_rules
+        ]
+
         result = CrossTenantPermissionResult(
             user_id=user_id,
             source_organization_id=source_organization_id,
@@ -252,7 +267,7 @@ class CrossTenantPermissionService:
             permission=permission,
             allowed=allowed,
             reason=reason,
-            matching_rules=matching_rules,
+            matching_rules=matching_rules_schema,
         )
 
         if log_check:

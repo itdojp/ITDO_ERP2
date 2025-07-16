@@ -142,6 +142,9 @@ class MultiTenantService:
             .first()
         )
 
+        if not organization:
+            raise NotFound("Organization not found")
+
         if not self._can_manage_organization_membership(updated_by, organization):
             raise PermissionDenied("Insufficient permissions to update membership")
 
@@ -197,6 +200,9 @@ class MultiTenantService:
             .filter(Organization.id == organization_id)
             .first()
         )
+
+        if not organization:
+            raise NotFound("Organization not found")
 
         if not self._can_manage_organization_membership(removed_by, organization):
             raise PermissionDenied("Insufficient permissions to remove user")
@@ -531,6 +537,11 @@ class MultiTenantService:
             .filter(Organization.id == transfer_request.to_organization_id)
             .first()
         )
+
+        if not from_org:
+            raise NotFound("Source organization not found")
+        if not to_org:
+            raise NotFound("Target organization not found")
 
         can_approve_source = self._can_manage_organization_membership(
             approver, from_org
