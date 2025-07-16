@@ -3,6 +3,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.api.v1 import (
+    applications,
     audit,
     audit_logs,
     auth,
@@ -76,6 +77,7 @@ api_router.include_router(customer_activities.router, prefix="/customer-activiti
 api_router.include_router(opportunities.router, prefix="/opportunities", tags=["crm"])
 api_router.include_router(expense_categories.router, prefix="/expense-categories", tags=["financial"])
 api_router.include_router(workflows.router, prefix="/workflows", tags=["workflow"])
+api_router.include_router(applications.router, prefix="/applications", tags=["workflow"])
 api_router.include_router(reports.router, prefix="/reports", tags=["analytics"])
 
 

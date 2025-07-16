@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import Boolean, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import SoftDeletableModel
@@ -18,6 +18,9 @@ class Department(SoftDeletableModel):
     """Department model representing a division within an organization."""
 
     __tablename__ = "departments"
+    __table_args__ = (
+        UniqueConstraint('organization_id', 'code', name='uq_dept_org_code'),
+    )
 
     # Basic fields
     code: Mapped[str] = mapped_column(
@@ -147,7 +150,13 @@ class Department(SoftDeletableModel):
         lazy="joined",
     )
     sub_departments: Mapped[list["Department"]] = relationship(
-        "Department", back_populates="parent", lazy="select"
+        "Department", back_populates="parent", lazy="select", cascade="all, delete"
+    )
+    
+    # Alias for compatibility with tests
+    children: Mapped[list["Department"]] = relationship(
+        "Department", back_populates="parent", lazy="select", cascade="all, delete",
+        overlaps="sub_departments"
     )
     manager: Mapped[Optional["User"]] = relationship(
         "User", foreign_keys=[manager_id], lazy="joined"
@@ -256,3 +265,13 @@ class Department(SoftDeletableModel):
         for sub_dept in self.sub_departments:
             sub_dept.update_path()
             sub_dept.update_subtree_paths()
+    
+    def validate_hierarchy(self) -> None:
+        """Validate department hierarchy constraints."""
+        if self.depth > 2:
+            raise ValueError("部門階層は2階層まで")
+    
+    def get_full_path_name(self, separator: str = " / ") -> str:
+        """Get full path name including parent departments."""
+        path = self.get_hierarchy_path()
+        return separator.join([dept.name for dept in path])

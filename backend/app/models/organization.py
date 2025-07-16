@@ -83,6 +83,9 @@ class Organization(SoftDeletableModel):
     employee_count: Mapped[int | None] = mapped_column(
         Integer, nullable=True, comment="Number of employees"
     )
+    fiscal_year_start: Mapped[int | None] = mapped_column(
+        Integer, nullable=True, comment="Fiscal year start month (1-12)"
+    )
     fiscal_year_end: Mapped[str | None] = mapped_column(
         String(5), nullable=True, comment="Fiscal year end (MM-DD)"
     )

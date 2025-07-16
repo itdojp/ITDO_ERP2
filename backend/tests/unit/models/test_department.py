@@ -167,16 +167,16 @@ class TestDepartmentModel:
         org = OrganizationFactory.create(
             db_session,
         )
-        dept1 = DepartmentFactory.create(db_session, organization=org, sort_order=2)
-        dept2 = DepartmentFactory.create(db_session, organization=org, sort_order=1)
-        dept3 = DepartmentFactory.create(db_session, organization=org, sort_order=3)
+        dept1 = DepartmentFactory.create(db_session, organization=org, display_order=2)
+        dept2 = DepartmentFactory.create(db_session, organization=org, display_order=1)
+        dept3 = DepartmentFactory.create(db_session, organization=org, display_order=3)
         db_session.commit()
 
         # When: ソート順で取得
         depts = (
             db_session.query(Department)
             .filter_by(organization_id=org.id)
-            .order_by(Department.sort_order)
+            .order_by(Department.display_order)
             .all()
         )
 

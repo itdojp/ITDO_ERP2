@@ -11,6 +11,7 @@ from app.models.base import SoftDeletableModel
 from app.types import OrganizationId, UserId
 
 if TYPE_CHECKING:
+    from app.models.department import Department
     from app.models.organization import Organization
     from app.models.user import User
 
@@ -40,6 +41,35 @@ class TaskStatus(str, Enum):
     COMPLETED = "completed"
     SKIPPED = "skipped"
     FAILED = "failed"
+
+
+class ApplicationStatus(str, Enum):
+    """Application status enumeration."""
+    DRAFT = "draft"
+    PENDING_APPROVAL = "pending_approval"
+    PENDING_CLARIFICATION = "pending_clarification"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    CANCELLED = "cancelled"
+
+
+class ApplicationType(str, Enum):
+    """Application type enumeration."""
+    LEAVE_REQUEST = "leave_request"
+    EXPENSE_REPORT = "expense_report"
+    PURCHASE_REQUEST = "purchase_request"
+    TRAVEL_REQUEST = "travel_request"
+    OVERTIME_REQUEST = "overtime_request"
+    TRAINING_REQUEST = "training_request"
+    OTHER = "other"
+
+
+class ApprovalStatus(str, Enum):
+    """Approval status enumeration."""
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    DELEGATED = "delegated"
 
 
 class NodeType(str, Enum):
@@ -422,3 +452,135 @@ class WorkflowTask(SoftDeletableModel):
 
     def __str__(self) -> str:
         return f"{self.task_name} - {self.status}"
+
+
+class Application(SoftDeletableModel):
+    """Application model for WF-002 application management functionality."""
+
+    __tablename__ = "applications"
+
+    # Basic fields
+    title: Mapped[str] = mapped_column(
+        String(200), nullable=False, comment="Application title"
+    )
+    description: Mapped[Optional[str]] = mapped_column(
+        Text, nullable=True, comment="Application description"
+    )
+    application_type: Mapped[ApplicationType] = mapped_column(
+        String(50), nullable=False, comment="Application type"
+    )
+    status: Mapped[ApplicationStatus] = mapped_column(
+        String(50), default=ApplicationStatus.DRAFT, comment="Application status"
+    )
+
+    # Foreign keys
+    organization_id: Mapped[OrganizationId] = mapped_column(
+        ForeignKey("organizations.id"), nullable=False, comment="Organization ID"
+    )
+    created_by: Mapped[UserId] = mapped_column(
+        ForeignKey("users.id"), nullable=False, comment="Creator user ID"
+    )
+    department_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("departments.id"), nullable=True, comment="Department ID"
+    )
+
+    # Application data
+    form_data: Mapped[Optional[Dict[str, Any]]] = mapped_column(
+        JSON, nullable=True, comment="Application form data (JSON)"
+    )
+    priority: Mapped[str] = mapped_column(
+        String(20), default="MEDIUM", comment="Application priority"
+    )
+
+    # Timing
+    submitted_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True, comment="Submission timestamp"
+    )
+    approved_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True, comment="Approval timestamp"
+    )
+    cancelled_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True, comment="Cancellation timestamp"
+    )
+
+    # Additional metadata
+    cancellation_reason: Mapped[Optional[str]] = mapped_column(
+        Text, nullable=True, comment="Cancellation reason"
+    )
+    reference_number: Mapped[Optional[str]] = mapped_column(
+        String(100), nullable=True, comment="External reference number"
+    )
+
+    # Relationships
+    organization: Mapped["Organization"] = relationship("Organization", lazy="select")
+    created_by_user: Mapped["User"] = relationship(
+        "User", foreign_keys=[created_by], lazy="select"
+    )
+    department: Mapped[Optional["Department"]] = relationship("Department", lazy="select")
+    approvals: Mapped[List["ApplicationApproval"]] = relationship(
+        "ApplicationApproval", back_populates="application", cascade="all, delete-orphan"
+    )
+
+    @property
+    def is_pending(self) -> bool:
+        """Check if application is pending approval."""
+        return self.status == ApplicationStatus.PENDING_APPROVAL
+
+    @property
+    def is_approved(self) -> bool:
+        """Check if application is approved."""
+        return self.status == ApplicationStatus.APPROVED
+
+    @property
+    def can_be_edited(self) -> bool:
+        """Check if application can be edited."""
+        return self.status == ApplicationStatus.DRAFT
+
+    def __str__(self) -> str:
+        return f"{self.title} ({self.application_type.value})"
+
+
+class ApplicationApproval(SoftDeletableModel):
+    """Application approval model for tracking approval decisions."""
+
+    __tablename__ = "application_approvals"
+
+    # Foreign keys
+    application_id: Mapped[int] = mapped_column(
+        ForeignKey("applications.id"), nullable=False, comment="Application ID"
+    )
+    approver_id: Mapped[UserId] = mapped_column(
+        ForeignKey("users.id"), nullable=False, comment="Approver user ID"
+    )
+
+    # Approval details
+    status: Mapped[ApprovalStatus] = mapped_column(
+        String(50), default=ApprovalStatus.PENDING, comment="Approval status"
+    )
+    comments: Mapped[Optional[str]] = mapped_column(
+        Text, nullable=True, comment="Approval comments"
+    )
+
+    # Timing
+    approved_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True, comment="Approval timestamp"
+    )
+
+    # Relationships
+    application: Mapped["Application"] = relationship("Application", back_populates="approvals")
+    approver: Mapped["User"] = relationship(
+        "User", foreign_keys=[approver_id], lazy="select"
+    )
+
+    @property
+    def is_pending(self) -> bool:
+        """Check if approval is pending."""
+        return self.status == ApprovalStatus.PENDING
+
+    @property
+    def is_approved(self) -> bool:
+        """Check if approval is approved."""
+        return self.status == ApprovalStatus.APPROVED
+
+    def __str__(self) -> str:
+        return f"Approval by {self.approver_id} - {self.status.value}"

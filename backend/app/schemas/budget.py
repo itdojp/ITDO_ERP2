@@ -2,7 +2,7 @@
 
 from datetime import date, datetime
 from decimal import Decimal
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, validator
 
@@ -297,10 +297,56 @@ class BudgetListResponse(BaseModel):
     page: int
     limit: int
     has_next: bool
-    has_prev: bool
 
-    class Config:
-        from_attributes = True
+
+class BudgetAnalyticsResponse(BaseModel):
+    """Schema for budget analytics responses."""
+    
+    total_budget_amount: float
+    total_utilized_amount: float
+    utilization_percentage: float
+    variance_amount: float
+    variance_percentage: float
+    department_breakdown: Dict[str, Any]
+    category_breakdown: Dict[str, Any]
+    monthly_trends: List[Dict[str, Any]]
+
+
+class BudgetReportResponse(BaseModel):
+    """Schema for budget report responses."""
+    
+    report_id: str
+    budget_period: str
+    generated_at: datetime
+    summary: Dict[str, Any]
+    department_details: List[Dict[str, Any]]
+    category_details: List[Dict[str, Any]]
+    variance_analysis: Dict[str, Any]
+    recommendations: List[str]
+
+
+class BudgetDetailResponse(BudgetResponse):
+    """Schema for detailed budget responses with additional information."""
+    
+    items: List[BudgetItemResponse]
+    approval_history: List[Dict[str, Any]]
+    utilization_history: List[Dict[str, Any]]
+    variance_analysis: Dict[str, Any]
+
+
+class BudgetApprovalRequest(BaseModel):
+    """Schema for budget approval requests."""
+    
+    action: str = Field(..., description="Approval action: approve, reject, request_changes")
+    comments: Optional[str] = Field(None, description="Approval comments")
+    approved_amount: Optional[float] = Field(None, description="Approved amount if different from requested")
+    
+    @validator('action')
+    def validate_action(cls, v):
+        valid_actions = ['approve', 'reject', 'request_changes']
+        if v not in valid_actions:
+            raise ValueError(f'Action must be one of {valid_actions}')
+        return v
 
 
 class BudgetSummary(BaseModel):
