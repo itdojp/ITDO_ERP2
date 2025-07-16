@@ -354,12 +354,11 @@ class AuditService:
 
         # Simple CSV format
         csv_rows = [
-            "ID,action,resource_type,Resource ID,User ID,Organization ID,Created At,timestamp,user_email"
+            "ID,Action,Resource Type,Resource ID,User ID,Organization ID,Created At"
         ]
         for log in logs:
-            user_email = log.user.email if log.user else ""
             csv_rows.append(
-                f"{log.id},{log.action},{log.resource_type},{log.resource_id},{log.user_id},{log.organization_id},{log.created_at},{log.created_at},{user_email}"
+                f"{log.id},{log.action},{log.resource_type},{log.resource_id},{log.user_id},{log.organization_id},{log.created_at}"
             )
 
         return "\n".join(csv_rows)

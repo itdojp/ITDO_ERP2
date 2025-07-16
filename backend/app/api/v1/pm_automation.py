@@ -101,7 +101,9 @@ async def generate_progress_report(
     """
     try:
         service = PMAutomationService(db)
-        result = service.generate_progress_report(project_id, current_user, report_type)
+        result = await service.generate_progress_report(
+            project_id, report_type, current_user
+        )
         return {
             "success": True,
             "data": result,

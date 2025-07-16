@@ -282,18 +282,16 @@ class TaskService:
 
         history_items = []
         for log in audit_logs:
-            # Create a simplified history item compatible with TaskHistoryItem schema
-            history_item = TaskHistoryItem(
-                id=log.id,
-                field_name=log.action,
-                old_value=None,
-                new_value=str(log.changes) if log.changes else None,
-                changed_by=UserInfo(
-                    id=log.user_id, name="System User", email="system@example.com"
-                ),
-                changed_at=log.created_at,
+            history_items.append(
+                {
+                    "id": log.id,
+                    "action": log.action,
+                    "changes": log.changes,
+                    "user_id": log.user_id,
+                    "created_at": log.created_at,
+                    "ip_address": log.ip_address,
+                }
             )
-            history_items.append(history_item)
 
         return TaskHistoryResponse(items=history_items, total=len(history_items))
 

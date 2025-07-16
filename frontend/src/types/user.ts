@@ -20,19 +20,19 @@ export interface User {
   roles: UserRole[]
 }
 
-export interface Organization {
+interface Organization {
   id: number
   code: string
   name: string
 }
 
-export interface Department {
+interface Department {
   id: number
   code: string
   name: string
 }
 
-export interface UserRole {
+interface UserRole {
   role: Role
   organization: Organization
   department?: Department
@@ -40,7 +40,7 @@ export interface UserRole {
   expires_at?: string
 }
 
-export interface Role {
+interface Role {
   id: number
   code: string
   name: string
@@ -75,7 +75,7 @@ export interface UserPrivacySettings {
   updated_at: string
 }
 
-export type VisibilityLevel = 'PUBLIC' | 'ORGANIZATION' | 'DEPARTMENT' | 'PRIVATE'
+type VisibilityLevel = 'PUBLIC' | 'ORGANIZATION' | 'DEPARTMENT' | 'PRIVATE'
 
 export interface UserProfileUpdate {
   full_name?: string
@@ -106,7 +106,7 @@ export interface UserPrivacyUpdate {
   searchable_by_name?: boolean
 }
 
-export interface ProfileImageUpload {
+interface ProfileImageUpload {
   file: File
 }
 

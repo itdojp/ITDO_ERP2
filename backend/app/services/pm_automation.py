@@ -62,10 +62,13 @@ class PMAutomationService:
         if not template_func:
             raise ValueError(f"Unknown template type: {template_type}")
 
-        return template_func(project_id, user)
+        return await template_func(project_id, user)
 
-    def auto_assign_tasks(
-        self, project_id: int, user: User, assignment_strategy: str = "balanced"
+    async def auto_assign_tasks(
+        self,
+        project_id: int,
+        assignment_strategy: str = "balanced",
+        user: User | None = None,
     ) -> Dict[str, Any]:
         """Automatically assign tasks to team members.
 
@@ -93,11 +96,15 @@ class PMAutomationService:
         assignments: list[tuple[int, int]] = []
 
         if assignment_strategy == "balanced":
-            assignments = self._balanced_assignment(unassigned_tasks, team_members)
+            assignments = await self._balanced_assignment(
+                unassigned_tasks, team_members
+            )
         elif assignment_strategy == "skill_based":
-            assignments = self._skill_based_assignment(unassigned_tasks, team_members)
+            assignments = await self._skill_based_assignment(
+                unassigned_tasks, team_members
+            )
         elif assignment_strategy == "workload_based":
-            assignments = self._workload_based_assignment(
+            assignments = await self._workload_based_assignment(
                 unassigned_tasks, team_members
             )
         else:
@@ -121,8 +128,8 @@ class PMAutomationService:
             "assignments": assignments,
         }
 
-    def generate_progress_report(
-        self, project_id: int, user: User, report_type: str = "weekly"
+    async def generate_progress_report(
+        self, project_id: int, report_type: str = "weekly", user: User | None = None
     ) -> Dict[str, Any]:
         """Generate automated progress report.
 
@@ -150,16 +157,18 @@ class PMAutomationService:
             start_date = end_date - timedelta(weeks=1)  # Default to weekly
 
         # Get project statistics
-        stats = self._calculate_project_stats(project_id, start_date, end_date)
+        stats = await self._calculate_project_stats(project_id, start_date, end_date)
 
         # Get task completion trends
-        trends = self._calculate_completion_trends(project_id, start_date, end_date)
+        trends = await self._calculate_completion_trends(
+            project_id, start_date, end_date
+        )
 
         # Identify risks and blockers
         risks = self._identify_project_risks(project_id)
 
         # Generate recommendations
-        recommendations = self._generate_recommendations(project_id, stats, risks)
+        recommendations = await self._generate_recommendations(project_id, stats, risks)
 
         return {
             "project": {
@@ -177,11 +186,14 @@ class PMAutomationService:
             "risks": risks,
             "recommendations": recommendations,
             "generated_at": datetime.now().isoformat(),
-            "generated_by": user.id,
+            "generated_by": user.id if user else None,
         }
 
-    def auto_schedule_optimization(
-        self, project_id: int, user: User, optimization_type: str = "critical_path"
+    async def auto_schedule_optimization(
+        self,
+        project_id: int,
+        optimization_type: str = "critical_path",
+        user: User | None = None,
     ) -> Dict[str, Any]:
         """Automatically optimize project schedule.
 
@@ -206,8 +218,11 @@ class PMAutomationService:
         else:
             raise ValueError(f"Unknown optimization type: {optimization_type}")
 
-    def predictive_analytics(
-        self, project_id: int, user: User, prediction_type: str = "completion_date"
+    async def predictive_analytics(
+        self,
+        project_id: int,
+        prediction_type: str = "completion_date",
+        user: User | None = None,
     ) -> Dict[str, Any]:
         """Generate predictive analytics for project.
 
@@ -224,7 +239,7 @@ class PMAutomationService:
             raise NotFound("Project not found")
 
         if prediction_type == "completion_date":
-            return self._predict_completion_date(project_id)
+            return await self._predict_completion_date(project_id)
         elif prediction_type == "budget_forecast":
             return self._predict_budget_usage(project_id)
         elif prediction_type == "risk_probability":
@@ -240,7 +255,9 @@ class PMAutomationService:
         project = self.db.get(Project, project_id)
         return project is not None and (project.owner_id == user_id)
 
-    def _create_agile_template(self, project_id: int, user: User) -> Dict[str, Any]:
+    async def _create_agile_template(
+        self, project_id: int, user: User
+    ) -> Dict[str, Any]:
         """Create agile project template."""
         tasks = [
             {"title": "プロジェクト計画", "priority": "high", "estimated_hours": 8},
@@ -269,10 +286,8 @@ class PMAutomationService:
             task_create = TaskCreate(
                 title=str(task_data["title"]),
                 project_id=project_id,
-                priority=TaskPriority(task_data.get("priority", "medium")),
-                estimated_hours=float(
-                    cast(float, task_data.get("estimated_hours", 0)) or 0
-                ),
+                priority=task_data["priority"],
+                estimated_hours=float(task_data["estimated_hours"]),
             )
 
             task = self.task_service.create_task(task_create, user, self.db)
@@ -284,7 +299,9 @@ class PMAutomationService:
             "tasks": created_tasks,
         }
 
-    def _create_waterfall_template(self, project_id: int, user: User) -> Dict[str, Any]:
+    async def _create_waterfall_template(
+        self, project_id: int, user: User
+    ) -> Dict[str, Any]:
         """Create waterfall project template."""
         tasks = [
             {"title": "要件定義", "priority": "high", "estimated_hours": 40},
@@ -303,10 +320,8 @@ class PMAutomationService:
             task_create = TaskCreate(
                 title=str(task_data["title"]),
                 project_id=project_id,
-                priority=TaskPriority(task_data.get("priority", "medium")),
-                estimated_hours=float(
-                    cast(float, task_data.get("estimated_hours", 0)) or 0
-                ),
+                priority=task_data["priority"],
+                estimated_hours=float(task_data["estimated_hours"]),
             )
 
             task = self.task_service.create_task(task_create, user, self.db)
@@ -318,7 +333,9 @@ class PMAutomationService:
             "tasks": created_tasks,
         }
 
-    def _create_kanban_template(self, project_id: int, user: User) -> Dict[str, Any]:
+    async def _create_kanban_template(
+        self, project_id: int, user: User
+    ) -> Dict[str, Any]:
         """Create kanban project template."""
         tasks = [
             {"title": "カンボード設定", "priority": "high", "estimated_hours": 2},
@@ -333,10 +350,8 @@ class PMAutomationService:
             task_create = TaskCreate(
                 title=str(task_data["title"]),
                 project_id=project_id,
-                priority=TaskPriority(task_data.get("priority", "medium")),
-                estimated_hours=float(
-                    cast(float, task_data.get("estimated_hours", 0)) or 0
-                ),
+                priority=task_data["priority"],
+                estimated_hours=float(task_data["estimated_hours"]),
             )
 
             task = self.task_service.create_task(task_create, user, self.db)
@@ -368,7 +383,7 @@ class PMAutomationService:
         result = self.db.execute(stmt)
         return list(result.scalars().all())
 
-    def _balanced_assignment(
+    async def _balanced_assignment(
         self, tasks: List[Task], team_members: List[User]
     ) -> List[tuple[int, int]]:
         """Assign tasks using balanced strategy."""
@@ -383,7 +398,7 @@ class PMAutomationService:
 
         return assignments
 
-    def _skill_based_assignment(
+    async def _skill_based_assignment(
         self, tasks: List[Task], team_members: List[User]
     ) -> List[tuple[int, int]]:
         """Assign tasks based on skills (simplified)."""
@@ -400,7 +415,7 @@ class PMAutomationService:
 
         return assignments
 
-    def _workload_based_assignment(
+    async def _workload_based_assignment(
         self, tasks: List[Task], team_members: List[User]
     ) -> List[tuple[int, int]]:
         """Assign tasks based on current workload."""
@@ -428,7 +443,7 @@ class PMAutomationService:
 
         return assignments
 
-    def _calculate_project_stats(
+    async def _calculate_project_stats(
         self, project_id: int, start_date: datetime, end_date: datetime
     ) -> Dict[str, Any]:
         """Calculate project statistics."""
@@ -483,7 +498,7 @@ class PMAutomationService:
             "in_progress_tasks": total_tasks - completed_tasks,
         }
 
-    def _calculate_completion_trends(
+    async def _calculate_completion_trends(
         self, project_id: int, start_date: datetime, end_date: datetime
     ) -> Dict[str, Any]:
         """Calculate task completion trends."""
@@ -553,13 +568,15 @@ class PMAutomationService:
                     "type": "activity_risk",
                     "severity": "medium",
                     "description": "過去7日間活動がありません",
-                    "recommendation": "プロジェクトの状況確認とチーム状況の見直しが必要です",
+                    "recommendation": (
+                        "プロジェクトの状況確認とチーム状況の見直しが必要です"
+                    ),
                 }
             )
 
         return risks
 
-    def _generate_recommendations(
+    async def _generate_recommendations(
         self, project_id: int, stats: Dict[str, Any], risks: List[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
         """Generate recommendations based on project analysis."""
@@ -572,7 +589,9 @@ class PMAutomationService:
                     "type": "performance",
                     "priority": "high",
                     "title": "進捗改善",
-                    "description": "完了率が低いです。タスクの見直しとリソース配分の最適化を検討してください。",
+                    "description": (
+                        "完了率が低いです。タスクの見直しとリソース配分の最適化を検討してください。"
+                    ),
                 }
             )
         elif stats["completion_rate"] > 80:
@@ -592,7 +611,10 @@ class PMAutomationService:
                     "type": "schedule",
                     "priority": "high",
                     "title": "期限管理",
-                    "description": f"{stats['overdue_tasks']}個のタスクが期限超過しています。優先度の見直しが必要です。",
+                    "description": (
+                        f"{stats['overdue_tasks']}個のタスクが期限超過しています。"
+                        "優先度の見直しが必要です。"
+                    ),
                 }
             )
 
@@ -632,10 +654,10 @@ class PMAutomationService:
             ],
         }
 
-    def _predict_completion_date(self, project_id: int) -> Dict[str, Any]:
+    async def _predict_completion_date(self, project_id: int) -> Dict[str, Any]:
         """Predict project completion date."""
         # Simplified prediction based on current velocity
-        stats = self._calculate_project_stats(
+        stats = await self._calculate_project_stats(
             project_id, datetime.now() - timedelta(days=30), datetime.now()
         )
 
