@@ -75,7 +75,6 @@ class BaseAPITestCase(
     ) -> None:
         """Test successful list operation."""
         # Database session isolation issue resolved
-        pytest.skip("Temporarily disabled due to database session isolation issue")
 
         # Create test instances
         instances = [self.create_test_instance(db_session) for _ in range(3)]
