@@ -23,9 +23,9 @@ class TestOrganizationService:
     """Test cases for OrganizationService."""
 
     @pytest.fixture
-    def service(self):
+    def service(self, db_session):
         """Create service instance."""
-        return OrganizationService()
+        return OrganizationService(db_session)
 
     def test_create_organization_permission(self, service, db_session) -> None:
         """TEST-SVC-ORG-001: システム管理者のみ組織作成可能なことを確認."""
