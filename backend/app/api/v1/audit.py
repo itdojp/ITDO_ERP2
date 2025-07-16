@@ -86,9 +86,7 @@ def search_audit_logs(
         )
 
 
-@router.get(
-    "/organizations/{organization_id}/logs/stats", response_model=AuditLogStats
-)
+@router.get("/organizations/{organization_id}/logs/stats", response_model=AuditLogStats)
 def get_audit_statistics(
     organization_id: int,
     date_from: datetime = Query(..., description="Statistics start date"),

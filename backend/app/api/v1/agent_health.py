@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 
-# from app.core.monitoring import health_checker  # Temporary disabled due to missing structlog
+# from app.core.monitoring import health_checker  # Disabled: missing structlog
 from app.schemas.common import AgentStatusResponse, HealthCheckResponse
 
 router = APIRouter()
@@ -27,24 +27,26 @@ async def get_comprehensive_health(db: Session = Depends(get_db)) -> Dict[str, A
             checks["database"] = {
                 "status": "healthy",
                 "details": "Database connection successful",
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.utcnow().isoformat(),
             }
         except Exception as e:
             checks["database"] = {
                 "status": "unhealthy",
                 "details": f"Database connection failed: {str(e)}",
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.utcnow().isoformat(),
             }
 
         # System health check
         checks["system"] = {
             "status": "healthy",
             "details": "System running normally",
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat(),
         }
 
         # Calculate overall health
-        healthy_checks = sum(1 for check in checks.values() if check.get("status") == "healthy")
+        healthy_checks = sum(
+            1 for check in checks.values() if check.get("status") == "healthy"
+        )
         total_checks = len(checks)
         overall_healthy = healthy_checks == total_checks
 
@@ -55,14 +57,11 @@ async def get_comprehensive_health(db: Session = Depends(get_db)) -> Dict[str, A
             "summary": {
                 "total_checks": total_checks,
                 "passed": healthy_checks,
-                "failed": total_checks - healthy_checks
-            }
+                "failed": total_checks - healthy_checks,
+            },
         }
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Health check failed: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Health check failed: {str(e)}")
 
 
 @router.get("/health/agents", response_model=List[AgentStatusResponse])
@@ -79,7 +78,7 @@ async def get_agent_status() -> List[Dict[str, Any]]:
             "health_score": 100,
             "current_tasks": 3,
             "completed_tasks": 147,
-            "environment": "production"
+            "environment": "production",
         },
         {
             "agent_id": "CC02",
@@ -91,7 +90,7 @@ async def get_agent_status() -> List[Dict[str, Any]]:
             "current_tasks": 0,
             "completed_tasks": 0,
             "environment": "development",
-            "note": "Long-term absent - Role Service stalled"
+            "note": "Long-term absent - Role Service stalled",
         },
         {
             "agent_id": "CC03",
@@ -103,8 +102,8 @@ async def get_agent_status() -> List[Dict[str, Any]]:
             "current_tasks": 1,
             "completed_tasks": 45,
             "environment": "staging",
-            "note": "Intermittent responses to escalations"
-        }
+            "note": "Intermittent responses to escalations",
+        },
     ]
 
     return agents
@@ -119,10 +118,7 @@ async def get_agent_status_by_id(agent_id: str) -> Dict[str, Any]:
         if agent["agent_id"] == agent_id:
             return agent
 
-    raise HTTPException(
-        status_code=404,
-        detail=f"Agent {agent_id} not found"
-    )
+    raise HTTPException(status_code=404, detail=f"Agent {agent_id} not found")
 
 
 @router.post("/health/agents/{agent_id}/ping")
@@ -134,38 +130,37 @@ async def ping_agent(agent_id: str) -> Dict[str, Any]:
             "status": "success",
             "response_time": "25ms",
             "timestamp": datetime.utcnow().isoformat(),
-            "message": "Agent CC01 responding normally"
+            "message": "Agent CC01 responding normally",
         },
         "CC02": {
             "status": "timeout",
             "response_time": "timeout",
             "timestamp": datetime.utcnow().isoformat(),
-            "message": "Agent CC02 not responding - Role Service stalled"
+            "message": "Agent CC02 not responding - Role Service stalled",
         },
         "CC03": {
             "status": "delayed",
             "response_time": "2.5s",
             "timestamp": datetime.utcnow().isoformat(),
-            "message": "Agent CC03 responding with delays"
-        }
+            "message": "Agent CC03 responding with delays",
+        },
     }
 
     if agent_id not in agent_responses:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Agent {agent_id} not found"
-        )
+        raise HTTPException(status_code=404, detail=f"Agent {agent_id} not found")
 
     return agent_responses[agent_id]
 
 
 @router.post("/health/agents/{agent_id}/escalate")
-async def escalate_agent_issue(agent_id: str, priority: str = "normal") -> Dict[str, Any]:
+async def escalate_agent_issue(
+    agent_id: str, priority: str = "normal"
+) -> Dict[str, Any]:
     """Escalate agent health issue to Level 1 (based on Issue #132)."""
     escalation_levels = {
         "normal": "Level 1",
         "urgent": "Level 2",
-        "critical": "Level 3"
+        "critical": "Level 3",
     }
 
     escalation_level = escalation_levels.get(priority, "Level 1")
@@ -176,9 +171,11 @@ async def escalate_agent_issue(agent_id: str, priority: str = "normal") -> Dict[
         "escalation_level": escalation_level,
         "timestamp": datetime.utcnow().isoformat(),
         "status": "escalated",
-        "expected_response_time": "30 minutes" if escalation_level == "Level 1" else "15 minutes",
+        "expected_response_time": (
+            "30 minutes" if escalation_level == "Level 1" else "15 minutes"
+        ),
         "assigned_to": "system-admin",
-        "message": f"Agent {agent_id} health issue escalated to {escalation_level}"
+        "message": f"Agent {agent_id} health issue escalated to {escalation_level}",
     }
 
 
@@ -197,8 +194,8 @@ async def get_system_metrics() -> Dict[str, Any]:
             "total_agents": 3,
             "active_agents": 1,
             "response_time_avg": "1.2s",
-            "uptime": "99.5%"
-        }
+            "uptime": "99.5%",
+        },
     }
 
     # Environment-specific metrics
@@ -209,7 +206,7 @@ async def get_system_metrics() -> Dict[str, Any]:
             "database_connections": 5,
             "memory_usage": "1.2GB",
             "cpu_usage": "15%",
-            "last_deployment": datetime.utcnow().isoformat()
+            "last_deployment": datetime.utcnow().isoformat(),
         }
 
     return metrics
