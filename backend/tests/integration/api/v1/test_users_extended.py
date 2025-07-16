@@ -136,10 +136,10 @@ class TestUserManagementAPI:
         # Given: 様々な条件のユーザー
         admin = UserFactory.create(db_session, is_superuser=True)
         org1 = OrganizationFactory.create(db_session, code="ORG1")
-        org2 = OrganizationFactory.create(db_session, code="ORG2")
+        OrganizationFactory.create(db_session, code="ORG2")  # org2 for contrast
         dept = DepartmentFactory.create(db_session, organization=org1)
         role_manager = RoleFactory.create(db_session, code="MANAGER")
-        role_user = RoleFactory.create(db_session, code="USER")
+        RoleFactory.create(db_session, code="USER")  # role_user for system setup
 
         # 検索対象ユーザー
         UserFactory.create(
@@ -178,9 +178,9 @@ class TestUserManagementAPI:
         # Given: 複数ロールを持つユーザー
         user = UserFactory.create(db_session)
         org = OrganizationFactory.create(db_session)
-        dept = DepartmentFactory.create(db_session, organization=org)
-        role1 = RoleFactory.create(db_session, code="MANAGER", name="マネージャー")
-        role2 = RoleFactory.create(db_session, code="ANALYST", name="アナリスト")
+        DepartmentFactory.create(db_session, organization=org)  # dept for structure
+        RoleFactory.create(db_session, code="MANAGER", name="マネージャー")  # role1
+        RoleFactory.create(db_session, code="ANALYST", name="アナリスト")  # role2
 
         # TODO: Implement create_test_user_role functionality
         # create_test_user_role(user=user, role=role1, organization=org)
@@ -282,11 +282,13 @@ class TestUserManagementAPI:
     ) -> None:
         """TEST-API-USER-009: 管理者によるパスワードリセットAPIをテスト."""
         # Given: ユーザーと管理者
-        org = OrganizationFactory.create(db_session)
+        OrganizationFactory.create(db_session)  # org for context
         user = UserFactory.create(db_session)
         admin = UserFactory.create(db_session)
-        user_role = RoleFactory.create(db_session, code="USER")
-        admin_role = RoleFactory.create(db_session, code="ORG_ADMIN", permissions=["user:*"])
+        RoleFactory.create(db_session, code="USER")  # user_role for system
+        RoleFactory.create(
+            db_session, code="ORG_ADMIN", permissions=["user:*"]
+        )  # admin_role
 
         # TODO: Implement create_test_user_role functionality
         # create_test_user_role(user=user, role=user_role, organization=org)
@@ -313,7 +315,9 @@ class TestUserManagementAPI:
         user = UserFactory.create(db_session)
         admin = UserFactory.create(db_session)
         new_role = RoleFactory.create(db_session, code="MANAGER", name="マネージャー")
-        admin_role = RoleFactory.create(db_session, code="ORG_ADMIN", permissions=["role:*"])
+        RoleFactory.create(
+            db_session, code="ORG_ADMIN", permissions=["role:*"]
+        )  # admin_role
 
         # TODO: Implement create_test_user_role functionality
         # create_test_user_role(user=admin, role=admin_role, organization=org)
@@ -367,12 +371,12 @@ class TestUserManagementAPI:
         # Given: 複数ロールのユーザー
         org = OrganizationFactory.create(db_session)
         user = UserFactory.create(db_session)
-        role1 = RoleFactory.create(
+        RoleFactory.create(
             db_session, code="READER", permissions=["read:users", "read:reports"]
-        )
-        role2 = RoleFactory.create(
+        )  # role1
+        RoleFactory.create(
             db_session, code="WRITER", permissions=["write:reports", "delete:own"]
-        )
+        )  # role2
 
         # TODO: Implement create_test_user_role functionality
         # create_test_user_role(user=user, role=role1, organization=org)
@@ -474,11 +478,11 @@ class TestUserManagementAPI:
     ) -> None:
         """TEST-API-USER-016: テナント間アクセス拒否をテスト."""
         # Given: 異なる組織のユーザー
-        org1 = OrganizationFactory.create(db_session, code="ORG1")
-        org2 = OrganizationFactory.create(db_session, code="ORG2")
+        OrganizationFactory.create(db_session, code="ORG1")  # org1
+        OrganizationFactory.create(db_session, code="ORG2")  # org2
         user1 = UserFactory.create(db_session, email="user1@org1.com")
         user2 = UserFactory.create(db_session, email="user2@org2.com")
-        role = RoleFactory.create(db_session, code="USER")
+        RoleFactory.create(db_session, code="USER")  # role for system setup
 
         # TODO: Implement create_test_user_role functionality
         # create_test_user_role(user=user1, role=role, organization=org1)
@@ -627,3 +631,4 @@ class TestUserManagementAPI:
             assert response.status_code == 422
             errors = response.json()["detail"]
             assert any(e["loc"] == ["body", "password"] for e in errors)
+

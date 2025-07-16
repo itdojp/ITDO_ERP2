@@ -90,24 +90,24 @@ def isolate_test_data() -> dict[str, str]:
 def test_permissions(db_session: Session) -> Dict[str, Any]:
     """Create test permissions for role testing."""
     from app.models.permission import Permission
-    
+
     # Create permissions by category
     user_perms = [
         Permission(code="user:read", name="Read Users", category="users"),
         Permission(code="user:write", name="Write Users", category="users"),
         Permission(code="user:delete", name="Delete Users", category="users"),
     ]
-    
+
     role_perms = [
         Permission(code="role:read", name="Read Roles", category="roles"),
         Permission(code="role:write", name="Write Roles", category="roles"),
         Permission(code="role:delete", name="Delete Roles", category="roles"),
     ]
-    
+
     all_perms = user_perms + role_perms
     db_session.add_all(all_perms)
     db_session.commit()
-    
+
     return {
         "users": user_perms,
         "roles": role_perms,
@@ -116,11 +116,13 @@ def test_permissions(db_session: Session) -> Dict[str, Any]:
 
 
 @pytest.fixture
-def test_role_system(db_session: Session, test_organization, test_permissions) -> Dict[str, Any]:
+def test_role_system(
+    db_session: Session, test_organization, test_permissions
+) -> Dict[str, Any]:
     """Create a test role system with hierarchy."""
     from app.models.role import Role
     from tests.factories import RoleFactory
-    
+
     # Create roles
     admin_role = RoleFactory.create_with_organization(
         db_session, test_organization, name="システム管理者", code="ADMIN"
@@ -131,7 +133,7 @@ def test_role_system(db_session: Session, test_organization, test_permissions) -
     user_role = RoleFactory.create_with_organization(
         db_session, test_organization, name="一般ユーザー", code="USER"
     )
-    
+
     return {
         "organization": test_organization,
         "permissions": test_permissions,
