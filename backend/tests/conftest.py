@@ -107,7 +107,6 @@ def test_permissions(db_session: Session) -> Dict[str, Any]:
     all_perms = user_perms + role_perms
     db_session.add_all(all_perms)
     db_session.commit()
-
     return {
         "users": user_perms,
         "roles": role_perms,
@@ -122,7 +121,6 @@ def test_role_system(
     """Create a test role system with hierarchy."""
     from app.models.role import Role
     from tests.factories import RoleFactory
-
     # Create roles
     admin_role = RoleFactory.create_with_organization(
         db_session, test_organization, name="システム管理者", code="ADMIN"
@@ -133,7 +131,6 @@ def test_role_system(
     user_role = RoleFactory.create_with_organization(
         db_session, test_organization, name="一般ユーザー", code="USER"
     )
-
     return {
         "organization": test_organization,
         "permissions": test_permissions,
