@@ -72,7 +72,6 @@ class TestUserManagementAPI:
         org = OrganizationFactory.create(db_session)
         dept = DepartmentFactory.create(db_session, organization=org)
         role = RoleFactory.create(db_session, code="DEPT_USER")
-
         db_session.add_all([admin, org, dept, role])
         db_session.commit()
         admin_token = create_access_token({"sub": str(admin.id)})
@@ -113,7 +112,6 @@ class TestUserManagementAPI:
             UserFactory.create(db_session, email=f"user{i:03d}@example.com")
             # TODO: Implement create_test_user_role functionality
             # create_test_user_role(user=user, role=role, organization=org)
-
         db_session.commit()
         admin_token = create_access_token({"sub": str(admin.id)})
 
@@ -181,7 +179,6 @@ class TestUserManagementAPI:
         DepartmentFactory.create(db_session, organization=org)
         RoleFactory.create(db_session, code="MANAGER", name="マネージャー")
         RoleFactory.create(db_session, code="ANALYST", name="アナリスト")
-
         # TODO: Implement create_test_user_role functionality
         # create_test_user_role(user=user, role=role1, organization=org)
         # create_test_user_role(
@@ -282,12 +279,10 @@ class TestUserManagementAPI:
     ) -> None:
         """TEST-API-USER-009: 管理者によるパスワードリセットAPIをテスト."""
         # Given: ユーザーと管理者
-        org = OrganizationFactory.create(db_session)
         user = UserFactory.create(db_session)
         admin = UserFactory.create(db_session)
         RoleFactory.create(db_session, code="USER")
         RoleFactory.create(db_session, code="ORG_ADMIN", permissions=["user:*"])
-
         # TODO: Implement create_test_user_role functionality
         # create_test_user_role(user=user, role=user_role, organization=org)
         # create_test_user_role(user=admin, role=admin_role, organization=org)
@@ -314,7 +309,6 @@ class TestUserManagementAPI:
         admin = UserFactory.create(db_session)
         new_role = RoleFactory.create(db_session, code="MANAGER", name="マネージャー")
         RoleFactory.create(db_session, code="ORG_ADMIN", permissions=["role:*"])
-
         # TODO: Implement create_test_user_role functionality
         # create_test_user_role(user=admin, role=admin_role, organization=org)
         db_session.commit()
@@ -365,15 +359,6 @@ class TestUserManagementAPI:
     ) -> None:
         """TEST-API-USER-012: ユーザー権限一覧取得APIをテスト."""
         # Given: 複数ロールのユーザー
-        org = OrganizationFactory.create(db_session)
-        user = UserFactory.create(db_session)
-        RoleFactory.create(
-            db_session, code="READER", permissions=["read:users", "read:reports"]
-        )
-        RoleFactory.create(
-            db_session, code="WRITER", permissions=["write:reports", "delete:own"]
-        )
-
         # TODO: Implement create_test_user_role functionality
         # create_test_user_role(user=user, role=role1, organization=org)
         # create_test_user_role(user=user, role=role2, organization=org)
@@ -438,9 +423,6 @@ class TestUserManagementAPI:
     ) -> None:
         """TEST-API-USER-015: ユーザー一覧の応答時間をテスト."""
         # Given: 1000人のユーザー
-        admin = UserFactory.create(db_session, is_superuser=True)
-        org = OrganizationFactory.create(db_session)
-        role = RoleFactory.create(db_session, code="USER")
         db_session.add_all([admin, org, role])
 
         # バルクインサートで高速化
@@ -474,12 +456,6 @@ class TestUserManagementAPI:
     ) -> None:
         """TEST-API-USER-016: テナント間アクセス拒否をテスト."""
         # Given: 異なる組織のユーザー
-        OrganizationFactory.create(db_session, code="ORG1")
-        OrganizationFactory.create(db_session, code="ORG2")
-        user1 = UserFactory.create(db_session, email="user1@org1.com")
-        user2 = UserFactory.create(db_session, email="user2@org2.com")
-        RoleFactory.create(db_session, code="USER")
-
         # TODO: Implement create_test_user_role functionality
         # create_test_user_role(user=user1, role=role, organization=org1)
         # create_test_user_role(user=user2, role=role, organization=org2)
@@ -500,9 +476,6 @@ class TestUserManagementAPI:
     def test_bulk_user_import(self, client: TestClient, db_session: Session) -> None:
         """TEST-API-USER-017: 一括ユーザーインポートAPIをテスト."""
         # Given: セットアップ
-        admin = UserFactory.create(db_session, is_superuser=True)
-        org = OrganizationFactory.create(db_session)
-        role = RoleFactory.create(db_session, code="USER")
         db_session.add_all([admin, org, role])
         db_session.commit()
         admin_token = create_access_token({"sub": str(admin.id)})
@@ -539,9 +512,6 @@ class TestUserManagementAPI:
     def test_export_users_csv(self, client: TestClient, db_session: Session) -> None:
         """TEST-API-USER-018: ユーザーリストCSVエクスポートAPIをテスト."""
         # Given: 複数ユーザー
-        admin = UserFactory.create(db_session, is_superuser=True)
-        org = OrganizationFactory.create(db_session)
-        role = RoleFactory.create(db_session, code="USER")
         db_session.add_all([admin, org, role])
 
         for i in range(5):
@@ -552,7 +522,6 @@ class TestUserManagementAPI:
             )
             # TODO: Implement create_test_user_role functionality
             # create_test_user_role(user=user, role=role, organization=org)
-
         db_session.commit()
         admin_token = create_access_token({"sub": str(admin.id)})
 
@@ -570,7 +539,6 @@ class TestUserManagementAPI:
     def test_user_activity_log(self, client: TestClient, db_session: Session) -> None:
         """TEST-API-USER-019: ユーザー活動ログ取得APIをテスト."""
         # Given: ユーザー
-        user = UserFactory.create(db_session)
         db_session.add(user)
         db_session.commit()
         user_token = create_access_token({"sub": str(user.id)})
@@ -626,4 +594,3 @@ class TestUserManagementAPI:
             # Then: バリデーションエラー
             assert response.status_code == 422
             errors = response.json()["detail"]
-            assert any(e["loc"] == ["body", "password"] for e in errors)

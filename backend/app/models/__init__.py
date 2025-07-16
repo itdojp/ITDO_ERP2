@@ -6,6 +6,7 @@ from app.models.cross_tenant_permissions import (
     CrossTenantAuditLog,
     CrossTenantPermissionRule,
 )
+from app.models.customer import Customer, CustomerActivity, CustomerContact, Opportunity
 from app.models.department import Department
 from app.models.expense_category import ExpenseCategory
 from app.models.organization import Organization
@@ -62,8 +63,4 @@ __all__ = [
     "Task",
     "TaskDependency",
     "TaskHistory",
-    # Phase 4: Financial Management
-    "ExpenseCategory",
-    "Budget",
-    "BudgetItem",
 ]

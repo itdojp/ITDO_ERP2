@@ -1,6 +1,5 @@
 """Integration tests for core API endpoints."""
 
-import pytest
 from fastapi.testclient import TestClient
 
 from app.models.user import User

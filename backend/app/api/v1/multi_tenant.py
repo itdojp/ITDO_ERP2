@@ -242,7 +242,6 @@ def get_organization_users(
             detail="Insufficient permissions to view organization users",
         )
 
-
     return service.get_organization_users(organization_id, include_inactive)
 
 
@@ -294,7 +293,6 @@ def get_organization_users_summary(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Insufficient permissions to view organization summary",
         )
-
 
     return service.get_organization_users_summary(organization_id)
 

@@ -190,7 +190,6 @@ def get_organization_cross_tenant_summary(
             detail="Insufficient permissions to view organization summary",
         )
 
-
     service = CrossTenantPermissionService(db)
     try:
         return service.get_organization_cross_tenant_summary(organization_id)
