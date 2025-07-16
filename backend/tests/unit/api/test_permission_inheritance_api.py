@@ -8,7 +8,9 @@ from tests.factories import create_test_organization, create_test_user
 from tests.factories.permission import create_test_permission
 
 
-@pytest.mark.skip(reason="create_test_role and create_test_user_role not yet implemented")
+@pytest.mark.skip(
+    reason="create_test_role and create_test_user_role not yet implemented"
+)
 class TestPermissionInheritanceAPI:
     """Test permission inheritance API endpoints."""
 

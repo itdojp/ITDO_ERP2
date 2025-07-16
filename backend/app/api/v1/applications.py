@@ -3,25 +3,18 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.models.workflow import (
-    Application,
-    ApplicationType,
-    ApplicationStatus,
-    ApplicationApproval,
-    ApprovalStatus
-)
 from app.schemas.application import (
-    ApplicationCreate,
-    ApplicationResponse,
-    ApplicationUpdate,
-    ApplicationListResponse,
     ApplicationApprovalCreate,
     ApplicationApprovalResponse,
-    ApplicationSearchParams
+    ApplicationCreate,
+    ApplicationListResponse,
+    ApplicationResponse,
+    ApplicationSearchParams,
+    ApplicationUpdate,
 )
 from app.services.application_service import ApplicationService
 
@@ -30,8 +23,7 @@ router = APIRouter(prefix="/applications", tags=["applications"])
 
 @router.post("/", response_model=ApplicationResponse)
 async def create_application(
-    application_data: ApplicationCreate,
-    db: Session = Depends(get_db)
+    application_data: ApplicationCreate, db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """Create a new application."""
     service = ApplicationService(db)
@@ -44,14 +36,12 @@ async def get_applications(
     search_params: ApplicationSearchParams = Depends(),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     """Get list of applications with filtering and pagination."""
     service = ApplicationService(db)
     result = await service.get_applications(
-        search_params=search_params,
-        skip=skip,
-        limit=limit
+        search_params=search_params, skip=skip, limit=limit
     )
     return result
 
@@ -63,7 +53,7 @@ async def get_my_applications(
     application_type: Optional[str] = Query(None),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     """Get applications created by current user."""
     service = ApplicationService(db)
@@ -72,7 +62,7 @@ async def get_my_applications(
         status=status,
         application_type=application_type,
         skip=skip,
-        limit=limit
+        limit=limit,
     )
     return result
 
@@ -84,7 +74,7 @@ async def get_pending_approvals(
     priority: Optional[str] = Query(None),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     """Get applications pending approval by current user."""
     service = ApplicationService(db)
@@ -93,15 +83,14 @@ async def get_pending_approvals(
         application_type=application_type,
         priority=priority,
         skip=skip,
-        limit=limit
+        limit=limit,
     )
     return result
 
 
 @router.get("/{application_id}", response_model=ApplicationResponse)
 async def get_application(
-    application_id: int,
-    db: Session = Depends(get_db)
+    application_id: int, db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """Get application by ID."""
     service = ApplicationService(db)
@@ -115,7 +104,7 @@ async def get_application(
 async def update_application(
     application_id: int,
     application_data: ApplicationUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     """Update application."""
     service = ApplicationService(db)
@@ -127,8 +116,7 @@ async def update_application(
 
 @router.delete("/{application_id}")
 async def delete_application(
-    application_id: int,
-    db: Session = Depends(get_db)
+    application_id: int, db: Session = Depends(get_db)
 ) -> Dict[str, str]:
     """Delete application (soft delete)."""
     service = ApplicationService(db)
@@ -143,22 +131,19 @@ async def delete_application(
 async def submit_application(
     application_id: int,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     """Submit application for approval."""
     service = ApplicationService(db)
     result = await service.submit_application(
-        application_id=application_id,
-        background_tasks=background_tasks
+        application_id=application_id, background_tasks=background_tasks
     )
     return result
 
 
 @router.post("/{application_id}/cancel")
 async def cancel_application(
-    application_id: int,
-    reason: Optional[str] = None,
-    db: Session = Depends(get_db)
+    application_id: int, reason: Optional[str] = None, db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """Cancel application."""
     service = ApplicationService(db)
@@ -170,13 +155,12 @@ async def cancel_application(
 async def resubmit_application(
     application_id: int,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     """Resubmit rejected application."""
     service = ApplicationService(db)
     result = await service.resubmit_application(
-        application_id=application_id,
-        background_tasks=background_tasks
+        application_id=application_id, background_tasks=background_tasks
     )
     return result
 
@@ -187,22 +171,23 @@ async def create_approval(
     application_id: int,
     approval_data: ApplicationApprovalCreate,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     """Create approval decision for application."""
     service = ApplicationService(db)
     approval = await service.create_approval(
         application_id=application_id,
         approval_data=approval_data,
-        background_tasks=background_tasks
+        background_tasks=background_tasks,
     )
     return approval
 
 
-@router.get("/{application_id}/approvals", response_model=List[ApplicationApprovalResponse])
+@router.get(
+    "/{application_id}/approvals", response_model=List[ApplicationApprovalResponse]
+)
 async def get_application_approvals(
-    application_id: int,
-    db: Session = Depends(get_db)
+    application_id: int, db: Session = Depends(get_db)
 ) -> List[Dict[str, Any]]:
     """Get approval history for application."""
     service = ApplicationService(db)
@@ -215,14 +200,14 @@ async def approve_application(
     application_id: int,
     comments: Optional[str] = None,
     background_tasks: BackgroundTasks = BackgroundTasks(),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     """Approve application (quick approval endpoint)."""
     service = ApplicationService(db)
     result = await service.quick_approve(
         application_id=application_id,
         comments=comments,
-        background_tasks=background_tasks
+        background_tasks=background_tasks,
     )
     return result
 
@@ -232,14 +217,12 @@ async def reject_application(
     application_id: int,
     reason: str,
     background_tasks: BackgroundTasks = BackgroundTasks(),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     """Reject application."""
     service = ApplicationService(db)
     result = await service.quick_reject(
-        application_id=application_id,
-        reason=reason,
-        background_tasks=background_tasks
+        application_id=application_id, reason=reason, background_tasks=background_tasks
     )
     return result
 
@@ -249,14 +232,14 @@ async def request_clarification(
     application_id: int,
     message: str,
     background_tasks: BackgroundTasks = BackgroundTasks(),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     """Request clarification on application."""
     service = ApplicationService(db)
     result = await service.request_clarification(
         application_id=application_id,
         message=message,
-        background_tasks=background_tasks
+        background_tasks=background_tasks,
     )
     return result
 
@@ -267,14 +250,14 @@ async def bulk_approve_applications(
     application_ids: List[int],
     comments: Optional[str] = None,
     background_tasks: BackgroundTasks = BackgroundTasks(),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     """Bulk approve multiple applications."""
     service = ApplicationService(db)
     result = await service.bulk_approve(
         application_ids=application_ids,
         comments=comments,
-        background_tasks=background_tasks
+        background_tasks=background_tasks,
     )
     return result
 
@@ -284,14 +267,14 @@ async def bulk_reject_applications(
     application_ids: List[int],
     reason: str,
     background_tasks: BackgroundTasks = BackgroundTasks(),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     """Bulk reject multiple applications."""
     service = ApplicationService(db)
     result = await service.bulk_reject(
         application_ids=application_ids,
         reason=reason,
-        background_tasks=background_tasks
+        background_tasks=background_tasks,
     )
     return result
 
@@ -303,7 +286,7 @@ async def get_application_analytics(
     start_date: Optional[datetime] = Query(None),
     end_date: Optional[datetime] = Query(None),
     application_type: Optional[str] = Query(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     """Get application analytics summary."""
     service = ApplicationService(db)
@@ -311,7 +294,7 @@ async def get_application_analytics(
         organization_id=organization_id,
         start_date=start_date,
         end_date=end_date,
-        application_type=application_type
+        application_type=application_type,
     )
     return analytics
 
@@ -322,7 +305,7 @@ async def get_approval_performance(
     approver_id: Optional[int] = Query(None),
     start_date: Optional[datetime] = Query(None),
     end_date: Optional[datetime] = Query(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     """Get approval performance metrics."""
     service = ApplicationService(db)
@@ -330,7 +313,7 @@ async def get_approval_performance(
         organization_id=organization_id,
         approver_id=approver_id,
         start_date=start_date,
-        end_date=end_date
+        end_date=end_date,
     )
     return performance
 
@@ -338,8 +321,7 @@ async def get_approval_performance(
 # Application Templates
 @router.get("/templates/")
 async def get_application_templates(
-    application_type: Optional[str] = Query(None),
-    db: Session = Depends(get_db)
+    application_type: Optional[str] = Query(None), db: Session = Depends(get_db)
 ) -> List[Dict[str, Any]]:
     """Get available application templates."""
     service = ApplicationService(db)
@@ -348,9 +330,7 @@ async def get_application_templates(
 
 
 @router.get("/types/")
-async def get_application_types(
-    db: Session = Depends(get_db)
-) -> List[Dict[str, Any]]:
+async def get_application_types(db: Session = Depends(get_db)) -> List[Dict[str, Any]]:
     """Get available application types."""
     service = ApplicationService(db)
     types = await service.get_application_types()
@@ -364,7 +344,7 @@ async def send_notification(
     message: str,
     recipients: List[int],
     background_tasks: BackgroundTasks = BackgroundTasks(),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> Dict[str, str]:
     """Send notification about application."""
     service = ApplicationService(db)
@@ -372,15 +352,14 @@ async def send_notification(
         application_id=application_id,
         message=message,
         recipients=recipients,
-        background_tasks=background_tasks
+        background_tasks=background_tasks,
     )
     return {"message": "Notification sent successfully"}
 
 
 @router.post("/send-reminders")
 async def send_approval_reminders(
-    background_tasks: BackgroundTasks = BackgroundTasks(),
-    db: Session = Depends(get_db)
+    background_tasks: BackgroundTasks = BackgroundTasks(), db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """Send reminders for pending approvals."""
     service = ApplicationService(db)
@@ -395,7 +374,7 @@ async def export_applications_csv(
     start_date: Optional[datetime] = Query(None),
     end_date: Optional[datetime] = Query(None),
     status: Optional[str] = Query(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Export applications to CSV."""
     service = ApplicationService(db)
@@ -403,7 +382,7 @@ async def export_applications_csv(
         organization_id=organization_id,
         start_date=start_date,
         end_date=end_date,
-        status=status
+        status=status,
     )
     return csv_response
 
@@ -414,7 +393,7 @@ async def export_applications_excel(
     start_date: Optional[datetime] = Query(None),
     end_date: Optional[datetime] = Query(None),
     status: Optional[str] = Query(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Export applications to Excel."""
     service = ApplicationService(db)
@@ -422,6 +401,6 @@ async def export_applications_excel(
         organization_id=organization_id,
         start_date=start_date,
         end_date=end_date,
-        status=status
+        status=status,
     )
     return excel_response

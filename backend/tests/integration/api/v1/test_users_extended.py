@@ -443,7 +443,7 @@ class TestUserManagementAPI:
             user = UserFactory.create(
                 db_session,
                 email=f"perf{i:04d}@example.com",
-                full_name=f"パフォーマンス{i}"
+                full_name=f"パフォーマンス{i}",
             )
             users.append(user)
         db_session.add_all(users)
@@ -539,9 +539,7 @@ class TestUserManagementAPI:
 
         for i in range(5):
             UserFactory.create(
-                db_session,
-                email=f"export{i}@example.com",
-                full_name=f"エクスポート{i}"
+                db_session, email=f"export{i}@example.com", full_name=f"エクスポート{i}"
             )
             # TODO: Implement create_test_user_role functionality
             # create_test_user_role(user=user, role=role, organization=org)

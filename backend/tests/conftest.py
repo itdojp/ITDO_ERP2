@@ -29,6 +29,7 @@ if not os.environ.get("BCRYPT_ROUNDS"):
 
 # Import base first
 from app.models.base import Base
+
 # Import all models to ensure proper registration
 import app.models  # This will import all models via __init__.py
 
@@ -121,6 +122,7 @@ def test_role_system(
     """Create a test role system with hierarchy."""
     from app.models.role import Role
     from tests.factories import RoleFactory
+
     # Create roles
     admin_role = RoleFactory.create_with_organization(
         db_session, test_organization, name="システム管理者", code="ADMIN"
@@ -197,7 +199,7 @@ def test_organization(db_session: Session):
         db_session,
         name=f"Test Organization {unique_id}",
         code=f"TEST-ORG-{unique_id}",
-        industry="IT"
+        industry="IT",
     )
 
 
@@ -205,6 +207,7 @@ def test_organization(db_session: Session):
 def user_token(test_user):
     """Create a token for the test user."""
     from app.core.security import create_access_token
+
     return create_access_token({"sub": str(test_user.id)})
 
 
@@ -212,6 +215,7 @@ def user_token(test_user):
 def admin_token(test_admin):
     """Create a token for the test admin."""
     from app.core.security import create_access_token
+
     return create_access_token({"sub": str(test_admin.id)})
 
 
@@ -219,6 +223,7 @@ def admin_token(test_admin):
 def client():
     """Create a test client."""
     from app.main import app
+
     return TestClient(app)
 
 

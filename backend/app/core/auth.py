@@ -18,16 +18,16 @@ async def get_current_user(
 ) -> User:
     """
     Get current authenticated user.
-    
+
     This is a placeholder implementation for authentication.
     In a real application, this would validate JWT tokens and return the user.
     """
     # For development/testing purposes, return a mock user
     # In production, this should validate the token and fetch the actual user
-    
+
     # Mock user for testing - replace with actual authentication logic
     user = db.query(User).filter(User.is_active == True).first()
-    
+
     if not user:
         # Create a mock user if none exists (for testing)
         user = User(
@@ -40,7 +40,7 @@ async def get_current_user(
         db.add(user)
         db.commit()
         db.refresh(user)
-    
+
     return user
 
 
@@ -50,8 +50,7 @@ async def get_current_active_user(
     """Get current active user."""
     if not current_user.is_active:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Inactive user"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user"
         )
     return current_user
 
@@ -62,8 +61,7 @@ async def get_current_superuser(
     """Get current superuser."""
     if not current_user.is_superuser:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough permissions"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions"
         )
     return current_user
 
@@ -78,7 +76,7 @@ def get_optional_current_user(
     """
     if not token:
         return None
-    
+
     try:
         return get_current_user(token, db)
     except HTTPException:

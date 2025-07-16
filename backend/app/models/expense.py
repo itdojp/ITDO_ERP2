@@ -3,23 +3,24 @@
 from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import Boolean, Date, DateTime, Numeric, String, Text, ForeignKey
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import SoftDeletableModel
 from app.types import OrganizationId, UserId
 
 if TYPE_CHECKING:
+    from app.models.budget import ExpenseCategory
     from app.models.organization import Organization
     from app.models.project import Project
     from app.models.user import User
-    from app.models.budget import ExpenseCategory
 
 
 class ExpenseStatus(str, Enum):
     """Expense status enumeration."""
+
     DRAFT = "draft"
     SUBMITTED = "submitted"
     APPROVED = "approved"
@@ -29,6 +30,7 @@ class ExpenseStatus(str, Enum):
 
 class PaymentMethod(str, Enum):
     """Payment method enumeration."""
+
     CASH = "cash"
     CREDIT_CARD = "credit_card"
     BANK_TRANSFER = "bank_transfer"
@@ -177,7 +179,9 @@ class ExpenseApprovalFlow(SoftDeletableModel):
 
     # Relationships
     expense: Mapped["Expense"] = relationship("Expense", lazy="select")
-    approver: Mapped["User"] = relationship("User", foreign_keys=[approver_id], lazy="select")
+    approver: Mapped["User"] = relationship(
+        "User", foreign_keys=[approver_id], lazy="select"
+    )
 
     @property
     def is_approved(self) -> bool:

@@ -8,19 +8,17 @@ from fastapi import BackgroundTasks, HTTPException
 from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import PermissionDenied
 from app.models.workflow import (
     Application,
     ApplicationApproval,
     ApplicationStatus,
-    ApplicationType,
     ApprovalStatus,
 )
 from app.schemas.application import (
+    ApplicationApprovalCreate,
     ApplicationCreate,
     ApplicationSearchParams,
     ApplicationUpdate,
-    ApplicationApprovalCreate,
 )
 
 
@@ -30,7 +28,9 @@ class ApplicationService:
     def __init__(self, db: Session):
         self.db = db
 
-    async def create_application(self, application_data: ApplicationCreate) -> Dict[str, Any]:
+    async def create_application(
+        self, application_data: ApplicationCreate
+    ) -> Dict[str, Any]:
         """Create a new application."""
         application = Application(
             title=application_data.title,
@@ -72,13 +72,17 @@ class ApplicationService:
 
         # Apply filters
         if search_params.organization_id:
-            query = query.filter(Application.organization_id == search_params.organization_id)
+            query = query.filter(
+                Application.organization_id == search_params.organization_id
+            )
 
         if search_params.status:
             query = query.filter(Application.status == search_params.status)
 
         if search_params.application_type:
-            query = query.filter(Application.application_type == search_params.application_type)
+            query = query.filter(
+                Application.application_type == search_params.application_type
+            )
 
         if search_params.created_by:
             query = query.filter(Application.created_by == search_params.created_by)
@@ -105,15 +109,17 @@ class ApplicationService:
 
         items = []
         for app in applications:
-            items.append({
-                "id": app.id,
-                "title": app.title,
-                "status": app.status.value,
-                "application_type": app.application_type.value,
-                "created_by": app.created_by,
-                "created_at": app.created_at.isoformat(),
-                "priority": app.priority,
-            })
+            items.append(
+                {
+                    "id": app.id,
+                    "title": app.title,
+                    "status": app.status.value,
+                    "application_type": app.application_type.value,
+                    "created_by": app.created_by,
+                    "created_at": app.created_at.isoformat(),
+                    "priority": app.priority,
+                }
+            )
 
         return {
             "items": items,
@@ -144,14 +150,16 @@ class ApplicationService:
 
         items = []
         for app in applications:
-            items.append({
-                "id": app.id,
-                "title": app.title,
-                "status": app.status.value,
-                "application_type": app.application_type.value,
-                "created_at": app.created_at.isoformat(),
-                "priority": app.priority,
-            })
+            items.append(
+                {
+                    "id": app.id,
+                    "title": app.title,
+                    "status": app.status.value,
+                    "application_type": app.application_type.value,
+                    "created_at": app.created_at.isoformat(),
+                    "priority": app.priority,
+                }
+            )
 
         return {
             "items": items,
@@ -192,14 +200,16 @@ class ApplicationService:
 
         items = []
         for app in applications:
-            items.append({
-                "id": app.id,
-                "title": app.title,
-                "status": app.status.value,
-                "application_type": app.application_type.value,
-                "created_at": app.created_at.isoformat(),
-                "priority": app.priority,
-            })
+            items.append(
+                {
+                    "id": app.id,
+                    "title": app.title,
+                    "status": app.status.value,
+                    "application_type": app.application_type.value,
+                    "created_at": app.created_at.isoformat(),
+                    "priority": app.priority,
+                }
+            )
 
         return {
             "items": items,
@@ -210,7 +220,9 @@ class ApplicationService:
 
     async def get_application(self, application_id: int) -> Optional[Dict[str, Any]]:
         """Get application by ID."""
-        application = self.db.query(Application).filter(Application.id == application_id).first()
+        application = (
+            self.db.query(Application).filter(Application.id == application_id).first()
+        )
 
         if not application:
             return None
@@ -228,15 +240,21 @@ class ApplicationService:
             "form_data": application.form_data,
             "created_at": application.created_at.isoformat(),
             "updated_at": application.updated_at.isoformat(),
-            "submitted_at": application.submitted_at.isoformat() if application.submitted_at else None,
-            "approved_at": application.approved_at.isoformat() if application.approved_at else None,
+            "submitted_at": application.submitted_at.isoformat()
+            if application.submitted_at
+            else None,
+            "approved_at": application.approved_at.isoformat()
+            if application.approved_at
+            else None,
         }
 
     async def update_application(
         self, application_id: int, application_data: ApplicationUpdate
     ) -> Optional[Dict[str, Any]]:
         """Update application."""
-        application = self.db.query(Application).filter(Application.id == application_id).first()
+        application = (
+            self.db.query(Application).filter(Application.id == application_id).first()
+        )
 
         if not application:
             return None
@@ -259,7 +277,9 @@ class ApplicationService:
 
     async def delete_application(self, application_id: int) -> bool:
         """Delete application (soft delete)."""
-        application = self.db.query(Application).filter(Application.id == application_id).first()
+        application = (
+            self.db.query(Application).filter(Application.id == application_id).first()
+        )
 
         if not application:
             return False
@@ -280,7 +300,9 @@ class ApplicationService:
         self, application_id: int, background_tasks: BackgroundTasks
     ) -> Dict[str, Any]:
         """Submit application for approval."""
-        application = self.db.query(Application).filter(Application.id == application_id).first()
+        application = (
+            self.db.query(Application).filter(Application.id == application_id).first()
+        )
 
         if not application:
             raise HTTPException(status_code=404, detail="Application not found")
@@ -296,24 +318,31 @@ class ApplicationService:
         self.db.commit()
 
         # Add background task for notifications
-        background_tasks.add_task(
-            self._send_submission_notifications, application_id
-        )
+        background_tasks.add_task(self._send_submission_notifications, application_id)
 
-        return {"message": "Application submitted successfully", "application_id": application_id}
+        return {
+            "message": "Application submitted successfully",
+            "application_id": application_id,
+        }
 
     async def cancel_application(
         self, application_id: int, reason: Optional[str] = None
     ) -> Dict[str, Any]:
         """Cancel application."""
-        application = self.db.query(Application).filter(Application.id == application_id).first()
+        application = (
+            self.db.query(Application).filter(Application.id == application_id).first()
+        )
 
         if not application:
             raise HTTPException(status_code=404, detail="Application not found")
 
-        if application.status in [ApplicationStatus.APPROVED, ApplicationStatus.CANCELLED]:
+        if application.status in [
+            ApplicationStatus.APPROVED,
+            ApplicationStatus.CANCELLED,
+        ]:
             raise HTTPException(
-                status_code=400, detail="Cannot cancel approved or already cancelled application"
+                status_code=400,
+                detail="Cannot cancel approved or already cancelled application",
             )
 
         application.status = ApplicationStatus.CANCELLED
@@ -324,13 +353,18 @@ class ApplicationService:
 
         self.db.commit()
 
-        return {"message": "Application cancelled successfully", "application_id": application_id}
+        return {
+            "message": "Application cancelled successfully",
+            "application_id": application_id,
+        }
 
     async def resubmit_application(
         self, application_id: int, background_tasks: BackgroundTasks
     ) -> Dict[str, Any]:
         """Resubmit rejected application."""
-        application = self.db.query(Application).filter(Application.id == application_id).first()
+        application = (
+            self.db.query(Application).filter(Application.id == application_id).first()
+        )
 
         if not application:
             raise HTTPException(status_code=404, detail="Application not found")
@@ -346,11 +380,12 @@ class ApplicationService:
         self.db.commit()
 
         # Add background task for notifications
-        background_tasks.add_task(
-            self._send_resubmission_notifications, application_id
-        )
+        background_tasks.add_task(self._send_resubmission_notifications, application_id)
 
-        return {"message": "Application resubmitted successfully", "application_id": application_id}
+        return {
+            "message": "Application resubmitted successfully",
+            "application_id": application_id,
+        }
 
     async def create_approval(
         self,
@@ -359,7 +394,9 @@ class ApplicationService:
         background_tasks: BackgroundTasks,
     ) -> Dict[str, Any]:
         """Create approval decision for application."""
-        application = self.db.query(Application).filter(Application.id == application_id).first()
+        application = (
+            self.db.query(Application).filter(Application.id == application_id).first()
+        )
 
         if not application:
             raise HTTPException(status_code=404, detail="Application not found")
@@ -369,7 +406,9 @@ class ApplicationService:
             approver_id=approval_data.approver_id,
             status=approval_data.status,
             comments=approval_data.comments,
-            approved_at=datetime.utcnow() if approval_data.status == ApprovalStatus.APPROVED else None,
+            approved_at=datetime.utcnow()
+            if approval_data.status == ApprovalStatus.APPROVED
+            else None,
             created_at=datetime.utcnow(),
         )
 
@@ -388,7 +427,9 @@ class ApplicationService:
 
         # Add background task for notifications
         background_tasks.add_task(
-            self._send_approval_notifications, application_id, approval_data.status.value
+            self._send_approval_notifications,
+            application_id,
+            approval_data.status.value,
         )
 
         return {
@@ -400,7 +441,9 @@ class ApplicationService:
             "created_at": approval.created_at.isoformat(),
         }
 
-    async def get_application_approvals(self, application_id: int) -> List[Dict[str, Any]]:
+    async def get_application_approvals(
+        self, application_id: int
+    ) -> List[Dict[str, Any]]:
         """Get approval history for application."""
         approvals = (
             self.db.query(ApplicationApproval)
@@ -416,7 +459,9 @@ class ApplicationService:
                 "status": approval.status.value,
                 "comments": approval.comments,
                 "created_at": approval.created_at.isoformat(),
-                "approved_at": approval.approved_at.isoformat() if approval.approved_at else None,
+                "approved_at": approval.approved_at.isoformat()
+                if approval.approved_at
+                else None,
             }
             for approval in approvals
         ]
@@ -433,7 +478,9 @@ class ApplicationService:
             status=ApprovalStatus.APPROVED,
             comments=comments,
         )
-        return await self.create_approval(application_id, approval_data, background_tasks)
+        return await self.create_approval(
+            application_id, approval_data, background_tasks
+        )
 
     async def quick_reject(
         self,
@@ -447,7 +494,9 @@ class ApplicationService:
             status=ApprovalStatus.REJECTED,
             comments=reason,
         )
-        return await self.create_approval(application_id, approval_data, background_tasks)
+        return await self.create_approval(
+            application_id, approval_data, background_tasks
+        )
 
     async def request_clarification(
         self,
@@ -456,7 +505,9 @@ class ApplicationService:
         background_tasks: BackgroundTasks,
     ) -> Dict[str, Any]:
         """Request clarification on application."""
-        application = self.db.query(Application).filter(Application.id == application_id).first()
+        application = (
+            self.db.query(Application).filter(Application.id == application_id).first()
+        )
 
         if not application:
             raise HTTPException(status_code=404, detail="Application not found")
@@ -526,7 +577,9 @@ class ApplicationService:
         application_type: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Get application analytics summary."""
-        query = self.db.query(Application).filter(Application.organization_id == organization_id)
+        query = self.db.query(Application).filter(
+            Application.organization_id == organization_id
+        )
 
         if start_date:
             query = query.filter(Application.created_at >= start_date)
@@ -544,13 +597,17 @@ class ApplicationService:
 
         # Get type breakdown
         type_counts = (
-            query.with_entities(Application.application_type, func.count(Application.id))
+            query.with_entities(
+                Application.application_type, func.count(Application.id)
+            )
             .group_by(Application.application_type)
             .all()
         )
 
         # Calculate average processing time
-        approved_apps = query.filter(Application.status == ApplicationStatus.APPROVED).all()
+        approved_apps = query.filter(
+            Application.status == ApplicationStatus.APPROVED
+        ).all()
         avg_processing_time = None
         if approved_apps:
             processing_times = [
@@ -563,8 +620,12 @@ class ApplicationService:
 
         return {
             "total_applications": query.count(),
-            "status_breakdown": {status.value: count for status, count in status_counts},
-            "type_breakdown": {app_type.value: count for app_type, count in type_counts},
+            "status_breakdown": {
+                status.value: count for status, count in status_counts
+            },
+            "type_breakdown": {
+                app_type.value: count for app_type, count in type_counts
+            },
             "average_processing_time_hours": avg_processing_time,
         }
 
@@ -593,10 +654,16 @@ class ApplicationService:
 
         # Calculate metrics
         total_approvals = len(approvals)
-        approved_count = len([a for a in approvals if a.status == ApprovalStatus.APPROVED])
-        rejected_count = len([a for a in approvals if a.status == ApprovalStatus.REJECTED])
+        approved_count = len(
+            [a for a in approvals if a.status == ApprovalStatus.APPROVED]
+        )
+        rejected_count = len(
+            [a for a in approvals if a.status == ApprovalStatus.REJECTED]
+        )
 
-        approval_rate = (approved_count / total_approvals * 100) if total_approvals > 0 else 0
+        approval_rate = (
+            (approved_count / total_approvals * 100) if total_approvals > 0 else 0
+        )
 
         return {
             "total_approvals": total_approvals,
@@ -638,7 +705,9 @@ class ApplicationService:
         ]
 
         if application_type:
-            templates = [t for t in templates if t["application_type"] == application_type]
+            templates = [
+                t for t in templates if t["application_type"] == application_type
+            ]
 
         return templates
 
@@ -664,7 +733,9 @@ class ApplicationService:
             self._send_custom_notification, application_id, message, recipients
         )
 
-    async def send_approval_reminders(self, background_tasks: BackgroundTasks) -> Dict[str, Any]:
+    async def send_approval_reminders(
+        self, background_tasks: BackgroundTasks
+    ) -> Dict[str, Any]:
         """Send reminders for pending approvals."""
         # Get applications pending approval for more than 24 hours
         cutoff_time = datetime.utcnow() - timedelta(hours=24)
@@ -694,7 +765,9 @@ class ApplicationService:
         status: Optional[str] = None,
     ):
         """Export applications to CSV."""
-        query = self.db.query(Application).filter(Application.organization_id == organization_id)
+        query = self.db.query(Application).filter(
+            Application.organization_id == organization_id
+        )
 
         if start_date:
             query = query.filter(Application.created_at >= start_date)
@@ -708,20 +781,23 @@ class ApplicationService:
         # Convert to DataFrame
         data = []
         for app in applications:
-            data.append({
-                "ID": app.id,
-                "Title": app.title,
-                "Type": app.application_type.value,
-                "Status": app.status.value,
-                "Created By": app.created_by,
-                "Created At": app.created_at.isoformat(),
-                "Priority": app.priority,
-            })
+            data.append(
+                {
+                    "ID": app.id,
+                    "Title": app.title,
+                    "Type": app.application_type.value,
+                    "Status": app.status.value,
+                    "Created By": app.created_by,
+                    "Created At": app.created_at.isoformat(),
+                    "Priority": app.priority,
+                }
+            )
 
         df = pd.DataFrame(data)
 
         # Return CSV response (implementation depends on framework)
         from io import StringIO
+
         from fastapi.responses import Response
 
         output = StringIO()
@@ -742,7 +818,9 @@ class ApplicationService:
         status: Optional[str] = None,
     ):
         """Export applications to Excel."""
-        query = self.db.query(Application).filter(Application.organization_id == organization_id)
+        query = self.db.query(Application).filter(
+            Application.organization_id == organization_id
+        )
 
         if start_date:
             query = query.filter(Application.created_at >= start_date)
@@ -756,25 +834,28 @@ class ApplicationService:
         # Convert to DataFrame
         data = []
         for app in applications:
-            data.append({
-                "ID": app.id,
-                "Title": app.title,
-                "Type": app.application_type.value,
-                "Status": app.status.value,
-                "Created By": app.created_by,
-                "Created At": app.created_at.isoformat(),
-                "Priority": app.priority,
-            })
+            data.append(
+                {
+                    "ID": app.id,
+                    "Title": app.title,
+                    "Type": app.application_type.value,
+                    "Status": app.status.value,
+                    "Created By": app.created_by,
+                    "Created At": app.created_at.isoformat(),
+                    "Priority": app.priority,
+                }
+            )
 
         df = pd.DataFrame(data)
 
         # Return Excel response
         from io import BytesIO
+
         from fastapi.responses import Response
 
         output = BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df.to_excel(writer, sheet_name='Applications', index=False)
+        with pd.ExcelWriter(output, engine="openpyxl") as writer:
+            df.to_excel(writer, sheet_name="Applications", index=False)
 
         output.seek(0)
 
@@ -795,12 +876,16 @@ class ApplicationService:
         # Implementation for sending notifications
         pass
 
-    async def _send_approval_notifications(self, application_id: int, status: str) -> None:
+    async def _send_approval_notifications(
+        self, application_id: int, status: str
+    ) -> None:
         """Send notifications when application is approved/rejected."""
         # Implementation for sending notifications
         pass
 
-    async def _send_clarification_request(self, application_id: int, message: str) -> None:
+    async def _send_clarification_request(
+        self, application_id: int, message: str
+    ) -> None:
         """Send clarification request notification."""
         # Implementation for sending notifications
         pass

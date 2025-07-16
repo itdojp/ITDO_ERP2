@@ -3,25 +3,24 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from sqlalchemy import and_
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_
 
 from app.models.workflow import (
-    Workflow,
-    WorkflowInstance,
-    WorkflowTask,
-    WorkflowNode,
-    WorkflowConnection,
-    WorkflowStatus,
-    WorkflowInstanceStatus,
+    NodeType,
     TaskStatus,
-    NodeType
+    Workflow,
+    WorkflowConnection,
+    WorkflowInstance,
+    WorkflowInstanceStatus,
+    WorkflowNode,
+    WorkflowTask,
 )
 from app.schemas.workflow import (
     WorkflowCreate,
-    WorkflowUpdate,
     WorkflowInstanceCreate,
-    WorkflowTaskUpdate
+    WorkflowTaskUpdate,
+    WorkflowUpdate,
 )
 
 
@@ -39,13 +38,13 @@ class WorkflowService:
             organization_id=workflow_data.organization_id,
             definition=workflow_data.definition,
             is_active=workflow_data.is_active,
-            created_by=workflow_data.created_by
+            created_by=workflow_data.created_by,
         )
-        
+
         self.db.add(workflow)
         self.db.commit()
         self.db.refresh(workflow)
-        
+
         # Create workflow nodes if provided
         if workflow_data.nodes:
             for node_data in workflow_data.nodes:
@@ -55,10 +54,10 @@ class WorkflowService:
                     name=node_data.name,
                     config=node_data.config,
                     position_x=node_data.position_x,
-                    position_y=node_data.position_y
+                    position_y=node_data.position_y,
                 )
                 self.db.add(node)
-        
+
         # Create workflow connections if provided
         if workflow_data.connections:
             for conn_data in workflow_data.connections:
@@ -67,10 +66,10 @@ class WorkflowService:
                     from_node_id=conn_data.from_node_id,
                     to_node_id=conn_data.to_node_id,
                     condition=conn_data.condition,
-                    condition_config=conn_data.condition_config
+                    condition_config=conn_data.condition_config,
                 )
                 self.db.add(connection)
-        
+
         self.db.commit()
         return self._workflow_to_dict(workflow)
 
@@ -79,17 +78,17 @@ class WorkflowService:
         organization_id: Optional[int] = None,
         status: Optional[str] = None,
         skip: int = 0,
-        limit: int = 100
+        limit: int = 100,
     ) -> List[Dict[str, Any]]:
         """Get list of workflows with filtering."""
         query = self.db.query(Workflow).filter(Workflow.is_deleted == False)
-        
+
         if organization_id:
             query = query.filter(Workflow.organization_id == organization_id)
-        
+
         if status:
             query = query.filter(Workflow.status == status)
-        
+
         workflows = query.offset(skip).limit(limit).all()
         return [self._workflow_to_dict(w) for w in workflows]
 
@@ -111,17 +110,17 @@ class WorkflowService:
             .filter(and_(Workflow.id == workflow_id, Workflow.is_deleted == False))
             .first()
         )
-        
+
         if not workflow:
             return None
-        
+
         for field, value in workflow_data.dict(exclude_unset=True).items():
             setattr(workflow, field, value)
-        
+
         workflow.updated_at = datetime.utcnow()
         self.db.commit()
         self.db.refresh(workflow)
-        
+
         return self._workflow_to_dict(workflow)
 
     async def delete_workflow(self, workflow_id: int) -> bool:
@@ -131,14 +130,14 @@ class WorkflowService:
             .filter(and_(Workflow.id == workflow_id, Workflow.is_deleted == False))
             .first()
         )
-        
+
         if not workflow:
             return False
-        
+
         workflow.is_deleted = True
         workflow.deleted_at = datetime.utcnow()
         self.db.commit()
-        
+
         return True
 
     async def start_workflow_instance(
@@ -150,13 +149,13 @@ class WorkflowService:
             .filter(and_(Workflow.id == workflow_id, Workflow.is_deleted == False))
             .first()
         )
-        
+
         if not workflow:
             raise ValueError("Workflow not found")
-        
+
         if not workflow.is_active:
             raise ValueError("Workflow is not active")
-        
+
         instance = WorkflowInstance(
             workflow_id=workflow_id,
             title=instance_data.title,
@@ -166,16 +165,16 @@ class WorkflowService:
             entity_type=instance_data.entity_type,
             entity_id=instance_data.entity_id,
             context_data=instance_data.context_data,
-            status=WorkflowInstanceStatus.PENDING
+            status=WorkflowInstanceStatus.PENDING,
         )
-        
+
         self.db.add(instance)
         self.db.commit()
         self.db.refresh(instance)
-        
+
         # Create initial workflow tasks
         await self._create_initial_tasks(instance)
-        
+
         return self._instance_to_dict(instance)
 
     async def get_workflow_instances(
@@ -183,22 +182,19 @@ class WorkflowService:
         workflow_id: int,
         status: Optional[str] = None,
         skip: int = 0,
-        limit: int = 100
+        limit: int = 100,
     ) -> List[Dict[str, Any]]:
         """Get workflow instances."""
-        query = (
-            self.db.query(WorkflowInstance)
-            .filter(
-                and_(
-                    WorkflowInstance.workflow_id == workflow_id,
-                    WorkflowInstance.is_deleted == False
-                )
+        query = self.db.query(WorkflowInstance).filter(
+            and_(
+                WorkflowInstance.workflow_id == workflow_id,
+                WorkflowInstance.is_deleted == False,
             )
         )
-        
+
         if status:
             query = query.filter(WorkflowInstance.status == status)
-        
+
         instances = query.offset(skip).limit(limit).all()
         return [self._instance_to_dict(i) for i in instances]
 
@@ -209,7 +205,7 @@ class WorkflowService:
             .filter(
                 and_(
                     WorkflowInstance.id == instance_id,
-                    WorkflowInstance.is_deleted == False
+                    WorkflowInstance.is_deleted == False,
                 )
             )
             .first()
@@ -220,25 +216,22 @@ class WorkflowService:
         self,
         instance_id: int,
         status: Optional[str] = None,
-        assigned_to: Optional[int] = None
+        assigned_to: Optional[int] = None,
     ) -> List[Dict[str, Any]]:
         """Get tasks for workflow instance."""
-        query = (
-            self.db.query(WorkflowTask)
-            .filter(
-                and_(
-                    WorkflowTask.instance_id == instance_id,
-                    WorkflowTask.is_deleted == False
-                )
+        query = self.db.query(WorkflowTask).filter(
+            and_(
+                WorkflowTask.instance_id == instance_id,
+                WorkflowTask.is_deleted == False,
             )
         )
-        
+
         if status:
             query = query.filter(WorkflowTask.status == status)
-        
+
         if assigned_to:
             query = query.filter(WorkflowTask.assigned_to == assigned_to)
-        
+
         tasks = query.all()
         return [self._task_to_dict(t) for t in tasks]
 
@@ -251,17 +244,17 @@ class WorkflowService:
             .filter(and_(WorkflowTask.id == task_id, WorkflowTask.is_deleted == False))
             .first()
         )
-        
+
         if not task:
             return None
-        
+
         for field, value in task_data.dict(exclude_unset=True).items():
             setattr(task, field, value)
-        
+
         task.updated_at = datetime.utcnow()
         self.db.commit()
         self.db.refresh(task)
-        
+
         return self._task_to_dict(task)
 
     async def complete_workflow_task(
@@ -273,21 +266,21 @@ class WorkflowService:
             .filter(and_(WorkflowTask.id == task_id, WorkflowTask.is_deleted == False))
             .first()
         )
-        
+
         if not task:
             return False
-        
+
         task.status = TaskStatus.COMPLETED
         task.completed_at = datetime.utcnow()
-        
+
         if completion_data:
             task.result_data = completion_data
-        
+
         self.db.commit()
-        
+
         # Check if workflow instance should progress
         await self._check_instance_progress(task.instance_id)
-        
+
         return True
 
     async def assign_workflow_task(self, task_id: int, assignee_id: int) -> bool:
@@ -297,14 +290,14 @@ class WorkflowService:
             .filter(and_(WorkflowTask.id == task_id, WorkflowTask.is_deleted == False))
             .first()
         )
-        
+
         if not task:
             return False
-        
+
         task.assigned_to = assignee_id
         task.assigned_at = datetime.utcnow()
         task.status = TaskStatus.ASSIGNED
-        
+
         self.db.commit()
         return True
 
@@ -312,33 +305,36 @@ class WorkflowService:
         self,
         workflow_id: int,
         start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None
+        end_date: Optional[datetime] = None,
     ) -> Dict[str, Any]:
         """Get workflow performance analytics."""
-        query = (
-            self.db.query(WorkflowInstance)
-            .filter(WorkflowInstance.workflow_id == workflow_id)
+        query = self.db.query(WorkflowInstance).filter(
+            WorkflowInstance.workflow_id == workflow_id
         )
-        
+
         if start_date:
             query = query.filter(WorkflowInstance.created_at >= start_date)
-        
+
         if end_date:
             query = query.filter(WorkflowInstance.created_at <= end_date)
-        
+
         instances = query.all()
-        
+
         total_instances = len(instances)
-        completed_instances = len([i for i in instances if i.status == WorkflowInstanceStatus.COMPLETED])
+        completed_instances = len(
+            [i for i in instances if i.status == WorkflowInstanceStatus.COMPLETED]
+        )
         avg_completion_time = self._calculate_avg_completion_time(instances)
-        
+
         return {
             "workflow_id": workflow_id,
             "total_instances": total_instances,
             "completed_instances": completed_instances,
-            "completion_rate": completed_instances / total_instances if total_instances > 0 else 0,
+            "completion_rate": completed_instances / total_instances
+            if total_instances > 0
+            else 0,
             "average_completion_time_hours": avg_completion_time,
-            "status_breakdown": self._get_status_breakdown(instances)
+            "status_breakdown": self._get_status_breakdown(instances),
         }
 
     async def get_instance_progress(self, instance_id: int) -> Optional[Dict[str, Any]]:
@@ -348,31 +344,37 @@ class WorkflowService:
             .filter(
                 and_(
                     WorkflowInstance.id == instance_id,
-                    WorkflowInstance.is_deleted == False
+                    WorkflowInstance.is_deleted == False,
                 )
             )
             .first()
         )
-        
+
         if not instance:
             return None
-        
+
         tasks = (
             self.db.query(WorkflowTask)
             .filter(WorkflowTask.instance_id == instance_id)
             .all()
         )
-        
+
         total_tasks = len(tasks)
         completed_tasks = len([t for t in tasks if t.status == TaskStatus.COMPLETED])
-        
+
         return {
             "instance_id": instance_id,
             "status": instance.status,
             "total_tasks": total_tasks,
             "completed_tasks": completed_tasks,
-            "progress_percentage": (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0,
-            "current_tasks": [self._task_to_dict(t) for t in tasks if t.status in [TaskStatus.ASSIGNED, TaskStatus.IN_PROGRESS]]
+            "progress_percentage": (completed_tasks / total_tasks * 100)
+            if total_tasks > 0
+            else 0,
+            "current_tasks": [
+                self._task_to_dict(t)
+                for t in tasks
+                if t.status in [TaskStatus.ASSIGNED, TaskStatus.IN_PROGRESS]
+            ],
         }
 
     async def _create_initial_tasks(self, instance: WorkflowInstance) -> None:
@@ -383,16 +385,16 @@ class WorkflowService:
             .filter(
                 and_(
                     WorkflowNode.workflow_id == instance.workflow_id,
-                    WorkflowNode.node_type == NodeType.START
+                    WorkflowNode.node_type == NodeType.START,
                 )
             )
             .all()
         )
-        
+
         for node in start_nodes:
             # Find next nodes from start
             next_nodes = self._get_next_nodes(node.id)
-            
+
             for next_node in next_nodes:
                 if next_node.node_type in [NodeType.TASK, NodeType.APPROVAL]:
                     task = WorkflowTask(
@@ -401,10 +403,10 @@ class WorkflowService:
                         name=next_node.name,
                         description=next_node.config.get("description", ""),
                         status=TaskStatus.PENDING,
-                        task_config=next_node.config
+                        task_config=next_node.config,
                     )
                     self.db.add(task)
-        
+
         self.db.commit()
 
     async def _check_instance_progress(self, instance_id: int) -> None:
@@ -412,35 +414,37 @@ class WorkflowService:
         instance = self.db.query(WorkflowInstance).get(instance_id)
         if not instance:
             return
-        
+
         # Get all pending tasks
         pending_tasks = (
             self.db.query(WorkflowTask)
             .filter(
                 and_(
                     WorkflowTask.instance_id == instance_id,
-                    WorkflowTask.status == TaskStatus.PENDING
+                    WorkflowTask.status == TaskStatus.PENDING,
                 )
             )
             .all()
         )
-        
+
         # Check if all required tasks are completed to activate pending tasks
         for task in pending_tasks:
             if self._can_activate_task(task):
                 task.status = TaskStatus.ASSIGNED
-        
+
         # Check if instance is complete
         all_tasks = (
             self.db.query(WorkflowTask)
             .filter(WorkflowTask.instance_id == instance_id)
             .all()
         )
-        
-        if all(t.status in [TaskStatus.COMPLETED, TaskStatus.SKIPPED] for t in all_tasks):
+
+        if all(
+            t.status in [TaskStatus.COMPLETED, TaskStatus.SKIPPED] for t in all_tasks
+        ):
             instance.status = WorkflowInstanceStatus.COMPLETED
             instance.completed_at = datetime.utcnow()
-        
+
         self.db.commit()
 
     def _get_next_nodes(self, node_id: int) -> List[Any]:
@@ -450,13 +454,13 @@ class WorkflowService:
             .filter(WorkflowConnection.from_node_id == node_id)
             .all()
         )
-        
+
         next_nodes = []
         for conn in connections:
             node = self.db.query(WorkflowNode).get(conn.to_node_id)
             if node:
                 next_nodes.append(node)
-        
+
         return next_nodes
 
     def _can_activate_task(self, task: WorkflowTask) -> bool:
@@ -465,13 +469,13 @@ class WorkflowService:
         node = self.db.query(WorkflowNode).get(task.node_id)
         if not node:
             return False
-        
+
         prerequisite_connections = (
             self.db.query(WorkflowConnection)
             .filter(WorkflowConnection.to_node_id == node.id)
             .all()
         )
-        
+
         for conn in prerequisite_connections:
             # Check if prerequisite task is completed
             prerequisite_tasks = (
@@ -479,38 +483,41 @@ class WorkflowService:
                 .filter(
                     and_(
                         WorkflowTask.instance_id == task.instance_id,
-                        WorkflowTask.node_id == conn.from_node_id
+                        WorkflowTask.node_id == conn.from_node_id,
                     )
                 )
                 .all()
             )
-            
+
             if not all(t.status == TaskStatus.COMPLETED for t in prerequisite_tasks):
                 return False
-        
+
         return True
 
-    def _calculate_avg_completion_time(self, instances: List[WorkflowInstance]) -> float:
+    def _calculate_avg_completion_time(
+        self, instances: List[WorkflowInstance]
+    ) -> float:
         """Calculate average completion time in hours."""
         completed = [i for i in instances if i.completed_at and i.created_at]
-        
+
         if not completed:
             return 0.0
-        
+
         total_hours = sum(
-            (i.completed_at - i.created_at).total_seconds() / 3600
-            for i in completed
+            (i.completed_at - i.created_at).total_seconds() / 3600 for i in completed
         )
-        
+
         return total_hours / len(completed)
 
-    def _get_status_breakdown(self, instances: List[WorkflowInstance]) -> Dict[str, int]:
+    def _get_status_breakdown(
+        self, instances: List[WorkflowInstance]
+    ) -> Dict[str, int]:
         """Get status breakdown for instances."""
         breakdown = {}
         for instance in instances:
             status = instance.status
             breakdown[status] = breakdown.get(status, 0) + 1
-        
+
         return breakdown
 
     def _workflow_to_dict(self, workflow: Workflow) -> Dict[str, Any]:
@@ -525,7 +532,7 @@ class WorkflowService:
             "definition": workflow.definition,
             "created_by": workflow.created_by,
             "created_at": workflow.created_at,
-            "updated_at": workflow.updated_at
+            "updated_at": workflow.updated_at,
         }
 
     def _instance_to_dict(self, instance: WorkflowInstance) -> Dict[str, Any]:
@@ -543,7 +550,7 @@ class WorkflowService:
             "context_data": instance.context_data,
             "created_at": instance.created_at,
             "updated_at": instance.updated_at,
-            "completed_at": instance.completed_at
+            "completed_at": instance.completed_at,
         }
 
     def _task_to_dict(self, task: WorkflowTask) -> Dict[str, Any]:
@@ -562,5 +569,5 @@ class WorkflowService:
             "task_config": task.task_config,
             "result_data": task.result_data,
             "created_at": task.created_at,
-            "updated_at": task.updated_at
+            "updated_at": task.updated_at,
         }

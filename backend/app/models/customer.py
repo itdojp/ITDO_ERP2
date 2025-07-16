@@ -5,7 +5,16 @@ from decimal import Decimal
 from enum import Enum
 from typing import TYPE_CHECKING, List, Optional
 
-from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, Numeric, String, Text
+from sqlalchemy import (
+    Boolean,
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    Numeric,
+    String,
+    Text,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import SoftDeletableModel
@@ -18,6 +27,7 @@ if TYPE_CHECKING:
 
 class CustomerType(str, Enum):
     """Customer type enumeration."""
+
     INDIVIDUAL = "individual"
     CORPORATE = "corporate"
     GOVERNMENT = "government"
@@ -26,6 +36,7 @@ class CustomerType(str, Enum):
 
 class CustomerStatus(str, Enum):
     """Customer status enumeration."""
+
     ACTIVE = "active"
     INACTIVE = "inactive"
     PROSPECT = "prospect"
@@ -34,6 +45,7 @@ class CustomerStatus(str, Enum):
 
 class OpportunityStage(str, Enum):
     """Opportunity stage enumeration."""
+
     LEAD = "lead"
     QUALIFIED = "qualified"
     PROPOSAL = "proposal"
@@ -44,6 +56,7 @@ class OpportunityStage(str, Enum):
 
 class ActivityType(str, Enum):
     """Activity type enumeration."""
+
     CALL = "call"
     EMAIL = "email"
     MEETING = "meeting"
@@ -70,7 +83,7 @@ class Customer(SoftDeletableModel):
     short_name: Mapped[Optional[str]] = mapped_column(
         String(100), nullable=True, comment="Short name/abbreviation"
     )
-    
+
     # Customer classification
     customer_type: Mapped[CustomerType] = mapped_column(
         String(50), nullable=False, comment="Customer type"
@@ -87,7 +100,10 @@ class Customer(SoftDeletableModel):
 
     # Foreign keys
     organization_id: Mapped[OrganizationId] = mapped_column(
-        Integer, ForeignKey("organizations.id"), nullable=False, comment="Organization ID"
+        Integer,
+        ForeignKey("organizations.id"),
+        nullable=False,
+        comment="Organization ID",
     )
     assigned_to: Mapped[Optional[UserId]] = mapped_column(
         Integer, ForeignKey("users.id"), nullable=True, comment="Assigned sales rep"
@@ -145,7 +161,7 @@ class Customer(SoftDeletableModel):
     priority: Mapped[str] = mapped_column(
         String(50), default="normal", comment="Priority: high/normal/low"
     )
-    
+
     # Notes and descriptions
     notes: Mapped[Optional[str]] = mapped_column(
         Text, nullable=True, comment="Customer notes"
@@ -335,7 +351,7 @@ class Opportunity(SoftDeletableModel):
     probability: Mapped[int] = mapped_column(
         Integer, default=0, comment="Win probability (0-100)"
     )
-    
+
     # Important dates
     expected_close_date: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True, comment="Expected close date"
@@ -362,13 +378,13 @@ class Opportunity(SoftDeletableModel):
     )
 
     # Relationships
-    customer: Mapped["Customer"] = relationship("Customer", back_populates="opportunities")
+    customer: Mapped["Customer"] = relationship(
+        "Customer", back_populates="opportunities"
+    )
     assigned_user: Mapped[Optional["User"]] = relationship(
         "User", foreign_keys=[assigned_to], lazy="select"
     )
-    owner: Mapped["User"] = relationship(
-        "User", foreign_keys=[owner_id], lazy="select"
-    )
+    owner: Mapped["User"] = relationship("User", foreign_keys=[owner_id], lazy="select")
     activities: Mapped[List["CustomerActivity"]] = relationship(
         "CustomerActivity", back_populates="opportunity", cascade="all, delete-orphan"
     )
@@ -376,7 +392,10 @@ class Opportunity(SoftDeletableModel):
     @property
     def is_open(self) -> bool:
         """Check if opportunity is still open."""
-        return self.stage not in [OpportunityStage.CLOSED_WON, OpportunityStage.CLOSED_LOST]
+        return self.stage not in [
+            OpportunityStage.CLOSED_WON,
+            OpportunityStage.CLOSED_LOST,
+        ]
 
     @property
     def is_won(self) -> bool:
@@ -399,7 +418,7 @@ class Opportunity(SoftDeletableModel):
             "proposal": 40,
             "negotiation": 60,
             "closed_won": 100,
-            "closed_lost": 0
+            "closed_lost": 0,
         }
         if self.stage.value in stage_probability:
             self.probability = stage_probability[self.stage.value]
@@ -423,10 +442,16 @@ class CustomerActivity(SoftDeletableModel):
         Integer, ForeignKey("customers.id"), nullable=False, comment="Customer ID"
     )
     opportunity_id: Mapped[Optional[int]] = mapped_column(
-        Integer, ForeignKey("opportunities.id"), nullable=True, comment="Related opportunity"
+        Integer,
+        ForeignKey("opportunities.id"),
+        nullable=True,
+        comment="Related opportunity",
     )
     user_id: Mapped[UserId] = mapped_column(
-        Integer, ForeignKey("users.id"), nullable=False, comment="User who performed activity"
+        Integer,
+        ForeignKey("users.id"),
+        nullable=False,
+        comment="User who performed activity",
     )
 
     # Activity details
@@ -472,7 +497,9 @@ class CustomerActivity(SoftDeletableModel):
 
     # Relationships
     customer: Mapped["Customer"] = relationship("Customer", back_populates="activities")
-    opportunity: Mapped[Optional["Opportunity"]] = relationship("Opportunity", back_populates="activities")
+    opportunity: Mapped[Optional["Opportunity"]] = relationship(
+        "Opportunity", back_populates="activities"
+    )
     user: Mapped["User"] = relationship("User", foreign_keys=[user_id], lazy="select")
 
     def __str__(self) -> str:

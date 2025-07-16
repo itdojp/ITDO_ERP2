@@ -147,15 +147,13 @@ class Organization(SoftDeletableModel):
         cascade="all, delete-orphan",
     )
     creator: Mapped[Optional["User"]] = relationship(
-        "User",
-        foreign_keys="Organization.created_by",
-        lazy="select"
+        "User", foreign_keys="Organization.created_by", lazy="select"
     )
 
     def update(self, db, updated_by: int, **kwargs) -> None:
         """Update organization with audit tracking."""
         from datetime import UTC, datetime
-        
+
         for key, value in kwargs.items():
             if hasattr(self, key):
                 setattr(self, key, value)
@@ -169,9 +167,11 @@ class Organization(SoftDeletableModel):
             raise ValueError("Organization code is required")
         if not self.name or len(self.name.strip()) == 0:
             raise ValueError("Organization name is required")
-        if self.email and '@' not in self.email:
+        if self.email and "@" not in self.email:
             raise ValueError("Invalid email format")
-        if self.fiscal_year_start and (self.fiscal_year_start < 1 or self.fiscal_year_start > 12):
+        if self.fiscal_year_start and (
+            self.fiscal_year_start < 1 or self.fiscal_year_start > 12
+        ):
             raise ValueError("Fiscal year start must be between 1 and 12")
 
     def __str__(self) -> str:

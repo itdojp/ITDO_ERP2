@@ -317,7 +317,6 @@ class TestRoleAPI(
 
         assert len(codes_with_inherited) >= len(codes_without_inherited)
 
-
     def test_update_role_permissions(
         self,
         client: TestClient,
@@ -356,6 +355,7 @@ class TestRoleAPI(
         assert (
             "permissions" in permissions_data or "permission_list" in permissions_data
         )
+
     @pytest.mark.skip(reason="Role permissions validation needs API implementation fix")
     def test_update_role_permissions_invalid_codes(
         self,

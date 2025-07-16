@@ -347,35 +347,38 @@ def create_test_role(db_session, **kwargs):
     # Handle permissions parameter - remove it from role creation since it's not a role field
     permissions = kwargs.pop("permissions", None)
     role = RoleFactory.create(db_session, **kwargs)
-    
+
     # If permissions were provided, create them and associate with the role
     if permissions and isinstance(permissions, list):
         from app.models.permission import Permission
         from app.models.role import RolePermission
-        
+
         for perm_code in permissions:
             # Find or create permission
-            permission = db_session.query(Permission).filter(Permission.code == perm_code).first()
+            permission = (
+                db_session.query(Permission)
+                .filter(Permission.code == perm_code)
+                .first()
+            )
             if not permission:
                 permission = Permission(
                     code=perm_code,
                     name=perm_code,
                     description=f"Permission for {perm_code}",
-                    category="test"
+                    category="test",
                 )
                 db_session.add(permission)
                 db_session.flush()
-            
+
             # Associate permission with role
             role_permission = RolePermission(
-                role_id=role.id,
-                permission_id=permission.id
+                role_id=role.id, permission_id=permission.id
             )
             db_session.add(role_permission)
-        
+
         db_session.commit()
         db_session.refresh(role)
-    
+
     return role
 
 
@@ -415,4 +418,6 @@ class UserRoleFactory(BaseFactory):
     @classmethod
     def create(cls, db_session, user, role, organization, department=None, **kwargs):
         """Create a test user role association."""
-        return create_test_user_role(db_session, user, role, organization, department, **kwargs)
+        return create_test_user_role(
+            db_session, user, role, organization, department, **kwargs
+        )
