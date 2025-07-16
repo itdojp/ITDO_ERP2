@@ -1,7 +1,7 @@
 """Audit log API endpoints."""
 
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
@@ -10,7 +10,6 @@ from app.core.dependencies import get_current_active_user, get_db
 from app.core.exceptions import NotFound, PermissionDenied
 from app.models.user import User
 from app.schemas.audit import (
-    AuditLogBulkIntegrityResult,
     AuditLogFilter,
     AuditLogListResponse,
     AuditLogSearch,
@@ -87,9 +86,7 @@ def search_audit_logs(
         )
 
 
-@router.get(
-    "/organizations/{organization_id}/logs/stats", response_model=AuditLogStats
-)
+@router.get("/organizations/{organization_id}/logs/stats", response_model=AuditLogStats)
 def get_audit_statistics(
     organization_id: int,
     date_from: datetime = Query(..., description="Statistics start date"),
@@ -136,7 +133,7 @@ def export_audit_logs(
             actions=actions,
             resource_types=resource_types,
         )
-        
+
         return Response(
             content=csv_data,
             media_type="text/csv",

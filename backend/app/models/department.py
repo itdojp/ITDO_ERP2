@@ -146,7 +146,6 @@ class Department(SoftDeletableModel):
         comment="Display order within the same level",
     )
 
-
     # Additional fields
     description: Mapped[str | None] = mapped_column(
         Text, nullable=True, comment="Department description or mission"

@@ -1,12 +1,10 @@
 import json
-from typing import Any, List, Optional, Union
+from typing import Any, List, Union
 
 from pydantic import (
-    AnyHttpUrl,
     AnyUrl,
     Field,
     PostgresDsn,
-    ValidationInfo,
     field_validator,
     model_validator,
 )
