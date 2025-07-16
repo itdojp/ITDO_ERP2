@@ -473,7 +473,7 @@ class CustomerActivity(SoftDeletableModel):
     # Relationships
     customer: Mapped["Customer"] = relationship("Customer", back_populates="activities")
     opportunity: Mapped[Optional["Opportunity"]] = relationship("Opportunity", back_populates="activities")
-    user: Mapped["User"] = relationship("User", lazy="select")
+    user: Mapped["User"] = relationship("User", foreign_keys=[user_id], lazy="select")
 
     def __str__(self) -> str:
         return f"{self.activity_type.value}: {self.subject}"

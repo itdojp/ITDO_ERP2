@@ -177,7 +177,7 @@ class ExpenseApprovalFlow(SoftDeletableModel):
 
     # Relationships
     expense: Mapped["Expense"] = relationship("Expense", lazy="select")
-    approver: Mapped["User"] = relationship("User", lazy="select")
+    approver: Mapped["User"] = relationship("User", foreign_keys=[approver_id], lazy="select")
 
     @property
     def is_approved(self) -> bool:

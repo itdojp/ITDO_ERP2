@@ -28,9 +28,8 @@ class TestDepartmentModel:
             code="SALES",
             name="営業部",
             name_kana="エイギョウブ",
-            level=1,
+            depth=1,
             path="",
-            sort_order=1,
         )
         db_session.add(dept)
         db_session.commit()
@@ -43,7 +42,7 @@ class TestDepartmentModel:
         assert dept.id is not None
         assert dept.code == "SALES"
         assert dept.name == "営業部"
-        assert dept.level == 1
+        assert dept.depth == 1
         assert dept.parent_id is None
         assert dept.path == str(dept.id)
         assert dept.is_active is True
