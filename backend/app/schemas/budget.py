@@ -6,8 +6,6 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, validator
 
-from app.schemas.base import BaseResponse
-
 
 class ExpenseCategoryBase(BaseModel):
     """Base schema for expense categories."""
@@ -82,7 +80,7 @@ class BudgetItemUpdate(BaseModel):
     monthly_breakdown: Optional[str] = Field(None, description="Monthly breakdown (JSON)")
 
 
-class BudgetItemResponse(BudgetItemBase, BaseResponse):
+class BudgetItemResponse(BudgetItemBase):
     """Schema for budget item responses."""
 
     id: int
@@ -174,7 +172,7 @@ class BudgetUpdate(BaseModel):
         return v
 
 
-class BudgetResponse(BudgetBase, BaseResponse):
+class BudgetResponse(BudgetBase):
     """Schema for budget responses."""
 
     id: int
