@@ -61,7 +61,9 @@ class TestAuthServiceEdgeCases:
 
         # Test with special characters in email domain
         special_email = "user+tag@sub-domain.co.uk"
-        UserFactory.create_with_password(db_session, password="password123", email=special_email)
+        UserFactory.create_with_password(
+            db_session, password="password123", email=special_email
+        )
 
         result = auth_service.authenticate_user(
             db_session, special_email, "password123"
@@ -247,7 +249,6 @@ class TestAuthServiceEdgeCases:
         db_session.refresh(user)
         assert user.failed_login_attempts == 0
         assert user.locked_until is None
-
 
     def test_authenticate_with_case_sensitivity(
         self, auth_service: AuthService, db_session: Session

@@ -144,9 +144,7 @@ class CustomerActivityService:
             if not opportunity:
                 raise ValueError("Opportunity not found")
 
-        activity = CustomerActivity(
-            user_id=user_id, **activity_data.model_dump()
-        )
+        activity = CustomerActivity(user_id=user_id, **activity_data.model_dump())
 
         self.db.add(activity)
         await self.db.commit()
@@ -302,22 +300,22 @@ class CustomerActivityService:
         total_activities = total_result.scalar()
 
         # 活動種別統計
-        type_stats_query = (
-            base_query.group_by(CustomerActivity.activity_type)
-            .with_only_columns(
-                CustomerActivity.activity_type,
-                func.count(CustomerActivity.id).label("count"),
-            )
+        type_stats_query = base_query.group_by(
+            CustomerActivity.activity_type
+        ).with_only_columns(
+            CustomerActivity.activity_type,
+            func.count(CustomerActivity.id).label("count"),
         )
         type_stats_result = await self.db.execute(type_stats_query)
-        activity_type_stats = {row.activity_type: row.count for row in type_stats_result}
+        activity_type_stats = {
+            row.activity_type: row.count for row in type_stats_result
+        }
 
         # ステータス別統計
-        status_stats_query = (
-            base_query.group_by(CustomerActivity.status)
-            .with_only_columns(
-                CustomerActivity.status, func.count(CustomerActivity.id).label("count")
-            )
+        status_stats_query = base_query.group_by(
+            CustomerActivity.status
+        ).with_only_columns(
+            CustomerActivity.status, func.count(CustomerActivity.id).label("count")
         )
         status_stats_result = await self.db.execute(status_stats_query)
         status_stats = {row.status: row.count for row in status_stats_result}

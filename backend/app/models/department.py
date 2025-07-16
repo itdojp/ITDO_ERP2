@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import Boolean, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import SoftDeletableModel
@@ -18,6 +18,9 @@ class Department(SoftDeletableModel):
     """Department model representing a division within an organization."""
 
     __tablename__ = "departments"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "code", name="uq_dept_org_code"),
+    )
 
     # Basic fields
     code: Mapped[str] = mapped_column(
@@ -56,19 +59,6 @@ class Department(SoftDeletableModel):
         index=True,
         comment="Parent department ID for sub-departments",
     )
-    # TODO: Add migration for path and depth fields
-    # path: Mapped[str] = mapped_column(
-    #     String(500),
-    #     nullable=False,
-    #     server_default="/",
-    #     comment="Full path in hierarchy (e.g., /1/2/3)",
-    # )
-    # depth: Mapped[int] = mapped_column(
-    #     Integer,
-    #     nullable=False,
-    #     server_default="0",
-    #     comment="Depth in hierarchy (0 for root)",
-    # )
 
     # CRITICAL: Materialized path fields for hierarchical queries
     path: Mapped[str] = mapped_column(
@@ -136,8 +126,6 @@ class Department(SoftDeletableModel):
         String(50), nullable=True, comment="Cost center code for accounting"
     )
 
-    # Hierarchy fields already defined above as CRITICAL materialized path fields
-
     # Display order
     display_order: Mapped[int] = mapped_column(
         Integer,
@@ -162,7 +150,16 @@ class Department(SoftDeletableModel):
         lazy="joined",
     )
     sub_departments: Mapped[list["Department"]] = relationship(
-        "Department", back_populates="parent", lazy="select"
+        "Department", back_populates="parent", lazy="select", cascade="all, delete"
+    )
+
+    # Alias for compatibility with tests
+    children: Mapped[list["Department"]] = relationship(
+        "Department",
+        back_populates="parent",
+        lazy="select",
+        cascade="all, delete",
+        overlaps="sub_departments",
     )
     manager: Mapped[Optional["User"]] = relationship(
         "User", foreign_keys=[manager_id], lazy="joined"
@@ -206,8 +203,8 @@ class Department(SoftDeletableModel):
     @property
     def current_headcount(self) -> int:
         """Get current number of users in the department."""
-        # type: ignore[no-any-return]
-        return self.users.filter_by(is_active=True).count()
+        count = self.users.filter_by(is_active=True).count()
+        return int(count) if count is not None else 0
 
     @property
     def is_over_headcount(self) -> bool:
@@ -257,12 +254,27 @@ class Department(SoftDeletableModel):
             self.path = str(self.id)
             self.depth = 0
         else:
-            parent_path = self.parent.path or str(self.parent_id)
-            self.path = f"{parent_path}.{self.id}"
-            self.depth = (self.parent.depth or 0) + 1
+            if self.parent is not None:
+                parent_path = self.parent.path or str(self.parent_id)
+                self.path = f"{parent_path}.{self.id}"
+                self.depth = (self.parent.depth or 0) + 1
+            else:
+                # Fallback if parent relationship is not loaded
+                self.path = f"{self.parent_id}.{self.id}"
+                self.depth = 1
 
     def update_subtree_paths(self) -> None:
         """Update paths for all sub-departments recursively."""
         for sub_dept in self.sub_departments:
             sub_dept.update_path()
             sub_dept.update_subtree_paths()
+
+    def validate_hierarchy(self) -> None:
+        """Validate department hierarchy constraints."""
+        if self.depth > 2:
+            raise ValueError("部門階層は2階層まで")
+
+    def get_full_path_name(self, separator: str = " / ") -> str:
+        """Get full path name including parent departments."""
+        path = self.get_hierarchy_path()
+        return separator.join([dept.name for dept in path])

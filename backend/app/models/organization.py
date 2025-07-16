@@ -1,9 +1,9 @@
 """Organization model implementation."""
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Any
 
 from sqlalchemy import Boolean, ForeignKey, Integer, String, Text
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship, Session
 
 from app.models.base import SoftDeletableModel
 from app.types import OrganizationId
@@ -83,6 +83,9 @@ class Organization(SoftDeletableModel):
     employee_count: Mapped[int | None] = mapped_column(
         Integer, nullable=True, comment="Number of employees"
     )
+    fiscal_year_start: Mapped[int | None] = mapped_column(
+        Integer, nullable=True, comment="Fiscal year start month (1-12)"
+    )
     fiscal_year_end: Mapped[str | None] = mapped_column(
         String(5), nullable=True, comment="Fiscal year end (MM-DD)"
     )
@@ -143,6 +146,37 @@ class Organization(SoftDeletableModel):
         lazy="dynamic",
         cascade="all, delete-orphan",
     )
+    creator: Mapped[Optional["User"]] = relationship(
+        "User", foreign_keys="Organization.created_by", lazy="select"
+    )
+
+    def update(self, db, updated_by: int, **kwargs) -> None:
+        """Update organization with audit tracking."""
+        from datetime import UTC, datetime
+
+        for key, value in kwargs.items():
+            if hasattr(self, key):
+                setattr(self, key, value)
+        self.updated_by = updated_by
+        self.updated_at = datetime.now(UTC)
+        db.commit()
+
+    def validate(self) -> None:
+        """Validate organization data."""
+        if not self.code or len(self.code.strip()) == 0:
+            raise ValueError("Organization code is required")
+        if not self.name or len(self.name.strip()) == 0:
+            raise ValueError("Organization name is required")
+        if self.email and "@" not in self.email:
+            raise ValueError("Invalid email format")
+        if self.fiscal_year_start and (
+            self.fiscal_year_start < 1 or self.fiscal_year_start > 12
+        ):
+            raise ValueError("Fiscal year start must be between 1 and 12")
+
+    def __str__(self) -> str:
+        """String representation of organization."""
+        return f"{self.code} - {self.name}"
 
     # Multi-tenant user relationships
     user_memberships: Mapped[list["UserOrganization"]] = relationship(
@@ -156,6 +190,14 @@ class Organization(SoftDeletableModel):
         foreign_keys="OrganizationInvitation.organization_id",
         back_populates="organization",
         cascade="all, delete-orphan",
+    )
+
+    # Creator relationship for backward compatibility
+    creator: Mapped[Optional["User"]] = relationship(
+        "User", foreign_keys="Organization.created_by", lazy="joined"
+    )
+    updater: Mapped[Optional["User"]] = relationship(
+        "User", foreign_keys="Organization.updated_by", lazy="joined"
     )
 
     def __repr__(self) -> str:
@@ -205,3 +247,31 @@ class Organization(SoftDeletableModel):
             path.insert(0, current.parent)
             current = current.parent
         return path
+
+    def update(self, db: Session, updated_by: int, **kwargs: Any) -> None:
+        """Update organization attributes."""
+        from datetime import datetime, timezone
+        
+        for key, value in kwargs.items():
+            if hasattr(self, key) and key not in ["id", "created_at", "created_by"]:
+                setattr(self, key, value)
+
+        self.updated_by = updated_by
+        self.updated_at = datetime.now(timezone.utc)
+        db.add(self)
+        db.flush()
+
+    def validate(self) -> None:
+        """Validate organization data."""
+        if not self.code or len(self.code.strip()) == 0:
+            raise ValueError("組織コードは必須です")
+
+        if not self.name or len(self.name.strip()) == 0:
+            raise ValueError("組織名は必須です")
+
+        if self.fiscal_year_start and (self.fiscal_year_start < 1 or self.fiscal_year_start > 12):
+            raise ValueError("会計年度開始月は1-12の範囲で入力してください")
+
+    def __str__(self) -> str:
+        """String representation for display."""
+        return f"{self.code} - {self.name}"

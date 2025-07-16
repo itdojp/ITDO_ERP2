@@ -17,13 +17,12 @@ from app.services.user import UserService
 from tests.factories import (
     create_test_department,
     create_test_organization,
-    # create_test_role,  # Temporarily disabled
+    create_test_role,
     create_test_user,
-    # create_test_user_role,  # Temporarily disabled
+    create_test_user_role,
 )
 
 
-@pytest.mark.skip(reason="create_test_role and create_test_user_role not yet implemented")
 class TestUserService:
     """Test cases for UserService."""
 

@@ -46,14 +46,8 @@ class DepartmentFactory(BaseFactory):
                 )
             ),
             "description": fake.text(max_nb_chars=200),
-            "department_type": fake.random_element(
-                elements=("operational", "support", "management")
-            ),
             "budget": fake.random_int(min=1000000, max=50000000),
-            "display_order": fake.random_int(min=1, max=100),
-            "level": 1,
             "path": "",
-            "sort_order": fake.random_int(min=1, max=100),
             "is_active": True,
             # CRITICAL: Materialized path fields for hierarchy
             "depth": 0,  # Default root depth
@@ -69,7 +63,6 @@ class DepartmentFactory(BaseFactory):
             "description": fake.text(max_nb_chars=200),
             "budget": fake.random_int(min=1000000, max=50000000),
             "is_active": fake.boolean(),
-            "display_order": fake.random_int(min=1, max=100),
         }
 
     @classmethod
@@ -130,7 +123,7 @@ class DepartmentFactory(BaseFactory):
                     name=child_name,
                     name_en=child_name_en,
                     code=child_code,
-                    level=current_depth + 1,
+                    depth=current_depth + 1,
                     department_type="operational"
                     if current_depth == depth - 1
                     else "support",

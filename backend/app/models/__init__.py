@@ -1,5 +1,13 @@
 """Database models package."""
 
+from app.models.analytics import (
+    Dashboard,
+    DashboardWidget,
+    DataSource,
+    Report,
+    ReportExecution,
+    ReportWidget,
+)
 from app.models.audit import AuditLog
 from app.models.budget import Budget, BudgetItem
 from app.models.cross_tenant_permissions import (
@@ -8,6 +16,9 @@ from app.models.cross_tenant_permissions import (
 )
 from app.models.customer import Customer, CustomerActivity, CustomerContact, Opportunity
 from app.models.department import Department
+
+# Phase 4-7 Models
+from app.models.expense import Expense, ExpenseApprovalFlow
 from app.models.expense_category import ExpenseCategory
 from app.models.organization import Organization
 from app.models.password_history import PasswordHistory
@@ -33,6 +44,13 @@ from app.models.user_organization import (
 from app.models.user_preferences import UserPreferences
 from app.models.user_privacy import UserPrivacySettings
 from app.models.user_session import UserSession
+from app.models.workflow import (
+    Workflow,
+    WorkflowConnection,
+    WorkflowInstance,
+    WorkflowNode,
+    WorkflowTask,
+)
 
 __all__ = [
     "User",
@@ -63,4 +81,25 @@ __all__ = [
     "Task",
     "TaskDependency",
     "TaskHistory",
+    # Phase 4-7 Models
+    "Budget",
+    "BudgetItem",
+    "ExpenseCategory",
+    "Expense",
+    "ExpenseApprovalFlow",
+    "Customer",
+    "CustomerContact",
+    "Opportunity",
+    "CustomerActivity",
+    "Workflow",
+    "WorkflowNode",
+    "WorkflowConnection",
+    "WorkflowInstance",
+    "WorkflowTask",
+    "Report",
+    "ReportWidget",
+    "Dashboard",
+    "DashboardWidget",
+    "ReportExecution",
+    "DataSource",
 ]

@@ -13,20 +13,19 @@ from app.schemas.organization import OrganizationCreate, OrganizationUpdate
 from app.services.organization import OrganizationService
 from tests.factories import (
     create_test_organization,
+    create_test_role,
     create_test_user,
-    # create_test_role,  # Temporarily disabled
-    # create_test_user_role,  # Temporarily disabled
+    create_test_user_role,
 )
 
 
-@pytest.mark.skip(reason="create_test_role and create_test_user_role not yet implemented")
 class TestOrganizationService:
     """Test cases for OrganizationService."""
 
     @pytest.fixture
-    def service(self):
+    def service(self, db_session):
         """Create service instance."""
-        return OrganizationService()
+        return OrganizationService(db_session)
 
     def test_create_organization_permission(self, service, db_session) -> None:
         """TEST-SVC-ORG-001: システム管理者のみ組織作成可能なことを確認."""
