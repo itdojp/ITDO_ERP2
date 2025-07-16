@@ -194,15 +194,7 @@ class TestUserRepository:
         assert locked_user is not None
         assert locked_user.failed_login_attempts == 5
         assert locked_user.locked_until is not None
-<<<<<<< HEAD
-        # Handle timezone comparison properly
-        now = datetime.now(timezone.utc)
-        locked_until = locked_user.locked_until
-        if locked_until.tzinfo is None:
-            locked_until = locked_until.replace(tzinfo=timezone.utc)
-        assert locked_until > now
-=======
->>>>>>> main
+
 
         # Handle timezone comparison properly
         now = datetime.now(timezone.utc)

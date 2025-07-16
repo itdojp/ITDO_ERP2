@@ -107,11 +107,6 @@ class TestEnhancedAuditService:
             organization_id=organization.id,
         )
 
-<<<<<<< HEAD
-        results = audit_service.search_audit_logs(search_filter, admin_user)
-        assert len(results.items) == 3
-
-=======
 
         results = audit_service.search_audit_logs(search_filter, admin_user, db_session)
         assert len(results["items"]) == 3
@@ -120,29 +115,23 @@ class TestEnhancedAuditService:
         assert len(results.items) == 3
 
 
->>>>>>> main
+
         # Test action filter
         search_filter = AuditLogSearch(
             actions=["user.create", "user.update"], organization_id=organization.id
         )
 
-<<<<<<< HEAD
-=======
 
         results = audit_service.search_audit_logs(search_filter, admin_user, db_session)
         assert len(results["items"]) == 2
         assert all(
             log.action in ["user.create", "user.update"] for log in results["items"]
+        )
 
->>>>>>> main
         results = audit_service.search_audit_logs(search_filter, admin_user)
         assert len(results.items) == 2
         assert all(
             log.action in ["user.create", "user.update"] for log in results.items
-<<<<<<< HEAD
-=======
-
->>>>>>> main
         )
 
         # Test resource type filter
@@ -150,32 +139,23 @@ class TestEnhancedAuditService:
             resource_types=["User"], organization_id=organization.id
         )
 
-<<<<<<< HEAD
-=======
 
         results = audit_service.search_audit_logs(search_filter, admin_user, db_session)
         assert len(results["items"]) == 2
         assert all(log.resource_type == "User" for log in results["items"])
 
->>>>>>> main
+
         results = audit_service.search_audit_logs(search_filter, admin_user)
         assert len(results.items) == 2
         assert all(log.resource_type == "User" for log in results.items)
 
-<<<<<<< HEAD
-=======
 
->>>>>>> main
+
         # Test changes search
         search_filter = AuditLogSearch(
             changes_contain="status", organization_id=organization.id
         )
 
-<<<<<<< HEAD
-        results = audit_service.search_audit_logs(search_filter, admin_user)
-        assert len(results.items) == 2
-
-=======
 
         results = audit_service.search_audit_logs(search_filter, admin_user, db_session)
         assert len(results["items"]) == 2
@@ -187,7 +167,7 @@ class TestEnhancedAuditService:
 
     @pytest.mark.skip(reason="AuditService.get_audit_statistics not yet implemented")
 
->>>>>>> main
+
     def test_audit_log_statistics(
         self,
         audit_service: AuditService,
@@ -227,14 +207,12 @@ class TestEnhancedAuditService:
         assert len(stats.resource_type_counts) == 1
         assert stats.resource_type_counts["User"] == 10
 
-<<<<<<< HEAD
-=======
 
     # AuditService.export_audit_logs now implemented
 
     @pytest.mark.skip(reason="AuditService.export_audit_logs not yet implemented")
 
->>>>>>> main
+
     def test_audit_log_export(
         self,
         audit_service: AuditService,
@@ -283,8 +261,6 @@ class TestEnhancedAuditService:
         assert "User" in data_row
         assert admin_user.email in data_row
 
-<<<<<<< HEAD
-=======
 
     # AuditService.verify_audit_log_integrity now implemented
 
@@ -292,7 +268,7 @@ class TestEnhancedAuditService:
         reason="AuditService.verify_audit_log_integrity not yet implemented"
     )
 
->>>>>>> main
+
     def test_audit_log_integrity_verification(
         self,
         audit_service: AuditService,
@@ -329,14 +305,12 @@ class TestEnhancedAuditService:
         is_valid = audit_service.verify_log_integrity(log.id, admin_user)
         assert is_valid is False
 
-<<<<<<< HEAD
-=======
 
     # AuditService.bulk_verify_integrity now implemented
 
     @pytest.mark.skip(reason="AuditService.bulk_verify_integrity not yet implemented")
 
->>>>>>> main
+
     def test_audit_log_bulk_verification(
         self,
         audit_service: AuditService,
@@ -384,14 +358,12 @@ class TestEnhancedAuditService:
         assert len(results.corrupted_log_ids) == 1
         assert tampered_log.id in results.corrupted_log_ids
 
-<<<<<<< HEAD
-=======
 
     # AuditService.filter_sensitive_data now implemented
 
     @pytest.mark.skip(reason="AuditService.filter_sensitive_data not yet implemented")
 
->>>>>>> main
+
     def test_sensitive_data_filtering(
         self,
         audit_service: AuditService,
@@ -434,14 +406,12 @@ class TestEnhancedAuditService:
         )
         assert "email" in user_log.changes  # Non-sensitive data should be visible
 
-<<<<<<< HEAD
-=======
 
     # AuditService.apply_retention_policy now implemented
 
     @pytest.mark.skip(reason="AuditService.apply_retention_policy not yet implemented")
 
->>>>>>> main
+
     def test_audit_log_retention_policy(
         self,
         audit_service: AuditService,
@@ -492,10 +462,6 @@ class TestEnhancedAuditService:
         results = audit_service.get_organization_audit_logs(
             organization_id=organization.id, requester=admin_user, limit=10, offset=0
         )
-<<<<<<< HEAD
-        assert len(results.items) == 2
-
-=======
 
         assert len(results["items"]) == 2
 
@@ -503,7 +469,7 @@ class TestEnhancedAuditService:
 
 
     @pytest.mark.skip(reason="Permission checks for audit logs not yet implemented")
->>>>>>> main
+
     def test_audit_log_permission_checks(
         self,
         audit_service: AuditService,
@@ -536,10 +502,8 @@ class TestEnhancedAuditService:
                 requester=regular_user,
             )
 
-<<<<<<< HEAD
-=======
     @pytest.mark.skip(reason="Performance testing for audit logs deferred")
->>>>>>> main
+
     def test_high_frequency_logging_performance(
         self,
         audit_logger: AuditLogger,
