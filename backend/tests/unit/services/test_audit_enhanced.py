@@ -52,10 +52,6 @@ class TestEnhancedAuditService:
             db_session, password="password123", email="user@example.com"
         )
 
-    # AuditService.search_audit_logs now implemented
-
-    @pytest.mark.skip(reason="AuditService.search_audit_logs not yet implemented")
-
     def test_advanced_search_functionality(
         self,
         audit_service: AuditService,

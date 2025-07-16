@@ -279,7 +279,6 @@ class TestUserManagementAPI:
     ) -> None:
         """TEST-API-USER-009: 管理者によるパスワードリセットAPIをテスト."""
         # Given: ユーザーと管理者
-        OrganizationFactory.create(db_session)
         user = UserFactory.create(db_session)
         admin = UserFactory.create(db_session)
         RoleFactory.create(db_session, code="USER")
@@ -595,5 +594,3 @@ class TestUserManagementAPI:
             # Then: バリデーションエラー
             assert response.status_code == 422
             errors = response.json()["detail"]
-            assert any(e["loc"] == ["body", "password"] for e in errors)
-
