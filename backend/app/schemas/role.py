@@ -51,6 +51,7 @@ class RolePermissions(BaseModel):
         # Add custom validation logic here
         return v
 
+
 class RoleDisplay(BaseModel):
     """Role display settings."""
 

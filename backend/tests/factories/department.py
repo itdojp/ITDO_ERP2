@@ -56,7 +56,6 @@ class DepartmentFactory(BaseFactory):
             "sort_order": fake.random_int(min=1, max=100),
             "is_active": True,
             # CRITICAL: Materialized path fields for hierarchy
-            "path": "/",  # Default root path
             "depth": 0,  # Default root depth
         }
 
