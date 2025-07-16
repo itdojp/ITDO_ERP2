@@ -282,7 +282,7 @@ class ExpenseCategoryService:
             and_(
                 ExpenseCategory.organization_id == organization_id,
                 ExpenseCategory.deleted_at.is_(None),
-                ExpenseCategory.is_active == True,
+                ExpenseCategory.is_active,
             )
         )
         active_result = await self.db.execute(active_query)

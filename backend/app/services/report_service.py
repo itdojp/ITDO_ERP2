@@ -59,7 +59,7 @@ class ReportService:
         limit: int = 100,
     ) -> List[Dict[str, Any]]:
         """Get list of reports with filtering."""
-        query = self.db.query(Report).filter(Report.is_deleted == False)
+        query = self.db.query(Report).filter(not Report.is_deleted)
 
         if organization_id:
             query = query.filter(Report.organization_id == organization_id)
@@ -77,7 +77,7 @@ class ReportService:
         """Get report by ID."""
         report = (
             self.db.query(Report)
-            .filter(and_(Report.id == report_id, Report.is_deleted == False))
+            .filter(and_(Report.id == report_id, not Report.is_deleted))
             .first()
         )
         return self._report_to_dict(report) if report else None
@@ -88,7 +88,7 @@ class ReportService:
         """Update report definition."""
         report = (
             self.db.query(Report)
-            .filter(and_(Report.id == report_id, Report.is_deleted == False))
+            .filter(and_(Report.id == report_id, not Report.is_deleted))
             .first()
         )
 
@@ -108,7 +108,7 @@ class ReportService:
         """Soft delete report."""
         report = (
             self.db.query(Report)
-            .filter(and_(Report.id == report_id, Report.is_deleted == False))
+            .filter(and_(Report.id == report_id, not Report.is_deleted))
             .first()
         )
 
@@ -130,7 +130,7 @@ class ReportService:
         """Execute a report with optional parameters."""
         report = (
             self.db.query(Report)
-            .filter(and_(Report.id == report_id, Report.is_deleted == False))
+            .filter(and_(Report.id == report_id, not Report.is_deleted))
             .first()
         )
 
@@ -429,7 +429,7 @@ class ReportService:
             .filter(
                 and_(
                     ReportSchedule.report_id == report_id,
-                    ReportSchedule.is_deleted == False,
+                    not ReportSchedule.is_deleted,
                 )
             )
             .all()
@@ -441,9 +441,7 @@ class ReportService:
         schedule = (
             self.db.query(ReportSchedule)
             .filter(
-                and_(
-                    ReportSchedule.id == schedule_id, ReportSchedule.is_deleted == False
-                )
+                and_(ReportSchedule.id == schedule_id, not ReportSchedule.is_deleted)
             )
             .first()
         )
@@ -504,10 +502,10 @@ class ReportService:
             .all()
         )
 
-        total_reports = self.db.query(Report).filter(Report.is_deleted == False).count()
+        total_reports = self.db.query(Report).filter(not Report.is_deleted).count()
         active_reports = (
             self.db.query(Report)
-            .filter(and_(Report.is_deleted == False, Report.is_active == True))
+            .filter(and_(not Report.is_deleted, Report.is_active))
             .count()
         )
 

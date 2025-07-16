@@ -13,8 +13,8 @@ from app.schemas.organization import OrganizationCreate, OrganizationUpdate
 from app.services.organization import OrganizationService
 from tests.factories import (
     create_test_organization,
-    create_test_user,
     create_test_role,
+    create_test_user,
     create_test_user_role,
 )
 

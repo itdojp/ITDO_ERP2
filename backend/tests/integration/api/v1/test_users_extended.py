@@ -279,7 +279,7 @@ class TestUserManagementAPI:
     ) -> None:
         """TEST-API-USER-009: 管理者によるパスワードリセットAPIをテスト."""
         # Given: ユーザーと管理者
-        org = OrganizationFactory.create(db_session)
+        OrganizationFactory.create(db_session)
         user = UserFactory.create(db_session)
         admin = UserFactory.create(db_session)
         RoleFactory.create(db_session, code="USER")
@@ -468,8 +468,8 @@ class TestUserManagementAPI:
     ) -> None:
         """TEST-API-USER-016: テナント間アクセス拒否をテスト."""
         # Given: 異なる組織のユーザー
-        org1 = OrganizationFactory.create(db_session, code="ORG1")
-        org2 = OrganizationFactory.create(db_session, code="ORG2")
+        OrganizationFactory.create(db_session, code="ORG1")
+        OrganizationFactory.create(db_session, code="ORG2")
         user1 = UserFactory.create(db_session, email="user1@org1.com")
         user2 = UserFactory.create(db_session, email="user2@org2.com")
         RoleFactory.create(db_session, code="USER")

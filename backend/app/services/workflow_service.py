@@ -81,7 +81,7 @@ class WorkflowService:
         limit: int = 100,
     ) -> List[Dict[str, Any]]:
         """Get list of workflows with filtering."""
-        query = self.db.query(Workflow).filter(Workflow.is_deleted == False)
+        query = self.db.query(Workflow).filter(not Workflow.is_deleted)
 
         if organization_id:
             query = query.filter(Workflow.organization_id == organization_id)
@@ -96,7 +96,7 @@ class WorkflowService:
         """Get workflow by ID."""
         workflow = (
             self.db.query(Workflow)
-            .filter(and_(Workflow.id == workflow_id, Workflow.is_deleted == False))
+            .filter(and_(Workflow.id == workflow_id, not Workflow.is_deleted))
             .first()
         )
         return self._workflow_to_dict(workflow) if workflow else None
@@ -107,7 +107,7 @@ class WorkflowService:
         """Update workflow."""
         workflow = (
             self.db.query(Workflow)
-            .filter(and_(Workflow.id == workflow_id, Workflow.is_deleted == False))
+            .filter(and_(Workflow.id == workflow_id, not Workflow.is_deleted))
             .first()
         )
 
@@ -127,7 +127,7 @@ class WorkflowService:
         """Soft delete workflow."""
         workflow = (
             self.db.query(Workflow)
-            .filter(and_(Workflow.id == workflow_id, Workflow.is_deleted == False))
+            .filter(and_(Workflow.id == workflow_id, not Workflow.is_deleted))
             .first()
         )
 
@@ -146,7 +146,7 @@ class WorkflowService:
         """Start a new workflow instance."""
         workflow = (
             self.db.query(Workflow)
-            .filter(and_(Workflow.id == workflow_id, Workflow.is_deleted == False))
+            .filter(and_(Workflow.id == workflow_id, not Workflow.is_deleted))
             .first()
         )
 
@@ -188,7 +188,7 @@ class WorkflowService:
         query = self.db.query(WorkflowInstance).filter(
             and_(
                 WorkflowInstance.workflow_id == workflow_id,
-                WorkflowInstance.is_deleted == False,
+                not WorkflowInstance.is_deleted,
             )
         )
 
@@ -205,7 +205,7 @@ class WorkflowService:
             .filter(
                 and_(
                     WorkflowInstance.id == instance_id,
-                    WorkflowInstance.is_deleted == False,
+                    not WorkflowInstance.is_deleted,
                 )
             )
             .first()
@@ -222,7 +222,7 @@ class WorkflowService:
         query = self.db.query(WorkflowTask).filter(
             and_(
                 WorkflowTask.instance_id == instance_id,
-                WorkflowTask.is_deleted == False,
+                not WorkflowTask.is_deleted,
             )
         )
 
@@ -241,7 +241,7 @@ class WorkflowService:
         """Update workflow task."""
         task = (
             self.db.query(WorkflowTask)
-            .filter(and_(WorkflowTask.id == task_id, WorkflowTask.is_deleted == False))
+            .filter(and_(WorkflowTask.id == task_id, not WorkflowTask.is_deleted))
             .first()
         )
 
@@ -263,7 +263,7 @@ class WorkflowService:
         """Complete a workflow task."""
         task = (
             self.db.query(WorkflowTask)
-            .filter(and_(WorkflowTask.id == task_id, WorkflowTask.is_deleted == False))
+            .filter(and_(WorkflowTask.id == task_id, not WorkflowTask.is_deleted))
             .first()
         )
 
@@ -287,7 +287,7 @@ class WorkflowService:
         """Assign workflow task to user."""
         task = (
             self.db.query(WorkflowTask)
-            .filter(and_(WorkflowTask.id == task_id, WorkflowTask.is_deleted == False))
+            .filter(and_(WorkflowTask.id == task_id, not WorkflowTask.is_deleted))
             .first()
         )
 
@@ -344,7 +344,7 @@ class WorkflowService:
             .filter(
                 and_(
                     WorkflowInstance.id == instance_id,
-                    WorkflowInstance.is_deleted == False,
+                    not WorkflowInstance.is_deleted,
                 )
             )
             .first()

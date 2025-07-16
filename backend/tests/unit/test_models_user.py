@@ -183,8 +183,10 @@ class TestUserModel:
         )
         db_session.commit()
 
-        # Record original time
+        # Record original time with timezone handling
         original_updated_at = user.updated_at
+        if original_updated_at.tzinfo is None:
+            original_updated_at = original_updated_at.replace(tzinfo=timezone.utc)
 
         # Add slight delay to ensure different timestamp
         import time

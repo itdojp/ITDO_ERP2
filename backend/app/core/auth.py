@@ -26,7 +26,7 @@ async def get_current_user(
     # In production, this should validate the token and fetch the actual user
 
     # Mock user for testing - replace with actual authentication logic
-    user = db.query(User).filter(User.is_active == True).first()
+    user = db.query(User).filter(User.is_active).first()
 
     if not user:
         # Create a mock user if none exists (for testing)

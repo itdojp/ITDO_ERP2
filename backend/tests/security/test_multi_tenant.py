@@ -140,7 +140,7 @@ class TestMultiTenantSecurity:
     def test_sql_injection_prevention(self, db_session: Session) -> None:
         """SQLインジェクションが防止されることを確認."""
         # Given: システム管理者
-        admin = create_test_user(db_session, is_superuser=True)
+        create_test_user(db_session, is_superuser=True)
         db_session.commit()
 
         # When: 悪意のある検索文字列
