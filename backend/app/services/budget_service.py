@@ -12,14 +12,10 @@ from sqlalchemy.orm import selectinload
 
 from app.models.budget import Budget, BudgetItem
 from app.schemas.budget import (
-    BudgetAnalyticsResponse,
-    BudgetApprovalRequest,
     BudgetCreate,
-    BudgetDetailResponse,
     BudgetItemCreate,
     BudgetItemResponse,
     BudgetItemUpdate,
-    BudgetReportResponse,
     BudgetResponse,
     BudgetUpdate,
 )
@@ -58,7 +54,7 @@ class BudgetService:
 
     async def get_budget_by_id(
         self, budget_id: int, organization_id: int
-    ) -> Optional[BudgetDetailResponse]:
+    ) -> Optional[BudgetResponse]:
         """予算詳細取得"""
         query = (
             select(Budget)
@@ -76,7 +72,7 @@ class BudgetService:
         budget = result.scalar_one_or_none()
 
         if budget:
-            return BudgetDetailResponse.model_validate(budget)
+            return BudgetResponse.model_validate(budget)
         return None
 
     async def create_budget(

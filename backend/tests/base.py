@@ -3,7 +3,6 @@
 from abc import ABC, abstractmethod
 from typing import Any, Generic, TypeVar
 
-import pytest
 from fastapi.testclient import TestClient
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -75,7 +74,6 @@ class BaseAPITestCase(
     ) -> None:
         """Test successful list operation."""
         # Database session isolation issue resolved
-        pytest.skip("Temporarily disabled due to database session isolation issue")
 
         # Create test instances
         instances = [self.create_test_instance(db_session) for _ in range(3)]
