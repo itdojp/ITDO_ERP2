@@ -31,6 +31,18 @@ from app.models.user_preferences import UserPreferences
 from app.models.user_privacy import UserPrivacySettings
 from app.models.user_session import UserSession
 
+# Phase 4-7 Models
+from app.models.budget import Budget, BudgetItem, ExpenseCategory
+from app.models.expense import Expense, ExpenseApprovalFlow
+from app.models.customer import Customer, CustomerContact, Opportunity, CustomerActivity
+from app.models.workflow import (
+    Workflow, WorkflowNode, WorkflowConnection, WorkflowInstance, WorkflowTask
+)
+from app.models.analytics import (
+    Report, ReportWidget, Dashboard, DashboardWidget, 
+    ReportExecution, DataSource
+)
+
 __all__ = [
     "User",
     "Organization",
@@ -60,4 +72,25 @@ __all__ = [
     "Task",
     "TaskDependency",
     "TaskHistory",
+    # Phase 4-7 Models
+    "Budget",
+    "BudgetItem", 
+    "ExpenseCategory",
+    "Expense",
+    "ExpenseApprovalFlow",
+    "Customer",
+    "CustomerContact",
+    "Opportunity", 
+    "CustomerActivity",
+    "Workflow",
+    "WorkflowNode",
+    "WorkflowConnection",
+    "WorkflowInstance",
+    "WorkflowTask",
+    "Report",
+    "ReportWidget",
+    "Dashboard",
+    "DashboardWidget",
+    "ReportExecution",
+    "DataSource",
 ]
