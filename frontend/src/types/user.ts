@@ -106,7 +106,7 @@ export interface UserPrivacyUpdate {
   searchable_by_name?: boolean
 }
 
-interface ProfileImageUpload {
+export interface ProfileImageUpload {
   file: File
 }
 
