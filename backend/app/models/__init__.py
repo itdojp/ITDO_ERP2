@@ -1,11 +1,13 @@
 """Database models package."""
 
 from app.models.audit import AuditLog
+from app.models.budget import Budget, BudgetItem
 from app.models.cross_tenant_permissions import (
     CrossTenantAuditLog,
     CrossTenantPermissionRule,
 )
 from app.models.department import Department
+from app.models.expense_category import ExpenseCategory
 from app.models.organization import Organization
 from app.models.password_history import PasswordHistory
 from app.models.permission import Permission
@@ -60,4 +62,8 @@ __all__ = [
     "Task",
     "TaskDependency",
     "TaskHistory",
+    # Phase 4: Financial Management
+    "ExpenseCategory",
+    "Budget",
+    "BudgetItem",
 ]
