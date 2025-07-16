@@ -544,7 +544,6 @@ class UserRole(AuditableModel):
         delta = expires_at - now
         return delta.days
 
-
     def get_effective_permissions(self) -> dict[str, Any]:
         """Get effective permissions for this role assignment."""
         if not self.is_valid:
