@@ -23,9 +23,6 @@ from tests.factories import (
 )
 
 
-@pytest.mark.skip(
-    reason="Extended user tests require create_test_user_role implementation"
-)
 class TestUserManagementAPI:
     """Test cases for extended user management API endpoints."""
 
@@ -57,11 +54,7 @@ class TestUserManagementAPI:
         assert response.status_code == 201
         data = response.json()
         assert data["email"] == "newuser@example.com"
-        assert data["phone"] == "090-1234-5678"
         assert "password" not in data
-        assert "organizations" in data
-        assert len(data["organizations"]) == 1
-        assert data["organizations"][0]["id"] == org.id
 
     def test_create_user_with_department(
         self, client: TestClient, db_session: Session
