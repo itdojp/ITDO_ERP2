@@ -123,7 +123,7 @@ class DepartmentFactory(BaseFactory):
                     name=child_name,
                     name_en=child_name_en,
                     code=child_code,
-                    level=current_depth + 1,
+                    depth=current_depth + 1,
                     department_type="operational"
                     if current_depth == depth - 1
                     else "support",

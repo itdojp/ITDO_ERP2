@@ -54,7 +54,7 @@ class TestDepartmentModel:
             db_session,
         )
         parent = DepartmentFactory.create(
-            db_session, organization=org, code="SALES", name="営業部", level=1
+            db_session, organization=org, code="SALES", name="営業部", depth=1
         )
         db_session.commit()
         parent.path = str(parent.id)
@@ -66,7 +66,7 @@ class TestDepartmentModel:
             parent_id=parent.id,
             code="SALES_TOKYO",
             name="東京営業所",
-            level=2,
+            depth=2,
             path=f"{parent.path}",
         )
         db_session.add(child)
@@ -78,7 +78,7 @@ class TestDepartmentModel:
 
         # Then:
         assert child.parent_id == parent.id
-        assert child.level == 2
+        assert child.depth == 2
         assert child.path == f"{parent.id}/{child.id}"
         assert child.parent.id == parent.id
 
@@ -88,9 +88,9 @@ class TestDepartmentModel:
         org = OrganizationFactory.create(
             db_session,
         )
-        parent = DepartmentFactory.create(db_session, organization=org, level=1)
+        parent = DepartmentFactory.create(db_session, organization=org, depth=1)
         child = DepartmentFactory.create(
-            db_session, organization=org, parent=parent, level=2
+            db_session, organization=org, parent=parent, depth=2
         )
         db_session.commit()
 
@@ -101,7 +101,7 @@ class TestDepartmentModel:
                 parent_id=child.id,
                 code="INVALID",
                 name="無効な部門",
-                level=3,
+                depth=3,
             )
             grandchild.validate_hierarchy()
 
@@ -115,7 +115,7 @@ class TestDepartmentModel:
         db_session.commit()
 
         # When/Then: 同じ組織内で同じコード
-        dept2 = Department(organization_id=org.id, code="HR", name="人事部2", level=1)
+        dept2 = Department(organization_id=org.id, code="HR", name="人事部2", depth=1)
         db_session.add(dept2)
 
         with pytest.raises(IntegrityError):
@@ -131,7 +131,7 @@ class TestDepartmentModel:
         # When: 組織2で同じコード
         org2 = OrganizationFactory.create(db_session, code="ORG2")
         dept2 = Department(
-            organization_id=org2.id, code="HR", name="人事部", level=1, path=""
+            organization_id=org2.id, code="HR", name="人事部", depth=1, path=""
         )
         db_session.add(dept2)
         db_session.commit()
@@ -147,9 +147,9 @@ class TestDepartmentModel:
         org = OrganizationFactory.create(
             db_session,
         )
-        parent = DepartmentFactory.create(db_session, organization=org, level=1)
+        parent = DepartmentFactory.create(db_session, organization=org, depth=1)
         child = DepartmentFactory.create(
-            db_session, organization=org, parent=parent, level=2
+            db_session, organization=org, parent=parent, depth=2
         )
         db_session.commit()
         child_id = child.id
@@ -192,7 +192,7 @@ class TestDepartmentModel:
             db_session,
         )
         sales = DepartmentFactory.create(
-            db_session, organization=org, code="SALES", name="営業部", level=1
+            db_session, organization=org, code="SALES", name="営業部", depth=1
         )
         DepartmentFactory.create(
             db_session,
@@ -200,7 +200,7 @@ class TestDepartmentModel:
             parent=sales,
             code="TOKYO",
             name="東京営業所",
-            level=2,
+            depth=2,
         )
         DepartmentFactory.create(
             db_session,
@@ -208,7 +208,7 @@ class TestDepartmentModel:
             parent=sales,
             code="OSAKA",
             name="大阪営業所",
-            level=2,
+            depth=2,
         )
         db_session.commit()
 
@@ -227,7 +227,7 @@ class TestDepartmentModel:
         org = OrganizationFactory.create(
             db_session,
         )
-        dept = DepartmentFactory.create(db_session, organization=org, level=1)
+        dept = DepartmentFactory.create(db_session, organization=org, depth=1)
         db_session.commit()
 
         # When: パス更新
@@ -244,10 +244,10 @@ class TestDepartmentModel:
             db_session,
         )
         parent = DepartmentFactory.create(
-            db_session, organization=org, name="営業部", level=1
+            db_session, organization=org, name="営業部", depth=1
         )
         child = DepartmentFactory.create(
-            db_session, organization=org, parent=parent, name="東京営業所", level=2
+            db_session, organization=org, parent=parent, name="東京営業所", depth=2
         )
         db_session.commit()
 

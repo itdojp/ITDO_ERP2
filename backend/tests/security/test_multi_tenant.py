@@ -164,10 +164,10 @@ class TestMultiTenantSecurity:
         # Given: 組織と部門階層
         org = create_test_organization()
         parent_dept = create_test_department(
-            organization=org, code="PARENT", name="親部門", level=1
+            organization=org, code="PARENT", name="親部門", depth=1
         )
         child_dept = create_test_department(
-            organization=org, parent=parent_dept, code="CHILD", name="子部門", level=2
+            organization=org, parent=parent_dept, code="CHILD", name="子部門", depth=2
         )
 
         # 親部門の管理者
