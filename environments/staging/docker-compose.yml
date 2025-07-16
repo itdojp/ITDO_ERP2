@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: staging-postgres
+    environment:
+      POSTGRES_DB: itdo_erp_staging
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - staging_postgres_data:/var/lib/postgresql/data
+    networks:
+      - staging_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: staging-redis
+    volumes:
+      - staging_redis_data:/data
+    networks:
+      - staging_network
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0
+    container_name: staging-keycloak
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://staging-postgres:5432/itdo_erp_staging
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: postgres
+    command: start-dev
+    depends_on:
+      - postgres
+    networks:
+      - staging_network
+
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: staging-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@itdo.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+    volumes:
+      - staging_pgadmin_data:/var/lib/pgadmin
+    networks:
+      - staging_network
+
+networks:
+  staging_network:
+    driver: bridge
+
+volumes:
+  staging_postgres_data:
+  staging_redis_data:
+  staging_pgadmin_data:

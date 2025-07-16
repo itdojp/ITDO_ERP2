@@ -1,0 +1,44 @@
+{
+  "environment": "development",
+  "agent_id": "CC01-development",
+  "network": {
+    "host_ip": "172.23.14.204",
+    "backend_port": 8000,
+    "frontend_port": 3000,
+    "api_base_url": "http://172.23.14.204:8000"
+  },
+  "database": {
+    "host": "172.23.14.204",
+    "port": 5432,
+    "database": "itdo_erp_development",
+    "user": "postgres",
+    "password": "postgres"
+  },
+  "redis": {
+    "host": "172.23.14.204",
+    "port": 6379,
+    "database": 0
+  },
+  "keycloak": {
+    "host": "172.23.14.204",
+    "port": 8080,
+    "realm": "itdo-erp-development",
+    "base_url": "http://172.23.14.204:8080"
+  },
+  "features": {
+    "phase4_financial": true,
+    "phase5_crm": true,
+    "phase6_workflow": true,
+    "phase7_analytics": true
+  },
+  "performance": {
+    "max_memory_mb": 2048,
+    "max_cpu_percent": 50,
+    "request_timeout_seconds": 30
+  },
+  "monitoring": {
+    "health_check_interval": 60,
+    "log_level": "development" == "production" ? "INFO" : "DEBUG",
+    "metrics_enabled": true
+  }
+}
