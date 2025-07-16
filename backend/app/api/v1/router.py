@@ -7,9 +7,12 @@ from app.api.v1 import (
     audit_logs,
     auth,
     cross_tenant_permissions,
+    customer_activities,
+    customers,
     departments,
     health,
     multi_tenant,
+    opportunities,
     organizations,
     # permission_inheritance,  # Temporarily disabled due to syntax errors
     permission_management,
@@ -61,6 +64,9 @@ api_router.include_router(
     user_privacy.router, prefix="/users/privacy", tags=["user-privacy"]
 )
 api_router.include_router(pm_automation.router)
+api_router.include_router(customers.router, prefix="/customers", tags=["customers"])
+api_router.include_router(opportunities.router, prefix="/opportunities", tags=["opportunities"])
+api_router.include_router(customer_activities.router, prefix="/customer-activities", tags=["customer-activities"])
 
 
 @api_router.get("/ping")
