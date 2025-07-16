@@ -290,7 +290,11 @@ class PMAutomationService:
                 title=str(task_data["title"]),
                 project_id=project_id,
                 priority=TaskPriority(task_data["priority"]),
-                estimated_hours=float(task_data["estimated_hours"]) if isinstance(task_data["estimated_hours"], (int, float, str)) else 0.0,
+                estimated_hours=(
+                    float(task_data["estimated_hours"])
+                    if isinstance(task_data["estimated_hours"], (int, float, str))
+                    else 0.0
+                ),
             )
 
             task = self.task_service.create_task(task_create, user, self.db)
@@ -324,7 +328,11 @@ class PMAutomationService:
                 title=str(task_data["title"]),
                 project_id=project_id,
                 priority=TaskPriority(task_data["priority"]),
-                estimated_hours=float(task_data["estimated_hours"]) if isinstance(task_data["estimated_hours"], (int, float, str)) else 0.0,
+                estimated_hours=(
+                    float(task_data["estimated_hours"])
+                    if isinstance(task_data["estimated_hours"], (int, float, str))
+                    else 0.0
+                ),
             )
 
             task = self.task_service.create_task(task_create, user, self.db)
@@ -354,7 +362,11 @@ class PMAutomationService:
                 title=str(task_data["title"]),
                 project_id=project_id,
                 priority=TaskPriority(task_data["priority"]),
-                estimated_hours=float(task_data["estimated_hours"]) if isinstance(task_data["estimated_hours"], (int, float, str)) else 0.0,
+                estimated_hours=(
+                    float(task_data["estimated_hours"])
+                    if isinstance(task_data["estimated_hours"], (int, float, str))
+                    else 0.0
+                ),
             )
 
             task = self.task_service.create_task(task_create, user, self.db)

@@ -324,11 +324,13 @@ class TaskService:
                                 changed_at=log.created_at
                             )
                         )
-                        
+
             # If changes is not a dict or doesn't have the expected
             # structure, create a generic entry
             if not isinstance(changes, dict) or not any(
-                isinstance(change_data, dict) and "old" in change_data and "new" in change_data
+                isinstance(change_data, dict)
+                and "old" in change_data
+                and "new" in change_data
                 for change_data in changes.values()
             ):
                 history_items.append(
