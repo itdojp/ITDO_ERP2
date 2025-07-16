@@ -1,7 +1,7 @@
 """Project Management Automation Service Implementation."""
 
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, cast
+from typing import Any, Dict, List
 
 from sqlalchemy import and_, func, select
 from sqlalchemy.orm import Session
@@ -114,6 +114,9 @@ class PMAutomationService:
         assigned_count = 0
         for task_id, assignee_id in assignments:
             try:
+                if user is None:
+                    # Skip assignment if no user is provided
+                    continue
                 self.task_service.assign_user(task_id, assignee_id, user, self.db)
                 assigned_count += 1
             except Exception:
@@ -286,8 +289,8 @@ class PMAutomationService:
             task_create = TaskCreate(
                 title=str(task_data["title"]),
                 project_id=project_id,
-                priority=task_data["priority"],
-                estimated_hours=float(task_data["estimated_hours"]),
+                priority=TaskPriority(task_data["priority"]),
+                estimated_hours=float(task_data["estimated_hours"]) if isinstance(task_data["estimated_hours"], (int, float, str)) else 0.0,
             )
 
             task = self.task_service.create_task(task_create, user, self.db)
@@ -320,8 +323,8 @@ class PMAutomationService:
             task_create = TaskCreate(
                 title=str(task_data["title"]),
                 project_id=project_id,
-                priority=task_data["priority"],
-                estimated_hours=float(task_data["estimated_hours"]),
+                priority=TaskPriority(task_data["priority"]),
+                estimated_hours=float(task_data["estimated_hours"]) if isinstance(task_data["estimated_hours"], (int, float, str)) else 0.0,
             )
 
             task = self.task_service.create_task(task_create, user, self.db)
@@ -350,8 +353,8 @@ class PMAutomationService:
             task_create = TaskCreate(
                 title=str(task_data["title"]),
                 project_id=project_id,
-                priority=task_data["priority"],
-                estimated_hours=float(task_data["estimated_hours"]),
+                priority=TaskPriority(task_data["priority"]),
+                estimated_hours=float(task_data["estimated_hours"]) if isinstance(task_data["estimated_hours"], (int, float, str)) else 0.0,
             )
 
             task = self.task_service.create_task(task_create, user, self.db)

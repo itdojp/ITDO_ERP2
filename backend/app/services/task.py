@@ -282,16 +282,65 @@ class TaskService:
 
         history_items = []
         for log in audit_logs:
-            history_items.append(
-                {
-                    "id": log.id,
-                    "action": log.action,
-                    "changes": log.changes,
-                    "user_id": log.user_id,
-                    "created_at": log.created_at,
-                    "ip_address": log.ip_address,
-                }
-            )
+            # Get user info for changed_by field
+            user_obj = db.query(User).filter(User.id == log.user_id).first()
+            if user_obj:
+                changed_by = UserInfo(
+                    id=user_obj.id,
+                    name=user_obj.full_name,
+                    email=user_obj.email
+                )
+            else:
+                changed_by = UserInfo(
+                    id=log.user_id,
+                    name="Unknown User",
+                    email="unknown@example.com"
+                )
+
+            # Parse changes if they exist
+            changes = log.changes or {}
+            if isinstance(changes, dict):
+                for field_name, change_data in changes.items():
+                    if (
+                        isinstance(change_data, dict)
+                        and "old" in change_data
+                        and "new" in change_data
+                    ):
+                        history_items.append(
+                            TaskHistoryItem(
+                                id=log.id,
+                                field_name=field_name,
+                                old_value=(
+                                    str(change_data["old"])
+                                    if change_data["old"] is not None
+                                    else None
+                                ),
+                                new_value=(
+                                    str(change_data["new"])
+                                    if change_data["new"] is not None
+                                    else None
+                                ),
+                                changed_by=changed_by,
+                                changed_at=log.created_at
+                            )
+                        )
+                        
+            # If changes is not a dict or doesn't have the expected
+            # structure, create a generic entry
+            if not isinstance(changes, dict) or not any(
+                isinstance(change_data, dict) and "old" in change_data and "new" in change_data
+                for change_data in changes.values()
+            ):
+                history_items.append(
+                    TaskHistoryItem(
+                        id=log.id,
+                        field_name=log.action,
+                        old_value=None,
+                        new_value=str(changes) if changes else None,
+                        changed_by=changed_by,
+                        changed_at=log.created_at
+                    )
+                )
 
         return TaskHistoryResponse(items=history_items, total=len(history_items))
 

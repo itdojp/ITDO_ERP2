@@ -29,13 +29,15 @@ async def auto_create_project_structure(
     """
     try:
         service = PMAutomationService(db)
-        result = service.auto_create_project_structure(
+        result = await service.auto_create_project_structure(
             project_id, template_type, current_user
         )
         return {
             "success": True,
             "data": result,
-            "message": f"Project structure created successfully using {template_type} template",
+            "message": (
+                f"Project structure created successfully using {template_type} template"
+            ),
         }
     except NotFound as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
@@ -66,7 +68,7 @@ async def auto_assign_tasks(
     """
     try:
         service = PMAutomationService(db)
-        result = service.auto_assign_tasks(project_id, current_user, strategy)
+        result = await service.auto_assign_tasks(project_id, strategy, current_user)
         return {
             "success": True,
             "data": result,
@@ -107,7 +109,9 @@ async def generate_progress_report(
         return {
             "success": True,
             "data": result,
-            "message": f"{report_type.capitalize()} progress report generated successfully",
+            "message": (
+                f"{report_type.capitalize()} progress report generated successfully"
+            ),
         }
     except NotFound as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
@@ -136,13 +140,15 @@ async def optimize_project_schedule(
     """
     try:
         service = PMAutomationService(db)
-        result = service.auto_schedule_optimization(
-            project_id, current_user, optimization_type
+        result = await service.auto_schedule_optimization(
+            project_id, optimization_type, current_user
         )
         return {
             "success": True,
             "data": result,
-            "message": f"Schedule optimization completed using {optimization_type} method",
+            "message": (
+                f"Schedule optimization completed using {optimization_type} method"
+            ),
         }
     except NotFound as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
@@ -171,7 +177,9 @@ async def get_predictive_analytics(
     """
     try:
         service = PMAutomationService(db)
-        result = service.predictive_analytics(project_id, current_user, prediction_type)
+        result = await service.predictive_analytics(
+            project_id, prediction_type, current_user
+        )
         return {
             "success": True,
             "data": result,
@@ -199,14 +207,14 @@ async def get_automation_dashboard(
         service = PMAutomationService(db)
 
         # Get multiple analytics in parallel
-        progress_report = service.generate_progress_report(
-            project_id, current_user, "weekly"
+        progress_report = await service.generate_progress_report(
+            project_id, "weekly", current_user
         )
-        completion_prediction = service.predictive_analytics(
-            project_id, current_user, "completion_date"
+        completion_prediction = await service.predictive_analytics(
+            project_id, "completion_date", current_user
         )
-        risk_analysis = service.predictive_analytics(
-            project_id, current_user, "risk_probability"
+        risk_analysis = await service.predictive_analytics(
+            project_id, "risk_probability", current_user
         )
 
         return {
