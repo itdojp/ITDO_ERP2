@@ -5,6 +5,7 @@ from app.models.cross_tenant_permissions import (
     CrossTenantAuditLog,
     CrossTenantPermissionRule,
 )
+from app.models.customer import Customer, CustomerActivity, CustomerContact, Opportunity
 from app.models.department import Department
 from app.models.organization import Organization
 from app.models.password_history import PasswordHistory
@@ -60,4 +61,9 @@ __all__ = [
     "Task",
     "TaskDependency",
     "TaskHistory",
+    # Phase 5: CRM
+    "Customer",
+    "CustomerContact",
+    "Opportunity",
+    "CustomerActivity",
 ]

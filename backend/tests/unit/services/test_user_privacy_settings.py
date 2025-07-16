@@ -177,6 +177,8 @@ class TestUserPrivacyService:
         privacy_service.create_settings(user_id=user.id, data=settings_data)
 
         # Mock same department membership
+        from unittest.mock import patch
+
         with patch(
             "app.services.user_privacy.UserPrivacyService._users_in_same_department",
             return_value=True,
