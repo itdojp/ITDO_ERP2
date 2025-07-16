@@ -27,6 +27,7 @@ from app.api.v1 import (
     user_profile,
     users,
     users_extended,
+    workflows,
 )
 from app.core.database import get_db
 
@@ -66,6 +67,14 @@ api_router.include_router(
     user_privacy.router, prefix="/users/privacy", tags=["user-privacy"]
 )
 api_router.include_router(pm_automation.router)
+
+# Phase 6-7 Advanced Features (Issue #155)
+api_router.include_router(budgets.router, prefix="/budgets", tags=["financial"])
+api_router.include_router(customers.router, prefix="/customers", tags=["crm"])
+api_router.include_router(customer_activities.router, prefix="/customer-activities", tags=["crm"])
+api_router.include_router(opportunities.router, prefix="/opportunities", tags=["crm"])
+api_router.include_router(expense_categories.router, prefix="/expense-categories", tags=["financial"])
+api_router.include_router(workflows.router, prefix="/workflows", tags=["workflow"])
 
 
 @api_router.get("/ping")
