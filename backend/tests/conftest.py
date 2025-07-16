@@ -1,10 +1,11 @@
 """Simplified pytest configuration for authentication tests."""
 
 import os
+import sys
 import uuid
 from collections.abc import Generator
 from datetime import datetime
-from typing import Any
+from typing import Any, Dict
 
 import pytest
 from fastapi.testclient import TestClient
@@ -31,17 +32,31 @@ from app.models.base import Base
 # Import all models to ensure proper registration
 import app.models  # This will import all models via __init__.py
 
-# Now import app components  
+# Now import app components
 from app.core import database
 from tests.factories import UserFactory, OrganizationFactory
 
-# Create in-memory SQLite for tests
-SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
+# Database configuration based on test type
+SQLALCHEMY_DATABASE_URL = os.getenv(
+    "DATABASE_URL", "postgresql://itdo_user:itdo_password@localhost:5432/itdo_erp"
 )
+
+# For SQLite tests (unit tests) - check for both unit test patterns
+if (
+    "unit" in os.getenv("PYTEST_CURRENT_TEST", "")
+    or "tests/unit" in os.getenv("PYTEST_CURRENT_TEST", "")
+    or os.getenv("USE_SQLITE", "false").lower() == "true"
+    or "tests/unit" in " ".join(sys.argv)  # Check command line args
+):
+    SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
+    engine = create_engine(
+        SQLALCHEMY_DATABASE_URL,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+else:
+    # For integration tests, use PostgreSQL
+    engine = create_engine(SQLALCHEMY_DATABASE_URL)
 
 # Override the app's engine with our test engine
 database.engine = engine
@@ -72,16 +87,73 @@ def isolate_test_data() -> dict[str, str]:
 
 
 @pytest.fixture
+def test_permissions(db_session: Session) -> Dict[str, Any]:
+    """Create test permissions for role testing."""
+    from app.models.permission import Permission
+    
+    # Create permissions by category
+    user_perms = [
+        Permission(code="user:read", name="Read Users", category="users"),
+        Permission(code="user:write", name="Write Users", category="users"),
+        Permission(code="user:delete", name="Delete Users", category="users"),
+    ]
+    
+    role_perms = [
+        Permission(code="role:read", name="Read Roles", category="roles"),
+        Permission(code="role:write", name="Write Roles", category="roles"),
+        Permission(code="role:delete", name="Delete Roles", category="roles"),
+    ]
+    
+    all_perms = user_perms + role_perms
+    db_session.add_all(all_perms)
+    db_session.commit()
+    
+    return {
+        "users": user_perms,
+        "roles": role_perms,
+        "all": all_perms,
+    }
+
+
+@pytest.fixture
+def test_role_system(db_session: Session, test_organization, test_permissions) -> Dict[str, Any]:
+    """Create a test role system with hierarchy."""
+    from app.models.role import Role
+    from tests.factories import RoleFactory
+    
+    # Create roles
+    admin_role = RoleFactory.create_with_organization(
+        db_session, test_organization, name="システム管理者", code="ADMIN"
+    )
+    manager_role = RoleFactory.create_with_organization(
+        db_session, test_organization, name="マネージャー", code="MANAGER"
+    )
+    user_role = RoleFactory.create_with_organization(
+        db_session, test_organization, name="一般ユーザー", code="USER"
+    )
+    
+    return {
+        "organization": test_organization,
+        "permissions": test_permissions,
+        "roles": {
+            "admin": admin_role,
+            "manager": manager_role,
+            "user": user_role,
+        },
+    }
+
+
+@pytest.fixture
 def db_session() -> Generator[Session]:
     """Create a clean database session for each test."""
     # Ensure tables exist
     Base.metadata.create_all(bind=engine, checkfirst=True)
-    
+
     # Use transaction isolation for better test performance
     connection = engine.connect()
     transaction = connection.begin()
     session = TestingSessionLocal(bind=connection)
-    
+
     try:
         yield session
     except Exception:
@@ -106,6 +178,19 @@ def test_user(db_session: Session):
 
 
 @pytest.fixture
+def test_admin(db_session: Session):
+    """Create a test admin user."""
+    unique_id = str(uuid.uuid4())[:8]
+    return UserFactory.create_with_password(
+        db_session,
+        password="AdminPassword123!",
+        email=f"admin_{unique_id}@example.com",
+        full_name=f"Admin User {unique_id}",
+        is_superuser=True,
+    )
+
+
+@pytest.fixture
 def test_organization(db_session: Session):
     """Create a test organization."""
     unique_id = str(uuid.uuid4())[:8]
@@ -115,3 +200,29 @@ def test_organization(db_session: Session):
         code=f"TEST-ORG-{unique_id}",
         industry="IT"
     )
+
+
+@pytest.fixture
+def user_token(test_user):
+    """Create a token for the test user."""
+    from app.core.security import create_access_token
+    return create_access_token({"sub": str(test_user.id)})
+
+
+@pytest.fixture
+def admin_token(test_admin):
+    """Create a token for the test admin."""
+    from app.core.security import create_access_token
+    return create_access_token({"sub": str(test_admin.id)})
+
+
+@pytest.fixture
+def client():
+    """Create a test client."""
+    from app.main import app
+    return TestClient(app)
+
+
+def create_auth_headers(token: str) -> dict[str, str]:
+    """Create authorization headers for API requests."""
+    return {"Authorization": f"Bearer {token}"}

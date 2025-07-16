@@ -360,8 +360,6 @@ class UserProfileService:
             if img.mode not in ("RGB", "RGBA"):
                 img = img.convert("RGB")  # type: ignore[assignment]
 
-                img = img.convert("RGB")
-
             # Resize to profile size
             img.thumbnail(self.PROFILE_IMAGE_SIZE, Image.Resampling.LANCZOS)
 
@@ -470,5 +468,3 @@ class UserProfileService:
             if isinstance(response_data.get("last_seen_at"), datetime)
             else None,  # type: ignore[arg-type]
         )
-
-        return UserProfileResponse(**response_data)

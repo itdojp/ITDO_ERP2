@@ -174,42 +174,22 @@ class TestUserPreferencesService:
         self, user_preferences_service: UserPreferencesService, user: User
     ) -> None:
         """Test creating preferences with invalid timezone."""
-<<<<<<< HEAD
-        invalid_data = UserPreferencesCreate(
-            language="en", timezone="Invalid/Timezone", theme="light"
-        )
-
-        with pytest.raises(ValueError, match="無効なタイムゾーンです"):
-            user_preferences_service.create_preferences(
-                user_id=user.id, data=invalid_data
-=======
         from pydantic import ValidationError
 
         with pytest.raises(ValidationError, match="無効なタイムゾーンです"):
             UserPreferencesCreate(
                 language="en", timezone="Invalid/Timezone", theme="light"
->>>>>>> main
             )
 
     def test_invalid_language_preference(
         self, user_preferences_service: UserPreferencesService, user: User
     ) -> None:
         """Test creating preferences with invalid language."""
-<<<<<<< HEAD
-        invalid_data = UserPreferencesCreate(
-            language="invalid_lang", timezone="UTC", theme="light"
-        )
-
-        with pytest.raises(ValueError, match="サポートされていない言語です"):
-            user_preferences_service.create_preferences(
-                user_id=user.id, data=invalid_data
-=======
         from pydantic import ValidationError
 
         with pytest.raises(ValidationError, match="サポートされていない言語です"):
             UserPreferencesCreate(
                 language="invalid_lang", timezone="UTC", theme="light"
->>>>>>> main
             )
 
     def test_get_user_locale_info(

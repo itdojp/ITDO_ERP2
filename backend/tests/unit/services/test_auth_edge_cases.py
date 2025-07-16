@@ -6,14 +6,8 @@ from datetime import datetime, timedelta
 import pytest
 from sqlalchemy.orm import Session
 
-<<<<<<< HEAD
-# from app.core.exceptions import AuthenticationError  # Not used
 from app.services.auth import AuthService
 from tests.factories import UserFactory
-=======
-from app.services.auth import AuthService
-from tests.factories import create_test_user
->>>>>>> main
 
 
 class TestAuthServiceEdgeCases:
@@ -54,13 +48,8 @@ class TestAuthServiceEdgeCases:
         """Test authentication with special characters in credentials."""
         # Create user with special character password
         special_password = "P@ssw0rd!#$%^&*()_+-=[]{}|;:,.<>?"
-<<<<<<< HEAD
         UserFactory.create_with_password(
-            db_session, special_password, email="test@example.com"
-=======
-        create_test_user(
-            db_session, email="test@example.com", password=special_password
->>>>>>> main
+            db_session, password=special_password, email="test@example.com"
         )
 
         # Should authenticate successfully
@@ -72,11 +61,7 @@ class TestAuthServiceEdgeCases:
 
         # Test with special characters in email domain
         special_email = "user+tag@sub-domain.co.uk"
-<<<<<<< HEAD
-        UserFactory.create_with_password(db_session, "password123", email=special_email)
-=======
-        create_test_user(db_session, email=special_email, password="password123")
->>>>>>> main
+        UserFactory.create_with_password(db_session, password="password123", email=special_email)
 
         result = auth_service.authenticate_user(
             db_session, special_email, "password123"
@@ -89,13 +74,8 @@ class TestAuthServiceEdgeCases:
     ) -> None:
         """Test authentication with SQL injection attempts."""
         # Create a legitimate user first
-<<<<<<< HEAD
         UserFactory.create_with_password(
-            db_session, "securepassword", email="admin@example.com"
-=======
-        create_test_user(
-            db_session, email="admin@example.com", password="securepassword"
->>>>>>> main
+            db_session, password="securepassword", email="admin@example.com"
         )
 
         # SQL injection attempts in email
@@ -178,13 +158,8 @@ class TestAuthServiceEdgeCases:
         """Test authentication with Unicode characters."""
         # Create user with Unicode password
         unicode_password = "пароль123测试🔒"
-<<<<<<< HEAD
         UserFactory.create_with_password(
-            db_session, unicode_password, email="unicode@example.com"
-=======
-        create_test_user(
-            db_session, email="unicode@example.com", password=unicode_password
->>>>>>> main
+            db_session, password=unicode_password, email="unicode@example.com"
         )
 
         # Should authenticate successfully
@@ -197,13 +172,9 @@ class TestAuthServiceEdgeCases:
         # Test with Unicode in email local part (if supported by system)
         try:
             unicode_email = "用户@example.com"
-<<<<<<< HEAD
             UserFactory.create_with_password(
-                db_session, "password123", email=unicode_email
+                db_session, password="password123", email=unicode_email
             )
-=======
-            create_test_user(db_session, email=unicode_email, password="password123")
->>>>>>> main
 
             result = auth_service.authenticate_user(
                 db_session, unicode_email, "password123"
@@ -245,13 +216,8 @@ class TestAuthServiceEdgeCases:
         self, auth_service: AuthService, db_session: Session
     ) -> None:
         """Test authentication exactly when account lockout expires."""
-<<<<<<< HEAD
         user = UserFactory.create_with_password(
-            db_session, "password123", email="locked@example.com"
-=======
-        user = create_test_user(
-            db_session, email="locked@example.com", password="password123"
->>>>>>> main
+            db_session, password="password123", email="locked@example.com"
         )
 
         # Lock the account
@@ -259,13 +225,6 @@ class TestAuthServiceEdgeCases:
         user.locked_until = datetime.utcnow() + timedelta(seconds=1)
         db_session.commit()
 
-<<<<<<< HEAD
-        # Should fail while locked
-        result = auth_service.authenticate_user(
-            db_session, "locked@example.com", "password123"
-        )
-        assert result is None
-=======
         # NOTE: Current implementation doesn't check is_locked() in authenticate
         # This is a gap that should be addressed in the implementation
         # For now, the test reflects current behavior
@@ -273,7 +232,6 @@ class TestAuthServiceEdgeCases:
             db_session, "locked@example.com", "password123"
         )
         assert result is not None  # Currently succeeds even when locked
->>>>>>> main
 
         # Wait for lockout to expire
         time.sleep(1.1)
@@ -285,26 +243,19 @@ class TestAuthServiceEdgeCases:
         assert result is not None
         assert result.email == "locked@example.com"
 
-<<<<<<< HEAD
         # Verify lockout was reset
         db_session.refresh(user)
         assert user.failed_login_attempts == 0
         assert user.locked_until is None
 
-=======
->>>>>>> main
+
     def test_authenticate_with_case_sensitivity(
         self, auth_service: AuthService, db_session: Session
     ) -> None:
         """Test email case sensitivity in authentication."""
-<<<<<<< HEAD
         UserFactory.create_with_password(
-            db_session, "password123", email="User@Example.COM"
+            db_session, password="password123", email="User@Example.COM"
         )
-
-        # Test various case combinations
-=======
-        create_test_user(db_session, email="User@Example.COM", password="password123")
 
         # Test various case combinations
         # NOTE: Current implementation is case-sensitive
@@ -316,7 +267,6 @@ class TestAuthServiceEdgeCases:
         assert result.email == "User@Example.COM"
 
         # These variations will fail with current implementation
->>>>>>> main
         email_variations = [
             "user@example.com",
             "USER@EXAMPLE.COM",
@@ -325,36 +275,22 @@ class TestAuthServiceEdgeCases:
         ]
 
         for email_variant in email_variations:
-<<<<<<< HEAD
-            result = auth_service.authenticate_user(
-                db_session, email_variant, "password123"
-            )
-            assert result is not None
-            assert result.email.lower() == "user@example.com"
-=======
             if email_variant != "User@Example.COM":
                 result = auth_service.authenticate_user(
                     db_session, email_variant, "password123"
                 )
                 assert result is None  # Case-sensitive, so these fail
->>>>>>> main
 
     def test_authenticate_with_whitespace_handling(
         self, auth_service: AuthService, db_session: Session
     ) -> None:
         """Test authentication with leading/trailing whitespace."""
-<<<<<<< HEAD
         UserFactory.create_with_password(
-            db_session, "password123", email="user@example.com"
+            db_session, password="password123", email="user@example.com"
         )
 
         # Test with various whitespace scenarios
-=======
-        create_test_user(db_session, email="user@example.com", password="password123")
-
-        # Test with various whitespace scenarios
         # NOTE: Current implementation doesn't trim whitespace
->>>>>>> main
         whitespace_emails = [
             " user@example.com",
             "user@example.com ",
@@ -367,24 +303,14 @@ class TestAuthServiceEdgeCases:
             result = auth_service.authenticate_user(
                 db_session, email_with_space, "password123"
             )
-<<<<<<< HEAD
-            assert result is not None
-            assert result.email == "user@example.com"
-=======
             assert result is None  # Whitespace causes lookup failure
->>>>>>> main
 
     def test_authenticate_with_password_must_change(
         self, auth_service: AuthService, db_session: Session
     ) -> None:
         """Test authentication when password must be changed."""
-<<<<<<< HEAD
         user = UserFactory.create_with_password(
-            db_session, "password123", email="mustchange@example.com"
-=======
-        user = create_test_user(
-            db_session, email="mustchange@example.com", password="password123"
->>>>>>> main
+            db_session, password="password123", email="mustchange@example.com"
         )
 
         # Set password must change flag
@@ -396,23 +322,14 @@ class TestAuthServiceEdgeCases:
             db_session, "mustchange@example.com", "password123"
         )
         assert result is not None
-<<<<<<< HEAD
-        # Note: password_must_change is handled at higher level
-=======
         assert result.password_must_change is True
->>>>>>> main
 
     def test_authenticate_with_concurrent_attempts(
         self, auth_service: AuthService, db_session: Session
     ) -> None:
         """Test concurrent authentication attempts."""
-<<<<<<< HEAD
         UserFactory.create_with_password(
-            db_session, "password123", email="concurrent@example.com"
-=======
-        create_test_user(
-            db_session, email="concurrent@example.com", password="password123"
->>>>>>> main
+            db_session, password="password123", email="concurrent@example.com"
         )
 
         # Simulate concurrent authentication attempts
@@ -447,13 +364,6 @@ class TestAuthServiceEdgeCases:
         while not results.empty():
             successful_results.append(results.get())
 
-<<<<<<< HEAD
-        # Should have multiple successful authentications
-        assert len(successful_results) >= 1
-
-        # No errors should occur
-        assert errors.empty()
-=======
         # Should have at least one successful authentication
         assert len(successful_results) >= 1
 
@@ -469,19 +379,13 @@ class TestAuthServiceEdgeCases:
                 f"Concurrent test had {len(error_list)} errors, "
                 f"but {len(successful_results)} successes"
             )
->>>>>>> main
 
     def test_authenticate_with_expired_password(
         self, auth_service: AuthService, db_session: Session
     ) -> None:
         """Test authentication with expired password."""
-<<<<<<< HEAD
         user = UserFactory.create_with_password(
-            db_session, "password123", email="expired@example.com"
-=======
-        user = create_test_user(
-            db_session, email="expired@example.com", password="password123"
->>>>>>> main
+            db_session, password="password123", email="expired@example.com"
         )
 
         # Set password as expired (more than 90 days old)
@@ -502,17 +406,10 @@ class TestAuthServiceEdgeCases:
     ) -> None:
         """Test authentication edge cases with inactive users."""
         # Create inactive user
-<<<<<<< HEAD
         user = UserFactory.create_with_password(
             db_session,
-            "password123",
-            email="inactive@example.com",
-=======
-        user = create_test_user(
-            db_session,
-            email="inactive@example.com",
             password="password123",
->>>>>>> main
+            email="inactive@example.com",
             is_active=False,
         )
 

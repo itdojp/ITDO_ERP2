@@ -280,10 +280,7 @@ class PermissionInheritanceService:
 
     def get_inheritance_conflicts(self, role_id: int) -> list[InheritanceConflict]:
         """Get inheritance conflicts for a role."""
-
         conflicts: list[InheritanceConflict] = []
-
-        conflicts = []
 
         # Get all parent roles
         parent_rules = (
@@ -387,8 +384,6 @@ class PermissionInheritanceService:
         )
 
         if existing_rp:
-            existing_rp.is_granted = bool(final_decision)
-
             existing_rp.is_granted = final_decision
 
         else:
