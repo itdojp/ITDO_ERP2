@@ -11,6 +11,7 @@ dependencies = [
     "sqlalchemy>=2.0.23",
     "alembic>=1.12.1",
     "psycopg2-binary>=2.9.9",
+    "asyncpg>=0.29.0",
     "redis>=5.0.1",
     "pydantic>=2.5.0",
     "pydantic-settings>=2.1.0",
@@ -100,15 +101,18 @@ extend-exclude = [
 ]
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "N"]
+select = ["E", "F", "W", "I", "N", "TC"]
 ignore = [
     "E402",  # Module level import not at top of file (needed for circular import prevention)
     "N805",  # First argument of a method should be named `self` (allow cls for classmethods)
+    "TC001", # Move application import into a type-checking block
+    "TC002", # Move third-party import into a type-checking block
+    "TC003", # Move standard library import into a type-checking block
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/test_task_management/**/*.py" = ["F821"]  # Allow undefined names in incomplete test files
-"tests/conftest.py" = ["I001", "E402"]  # Allow custom import order for model registration
+"tests/conftest.py" = ["F401", "I001", "E402"]  # Allow unused imports and custom import order for model registration
 
 [tool.ruff.format]
 # Ensure consistent formatting across environments
@@ -221,4 +225,5 @@ dev = [
     "types-passlib>=1.7.7",
     "types-psutil>=7.0.0.20250601",
     "faker>=37.4.0",
+    "types-pytz>=2025.2.0.20250516",
 ]
