@@ -19,6 +19,7 @@ from app.api.v1 import (
     # permission_inheritance,  # Temporarily disabled due to syntax errors
     permission_management,
     pm_automation,
+    reports,
     # role_permission_ui,  # Temporarily disabled due to syntax errors
     roles,
     tasks,
@@ -75,6 +76,7 @@ api_router.include_router(customer_activities.router, prefix="/customer-activiti
 api_router.include_router(opportunities.router, prefix="/opportunities", tags=["crm"])
 api_router.include_router(expense_categories.router, prefix="/expense-categories", tags=["financial"])
 api_router.include_router(workflows.router, prefix="/workflows", tags=["workflow"])
+api_router.include_router(reports.router, prefix="/reports", tags=["analytics"])
 
 
 @api_router.get("/ping")

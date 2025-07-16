@@ -35,7 +35,7 @@ from app.models.user_privacy import UserPrivacySettings
 from app.models.user_session import UserSession
 
 # Phase 4-7 Models
-from app.models.budget import Budget, BudgetItem, ExpenseCategory
+from app.models.budget import Budget, BudgetItem
 from app.models.expense import Expense, ExpenseApprovalFlow
 from app.models.customer import Customer, CustomerContact, Opportunity, CustomerActivity
 from app.models.workflow import (

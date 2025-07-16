@@ -96,14 +96,17 @@ class Report(SoftDeletableModel):
     )
     
     # Report definition
-    query_definition: Mapped[Dict[str, Any]] = mapped_column(
-        JSON, nullable=False, comment="Query definition (JSON)"
+    query_config: Mapped[Dict[str, Any]] = mapped_column(
+        JSON, nullable=False, comment="Query configuration (JSON)"
     )
-    layout_definition: Mapped[Dict[str, Any]] = mapped_column(
-        JSON, nullable=False, comment="Layout definition (JSON)"
+    visualization_config: Mapped[Optional[Dict[str, Any]]] = mapped_column(
+        JSON, nullable=True, comment="Visualization configuration (JSON)"
     )
-    filter_definition: Mapped[Optional[Dict[str, Any]]] = mapped_column(
-        JSON, nullable=True, comment="Filter definition (JSON)"
+    parameters_schema: Mapped[Optional[Dict[str, Any]]] = mapped_column(
+        JSON, nullable=True, comment="Parameters schema (JSON)"
+    )
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, default=True, comment="Active status"
     )
 
     # Scheduling
@@ -330,6 +333,15 @@ class DashboardWidget(SoftDeletableModel):
         return f"{self.title} on {self.dashboard.name}"
 
 
+class ExecutionStatus(str, Enum):
+    """Execution status enumeration."""
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
 class ReportExecution(SoftDeletableModel):
     """Report execution model for tracking report runs."""
 
@@ -342,6 +354,9 @@ class ReportExecution(SoftDeletableModel):
     executed_by: Mapped[Optional[UserId]] = mapped_column(
         ForeignKey("users.id"), nullable=True, comment="User who executed (null for scheduled)"
     )
+    organization_id: Mapped[OrganizationId] = mapped_column(
+        ForeignKey("organizations.id"), nullable=False, comment="Organization ID"
+    )
 
     # Execution details
     execution_type: Mapped[str] = mapped_column(
@@ -352,8 +367,8 @@ class ReportExecution(SoftDeletableModel):
     )
     
     # Timing
-    started_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, comment="Execution start time"
+    started_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True, comment="Execution start time"
     )
     completed_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True, comment="Execution completion time"
@@ -363,8 +378,11 @@ class ReportExecution(SoftDeletableModel):
     )
 
     # Results
-    result_count: Mapped[Optional[int]] = mapped_column(
+    row_count: Mapped[Optional[int]] = mapped_column(
         Integer, nullable=True, comment="Number of result rows"
+    )
+    result_data: Mapped[Optional[Dict[str, Any]]] = mapped_column(
+        JSON, nullable=True, comment="Execution result data (JSON)"
     )
     output_format: Mapped[Optional[str]] = mapped_column(
         String(50), nullable=True, comment="Output format (pdf, excel, csv, json)"
@@ -394,6 +412,7 @@ class ReportExecution(SoftDeletableModel):
     executed_by_user: Mapped[Optional["User"]] = relationship(
         "User", foreign_keys=[executed_by], lazy="select"
     )
+    organization: Mapped["Organization"] = relationship("Organization", lazy="select")
 
     @property
     def is_completed(self) -> bool:
@@ -411,7 +430,103 @@ class ReportExecution(SoftDeletableModel):
         return self.status == "running"
 
     def __str__(self) -> str:
-        return f"{self.report.name} - {self.started_at.strftime('%Y-%m-%d %H:%M')}"
+        return f"{self.report.name} - {self.created_at.strftime('%Y-%m-%d %H:%M')}"
+
+
+class ReportSchedule(SoftDeletableModel):
+    """Report schedule model for automated report execution."""
+
+    __tablename__ = "report_schedules"
+
+    # Foreign keys
+    report_id: Mapped[int] = mapped_column(
+        ForeignKey("reports.id"), nullable=False, comment="Report ID"
+    )
+    created_by: Mapped[UserId] = mapped_column(
+        ForeignKey("users.id"), nullable=False, comment="Creator user ID"
+    )
+
+    # Schedule configuration
+    cron_expression: Mapped[str] = mapped_column(
+        String(100), nullable=False, comment="Cron expression for scheduling"
+    )
+    parameters: Mapped[Optional[Dict[str, Any]]] = mapped_column(
+        JSON, nullable=True, comment="Default parameters for execution (JSON)"
+    )
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, default=True, comment="Active schedule flag"
+    )
+
+    # Schedule tracking
+    next_run: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True, comment="Next scheduled run"
+    )
+    last_run: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True, comment="Last execution time"
+    )
+    run_count: Mapped[int] = mapped_column(
+        Integer, default=0, comment="Total execution count"
+    )
+
+    # Relationships
+    report: Mapped["Report"] = relationship("Report", lazy="select")
+    created_by_user: Mapped["User"] = relationship(
+        "User", foreign_keys=[created_by], lazy="select"
+    )
+
+    def __str__(self) -> str:
+        return f"Schedule for {self.report.name}"
+
+
+class Chart(SoftDeletableModel):
+    """Chart model for report visualization components."""
+
+    __tablename__ = "charts"
+
+    # Foreign keys
+    report_id: Mapped[int] = mapped_column(
+        ForeignKey("reports.id"), nullable=False, comment="Report ID"
+    )
+    dashboard_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("dashboards.id"), nullable=True, comment="Dashboard ID (if part of dashboard)"
+    )
+
+    # Chart identification
+    chart_type: Mapped[ChartType] = mapped_column(
+        String(50), nullable=False, comment="Chart type"
+    )
+    title: Mapped[str] = mapped_column(
+        String(200), nullable=False, comment="Chart title"
+    )
+
+    # Layout
+    position_x: Mapped[int] = mapped_column(
+        Integer, default=0, comment="X position in grid"
+    )
+    position_y: Mapped[int] = mapped_column(
+        Integer, default=0, comment="Y position in grid"
+    )
+    width: Mapped[int] = mapped_column(
+        Integer, default=400, comment="Chart width in pixels"
+    )
+    height: Mapped[int] = mapped_column(
+        Integer, default=300, comment="Chart height in pixels"
+    )
+
+    # Configuration
+    config: Mapped[Dict[str, Any]] = mapped_column(
+        JSON, nullable=False, comment="Chart configuration (JSON)"
+    )
+    data_config: Mapped[Dict[str, Any]] = mapped_column(
+        JSON, nullable=False, comment="Data binding configuration (JSON)"
+    )
+
+    # Relationships
+    report: Mapped["Report"] = relationship("Report", lazy="select")
+    dashboard: Mapped[Optional["Dashboard"]] = relationship("Dashboard", lazy="select")
+
+    def __str__(self) -> str:
+        return f"{self.title} ({self.chart_type})"
 
 
 class DataSource(SoftDeletableModel):
