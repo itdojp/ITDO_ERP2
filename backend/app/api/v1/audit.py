@@ -11,7 +11,6 @@ from app.core.exceptions import NotFound, PermissionDenied
 from app.models.user import User
 from app.schemas.audit import (
     AuditLogBulkIntegrityResult,
-    AuditLogFilter,
     AuditLogListResponse,
     AuditLogSearch,
     AuditLogStats,
@@ -42,7 +41,7 @@ def get_organization_audit_logs(
     # Using individual parameters instead of AuditLogFilter object
     # to avoid unused variable warning while maintaining validation
 
-    service = AuditService()
+    service = AuditService(db)
     try:
         return service.get_audit_logs(
             user=current_user,
@@ -71,9 +70,9 @@ def search_audit_logs(
     # Ensure organization ID matches
     search_params.organization_id = organization_id
 
-    service = AuditService()
+    service = AuditService(db)
     try:
-        return service.search_audit_logs(search_params, current_user)
+        return service.search_audit_logs(search_params, current_user, db)
     except PermissionDenied:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -92,14 +91,16 @@ def get_audit_statistics(
     db: Session = Depends(get_db),
 ) -> AuditLogStats:
     """Get audit log statistics for an organization."""
-    service = AuditService()
+    service = AuditService(db)
     try:
-        return service.get_audit_statistics(
+        stats = service.get_audit_statistics(
             organization_id=organization_id,
             date_from=date_from,
             date_to=date_to,
             requester=current_user,
+            db=db,
         )
+        return AuditLogStats.model_validate(stats)
     except PermissionDenied:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -120,7 +121,7 @@ def export_audit_logs(
     db: Session = Depends(get_db),
 ) -> Response:
     """Export audit logs as CSV."""
-    service = AuditService()
+    service = AuditService(db)
     try:
         csv_data = service.export_audit_logs_csv(
             organization_id=organization_id,
@@ -129,6 +130,7 @@ def export_audit_logs(
             date_to=date_to,
             actions=actions,
             resource_types=resource_types,
+            db=db,
         )
 
         # Generate filename
@@ -154,9 +156,9 @@ def verify_log_integrity(
     db: Session = Depends(get_db),
 ) -> Dict[str, bool]:
     """Verify the integrity of a single audit log."""
-    service = AuditService()
+    service = AuditService(db)
     try:
-        is_valid = service.verify_log_integrity(log_id, current_user)
+        is_valid = service.verify_log_integrity(log_id, current_user, db)
         return {"valid": is_valid}
     except NotFound:
         raise HTTPException(
@@ -181,14 +183,16 @@ def verify_logs_integrity_bulk(
     db: Session = Depends(get_db),
 ) -> AuditLogBulkIntegrityResult:
     """Verify integrity of multiple audit logs (admin only)."""
-    service = AuditService()
+    service = AuditService(db)
     try:
-        return service.verify_logs_integrity_bulk(
+        result = service.verify_logs_integrity_bulk(
             organization_id=organization_id,
             date_from=date_from,
             date_to=date_to,
             requester=current_user,
+            db=db,
         )
+        return AuditLogBulkIntegrityResult.model_validate(result)
     except PermissionDenied:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -206,12 +210,13 @@ def apply_retention_policy(
     db: Session = Depends(get_db),
 ) -> Dict[str, int]:
     """Apply retention policy to audit logs (admin only)."""
-    service = AuditService()
+    service = AuditService(db)
     try:
         archived_count = service.apply_retention_policy(
             organization_id=organization_id,
             retention_days=retention_days,
             requester=current_user,
+            db=db,
         )
         return {"archived_logs": archived_count}
     except PermissionDenied:
@@ -221,7 +226,9 @@ def apply_retention_policy(
         )
 
 
-@router.get("/organizations/{organization_id}/logs/recent")
+@router.get(
+    "/organizations/{organization_id}/logs/recent", response_model=AuditLogListResponse
+)
 def get_recent_activity(
     organization_id: int,
     hours: int = Query(24, ge=1, le=168, description="Hours to look back"),
@@ -245,9 +252,9 @@ def get_recent_activity(
         sort_order="desc",
     )
 
-    service = AuditService()
+    service = AuditService(db)
     try:
-        return service.search_audit_logs(search_params, current_user)
+        return service.search_audit_logs(search_params, current_user, db)
     except PermissionDenied:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -263,12 +270,14 @@ def get_available_actions(
 ) -> List[str]:
     """Get list of available actions in the audit logs."""
     # Permission check
-    service = AuditService()
-    if not service._can_access_organization_logs(current_user, organization_id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="組織の監査ログにアクセスする権限がありません",
-        )
+    # TODO: Implement _can_access_organization_logs method in AuditService
+    if not current_user.is_superuser:
+        user_org_ids = [o.id for o in current_user.get_organizations()]
+        if organization_id not in user_org_ids:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="組織の監査ログにアクセスする権限がありません",
+            )
 
     # Get distinct actions from the database
     from app.models.audit import AuditLog
@@ -291,12 +300,14 @@ def get_available_resource_types(
 ) -> List[str]:
     """Get list of available resource types in the audit logs."""
     # Permission check
-    service = AuditService()
-    if not service._can_access_organization_logs(current_user, organization_id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="組織の監査ログにアクセスする権限がありません",
-        )
+    # TODO: Implement _can_access_organization_logs method in AuditService
+    if not current_user.is_superuser:
+        user_org_ids = [o.id for o in current_user.get_organizations()]
+        if organization_id not in user_org_ids:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="組織の監査ログにアクセスする権限がありません",
+            )
 
     # Get distinct resource types from the database
     from app.models.audit import AuditLog

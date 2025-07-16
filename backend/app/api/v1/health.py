@@ -33,7 +33,7 @@ async def comprehensive_health_check(
         "timestamp": health_results["timestamp"],
         "version": "2.0.0",
         "checks": health_results["checks"],
-        "overall_healthy": health_results["healthy"]
+        "overall_healthy": health_results["healthy"],
     }
 
 
@@ -50,18 +50,19 @@ async def readiness_probe(db: Session = Depends(get_db)) -> dict[str, Any]:
     try:
         # Test database connectivity
         from sqlalchemy import text
+
         db.execute(text("SELECT 1"))
 
         return {
             "status": "ready",
             "database": "connected",
-            "timestamp": health_checker.last_check_time.get("database", "never")
+            "timestamp": health_checker.last_check_time.get("database", "never"),
         }
 
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"Service not ready: {str(e)}"
+            detail=f"Service not ready: {str(e)}",
         )
 
 
@@ -89,21 +90,17 @@ async def database_health(db: Session = Depends(get_db)) -> dict[str, Any]:
             "status": "healthy",
             "basic_query": {
                 "result": result[0] if result else None,
-                "duration_ms": round(basic_duration * 1000, 2)
+                "duration_ms": round(basic_duration * 1000, 2),
             },
             "count_query": {
                 "users_count": users_count,
-                "duration_ms": round(count_duration * 1000, 2)
+                "duration_ms": round(count_duration * 1000, 2),
             },
-            "total_duration_ms": round((basic_duration + count_duration) * 1000, 2)
+            "total_duration_ms": round((basic_duration + count_duration) * 1000, 2),
         }
 
     except Exception as e:
-        return {
-            "status": "unhealthy",
-            "error": str(e),
-            "error_type": type(e).__name__
-        }
+        return {"status": "unhealthy", "error": str(e), "error_type": type(e).__name__}
 
 
 @router.get("/metrics-endpoint", response_model=dict[str, str])
@@ -119,15 +116,11 @@ async def metrics_endpoint_health() -> dict[str, str]:
         return {
             "status": "healthy",
             "metrics_available": "yes",
-            "sample_metrics_length": str(len(metrics_data))
+            "sample_metrics_length": str(len(metrics_data)),
         }
 
     except Exception as e:
-        return {
-            "status": "unhealthy",
-            "error": str(e),
-            "metrics_available": "no"
-        }
+        return {"status": "unhealthy", "error": str(e), "metrics_available": "no"}
 
 
 @router.get("/system", response_model=dict[str, Any])
@@ -155,26 +148,19 @@ async def system_health() -> dict[str, Any]:
                 "free_percent": round(disk_free_percent, 2),
                 "free_gb": round(free / (1024**3), 2),
                 "total_gb": round(total / (1024**3), 2),
-                "healthy": disk_free_percent > 10
+                "healthy": disk_free_percent > 10,
             },
             "memory": {
                 "used_percent": memory.percent,
                 "available_gb": round(memory.available / (1024**3), 2),
                 "total_gb": round(memory.total / (1024**3), 2),
-                "healthy": memory.percent < 90
+                "healthy": memory.percent < 90,
             },
-            "cpu": {
-                "usage_percent": cpu_percent,
-                "healthy": cpu_percent < 90
-            }
+            "cpu": {"usage_percent": cpu_percent, "healthy": cpu_percent < 90},
         }
 
     except Exception as e:
-        return {
-            "status": "unhealthy",
-            "error": str(e),
-            "error_type": type(e).__name__
-        }
+        return {"status": "unhealthy", "error": str(e), "error_type": type(e).__name__}
 
 
 @router.get("/startup", response_model=dict[str, Any])
@@ -184,7 +170,7 @@ async def startup_health() -> dict[str, Any]:
     status_checks = {
         "monitoring_initialized": False,
         "health_checker_ready": False,
-        "database_session_factory": False
+        "database_session_factory": False,
     }
 
     try:
@@ -196,8 +182,10 @@ async def startup_health() -> dict[str, Any]:
 
         # Check database session factory
         from app.core.database import SessionLocal
+
         with SessionLocal() as session:
             from sqlalchemy import text
+
             session.execute(text("SELECT 1"))
             status_checks["database_session_factory"] = True
 
@@ -206,7 +194,7 @@ async def startup_health() -> dict[str, Any]:
         return {
             "status": "healthy" if all_healthy else "unhealthy",
             "checks": status_checks,
-            "overall_healthy": all_healthy
+            "overall_healthy": all_healthy,
         }
 
     except Exception as e:
@@ -214,7 +202,7 @@ async def startup_health() -> dict[str, Any]:
             "status": "unhealthy",
             "checks": status_checks,
             "error": str(e),
-            "overall_healthy": False
+            "overall_healthy": False,
         }
 
 
@@ -233,14 +221,15 @@ async def agent_health() -> dict[str, Any]:
 
         # Check system resources for agent performance
         import psutil
+
         memory = psutil.virtual_memory()
         cpu_percent = psutil.cpu_percent(interval=0.1)
 
         # Agent health criteria
         agent_healthy = (
-            response_time < 1.0 and  # Response under 1 second
-            memory.percent < 85 and  # Memory usage under 85%
-            cpu_percent < 85         # CPU usage under 85%
+            response_time < 1.0  # Response under 1 second
+            and memory.percent < 85  # Memory usage under 85%
+            and cpu_percent < 85  # CPU usage under 85%
         )
 
         return {
@@ -249,16 +238,16 @@ async def agent_health() -> dict[str, Any]:
             "system_resources": {
                 "memory_usage_percent": memory.percent,
                 "cpu_usage_percent": cpu_percent,
-                "memory_available_gb": round(memory.available / (1024**3), 2)
+                "memory_available_gb": round(memory.available / (1024**3), 2),
             },
             "performance_criteria": {
                 "response_time_ok": response_time < 1.0,
                 "memory_ok": memory.percent < 85,
-                "cpu_ok": cpu_percent < 85
+                "cpu_ok": cpu_percent < 85,
             },
             "overall_agent_health": agent_healthy,
             "timestamp": datetime.datetime.now().isoformat(),
-            "escalation_level": "LEVEL_1" if not agent_healthy else "NORMAL"
+            "escalation_level": "LEVEL_1" if not agent_healthy else "NORMAL",
         }
 
     except Exception as e:
@@ -267,5 +256,5 @@ async def agent_health() -> dict[str, Any]:
             "error": str(e),
             "escalation_level": "LEVEL_1",
             "timestamp": datetime.datetime.now().isoformat(),
-            "agent_health": False
+            "agent_health": False,
         }

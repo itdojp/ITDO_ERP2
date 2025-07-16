@@ -28,8 +28,8 @@ router = APIRouter()
 )
 async def upload_profile_image(
     user_id: int,
+    current_user: Annotated[User, Depends(get_current_active_user)],
     file: UploadFile = File(...),
-    current_user: Annotated[User, Depends(get_current_active_user)] = None,
     db: Session = Depends(get_db),
 ) -> ProfileImageUploadResponse:
     """Upload user profile image."""
@@ -60,7 +60,7 @@ async def upload_profile_image(
 )
 async def delete_profile_image(
     user_id: int,
-    current_user: Annotated[User, Depends(get_current_active_user)] = None,
+    current_user: Annotated[User, Depends(get_current_active_user)],
     db: Session = Depends(get_db),
 ) -> None:
     """Delete user profile image."""
@@ -78,7 +78,7 @@ async def delete_profile_image(
 )
 async def get_user_profile(
     user_id: int,
-    current_user: Annotated[User, Depends(get_current_active_user)] = None,
+    current_user: Annotated[User, Depends(get_current_active_user)],
     db: Session = Depends(get_db),
 ) -> UserProfileResponse:
     """Get user profile with privacy rules applied."""
@@ -96,8 +96,8 @@ async def get_user_profile(
 )
 async def update_user_profile(
     user_id: int,
+    current_user: Annotated[User, Depends(get_current_active_user)],
     data: UserProfileUpdate,
-    current_user: Annotated[User, Depends(get_current_active_user)] = None,
     db: Session = Depends(get_db),
 ) -> UserProfileResponse:
     """Update user profile information."""
@@ -116,7 +116,7 @@ async def update_user_profile(
 )
 async def get_profile_settings(
     user_id: int,
-    current_user: Annotated[User, Depends(get_current_active_user)] = None,
+    current_user: Annotated[User, Depends(get_current_active_user)],
     db: Session = Depends(get_db),
 ) -> UserProfileSettings:
     """Get user profile settings."""
@@ -134,8 +134,8 @@ async def get_profile_settings(
 )
 async def update_profile_settings(
     user_id: int,
+    current_user: Annotated[User, Depends(get_current_active_user)],
     settings: UserProfileSettingsUpdate,
-    current_user: Annotated[User, Depends(get_current_active_user)] = None,
     db: Session = Depends(get_db),
 ) -> UserProfileSettings:
     """Update user profile settings."""
@@ -154,7 +154,7 @@ async def update_profile_settings(
 )
 async def get_privacy_settings(
     user_id: int,
-    current_user: Annotated[User, Depends(get_current_active_user)] = None,
+    current_user: Annotated[User, Depends(get_current_active_user)],
     db: Session = Depends(get_db),
 ) -> UserPrivacySettings:
     """Get user privacy settings."""
@@ -172,8 +172,8 @@ async def get_privacy_settings(
 )
 async def update_privacy_settings(
     user_id: int,
+    current_user: Annotated[User, Depends(get_current_active_user)],
     settings: UserPrivacySettingsUpdate,
-    current_user: Annotated[User, Depends(get_current_active_user)] = None,
     db: Session = Depends(get_db),
 ) -> UserPrivacySettings:
     """Update user privacy settings."""
