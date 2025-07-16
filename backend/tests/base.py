@@ -3,7 +3,6 @@
 from abc import ABC, abstractmethod
 from typing import Any, Generic, TypeVar
 
-import pytest
 from fastapi.testclient import TestClient
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
