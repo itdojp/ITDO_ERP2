@@ -6,8 +6,10 @@ from app.api.v1 import (
     audit,
     audit_logs,
     auth,
+    budgets,
     cross_tenant_permissions,
     departments,
+    expense_categories,
     health,
     multi_tenant,
     organizations,
@@ -61,6 +63,10 @@ api_router.include_router(
     user_privacy.router, prefix="/users/privacy", tags=["user-privacy"]
 )
 api_router.include_router(pm_automation.router)
+api_router.include_router(
+    expense_categories.router, prefix="/expense-categories", tags=["expense-categories"]
+)
+api_router.include_router(budgets.router, prefix="/budgets", tags=["budgets"])
 
 
 @api_router.get("/ping")
