@@ -8,6 +8,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import SoftDeletableModel
 from app.types import OrganizationId
 
+from typing import Any
+from sqlalchemy.orm import Session
+
 if TYPE_CHECKING:
     from app.models.department import Department
     from app.models.role import Role
@@ -161,6 +164,14 @@ class Organization(SoftDeletableModel):
         cascade="all, delete-orphan",
     )
 
+    # Creator relationship for backward compatibility
+    creator: Mapped[Optional["User"]] = relationship(
+        "User", foreign_keys="Organization.created_by", lazy="joined"
+    )
+    updater: Mapped[Optional["User"]] = relationship(
+        "User", foreign_keys="Organization.updated_by", lazy="joined"
+    )
+
     def __repr__(self) -> str:
         """String representation."""
         return f"<Organization(id={self.id}, code='{self.code}', name='{self.name}')>"
@@ -208,3 +219,31 @@ class Organization(SoftDeletableModel):
             path.insert(0, current.parent)
             current = current.parent
         return path
+
+    def update(self, db: Session, updated_by: int, **kwargs: Any) -> None:
+        """Update organization attributes."""
+        from datetime import datetime
+        
+        for key, value in kwargs.items():
+            if hasattr(self, key) and key not in ["id", "created_at", "created_by"]:
+                setattr(self, key, value)
+
+        self.updated_by = updated_by
+        self.updated_at = datetime.utcnow()
+        db.add(self)
+        db.flush()
+
+    def validate(self) -> None:
+        """Validate organization data."""
+        if not self.code or len(self.code.strip()) == 0:
+            raise ValueError("組織コードは必須です")
+
+        if not self.name or len(self.name.strip()) == 0:
+            raise ValueError("組織名は必須です")
+
+        if self.fiscal_year_start and (self.fiscal_year_start < 1 or self.fiscal_year_start > 12):
+            raise ValueError("会計年度開始月は1-12の範囲で入力してください")
+
+    def __str__(self) -> str:
+        """String representation for display."""
+        return f"{self.code} - {self.name}"
