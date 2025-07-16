@@ -281,13 +281,13 @@ async def get_agent_activity_log(
             }
         }
     }
-    
+
     if agent_id:
         agent_data = activity_data["agents"].get(agent_id)
         if not agent_data:
             raise HTTPException(status_code=404, detail=f"Agent {agent_id} not found")
         return {"agent_id": agent_id, **agent_data}
-    
+
     return activity_data
 
 
@@ -327,7 +327,7 @@ async def get_workload_analysis() -> Dict[str, Any]:
             },
             {
                 "type": "agent_recovery",
-                "priority": "critical", 
+                "priority": "critical",
                 "message": "CC02 requires immediate attention or replacement"
             },
             {
@@ -361,13 +361,13 @@ async def suggest_agent_break(agent_id: str) -> Dict[str, Any]:
             "activities": ["system check", "optimization review"]
         }
     }
-    
+
     if agent_id not in break_recommendations:
         raise HTTPException(
-            status_code=404, 
+            status_code=404,
             detail=f"No break recommendation available for agent {agent_id}"
         )
-    
+
     return {
         "agent_id": agent_id,
         "timestamp": datetime.utcnow().isoformat(),

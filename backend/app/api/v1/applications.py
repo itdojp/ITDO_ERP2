@@ -3,25 +3,18 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.models.workflow import (
-    Application,
-    ApplicationType,
-    ApplicationStatus,
-    ApplicationApproval,
-    ApprovalStatus
-)
 from app.schemas.application import (
-    ApplicationCreate,
-    ApplicationResponse,
-    ApplicationUpdate,
-    ApplicationListResponse,
     ApplicationApprovalCreate,
     ApplicationApprovalResponse,
-    ApplicationSearchParams
+    ApplicationCreate,
+    ApplicationListResponse,
+    ApplicationResponse,
+    ApplicationSearchParams,
+    ApplicationUpdate,
 )
 from app.services.application_service import ApplicationService
 
@@ -199,7 +192,10 @@ async def create_approval(
     return approval
 
 
-@router.get("/{application_id}/approvals", response_model=List[ApplicationApprovalResponse])
+@router.get(
+    "/{application_id}/approvals",
+    response_model=List[ApplicationApprovalResponse]
+)
 async def get_application_approvals(
     application_id: int,
     db: Session = Depends(get_db)
