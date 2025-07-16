@@ -29,7 +29,12 @@ class AuthService:
 
         # Verify password
         from app.core.security import verify_password
+
         if not verify_password(password, user.hashed_password):
+            return None
+
+        # Check if user is active
+        if not user.is_active:
             return None
 
         return user

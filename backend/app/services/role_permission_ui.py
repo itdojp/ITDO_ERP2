@@ -77,7 +77,9 @@ class RolePermissionUIService:
             # Check if user has role management permissions
             # Users need 'role.manage' permission in the role's organization
             if hasattr(updater, "has_permission") and role.organization_id:
-                has_permission = updater.has_permission("role.manage", role.organization_id)
+                has_permission = updater.has_permission(
+                    "role.manage", role.organization_id
+                )
                 if not has_permission:
                     raise PermissionDenied("ロール権限を更新する権限がありません")
             else:
@@ -94,7 +96,11 @@ class RolePermissionUIService:
 
         for permission_code, enabled in final_permissions.items():
             # Find the permission by code
-            permission = self.db.query(Permission).filter(Permission.code == permission_code).first()
+            permission = (
+                self.db.query(Permission)
+                .filter(Permission.code == permission_code)
+                .first()
+            )
             if not permission:
                 continue
 
@@ -103,7 +109,7 @@ class RolePermissionUIService:
                 self.db.query(RolePermission)
                 .filter(
                     RolePermission.role_id == role_id,
-                    RolePermission.permission_id == permission.id
+                    RolePermission.permission_id == permission.id,
                 )
                 .first()
             )
@@ -112,8 +118,7 @@ class RolePermissionUIService:
                 # Add permission if not exists
                 if not role_permission:
                     role_permission = RolePermission(
-                        role_id=role_id,
-                        permission_id=permission.id
+                        role_id=role_id, permission_id=permission.id
                     )
                     self.db.add(role_permission)
             else:
