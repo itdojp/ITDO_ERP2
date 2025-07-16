@@ -5,8 +5,6 @@ from typing import List, Optional
 
 from pydantic import BaseModel, Field, validator
 
-from app.schemas.common import PaginatedResponse
-
 
 class BudgetItemBase(BaseModel):
     """Base schema for budget items."""

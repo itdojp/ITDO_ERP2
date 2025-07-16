@@ -8,8 +8,8 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.dependencies import get_current_user
 from app.core.database import get_db
+from app.core.dependencies import get_current_user
 from app.models.user import User
 from app.schemas.budget import (
     BudgetCreate,
@@ -45,7 +45,7 @@ async def get_budgets(
     return budgets
 
 
-@router.get("/{budget_id}", response_model=BudgetDetailResponse)
+@router.get("/{budget_id}", response_model=BudgetResponse)
 async def get_budget(
     budget_id: int,
     db: AsyncSession = Depends(get_db),
@@ -70,7 +70,9 @@ async def create_budget(
 ):
     """予算新規作成"""
     service = BudgetService(db)
-    budget = await service.create_budget(budget_data, current_user.organization_id, current_user.id)
+    budget = await service.create_budget(
+        budget_data, current_user.organization_id, current_user.id
+    )
     return budget
 
 
@@ -114,7 +116,7 @@ async def delete_budget(
 @router.post("/{budget_id}/approve", response_model=BudgetResponse)
 async def approve_budget(
     budget_id: int,
-    approval_data: BudgetApprovalRequest,
+    approval_data: dict,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -187,7 +189,7 @@ async def delete_budget_item(
     return {"message": "Budget item deleted successfully"}
 
 
-@router.get("/{budget_id}/report", response_model=BudgetReportResponse)
+@router.get("/{budget_id}/report", response_model=dict)
 async def get_budget_report(
     budget_id: int,
     include_variance: bool = True,
@@ -211,7 +213,7 @@ async def get_budget_report(
     return report
 
 
-@router.get("/analytics/summary", response_model=BudgetAnalyticsResponse)
+@router.get("/analytics/summary", response_model=dict)
 async def get_budget_analytics(
     fiscal_year: Optional[int] = None,
     department_id: Optional[int] = None,
