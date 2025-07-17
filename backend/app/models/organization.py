@@ -247,4 +247,3 @@ class Organization(SoftDeletableModel):
             path.insert(0, current.parent)
             current = current.parent
         return path
-
