@@ -4,7 +4,7 @@ Security Monitoring Schemas for Issue #46.
 """
 
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -96,7 +96,7 @@ class SecurityAlert(BaseModel):
     affected_users: int
     total_incidents: int
     recommended_actions: List[str] = Field(default_factory=list)
-    details: Dict = Field(default_factory=dict)
+    details: Dict[str, Any][str, Any] = Field(default_factory=dict)
 
 
 class SecurityMetricsPeriod(BaseModel):
@@ -140,7 +140,7 @@ class UserRiskAssessment(BaseModel):
     risk_level: str = Field(..., description="Risk level: low, medium, high")
     risk_score: int = Field(..., ge=0, le=100)
     risk_factors: List[str] = Field(default_factory=list)
-    recent_activity: Dict = Field(default_factory=dict)
+    recent_activity: Dict[str, Any] = Field(default_factory=dict)
     assessment_date: str = Field(..., description="ISO format datetime")
 
 
@@ -148,7 +148,7 @@ class SecurityEventLog(BaseModel):
     """Schema for security event logging."""
 
     event_type: str
-    details: Dict
+    details: Dict[str, Any]
     target_user_id: Optional[int] = None
 
 
@@ -168,7 +168,7 @@ class SecurityDashboard(BaseModel):
     dashboard_type: str = Field(default="security_monitoring")
     generated_at: str = Field(..., description="ISO format datetime")
     threat_summary: ThreatSummary
-    recent_threats: Dict = Field(default_factory=dict)
+    recent_threats: Dict[str, Any] = Field(default_factory=dict)
     security_metrics: SecurityMetricsData
     security_health: SecurityHealth
     high_risk_users: List[int] = Field(default_factory=list)
@@ -179,7 +179,7 @@ class SecurityDashboard(BaseModel):
 class AlertGenerationRequest(BaseModel):
     """Schema for alert generation request."""
 
-    threat_data: Dict
+    threat_data: Dict[str, Any]
     alert_type: str = Field(default="security_incident")
 
 
@@ -220,7 +220,7 @@ class AuditLogResponse(BaseModel):
     resource_type: str
     resource_id: int
     organization_id: Optional[int] = None
-    changes: Dict = Field(default_factory=dict)
+    changes: Dict[str, Any] = Field(default_factory=dict)
     ip_address: Optional[str] = None
     user_agent: Optional[str] = None
     created_at: str = Field(..., description="ISO format datetime")
