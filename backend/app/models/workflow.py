@@ -2,9 +2,9 @@
 
 from datetime import datetime
 from enum import Enum
-from typing import TYPE_CHECKING, Dict, List, Optional, Any
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from sqlalchemy import Boolean, DateTime, Integer, JSON, String, Text, ForeignKey
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import SoftDeletableModel
@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 
 class WorkflowStatus(str, Enum):
     """Workflow status enumeration."""
+
     DRAFT = "draft"
     ACTIVE = "active"
     INACTIVE = "inactive"
@@ -26,6 +27,7 @@ class WorkflowStatus(str, Enum):
 
 class WorkflowInstanceStatus(str, Enum):
     """Workflow instance status enumeration."""
+
     PENDING = "pending"
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
@@ -35,6 +37,7 @@ class WorkflowInstanceStatus(str, Enum):
 
 class TaskStatus(str, Enum):
     """Workflow task status enumeration."""
+
     PENDING = "pending"
     ASSIGNED = "assigned"
     IN_PROGRESS = "in_progress"
@@ -45,6 +48,7 @@ class TaskStatus(str, Enum):
 
 class ApplicationStatus(str, Enum):
     """Application status enumeration."""
+
     DRAFT = "draft"
     PENDING_APPROVAL = "pending_approval"
     PENDING_CLARIFICATION = "pending_clarification"
@@ -55,6 +59,7 @@ class ApplicationStatus(str, Enum):
 
 class ApplicationType(str, Enum):
     """Application type enumeration."""
+
     LEAVE_REQUEST = "leave_request"
     EXPENSE_REPORT = "expense_report"
     PURCHASE_REQUEST = "purchase_request"
@@ -66,6 +71,7 @@ class ApplicationType(str, Enum):
 
 class ApprovalStatus(str, Enum):
     """Approval status enumeration."""
+
     PENDING = "pending"
     APPROVED = "approved"
     REJECTED = "rejected"
@@ -74,6 +80,7 @@ class ApprovalStatus(str, Enum):
 
 class NodeType(str, Enum):
     """Workflow node type enumeration."""
+
     START = "start"
     END = "end"
     TASK = "task"
@@ -116,7 +123,9 @@ class Workflow(SoftDeletableModel):
         Boolean, default=False, comment="Template flag"
     )
     trigger_type: Mapped[str] = mapped_column(
-        String(50), nullable=False, comment="Trigger type (manual, automatic, scheduled)"
+        String(50),
+        nullable=False,
+        comment="Trigger type (manual, automatic, scheduled)",
     )
     trigger_conditions: Mapped[Optional[Dict[str, Any]]] = mapped_column(
         JSON, nullable=True, comment="Trigger conditions (JSON)"
@@ -126,7 +135,7 @@ class Workflow(SoftDeletableModel):
     workflow_definition: Mapped[Dict[str, Any]] = mapped_column(
         JSON, nullable=False, comment="Workflow definition (nodes, connections)"
     )
-    
+
     # Settings
     allow_parallel_instances: Mapped[bool] = mapped_column(
         Boolean, default=True, comment="Allow multiple instances"
@@ -134,7 +143,7 @@ class Workflow(SoftDeletableModel):
     timeout_hours: Mapped[Optional[int]] = mapped_column(
         Integer, nullable=True, comment="Workflow timeout in hours"
     )
-    
+
     # Metadata
     tags: Mapped[Optional[str]] = mapped_column(
         String(500), nullable=True, comment="Workflow tags (comma-separated)"
@@ -173,9 +182,7 @@ class WorkflowNode(SoftDeletableModel):
     node_id: Mapped[str] = mapped_column(
         String(100), nullable=False, comment="Unique node ID within workflow"
     )
-    name: Mapped[str] = mapped_column(
-        String(200), nullable=False, comment="Node name"
-    )
+    name: Mapped[str] = mapped_column(String(200), nullable=False, comment="Node name")
     node_type: Mapped[NodeType] = mapped_column(
         String(50), nullable=False, comment="Node type"
     )
@@ -224,12 +231,16 @@ class WorkflowNode(SoftDeletableModel):
         "User", foreign_keys=[assign_to_user], lazy="select"
     )
     connections_from: Mapped[List["WorkflowConnection"]] = relationship(
-        "WorkflowConnection", foreign_keys="WorkflowConnection.from_node_id",
-        back_populates="from_node", cascade="all, delete-orphan"
+        "WorkflowConnection",
+        foreign_keys="WorkflowConnection.from_node_id",
+        back_populates="from_node",
+        cascade="all, delete-orphan",
     )
     connections_to: Mapped[List["WorkflowConnection"]] = relationship(
-        "WorkflowConnection", foreign_keys="WorkflowConnection.to_node_id",
-        back_populates="to_node", cascade="all, delete-orphan"
+        "WorkflowConnection",
+        foreign_keys="WorkflowConnection.to_node_id",
+        back_populates="to_node",
+        cascade="all, delete-orphan",
     )
 
     def __str__(self) -> str:
@@ -296,7 +307,7 @@ class WorkflowInstance(SoftDeletableModel):
     status: Mapped[WorkflowInstanceStatus] = mapped_column(
         String(50), default=WorkflowInstanceStatus.PENDING, comment="Instance status"
     )
-    
+
     # Context data
     context_data: Mapped[Optional[Dict[str, Any]]] = mapped_column(
         JSON, nullable=True, comment="Instance context data (JSON)"
@@ -342,7 +353,10 @@ class WorkflowInstance(SoftDeletableModel):
     @property
     def is_active(self) -> bool:
         """Check if instance is currently active."""
-        return self.status in [WorkflowInstanceStatus.PENDING, WorkflowInstanceStatus.IN_PROGRESS]
+        return self.status in [
+            WorkflowInstanceStatus.PENDING,
+            WorkflowInstanceStatus.IN_PROGRESS,
+        ]
 
     @property
     def is_completed(self) -> bool:
@@ -384,7 +398,7 @@ class WorkflowTask(SoftDeletableModel):
     status: Mapped[TaskStatus] = mapped_column(
         String(50), default=TaskStatus.PENDING, comment="Task status"
     )
-    
+
     # Task data
     input_data: Mapped[Optional[Dict[str, Any]]] = mapped_column(
         JSON, nullable=True, comment="Task input data (JSON)"
@@ -419,7 +433,9 @@ class WorkflowTask(SoftDeletableModel):
     )
 
     # Relationships
-    instance: Mapped["WorkflowInstance"] = relationship("WorkflowInstance", back_populates="tasks")
+    instance: Mapped["WorkflowInstance"] = relationship(
+        "WorkflowInstance", back_populates="tasks"
+    )
     node: Mapped["WorkflowNode"] = relationship("WorkflowNode", lazy="select")
     assigned_user: Mapped[Optional["User"]] = relationship(
         "User", foreign_keys=[assigned_to], lazy="select"
@@ -516,9 +532,13 @@ class Application(SoftDeletableModel):
     created_by_user: Mapped["User"] = relationship(
         "User", foreign_keys=[created_by], lazy="select"
     )
-    department: Mapped[Optional["Department"]] = relationship("Department", lazy="select")
+    department: Mapped[Optional["Department"]] = relationship(
+        "Department", lazy="select"
+    )
     approvals: Mapped[List["ApplicationApproval"]] = relationship(
-        "ApplicationApproval", back_populates="application", cascade="all, delete-orphan"
+        "ApplicationApproval",
+        back_populates="application",
+        cascade="all, delete-orphan",
     )
 
     @property
@@ -567,7 +587,9 @@ class ApplicationApproval(SoftDeletableModel):
     )
 
     # Relationships
-    application: Mapped["Application"] = relationship("Application", back_populates="approvals")
+    application: Mapped["Application"] = relationship(
+        "Application", back_populates="approvals"
+    )
     approver: Mapped["User"] = relationship(
         "User", foreign_keys=[approver_id], lazy="select"
     )

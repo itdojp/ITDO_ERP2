@@ -73,9 +73,7 @@ class OpportunityService:
         result = await self.db.execute(query)
         opportunities = result.scalars().all()
 
-        return [
-            OpportunityResponse.model_validate(opp) for opp in opportunities
-        ]
+        return [OpportunityResponse.model_validate(opp) for opp in opportunities]
 
     async def get_opportunity_by_id(
         self, opportunity_id: int, organization_id: int
@@ -310,7 +308,9 @@ class OpportunityService:
             base_query = base_query.where(Opportunity.customer_id == customer_id)
 
         # 基本統計
-        total_query = select(func.count(Opportunity.id)).select_from(base_query.subquery())
+        total_query = select(func.count(Opportunity.id)).select_from(
+            base_query.subquery()
+        )
         total_result = await self.db.execute(total_query)
         total_opportunities = total_result.scalar()
 

@@ -34,14 +34,11 @@ class BudgetService:
         fiscal_year: Optional[int] = None,
         status: Optional[str] = None,
         skip: int = 0,
-        limit: int = 100
+        limit: int = 100,
     ) -> List[BudgetResponse]:
         """予算一覧取得"""
         query = select(Budget).where(
-            and_(
-                Budget.organization_id == organization_id,
-                Budget.deleted_at.is_(None)
-            )
+            and_(Budget.organization_id == organization_id, Budget.deleted_at.is_(None))
         )
 
         if fiscal_year:
@@ -62,13 +59,17 @@ class BudgetService:
         self, budget_id: int, organization_id: int
     ) -> Optional[BudgetResponse]:
         """予算詳細取得"""
-        query = select(Budget).where(
-            and_(
-                Budget.id == budget_id,
-                Budget.organization_id == organization_id,
-                Budget.deleted_at.is_(None)
+        query = (
+            select(Budget)
+            .where(
+                and_(
+                    Budget.id == budget_id,
+                    Budget.organization_id == organization_id,
+                    Budget.deleted_at.is_(None),
+                )
             )
-        ).options(selectinload(Budget.items))
+            .options(selectinload(Budget.items))
+        )
 
         result = await self.db.execute(query)
         budget = result.scalar_one_or_none()
@@ -86,12 +87,14 @@ class BudgetService:
             budget_data.code, organization_id, budget_data.fiscal_year
         )
         if existing:
-            raise ValueError(f"Budget code '{budget_data.code}' already exists for fiscal year {budget_data.fiscal_year}")
+            raise ValueError(
+                f"Budget code '{budget_data.code}' already exists for fiscal year {budget_data.fiscal_year}"
+            )
 
         budget = Budget(
             organization_id=organization_id,
             created_by_id=created_by_id,
-            **budget_data.model_dump()
+            **budget_data.model_dump(),
         )
 
         self.db.add(budget)
@@ -108,7 +111,7 @@ class BudgetService:
             and_(
                 Budget.id == budget_id,
                 Budget.organization_id == organization_id,
-                Budget.deleted_at.is_(None)
+                Budget.deleted_at.is_(None),
             )
         )
 
@@ -125,7 +128,10 @@ class BudgetService:
         # コード重複チェック（自分以外）
         if budget_data.code and budget_data.code != budget.code:
             existing = await self._check_duplicate_code(
-                budget_data.code, organization_id, budget.fiscal_year, exclude_id=budget_id
+                budget_data.code,
+                organization_id,
+                budget.fiscal_year,
+                exclude_id=budget_id,
             )
             if existing:
                 raise ValueError(f"Budget code '{budget_data.code}' already exists")
@@ -141,15 +147,13 @@ class BudgetService:
 
         return BudgetResponse.model_validate(budget)
 
-    async def delete_budget(
-        self, budget_id: int, organization_id: int
-    ) -> bool:
+    async def delete_budget(self, budget_id: int, organization_id: int) -> bool:
         """予算削除（論理削除）"""
         query = select(Budget).where(
             and_(
                 Budget.id == budget_id,
                 Budget.organization_id == organization_id,
-                Budget.deleted_at.is_(None)
+                Budget.deleted_at.is_(None),
             )
         )
 
@@ -174,14 +178,14 @@ class BudgetService:
         budget_id: int,
         approval_data: BudgetApprovalRequest,
         organization_id: int,
-        approved_by_id: int
+        approved_by_id: int,
     ) -> Optional[BudgetResponse]:
         """予算承認"""
         query = select(Budget).where(
             and_(
                 Budget.id == budget_id,
                 Budget.organization_id == organization_id,
-                Budget.deleted_at.is_(None)
+                Budget.deleted_at.is_(None),
             )
         )
 
@@ -214,7 +218,7 @@ class BudgetService:
             and_(
                 Budget.id == budget_id,
                 Budget.organization_id == organization_id,
-                Budget.deleted_at.is_(None)
+                Budget.deleted_at.is_(None),
             )
         )
         budget_result = await self.db.execute(budget_query)
@@ -226,10 +230,7 @@ class BudgetService:
         if budget.status == "approved":
             raise ValueError("Cannot modify approved budget")
 
-        item = BudgetItem(
-            budget_id=budget_id,
-            **item_data.model_dump()
-        )
+        item = BudgetItem(budget_id=budget_id, **item_data.model_dump())
 
         self.db.add(item)
         await self.db.commit()
@@ -245,7 +246,7 @@ class BudgetService:
         budget_id: int,
         item_id: int,
         item_data: BudgetItemUpdate,
-        organization_id: int
+        organization_id: int,
     ) -> Optional[BudgetItemResponse]:
         """予算項目更新"""
         # 予算確認
@@ -253,7 +254,7 @@ class BudgetService:
             and_(
                 Budget.id == budget_id,
                 Budget.organization_id == organization_id,
-                Budget.deleted_at.is_(None)
+                Budget.deleted_at.is_(None),
             )
         )
         budget_result = await self.db.execute(budget_query)
@@ -267,7 +268,7 @@ class BudgetService:
             and_(
                 BudgetItem.id == item_id,
                 BudgetItem.budget_id == budget_id,
-                BudgetItem.deleted_at.is_(None)
+                BudgetItem.deleted_at.is_(None),
             )
         )
         item_result = await self.db.execute(item_query)
@@ -299,7 +300,7 @@ class BudgetService:
             and_(
                 Budget.id == budget_id,
                 Budget.organization_id == organization_id,
-                Budget.deleted_at.is_(None)
+                Budget.deleted_at.is_(None),
             )
         )
         budget_result = await self.db.execute(budget_query)
@@ -313,7 +314,7 @@ class BudgetService:
             and_(
                 BudgetItem.id == item_id,
                 BudgetItem.budget_id == budget_id,
-                BudgetItem.deleted_at.is_(None)
+                BudgetItem.deleted_at.is_(None),
             )
         )
         item_result = await self.db.execute(item_query)
@@ -336,7 +337,7 @@ class BudgetService:
         budget_id: int,
         organization_id: int,
         include_variance: bool = True,
-        include_utilization: bool = True
+        include_utilization: bool = True,
     ) -> Optional[BudgetReportResponse]:
         """予算実績レポート"""
         budget = await self.get_budget_by_id(budget_id, organization_id)
@@ -349,7 +350,7 @@ class BudgetService:
             "actual_amount": 0.0,  # 実績額（実装時に計算）
             "variance": 0.0,  # 差異額
             "utilization_rate": 0.0,  # 利用率
-            "items_report": []  # 項目別レポート
+            "items_report": [],  # 項目別レポート
         }
 
         return BudgetReportResponse(**report_data)
@@ -358,14 +359,11 @@ class BudgetService:
         self,
         organization_id: int,
         fiscal_year: Optional[int] = None,
-        department_id: Optional[int] = None
+        department_id: Optional[int] = None,
     ) -> BudgetAnalyticsResponse:
         """予算分析サマリー"""
         query = select(Budget).where(
-            and_(
-                Budget.organization_id == organization_id,
-                Budget.deleted_at.is_(None)
-            )
+            and_(Budget.organization_id == organization_id, Budget.deleted_at.is_(None))
         )
 
         if fiscal_year:
@@ -391,7 +389,7 @@ class BudgetService:
             status_summary=status_summary,
             average_amount=total_amount / total_budgets if total_budgets > 0 else 0,
             department_summary={},  # 部門別サマリー（実装時に計算）
-            trend_data={}  # トレンドデータ（実装時に計算）
+            trend_data={},  # トレンドデータ（実装時に計算）
         )
 
     async def _check_duplicate_code(
@@ -399,7 +397,7 @@ class BudgetService:
         code: str,
         organization_id: int,
         fiscal_year: int,
-        exclude_id: Optional[int] = None
+        exclude_id: Optional[int] = None,
     ) -> bool:
         """コード重複チェック"""
         query = select(Budget).where(
@@ -407,7 +405,7 @@ class BudgetService:
                 Budget.code == code,
                 Budget.organization_id == organization_id,
                 Budget.fiscal_year == fiscal_year,
-                Budget.deleted_at.is_(None)
+                Budget.deleted_at.is_(None),
             )
         )
 
@@ -420,10 +418,7 @@ class BudgetService:
     async def _update_budget_total(self, budget_id: int) -> None:
         """予算合計額更新"""
         total_query = select(func.sum(BudgetItem.budget_amount)).where(
-            and_(
-                BudgetItem.budget_id == budget_id,
-                BudgetItem.deleted_at.is_(None)
-            )
+            and_(BudgetItem.budget_id == budget_id, BudgetItem.deleted_at.is_(None))
         )
         total_result = await self.db.execute(total_query)
         total_amount = total_result.scalar() or 0.0

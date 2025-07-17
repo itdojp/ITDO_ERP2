@@ -215,9 +215,7 @@ async def get_system_metrics() -> Dict[str, Any]:
 # Enhanced Agent Monitoring for Issue #155 MON-001
 @router.get("/health/agents/activity-log")
 async def get_agent_activity_log(
-    agent_id: str = None,
-    hours: int = 24,
-    db: Session = Depends(get_db)
+    agent_id: str = None, hours: int = 24, db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """Get agent activity log for burnout prevention and workload analysis."""
     # Simulate comprehensive activity monitoring
@@ -228,7 +226,7 @@ async def get_agent_activity_log(
             "task_completions": 23,
             "response_time_avg": "1.2s",
             "workload_score": 75,  # 0-100 scale
-            "burnout_risk": "low"  # low, medium, high
+            "burnout_risk": "low",  # low, medium, high
         },
         "agents": {
             "CC01": {
@@ -244,8 +242,8 @@ async def get_agent_activity_log(
                 "burnout_indicators": {
                     "consecutive_hours": 6.5,
                     "response_degradation": False,
-                    "error_rate": 0.02
-                }
+                    "error_rate": 0.02,
+                },
             },
             "CC02": {
                 "total_tasks": 0,
@@ -260,8 +258,8 @@ async def get_agent_activity_log(
                 "burnout_indicators": {
                     "consecutive_hours": 0,
                     "response_degradation": True,
-                    "error_rate": 1.0
-                }
+                    "error_rate": 1.0,
+                },
             },
             "CC03": {
                 "total_tasks": 8,
@@ -276,18 +274,18 @@ async def get_agent_activity_log(
                 "burnout_indicators": {
                     "consecutive_hours": 3.2,
                     "response_degradation": False,
-                    "error_rate": 0.15
-                }
-            }
-        }
+                    "error_rate": 0.15,
+                },
+            },
+        },
     }
-    
+
     if agent_id:
         agent_data = activity_data["agents"].get(agent_id)
         if not agent_data:
             raise HTTPException(status_code=404, detail=f"Agent {agent_id} not found")
         return {"agent_id": agent_id, **agent_data}
-    
+
     return activity_data
 
 
@@ -302,45 +300,45 @@ async def get_workload_analysis() -> Dict[str, Any]:
                 "optimal_load": 70,
                 "overload_risk": "medium",
                 "tasks_per_hour": 3.2,
-                "efficiency_score": 92
+                "efficiency_score": 92,
             },
             "CC02": {
                 "current_load": 0,
                 "optimal_load": 70,
                 "overload_risk": "none",
                 "tasks_per_hour": 0,
-                "efficiency_score": 0
+                "efficiency_score": 0,
             },
             "CC03": {
                 "current_load": 45,
                 "optimal_load": 70,
                 "underload_flag": True,
                 "tasks_per_hour": 2.1,
-                "efficiency_score": 75
-            }
+                "efficiency_score": 75,
+            },
         },
         "recommendations": [
             {
                 "type": "load_balancing",
                 "priority": "high",
-                "message": "Redistribute tasks from CC01 to CC03 to optimize workload"
+                "message": "Redistribute tasks from CC01 to CC03 to optimize workload",
             },
             {
                 "type": "agent_recovery",
-                "priority": "critical", 
-                "message": "CC02 requires immediate attention or replacement"
+                "priority": "critical",
+                "message": "CC02 requires immediate attention or replacement",
             },
             {
                 "type": "break_reminder",
                 "priority": "medium",
-                "message": "CC01 approaching burnout threshold - suggest break"
-            }
+                "message": "CC01 approaching burnout threshold - suggest break",
+            },
         ],
         "overall_health": {
             "team_efficiency": 55.7,  # Average of active agents
             "load_balance_score": 43,  # How well distributed the load is
-            "availability_score": 67   # Percentage of agents available
-        }
+            "availability_score": 67,  # Percentage of agents available
+        },
     }
 
 
@@ -352,27 +350,27 @@ async def suggest_agent_break(agent_id: str) -> Dict[str, Any]:
             "break_type": "short",
             "duration_minutes": 15,
             "reason": "High workload detected",
-            "activities": ["stretch", "hydrate", "brief walk"]
+            "activities": ["stretch", "hydrate", "brief walk"],
         },
         "CC03": {
             "break_type": "extended",
             "duration_minutes": 60,
             "reason": "Intermittent performance",
-            "activities": ["system check", "optimization review"]
-        }
+            "activities": ["system check", "optimization review"],
+        },
     }
-    
+
     if agent_id not in break_recommendations:
         raise HTTPException(
-            status_code=404, 
-            detail=f"No break recommendation available for agent {agent_id}"
+            status_code=404,
+            detail=f"No break recommendation available for agent {agent_id}",
         )
-    
+
     return {
         "agent_id": agent_id,
         "timestamp": datetime.utcnow().isoformat(),
         "recommendation": break_recommendations[agent_id],
-        "status": "break_suggested"
+        "status": "break_suggested",
     }
 
 
@@ -385,37 +383,22 @@ async def get_github_integration_status() -> Dict[str, Any]:
             "remaining": 4850,
             "limit": 5000,
             "reset_time": datetime.utcnow().isoformat(),
-            "percentage_used": 3
+            "percentage_used": 3,
         },
         "recent_activity": {
             "commits_today": 15,
             "prs_created": 7,
             "issues_processed": 12,
-            "api_calls_per_hour": 89
+            "api_calls_per_hour": 89,
         },
         "agent_github_activity": {
-            "CC01": {
-                "commits": 15,
-                "prs": 7,
-                "issues": 12,
-                "api_calls": 67
-            },
-            "CC02": {
-                "commits": 0,
-                "prs": 0,
-                "issues": 0,
-                "api_calls": 0
-            },
-            "CC03": {
-                "commits": 4,
-                "prs": 2,
-                "issues": 3,
-                "api_calls": 22
-            }
+            "CC01": {"commits": 15, "prs": 7, "issues": 12, "api_calls": 67},
+            "CC02": {"commits": 0, "prs": 0, "issues": 0, "api_calls": 0},
+            "CC03": {"commits": 4, "prs": 2, "issues": 3, "api_calls": 22},
         },
         "health_indicators": {
             "api_errors": 0,
             "timeout_rate": 0.01,
-            "success_rate": 0.99
-        }
+            "success_rate": 0.99,
+        },
     }

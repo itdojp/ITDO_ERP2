@@ -71,14 +71,20 @@ api_router.include_router(
 api_router.include_router(pm_automation.router)
 api_router.include_router(budgets.router, prefix="/budgets", tags=["budgets"])
 
-# Phase 6-7 Advanced Features (Issue #155) - Disabled due to import errors
-# api_router.include_router(budgets.router, prefix="/budgets", tags=["financial"])
-# api_router.include_router(customers.router, prefix="/customers", tags=["crm"])
-# api_router.include_router(customer_activities.router, prefix="/customer-activities", tags=["crm"])
-# api_router.include_router(opportunities.router, prefix="/opportunities", tags=["crm"])
-# api_router.include_router(expense_categories.router, prefix="/expense-categories", tags=["financial"])
+# Phase 6-7 Advanced Features (Issue #155)
+api_router.include_router(budgets.router, prefix="/budgets", tags=["financial"])
+api_router.include_router(customers.router, prefix="/customers", tags=["crm"])
+api_router.include_router(
+    customer_activities.router, prefix="/customer-activities", tags=["crm"]
+)
+api_router.include_router(opportunities.router, prefix="/opportunities", tags=["crm"])
+api_router.include_router(
+    expense_categories.router, prefix="/expense-categories", tags=["financial"]
+)
 api_router.include_router(workflows.router, prefix="/workflows", tags=["workflow"])
-api_router.include_router(applications.router, prefix="/applications", tags=["workflow"])
+api_router.include_router(
+    applications.router, prefix="/applications", tags=["workflow"]
+)
 api_router.include_router(reports.router, prefix="/reports", tags=["analytics"])
 
 

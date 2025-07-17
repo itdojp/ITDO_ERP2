@@ -5,7 +5,16 @@ from decimal import Decimal
 from enum import Enum
 from typing import TYPE_CHECKING, List, Optional
 
-from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, Numeric, String, Text
+from sqlalchemy import (
+    Boolean,
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    Numeric,
+    String,
+    Text,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import SoftDeletableModel
@@ -13,14 +22,15 @@ from app.types import DepartmentId, OrganizationId, UserId
 
 if TYPE_CHECKING:
     from app.models.department import Department
+    from app.models.expense_category import ExpenseCategory
     from app.models.organization import Organization
     from app.models.project import Project
     from app.models.user import User
-    from app.models.expense_category import ExpenseCategory
 
 
 class BudgetStatus(str, Enum):
     """Budget status enumeration."""
+
     DRAFT = "draft"
     SUBMITTED = "submitted"
     APPROVED = "approved"
@@ -31,6 +41,7 @@ class BudgetStatus(str, Enum):
 
 class BudgetType(str, Enum):
     """Budget type enumeration."""
+
     PROJECT = "project"
     DEPARTMENT = "department"
     ANNUAL = "annual"
@@ -56,24 +67,38 @@ class Budget(SoftDeletableModel):
 
     # Foreign keys
     organization_id: Mapped[OrganizationId] = mapped_column(
-        Integer, ForeignKey("organizations.id"), nullable=False, comment="Organization ID for multi-tenant support"
+        Integer,
+        ForeignKey("organizations.id"),
+        nullable=False,
+        comment="Organization ID for multi-tenant support",
     )
     project_id: Mapped[Optional[int]] = mapped_column(
-        Integer, ForeignKey("projects.id"), nullable=True, comment="Project ID for project-specific budgets"
+        Integer,
+        ForeignKey("projects.id"),
+        nullable=True,
+        comment="Project ID for project-specific budgets",
     )
     department_id: Mapped[Optional[DepartmentId]] = mapped_column(
-        Integer, ForeignKey("departments.id"), nullable=True, comment="Department ID for department-specific budgets"
+        Integer,
+        ForeignKey("departments.id"),
+        nullable=True,
+        comment="Department ID for department-specific budgets",
     )
 
     # Budget details
     budget_type: Mapped[BudgetType] = mapped_column(
-        String(50), nullable=False, comment="Budget type: project/department/annual/quarterly/monthly"
+        String(50),
+        nullable=False,
+        comment="Budget type: project/department/annual/quarterly/monthly",
     )
     fiscal_year: Mapped[int] = mapped_column(
         Integer, nullable=False, comment="Fiscal year"
     )
     budget_period: Mapped[str] = mapped_column(
-        String(20), nullable=False, default="annual", comment="Budget period: annual/quarterly/monthly"
+        String(20),
+        nullable=False,
+        default="annual",
+        comment="Budget period: annual/quarterly/monthly",
     )
     start_date: Mapped[date] = mapped_column(
         Date, nullable=False, comment="Budget start date"
@@ -93,7 +118,9 @@ class Budget(SoftDeletableModel):
         Numeric(15, 2), default=Decimal("0.00"), comment="Actual spent amount"
     )
     committed_amount: Mapped[Decimal] = mapped_column(
-        Numeric(15, 2), default=Decimal("0.00"), comment="Committed amount (pending expenses)"
+        Numeric(15, 2),
+        default=Decimal("0.00"),
+        comment="Committed amount (pending expenses)",
     )
     remaining_amount: Mapped[Decimal] = mapped_column(
         Numeric(15, 2), default=Decimal("0.00"), comment="Remaining budget amount"
@@ -101,7 +128,9 @@ class Budget(SoftDeletableModel):
 
     # Variance tracking
     variance_amount: Mapped[Decimal] = mapped_column(
-        Numeric(15, 2), default=Decimal("0.00"), comment="Variance amount (actual - budget)"
+        Numeric(15, 2),
+        default=Decimal("0.00"),
+        comment="Variance amount (actual - budget)",
     )
     variance_percentage: Mapped[Decimal] = mapped_column(
         Numeric(8, 4), default=Decimal("0.00"), comment="Variance percentage"
@@ -114,13 +143,18 @@ class Budget(SoftDeletableModel):
 
     # Status and approval
     status: Mapped[BudgetStatus] = mapped_column(
-        String(50), default=BudgetStatus.DRAFT, comment="Budget status: draft/submitted/approved/rejected/active/closed"
+        String(50),
+        default=BudgetStatus.DRAFT,
+        comment="Budget status: draft/submitted/approved/rejected/active/closed",
     )
     approval_level: Mapped[int] = mapped_column(
         Integer, default=0, comment="Current approval level"
     )
     approved_by: Mapped[Optional[UserId]] = mapped_column(
-        Integer, ForeignKey("users.id"), nullable=True, comment="User who approved the budget"
+        Integer,
+        ForeignKey("users.id"),
+        nullable=True,
+        comment="User who approved the budget",
     )
     approved_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True, comment="Budget approval timestamp"
@@ -131,7 +165,9 @@ class Budget(SoftDeletableModel):
 
     # Alert settings
     alert_threshold: Mapped[Decimal] = mapped_column(
-        Numeric(5, 2), default=Decimal("80.00"), comment="Alert threshold percentage (0-100)"
+        Numeric(5, 2),
+        default=Decimal("80.00"),
+        comment="Alert threshold percentage (0-100)",
     )
     is_alert_enabled: Mapped[bool] = mapped_column(
         Boolean, default=True, comment="Whether budget alerts are enabled"
@@ -140,7 +176,9 @@ class Budget(SoftDeletableModel):
     # Relationships
     organization: Mapped["Organization"] = relationship("Organization", lazy="select")
     project: Mapped[Optional["Project"]] = relationship("Project", lazy="select")
-    department: Mapped[Optional["Department"]] = relationship("Department", lazy="select")
+    department: Mapped[Optional["Department"]] = relationship(
+        "Department", lazy="select"
+    )
     approved_by_user: Mapped[Optional["User"]] = relationship(
         "User", foreign_keys=[approved_by], lazy="select"
     )
@@ -216,11 +254,15 @@ class Budget(SoftDeletableModel):
         self.variance_amount = self.actual_amount - self.total_amount
 
         if self.total_amount > 0:
-            self.variance_percentage = (self.variance_amount / self.total_amount) * Decimal("100.00")
+            self.variance_percentage = (
+                self.variance_amount / self.total_amount
+            ) * Decimal("100.00")
         else:
             self.variance_percentage = Decimal("0.00")
 
-        self.remaining_amount = self.total_amount - self.actual_amount - self.committed_amount
+        self.remaining_amount = (
+            self.total_amount - self.actual_amount - self.committed_amount
+        )
 
     def submit_for_approval(self, submitted_by: UserId) -> None:
         """Submit budget for approval."""
@@ -273,7 +315,6 @@ class Budget(SoftDeletableModel):
         return f"<Budget(id={self.id}, code='{self.code}', name='{self.name}', status='{self.status}')>"
 
 
-
 class BudgetItem(SoftDeletableModel):
     """Budget item model for detailed budget breakdown."""
 
@@ -284,7 +325,10 @@ class BudgetItem(SoftDeletableModel):
         Integer, ForeignKey("budgets.id"), nullable=False, comment="Budget ID"
     )
     expense_category_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("expense_categories.id"), nullable=False, comment="Expense category ID"
+        Integer,
+        ForeignKey("expense_categories.id"),
+        nullable=False,
+        comment="Expense category ID",
     )
 
     # Item details
@@ -329,13 +373,13 @@ class BudgetItem(SoftDeletableModel):
     )
 
     # Sort order
-    sort_order: Mapped[int] = mapped_column(
-        Integer, default=0, comment="Sort order"
-    )
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, comment="Sort order")
 
     # Relationships
     budget: Mapped["Budget"] = relationship("Budget", back_populates="budget_items")
-    expense_category: Mapped["ExpenseCategory"] = relationship("ExpenseCategory", lazy="select")
+    expense_category: Mapped["ExpenseCategory"] = relationship(
+        "ExpenseCategory", lazy="select"
+    )
 
     # Computed properties
     @property
@@ -359,7 +403,9 @@ class BudgetItem(SoftDeletableModel):
         """Calculate variance amounts."""
         self.variance_amount = self.actual_amount - self.budgeted_amount
         if self.budgeted_amount > 0:
-            self.variance_percentage = (self.variance_amount / self.budgeted_amount) * Decimal("100.00")
+            self.variance_percentage = (
+                self.variance_amount / self.budgeted_amount
+            ) * Decimal("100.00")
         else:
             self.variance_percentage = Decimal("0.00")
 

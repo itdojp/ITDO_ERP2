@@ -30,13 +30,13 @@ class ExpenseCategoryService:
         organization_id: int,
         parent_id: Optional[int] = None,
         category_type: Optional[str] = None,
-        include_children: bool = False
+        include_children: bool = False,
     ) -> List[ExpenseCategoryResponse]:
         """費目一覧取得"""
         query = select(ExpenseCategory).where(
             and_(
                 ExpenseCategory.organization_id == organization_id,
-                ExpenseCategory.deleted_at.is_(None)
+                ExpenseCategory.deleted_at.is_(None),
             )
         )
 
@@ -57,16 +57,14 @@ class ExpenseCategoryService:
         return [ExpenseCategoryResponse.model_validate(cat) for cat in categories]
 
     async def get_category_tree(
-        self,
-        organization_id: int,
-        category_type: Optional[str] = None
+        self, organization_id: int, category_type: Optional[str] = None
     ) -> List[ExpenseCategoryTreeResponse]:
         """費目ツリー構造取得"""
         query = select(ExpenseCategory).where(
             and_(
                 ExpenseCategory.organization_id == organization_id,
                 ExpenseCategory.deleted_at.is_(None),
-                ExpenseCategory.parent_id.is_(None)
+                ExpenseCategory.parent_id.is_(None),
             )
         )
 
@@ -81,12 +79,18 @@ class ExpenseCategoryService:
 
         return [self._build_tree_node(cat) for cat in root_categories]
 
-    def _build_tree_node(self, category: ExpenseCategory) -> ExpenseCategoryTreeResponse:
+    def _build_tree_node(
+        self, category: ExpenseCategory
+    ) -> ExpenseCategoryTreeResponse:
         """ツリーノード構築"""
         children = []
         if category.children:
-            children = [self._build_tree_node(child) for child in
-                       sorted(category.children, key=lambda x: (x.sort_order, x.code))]
+            children = [
+                self._build_tree_node(child)
+                for child in sorted(
+                    category.children, key=lambda x: (x.sort_order, x.code)
+                )
+            ]
 
         return ExpenseCategoryTreeResponse(
             id=category.id,
@@ -97,7 +101,7 @@ class ExpenseCategoryService:
             sort_order=category.sort_order,
             is_active=category.is_active,
             description=category.description,
-            children=children
+            children=children,
         )
 
     async def get_category_by_id(
@@ -108,7 +112,7 @@ class ExpenseCategoryService:
             and_(
                 ExpenseCategory.id == category_id,
                 ExpenseCategory.organization_id == organization_id,
-                ExpenseCategory.deleted_at.is_(None)
+                ExpenseCategory.deleted_at.is_(None),
             )
         )
 
@@ -124,11 +128,11 @@ class ExpenseCategoryService:
     ) -> ExpenseCategoryResponse:
         """費目新規作成"""
         # 重複チェック
-        existing = await self._check_duplicate_code(
-            category_data.code, organization_id
-        )
+        existing = await self._check_duplicate_code(category_data.code, organization_id)
         if existing:
-            raise ValueError(f"Expense category code '{category_data.code}' already exists")
+            raise ValueError(
+                f"Expense category code '{category_data.code}' already exists"
+            )
 
         # ソート順自動設定
         if category_data.sort_order is None:
@@ -137,8 +141,7 @@ class ExpenseCategoryService:
             )
 
         category = ExpenseCategory(
-            organization_id=organization_id,
-            **category_data.model_dump()
+            organization_id=organization_id, **category_data.model_dump()
         )
 
         self.db.add(category)
@@ -168,8 +171,7 @@ class ExpenseCategoryService:
                 )
 
             category = ExpenseCategory(
-                organization_id=organization_id,
-                **category_data.model_dump()
+                organization_id=organization_id, **category_data.model_dump()
             )
             categories.append(category)
 
@@ -183,14 +185,17 @@ class ExpenseCategoryService:
         return [ExpenseCategoryResponse.model_validate(cat) for cat in categories]
 
     async def update_category(
-        self, category_id: int, category_data: ExpenseCategoryUpdate, organization_id: int
+        self,
+        category_id: int,
+        category_data: ExpenseCategoryUpdate,
+        organization_id: int,
     ) -> Optional[ExpenseCategoryResponse]:
         """費目更新"""
         query = select(ExpenseCategory).where(
             and_(
                 ExpenseCategory.id == category_id,
                 ExpenseCategory.organization_id == organization_id,
-                ExpenseCategory.deleted_at.is_(None)
+                ExpenseCategory.deleted_at.is_(None),
             )
         )
 
@@ -206,7 +211,9 @@ class ExpenseCategoryService:
                 category_data.code, organization_id, exclude_id=category_id
             )
             if existing:
-                raise ValueError(f"Expense category code '{category_data.code}' already exists")
+                raise ValueError(
+                    f"Expense category code '{category_data.code}' already exists"
+                )
 
         # 更新
         for field, value in category_data.model_dump(exclude_unset=True).items():
@@ -219,15 +226,13 @@ class ExpenseCategoryService:
 
         return ExpenseCategoryResponse.model_validate(category)
 
-    async def delete_category(
-        self, category_id: int, organization_id: int
-    ) -> bool:
+    async def delete_category(self, category_id: int, organization_id: int) -> bool:
         """費目削除（論理削除）"""
         query = select(ExpenseCategory).where(
             and_(
                 ExpenseCategory.id == category_id,
                 ExpenseCategory.organization_id == organization_id,
-                ExpenseCategory.deleted_at.is_(None)
+                ExpenseCategory.deleted_at.is_(None),
             )
         )
 
@@ -241,7 +246,7 @@ class ExpenseCategoryService:
         children_query = select(func.count(ExpenseCategory.id)).where(
             and_(
                 ExpenseCategory.parent_id == category_id,
-                ExpenseCategory.deleted_at.is_(None)
+                ExpenseCategory.deleted_at.is_(None),
             )
         )
         children_result = await self.db.execute(children_query)
@@ -260,14 +265,14 @@ class ExpenseCategoryService:
         self,
         organization_id: int,
         start_date: Optional[str] = None,
-        end_date: Optional[str] = None
+        end_date: Optional[str] = None,
     ) -> ExpenseCategoryAnalytics:
         """費目使用状況分析"""
         # 基本統計
         total_query = select(func.count(ExpenseCategory.id)).where(
             and_(
                 ExpenseCategory.organization_id == organization_id,
-                ExpenseCategory.deleted_at.is_(None)
+                ExpenseCategory.deleted_at.is_(None),
             )
         )
         total_result = await self.db.execute(total_query)
@@ -277,35 +282,36 @@ class ExpenseCategoryService:
             and_(
                 ExpenseCategory.organization_id == organization_id,
                 ExpenseCategory.deleted_at.is_(None),
-                ExpenseCategory.is_active == True
+                ExpenseCategory.is_active,
             )
         )
         active_result = await self.db.execute(active_query)
         active_categories = active_result.scalar()
 
         # カテゴリ別統計
-        category_stats_query = select(
-            ExpenseCategory.category_type,
-            func.count(ExpenseCategory.id).label("count")
-        ).where(
-            and_(
-                ExpenseCategory.organization_id == organization_id,
-                ExpenseCategory.deleted_at.is_(None)
+        category_stats_query = (
+            select(
+                ExpenseCategory.category_type,
+                func.count(ExpenseCategory.id).label("count"),
             )
-        ).group_by(ExpenseCategory.category_type)
+            .where(
+                and_(
+                    ExpenseCategory.organization_id == organization_id,
+                    ExpenseCategory.deleted_at.is_(None),
+                )
+            )
+            .group_by(ExpenseCategory.category_type)
+        )
 
         category_stats_result = await self.db.execute(category_stats_query)
-        category_stats = {
-            row.category_type: row.count
-            for row in category_stats_result
-        }
+        category_stats = {row.category_type: row.count for row in category_stats_result}
 
         return ExpenseCategoryAnalytics(
             total_categories=total_categories,
             active_categories=active_categories,
             inactive_categories=total_categories - active_categories,
             category_type_stats=category_stats,
-            usage_stats={}  # 実際の使用状況は別途実装
+            usage_stats={},  # 実際の使用状況は別途実装
         )
 
     async def _check_duplicate_code(
@@ -316,7 +322,7 @@ class ExpenseCategoryService:
             and_(
                 ExpenseCategory.code == code,
                 ExpenseCategory.organization_id == organization_id,
-                ExpenseCategory.deleted_at.is_(None)
+                ExpenseCategory.deleted_at.is_(None),
             )
         )
 
@@ -334,7 +340,7 @@ class ExpenseCategoryService:
             and_(
                 ExpenseCategory.organization_id == organization_id,
                 ExpenseCategory.parent_id == parent_id,
-                ExpenseCategory.deleted_at.is_(None)
+                ExpenseCategory.deleted_at.is_(None),
             )
         )
 

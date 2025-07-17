@@ -10,20 +10,28 @@ from app.models.workflow import ApplicationStatus, ApplicationType, ApprovalStat
 
 class ApplicationBase(BaseModel):
     """Base schema for application."""
-    
-    title: str = Field(..., min_length=1, max_length=200, description="Application title")
-    description: Optional[str] = Field(None, max_length=2000, description="Application description")
+
+    title: str = Field(
+        ..., min_length=1, max_length=200, description="Application title"
+    )
+    description: Optional[str] = Field(
+        None, max_length=2000, description="Application description"
+    )
     application_type: ApplicationType = Field(..., description="Type of application")
     priority: str = Field(default="MEDIUM", description="Application priority")
 
 
 class ApplicationCreate(ApplicationBase):
     """Schema for creating application."""
-    
+
     organization_id: int = Field(..., gt=0, description="Organization ID")
-    created_by: int = Field(..., gt=0, description="User ID who created the application")
+    created_by: int = Field(
+        ..., gt=0, description="User ID who created the application"
+    )
     department_id: Optional[int] = Field(None, gt=0, description="Department ID")
-    form_data: Optional[Dict[str, Any]] = Field(None, description="Application form data")
+    form_data: Optional[Dict[str, Any]] = Field(
+        None, description="Application form data"
+    )
 
     @validator("priority")
     def validate_priority(cls, v):
@@ -36,7 +44,7 @@ class ApplicationCreate(ApplicationBase):
 
 class ApplicationUpdate(BaseModel):
     """Schema for updating application."""
-    
+
     title: Optional[str] = Field(None, min_length=1, max_length=200)
     description: Optional[str] = Field(None, max_length=2000)
     priority: Optional[str] = Field(None)
@@ -54,7 +62,7 @@ class ApplicationUpdate(BaseModel):
 
 class ApplicationResponse(ApplicationBase):
     """Schema for application response."""
-    
+
     id: int
     organization_id: int
     created_by: int
@@ -76,7 +84,7 @@ class ApplicationResponse(ApplicationBase):
 
 class ApplicationListItem(BaseModel):
     """Schema for application list item."""
-    
+
     id: int
     title: str
     status: ApplicationStatus
@@ -92,7 +100,7 @@ class ApplicationListItem(BaseModel):
 
 class ApplicationListResponse(BaseModel):
     """Schema for paginated application list."""
-    
+
     items: List[ApplicationListItem]
     total: int
     skip: int
@@ -101,14 +109,16 @@ class ApplicationListResponse(BaseModel):
 
 class ApplicationSearchParams(BaseModel):
     """Schema for application search parameters."""
-    
+
     organization_id: Optional[int] = Field(None, gt=0)
     status: Optional[ApplicationStatus] = None
     application_type: Optional[ApplicationType] = None
     created_by: Optional[int] = Field(None, gt=0)
     department_id: Optional[int] = Field(None, gt=0)
     priority: Optional[str] = None
-    search: Optional[str] = Field(None, max_length=200, description="Search in title and description")
+    search: Optional[str] = Field(
+        None, max_length=200, description="Search in title and description"
+    )
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
 
@@ -124,7 +134,11 @@ class ApplicationSearchParams(BaseModel):
     @validator("end_date")
     def validate_end_date(cls, v, values):
         """Validate end_date is after start_date."""
-        if v is not None and "start_date" in values and values["start_date"] is not None:
+        if (
+            v is not None
+            and "start_date" in values
+            and values["start_date"] is not None
+        ):
             if v <= values["start_date"]:
                 raise ValueError("end_date must be after start_date")
         return v
@@ -133,27 +147,29 @@ class ApplicationSearchParams(BaseModel):
 # Application Approval Schemas
 class ApplicationApprovalBase(BaseModel):
     """Base schema for application approval."""
-    
+
     status: ApprovalStatus = Field(..., description="Approval status")
-    comments: Optional[str] = Field(None, max_length=1000, description="Approval comments")
+    comments: Optional[str] = Field(
+        None, max_length=1000, description="Approval comments"
+    )
 
 
 class ApplicationApprovalCreate(ApplicationApprovalBase):
     """Schema for creating application approval."""
-    
+
     approver_id: int = Field(..., gt=0, description="Approver user ID")
 
 
 class ApplicationApprovalUpdate(BaseModel):
     """Schema for updating application approval."""
-    
+
     status: Optional[ApprovalStatus] = None
     comments: Optional[str] = Field(None, max_length=1000)
 
 
 class ApplicationApprovalResponse(ApplicationApprovalBase):
     """Schema for application approval response."""
-    
+
     id: int
     application_id: int
     approver_id: int
@@ -168,7 +184,7 @@ class ApplicationApprovalResponse(ApplicationApprovalBase):
 # Bulk Operations Schemas
 class BulkApprovalRequest(BaseModel):
     """Schema for bulk approval request."""
-    
+
     application_ids: List[int] = Field(..., min_items=1, max_items=100)
     comments: Optional[str] = Field(None, max_length=1000)
 
@@ -183,9 +199,11 @@ class BulkApprovalRequest(BaseModel):
 
 class BulkRejectionRequest(BaseModel):
     """Schema for bulk rejection request."""
-    
+
     application_ids: List[int] = Field(..., min_items=1, max_items=100)
-    reason: str = Field(..., min_length=1, max_length=1000, description="Rejection reason")
+    reason: str = Field(
+        ..., min_length=1, max_length=1000, description="Rejection reason"
+    )
 
     @validator("application_ids")
     def validate_application_ids(cls, v):
@@ -198,7 +216,7 @@ class BulkRejectionRequest(BaseModel):
 
 class BulkOperationResponse(BaseModel):
     """Schema for bulk operation response."""
-    
+
     processed_count: int
     failed_ids: List[int]
     total_requested: int
@@ -216,7 +234,7 @@ class BulkOperationResponse(BaseModel):
 # Analytics Schemas
 class ApplicationAnalyticsResponse(BaseModel):
     """Schema for application analytics response."""
-    
+
     total_applications: int
     status_breakdown: Dict[str, int]
     type_breakdown: Dict[str, int]
@@ -232,26 +250,26 @@ class ApplicationAnalyticsResponse(BaseModel):
                     "PENDING_APPROVAL": 30,
                     "APPROVED": 80,
                     "REJECTED": 15,
-                    "CANCELLED": 5
+                    "CANCELLED": 5,
                 },
                 "type_breakdown": {
                     "LEAVE_REQUEST": 60,
                     "EXPENSE_REPORT": 40,
                     "PURCHASE_REQUEST": 30,
-                    "OTHER": 20
+                    "OTHER": 20,
                 },
                 "average_processing_time_hours": 24.5,
                 "period_summary": {
                     "start_date": "2024-01-01",
-                    "end_date": "2024-01-31"
-                }
+                    "end_date": "2024-01-31",
+                },
             }
         }
 
 
 class ApprovalPerformanceResponse(BaseModel):
     """Schema for approval performance metrics."""
-    
+
     total_approvals: int
     approved_count: int
     rejected_count: int
@@ -274,9 +292,9 @@ class ApprovalPerformanceResponse(BaseModel):
                         "approver_id": 1,
                         "approver_name": "John Doe",
                         "total_processed": 30,
-                        "approval_rate": 80.0
+                        "approval_rate": 80.0,
                     }
-                ]
+                ],
             }
         }
 
@@ -284,20 +302,31 @@ class ApprovalPerformanceResponse(BaseModel):
 # Template Schemas
 class ApplicationFormField(BaseModel):
     """Schema for application form field."""
-    
+
     name: str = Field(..., min_length=1, max_length=100)
     label: str = Field(..., min_length=1, max_length=200)
     type: str = Field(..., description="Field type (text, number, date, etc.)")
     required: bool = Field(default=False)
-    validation: Optional[Dict[str, Any]] = Field(None, description="Field validation rules")
+    validation: Optional[Dict[str, Any]] = Field(
+        None, description="Field validation rules"
+    )
     options: Optional[List[str]] = Field(None, description="Options for select fields")
 
     @validator("type")
     def validate_field_type(cls, v):
         """Validate field type."""
         valid_types = [
-            "text", "textarea", "number", "email", "date", "datetime",
-            "select", "multiselect", "checkbox", "radio", "file"
+            "text",
+            "textarea",
+            "number",
+            "email",
+            "date",
+            "datetime",
+            "select",
+            "multiselect",
+            "checkbox",
+            "radio",
+            "file",
         ]
         if v not in valid_types:
             raise ValueError(f"Field type must be one of {valid_types}")
@@ -306,7 +335,7 @@ class ApplicationFormField(BaseModel):
 
 class ApplicationTemplate(BaseModel):
     """Schema for application template."""
-    
+
     id: int
     name: str = Field(..., min_length=1, max_length=200)
     description: Optional[str] = Field(None, max_length=1000)
@@ -323,7 +352,7 @@ class ApplicationTemplate(BaseModel):
 
 class ApplicationTemplateCreate(BaseModel):
     """Schema for creating application template."""
-    
+
     name: str = Field(..., min_length=1, max_length=200)
     description: Optional[str] = Field(None, max_length=1000)
     application_type: ApplicationType
@@ -333,7 +362,7 @@ class ApplicationTemplateCreate(BaseModel):
 
 class ApplicationTemplateUpdate(BaseModel):
     """Schema for updating application template."""
-    
+
     name: Optional[str] = Field(None, min_length=1, max_length=200)
     description: Optional[str] = Field(None, max_length=1000)
     form_schema: Optional[List[ApplicationFormField]] = None
@@ -343,7 +372,7 @@ class ApplicationTemplateUpdate(BaseModel):
 # Notification Schemas
 class NotificationRequest(BaseModel):
     """Schema for sending notifications."""
-    
+
     message: str = Field(..., min_length=1, max_length=1000)
     recipients: List[int] = Field(..., min_items=1, max_items=50)
     notification_type: str = Field(default="INFO")
@@ -367,8 +396,10 @@ class NotificationRequest(BaseModel):
 
 class ClarificationRequest(BaseModel):
     """Schema for clarification request."""
-    
-    message: str = Field(..., min_length=1, max_length=1000, description="Clarification message")
+
+    message: str = Field(
+        ..., min_length=1, max_length=1000, description="Clarification message"
+    )
     priority: str = Field(default="MEDIUM", description="Urgency of clarification")
 
     @validator("priority")
@@ -383,14 +414,16 @@ class ClarificationRequest(BaseModel):
 # Export Schemas
 class ExportRequest(BaseModel):
     """Schema for export request."""
-    
+
     format: str = Field(..., description="Export format (csv, excel, pdf)")
     organization_id: int = Field(..., gt=0)
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     status: Optional[ApplicationStatus] = None
     application_type: Optional[ApplicationType] = None
-    include_details: bool = Field(default=False, description="Include detailed information")
+    include_details: bool = Field(
+        default=False, description="Include detailed information"
+    )
 
     @validator("format")
     def validate_format(cls, v):
@@ -403,7 +436,11 @@ class ExportRequest(BaseModel):
     @validator("end_date")
     def validate_end_date(cls, v, values):
         """Validate end_date is after start_date."""
-        if v is not None and "start_date" in values and values["start_date"] is not None:
+        if (
+            v is not None
+            and "start_date" in values
+            and values["start_date"] is not None
+        ):
             if v <= values["start_date"]:
                 raise ValueError("end_date must be after start_date")
         return v
@@ -412,7 +449,7 @@ class ExportRequest(BaseModel):
 # Status and Type Response Schemas
 class ApplicationTypeResponse(BaseModel):
     """Schema for application type response."""
-    
+
     code: str
     name: str
     description: Optional[str]
@@ -424,14 +461,14 @@ class ApplicationTypeResponse(BaseModel):
                 "code": "LEAVE_REQUEST",
                 "name": "Leave Request",
                 "description": "Request for time off from work",
-                "is_active": True
+                "is_active": True,
             }
         }
 
 
 class ApplicationStatusResponse(BaseModel):
     """Schema for application status response."""
-    
+
     code: str
     name: str
     description: Optional[str]
@@ -443,6 +480,6 @@ class ApplicationStatusResponse(BaseModel):
                 "code": "APPROVED",
                 "name": "Approved",
                 "description": "Application has been approved",
-                "is_terminal": True
+                "is_terminal": True,
             }
         }

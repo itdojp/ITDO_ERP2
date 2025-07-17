@@ -11,12 +11,14 @@ from app.schemas.base import BaseResponse
 
 class CustomerContactBase(BaseModel):
     """Base schema for customer contacts."""
-    
+
     # Support both naming conventions
     first_name: Optional[str] = Field(None, max_length=100, description="First name")
     last_name: Optional[str] = Field(None, max_length=100, description="Last name")
     name: str = Field(..., max_length=100, description="Full name (primary field)")
-    name_kana: Optional[str] = Field(None, max_length=100, description="Name in katakana")
+    name_kana: Optional[str] = Field(
+        None, max_length=100, description="Name in katakana"
+    )
     title: Optional[str] = Field(None, max_length=100, description="Job title")
     department: Optional[str] = Field(None, max_length=100, description="Department")
     email: Optional[str] = Field(None, description="Email address")
@@ -30,12 +32,13 @@ class CustomerContactBase(BaseModel):
 
 class CustomerContactCreate(CustomerContactBase):
     """Schema for creating customer contacts."""
+
     customer_id: int = Field(..., description="Customer ID")
 
 
 class CustomerContactUpdate(BaseModel):
     """Schema for updating customer contacts."""
-    
+
     first_name: Optional[str] = Field(None, max_length=100)
     last_name: Optional[str] = Field(None, max_length=100)
     name: Optional[str] = Field(None, max_length=100)
@@ -53,40 +56,52 @@ class CustomerContactUpdate(BaseModel):
 
 class CustomerContactResponse(CustomerContactBase, BaseResponse):
     """Schema for customer contact responses."""
-    
+
     id: int
     customer_id: int
     full_name: str
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
 class CustomerBase(BaseModel):
     """Base schema for customers."""
-    
+
     customer_code: str = Field(..., max_length=50, description="Customer code")
     company_name: str = Field(..., max_length=200, description="Company name")
-    name_kana: Optional[str] = Field(None, max_length=200, description="Company name in katakana")
-    short_name: Optional[str] = Field(None, max_length=100, description="Short name/abbreviation")
+    name_kana: Optional[str] = Field(
+        None, max_length=200, description="Company name in katakana"
+    )
+    short_name: Optional[str] = Field(
+        None, max_length=100, description="Short name/abbreviation"
+    )
     customer_type: str = Field(..., description="Customer type")
     status: str = Field("prospect", description="Customer status")
     industry: Optional[str] = Field(None, max_length=100, description="Industry")
-    scale: Optional[str] = Field(None, max_length=50, description="Company scale: large/medium/small")
+    scale: Optional[str] = Field(
+        None, max_length=50, description="Company scale: large/medium/small"
+    )
     assigned_to: Optional[int] = Field(None, description="Assigned sales rep ID")
     email: Optional[str] = Field(None, description="Primary email")
     phone: Optional[str] = Field(None, max_length=50, description="Primary phone")
     fax: Optional[str] = Field(None, max_length=20, description="FAX number")
     website: Optional[str] = Field(None, description="Company website")
     postal_code: Optional[str] = Field(None, max_length=20, description="Postal code")
-    address_line1: Optional[str] = Field(None, max_length=255, description="Address line 1")
-    address_line2: Optional[str] = Field(None, max_length=255, description="Address line 2")
+    address_line1: Optional[str] = Field(
+        None, max_length=255, description="Address line 1"
+    )
+    address_line2: Optional[str] = Field(
+        None, max_length=255, description="Address line 2"
+    )
     city: Optional[str] = Field(None, max_length=100, description="City")
     state: Optional[str] = Field(None, max_length=100, description="State/Prefecture")
     country: Optional[str] = Field(None, max_length=100, description="Country")
     annual_revenue: Optional[Decimal] = Field(None, description="Annual revenue")
     employee_count: Optional[int] = Field(None, description="Number of employees")
     credit_limit: Optional[Decimal] = Field(None, description="Credit limit")
-    payment_terms: Optional[str] = Field(None, max_length=100, description="Payment terms")
+    payment_terms: Optional[str] = Field(
+        None, max_length=100, description="Payment terms"
+    )
     priority: str = Field("normal", description="Priority: high/normal/low")
     notes: Optional[str] = Field(None, description="Customer notes")
     description: Optional[str] = Field(None, description="General description")
@@ -95,45 +110,51 @@ class CustomerBase(BaseModel):
     first_contact_date: Optional[date] = Field(None, description="First contact date")
     last_contact_date: Optional[date] = Field(None, description="Last contact date")
 
-    @validator('customer_type')
+    @validator("customer_type")
     def validate_customer_type(cls, v):
-        allowed_types = ['individual', 'corporate', 'government', 'non_profit']
+        allowed_types = ["individual", "corporate", "government", "non_profit"]
         if v not in allowed_types:
-            raise ValueError(f'Customer type must be one of: {", ".join(allowed_types)}')
+            raise ValueError(
+                f"Customer type must be one of: {', '.join(allowed_types)}"
+            )
         return v
 
-    @validator('status')
+    @validator("status")
     def validate_status(cls, v):
-        allowed_statuses = ['active', 'inactive', 'prospect', 'former']
+        allowed_statuses = ["active", "inactive", "prospect", "former"]
         if v not in allowed_statuses:
-            raise ValueError(f'Status must be one of: {", ".join(allowed_statuses)}')
+            raise ValueError(f"Status must be one of: {', '.join(allowed_statuses)}")
         return v
 
-    @validator('scale')
+    @validator("scale")
     def validate_scale(cls, v):
         if v is not None:
-            allowed_scales = ['large', 'medium', 'small']
+            allowed_scales = ["large", "medium", "small"]
             if v not in allowed_scales:
-                raise ValueError(f'Scale must be one of: {", ".join(allowed_scales)}')
+                raise ValueError(f"Scale must be one of: {', '.join(allowed_scales)}")
         return v
 
-    @validator('priority')
+    @validator("priority")
     def validate_priority(cls, v):
-        allowed_priorities = ['high', 'normal', 'low']
+        allowed_priorities = ["high", "normal", "low"]
         if v not in allowed_priorities:
-            raise ValueError(f'Priority must be one of: {", ".join(allowed_priorities)}')
+            raise ValueError(
+                f"Priority must be one of: {', '.join(allowed_priorities)}"
+            )
         return v
 
 
 class CustomerCreate(CustomerBase):
     """Schema for creating customers."""
-    
-    contacts: List[CustomerContactCreate] = Field(default_factory=list, description="Customer contacts")
+
+    contacts: List[CustomerContactCreate] = Field(
+        default_factory=list, description="Customer contacts"
+    )
 
 
 class CustomerUpdate(BaseModel):
     """Schema for updating customers."""
-    
+
     customer_code: Optional[str] = Field(None, max_length=50)
     company_name: Optional[str] = Field(None, max_length=200)
     name_kana: Optional[str] = Field(None, max_length=200)
@@ -168,24 +189,26 @@ class CustomerUpdate(BaseModel):
 
 class CustomerResponse(CustomerBase, BaseResponse):
     """Schema for customer responses."""
-    
+
     id: int
     organization_id: int
     first_transaction_date: Optional[datetime]
     last_transaction_date: Optional[datetime]
     total_sales: Decimal
     total_transactions: int
-    
+
     # Relationships
     contacts: List[CustomerContactResponse] = Field(default_factory=list)
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
 class OpportunityBase(BaseModel):
     """Base schema for opportunities."""
-    
-    opportunity_code: Optional[str] = Field(None, max_length=50, description="Opportunity code")
+
+    opportunity_code: Optional[str] = Field(
+        None, max_length=50, description="Opportunity code"
+    )
     name: str = Field(..., max_length=200, description="Opportunity name")
     title: str = Field(..., max_length=200, description="Opportunity title")
     description: Optional[str] = Field(None, description="Opportunity description")
@@ -194,40 +217,51 @@ class OpportunityBase(BaseModel):
     value: Optional[Decimal] = Field(None, description="Opportunity value")
     estimated_value: Optional[Decimal] = Field(None, description="Estimated value")
     probability: int = Field(0, ge=0, le=100, description="Win probability (0-100)")
-    expected_close_date: Optional[datetime] = Field(None, description="Expected close date")
+    expected_close_date: Optional[datetime] = Field(
+        None, description="Expected close date"
+    )
     actual_close_date: Optional[datetime] = Field(None, description="Actual close date")
     source: Optional[str] = Field(None, max_length=100, description="Lead source")
-    competitor: Optional[str] = Field(None, max_length=200, description="Main competitor")
+    competitor: Optional[str] = Field(
+        None, max_length=200, description="Main competitor"
+    )
     competitors: Optional[str] = Field(None, description="All competitors")
     loss_reason: Optional[str] = Field(None, description="Loss reason")
     notes: Optional[str] = Field(None, description="Opportunity notes")
     assigned_to: Optional[int] = Field(None, description="Assigned sales rep ID")
     owner_id: int = Field(..., description="Opportunity owner ID")
 
-    @validator('stage')
+    @validator("stage")
     def validate_stage(cls, v):
-        allowed_stages = ['lead', 'qualified', 'proposal', 'negotiation', 'closed_won', 'closed_lost']
+        allowed_stages = [
+            "lead",
+            "qualified",
+            "proposal",
+            "negotiation",
+            "closed_won",
+            "closed_lost",
+        ]
         if v not in allowed_stages:
-            raise ValueError(f'Stage must be one of: {", ".join(allowed_stages)}')
+            raise ValueError(f"Stage must be one of: {', '.join(allowed_stages)}")
         return v
 
-    @validator('status')
+    @validator("status")
     def validate_status(cls, v):
-        allowed_statuses = ['open', 'won', 'lost', 'canceled']
+        allowed_statuses = ["open", "won", "lost", "canceled"]
         if v not in allowed_statuses:
-            raise ValueError(f'Status must be one of: {", ".join(allowed_statuses)}')
+            raise ValueError(f"Status must be one of: {', '.join(allowed_statuses)}")
         return v
 
 
 class OpportunityCreate(OpportunityBase):
     """Schema for creating opportunities."""
-    
+
     customer_id: int = Field(..., description="Customer ID")
 
 
 class OpportunityUpdate(BaseModel):
     """Schema for updating opportunities."""
-    
+
     opportunity_code: Optional[str] = Field(None, max_length=50)
     name: Optional[str] = Field(None, max_length=200)
     title: Optional[str] = Field(None, max_length=200)
@@ -250,21 +284,21 @@ class OpportunityUpdate(BaseModel):
 
 class OpportunityResponse(OpportunityBase, BaseResponse):
     """Schema for opportunity responses."""
-    
+
     id: int
     customer_id: int
-    
+
     # Computed properties
     is_open: bool
     is_won: bool
     weighted_value: Optional[Decimal]
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
 class CustomerActivityBase(BaseModel):
     """Base schema for customer activities."""
-    
+
     activity_type: str = Field(..., description="Activity type")
     subject: str = Field(..., max_length=200, description="Activity subject")
     description: Optional[str] = Field(None, description="Activity description")
@@ -277,30 +311,40 @@ class CustomerActivityBase(BaseModel):
     next_action_date: Optional[datetime] = Field(None, description="Next action date")
     opportunity_id: Optional[int] = Field(None, description="Related opportunity ID")
 
-    @validator('activity_type')
+    @validator("activity_type")
     def validate_activity_type(cls, v):
-        allowed_types = ['call', 'email', 'meeting', 'task', 'note', 'proposal', 'other']
+        allowed_types = [
+            "call",
+            "email",
+            "meeting",
+            "task",
+            "note",
+            "proposal",
+            "other",
+        ]
         if v not in allowed_types:
-            raise ValueError(f'Activity type must be one of: {", ".join(allowed_types)}')
+            raise ValueError(
+                f"Activity type must be one of: {', '.join(allowed_types)}"
+            )
         return v
 
-    @validator('status')
+    @validator("status")
     def validate_status(cls, v):
-        allowed_statuses = ['planned', 'completed', 'canceled']
+        allowed_statuses = ["planned", "completed", "canceled"]
         if v not in allowed_statuses:
-            raise ValueError(f'Status must be one of: {", ".join(allowed_statuses)}')
+            raise ValueError(f"Status must be one of: {', '.join(allowed_statuses)}")
         return v
 
 
 class CustomerActivityCreate(CustomerActivityBase):
     """Schema for creating customer activities."""
-    
+
     customer_id: int = Field(..., description="Customer ID")
 
 
 class CustomerActivityUpdate(BaseModel):
     """Schema for updating customer activities."""
-    
+
     activity_type: Optional[str] = Field(None)
     subject: Optional[str] = Field(None, max_length=200)
     description: Optional[str] = Field(None)
@@ -316,19 +360,19 @@ class CustomerActivityUpdate(BaseModel):
 
 class CustomerActivityResponse(CustomerActivityBase, BaseResponse):
     """Schema for customer activity responses."""
-    
+
     id: int
     customer_id: int
     user_id: int
     completed_at: Optional[datetime]
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 
 # Complex response schemas with relationships
 class CustomerDetailResponse(CustomerResponse):
     """Schema for detailed customer responses with relationships."""
-    
+
     contacts: List[CustomerContactResponse] = Field(default_factory=list)
     opportunities: List[OpportunityResponse] = Field(default_factory=list)
     recent_activities: List[CustomerActivityResponse] = Field(default_factory=list)
@@ -336,13 +380,13 @@ class CustomerDetailResponse(CustomerResponse):
 
 class OpportunityDetailResponse(OpportunityResponse):
     """Schema for detailed opportunity responses with relationships."""
-    
+
     activities: List[CustomerActivityResponse] = Field(default_factory=list)
 
 
 class CustomerListResponse(BaseModel):
     """Schema for customer list responses."""
-    
+
     items: List[CustomerResponse]
     total: int
     page: int
@@ -355,7 +399,7 @@ class CustomerListResponse(BaseModel):
 
 class OpportunityListResponse(BaseModel):
     """Schema for opportunity list responses."""
-    
+
     items: List[OpportunityResponse]
     total: int
     page: int
@@ -368,7 +412,7 @@ class OpportunityListResponse(BaseModel):
 
 class CustomerSearch(BaseModel):
     """Schema for customer search filters."""
-    
+
     customer_type: Optional[str] = Field(None, description="Customer type filter")
     status: Optional[str] = Field(None, description="Status filter")
     assigned_to: Optional[int] = Field(None, description="Assigned sales rep filter")
@@ -383,7 +427,7 @@ class CustomerSearch(BaseModel):
 
 class OpportunitySearch(BaseModel):
     """Schema for opportunity search filters."""
-    
+
     stage: Optional[str] = Field(None, description="Stage filter")
     status: Optional[str] = Field(None, description="Status filter")
     assigned_to: Optional[int] = Field(None, description="Assigned user filter")
@@ -391,14 +435,18 @@ class OpportunitySearch(BaseModel):
     customer_id: Optional[int] = Field(None, description="Customer filter")
     min_value: Optional[Decimal] = Field(None, description="Minimum value")
     max_value: Optional[Decimal] = Field(None, description="Maximum value")
-    expected_close_from: Optional[date] = Field(None, description="Expected close date from")
-    expected_close_to: Optional[date] = Field(None, description="Expected close date to")
+    expected_close_from: Optional[date] = Field(
+        None, description="Expected close date from"
+    )
+    expected_close_to: Optional[date] = Field(
+        None, description="Expected close date to"
+    )
 
 
 # Analytics schemas
 class CustomerAnalytics(BaseModel):
     """Schema for customer analytics."""
-    
+
     total_customers: int
     active_customers: int
     prospects: int
@@ -415,7 +463,7 @@ class CustomerAnalytics(BaseModel):
 
 class OpportunityAnalytics(BaseModel):
     """Schema for opportunity analytics."""
-    
+
     total_opportunities: int
     open_opportunities: int
     won_opportunities: int
@@ -433,10 +481,10 @@ class OpportunityAnalytics(BaseModel):
 
 class CRMAnalytics(BaseModel):
     """Schema for comprehensive CRM analytics."""
-    
+
     customer_analytics: CustomerAnalytics
     opportunity_analytics: OpportunityAnalytics
-    
+
     # Combined metrics
     total_customers: int
     active_customers: int
@@ -448,12 +496,20 @@ class CRMAnalytics(BaseModel):
     won_opportunities: int
     won_opportunity_value: Decimal
     conversion_rate: Decimal
-    
+
     # Pipeline analysis
-    by_stage: List[dict] = Field(default_factory=list, description="Opportunities by stage")
-    by_source: List[dict] = Field(default_factory=list, description="Opportunities by source")
-    by_assigned_user: List[dict] = Field(default_factory=list, description="Opportunities by user")
-    monthly_trends: List[dict] = Field(default_factory=list, description="Monthly trends")
+    by_stage: List[dict] = Field(
+        default_factory=list, description="Opportunities by stage"
+    )
+    by_source: List[dict] = Field(
+        default_factory=list, description="Opportunities by source"
+    )
+    by_assigned_user: List[dict] = Field(
+        default_factory=list, description="Opportunities by user"
+    )
+    monthly_trends: List[dict] = Field(
+        default_factory=list, description="Monthly trends"
+    )
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -461,19 +517,19 @@ class CRMAnalytics(BaseModel):
 # Bulk operations
 class CustomerBulkCreate(BaseModel):
     """Schema for bulk customer creation."""
-    
+
     customers: List[CustomerCreate]
 
 
 class CustomerBulkUpdate(BaseModel):
     """Schema for bulk customer updates."""
-    
+
     updates: List[dict] = Field(..., description="List of update operations")
 
 
 class CustomerImport(BaseModel):
     """Schema for customer import operations."""
-    
+
     file_format: str = Field(..., description="File format: csv/xlsx")
     mapping: dict = Field(..., description="Field mapping configuration")
     validation_rules: dict = Field(default_factory=dict, description="Validation rules")
@@ -482,7 +538,7 @@ class CustomerImport(BaseModel):
 
 class CustomerExport(BaseModel):
     """Schema for customer export operations."""
-    
+
     format: str = Field("csv", description="Export format: csv/xlsx/pdf")
     fields: List[str] = Field(default_factory=list, description="Fields to export")
     filters: Optional[CustomerSearch] = Field(None, description="Export filters")

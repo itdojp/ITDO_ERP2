@@ -38,8 +38,7 @@ class TestCoreAPI:
         """Test authorized access to protected endpoint."""
         # Database session isolation issue resolved
         response = client.get(
-            "/api/v1/users/me",
-            headers={"Authorization": f"Bearer {user_token}"}
+            "/api/v1/users/me", headers={"Authorization": f"Bearer {user_token}"}
         )
         assert response.status_code == 200
         data = response.json()
@@ -52,8 +51,7 @@ class TestCoreAPI:
         """Test admin access to protected endpoint."""
         # Database session isolation issue resolved
         response = client.get(
-            "/api/v1/users/me",
-            headers={"Authorization": f"Bearer {admin_token}"}
+            "/api/v1/users/me", headers={"Authorization": f"Bearer {admin_token}"}
         )
         assert response.status_code == 200
         data = response.json()

@@ -88,9 +88,7 @@ class CustomerService:
             .options(
                 selectinload(Customer.contacts),
                 selectinload(Customer.opportunities),
-                selectinload(Customer.activities).selectinload(
-                    "CustomerActivity.user"
-                ),
+                selectinload(Customer.activities).selectinload("CustomerActivity.user"),
             )
         )
 
@@ -186,9 +184,7 @@ class CustomerService:
                 customer_data.code, organization_id, exclude_id=customer_id
             )
             if existing:
-                raise ValueError(
-                    f"Customer code '{customer_data.code}' already exists"
-                )
+                raise ValueError(f"Customer code '{customer_data.code}' already exists")
 
         # 更新
         for field, value in customer_data.model_dump(exclude_unset=True).items():
@@ -337,9 +333,7 @@ class CustomerService:
         )
 
         industry_stats_result = await self.db.execute(industry_stats_query)
-        industry_stats = {
-            row.industry: row.count for row in industry_stats_result
-        }
+        industry_stats = {row.industry: row.count for row in industry_stats_result}
 
         # 規模別統計
         scale_stats_query = (

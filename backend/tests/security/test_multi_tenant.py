@@ -7,7 +7,6 @@ Following TDD approach - Red phase: Writing tests before implementation.
 import pytest
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import PermissionDenied
 from app.services.department import DepartmentService
 from app.services.organization import OrganizationService
 from tests.factories import (
@@ -49,8 +48,12 @@ class TestMultiTenantSecurity:
 
         # When: 各ユーザーで部門取得（組織IDでフィルタリング）
         dept_service = DepartmentService(db_session)
-        depts_org1, _ = dept_service.list_departments(filters={"organization_id": org1.id})
-        depts_org2, _ = dept_service.list_departments(filters={"organization_id": org2.id})
+        depts_org1, _ = dept_service.list_departments(
+            filters={"organization_id": org1.id}
+        )
+        depts_org2, _ = dept_service.list_departments(
+            filters={"organization_id": org2.id}
+        )
 
         # Then: 自組織のデータのみ
         assert len(depts_org1) == 1
@@ -68,8 +71,12 @@ class TestMultiTenantSecurity:
         org2 = create_test_organization(db_session, code="ORG2")
 
         admin1 = create_test_user(db_session, email="admin@org1.com")
-        admin_role = create_test_role(db_session, code="ORG_ADMIN", permissions=["org:*", "dept:*"])
-        create_test_user_role(db_session, user=admin1, role=admin_role, organization=org1)
+        admin_role = create_test_role(
+            db_session, code="ORG_ADMIN", permissions=["org:*", "dept:*"]
+        )
+        create_test_user_role(
+            db_session, user=admin1, role=admin_role, organization=org1
+        )
         db_session.commit()
 
         # When: 組織2のデータ更新試行（許可なし）
@@ -77,9 +84,8 @@ class TestMultiTenantSecurity:
 
         # Test: 他組織の更新は権限エラーになるべき
         # 現在の実装では直接更新できてしまうが、将来的に権限チェックが必要
-        from app.schemas.organization import OrganizationUpdate
         # org_service.update_organization(org2.id, OrganizationUpdate(name="不正な更新"))
-        
+
         # テスト簡略化: 他組織のデータにアクセスできないことを確認
         org_list, _ = org_service.list_organizations(filters={"id": org2.id})
         # 権限チェックが実装される前は、データは取得できる
@@ -89,22 +95,33 @@ class TestMultiTenantSecurity:
         """部門レベルでのアクセス制御が機能することを確認."""
         # Given: 組織内の2つの部門
         org = create_test_organization(db_session)
-        dept1 = create_test_department(db_session, organization=org, code="SALES", name="営業部")
-        dept2 = create_test_department(db_session, organization=org, code="HR", name="人事部")
+        dept1 = create_test_department(
+            db_session, organization=org, code="SALES", name="営業部"
+        )
+        dept2 = create_test_department(
+            db_session, organization=org, code="HR", name="人事部"
+        )
 
         # 部門管理者を作成
         dept_manager = create_test_user(db_session, email="manager@sales.com")
-        manager_role = create_test_role(db_session, code="DEPT_MANAGER", permissions=["dept:*"])
+        manager_role = create_test_role(
+            db_session, code="DEPT_MANAGER", permissions=["dept:*"]
+        )
 
         # 営業部のみの管理者として設定
         create_test_user_role(
-            db_session, user=dept_manager, role=manager_role, organization=org, department=dept1
+            db_session,
+            user=dept_manager,
+            role=manager_role,
+            organization=org,
+            department=dept1,
         )
         db_session.commit()
 
         # When/Then: 営業部は更新可能
         dept_service = DepartmentService(db_session)
         from app.schemas.department import DepartmentUpdate
+
         updated = dept_service.update_department(
             dept1.id,
             DepartmentUpdate(name="営業部更新"),
@@ -123,14 +140,12 @@ class TestMultiTenantSecurity:
     def test_sql_injection_prevention(self, db_session: Session) -> None:
         """SQLインジェクションが防止されることを確認."""
         # Given: システム管理者
-        admin = create_test_user(db_session, is_superuser=True)
+        create_test_user(db_session, is_superuser=True)
         db_session.commit()
 
         # When: 悪意のある検索文字列
         org_service = OrganizationService(db_session)
-        result, _ = org_service.search_organizations(
-            "'; DROP TABLE organizations; --"
-        )
+        result, _ = org_service.search_organizations("'; DROP TABLE organizations; --")
 
         # Then: 正常に処理される（エラーなし）
         assert result is not None
@@ -172,7 +187,12 @@ class TestMultiTenantSecurity:
             db_session, organization=org, code="PARENT", name="親部門", depth=1
         )
         child_dept = create_test_department(
-            db_session, organization=org, parent=parent_dept, code="CHILD", name="子部門", depth=2
+            db_session,
+            organization=org,
+            parent=parent_dept,
+            code="CHILD",
+            name="子部門",
+            depth=2,
         )
 
         # 親部門の管理者
@@ -213,26 +233,19 @@ class TestMultiTenantSecurity:
         # 各組織で部門作成（監査ログ生成）
         dept_service = DepartmentService(db_session)
         from app.schemas.department import DepartmentCreate
-        
+
         dept1 = dept_service.create_department(
-            DepartmentCreate(
-                code="DEPT1", 
-                name="部門1",
-                organization_id=org1.id
-            )
+            DepartmentCreate(code="DEPT1", name="部門1", organization_id=org1.id)
         )
         dept2 = dept_service.create_department(
-            DepartmentCreate(
-                code="DEPT2", 
-                name="部門2",
-                organization_id=org2.id
-            )
+            DepartmentCreate(code="DEPT2", name="部門2", organization_id=org2.id)
         )
 
         # When: 監査ログ取得（サービス存在確認）
         # 監査サービスの実装状況を確認
         try:
             from app.services.audit import AuditLogger
+
             audit_logger = AuditLogger(db_session)
             # 監査ログ機能の基本テスト
             assert audit_logger is not None

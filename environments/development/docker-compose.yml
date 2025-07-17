@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: development-postgres
+    environment:
+      POSTGRES_DB: itdo_erp_development
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - development_postgres_data:/var/lib/postgresql/data
+    networks:
+      - development_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: development-redis
+    volumes:
+      - development_redis_data:/data
+    networks:
+      - development_network
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0
+    container_name: development-keycloak
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://development-postgres:5432/itdo_erp_development
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: postgres
+    command: start-dev
+    depends_on:
+      - postgres
+    networks:
+      - development_network
+
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: development-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@itdo.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+    volumes:
+      - development_pgadmin_data:/var/lib/pgadmin
+    networks:
+      - development_network
+
+networks:
+  development_network:
+    driver: bridge
+
+volumes:
+  development_postgres_data:
+  development_redis_data:
+  development_pgadmin_data:

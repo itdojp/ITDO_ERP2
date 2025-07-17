@@ -19,7 +19,7 @@ class Department(SoftDeletableModel):
 
     __tablename__ = "departments"
     __table_args__ = (
-        UniqueConstraint('organization_id', 'code', name='uq_dept_org_code'),
+        UniqueConstraint("organization_id", "code", name="uq_dept_org_code"),
     )
 
     # Basic fields
@@ -152,11 +152,14 @@ class Department(SoftDeletableModel):
     sub_departments: Mapped[list["Department"]] = relationship(
         "Department", back_populates="parent", lazy="select", cascade="all, delete"
     )
-    
+
     # Alias for compatibility with tests
     children: Mapped[list["Department"]] = relationship(
-        "Department", back_populates="parent", lazy="select", cascade="all, delete",
-        overlaps="sub_departments"
+        "Department",
+        back_populates="parent",
+        lazy="select",
+        cascade="all, delete",
+        overlaps="sub_departments",
     )
     manager: Mapped[Optional["User"]] = relationship(
         "User", foreign_keys=[manager_id], lazy="joined"
@@ -265,12 +268,12 @@ class Department(SoftDeletableModel):
         for sub_dept in self.sub_departments:
             sub_dept.update_path()
             sub_dept.update_subtree_paths()
-    
+
     def validate_hierarchy(self) -> None:
         """Validate department hierarchy constraints."""
         if self.depth > 2:
             raise ValueError("部門階層は2階層まで")
-    
+
     def get_full_path_name(self, separator: str = " / ") -> str:
         """Get full path name including parent departments."""
         path = self.get_hierarchy_path()

@@ -15,7 +15,9 @@ from app.models.user import User
 from tests.factories import create_test_user
 
 
-@pytest.mark.skip(reason="create_test_role and create_test_user_role not yet implemented")
+@pytest.mark.skip(
+    reason="create_test_role and create_test_user_role not yet implemented"
+)
 class TestUserExtendedModel:
     """Test cases for extended User model functionality."""
 

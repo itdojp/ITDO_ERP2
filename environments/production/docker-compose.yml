@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: production-postgres
+    environment:
+      POSTGRES_DB: itdo_erp_production
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - production_postgres_data:/var/lib/postgresql/data
+    networks:
+      - production_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: production-redis
+    volumes:
+      - production_redis_data:/data
+    networks:
+      - production_network
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0
+    container_name: production-keycloak
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://production-postgres:5432/itdo_erp_production
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: postgres
+    command: start-dev
+    depends_on:
+      - postgres
+    networks:
+      - production_network
+
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: production-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@itdo.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+    volumes:
+      - production_pgadmin_data:/var/lib/pgadmin
+    networks:
+      - production_network
+
+networks:
+  production_network:
+    driver: bridge
+
+volumes:
+  production_postgres_data:
+  production_redis_data:
+  production_pgadmin_data:

@@ -3,9 +3,18 @@
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from typing import TYPE_CHECKING, Dict, List, Optional, Any
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from sqlalchemy import Boolean, DateTime, Integer, JSON, Numeric, String, Text, ForeignKey
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Integer,
+    Numeric,
+    String,
+    Text,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import SoftDeletableModel
@@ -18,6 +27,7 @@ if TYPE_CHECKING:
 
 class ReportType(str, Enum):
     """Report type enumeration."""
+
     STANDARD = "standard"
     CUSTOM = "custom"
     DASHBOARD = "dashboard"
@@ -26,6 +36,7 @@ class ReportType(str, Enum):
 
 class ReportStatus(str, Enum):
     """Report status enumeration."""
+
     DRAFT = "draft"
     ACTIVE = "active"
     ARCHIVED = "archived"
@@ -33,6 +44,7 @@ class ReportStatus(str, Enum):
 
 class ReportFrequency(str, Enum):
     """Report frequency enumeration."""
+
     ONCE = "once"
     DAILY = "daily"
     WEEKLY = "weekly"
@@ -43,6 +55,7 @@ class ReportFrequency(str, Enum):
 
 class ChartType(str, Enum):
     """Chart type enumeration."""
+
     LINE = "line"
     BAR = "bar"
     COLUMN = "column"
@@ -57,6 +70,7 @@ class ChartType(str, Enum):
 
 class DataSourceType(str, Enum):
     """Data source type enumeration."""
+
     DATABASE = "database"
     API = "api"
     FILE = "file"
@@ -94,7 +108,7 @@ class Report(SoftDeletableModel):
     is_public: Mapped[bool] = mapped_column(
         Boolean, default=False, comment="Public visibility flag"
     )
-    
+
     # Report definition
     query_config: Mapped[Dict[str, Any]] = mapped_column(
         JSON, nullable=False, comment="Query configuration (JSON)"
@@ -335,6 +349,7 @@ class DashboardWidget(SoftDeletableModel):
 
 class ExecutionStatus(str, Enum):
     """Execution status enumeration."""
+
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -352,7 +367,9 @@ class ReportExecution(SoftDeletableModel):
         ForeignKey("reports.id"), nullable=False, comment="Report ID"
     )
     executed_by: Mapped[Optional[UserId]] = mapped_column(
-        ForeignKey("users.id"), nullable=True, comment="User who executed (null for scheduled)"
+        ForeignKey("users.id"),
+        nullable=True,
+        comment="User who executed (null for scheduled)",
     )
     organization_id: Mapped[OrganizationId] = mapped_column(
         ForeignKey("organizations.id"), nullable=False, comment="Organization ID"
@@ -363,9 +380,11 @@ class ReportExecution(SoftDeletableModel):
         String(50), nullable=False, comment="Execution type (manual, scheduled, api)"
     )
     status: Mapped[str] = mapped_column(
-        String(50), nullable=False, comment="Execution status (running, completed, failed)"
+        String(50),
+        nullable=False,
+        comment="Execution status (running, completed, failed)",
     )
-    
+
     # Timing
     started_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True, comment="Execution start time"
@@ -390,7 +409,7 @@ class ReportExecution(SoftDeletableModel):
     output_url: Mapped[Optional[str]] = mapped_column(
         String(500), nullable=True, comment="Output file URL"
     )
-    
+
     # Error handling
     error_message: Mapped[Optional[str]] = mapped_column(
         Text, nullable=True, comment="Error message if failed"
@@ -488,7 +507,9 @@ class Chart(SoftDeletableModel):
         ForeignKey("reports.id"), nullable=False, comment="Report ID"
     )
     dashboard_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("dashboards.id"), nullable=True, comment="Dashboard ID (if part of dashboard)"
+        ForeignKey("dashboards.id"),
+        nullable=True,
+        comment="Dashboard ID (if part of dashboard)",
     )
 
     # Chart identification
