@@ -328,7 +328,7 @@ async def advanced_organization_search(
     search_fields: List[str] = Query(["name", "code"], description="Fields to search in"),
     filters: Optional[Dict[str, Any]] = Query(None, description="Additional filters"),
     sort_by: str = Query("name", description="Sort field"),
-    sort_order: str = Query("asc", regex="^(asc|desc)$", description="Sort order"),
+    sort_order: str = Query("asc", pattern="^(asc|desc)$", description="Sort order"),
     limit: int = Query(50, ge=1, le=500, description="Maximum results"),
     offset: int = Query(0, ge=0, description="Results offset"),
     db: AsyncSession = Depends(get_db),
