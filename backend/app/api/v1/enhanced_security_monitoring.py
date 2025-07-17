@@ -4,7 +4,7 @@ Enhanced Security Monitoring API endpoints for Issue #46.
 """
 
 import asyncio
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from fastapi import (
     APIRouter,
@@ -40,10 +40,11 @@ async def get_realtime_monitoring_status(
     リアルタイム監視システムのステータス取得
     """
     # Check permissions
-    if not (current_user.is_superuser or "security_officer" in [role.name for role in current_user.roles]):
+    has_security_role = "security_officer" in [role.name for role in current_user.roles]
+    if not (current_user.is_superuser or has_security_role):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied. Security officer privileges required."
+            detail="Access denied. Security officer privileges required.",
         )
 
     # Get or create monitoring instance
@@ -59,12 +60,12 @@ async def get_realtime_monitoring_status(
         return {
             "status": "active" if monitor.is_monitoring else "inactive",
             "statistics": stats,
-            "monitor_id": monitor_key
+            "monitor_id": monitor_key,
         }
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get monitoring status: {str(e)}"
+            detail=f"Failed to get monitoring status: {str(e)}",
         )
 
 
@@ -78,10 +79,11 @@ async def start_realtime_monitoring(
     リアルタイムセキュリティ監視の開始
     """
     # Check permissions
-    if not (current_user.is_superuser or "security_officer" in [role.name for role in current_user.roles]):
+    has_security_role = "security_officer" in [role.name for role in current_user.roles]
+    if not (current_user.is_superuser or has_security_role):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied. Security officer privileges required."
+            detail="Access denied. Security officer privileges required.",
         )
 
     monitor_key = f"monitor_{current_user.organization_id or 'global'}"
@@ -98,12 +100,12 @@ async def start_realtime_monitoring(
         return {
             "status": "started",
             "monitor_id": monitor_key,
-            "message": "Real-time monitoring started successfully"
+            "message": "Real-time monitoring started successfully",
         }
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to start monitoring: {str(e)}"
+            detail=f"Failed to start monitoring: {str(e)}",
         )
 
 
@@ -117,10 +119,11 @@ async def stop_realtime_monitoring(
     リアルタイムセキュリティ監視の停止
     """
     # Check permissions
-    if not (current_user.is_superuser or "security_officer" in [role.name for role in current_user.roles]):
+    has_security_role = "security_officer" in [role.name for role in current_user.roles]
+    if not (current_user.is_superuser or has_security_role):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied. Security officer privileges required."
+            detail="Access denied. Security officer privileges required.",
         )
 
     monitor_key = f"monitor_{current_user.organization_id or 'global'}"
@@ -133,18 +136,20 @@ async def stop_realtime_monitoring(
         return {
             "status": "stopped",
             "monitor_id": monitor_key,
-            "message": "Real-time monitoring stopped successfully"
+            "message": "Real-time monitoring stopped successfully",
         }
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to stop monitoring: {str(e)}"
+            detail=f"Failed to stop monitoring: {str(e)}",
         )
 
 
 @router.get("/threat-intelligence/baselines/build")
 async def build_behavioral_baselines(
-    learning_days: int = Query(30, ge=7, le=90, description="Days of historical data to analyze"),
+    learning_days: int = Query(
+        30, ge=7, le=90, description="Days of historical data to analyze"
+    ),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -153,10 +158,11 @@ async def build_behavioral_baselines(
     異常検知のための行動ベースライン構築
     """
     # Check permissions
-    if not (current_user.is_superuser or "security_officer" in [role.name for role in current_user.roles]):
+    has_security_role = "security_officer" in [role.name for role in current_user.roles]
+    if not (current_user.is_superuser or has_security_role):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied. Security officer privileges required."
+            detail="Access denied. Security officer privileges required.",
         )
 
     try:
@@ -168,12 +174,14 @@ async def build_behavioral_baselines(
         return {
             "status": "completed",
             "baselines_built": result,
-            "message": f"Behavioral baselines built for {result['total_profiles']} users"
+            "message": (
+                f"Behavioral baselines built for {result['total_profiles']} users"
+            ),
         }
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to build baselines: {str(e)}"
+            detail=f"Failed to build baselines: {str(e)}",
         )
 
 
@@ -188,12 +196,16 @@ async def detect_user_anomalies(
     特定ユーザーの行動異常検知
     """
     # Check permissions
+    has_security_role = "security_officer" in [role.name for role in current_user.roles]
     if user_id != current_user.id and not (
-        current_user.is_superuser or "security_officer" in [role.name for role in current_user.roles]
+        current_user.is_superuser or has_security_role
     ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied. Can only check own anomalies or require security officer privileges."
+            detail=(
+                "Access denied. Can only check own anomalies or require "
+                "security officer privileges."
+            ),
         )
 
     try:
@@ -212,15 +224,15 @@ async def detect_user_anomalies(
                     "description": anomaly.description,
                     "detected_at": anomaly.detected_at.isoformat(),
                     "recommended_actions": anomaly.recommended_actions,
-                    "evidence": anomaly.evidence
+                    "evidence": anomaly.evidence,
                 }
                 for anomaly in anomalies
-            ]
+            ],
         }
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to detect anomalies: {str(e)}"
+            detail=f"Failed to detect anomalies: {str(e)}",
         )
 
 
@@ -235,12 +247,16 @@ async def get_user_risk_score(
     ユーザーの包括的リスクスコア取得
     """
     # Check permissions
+    has_security_role = "security_officer" in [role.name for role in current_user.roles]
     if user_id != current_user.id and not (
-        current_user.is_superuser or "security_officer" in [role.name for role in current_user.roles]
+        current_user.is_superuser or has_security_role
     ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied. Can only check own risk score or require security officer privileges."
+            detail=(
+                "Access denied. Can only check own risk score or require "
+                "security officer privileges."
+            ),
         )
 
     try:
@@ -251,7 +267,7 @@ async def get_user_risk_score(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to calculate risk score: {str(e)}"
+            detail=f"Failed to calculate risk score: {str(e)}",
         )
 
 
@@ -265,10 +281,11 @@ async def get_threat_intelligence_summary(
     包括的脅威インテリジェンスサマリー取得
     """
     # Check permissions
-    if not (current_user.is_superuser or "security_officer" in [role.name for role in current_user.roles]):
+    has_security_role = "security_officer" in [role.name for role in current_user.roles]
+    if not (current_user.is_superuser or has_security_role):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied. Security officer privileges required."
+            detail="Access denied. Security officer privileges required.",
         )
 
     try:
@@ -279,7 +296,7 @@ async def get_threat_intelligence_summary(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get threat intelligence: {str(e)}"
+            detail=f"Failed to get threat intelligence: {str(e)}",
         )
 
 
@@ -294,12 +311,16 @@ async def get_user_behavior_profile(
     監視用ユーザー行動プロファイル取得
     """
     # Check permissions
+    has_security_role = "security_officer" in [role.name for role in current_user.roles]
     if user_id != current_user.id and not (
-        current_user.is_superuser or "security_officer" in [role.name for role in current_user.roles]
+        current_user.is_superuser or has_security_role
     ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied. Can only view own profile or require security officer privileges."
+            detail=(
+                "Access denied. Can only view own profile or require "
+                "security officer privileges."
+            ),
         )
 
     monitor_key = f"monitor_{current_user.organization_id or 'global'}"
@@ -313,19 +334,18 @@ async def get_user_behavior_profile(
             return {
                 "user_id": user_id,
                 "error": "Real-time monitoring not active",
-                "message": "Start real-time monitoring to get user profiles"
+                "message": "Start real-time monitoring to get user profiles",
             }
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get user profile: {str(e)}"
+            detail=f"Failed to get user profile: {str(e)}",
         )
 
 
 @router.websocket("/realtime/events")
 async def websocket_security_events(
-    websocket: WebSocket,
-    db: AsyncSession = Depends(get_db)
+    websocket: WebSocket, db: AsyncSession = Depends(get_db)
 ):
     """
     WebSocket endpoint for real-time security event streaming.
@@ -358,7 +378,7 @@ async def websocket_security_events(
                     "threat_level": event.threat_level.value,
                     "timestamp": event.timestamp.isoformat(),
                     "description": event.details,
-                    "source_ip": event.source_ip
+                    "source_ip": event.source_ip,
                 }
                 await websocket.send_json(event_data)
             except Exception as e:
@@ -380,10 +400,7 @@ async def websocket_security_events(
             except asyncio.TimeoutError:
                 # Send periodic status updates
                 stats = await monitor.get_threat_statistics()
-                await websocket.send_json({
-                    "type": "status",
-                    "data": stats
-                })
+                await websocket.send_json({"type": "status", "data": stats})
             except WebSocketDisconnect:
                 break
 
@@ -412,10 +429,11 @@ async def get_log_storage_status(
     監査ログストレージ状況と容量の取得
     """
     # Check permissions
-    if not (current_user.is_superuser or "security_officer" in [role.name for role in current_user.roles]):
+    has_security_role = "security_officer" in [role.name for role in current_user.roles]
+    if not (current_user.is_superuser or has_security_role):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied. Security officer privileges required."
+            detail="Access denied. Security officer privileges required.",
         )
 
     try:
@@ -437,7 +455,8 @@ async def get_log_storage_status(
 
         # Calculate estimated storage usage (rough estimate)
         estimated_audit_size = audit_count * 1024  # Rough estimate: 1KB per audit log
-        estimated_activity_size = activity_count * 512  # Rough estimate: 0.5KB per activity log
+        # Rough estimate: 0.5KB per activity log
+        estimated_activity_size = activity_count * 512
         total_estimated_size = estimated_audit_size + estimated_activity_size
 
         # Get oldest logs
@@ -455,29 +474,33 @@ async def get_log_storage_status(
                 "activity_logs_count": activity_count,
                 "total_logs": audit_count + activity_count,
                 "estimated_size_bytes": total_estimated_size,
-                "estimated_size_mb": round(total_estimated_size / (1024 * 1024), 2)
+                "estimated_size_mb": round(total_estimated_size / (1024 * 1024), 2),
             },
             "retention": {
                 "oldest_audit_log": oldest_audit.isoformat() if oldest_audit else None,
-                "oldest_activity_log": oldest_activity.isoformat() if oldest_activity else None
+                "oldest_activity_log": (
+                    oldest_activity.isoformat() if oldest_activity else None
+                ),
             },
             "recommendations": [
                 "Consider implementing log archiving for logs older than 1 year",
                 "Set up automated log rotation policies",
                 "Monitor storage growth trends",
-                "Implement log compression for archived data"
-            ]
+                "Implement log compression for archived data",
+            ],
         }
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get storage status: {str(e)}"
+            detail=f"Failed to get storage status: {str(e)}",
         )
 
 
 @router.post("/logs/cleanup")
 async def cleanup_old_logs(
-    days_to_keep: int = Query(365, ge=30, le=2555, description="Days of logs to keep (30-2555)"),
+    days_to_keep: int = Query(
+        365, ge=30, le=2555, description="Days of logs to keep (30-2555)"
+    ),
     dry_run: bool = Query(True, description="Perform dry run without actual deletion"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -490,7 +513,7 @@ async def cleanup_old_logs(
     if not current_user.is_superuser:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied. Superuser privileges required for log cleanup."
+            detail="Access denied. Superuser privileges required for log cleanup.",
         )
 
     try:
@@ -517,7 +540,9 @@ async def cleanup_old_logs(
         if not dry_run:
             # Actually delete old logs
             await db.execute(delete(AuditLog).where(AuditLog.created_at < cutoff_date))
-            await db.execute(delete(UserActivityLog).where(UserActivityLog.created_at < cutoff_date))
+            await db.execute(
+                delete(UserActivityLog).where(UserActivityLog.created_at < cutoff_date)
+            )
             await db.commit()
 
         return {
@@ -526,13 +551,17 @@ async def cleanup_old_logs(
             "deleted_counts": {
                 "audit_logs": audit_delete_count,
                 "activity_logs": activity_delete_count,
-                "total": audit_delete_count + activity_delete_count
+                "total": audit_delete_count + activity_delete_count,
             },
-            "message": f"{'Would delete' if dry_run else 'Deleted'} {audit_delete_count + activity_delete_count} logs older than {days_to_keep} days"
+            "message": (
+                f"{'Would delete' if dry_run else 'Deleted'} "
+                f"{audit_delete_count + activity_delete_count} logs older than "
+                f"{days_to_keep} days"
+            ),
         }
     except Exception as e:
         await db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to cleanup logs: {str(e)}"
+            detail=f"Failed to cleanup logs: {str(e)}",
         )
