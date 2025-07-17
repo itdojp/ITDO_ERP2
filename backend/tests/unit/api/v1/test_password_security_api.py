@@ -1,14 +1,15 @@
 """Tests for Password Security API endpoints - Issue #41."""
 
-import pytest
 from datetime import datetime, timedelta, timezone
+from unittest.mock import Mock, patch
+
+import pytest
 from fastapi import status
 from httpx import AsyncClient
-from unittest.mock import AsyncMock, Mock, patch
 
-from app.models.user import User
-from app.models.role import Role
 from app.models.password_policy import PasswordPolicy
+from app.models.role import Role
+from app.models.user import User
 
 
 @pytest.fixture
@@ -21,7 +22,7 @@ def regular_user():
     user.is_superuser = False
     user.organization_id = 1
     user.roles = []
-    
+
     return user
 
 
@@ -35,7 +36,7 @@ def admin_user():
     user.is_superuser = True
     user.organization_id = 1
     user.roles = []
-    
+
     return user
 
 
@@ -48,12 +49,12 @@ def security_officer_user():
     user.full_name = "Security Officer"
     user.is_superuser = False
     user.organization_id = 1
-    
+
     # Mock security_officer role
     role = Mock(spec=Role)
     role.name = "security_officer"
     user.roles = [role]
-    
+
     return user
 
 
@@ -74,7 +75,7 @@ def sample_policy():
     policy.max_failed_attempts = 5
     policy.lockout_duration_minutes = 30
     policy.is_active = True
-    
+
     return policy
 
 
@@ -87,7 +88,7 @@ class TestPasswordSecurityAPI:
         with patch("app.core.dependencies.get_current_user", return_value=regular_user):
             with patch("app.services.password_policy_service.PasswordPolicyService.get_policy_for_user", return_value=sample_policy):
                 response = await client.get("/api/v1/password-security/policy")
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["name"] == "Test Policy"
@@ -100,17 +101,17 @@ class TestPasswordSecurityAPI:
         with patch("app.core.dependencies.get_current_user", return_value=regular_user):
             with patch("app.services.password_policy_service.PasswordPolicyService.get_policy_for_user", return_value=sample_policy):
                 response = await client.get("/api/v1/password-security/policy?organization_id=1")
-        
+
         assert response.status_code == status.HTTP_200_OK
 
     @pytest.mark.asyncio
     async def test_get_password_policy_forbidden(self, client: AsyncClient, regular_user, sample_policy):
         """Test access denied for different organization policy."""
         regular_user.organization_id = 2  # Different org
-        
+
         with patch("app.core.dependencies.get_current_user", return_value=regular_user):
             response = await client.get("/api/v1/password-security/policy?organization_id=1")
-        
+
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert "Access denied" in response.json()["detail"]
 
@@ -123,17 +124,17 @@ class TestPasswordSecurityAPI:
             "strength_score": 85,
             "policy_name": "Test Policy"
         }
-        
+
         request_data = {
             "password": "StrongPass123!",
             "user_id": 1,
             "check_history": True
         }
-        
+
         with patch("app.core.dependencies.get_current_user", return_value=regular_user):
             with patch("app.services.password_policy_service.PasswordPolicyService.validate_password", return_value=mock_validation_result):
                 response = await client.post("/api/v1/password-security/validate", json=request_data)
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["is_valid"] is True
@@ -149,17 +150,17 @@ class TestPasswordSecurityAPI:
             "strength_score": 25,
             "policy_name": "Test Policy"
         }
-        
+
         request_data = {
             "password": "weak",
             "user_id": 1,
             "check_history": True
         }
-        
+
         with patch("app.core.dependencies.get_current_user", return_value=regular_user):
             with patch("app.services.password_policy_service.PasswordPolicyService.validate_password", return_value=mock_validation_result):
                 response = await client.post("/api/v1/password-security/validate", json=request_data)
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["is_valid"] is False
@@ -174,10 +175,10 @@ class TestPasswordSecurityAPI:
             "user_id": 999,  # Different user
             "check_history": True
         }
-        
+
         with patch("app.core.dependencies.get_current_user", return_value=regular_user):
             response = await client.post("/api/v1/password-security/validate", json=request_data)
-        
+
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     @pytest.mark.asyncio
@@ -188,17 +189,17 @@ class TestPasswordSecurityAPI:
             "message": "Password changed successfully",
             "strength_score": 90
         }
-        
+
         request_data = {
             "current_password": "OldPass123!",
             "new_password": "NewStrongPass456!",
             "force_change": False
         }
-        
+
         with patch("app.core.dependencies.get_current_user", return_value=regular_user):
             with patch("app.services.password_policy_service.PasswordPolicyService.change_password", return_value=mock_change_result):
                 response = await client.post("/api/v1/password-security/change", json=request_data)
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["success"] is True
@@ -211,17 +212,17 @@ class TestPasswordSecurityAPI:
             "success": False,
             "errors": ["Current password is incorrect"]
         }
-        
+
         request_data = {
             "current_password": "WrongPass",
             "new_password": "NewStrongPass456!",
             "force_change": False
         }
-        
+
         with patch("app.core.dependencies.get_current_user", return_value=regular_user):
             with patch("app.services.password_policy_service.PasswordPolicyService.change_password", return_value=mock_change_result):
                 response = await client.post("/api/v1/password-security/change", json=request_data)
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["success"] is False
@@ -234,14 +235,14 @@ class TestPasswordSecurityAPI:
             "password": "TestPassword123!",
             "user_id": 1
         }
-        
+
         # Mock policy strength calculation
         sample_policy.get_password_strength_score.return_value = 75
-        
+
         with patch("app.core.dependencies.get_current_user", return_value=regular_user):
             with patch("app.services.password_policy_service.PasswordPolicyService.get_policy_for_user", return_value=sample_policy):
                 response = await client.post("/api/v1/password-security/strength-check", json=request_data)
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["strength_score"] == 75
@@ -257,16 +258,16 @@ class TestPasswordSecurityAPI:
         mock_user.password_must_change = False
         mock_user.last_login_at = datetime.now(timezone.utc)
         mock_user.password_changed_at = datetime.now(timezone.utc) - timedelta(days=30)
-        
+
         mock_expiry_info = {
             "is_expired": False,
             "warning": False,
             "days_until_expiry": 60
         }
-        
+
         mock_policy = Mock()
         mock_policy.name = "Test Policy"
-        
+
         with patch("app.core.dependencies.get_current_user", return_value=regular_user):
             with patch("app.services.password_policy_service.PasswordPolicyService.is_account_locked", return_value=False):
                 with patch("app.services.password_policy_service.PasswordPolicyService.check_password_expiry", return_value=mock_expiry_info):
@@ -275,9 +276,9 @@ class TestPasswordSecurityAPI:
                             mock_result = Mock()
                             mock_result.scalar_one_or_none.return_value = mock_user
                             mock_execute.return_value = mock_result
-                            
+
                             response = await client.get("/api/v1/password-security/users/1/security-status")
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["user_id"] == 1
@@ -290,7 +291,7 @@ class TestPasswordSecurityAPI:
         """Test getting security status forbidden for different user."""
         with patch("app.core.dependencies.get_current_user", return_value=regular_user):
             response = await client.get("/api/v1/password-security/users/999/security-status")
-        
+
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     @pytest.mark.asyncio
@@ -300,11 +301,11 @@ class TestPasswordSecurityAPI:
             "user_id": 1,
             "reason": "Administrative unlock"
         }
-        
+
         with patch("app.core.dependencies.get_current_user", return_value=admin_user):
             with patch("app.services.password_policy_service.PasswordPolicyService.unlock_account", return_value=True):
                 response = await client.post("/api/v1/password-security/users/1/unlock", params=request_data)
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["success"] is True
@@ -317,10 +318,10 @@ class TestPasswordSecurityAPI:
             "user_id": 1,
             "reason": "Unlock attempt"
         }
-        
+
         with patch("app.core.dependencies.get_current_user", return_value=regular_user):
             response = await client.post("/api/v1/password-security/users/1/unlock", params=request_data)
-        
+
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     @pytest.mark.asyncio
@@ -330,20 +331,20 @@ class TestPasswordSecurityAPI:
             "user_id": 1,
             "reason": "Security policy violation"
         }
-        
+
         # Mock user query
         mock_user = Mock()
         mock_user.password_must_change = False
-        
+
         with patch("app.core.dependencies.get_current_user", return_value=security_officer_user):
             with patch("sqlalchemy.ext.asyncio.AsyncSession.execute") as mock_execute:
                 with patch("sqlalchemy.ext.asyncio.AsyncSession.commit"):
                     mock_result = Mock()
                     mock_result.scalar_one_or_none.return_value = mock_user
                     mock_execute.return_value = mock_result
-                    
+
                     response = await client.post("/api/v1/password-security/users/1/force-password-change", params=request_data)
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["success"] is True
@@ -356,10 +357,10 @@ class TestPasswordSecurityAPI:
             "user_id": 1,
             "reason": "Unauthorized attempt"
         }
-        
+
         with patch("app.core.dependencies.get_current_user", return_value=regular_user):
             response = await client.post("/api/v1/password-security/users/1/force-password-change", params=request_data)
-        
+
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     @pytest.mark.asyncio
@@ -372,11 +373,11 @@ class TestPasswordSecurityAPI:
             "password_age_days": 30,
             "policy_expiry_days": 90
         }
-        
+
         with patch("app.core.dependencies.get_current_user", return_value=regular_user):
             with patch("app.services.password_policy_service.PasswordPolicyService.check_password_expiry", return_value=mock_expiry_info):
                 response = await client.get("/api/v1/password-security/users/1/password-expiry")
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["is_expired"] is False
@@ -388,7 +389,7 @@ class TestPasswordSecurityAPI:
         """Test getting password expiry info forbidden for different user."""
         with patch("app.core.dependencies.get_current_user", return_value=regular_user):
             response = await client.get("/api/v1/password-security/users/999/password-expiry")
-        
+
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     @pytest.mark.asyncio
@@ -400,18 +401,18 @@ class TestPasswordSecurityAPI:
             "user_id": 999,
             "check_history": True
         }
-        
+
         mock_validation_result = {
             "is_valid": True,
             "errors": [],
             "strength_score": 85,
             "policy_name": "Test Policy"
         }
-        
+
         with patch("app.core.dependencies.get_current_user", return_value=admin_user):
             with patch("app.services.password_policy_service.PasswordPolicyService.validate_password", return_value=mock_validation_result):
                 response = await client.post("/api/v1/password-security/validate", json=request_data)
-        
+
         assert response.status_code == status.HTTP_200_OK
 
     @pytest.mark.asyncio
@@ -421,26 +422,26 @@ class TestPasswordSecurityAPI:
             "password": "weak",
             "user_id": 1
         }
-        
+
         # Test weak password (score < 25)
         sample_policy.get_password_strength_score.return_value = 20
-        
+
         with patch("app.core.dependencies.get_current_user", return_value=regular_user):
             with patch("app.services.password_policy_service.PasswordPolicyService.get_policy_for_user", return_value=sample_policy):
                 response = await client.post("/api/v1/password-security/strength-check", json=request_data)
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["strength_level"] == "weak"
         assert any("too weak" in feedback.lower() for feedback in data["feedback"])
-        
+
         # Test strong password (score >= 75)
         sample_policy.get_password_strength_score.return_value = 90
-        
+
         with patch("app.core.dependencies.get_current_user", return_value=regular_user):
             with patch("app.services.password_policy_service.PasswordPolicyService.get_policy_for_user", return_value=sample_policy):
                 response = await client.post("/api/v1/password-security/strength-check", json=request_data)
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["strength_level"] == "strong"

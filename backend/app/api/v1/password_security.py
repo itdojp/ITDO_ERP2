@@ -253,6 +253,7 @@ async def get_user_security_status(
 @router.post("/users/{user_id}/unlock")
 async def unlock_user_account(
     user_id: int = Path(..., description="User ID"),
+    *,
     request: UnlockAccountRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),

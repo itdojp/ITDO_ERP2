@@ -18,8 +18,6 @@ from app.core.dependencies import get_current_user
 from app.models.audit import AuditLog
 from app.models.user import User
 from app.schemas.security_monitoring import (
-    AuditLogExport,
-    AuditLogFilter,
     AuditLogListResponse,
     AuditLogResponse,
 )
@@ -82,7 +80,7 @@ async def get_audit_logs(
     count_query = select(func.count(AuditLog.id))
     if conditions:
         count_query = count_query.where(and_(*conditions))
-    
+
     count_result = await db.execute(count_query)
     total = count_result.scalar()
 
@@ -99,7 +97,7 @@ async def get_audit_logs(
     for log in audit_logs:
         # Verify integrity
         integrity_verified = log.verify_integrity()
-        
+
         items.append(AuditLogResponse(
             id=log.id,
             user_id=log.user_id,
@@ -232,7 +230,7 @@ async def export_audit_logs_csv(
         yield csv_content
 
     filename = f"audit_logs_export_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
-    
+
     return StreamingResponse(
         generate(),
         media_type="text/csv",
@@ -398,13 +396,13 @@ async def get_audit_statistics(
     )
     user_result = await db.execute(user_query)
     active_users = []
-    
+
     for row in user_result:
         # Get user details
         user_detail_query = select(User).where(User.id == row.user_id)
         user_detail_result = await db.execute(user_detail_query)
         user = user_detail_result.scalar_one_or_none()
-        
+
         active_users.append({
             "user_id": row.user_id,
             "username": user.email if user else "Unknown",
@@ -431,30 +429,30 @@ async def get_audit_statistics(
 
 
 def _generate_csv_content(
-    audit_logs: List[AuditLog], 
-    include_user_details: bool, 
+    audit_logs: List[AuditLog],
+    include_user_details: bool,
     include_changes: bool
 ) -> str:
     """Generate CSV content from audit logs."""
     import csv
-    
+
     output = io.StringIO()
-    
+
     # Define headers
     headers = [
-        "id", "user_id", "action", "resource_type", "resource_id", 
+        "id", "user_id", "action", "resource_type", "resource_id",
         "organization_id", "ip_address", "created_at", "integrity_verified"
     ]
-    
+
     if include_user_details:
         headers.extend(["username", "user_agent"])
-    
+
     if include_changes:
         headers.append("changes")
-    
+
     writer = csv.DictWriter(output, fieldnames=headers)
     writer.writeheader()
-    
+
     # Write data
     for log in audit_logs:
         row = {
@@ -468,14 +466,14 @@ def _generate_csv_content(
             "created_at": log.created_at.isoformat(),
             "integrity_verified": log.verify_integrity()
         }
-        
+
         if include_user_details:
             row["username"] = log.user.email if log.user else "Unknown"
             row["user_agent"] = log.user_agent or ""
-        
+
         if include_changes:
             row["changes"] = json.dumps(log.changes) if log.changes else ""
-        
+
         writer.writerow(row)
-    
+
     return output.getvalue()

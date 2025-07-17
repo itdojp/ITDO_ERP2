@@ -3,11 +3,10 @@ Security Monitoring Service for Issue #46 - Security Audit Log and Monitoring Fe
 セキュリティ監視サービス（Issue #46 - セキュリティ監査ログとモニタリング機能）
 """
 
-import asyncio
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
-from sqlalchemy import and_, desc, func, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.audit import AuditLog, UserActivityLog
@@ -21,7 +20,7 @@ class SecurityMonitoringService:
         self.db = db
 
     async def detect_suspicious_activity(
-        self, 
+        self,
         time_window_hours: int = 24,
         max_failed_logins: int = 5,
         max_privilege_escalations: int = 3
@@ -32,7 +31,7 @@ class SecurityMonitoringService:
         """
         end_time = datetime.utcnow()
         start_time = end_time - timedelta(hours=time_window_hours)
-        
+
         # Initialize result structure
         suspicious_activities = {
             "detection_time": end_time.isoformat(),

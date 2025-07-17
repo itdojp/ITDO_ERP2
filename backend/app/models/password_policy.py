@@ -18,13 +18,13 @@ class PasswordPolicy(BaseModel):
     __tablename__ = "password_policies"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    
+
     # Organization-specific policies (None for global policy)
     organization_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("organizations.id"), nullable=True, index=True,
         comment="Organization ID (NULL for global policy)"
     )
-    
+
     # Password complexity requirements
     minimum_length: Mapped[int] = mapped_column(
         Integer, default=8, nullable=False,
@@ -50,7 +50,7 @@ class PasswordPolicy(BaseModel):
         String(100), default="!@#$%^&*()_+-=[]{}|;:,.<>?",
         comment="Allowed special characters"
     )
-    
+
     # Password history and expiration
     password_history_count: Mapped[int] = mapped_column(
         Integer, default=3, nullable=False,
@@ -64,7 +64,7 @@ class PasswordPolicy(BaseModel):
         Integer, default=7, nullable=False,
         comment="Days before expiry to start warning user"
     )
-    
+
     # Account lockout settings
     max_failed_attempts: Mapped[int] = mapped_column(
         Integer, default=5, nullable=False,
@@ -74,7 +74,7 @@ class PasswordPolicy(BaseModel):
         Integer, default=30, nullable=False,
         comment="Account lockout duration in minutes"
     )
-    
+
     # Common password restrictions
     disallow_user_info: Mapped[bool] = mapped_column(
         Boolean, default=True, nullable=False,
@@ -84,7 +84,7 @@ class PasswordPolicy(BaseModel):
         Boolean, default=True, nullable=False,
         comment="Disallow common/weak passwords"
     )
-    
+
     # Policy metadata
     name: Mapped[str] = mapped_column(
         String(100), nullable=False,
@@ -104,10 +104,10 @@ class PasswordPolicy(BaseModel):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
-    
+
     # Relationships
     organization: Mapped["Organization | None"] = relationship(
-        "Organization", 
+        "Organization",
         foreign_keys=[organization_id],
         lazy="joined"
     )
@@ -132,25 +132,25 @@ class PasswordPolicy(BaseModel):
             List of validation error messages (empty if valid)
         """
         errors = []
-        
+
         # Length check
         if len(password) < self.minimum_length:
             errors.append(f"Password must be at least {self.minimum_length} characters long")
-        
+
         # Character type requirements
         if self.require_uppercase and not any(c.isupper() for c in password):
             errors.append("Password must contain at least one uppercase letter")
-        
+
         if self.require_lowercase and not any(c.islower() for c in password):
             errors.append("Password must contain at least one lowercase letter")
-        
+
         if self.require_numbers and not any(c.isdigit() for c in password):
             errors.append("Password must contain at least one number")
-        
+
         if self.require_special_chars:
             if not any(c in self.special_chars_set for c in password):
                 errors.append(f"Password must contain at least one special character: {self.special_chars_set}")
-        
+
         # User information check
         if self.disallow_user_info and user_info:
             password_lower = password.lower()
@@ -158,7 +158,7 @@ class PasswordPolicy(BaseModel):
                 if value and isinstance(value, str) and len(value) >= 3:
                     if value.lower() in password_lower:
                         errors.append(f"Password cannot contain {key}")
-        
+
         return errors
 
     def get_password_strength_score(self, password: str) -> int:
@@ -172,20 +172,20 @@ class PasswordPolicy(BaseModel):
             Strength score from 0 (weakest) to 100 (strongest)
         """
         score = 0
-        
+
         # Length scoring (up to 25 points)
         if len(password) >= self.minimum_length:
             score += min(25, (len(password) - self.minimum_length + 1) * 5)
-        
+
         # Character variety scoring (up to 60 points)
         has_upper = any(c.isupper() for c in password)
         has_lower = any(c.islower() for c in password)
         has_digit = any(c.isdigit() for c in password)
         has_special = any(c in self.special_chars_set for c in password)
-        
+
         variety_score = sum([has_upper, has_lower, has_digit, has_special]) * 15
         score += variety_score
-        
+
         # Additional complexity (up to 15 points)
         unique_chars = len(set(password))
         if unique_chars >= len(password) * 0.7:  # High character uniqueness
@@ -194,5 +194,5 @@ class PasswordPolicy(BaseModel):
             score += 10
         elif unique_chars >= len(password) * 0.3:  # Low character uniqueness
             score += 5
-        
+
         return min(100, score)

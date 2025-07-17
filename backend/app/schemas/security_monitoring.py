@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 
 class ThreatDetectionRequest(BaseModel):
     """Request schema for threat detection."""
-    
+
     time_window_hours: int = Field(24, ge=1, le=168, description="Time window in hours")
     max_failed_logins: int = Field(5, ge=1, le=50, description="Max failed login threshold")
     max_privilege_escalations: int = Field(3, ge=1, le=20, description="Max privilege escalation threshold")
@@ -19,7 +19,7 @@ class ThreatDetectionRequest(BaseModel):
 
 class SuspiciousActivity(BaseModel):
     """Schema for suspicious activity item."""
-    
+
     user_id: int
     username: str
     risk_level: str = Field(..., description="Risk level: low, medium, high, critical")
@@ -29,21 +29,21 @@ class SuspiciousActivity(BaseModel):
 
 class FailedLoginActivity(SuspiciousActivity):
     """Schema for failed login suspicious activity."""
-    
+
     failed_count: int
     ip_addresses: List[str] = Field(default_factory=list)
 
 
 class PrivilegeEscalationActivity(SuspiciousActivity):
     """Schema for privilege escalation suspicious activity."""
-    
+
     escalation_count: int
     resources_modified: List[str] = Field(default_factory=list)
 
 
 class BulkDataAccessActivity(SuspiciousActivity):
     """Schema for bulk data access suspicious activity."""
-    
+
     access_count: int
     resource_types: int
     last_access: str
@@ -51,21 +51,21 @@ class BulkDataAccessActivity(SuspiciousActivity):
 
 class AfterHoursAccessActivity(SuspiciousActivity):
     """Schema for after-hours access suspicious activity."""
-    
+
     after_hours_count: int
     ip_addresses: List[str] = Field(default_factory=list)
 
 
 class SuspiciousIPActivity(SuspiciousActivity):
     """Schema for suspicious IP pattern activity."""
-    
+
     unique_ips: int
     ip_addresses: List[str] = Field(default_factory=list)
 
 
 class ThreatSummary(BaseModel):
     """Schema for threat detection summary."""
-    
+
     total_threats: int
     high_risk_users: List[int] = Field(default_factory=list)
     threat_score: int = Field(..., ge=0, le=100)
@@ -74,7 +74,7 @@ class ThreatSummary(BaseModel):
 
 class ThreatDetectionResponse(BaseModel):
     """Schema for threat detection response."""
-    
+
     detection_time: str = Field(..., description="ISO format datetime")
     time_window_hours: int
     failed_logins: List[FailedLoginActivity] = Field(default_factory=list)
@@ -87,7 +87,7 @@ class ThreatDetectionResponse(BaseModel):
 
 class SecurityAlert(BaseModel):
     """Schema for security alert."""
-    
+
     alert_id: str
     alert_type: str
     severity: str = Field(..., description="Alert severity: low, medium, high, critical")
@@ -101,7 +101,7 @@ class SecurityAlert(BaseModel):
 
 class SecurityMetricsPeriod(BaseModel):
     """Schema for security metrics time period."""
-    
+
     start_date: str = Field(..., description="ISO format datetime")
     end_date: str = Field(..., description="ISO format datetime")
     days: int
@@ -109,7 +109,7 @@ class SecurityMetricsPeriod(BaseModel):
 
 class SecurityMetricsData(BaseModel):
     """Schema for security metrics data."""
-    
+
     total_audit_logs: int
     failed_logins: int
     successful_logins: int
@@ -120,14 +120,14 @@ class SecurityMetricsData(BaseModel):
 
 class SecurityHealth(BaseModel):
     """Schema for security health status."""
-    
+
     status: str = Field(..., description="Health status: good, warning, critical")
     recommendations: List[str] = Field(default_factory=list)
 
 
 class SecurityMetricsResponse(BaseModel):
     """Schema for security metrics response."""
-    
+
     period: SecurityMetricsPeriod
     metrics: SecurityMetricsData
     security_health: SecurityHealth
@@ -135,7 +135,7 @@ class SecurityMetricsResponse(BaseModel):
 
 class UserRiskAssessment(BaseModel):
     """Schema for user risk assessment."""
-    
+
     user_id: int
     risk_level: str = Field(..., description="Risk level: low, medium, high")
     risk_score: int = Field(..., ge=0, le=100)
@@ -146,7 +146,7 @@ class UserRiskAssessment(BaseModel):
 
 class SecurityEventLog(BaseModel):
     """Schema for security event logging."""
-    
+
     event_type: str
     details: Dict
     target_user_id: Optional[int] = None
@@ -154,7 +154,7 @@ class SecurityEventLog(BaseModel):
 
 class SecurityEventResponse(BaseModel):
     """Schema for security event log response."""
-    
+
     status: str
     message: str
     event_type: str
@@ -164,7 +164,7 @@ class SecurityEventResponse(BaseModel):
 
 class SecurityDashboard(BaseModel):
     """Schema for security monitoring dashboard."""
-    
+
     dashboard_type: str = Field(default="security_monitoring")
     generated_at: str = Field(..., description="ISO format datetime")
     threat_summary: ThreatSummary
@@ -178,21 +178,21 @@ class SecurityDashboard(BaseModel):
 # Export schemas for API response models
 class AlertGenerationRequest(BaseModel):
     """Schema for alert generation request."""
-    
+
     threat_data: Dict
     alert_type: str = Field(default="security_incident")
 
 
 class MetricsRequest(BaseModel):
     """Schema for metrics request."""
-    
+
     days_back: int = Field(30, ge=1, le=365, description="Days to look back")
 
 
 # Audit Log Enhancement Schemas
 class AuditLogFilter(BaseModel):
     """Schema for audit log filtering."""
-    
+
     user_id: Optional[int] = None
     action: Optional[str] = None
     resource_type: Optional[str] = None
@@ -203,7 +203,7 @@ class AuditLogFilter(BaseModel):
 
 class AuditLogExport(BaseModel):
     """Schema for audit log export configuration."""
-    
+
     format: str = Field("csv", description="Export format: csv, xlsx, json")
     filters: Optional[AuditLogFilter] = None
     include_user_details: bool = Field(True, description="Include user information")
@@ -212,7 +212,7 @@ class AuditLogExport(BaseModel):
 
 class AuditLogResponse(BaseModel):
     """Schema for audit log response."""
-    
+
     id: int
     user_id: int
     username: str
@@ -229,7 +229,7 @@ class AuditLogResponse(BaseModel):
 
 class AuditLogListResponse(BaseModel):
     """Schema for audit log list response."""
-    
+
     items: List[AuditLogResponse]
     total: int
     page: int

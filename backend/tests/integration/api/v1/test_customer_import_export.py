@@ -5,13 +5,11 @@ Integration tests for Customer Import/Export API endpoints - Phase 5 CRM.
 
 import io
 import json
-from typing import Dict
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.main import app
 from app.models.customer import Customer, CustomerContact, CustomerStatus
 from app.models.organization import Organization
 from app.models.user import User
@@ -45,7 +43,7 @@ async def test_customers(
 ):
     """Create test customers for export testing."""
     customers = []
-    
+
     # Customer 1: Technology company
     customer1 = Customer(
         organization_id=test_organization.id,
@@ -66,7 +64,7 @@ async def test_customers(
     customers.append(customer1)
     async_session.add(customer1)
     await async_session.flush()
-    
+
     # Add contact for customer1
     contact1 = CustomerContact(
         customer_id=customer1.id,
@@ -78,7 +76,7 @@ async def test_customers(
         is_decision_maker=True
     )
     async_session.add(contact1)
-    
+
     # Customer 2: Finance company
     customer2 = Customer(
         organization_id=test_organization.id,
@@ -97,7 +95,7 @@ async def test_customers(
     )
     customers.append(customer2)
     async_session.add(customer2)
-    
+
     # Customer 3: Small company
     customer3 = Customer(
         organization_id=test_organization.id,
@@ -116,7 +114,7 @@ async def test_customers(
     )
     customers.append(customer3)
     async_session.add(customer3)
-    
+
     await async_session.commit()
     return customers
 
@@ -149,14 +147,14 @@ class TestCustomerImportExportAPI:
     ):
         """Test getting CSV import template."""
         client.headers = {"Authorization": f"Bearer mock_token_{test_user_with_org.id}"}
-        
+
         response = client.get("/api/v1/customer-import-export/customers/import/template?format=csv")
-        
+
         assert response.status_code == 200
         assert response.headers["content-type"] == "text/csv; charset=utf-8"
         assert "attachment" in response.headers["content-disposition"]
         assert "customer_import_template.csv" in response.headers["content-disposition"]
-        
+
         # Verify CSV content
         content = response.content.decode("utf-8")
         assert "customer_code" in content
@@ -168,17 +166,17 @@ class TestCustomerImportExportAPI:
     ):
         """Test getting JSON import template."""
         client.headers = {"Authorization": f"Bearer mock_token_{test_user_with_org.id}"}
-        
+
         response = client.get("/api/v1/customer-import-export/customers/import/template?format=json")
-        
+
         assert response.status_code == 200
         data = response.json()
-        
+
         assert data["status"] == "success"
         assert data["format"] == "json"
         assert "template_content" in data
         assert "field_descriptions" in data
-        
+
         # Verify template content is valid JSON
         template_content = json.loads(data["template_content"])
         assert isinstance(template_content, list)
@@ -189,20 +187,20 @@ class TestCustomerImportExportAPI:
     ):
         """Test getting field mapping guide."""
         client.headers = {"Authorization": f"Bearer mock_token_{test_user_with_org.id}"}
-        
+
         response = client.get("/api/v1/customer-import-export/customers/import/mapping-guide")
-        
+
         assert response.status_code == 200
         data = response.json()
-        
+
         assert "mapping_guide" in data
         mapping_guide = data["mapping_guide"]
-        
+
         assert "required_fields" in mapping_guide
         assert "optional_fields" in mapping_guide
         assert "field_types" in mapping_guide
         assert "example_mapping" in mapping_guide
-        
+
         # Verify required fields
         required_fields = mapping_guide["required_fields"]
         assert "customer_code" in required_fields
@@ -214,7 +212,7 @@ class TestCustomerImportExportAPI:
     ):
         """Test validating valid import data."""
         client.headers = {"Authorization": f"Bearer mock_token_{test_user_with_org.id}"}
-        
+
         csv_content = create_test_csv_content()
         mapping = {
             "customer_code": "customer_code",
@@ -225,23 +223,23 @@ class TestCustomerImportExportAPI:
             "email": "email",
             "phone": "phone"
         }
-        
+
         files = {"file": ("test.csv", io.BytesIO(csv_content.encode()), "text/csv")}
         data = {
             "mapping": json.dumps(mapping),
             "validation_rules": "{}",
             "import_mode": "create"
         }
-        
+
         response = client.post(
             "/api/v1/customer-import-export/customers/import/validate",
             files=files,
             data=data
         )
-        
+
         assert response.status_code == 200
         result = response.json()
-        
+
         assert result["status"] == "success"
         assert result["valid_rows"] == 3
         assert result["invalid_rows"] == 0
@@ -252,7 +250,7 @@ class TestCustomerImportExportAPI:
     ):
         """Test validating invalid import data."""
         client.headers = {"Authorization": f"Bearer mock_token_{test_user_with_org.id}"}
-        
+
         csv_content = create_invalid_csv_content()
         mapping = {
             "customer_code": "customer_code",
@@ -263,23 +261,23 @@ class TestCustomerImportExportAPI:
             "email": "email",
             "phone": "phone"
         }
-        
+
         files = {"file": ("test_invalid.csv", io.BytesIO(csv_content.encode()), "text/csv")}
         data = {
             "mapping": json.dumps(mapping),
             "validation_rules": "{}",
             "import_mode": "create"
         }
-        
+
         response = client.post(
             "/api/v1/customer-import-export/customers/import/validate",
             files=files,
             data=data
         )
-        
+
         assert response.status_code == 200
         result = response.json()
-        
+
         assert result["status"] == "success"
         assert result["invalid_rows"] > 0
         assert "validation_errors" in result
@@ -290,7 +288,7 @@ class TestCustomerImportExportAPI:
     ):
         """Test importing customers in create mode."""
         client.headers = {"Authorization": f"Bearer mock_token_{test_user_with_org.id}"}
-        
+
         csv_content = create_test_csv_content()
         mapping = {
             "customer_code": "customer_code",
@@ -301,23 +299,23 @@ class TestCustomerImportExportAPI:
             "email": "email",
             "phone": "phone"
         }
-        
+
         files = {"file": ("import.csv", io.BytesIO(csv_content.encode()), "text/csv")}
         data = {
             "mapping": json.dumps(mapping),
             "validation_rules": "{}",
             "import_mode": "create"
         }
-        
+
         response = client.post(
             "/api/v1/customer-import-export/customers/import",
             files=files,
             data=data
         )
-        
+
         assert response.status_code == 200
         result = response.json()
-        
+
         assert result["status"] in ["success", "partial_success"]
         assert result["imported_count"] >= 0
         assert "import_summary" in result
@@ -327,14 +325,14 @@ class TestCustomerImportExportAPI:
     ):
         """Test basic CSV export of customers."""
         client.headers = {"Authorization": f"Bearer mock_token_{test_user_with_org.id}"}
-        
+
         response = client.get("/api/v1/customer-import-export/customers/export/csv")
-        
+
         assert response.status_code == 200
         assert response.headers["content-type"] == "text/csv; charset=utf-8"
         assert "attachment" in response.headers["content-disposition"]
         assert "customers_export_" in response.headers["content-disposition"]
-        
+
         # Verify CSV content contains test customers
         content = response.content.decode("utf-8")
         assert "TECH001" in content
@@ -345,15 +343,15 @@ class TestCustomerImportExportAPI:
     ):
         """Test CSV export with filters."""
         client.headers = {"Authorization": f"Bearer mock_token_{test_user_with_org.id}"}
-        
+
         response = client.get(
             "/api/v1/customer-import-export/customers/export/csv"
             "?customer_type=corporate&status=active&industry=Technology"
         )
-        
+
         assert response.status_code == 200
         content = response.content.decode("utf-8")
-        
+
         # Should contain only active technology customers
         assert "TECH001" in content
         assert "Tech Solutions Inc." in content
@@ -365,19 +363,19 @@ class TestCustomerImportExportAPI:
     ):
         """Test CSV export including contact information."""
         client.headers = {"Authorization": f"Bearer mock_token_{test_user_with_org.id}"}
-        
+
         response = client.get(
             "/api/v1/customer-import-export/customers/export/csv?include_contacts=true"
         )
-        
+
         assert response.status_code == 200
         content = response.content.decode("utf-8")
-        
+
         # Should include contact headers
         assert "primary_contact_name" in content
         assert "primary_contact_email" in content
         assert "primary_contact_phone" in content
-        
+
         # Should include contact data
         assert "John Smith" in content
 
@@ -386,18 +384,18 @@ class TestCustomerImportExportAPI:
     ):
         """Test Excel export of customers."""
         client.headers = {"Authorization": f"Bearer mock_token_{test_user_with_org.id}"}
-        
+
         response = client.get("/api/v1/customer-import-export/customers/export/excel")
-        
+
         assert response.status_code == 200
         data = response.json()
-        
+
         assert data["status"] == "success"
         assert data["exported_count"] >= 3
         assert "excel_data" in data
         assert "filename" in data
         assert data["filename"].endswith(".xlsx")
-        
+
         # Verify Excel data structure
         excel_data = data["excel_data"]
         assert "customers" in excel_data
@@ -410,12 +408,12 @@ class TestCustomerImportExportAPI:
     ):
         """Test export summary endpoint."""
         client.headers = {"Authorization": f"Bearer mock_token_{test_user_with_org.id}"}
-        
+
         response = client.get("/api/v1/customer-import-export/customers/export/summary")
-        
+
         assert response.status_code == 200
         data = response.json()
-        
+
         assert "estimated_export_count" in data
         assert data["estimated_export_count"] >= 3  # At least 3 test customers
         assert "applied_filters" in data
@@ -425,19 +423,19 @@ class TestCustomerImportExportAPI:
     ):
         """Test export summary with filters."""
         client.headers = {"Authorization": f"Bearer mock_token_{test_user_with_org.id}"}
-        
+
         response = client.get(
             "/api/v1/customer-import-export/customers/export/summary"
             "?customer_type=corporate&status=active"
         )
-        
+
         assert response.status_code == 200
         data = response.json()
-        
+
         # Should have fewer customers than total due to filters
         assert data["estimated_export_count"] >= 1
         assert data["estimated_export_count"] <= 3
-        
+
         # Verify filters were applied
         filters = data["applied_filters"]
         assert filters["customer_type"] == "corporate"
@@ -448,17 +446,17 @@ class TestCustomerImportExportAPI:
         # Test import endpoints
         response = client.get("/api/v1/customer-import-export/customers/import/template")
         assert response.status_code == 401
-        
+
         response = client.post("/api/v1/customer-import-export/customers/import/validate")
         assert response.status_code == 401
-        
+
         response = client.post("/api/v1/customer-import-export/customers/import")
         assert response.status_code == 401
-        
+
         # Test export endpoints
         response = client.get("/api/v1/customer-import-export/customers/export/csv")
         assert response.status_code == 401
-        
+
         response = client.get("/api/v1/customer-import-export/customers/export/excel")
         assert response.status_code == 401
 
@@ -470,9 +468,9 @@ class TestCustomerImportExportAPI:
         user = UserFactory(organization_id=None)
         async_session.add(user)
         await async_session.commit()
-        
+
         client.headers = {"Authorization": f"Bearer mock_token_{user.id}"}
-        
+
         response = client.get("/api/v1/customer-import-export/customers/import/template")
         assert response.status_code == 400
         assert "must belong to an organization" in response.json()["detail"]
@@ -482,7 +480,7 @@ class TestCustomerImportExportAPI:
     ):
         """Test import with invalid file type."""
         client.headers = {"Authorization": f"Bearer mock_token_{test_user_with_org.id}"}
-        
+
         # Try to upload a non-CSV file
         files = {"file": ("test.txt", io.BytesIO(b"not a csv"), "text/plain")}
         data = {
@@ -490,13 +488,13 @@ class TestCustomerImportExportAPI:
             "validation_rules": "{}",
             "import_mode": "create"
         }
-        
+
         response = client.post(
             "/api/v1/customer-import-export/customers/import/validate",
             files=files,
             data=data
         )
-        
+
         assert response.status_code == 400
         assert "Only CSV files are supported" in response.json()["detail"]
 
@@ -505,7 +503,7 @@ class TestCustomerImportExportAPI:
     ):
         """Test import with invalid JSON parameters."""
         client.headers = {"Authorization": f"Bearer mock_token_{test_user_with_org.id}"}
-        
+
         csv_content = create_test_csv_content()
         files = {"file": ("test.csv", io.BytesIO(csv_content.encode()), "text/csv")}
         data = {
@@ -513,13 +511,13 @@ class TestCustomerImportExportAPI:
             "validation_rules": "{}",
             "import_mode": "create"
         }
-        
+
         response = client.post(
             "/api/v1/customer-import-export/customers/import/validate",
             files=files,
             data=data
         )
-        
+
         assert response.status_code == 400
         assert "Invalid JSON" in response.json()["detail"]
 
@@ -528,11 +526,11 @@ class TestCustomerImportExportAPI:
     ):
         """Test requesting unsupported template format."""
         client.headers = {"Authorization": f"Bearer mock_token_{test_user_with_org.id}"}
-        
+
         response = client.get(
             "/api/v1/customer-import-export/customers/import/template?format=xml"
         )
-        
+
         assert response.status_code == 400
         data = response.json()
         assert data["status"] == "error"

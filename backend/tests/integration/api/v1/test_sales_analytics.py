@@ -7,7 +7,6 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.main import app
 from app.models.customer import Customer, CustomerStatus, Opportunity, OpportunityStage
 from app.models.organization import Organization
 from app.models.user import User
@@ -42,7 +41,7 @@ async def test_customers_with_opportunities(
     """Create test customers with opportunities."""
     customers = []
     opportunities = []
-    
+
     # Customer 1: Active with high-value opportunity
     customer1 = Customer(
         organization_id=test_organization.id,
@@ -58,7 +57,7 @@ async def test_customers_with_opportunities(
     customers.append(customer1)
     async_session.add(customer1)
     await async_session.flush()
-    
+
     opp1 = Opportunity(
         customer_id=customer1.id,
         opportunity_code="OPP001",
@@ -72,7 +71,7 @@ async def test_customers_with_opportunities(
     )
     opportunities.append(opp1)
     async_session.add(opp1)
-    
+
     # Customer 2: Prospect with medium opportunity
     customer2 = Customer(
         organization_id=test_organization.id,
@@ -88,7 +87,7 @@ async def test_customers_with_opportunities(
     customers.append(customer2)
     async_session.add(customer2)
     await async_session.flush()
-    
+
     opp2 = Opportunity(
         customer_id=customer2.id,
         opportunity_code="OPP002",
@@ -102,7 +101,7 @@ async def test_customers_with_opportunities(
     )
     opportunities.append(opp2)
     async_session.add(opp2)
-    
+
     # Customer 3: Won opportunity
     customer3 = Customer(
         organization_id=test_organization.id,
@@ -118,7 +117,7 @@ async def test_customers_with_opportunities(
     customers.append(customer3)
     async_session.add(customer3)
     await async_session.flush()
-    
+
     opp3 = Opportunity(
         customer_id=customer3.id,
         opportunity_code="OPP003",
@@ -132,7 +131,7 @@ async def test_customers_with_opportunities(
     )
     opportunities.append(opp3)
     async_session.add(opp3)
-    
+
     await async_session.commit()
     return customers, opportunities
 
@@ -150,12 +149,12 @@ class TestSalesAnalyticsAPI:
         """Test sales forecast generation endpoint."""
         # Mock authentication
         client.headers = {"Authorization": f"Bearer mock_token_{test_user_with_org.id}"}
-        
+
         response = client.get("/api/v1/sales-analytics/forecast/sales?forecast_months=6")
-        
+
         assert response.status_code == 200
         data = response.json()
-        
+
         # Verify response structure
         assert "forecast_type" in data
         assert data["forecast_type"] == "sales_forecast"
@@ -163,7 +162,7 @@ class TestSalesAnalyticsAPI:
         assert data["organization_id"] == test_user_with_org.organization_id
         assert "monthly_forecast" in data
         assert len(data["monthly_forecast"]) == 6
-        
+
         # Verify summary data
         assert "summary" in data
         summary = data["summary"]
@@ -180,16 +179,16 @@ class TestSalesAnalyticsAPI:
     ):
         """Test win probability analysis endpoint."""
         client.headers = {"Authorization": f"Bearer mock_token_{test_user_with_org.id}"}
-        
+
         response = client.get("/api/v1/sales-analytics/probability/win-analysis")
-        
+
         assert response.status_code == 200
         data = response.json()
-        
+
         # Verify response structure
         assert "organization_analysis" in data
         assert "total_opportunities_analyzed" in data
-        
+
         org_analysis = data["organization_analysis"]
         assert "overall_win_rate" in org_analysis
 
@@ -201,22 +200,22 @@ class TestSalesAnalyticsAPI:
     ):
         """Test customer sales potential analysis endpoint."""
         client.headers = {"Authorization": f"Bearer mock_token_{test_user_with_org.id}"}
-        
+
         response = client.get("/api/v1/sales-analytics/customers/sales-potential")
-        
+
         assert response.status_code == 200
         data = response.json()
-        
+
         # Verify response structure
         assert "analysis_type" in data
         assert data["analysis_type"] == "customer_sales_potential"
         assert "customer_analyses" in data
         assert "summary" in data
-        
+
         # Verify customer analysis data
         customer_analyses = data["customer_analyses"]
         assert len(customer_analyses) >= 3  # At least 3 customers
-        
+
         for analysis in customer_analyses:
             assert "customer_id" in analysis
             assert "potential_score" in analysis
@@ -231,24 +230,24 @@ class TestSalesAnalyticsAPI:
     ):
         """Test sales performance analysis endpoint."""
         client.headers = {"Authorization": f"Bearer mock_token_{test_user_with_org.id}"}
-        
+
         response = client.get(
             "/api/v1/sales-analytics/performance/sales-rep?period_months=3"
         )
-        
+
         assert response.status_code == 200
         data = response.json()
-        
+
         # Verify response structure
         assert "analysis_type" in data
         assert data["analysis_type"] == "sales_performance"
         assert "sales_rep_performance" in data
         assert "team_summary" in data
-        
+
         # Verify sales rep performance data
         sales_rep_perf = data["sales_rep_performance"]
         assert len(sales_rep_perf) >= 1  # At least one sales rep
-        
+
         for perf in sales_rep_perf:
             assert "user_id" in perf
             assert "total_opportunities" in perf
@@ -263,12 +262,12 @@ class TestSalesAnalyticsAPI:
     ):
         """Test comprehensive sales analytics dashboard endpoint."""
         client.headers = {"Authorization": f"Bearer mock_token_{test_user_with_org.id}"}
-        
+
         response = client.get("/api/v1/sales-analytics/dashboard/sales-overview")
-        
+
         assert response.status_code == 200
         data = response.json()
-        
+
         # Verify dashboard structure
         assert "dashboard_type" in data
         assert data["dashboard_type"] == "sales_analytics_overview"
@@ -276,7 +275,7 @@ class TestSalesAnalyticsAPI:
         assert "probability_insights" in data
         assert "customer_insights" in data
         assert "team_performance" in data
-        
+
         # Verify forecast summary
         forecast_summary = data["forecast_summary"]
         assert "next_6_months" in forecast_summary
@@ -291,22 +290,22 @@ class TestSalesAnalyticsAPI:
     ):
         """Test pipeline health insights endpoint."""
         client.headers = {"Authorization": f"Bearer mock_token_{test_user_with_org.id}"}
-        
+
         response = client.get("/api/v1/sales-analytics/insights/pipeline-health")
-        
+
         assert response.status_code == 200
         data = response.json()
-        
+
         # Verify pipeline health structure
         assert "pipeline_health" in data
         assert "pipeline_metrics" in data
-        
+
         pipeline_health = data["pipeline_health"]
         assert "health_score" in pipeline_health
         assert "health_status" in pipeline_health
         assert "insights" in pipeline_health
         assert "recommendations" in pipeline_health
-        
+
         # Verify health score is valid
         assert 0 <= pipeline_health["health_score"] <= 100
 
@@ -318,20 +317,20 @@ class TestSalesAnalyticsAPI:
     ):
         """Test sales action recommendations endpoint."""
         client.headers = {"Authorization": f"Bearer mock_token_{test_user_with_org.id}"}
-        
+
         # Test general recommendations
         response = client.get("/api/v1/sales-analytics/recommendations/sales-actions")
-        
+
         assert response.status_code == 200
         data = response.json()
-        
+
         # Verify recommendations structure
         assert "recommendations" in data
         assert "total_recommendations" in data
-        
+
         recommendations = data["recommendations"]
         assert len(recommendations) >= 1
-        
+
         for rec in recommendations:
             assert "category" in rec
             assert "priority" in rec
@@ -344,10 +343,10 @@ class TestSalesAnalyticsAPI:
         # Test without authentication
         response = client.get("/api/v1/sales-analytics/forecast/sales")
         assert response.status_code == 401
-        
+
         response = client.get("/api/v1/sales-analytics/probability/win-analysis")
         assert response.status_code == 401
-        
+
         response = client.get("/api/v1/sales-analytics/customers/sales-potential")
         assert response.status_code == 401
 
@@ -359,9 +358,9 @@ class TestSalesAnalyticsAPI:
         user = UserFactory(organization_id=None)
         async_session.add(user)
         await async_session.commit()
-        
+
         client.headers = {"Authorization": f"Bearer mock_token_{user.id}"}
-        
+
         response = client.get("/api/v1/sales-analytics/forecast/sales")
         assert response.status_code == 400
         assert "must belong to an organization" in response.json()["detail"]
@@ -374,16 +373,16 @@ class TestSalesAnalyticsAPI:
     ):
         """Test sales forecast with different parameters."""
         client.headers = {"Authorization": f"Bearer mock_token_{test_user_with_org.id}"}
-        
+
         # Test with custom parameters
         response = client.get(
             "/api/v1/sales-analytics/forecast/sales"
             "?forecast_months=12&include_pipeline=false&include_trends=false"
         )
-        
+
         assert response.status_code == 200
         data = response.json()
-        
+
         # Verify parameters were applied
         assert len(data["monthly_forecast"]) == 12
         # Pipeline analysis should be None when include_pipeline=false
@@ -399,15 +398,15 @@ class TestSalesAnalyticsAPI:
     ):
         """Test sales performance analysis for specific user."""
         client.headers = {"Authorization": f"Bearer mock_token_{test_user_with_org.id}"}
-        
+
         response = client.get(
             f"/api/v1/sales-analytics/performance/sales-rep"
             f"?user_id={test_user_with_org.id}&period_months=6"
         )
-        
+
         assert response.status_code == 200
         data = response.json()
-        
+
         # Verify user-specific analysis
         assert data["user_id"] == test_user_with_org.id
         assert "sales_rep_performance" in data

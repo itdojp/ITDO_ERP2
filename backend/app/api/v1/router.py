@@ -13,6 +13,7 @@ from app.api.v1 import (
     customer_import_export,
     customers,
     departments,
+    enhanced_security_monitoring,
     expense_categories,
     expenses,
     financial_reports,
@@ -75,6 +76,9 @@ api_router.include_router(
 )
 api_router.include_router(
     password_security.router, prefix="/password-security", tags=["security", "password"]
+)
+api_router.include_router(
+    enhanced_security_monitoring.router, prefix="/security-monitoring", tags=["security", "monitoring"]
 )
 api_router.include_router(pm_automation.router)
 api_router.include_router(budgets.router, prefix="/budgets", tags=["budgets"])
