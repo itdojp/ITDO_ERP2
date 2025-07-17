@@ -604,5 +604,22 @@ class User(SoftDeletableModel):
 
         return self.last_login_at > online_threshold
 
+    @property
+    def organization_id(self) -> int | None:
+        """Get primary organization ID for the user."""
+        # Return the first active organization from user_organizations
+        if hasattr(self, 'user_organizations') and self.user_organizations:
+            active_orgs = [uo for uo in self.user_organizations if hasattr(uo, 'is_active') and uo.is_active]
+            if active_orgs and hasattr(active_orgs[0], 'organization_id'):
+                return int(active_orgs[0].organization_id)
+
+        # Fallback: if user has a department_id, get department's organization
+        if self.department_id:
+            # This would require a database query to get the actual department
+            # For now, return None as this requires additional context
+            pass
+
+        return None
+
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email={self.email})>"

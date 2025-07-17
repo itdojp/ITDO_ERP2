@@ -32,7 +32,7 @@ async def get_budgets(
     limit: int = Query(100, ge=1, le=1000),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> List[BudgetResponse]:
     """予算一覧取得"""
     service = BudgetService(db)
     budgets = await service.get_budgets(
