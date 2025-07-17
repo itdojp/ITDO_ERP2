@@ -10,7 +10,6 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.models.user import User
 from app.schemas.password_security import (
-    AccountLockoutInfo,
     ForcePasswordChangeRequest,
     PasswordChangeRequest,
     PasswordChangeResponse,
@@ -39,7 +38,7 @@ async def get_password_policy(
     パスワードポリシー設定の取得
     """
     service = PasswordPolicyService(db)
-    
+
     # If organization_id is specified, get that policy; otherwise get for current user
     if organization_id is not None:
         # Check if user has permission to view organization policy
@@ -48,13 +47,13 @@ async def get_password_policy(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Access denied. Cannot view this organization's policy."
             )
-        
+
         # Create a temporary user context for the organization
         temp_user_id = current_user.id
         policy = await service.get_policy_for_user(temp_user_id)
     else:
         policy = await service.get_policy_for_user(current_user.id)
-    
+
     return PasswordPolicySchema.from_orm(policy)
 
 
@@ -74,16 +73,16 @@ async def validate_password(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied. Can only validate password for yourself."
         )
-    
+
     service = PasswordPolicyService(db)
-    
+
     try:
         result = await service.validate_password(
             password=request.password,
             user_id=request.user_id,
             check_history=request.check_history
         )
-        
+
         return PasswordValidationResponse(
             is_valid=result["is_valid"],
             errors=result["errors"],
@@ -108,7 +107,7 @@ async def change_password(
     パスワード変更（検証付き）
     """
     service = PasswordPolicyService(db)
-    
+
     try:
         result = await service.change_password(
             user_id=current_user.id,
@@ -116,7 +115,7 @@ async def change_password(
             current_password=request.current_password or "",
             force_change=request.force_change and current_user.is_superuser  # Only admins can force
         )
-        
+
         return PasswordChangeResponse(
             success=result["success"],
             message=result.get("message"),
@@ -142,20 +141,20 @@ async def check_password_strength(
     """
     # Use current user ID if not specified
     user_id = request.user_id or current_user.id
-    
+
     # Check permissions
     if user_id != current_user.id and not current_user.is_superuser:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied. Can only check strength for yourself."
         )
-    
+
     service = PasswordPolicyService(db)
-    
+
     try:
         policy = await service.get_policy_for_user(user_id)
         strength_score = policy.get_password_strength_score(request.password)
-        
+
         # Generate feedback based on score
         feedback = []
         if strength_score < 25:
@@ -177,7 +176,7 @@ async def check_password_strength(
             ])
         else:
             feedback.append("Excellent password strength!")
-        
+
         return PasswordStrengthResponse(
             strength_score=strength_score,
             strength_level="",  # Will be set by validator
@@ -208,27 +207,27 @@ async def get_user_security_status(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied. Can only view own security status or require admin privileges."
         )
-    
+
     service = PasswordPolicyService(db)
-    
+
     try:
         # Get user info
         from sqlalchemy import select
         user_query = select(User).where(User.id == user_id)
         user_result = await db.execute(user_query)
         user = user_result.scalar_one_or_none()
-        
+
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="User not found"
             )
-        
+
         # Get security status components
         is_locked = await service.is_account_locked(user_id)
         expiry_info = await service.check_password_expiry(user_id)
         policy = await service.get_policy_for_user(user_id)
-        
+
         return SecurityStatusResponse(
             user_id=user_id,
             account_locked=is_locked,
@@ -268,21 +267,21 @@ async def unlock_user_account(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied. Admin privileges required to unlock accounts."
         )
-    
+
     service = PasswordPolicyService(db)
-    
+
     try:
         success = await service.unlock_account(user_id)
-        
+
         if not success:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="User not found"
             )
-        
+
         # Log the unlock event
         # TODO: Add to audit log
-        
+
         return {
             "success": True,
             "message": f"Account {user_id} unlocked successfully",
@@ -316,25 +315,25 @@ async def force_password_change(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied. Admin privileges required to force password changes."
         )
-    
+
     try:
         from sqlalchemy import select
         user_query = select(User).where(User.id == user_id)
         user_result = await db.execute(user_query)
         user = user_result.scalar_one_or_none()
-        
+
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="User not found"
             )
-        
+
         # Set force password change flag
         user.password_must_change = True
         await db.commit()
-        
+
         # TODO: Add to audit log
-        
+
         return {
             "success": True,
             "message": f"User {user_id} will be required to change password on next login",
@@ -367,12 +366,12 @@ async def get_password_expiry_info(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied. Can only view own password expiry information."
         )
-    
+
     service = PasswordPolicyService(db)
-    
+
     try:
         expiry_info = await service.check_password_expiry(user_id)
-        
+
         return PasswordExpiryInfo(
             is_expired=expiry_info["is_expired"],
             days_until_expiry=expiry_info["days_until_expiry"],

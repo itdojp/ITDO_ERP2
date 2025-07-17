@@ -5,7 +5,7 @@ Enhanced Audit Logs API endpoints for Issue #46 - Security Audit Log and Monitor
 
 import io
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status

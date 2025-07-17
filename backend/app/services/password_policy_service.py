@@ -22,10 +22,10 @@ class PasswordPolicyService:
     async def get_policy_for_user(self, user_id: int) -> PasswordPolicy:
         """
         Get the applicable password policy for a user.
-        
+
         Args:
             user_id: The user ID
-            
+
         Returns:
             The applicable password policy (organization-specific or global)
         """
@@ -41,7 +41,7 @@ class PasswordPolicyService:
         if user.organization_id:
             org_policy_query = select(PasswordPolicy).where(
                 PasswordPolicy.organization_id == user.organization_id,
-                PasswordPolicy.is_active == True
+                PasswordPolicy.is_active
             )
             org_policy_result = await self.db.execute(org_policy_query)
             org_policy = org_policy_result.scalar_one_or_none()
@@ -52,7 +52,7 @@ class PasswordPolicyService:
         # Fall back to global policy
         global_policy_query = select(PasswordPolicy).where(
             PasswordPolicy.organization_id.is_(None),
-            PasswordPolicy.is_active == True
+            PasswordPolicy.is_active
         )
         global_policy_result = await self.db.execute(global_policy_query)
         global_policy = global_policy_result.scalar_one_or_none()
@@ -97,12 +97,12 @@ class PasswordPolicyService:
     ) -> Dict[str, any]:
         """
         Comprehensive password validation against policy and history.
-        
+
         Args:
             password: The password to validate
             user_id: The user ID
             check_history: Whether to check against password history
-            
+
         Returns:
             Dictionary with validation results
         """
@@ -212,13 +212,13 @@ class PasswordPolicyService:
     ) -> Dict[str, any]:
         """
         Change user password with full validation and history tracking.
-        
+
         Args:
             user_id: The user ID
             new_password: The new password
             current_password: Current password for verification (if not force change)
             force_change: Whether to bypass current password verification
-            
+
         Returns:
             Dictionary with operation results
         """
@@ -296,10 +296,10 @@ class PasswordPolicyService:
     async def check_password_expiry(self, user_id: int) -> Dict[str, any]:
         """
         Check if user's password is expired or expiring soon.
-        
+
         Args:
             user_id: The user ID
-            
+
         Returns:
             Dictionary with expiry information
         """
@@ -336,10 +336,10 @@ class PasswordPolicyService:
     async def handle_failed_login(self, user_id: int) -> Dict[str, any]:
         """
         Handle failed login attempt and check for account lockout.
-        
+
         Args:
             user_id: The user ID
-            
+
         Returns:
             Dictionary with lockout information
         """
@@ -383,10 +383,10 @@ class PasswordPolicyService:
     async def unlock_account(self, user_id: int) -> bool:
         """
         Manually unlock a user account.
-        
+
         Args:
             user_id: The user ID
-            
+
         Returns:
             True if account was unlocked, False if user not found
         """
@@ -406,10 +406,10 @@ class PasswordPolicyService:
     async def is_account_locked(self, user_id: int) -> bool:
         """
         Check if a user account is currently locked.
-        
+
         Args:
             user_id: The user ID
-            
+
         Returns:
             True if account is locked, False otherwise
         """

@@ -123,11 +123,11 @@ class PasswordPolicy(BaseModel):
     def validate_password_complexity(self, password: str, user_info: dict = None) -> list[str]:
         """
         Validate password against this policy.
-        
+
         Args:
             password: The password to validate
             user_info: Optional user information to check against
-            
+
         Returns:
             List of validation error messages (empty if valid)
         """
@@ -164,10 +164,10 @@ class PasswordPolicy(BaseModel):
     def get_password_strength_score(self, password: str) -> int:
         """
         Calculate password strength score (0-100).
-        
+
         Args:
             password: The password to evaluate
-            
+
         Returns:
             Strength score from 0 (weakest) to 100 (strongest)
         """
