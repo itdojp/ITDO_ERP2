@@ -13,6 +13,8 @@ from app.api.v1 import (
     customers,
     departments,
     expense_categories,
+    expenses,
+    financial_reports,
     health,
     multi_tenant,
     opportunities,
@@ -80,6 +82,10 @@ api_router.include_router(
 api_router.include_router(opportunities.router, prefix="/opportunities", tags=["crm"])
 api_router.include_router(
     expense_categories.router, prefix="/expense-categories", tags=["financial"]
+)
+api_router.include_router(expenses.router, prefix="/expenses", tags=["financial"])
+api_router.include_router(
+    financial_reports.router, prefix="/financial-reports", tags=["financial"]
 )
 api_router.include_router(workflows.router, prefix="/workflows", tags=["workflow"])
 api_router.include_router(
