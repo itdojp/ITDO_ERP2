@@ -9,13 +9,13 @@ from app.api.v1 import (
     auth,
     budgets,
     cross_tenant_permissions,
-    # customer_activities,  # Disable if needed
-    # customers,  # Disable if needed
+    customer_activities,
+    customers,
     departments,
-    # expense_categories,  # Disable if needed
+    expense_categories,
     health,
     multi_tenant,
-    # opportunities,  # Disabled due to auth import issue
+    opportunities,
     organizations,
     # permission_inheritance,  # Temporarily disabled due to syntax errors
     permission_management,

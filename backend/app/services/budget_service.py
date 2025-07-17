@@ -88,7 +88,8 @@ class BudgetService:
         )
         if existing:
             raise ValueError(
-                f"Budget code '{budget_data.code}' already exists for fiscal year {budget_data.fiscal_year}"
+                f"Budget code '{budget_data.code}' already exists for "
+                f"fiscal year {budget_data.fiscal_year}"
             )
 
         budget = Budget(

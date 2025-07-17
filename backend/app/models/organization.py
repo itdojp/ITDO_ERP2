@@ -1,9 +1,9 @@
 """Organization model implementation."""
 
-from typing import TYPE_CHECKING, Optional, Any
+from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import Boolean, ForeignKey, Integer, String, Text
-from sqlalchemy.orm import Mapped, mapped_column, relationship, Session
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import SoftDeletableModel
 from app.types import OrganizationId
@@ -248,30 +248,3 @@ class Organization(SoftDeletableModel):
             current = current.parent
         return path
 
-    def update(self, db: Session, updated_by: int, **kwargs: Any) -> None:
-        """Update organization attributes."""
-        from datetime import datetime, timezone
-        
-        for key, value in kwargs.items():
-            if hasattr(self, key) and key not in ["id", "created_at", "created_by"]:
-                setattr(self, key, value)
-
-        self.updated_by = updated_by
-        self.updated_at = datetime.now(timezone.utc)
-        db.add(self)
-        db.flush()
-
-    def validate(self) -> None:
-        """Validate organization data."""
-        if not self.code or len(self.code.strip()) == 0:
-            raise ValueError("組織コードは必須です")
-
-        if not self.name or len(self.name.strip()) == 0:
-            raise ValueError("組織名は必須です")
-
-        if self.fiscal_year_start and (self.fiscal_year_start < 1 or self.fiscal_year_start > 12):
-            raise ValueError("会計年度開始月は1-12の範囲で入力してください")
-
-    def __str__(self) -> str:
-        """String representation for display."""
-        return f"{self.code} - {self.name}"
