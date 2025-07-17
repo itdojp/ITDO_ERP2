@@ -96,7 +96,7 @@ class SecurityAlert(BaseModel):
     affected_users: int
     total_incidents: int
     recommended_actions: List[str] = Field(default_factory=list)
-    details: Dict[str, Any][str, Any] = Field(default_factory=dict)
+    details: Dict[str, Any] = Field(default_factory=dict)
 
 
 class SecurityMetricsPeriod(BaseModel):
