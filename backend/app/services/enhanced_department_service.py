@@ -237,8 +237,9 @@ class EnhancedDepartmentService:
                     stats["headcount_utilization"] = (stats["active_users"] / department.headcount_limit) * 100
             
             # User distribution by role
+            # Simplified role distribution query
             role_dist_query = select(
-                func.coalesce(func.array_agg(func.distinct(func.concat(User.id, ':', func.array_to_string(func.array_agg(User.roles), ',')))), func.array[]::text[]).label("user_roles")
+                func.count(User.id).label("total_users")
             ).select_from(
                 User
             ).where(

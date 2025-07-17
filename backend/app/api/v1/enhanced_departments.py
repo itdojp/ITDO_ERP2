@@ -372,10 +372,9 @@ async def update_department_paths(
 async def advanced_department_search(
     query: str = Query(..., min_length=1, description="Search query"),
     organization_id: Optional[int] = Query(None, description="Filter by organization"),
-    search_fields: List[str] = Query(["name", "code"], description="Fields to search in"),
-    filters: Optional[Dict[str, Any]] = Query(None, description="Additional filters"),
+    search_fields: str = Query("name,code", description="Comma-separated fields to search in"),
     sort_by: str = Query("name", description="Sort field"),
-    sort_order: str = Query("asc", regex="^(asc|desc)$", description="Sort order"),
+    sort_order: str = Query("asc", description="Sort order (asc/desc)"),
     limit: int = Query(50, ge=1, le=500, description="Maximum results"),
     offset: int = Query(0, ge=0, description="Results offset"),
     db: AsyncSession = Depends(get_db),
@@ -388,11 +387,14 @@ async def advanced_department_search(
     service = EnhancedDepartmentService(db)
     
     try:
+        # Convert comma-separated fields to list
+        search_fields_list = [field.strip() for field in search_fields.split(",") if field.strip()]
+        
         search_results = await service.advanced_search(
             query=query,
             organization_id=organization_id,
-            search_fields=search_fields,
-            filters=filters or {},
+            search_fields=search_fields_list,
+            filters={},
             sort_by=sort_by,
             sort_order=sort_order,
             limit=limit,
