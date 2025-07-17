@@ -1,9 +1,9 @@
 """Password security API endpoints for Issue #41."""
 
 from datetime import datetime
-from typing import Optional
+from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -113,7 +113,7 @@ async def change_password(
         result = await service.change_password(
             user_id=current_user.id,
             new_password=request.new_password,
-            current_password=request.current_password,
+            current_password=request.current_password or "",
             force_change=request.force_change and current_user.is_superuser  # Only admins can force
         )
         
@@ -257,7 +257,7 @@ async def unlock_user_account(
     request: UnlockAccountRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> dict:
+) -> Dict[str, Any]:
     """
     Unlock a user account (admin only).
     ユーザーアカウントのロック解除（管理者のみ）
@@ -302,10 +302,10 @@ async def unlock_user_account(
 @router.post("/users/{user_id}/force-password-change")
 async def force_password_change(
     user_id: int = Path(..., description="User ID"),
-    request: ForcePasswordChangeRequest,
+    request: ForcePasswordChangeRequest = Body(...),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> dict:
+) -> Dict[str, Any]:
     """
     Force a user to change password on next login (admin only).
     次回ログイン時のパスワード変更強制（管理者のみ）
