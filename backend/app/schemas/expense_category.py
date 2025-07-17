@@ -142,6 +142,17 @@ class ExpenseCategoryTree(BaseModel):
         from_attributes = True
 
 
+class ExpenseCategoryTreeResponse(BaseModel):
+    """Schema for expense category tree responses."""
+
+    tree: List[ExpenseCategoryTree] = Field(
+        default_factory=list, description="Tree structure of expense categories"
+    )
+    total_categories: int = Field(0, description="Total number of categories in tree")
+    max_depth: int = Field(0, description="Maximum depth of the tree")
+    organization_id: Optional[int] = Field(None, description="Organization ID")
+
+
 class ExpenseCategoryListResponse(BaseModel):
     """Schema for expense category list responses."""
 
@@ -274,6 +285,26 @@ class ExpenseCategoryImport(BaseModel):
     )
     overwrite_existing: bool = Field(
         False, description="Whether to overwrite existing categories"
+    )
+
+    @validator("categories")
+    def validate_categories(cls, v):
+        if not v:
+            raise ValueError("At least one category must be provided")
+        return v
+
+
+class ExpenseCategoryBulkCreate(BaseModel):
+    """Schema for bulk creating expense categories."""
+
+    categories: List[ExpenseCategoryCreate] = Field(
+        ..., description="Categories to create"
+    )
+    skip_validation: bool = Field(
+        False, description="Whether to skip validation checks"
+    )
+    auto_resolve_conflicts: bool = Field(
+        True, description="Whether to auto-resolve naming conflicts"
     )
 
     @validator("categories")

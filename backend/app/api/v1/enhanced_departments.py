@@ -12,10 +12,8 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.models.user import User
 from app.schemas.department import (
-    DepartmentCreate,
     DepartmentResponse,
     DepartmentTree,
-    DepartmentUpdate,
     DepartmentWithStats,
 )
 from app.services.enhanced_department_service import EnhancedDepartmentService
@@ -37,7 +35,7 @@ async def get_department_tree(
     部門階層ツリー構造の取得
     """
     service = EnhancedDepartmentService(db)
-    
+
     try:
         tree = await service.get_department_tree(
             department_id=department_id,
@@ -45,15 +43,15 @@ async def get_department_tree(
             include_inactive=include_inactive,
             max_depth=max_depth
         )
-        
+
         if not tree:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Department not found"
             )
-        
+
         return tree
-        
+
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -78,21 +76,21 @@ async def get_department_statistics(
     部門統計情報の取得
     """
     service = EnhancedDepartmentService(db)
-    
+
     try:
         stats = await service.get_department_with_stats(
             department_id=department_id,
             include_sub_departments=include_sub_departments
         )
-        
+
         if not stats:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Department not found"
             )
-        
+
         return stats
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -118,9 +116,9 @@ async def move_department(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Insufficient permissions to move departments"
         )
-    
+
     service = EnhancedDepartmentService(db)
-    
+
     try:
         result = await service.move_department(
             department_id=department_id,
@@ -128,7 +126,7 @@ async def move_department(
             new_organization_id=new_organization_id,
             updated_by=current_user.id
         )
-        
+
         return {
             "success": True,
             "message": "Department moved successfully",
@@ -137,7 +135,7 @@ async def move_department(
             "new_organization_id": new_organization_id,
             "hierarchy_updated": result
         }
-        
+
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -163,16 +161,16 @@ async def get_all_sub_departments(
     すべての子部門の再帰的取得
     """
     service = EnhancedDepartmentService(db)
-    
+
     try:
         sub_departments = await service.get_all_sub_departments(
             department_id=department_id,
             include_inactive=include_inactive,
             flatten=flatten
         )
-        
+
         return sub_departments
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -191,18 +189,18 @@ async def get_department_hierarchy_path(
     ルート部門から指定部門までの階層パスを取得
     """
     service = EnhancedDepartmentService(db)
-    
+
     try:
         path = await service.get_hierarchy_path(department_id)
-        
+
         if not path:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Department not found"
             )
-        
+
         return path
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -221,10 +219,10 @@ async def validate_department_hierarchy(
     部門階層の整合性検証
     """
     service = EnhancedDepartmentService(db)
-    
+
     try:
         validation_result = await service.validate_hierarchy(department_id)
-        
+
         return {
             "department_id": department_id,
             "is_valid": validation_result["is_valid"],
@@ -232,7 +230,7 @@ async def validate_department_hierarchy(
             "warnings": validation_result.get("warnings", []),
             "recommendations": validation_result.get("recommendations", [])
         }
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -258,9 +256,9 @@ async def bulk_update_department_hierarchy(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Insufficient permissions for bulk updates"
         )
-    
+
     service = EnhancedDepartmentService(db)
-    
+
     try:
         result = await service.bulk_update_hierarchy(
             root_department_id=department_id,
@@ -268,7 +266,7 @@ async def bulk_update_department_hierarchy(
             validate_before_commit=validate_before_commit,
             updated_by=current_user.id
         )
-        
+
         return {
             "success": True,
             "message": "Bulk update completed successfully",
@@ -276,7 +274,7 @@ async def bulk_update_department_hierarchy(
             "errors": result.get("errors", []),
             "validation_results": result.get("validation_results", {})
         }
-        
+
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -303,7 +301,7 @@ async def get_department_users_recursive(
     部門およびサブ部門のすべてのユーザーを取得
     """
     service = EnhancedDepartmentService(db)
-    
+
     try:
         users_data = await service.get_department_users_recursive(
             department_id=department_id,
@@ -311,15 +309,15 @@ async def get_department_users_recursive(
             include_inactive=include_inactive,
             role_filter=role_filter
         )
-        
+
         if users_data is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Department not found"
             )
-        
+
         return users_data
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -344,15 +342,15 @@ async def update_department_paths(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Insufficient permissions to update department paths"
         )
-    
+
     service = EnhancedDepartmentService(db)
-    
+
     try:
         result = await service.update_materialized_paths(
             department_id=department_id,
             recursive=recursive
         )
-        
+
         return {
             "success": True,
             "message": "Department paths updated successfully",
@@ -360,7 +358,7 @@ async def update_department_paths(
             "updated_count": result["updated_count"],
             "errors": result.get("errors", [])
         }
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -385,11 +383,11 @@ async def advanced_department_search(
     高度な部門検索（複数条件対応）
     """
     service = EnhancedDepartmentService(db)
-    
+
     try:
         # Convert comma-separated fields to list
         search_fields_list = [field.strip() for field in search_fields.split(",") if field.strip()]
-        
+
         search_results = await service.advanced_search(
             query=query,
             organization_id=organization_id,
@@ -400,20 +398,20 @@ async def advanced_department_search(
             limit=limit,
             offset=offset
         )
-        
+
         return {
             "results": search_results["departments"],
             "total_count": search_results["total_count"],
             "query": query,
             "search_fields": search_fields,
-            "filters_applied": filters or {},
+            "filters_applied": {},
             "pagination": {
                 "limit": limit,
                 "offset": offset,
                 "has_more": search_results["total_count"] > (offset + limit)
             }
         }
-        
+
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -430,7 +428,7 @@ async def advanced_department_search(
 async def get_department_performance_metrics(
     department_id: int = Path(..., description="Department ID"),
     include_sub_departments: bool = Query(False, description="Include sub-department metrics"),
-    metric_types: List[str] = Query(["headcount", "budget", "tasks"], description="Types of metrics to include"),
+    metric_types: List[str] = Query(default=["headcount", "budget", "tasks"], description="Types of metrics to include"),
     date_range_days: int = Query(30, ge=1, le=365, description="Date range for metrics calculation"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -440,7 +438,7 @@ async def get_department_performance_metrics(
     部門パフォーマンス指標とKPIの取得
     """
     service = EnhancedDepartmentService(db)
-    
+
     try:
         metrics = await service.get_performance_metrics(
             department_id=department_id,
@@ -448,15 +446,15 @@ async def get_department_performance_metrics(
             metric_types=metric_types,
             date_range_days=date_range_days
         )
-        
+
         if not metrics:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Department not found"
             )
-        
+
         return metrics
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 
 class UserAssignmentCreate(BaseModel):
     """Schema for creating user assignment."""
-    
+
     user_id: int = Field(..., description="User ID to assign")
     organization_id: int = Field(..., description="Organization ID")
     department_id: Optional[int] = Field(None, description="Department ID (optional)")
@@ -23,7 +23,7 @@ class UserAssignmentCreate(BaseModel):
 
 class UserAssignmentUpdate(BaseModel):
     """Schema for updating user assignment."""
-    
+
     organization_id: Optional[int] = Field(None, description="New organization ID")
     department_id: Optional[int] = Field(None, description="New department ID")
     role_assignments: Optional[List[str]] = Field(None, description="Updated role assignments")
@@ -35,7 +35,7 @@ class UserAssignmentUpdate(BaseModel):
 
 class UserAssignmentResponse(BaseModel):
     """Schema for user assignment response."""
-    
+
     id: int
     user_id: int
     organization_id: int
@@ -48,7 +48,7 @@ class UserAssignmentResponse(BaseModel):
     assigned_at: datetime
     updated_by: Optional[int]
     updated_at: Optional[datetime]
-    
+
     # Related data
     user_name: Optional[str] = Field(None, description="User full name")
     user_email: Optional[str] = Field(None, description="User email")
@@ -64,7 +64,7 @@ class UserAssignmentResponse(BaseModel):
 
 class BulkUserAssignmentRequest(BaseModel):
     """Schema for bulk user assignment request."""
-    
+
     assignments: List[UserAssignmentCreate] = Field(..., description="List of assignments to create")
     validate_before_commit: bool = Field(True, description="Validate assignments before committing")
     skip_duplicates: bool = Field(True, description="Skip duplicate assignments")
@@ -73,7 +73,7 @@ class BulkUserAssignmentRequest(BaseModel):
 
 class UserSummary(BaseModel):
     """Schema for user summary in assignments."""
-    
+
     id: int
     full_name: str
     email: str
@@ -87,7 +87,7 @@ class UserSummary(BaseModel):
 
 class OrganizationUsersResponse(BaseModel):
     """Schema for organization users response."""
-    
+
     organization_id: int
     organization_name: str
     organization_code: str
@@ -96,7 +96,7 @@ class OrganizationUsersResponse(BaseModel):
     inactive_users: int
     users: List[UserSummary]
     departments: Optional[List[dict]] = Field(None, description="Department breakdown")
-    
+
     # Pagination
     limit: int
     offset: int
@@ -105,7 +105,7 @@ class OrganizationUsersResponse(BaseModel):
 
 class DepartmentUsersResponse(BaseModel):
     """Schema for department users response."""
-    
+
     department_id: int
     department_name: str
     department_code: str
@@ -116,7 +116,7 @@ class DepartmentUsersResponse(BaseModel):
     inactive_users: int
     users: List[UserSummary]
     sub_departments: Optional[List[dict]] = Field(None, description="Sub-department breakdown")
-    
+
     # Pagination
     limit: int
     offset: int
@@ -125,7 +125,7 @@ class DepartmentUsersResponse(BaseModel):
 
 class AssignmentHistory(BaseModel):
     """Schema for assignment history entry."""
-    
+
     id: int
     user_id: int
     organization_id: int
@@ -142,7 +142,7 @@ class AssignmentHistory(BaseModel):
 
 class UserAssignmentFull(BaseModel):
     """Schema for complete user assignment information."""
-    
+
     user_id: int
     user_name: str
     user_email: str
@@ -154,7 +154,7 @@ class UserAssignmentFull(BaseModel):
 
 class OrganizationAssignmentStats(BaseModel):
     """Schema for organization assignment statistics."""
-    
+
     organization_id: int
     organization_name: str
     total_assignments: int
@@ -163,20 +163,20 @@ class OrganizationAssignmentStats(BaseModel):
     total_users: int
     active_users: int
     departments_count: int
-    
+
     # Department breakdown
     department_stats: Optional[List[dict]] = Field(None, description="Per-department statistics")
-    
+
     # Role distribution
     role_distribution: dict = Field(default_factory=dict, description="Users by role")
-    
+
     # Trend data
     monthly_changes: dict = Field(default_factory=dict, description="Monthly assignment changes")
 
 
 class DepartmentAssignmentStats(BaseModel):
     """Schema for department assignment statistics."""
-    
+
     department_id: int
     department_name: str
     organization_id: int
@@ -185,21 +185,21 @@ class DepartmentAssignmentStats(BaseModel):
     inactive_assignments: int
     total_users: int
     active_users: int
-    
+
     # Capacity metrics
     headcount_limit: Optional[int]
     headcount_utilization: Optional[float] = Field(None, description="Utilization percentage")
-    
+
     # Sub-department breakdown
     sub_department_stats: Optional[List[dict]] = Field(None, description="Sub-department statistics")
-    
+
     # Role distribution
     role_distribution: dict = Field(default_factory=dict, description="Users by role")
 
 
 class AssignmentValidationIssue(BaseModel):
     """Schema for assignment validation issues."""
-    
+
     issue_type: str  # 'orphaned_user', 'invalid_department', 'circular_assignment', etc.
     severity: str    # 'error', 'warning', 'info'
     description: str
@@ -213,7 +213,7 @@ class AssignmentValidationIssue(BaseModel):
 
 class AssignmentValidationResult(BaseModel):
     """Schema for assignment validation results."""
-    
+
     validation_date: datetime
     total_assignments_checked: int
     issues_found: int
@@ -221,14 +221,14 @@ class AssignmentValidationResult(BaseModel):
     warnings_count: int
     issues: List[AssignmentValidationIssue]
     recommendations: List[str]
-    
+
     # Summary by type
     issue_summary: dict = Field(default_factory=dict, description="Issues grouped by type")
 
 
 class TransferRequest(BaseModel):
     """Schema for user transfer request."""
-    
+
     user_id: int
     from_organization_id: Optional[int] = Field(None, description="Current organization (for validation)")
     from_department_id: Optional[int] = Field(None, description="Current department (for validation)")
@@ -242,7 +242,7 @@ class TransferRequest(BaseModel):
 
 class TransferResponse(BaseModel):
     """Schema for user transfer response."""
-    
+
     transfer_id: int
     user_id: int
     user_name: str
@@ -259,7 +259,7 @@ class TransferResponse(BaseModel):
 
 class AssignmentSearchFilters(BaseModel):
     """Schema for assignment search filters."""
-    
+
     organization_ids: Optional[List[int]] = Field(None, description="Filter by organizations")
     department_ids: Optional[List[int]] = Field(None, description="Filter by departments")
     user_ids: Optional[List[int]] = Field(None, description="Filter by users")
@@ -273,16 +273,16 @@ class AssignmentSearchFilters(BaseModel):
 
 class AssignmentSearchResponse(BaseModel):
     """Schema for assignment search results."""
-    
+
     assignments: List[UserAssignmentResponse]
     total_count: int
     search_filters: AssignmentSearchFilters
-    
+
     # Pagination
     limit: int
     offset: int
     has_more: bool
-    
+
     # Aggregations
     organization_breakdown: dict = Field(default_factory=dict)
     department_breakdown: dict = Field(default_factory=dict)

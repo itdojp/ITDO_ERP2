@@ -188,13 +188,13 @@ class OrganizationTree(BaseModel):
 
 class OrganizationWithStats(OrganizationResponse):
     """Organization with statistics information."""
-    
+
     statistics: dict[str, Any] = Field(default_factory=dict, description="Organization statistics")
     department_count: int = Field(0, description="Number of departments")
     user_count: int = Field(0, description="Number of users")
     active_user_count: int = Field(0, description="Number of active users")
     total_budget: float = Field(0.0, description="Total budget allocated")
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 

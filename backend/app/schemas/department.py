@@ -1,6 +1,7 @@
 """Department schemas."""
 
 from typing import Any, Optional
+
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.common import AuditInfo, SoftDeleteInfo

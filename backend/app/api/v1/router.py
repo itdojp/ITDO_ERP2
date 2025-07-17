@@ -14,7 +14,6 @@ from app.api.v1 import (
     departments,
     enhanced_departments,
     enhanced_organizations,
-    enhanced_security_monitoring,
     expense_categories,
     expenses,
     financial_reports,
@@ -22,14 +21,12 @@ from app.api.v1 import (
     multi_tenant,
     opportunities,
     organizations,
-    password_security,
     # permission_inheritance,  # Temporarily disabled due to syntax errors
     permission_management,
     pm_automation,
     reports,
     # role_permission_ui,  # Temporarily disabled due to syntax errors
     roles,
-    sales_analytics,
     tasks,
     user_organization_assignment,
     user_preferences,
