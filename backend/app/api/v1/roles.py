@@ -593,3 +593,74 @@ def get_user_roles(
     user_role_responses = service.get_user_roles(user_id, organization_id, active_only)
 
     return user_role_responses  # Already UserRoleResponse objects
+
+
+@router.get(
+    "/user/{user_id}/permissions",
+    response_model=dict[str, Any],
+    responses={
+        401: {"model": ErrorResponse, "description": "Unauthorized"},
+        404: {"model": ErrorResponse, "description": "User not found"},
+    },
+)
+def get_user_permissions(
+    user_id: UserId = Path(..., description="User ID"),
+    organization_id: OrganizationId | None = Query(
+        None, description="Filter by organization"
+    ),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> dict[str, Any]:
+    """Get all effective permissions for a user."""
+    # Check if user exists
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
+
+    service = RoleService(db)
+    
+    # Get all user roles with their permissions
+    user_roles = service.get_user_roles(user_id, organization_id, active_only=True)
+    
+    # Collect all effective permissions
+    all_permissions: dict[str, dict[str, Any]] = {}
+    permissions_by_role: dict[str, dict[str, Any]] = {}
+    
+    for user_role in user_roles:
+        role_id = user_role.role.id if hasattr(user_role, 'role') else None
+        if role_id:
+            role = service.get_role(role_id)
+            if role:
+                role_permissions = role.get_all_permissions()
+                role_name = role.name
+                
+                # Add to permissions by role
+                permissions_by_role[role_name] = role_permissions
+                
+                # Merge into all permissions
+                all_permissions.update(role_permissions)
+    
+    # Check if user is superuser
+    is_superuser = getattr(user, 'is_superuser', False)
+    
+    return {
+        "user_id": user_id,
+        "user_name": getattr(user, 'full_name', f"{user.first_name} {user.last_name}"),
+        "is_superuser": is_superuser,
+        "organization_id": organization_id,
+        "effective_permissions": all_permissions,
+        "permissions_by_role": permissions_by_role,
+        "total_permissions": len(all_permissions),
+        "roles_count": len(user_roles),
+        "roles": [
+            {
+                "id": ur.role.id if hasattr(ur, 'role') else None,
+                "name": ur.role.name if hasattr(ur, 'role') else None,
+                "code": ur.role.code if hasattr(ur, 'role') else None,
+                "organization_id": ur.organization_id if hasattr(ur, 'organization_id') else None,
+            }
+            for ur in user_roles
+        ]
+    }
