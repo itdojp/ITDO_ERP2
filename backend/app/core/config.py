@@ -17,8 +17,8 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
 
     # CORS設定
-    BACKEND_CORS_ORIGINS: Any = Field(
-        default="http://localhost:3000,http://127.0.0.1:3000"
+    BACKEND_CORS_ORIGINS: List[str] = Field(
+        default_factory=lambda: ["http://localhost:3000", "http://127.0.0.1:3000"]
     )
 
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
@@ -58,8 +58,8 @@ class Settings(BaseSettings):
             # Single value
             return [v_stripped]
 
-        # For any other type, return default
-        return default_origins
+        # This should never be reached due to type hints, but included for completeness
+        return default_origins  # type: ignore[unreachable]
 
     @property
     def cors_origins_list(self) -> List[str]:

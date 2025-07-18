@@ -1,6 +1,7 @@
 """Organization model implementation."""
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Any
+from sqlalchemy.orm import Session
 
 from sqlalchemy import Boolean, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -146,11 +147,8 @@ class Organization(SoftDeletableModel):
         lazy="dynamic",
         cascade="all, delete-orphan",
     )
-    creator: Mapped[Optional["User"]] = relationship(
-        "User", foreign_keys="Organization.created_by", lazy="select"
-    )
 
-    def update(self, db, updated_by: int, **kwargs) -> None:
+    def update(self, db: Session, updated_by: int, **kwargs: Any) -> None:
         """Update organization with audit tracking."""
         from datetime import UTC, datetime
 
