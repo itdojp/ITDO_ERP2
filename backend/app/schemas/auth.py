@@ -1,6 +1,8 @@
 """Authentication schemas."""
 
-from pydantic import BaseModel, EmailStr, Field
+from typing import Any
+
+from pydantic import BaseModel, EmailStr, Field, validator
 
 
 class LoginRequest(BaseModel):
@@ -8,6 +10,13 @@ class LoginRequest(BaseModel):
 
     email: EmailStr = Field(..., description="User email address")
     password: str = Field(..., min_length=1, description="User password")
+
+    @validator("password")
+    def validate_password(cls, v: Any) -> str:
+        """Validate password field."""
+        if not v or not v.strip():
+            raise ValueError("Password cannot be empty")
+        return str(v)
 
 
 class RefreshRequest(BaseModel):
