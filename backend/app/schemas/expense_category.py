@@ -1,6 +1,6 @@
 """Expense category schemas for API serialization and validation."""
 
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, validator
 
@@ -26,16 +26,16 @@ class ExpenseCategoryBase(BaseModel):
     parent_id: Optional[int] = Field(None, description="Parent category ID")
 
     @validator("category_type")
-    def validate_category_type(cls, v):
+    def validate_category_type(cls, v: Any) -> str:
         allowed_types = ["fixed", "variable", "capital"]
         if v not in allowed_types:
             raise ValueError(
                 f"Category type must be one of: {', '.join(allowed_types)}"
             )
-        return v
+        return str(v)
 
     @validator("code")
-    def validate_code(cls, v):
+    def validate_code(cls, v: Any) -> str:
         # Code should be uppercase alphanumeric with underscores
         import re
 
@@ -43,7 +43,7 @@ class ExpenseCategoryBase(BaseModel):
             raise ValueError(
                 "Code must contain only uppercase letters, numbers, and underscores"
             )
-        return v
+        return str(v)
 
 
 class ExpenseCategoryCreate(ExpenseCategoryBase):
@@ -79,17 +79,17 @@ class ExpenseCategoryUpdate(BaseModel):
     parent_id: Optional[int] = Field(None, description="Parent category ID")
 
     @validator("category_type")
-    def validate_category_type(cls, v):
+    def validate_category_type(cls, v: Any) -> Optional[str]:
         if v is not None:
             allowed_types = ["fixed", "variable", "capital"]
             if v not in allowed_types:
                 raise ValueError(
                     f"Category type must be one of: {', '.join(allowed_types)}"
                 )
-        return v
+        return str(v) if v is not None else v
 
     @validator("code")
-    def validate_code(cls, v):
+    def validate_code(cls, v: Any) -> Optional[str]:
         if v is not None:
             import re
 
@@ -97,7 +97,7 @@ class ExpenseCategoryUpdate(BaseModel):
                 raise ValueError(
                     "Code must contain only uppercase letters, numbers, and underscores"
                 )
-        return v
+        return str(v) if v is not None else v
 
 
 class ExpenseCategoryResponse(ExpenseCategoryBase, BaseResponse):
@@ -113,8 +113,8 @@ class ExpenseCategoryResponse(ExpenseCategoryBase, BaseResponse):
     path: str
 
     # Relationships
-    organization: Optional[dict] = Field(None, description="Organization details")
-    parent: Optional[dict] = Field(None, description="Parent category details")
+    organization: Optional[Dict[str, Any]] = Field(None, description="Organization details")
+    parent: Optional[Dict[str, Any]] = Field(None, description="Parent category details")
     children: List["ExpenseCategoryResponse"] = Field(
         default_factory=list, description="Child categories"
     )
@@ -185,10 +185,10 @@ class ExpenseCategoryBulkUpdate(BaseModel):
     updates: ExpenseCategoryUpdate = Field(..., description="Updates to apply")
 
     @validator("category_ids")
-    def validate_category_ids(cls, v):
+    def validate_category_ids(cls, v: Any) -> List[int]:
         if not v:
             raise ValueError("At least one category ID must be provided")
-        return v
+        return list(v)
 
 
 class ExpenseCategoryUsage(BaseModel):
@@ -220,12 +220,12 @@ class ExpenseCategoryAnalytics(BaseModel):
     least_used_categories: List[ExpenseCategoryUsage] = Field(
         default_factory=list, description="Least used categories"
     )
-    unused_categories: List[dict] = Field(
+    unused_categories: List[Dict[str, Any]] = Field(
         default_factory=list, description="Unused categories"
     )
 
     # Type breakdown
-    type_breakdown: dict = Field(default_factory=dict, description="Categories by type")
+    type_breakdown: Dict[str, Any] = Field(default_factory=dict, description="Categories by type")
 
     # Hierarchy statistics
     max_depth: int
@@ -256,14 +256,14 @@ class ExpenseCategorySearch(BaseModel):
     )
 
     @validator("category_type")
-    def validate_category_type(cls, v):
+    def validate_category_type(cls, v: Any) -> Optional[str]:
         if v is not None:
             allowed_types = ["fixed", "variable", "capital"]
             if v not in allowed_types:
                 raise ValueError(
                     f"Category type must be one of: {', '.join(allowed_types)}"
                 )
-        return v
+        return str(v) if v is not None else v
 
 
 class ExpenseCategoryImport(BaseModel):
@@ -277,10 +277,10 @@ class ExpenseCategoryImport(BaseModel):
     )
 
     @validator("categories")
-    def validate_categories(cls, v):
+    def validate_categories(cls, v: Any) -> List[ExpenseCategoryCreate]:
         if not v:
             raise ValueError("At least one category must be provided")
-        return v
+        return list(v)
 
 
 class ExpenseCategoryExport(BaseModel):
@@ -291,11 +291,11 @@ class ExpenseCategoryExport(BaseModel):
     include_hierarchy: bool = Field(True, description="Include hierarchy information")
 
     @validator("format")
-    def validate_format(cls, v):
+    def validate_format(cls, v: Any) -> str:
         allowed_formats = ["csv", "json", "xlsx"]
         if v not in allowed_formats:
             raise ValueError(f"Format must be one of: {', '.join(allowed_formats)}")
-        return v
+        return str(v)
 
 
 # Forward reference resolution
