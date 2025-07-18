@@ -9,13 +9,17 @@ from app.api.v1 import (
     auth,
     budgets,
     cross_tenant_permissions,
-    # customer_activities,  # Disable if needed
-    # customers,  # Disable if needed
+    customer_activities,
+    customers,
     departments,
-    # expense_categories,  # Disable if needed
+    enhanced_departments,
+    enhanced_organizations,
+    expense_categories,
+    expenses,
+    financial_reports,
     health,
     multi_tenant,
-    # opportunities,  # Disabled due to auth import issue
+    opportunities,
     organizations,
     # permission_inheritance,  # Temporarily disabled due to syntax errors
     permission_management,
@@ -24,6 +28,7 @@ from app.api.v1 import (
     # role_permission_ui,  # Temporarily disabled due to syntax errors
     roles,
     tasks,
+    user_organization_assignment,
     user_preferences,
     user_privacy,
     user_profile,
@@ -68,6 +73,16 @@ api_router.include_router(
 api_router.include_router(
     user_privacy.router, prefix="/users/privacy", tags=["user-privacy"]
 )
+# Issue #42: Enhanced Organization and Department Management
+api_router.include_router(
+    enhanced_organizations.router, prefix="/enhanced-organizations", tags=["organizations", "hierarchy"]
+)
+api_router.include_router(
+    enhanced_departments.router, prefix="/enhanced-departments", tags=["departments", "hierarchy"]
+)
+api_router.include_router(
+    user_organization_assignment.router, prefix="/user-assignments", tags=["user-assignments", "hr"]
+)
 api_router.include_router(pm_automation.router)
 api_router.include_router(budgets.router, prefix="/budgets", tags=["budgets"])
 
@@ -80,6 +95,10 @@ api_router.include_router(
 api_router.include_router(opportunities.router, prefix="/opportunities", tags=["crm"])
 api_router.include_router(
     expense_categories.router, prefix="/expense-categories", tags=["financial"]
+)
+api_router.include_router(expenses.router, prefix="/expenses", tags=["financial"])
+api_router.include_router(
+    financial_reports.router, prefix="/financial-reports", tags=["financial"]
 )
 api_router.include_router(workflows.router, prefix="/workflows", tags=["workflow"])
 api_router.include_router(

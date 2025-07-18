@@ -6,6 +6,8 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, validator
 
+from app.schemas.base import BaseResponse
+
 
 class ExpenseCategoryBase(BaseModel):
     """Base schema for expense categories."""

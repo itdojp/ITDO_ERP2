@@ -312,7 +312,10 @@ class Budget(SoftDeletableModel):
 
     def __repr__(self) -> str:
         """Developer representation."""
-        return f"<Budget(id={self.id}, code='{self.code}', name='{self.name}', status='{self.status}')>"
+        return (
+            f"<Budget(id={self.id}, code='{self.code}', "
+            f"name='{self.name}', status='{self.status}')>"
+        )
 
 
 class BudgetItem(SoftDeletableModel):
@@ -415,4 +418,7 @@ class BudgetItem(SoftDeletableModel):
 
     def __repr__(self) -> str:
         """Developer representation."""
-        return f"<BudgetItem(id={self.id}, name='{self.name}', amount={self.budgeted_amount})>"
+        return (
+            f"<BudgetItem(id={self.id}, name='{self.name}', "
+            f"amount={self.budgeted_amount})>"
+        )

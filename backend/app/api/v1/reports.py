@@ -131,7 +131,7 @@ async def get_report_execution(
 @router.get("/executions/{execution_id}/data", response_model=ReportDataResponse)
 async def get_report_data(
     execution_id: int,
-    format: str = Query("json", regex="^(json|csv|excel)$"),
+    format: str = Query("json", pattern="^(json|csv|excel)$"),
     db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     """Get report execution data in specified format."""
@@ -145,7 +145,7 @@ async def get_report_data(
 @router.get("/executions/{execution_id}/download")
 async def download_report(
     execution_id: int,
-    format: str = Query("excel", regex="^(csv|excel|pdf)$"),
+    format: str = Query("excel", pattern="^(csv|excel|pdf)$"),
     db: Session = Depends(get_db),
 ):
     """Download report in specified format."""
