@@ -1,3 +1,4 @@
+# mypy: disable-error-code="import-untyped"
 """Permission inheritance service implementation."""
 
 from typing import Any
