@@ -9,20 +9,25 @@ from app.api.v1 import (
     auth,
     budgets,
     cross_tenant_permissions,
-    # customer_activities,  # Disable if needed
-    # customers,  # Disable if needed
+    customer_activities,
+    customer_import_export,
+    customers,
     departments,
-    # expense_categories,  # Disable if needed
+    expense_categories,
+    expenses,
+    financial_reports,
     health,
     multi_tenant,
-    # opportunities,  # Disabled due to auth import issue
+    opportunities,
     organizations,
+    password_security,
     # permission_inheritance,  # Temporarily disabled due to syntax errors
     permission_management,
     pm_automation,
     reports,
     # role_permission_ui,  # Temporarily disabled due to syntax errors
     roles,
+    sales_analytics,
     tasks,
     user_preferences,
     user_privacy,
@@ -68,6 +73,9 @@ api_router.include_router(
 api_router.include_router(
     user_privacy.router, prefix="/users/privacy", tags=["user-privacy"]
 )
+api_router.include_router(
+    password_security.router, prefix="/password-security", tags=["security", "password"]
+)
 api_router.include_router(pm_automation.router)
 api_router.include_router(budgets.router, prefix="/budgets", tags=["budgets"])
 
@@ -81,11 +89,23 @@ api_router.include_router(opportunities.router, prefix="/opportunities", tags=["
 api_router.include_router(
     expense_categories.router, prefix="/expense-categories", tags=["financial"]
 )
+api_router.include_router(expenses.router, prefix="/expenses", tags=["financial"])
+api_router.include_router(
+    financial_reports.router, prefix="/financial-reports", tags=["financial"]
+)
 api_router.include_router(workflows.router, prefix="/workflows", tags=["workflow"])
 api_router.include_router(
     applications.router, prefix="/applications", tags=["workflow"]
 )
 api_router.include_router(reports.router, prefix="/reports", tags=["analytics"])
+api_router.include_router(
+    sales_analytics.router, prefix="/sales-analytics", tags=["crm", "analytics"]
+)
+api_router.include_router(
+    customer_import_export.router,
+    prefix="/customer-import-export",
+    tags=["crm", "data-management"]
+)
 
 
 @api_router.get("/ping")

@@ -13,10 +13,8 @@ from sqlalchemy.orm import selectinload
 from app.models.expense_category import ExpenseCategory
 from app.schemas.expense_category import (
     ExpenseCategoryAnalytics,
-    ExpenseCategoryBulkCreate,
     ExpenseCategoryCreate,
     ExpenseCategoryResponse,
-    ExpenseCategoryTreeResponse,
     ExpenseCategoryUpdate,
 )
 
@@ -58,7 +56,7 @@ class ExpenseCategoryService:
 
     async def get_category_tree(
         self, organization_id: int, category_type: Optional[str] = None
-    ) -> List[ExpenseCategoryTreeResponse]:
+    ) -> List[ExpenseCategoryResponse]:
         """費目ツリー構造取得"""
         query = select(ExpenseCategory).where(
             and_(
@@ -81,7 +79,7 @@ class ExpenseCategoryService:
 
     def _build_tree_node(
         self, category: ExpenseCategory
-    ) -> ExpenseCategoryTreeResponse:
+    ) -> ExpenseCategoryResponse:
         """ツリーノード構築"""
         children = []
         if category.children:
@@ -92,7 +90,7 @@ class ExpenseCategoryService:
                 )
             ]
 
-        return ExpenseCategoryTreeResponse(
+        return ExpenseCategoryResponse(
             id=category.id,
             code=category.code,
             name=category.name,
@@ -151,7 +149,7 @@ class ExpenseCategoryService:
         return ExpenseCategoryResponse.model_validate(category)
 
     async def create_categories_bulk(
-        self, categories_data: ExpenseCategoryBulkCreate, organization_id: int
+        self, categories_data: dict, organization_id: int
     ) -> List[ExpenseCategoryResponse]:
         """費目一括作成"""
         categories = []
