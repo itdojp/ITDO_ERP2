@@ -344,7 +344,8 @@ class RoleFactory(BaseFactory):
 # Helper functions for backward compatibility
 def create_test_role(db_session, **kwargs):
     """Create a test role (backward compatibility wrapper)."""
-    # Handle permissions parameter - remove it from role creation since it's not a role field
+    # Handle permissions parameter - remove it from role creation
+    # since it's not a role field
     permissions = kwargs.pop("permissions", None)
     role = RoleFactory.create(db_session, **kwargs)
 
