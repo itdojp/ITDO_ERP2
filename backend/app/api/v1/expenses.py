@@ -3,7 +3,8 @@ Expense API endpoints for Phase 4 Financial Management - Expense Settlement Work
 経費精算ワークフローAPIエンドポイント（財務管理機能Phase 4）
 """
 
-from typing import List, Optional
+from datetime import date
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -32,7 +33,7 @@ async def get_expenses(
     employee_id: Optional[int] = Query(None, description="Filter by employee"),
     project_id: Optional[int] = Query(None, description="Filter by project"),
     expense_category_id: Optional[int] = Query(None, description="Filter by category"),
-    status: Optional[str] = Query(None, description="Filter by status"),
+    expense_status: Optional[str] = Query(None, description="Filter by status"),
     date_from: Optional[str] = Query(None, description="Date from (YYYY-MM-DD)"),
     date_to: Optional[str] = Query(None, description="Date to (YYYY-MM-DD)"),
     search_text: Optional[str] = Query(None, description="Search in title/description"),
@@ -50,14 +51,36 @@ async def get_expenses(
 
     service = ExpenseService(db)
 
+    # Parse date strings to date objects
+    parsed_date_from = None
+    parsed_date_to = None
+    
+    if date_from:
+        try:
+            parsed_date_from = date.fromisoformat(date_from)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid date_from format. Use YYYY-MM-DD"
+            )
+    
+    if date_to:
+        try:
+            parsed_date_to = date.fromisoformat(date_to)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid date_to format. Use YYYY-MM-DD"
+            )
+
     # Create search filters
     filters = ExpenseSearch(
         employee_id=employee_id,
         project_id=project_id,
         expense_category_id=expense_category_id,
-        status=status,
-        date_from=date_from,
-        date_to=date_to,
+        status=expense_status,
+        date_from=parsed_date_from,
+        date_to=parsed_date_to,
         search_text=search_text,
     )
 
@@ -165,7 +188,7 @@ async def delete_expense(
     expense_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> Dict[str, Any]:
     """Delete expense (only if draft status)."""
     if not current_user.organization_id:
         raise HTTPException(
@@ -359,7 +382,7 @@ async def get_my_pending_approvals(
 
 @router.get("/my/expenses", response_model=ExpenseListResponse)
 async def get_my_expenses(
-    status: Optional[str] = Query(None, description="Filter by status"),
+    expense_status: Optional[str] = Query(None, description="Filter by status"),
     skip: int = Query(0, ge=0, description="Skip records"),
     limit: int = Query(100, ge=1, le=1000, description="Limit records"),
     db: AsyncSession = Depends(get_db),
@@ -376,7 +399,7 @@ async def get_my_expenses(
 
     filters = ExpenseSearch(
         employee_id=current_user.id,
-        status=status,
+        status=expense_status,
     )
 
     return await service.get_expenses(

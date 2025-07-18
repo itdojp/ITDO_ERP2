@@ -2,7 +2,7 @@
 
 from datetime import date, datetime
 from decimal import Decimal
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, validator
 
@@ -26,7 +26,7 @@ class ExpenseBase(BaseModel):
     vendor_name: Optional[str] = Field(None, max_length=200, description="Vendor name")
 
     @validator("payment_method")
-    def validate_payment_method(cls, v):
+    def validate_payment_method(cls, v: str) -> str:
         allowed_methods = ["cash", "credit_card", "bank_transfer", "check", "other"]
         if v not in allowed_methods:
             raise ValueError(
@@ -114,7 +114,7 @@ class ExpenseApprovalAction(BaseModel):
     comments: Optional[str] = Field(None, description="Approval comments")
 
     @validator("action")
-    def validate_action(cls, v):
+    def validate_action(cls, v: str) -> str:
         allowed_actions = ["approve", "reject"]
         if v not in allowed_actions:
             raise ValueError(f"Action must be one of: {', '.join(allowed_actions)}")
@@ -169,11 +169,11 @@ class ExpenseSummary(BaseModel):
     paid_amount: Decimal
 
     # Category breakdown
-    by_category: List[dict] = Field(
+    by_category: List[Dict[str, Any]] = Field(
         default_factory=list, description="Amount by category"
     )
-    by_month: List[dict] = Field(default_factory=list, description="Amount by month")
-    by_employee: List[dict] = Field(
+    by_month: List[Dict[str, Any]] = Field(default_factory=list, description="Amount by month")
+    by_employee: List[Dict[str, Any]] = Field(
         default_factory=list, description="Amount by employee"
     )
 

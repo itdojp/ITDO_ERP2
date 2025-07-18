@@ -2,7 +2,7 @@
 
 from datetime import date, datetime
 from decimal import Decimal
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, validator
 
@@ -111,7 +111,7 @@ class CustomerBase(BaseModel):
     last_contact_date: Optional[date] = Field(None, description="Last contact date")
 
     @validator("customer_type")
-    def validate_customer_type(cls, v):
+    def validate_customer_type(cls, v: str) -> str:
         allowed_types = ["individual", "corporate", "government", "non_profit"]
         if v not in allowed_types:
             raise ValueError(
@@ -120,14 +120,14 @@ class CustomerBase(BaseModel):
         return v
 
     @validator("status")
-    def validate_status(cls, v):
+    def validate_status(cls, v: str) -> str:
         allowed_statuses = ["active", "inactive", "prospect", "former"]
         if v not in allowed_statuses:
             raise ValueError(f"Status must be one of: {', '.join(allowed_statuses)}")
         return v
 
     @validator("scale")
-    def validate_scale(cls, v):
+    def validate_scale(cls, v: Optional[str]) -> Optional[str]:
         if v is not None:
             allowed_scales = ["large", "medium", "small"]
             if v not in allowed_scales:
@@ -135,7 +135,7 @@ class CustomerBase(BaseModel):
         return v
 
     @validator("priority")
-    def validate_priority(cls, v):
+    def validate_priority(cls, v: str) -> str:
         allowed_priorities = ["high", "normal", "low"]
         if v not in allowed_priorities:
             raise ValueError(
@@ -232,7 +232,7 @@ class OpportunityBase(BaseModel):
     owner_id: int = Field(..., description="Opportunity owner ID")
 
     @validator("stage")
-    def validate_stage(cls, v):
+    def validate_stage(cls, v: str) -> str:
         allowed_stages = [
             "lead",
             "qualified",
@@ -246,7 +246,7 @@ class OpportunityBase(BaseModel):
         return v
 
     @validator("status")
-    def validate_status(cls, v):
+    def validate_status(cls, v: str) -> str:
         allowed_statuses = ["open", "won", "lost", "canceled"]
         if v not in allowed_statuses:
             raise ValueError(f"Status must be one of: {', '.join(allowed_statuses)}")
@@ -312,7 +312,7 @@ class CustomerActivityBase(BaseModel):
     opportunity_id: Optional[int] = Field(None, description="Related opportunity ID")
 
     @validator("activity_type")
-    def validate_activity_type(cls, v):
+    def validate_activity_type(cls, v: str) -> str:
         allowed_types = [
             "call",
             "email",
@@ -329,7 +329,7 @@ class CustomerActivityBase(BaseModel):
         return v
 
     @validator("status")
-    def validate_status(cls, v):
+    def validate_status(cls, v: str) -> str:
         allowed_statuses = ["planned", "completed", "canceled"]
         if v not in allowed_statuses:
             raise ValueError(f"Status must be one of: {', '.join(allowed_statuses)}")
@@ -451,10 +451,10 @@ class CustomerAnalytics(BaseModel):
     active_customers: int
     prospects: int
     inactive_customers: int
-    customers_by_industry: dict = Field(default_factory=dict)
-    customers_by_scale: dict = Field(default_factory=dict)
-    customers_by_type: dict = Field(default_factory=dict)
-    top_customers_by_sales: List[dict] = Field(default_factory=list)
+    customers_by_industry: Dict[str, Any] = Field(default_factory=dict)
+    customers_by_scale: Dict[str, Any] = Field(default_factory=dict)
+    customers_by_type: Dict[str, Any] = Field(default_factory=dict)
+    top_customers_by_sales: List[Dict[str, Any]] = Field(default_factory=list)
     recent_acquisitions: int
     average_customer_value: Decimal
 
@@ -472,9 +472,9 @@ class OpportunityAnalytics(BaseModel):
     weighted_pipeline_value: Decimal
     average_deal_size: Decimal
     win_rate: Decimal
-    opportunities_by_stage: dict = Field(default_factory=dict)
-    opportunities_by_source: dict = Field(default_factory=dict)
-    monthly_closed_deals: dict = Field(default_factory=dict)
+    opportunities_by_stage: Dict[str, Any] = Field(default_factory=dict)
+    opportunities_by_source: Dict[str, Any] = Field(default_factory=dict)
+    monthly_closed_deals: Dict[str, Any] = Field(default_factory=dict)
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -498,16 +498,16 @@ class CRMAnalytics(BaseModel):
     conversion_rate: Decimal
 
     # Pipeline analysis
-    by_stage: List[dict] = Field(
+    by_stage: List[Dict[str, Any]] = Field(
         default_factory=list, description="Opportunities by stage"
     )
-    by_source: List[dict] = Field(
+    by_source: List[Dict[str, Any]] = Field(
         default_factory=list, description="Opportunities by source"
     )
-    by_assigned_user: List[dict] = Field(
+    by_assigned_user: List[Dict[str, Any]] = Field(
         default_factory=list, description="Opportunities by user"
     )
-    monthly_trends: List[dict] = Field(
+    monthly_trends: List[Dict[str, Any]] = Field(
         default_factory=list, description="Monthly trends"
     )
 
@@ -524,15 +524,15 @@ class CustomerBulkCreate(BaseModel):
 class CustomerBulkUpdate(BaseModel):
     """Schema for bulk customer updates."""
 
-    updates: List[dict] = Field(..., description="List of update operations")
+    updates: List[Dict[str, Any]] = Field(..., description="List of update operations")
 
 
 class CustomerImport(BaseModel):
     """Schema for customer import operations."""
 
     file_format: str = Field(..., description="File format: csv/xlsx")
-    mapping: dict = Field(..., description="Field mapping configuration")
-    validation_rules: dict = Field(default_factory=dict, description="Validation rules")
+    mapping: Dict[str, Any] = Field(..., description="Field mapping configuration")
+    validation_rules: Dict[str, Any] = Field(default_factory=dict, description="Validation rules")
     import_mode: str = Field("create", description="Import mode: create/update/upsert")
 
 
