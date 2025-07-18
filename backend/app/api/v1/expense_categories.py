@@ -13,10 +13,8 @@ from app.core.database import get_db
 from app.models.user import User
 from app.schemas.expense_category import (
     ExpenseCategoryAnalytics,
-    ExpenseCategoryBulkCreate,
     ExpenseCategoryCreate,
     ExpenseCategoryResponse,
-    ExpenseCategoryTreeResponse,
     ExpenseCategoryUpdate,
 )
 from app.services.expense_category_service import ExpenseCategoryService
@@ -43,7 +41,7 @@ async def get_expense_categories(
     return categories
 
 
-@router.get("/tree", response_model=List[ExpenseCategoryTreeResponse])
+@router.get("/tree", response_model=List[ExpenseCategoryResponse])
 async def get_expense_category_tree(
     category_type: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
@@ -91,7 +89,7 @@ async def create_expense_category(
 
 @router.post("/bulk", response_model=List[ExpenseCategoryResponse])
 async def create_expense_categories_bulk(
-    categories_data: ExpenseCategoryBulkCreate,
+    categories_data: dict,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
