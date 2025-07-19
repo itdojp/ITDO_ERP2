@@ -54,6 +54,37 @@ def list_audit_logs(
 
 
 @router.get(
+    "/{audit_log_id}",
+    response_model=AuditLogDetail,
+    responses={
+        403: {"model": ErrorResponse, "description": "Permission denied"},
+        404: {"model": ErrorResponse, "description": "Audit log not found"},
+    },
+)
+def get_audit_log(
+    audit_log_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> AuditLogDetail:
+    """Get a specific audit log by ID."""
+    service = AuditLogService(db)
+
+    # Check permission
+    if not current_user.is_superuser:
+        # Regular users can only view their own logs
+        audit_log = service.get_audit_log_by_id(audit_log_id)
+        if not audit_log:
+            raise NotFound("Audit log not found")
+        if audit_log.user_id != current_user.id:
+            raise PermissionDenied("Cannot view other users' audit logs")
+
+    try:
+        return service.get_audit_log_by_id(audit_log_id)
+    except ValueError as e:
+        raise NotFound(str(e))
+
+
+@router.get(
     "/summary",
     response_model=AuditLogSummary,
     responses={

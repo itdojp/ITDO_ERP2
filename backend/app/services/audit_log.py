@@ -87,6 +87,28 @@ class AuditLogService:
 
         return result
 
+    def get_audit_log_by_id(self, audit_log_id: int) -> Optional[AuditLogDetail]:
+        """Get a specific audit log by ID."""
+        audit_log = self.db.query(AuditLog).filter(AuditLog.id == audit_log_id).first()
+        
+        if not audit_log:
+            return None
+            
+        return AuditLogDetail(
+            id=audit_log.id,
+            user_id=audit_log.user_id,
+            entity_type=audit_log.resource_type or "unknown",
+            entity_id=audit_log.entity_id,
+            action=audit_log.action,
+            description=audit_log.description or "",
+            changes=audit_log.new_values or {},
+            timestamp=audit_log.created_at,
+            ip_address=getattr(audit_log, 'ip_address', None),
+            user_agent=getattr(audit_log, 'user_agent', None),
+            category=self._determine_category(audit_log),
+            level=self._determine_level(audit_log),
+        )
+
     def get_audit_log_summary(self, filter: AuditLogFilter) -> AuditLogSummary:
         """Get audit log summary statistics."""
         query = self.db.query(AuditLog)

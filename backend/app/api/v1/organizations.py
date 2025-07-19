@@ -81,6 +81,35 @@ def get_organization_tree(
 
 
 @router.get(
+    "/{organization_id}/tree",
+    response_model=OrganizationTree,
+    responses={
+        401: {"model": ErrorResponse, "description": "Unauthorized"},
+        404: {"model": ErrorResponse, "description": "Organization not found"},
+    },
+)
+def get_organization_tree_by_id(
+    organization_id: int = Path(..., description="Organization ID"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> OrganizationTree | JSONResponse:
+    """Get organization hierarchy tree for a specific organization."""
+    service = OrganizationService(db)
+    
+    # Check if organization exists
+    organization = service.get_organization(organization_id)
+    if not organization:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Organization not found"
+        )
+    
+    # Get organization tree for this specific organization
+    tree = service.get_organization_tree_by_id(organization_id)
+    return tree
+
+
+@router.get(
     "/{organization_id}",
     response_model=OrganizationResponse,
     responses={

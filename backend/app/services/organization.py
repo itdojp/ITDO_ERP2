@@ -271,6 +271,30 @@ class OrganizationService:
 
         return [build_tree(root) for root in roots]
 
+    def get_organization_tree_by_id(self, organization_id: OrganizationId) -> OrganizationTree | None:
+        """Get organization hierarchy tree for a specific organization."""
+        organization = self.repository.get(organization_id)
+        if not organization:
+            return None
+
+        def build_tree(org: Organization, level: int = 0) -> OrganizationTree:
+            """Build tree recursively."""
+            children = []
+            for sub in self.repository.get_subsidiaries(org.id):
+                children.append(build_tree(sub, level + 1))
+
+            return OrganizationTree(
+                id=org.id,
+                code=org.code,
+                name=org.name,
+                is_active=org.is_active,
+                level=level,
+                parent_id=org.parent_id,
+                children=children,
+            )
+
+        return build_tree(organization)
+
     def user_has_permission(
         self,
         user_id: UserId,

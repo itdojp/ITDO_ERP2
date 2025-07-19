@@ -6,7 +6,7 @@ from datetime import datetime
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Optional
 
-from sqlalchemy import DateTime, ForeignKey, Integer, JSON, String, Text, func
+from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import BaseModel
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 class SecurityEventType(str, Enum):
     """Security event types for monitoring."""
-    
+
     LOGIN_SUCCESS = "login_success"
     LOGIN_FAILURE = "login_failure"
     LOGOUT = "logout"
@@ -38,7 +38,7 @@ class SecurityEventType(str, Enum):
 
 class RiskLevel(str, Enum):
     """Risk levels for security events."""
-    
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -65,16 +65,16 @@ class SecurityAuditLog(BaseModel):
     organization_id: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey("organizations.id"), index=True
     )
-    
+
     # Security context
     ip_address: Mapped[Optional[str]] = mapped_column(String(45), index=True)
     user_agent: Mapped[Optional[str]] = mapped_column(Text)
     session_id: Mapped[Optional[str]] = mapped_column(String(128), index=True)
-    
+
     # Event details
     description: Mapped[str] = mapped_column(Text, nullable=False)
     details: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
-    
+
     # Detection and response
     detection_method: Mapped[Optional[str]] = mapped_column(String(100))
     is_automated_detection: Mapped[bool] = mapped_column(default=False)
@@ -85,7 +85,7 @@ class SecurityAuditLog(BaseModel):
     )
     resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     resolution_notes: Mapped[Optional[str]] = mapped_column(Text)
-    
+
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), index=True
@@ -127,19 +127,19 @@ class SecurityAlert(BaseModel):
     )
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     message: Mapped[str] = mapped_column(Text, nullable=False)
-    
+
     # Notification
     is_sent: Mapped[bool] = mapped_column(default=False, index=True)
     sent_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     recipients: Mapped[list[str]] = mapped_column(JSON, default=list)
-    
+
     # Response
     is_acknowledged: Mapped[bool] = mapped_column(default=False, index=True)
     acknowledged_by: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey("users.id"), nullable=True
     )
     acknowledged_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
-    
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), index=True
     )
