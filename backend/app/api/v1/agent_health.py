@@ -1,9 +1,10 @@
 """Agent Health Check API endpoints."""
 
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -23,7 +24,7 @@ async def get_comprehensive_health(db: Session = Depends(get_db)) -> Dict[str, A
 
         # Database connectivity check
         try:
-            db.execute("SELECT 1")
+            db.execute(text("SELECT 1"))
             checks["database"] = {
                 "status": "healthy",
                 "details": "Database connection successful",
@@ -68,7 +69,7 @@ async def get_comprehensive_health(db: Session = Depends(get_db)) -> Dict[str, A
 async def get_agent_status() -> List[Dict[str, Any]]:
     """Get status of all known agents (CC01, CC02, CC03)."""
     # Agent status definitions based on Issue #132
-    agents = [
+    agents: List[Dict[str, Any]] = [
         {
             "agent_id": "CC01",
             "name": "Primary Agent",
@@ -185,7 +186,7 @@ async def get_system_metrics() -> Dict[str, Any]:
     # Integration with multi-environment setup from Issue #147
     environments = ["dev", "staging", "prod"]
 
-    metrics = {
+    metrics: Dict[str, Any] = {
         "timestamp": datetime.utcnow().isoformat(),
         "environments": {},
         "overall": {
@@ -215,11 +216,11 @@ async def get_system_metrics() -> Dict[str, Any]:
 # Enhanced Agent Monitoring for Issue #155 MON-001
 @router.get("/health/agents/activity-log")
 async def get_agent_activity_log(
-    agent_id: str = None, hours: int = 24, db: Session = Depends(get_db)
+    agent_id: Optional[str] = None, hours: int = 24, db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """Get agent activity log for burnout prevention and workload analysis."""
     # Simulate comprehensive activity monitoring
-    activity_data = {
+    activity_data: Dict[str, Any] = {
         "summary": {
             "total_activities": 147,
             "github_api_calls": 89,

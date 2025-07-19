@@ -158,11 +158,13 @@ def db_session() -> Generator[Session]:
     try:
         yield session
     except Exception:
-        transaction.rollback()
+        if transaction.is_active:
+            transaction.rollback()
         raise
     finally:
         session.close()
-        transaction.rollback()
+        if transaction.is_active:
+            transaction.rollback()
         connection.close()
 
 
@@ -220,11 +222,24 @@ def admin_token(test_admin):
 
 
 @pytest.fixture
-def client():
-    """Create a test client."""
+def client(db_session: Session):
+    """Create a test client with database dependency override."""
     from app.main import app
+    from app.core.database import get_db
 
-    return TestClient(app)
+    def override_get_db():
+        try:
+            yield db_session
+        finally:
+            pass
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    with TestClient(app) as test_client:
+        yield test_client
+
+    # Clean up dependency override
+    app.dependency_overrides.clear()
 
 
 def create_auth_headers(token: str) -> dict[str, str]:

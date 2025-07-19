@@ -9,13 +9,18 @@ from app.api.v1 import (
     auth,
     budgets,
     cross_tenant_permissions,
-    # customer_activities,  # Disable if needed
-    # customers,  # Disable if needed
+    customer_activities,
+    customers,
+    data_export,
     departments,
-    # expense_categories,  # Disable if needed
+    expense_categories,
+    expenses,
+    file_upload,
+    financial_reports,
     health,
     multi_tenant,
-    # opportunities,  # Disabled due to auth import issue
+    notifications,
+    opportunities,
     organizations,
     # permission_inheritance,  # Temporarily disabled due to syntax errors
     permission_management,
@@ -23,6 +28,7 @@ from app.api.v1 import (
     reports,
     # role_permission_ui,  # Temporarily disabled due to syntax errors
     roles,
+    security_audit,
     tasks,
     user_preferences,
     user_privacy,
@@ -81,11 +87,23 @@ api_router.include_router(opportunities.router, prefix="/opportunities", tags=["
 api_router.include_router(
     expense_categories.router, prefix="/expense-categories", tags=["financial"]
 )
+api_router.include_router(expenses.router, prefix="/expenses", tags=["financial"])
+api_router.include_router(
+    financial_reports.router, prefix="/financial-reports", tags=["financial"]
+)
 api_router.include_router(workflows.router, prefix="/workflows", tags=["workflow"])
 api_router.include_router(
     applications.router, prefix="/applications", tags=["workflow"]
 )
 api_router.include_router(reports.router, prefix="/reports", tags=["analytics"])
+
+# Issue #288 Service Layer APIs  
+api_router.include_router(notifications.router, prefix="/notifications", tags=["notifications"])
+api_router.include_router(file_upload.router, prefix="/files", tags=["file-management"])
+api_router.include_router(data_export.router, prefix="/export", tags=["data-export"])
+
+# Issue #46 Security Audit and Monitoring
+api_router.include_router(security_audit.router, prefix="/security", tags=["security"])
 
 
 @api_router.get("/ping")

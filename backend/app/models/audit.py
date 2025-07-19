@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional
 
 from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -48,8 +48,8 @@ class AuditLog(BaseModel):
     )
 
     # Relationships
-    user = relationship("User", foreign_keys=[user_id], lazy="joined")
-    organization = relationship(
+    user: Mapped[Optional["User"]] = relationship("User", foreign_keys=[user_id], lazy="joined")
+    organization: Mapped[Optional["Organization"]] = relationship(
         "Organization", foreign_keys=[organization_id], lazy="select"
     )
 

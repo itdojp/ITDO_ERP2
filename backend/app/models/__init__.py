@@ -20,6 +20,15 @@ from app.models.department import Department
 # Phase 4-7 Models
 from app.models.expense import Expense, ExpenseApprovalFlow
 from app.models.expense_category import ExpenseCategory
+from app.models.notification import (
+    Notification,
+    NotificationChannel,
+    NotificationPreferences,
+    NotificationQueue,
+    NotificationStatus,
+    NotificationType,
+    WebhookEndpoint,
+)
 from app.models.organization import Organization
 from app.models.password_history import PasswordHistory
 from app.models.permission import Permission
@@ -33,6 +42,7 @@ from app.models.project import Project
 from app.models.project_member import ProjectMember
 from app.models.project_milestone import ProjectMilestone
 from app.models.role import Role, RolePermission, UserRole
+from app.models.security_audit import SecurityAlert, SecurityAuditLog
 from app.models.task import Task, TaskDependency, TaskHistory
 from app.models.user import User
 from app.models.user_activity_log import UserActivityLog
@@ -87,6 +97,13 @@ __all__ = [
     "ExpenseCategory",
     "Expense",
     "ExpenseApprovalFlow",
+    "Notification",
+    "NotificationPreferences",
+    "NotificationQueue",
+    "WebhookEndpoint",
+    "NotificationType",
+    "NotificationChannel",
+    "NotificationStatus",
     "Customer",
     "CustomerContact",
     "Opportunity",
@@ -102,4 +119,6 @@ __all__ = [
     "DashboardWidget",
     "ReportExecution",
     "DataSource",
+    "SecurityAuditLog",
+    "SecurityAlert",
 ]

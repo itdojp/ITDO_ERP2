@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, Optional
 
 from sqlalchemy import Date, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -50,8 +50,8 @@ class Project(SoftDeletableModel):
     actual_cost: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     # Relationships
-    organization = relationship("Organization", lazy="select")
-    department = relationship("Department", lazy="select")
+    organization: Mapped["Organization"] = relationship("Organization", lazy="select")
+    department: Mapped[Optional["Department"]] = relationship("Department", lazy="select")
     owner: Mapped["User"] = relationship("User", foreign_keys=[owner_id], lazy="joined")
 
     # Task relationship

@@ -67,6 +67,7 @@ class Permission(BaseModel):
         back_populates="permissions",
         primaryjoin="Permission.id == RolePermission.permission_id",
         secondaryjoin="RolePermission.role_id == Role.id",
+        overlaps="role_permissions",
     )
 
     # Permission dependencies

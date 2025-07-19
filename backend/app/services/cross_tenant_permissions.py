@@ -17,6 +17,7 @@ from app.models.user_organization import UserOrganization
 from app.schemas.cross_tenant_permissions import (
     BatchCrossTenantPermissionResult,
     CrossTenantPermissionResult,
+    CrossTenantPermissionRule as CrossTenantPermissionRuleSchema,
     CrossTenantPermissionRuleCreate,
     CrossTenantPermissionRuleUpdate,
     OrganizationCrossTenantSummary,
@@ -127,6 +128,9 @@ class CrossTenantPermissionService:
             .first()
         )
 
+        if not source_org:
+            raise NotFound("Source organization not found")
+
         if not self._can_manage_cross_tenant_rules(updated_by, source_org):
             raise PermissionDenied(
                 "Insufficient permissions to update cross-tenant rules"
@@ -165,6 +169,9 @@ class CrossTenantPermissionService:
             .filter(Organization.id == rule.source_organization_id)
             .first()
         )
+
+        if not source_org:
+            raise NotFound("Source organization not found")
 
         if not self._can_manage_cross_tenant_rules(deleted_by, source_org):
             raise PermissionDenied(
@@ -245,6 +252,11 @@ class CrossTenantPermissionService:
                     reason = f"Denied by rule {rule.id}: {rule.permission_pattern}"
                     break
 
+        # Convert model objects to schema objects for matching_rules
+        schema_matching_rules = [
+            self._model_to_schema_rule(rule) for rule in matching_rules
+        ]
+
         result = CrossTenantPermissionResult(
             user_id=user_id,
             source_organization_id=source_organization_id,
@@ -252,7 +264,7 @@ class CrossTenantPermissionService:
             permission=permission,
             allowed=allowed,
             reason=reason,
-            matching_rules=matching_rules,
+            matching_rules=schema_matching_rules,
         )
 
         if log_check:
@@ -593,3 +605,22 @@ class CrossTenantPermissionService:
 
         self.db.add(log_entry)
         self.db.commit()
+
+    def _model_to_schema_rule(
+        self, rule: CrossTenantPermissionRule
+    ) -> CrossTenantPermissionRuleSchema:
+        """Convert a model rule to a schema rule."""
+        return CrossTenantPermissionRuleSchema(
+            id=rule.id,
+            source_organization_id=rule.source_organization_id,
+            target_organization_id=rule.target_organization_id,
+            permission_pattern=rule.permission_pattern,
+            rule_type=rule.rule_type,
+            priority=rule.priority,
+            is_active=rule.is_active,
+            created_by=rule.created_by,
+            created_at=rule.created_at,
+            updated_at=rule.updated_at,
+            expires_at=rule.expires_at,
+            notes=rule.notes,
+        )

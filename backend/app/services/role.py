@@ -572,6 +572,9 @@ class RoleService:
             ],
         )
 
+        if user_role_with_relations is None:
+            raise ValueError(f"UserRole with id {user_role.id} not found")
+
         # Use the new factory method to properly handle relationships
         from app.schemas.role import UserRoleInfo
 

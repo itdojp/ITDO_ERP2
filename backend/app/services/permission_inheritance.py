@@ -1,3 +1,4 @@
+# mypy: disable-error-code="import-untyped"
 """Permission inheritance service implementation."""
 
 from typing import Any
@@ -383,7 +384,7 @@ class PermissionInheritanceService:
             .first()
         )
 
-        if existing_rp:
+        if existing_rp and final_decision is not None:
             existing_rp.is_granted = final_decision
 
         else:

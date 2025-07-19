@@ -12,6 +12,7 @@ from app.models.base import SoftDeletableModel
 
 if TYPE_CHECKING:
     from app.models.department import Department
+    from app.models.notification import Notification, NotificationPreferences
     from app.models.organization import Organization
     from app.models.role import Role, UserRole
     from app.models.task import Task
@@ -65,9 +66,13 @@ class User(SoftDeletableModel):
         primaryjoin="User.id == UserRole.user_id",
         secondaryjoin="UserRole.role_id == Role.id",
         back_populates="users",
+        overlaps="user,role,user_roles",
     )
     user_roles: Mapped[list["UserRole"]] = relationship(
-        "UserRole", back_populates="user", foreign_keys="UserRole.user_id"
+        "UserRole",
+        back_populates="user",
+        foreign_keys="UserRole.user_id",
+        overlaps="roles,users",
     )
     password_history: Mapped[list["PasswordHistory"]] = relationship(
         "PasswordHistory", back_populates="user", cascade="all, delete-orphan"
@@ -106,6 +111,20 @@ class User(SoftDeletableModel):
         "UserOrganization",
         foreign_keys="UserOrganization.user_id",
         back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
+    # Notification relationships
+    notifications: Mapped[list["Notification"]] = relationship(
+        "Notification",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        order_by="desc(Notification.created_at)",
+    )
+    notification_preferences: Mapped["NotificationPreferences | None"] = relationship(
+        "NotificationPreferences",
+        back_populates="user",
+        uselist=False,
         cascade="all, delete-orphan",
     )
 
@@ -603,6 +622,27 @@ class User(SoftDeletableModel):
         online_threshold = now - timedelta(minutes=15)
 
         return self.last_login_at > online_threshold
+
+    @property
+    def organization_id(self) -> int | None:
+        """Get primary organization ID for the user."""
+        # Return the first active organization from user_organizations
+        if hasattr(self, "user_organizations") and self.user_organizations:
+            active_orgs = [
+                uo
+                for uo in self.user_organizations
+                if hasattr(uo, "is_active") and uo.is_active
+            ]
+            if active_orgs and hasattr(active_orgs[0], "organization_id"):
+                return int(active_orgs[0].organization_id)
+
+        # Fallback: if user has a department_id, get department's organization
+        if self.department_id:
+            # This would require a database query to get the actual department
+            # For now, return None as this requires additional context
+            pass
+
+        return None
 
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email={self.email})>"

@@ -4,20 +4,24 @@ Customer Service for CRM functionality.
 """
 
 from datetime import datetime
-from typing import List, Optional
+from decimal import Decimal
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy import and_, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.customer import Customer
+from app.models.customer import Customer, CustomerActivity
 from app.schemas.customer import (
+    CustomerActivityResponse,
     CustomerAnalytics,
     CustomerBulkCreate,
+    CustomerContactResponse,
     CustomerCreate,
     CustomerDetailResponse,
     CustomerResponse,
     CustomerUpdate,
+    OpportunityResponse,
 )
 
 
@@ -54,13 +58,13 @@ class CustomerService:
             query = query.where(Customer.industry == industry)
 
         if sales_rep_id:
-            query = query.where(Customer.sales_rep_id == sales_rep_id)
+            query = query.where(Customer.assigned_to == sales_rep_id)
 
         if search:
             search_term = f"%{search}%"
             query = query.where(
-                Customer.name.ilike(search_term)
-                | Customer.code.ilike(search_term)
+                Customer.company_name.ilike(search_term)
+                | Customer.customer_code.ilike(search_term)
                 | Customer.email.ilike(search_term)
             )
 
@@ -88,7 +92,7 @@ class CustomerService:
             .options(
                 selectinload(Customer.contacts),
                 selectinload(Customer.opportunities),
-                selectinload(Customer.activities).selectinload("CustomerActivity.user"),
+                selectinload(Customer.activities).selectinload(CustomerActivity.user),
             )
         )
 
@@ -104,12 +108,17 @@ class CustomerService:
             return CustomerDetailResponse(
                 **customer.__dict__,
                 contacts=[
-                    contact for contact in customer.contacts if not contact.deleted_at
+                    CustomerContactResponse.model_validate(contact)
+                    for contact in customer.contacts if not contact.deleted_at
                 ],
                 opportunities=[
-                    opp for opp in customer.opportunities if not opp.deleted_at
+                    OpportunityResponse.model_validate(opp)
+                    for opp in customer.opportunities if not opp.deleted_at
                 ],
-                recent_activities=recent_activities,
+                recent_activities=[
+                    CustomerActivityResponse.model_validate(activity)
+                    for activity in recent_activities
+                ],
             )
         return None
 
@@ -118,9 +127,9 @@ class CustomerService:
     ) -> CustomerResponse:
         """顧客新規作成"""
         # 重複チェック
-        existing = await self._check_duplicate_code(customer_data.code, organization_id)
+        existing = await self._check_duplicate_code(customer_data.customer_code, organization_id)
         if existing:
-            raise ValueError(f"Customer code '{customer_data.code}' already exists")
+            raise ValueError(f"Customer code '{customer_data.customer_code}' already exists")
 
         customer = Customer(
             organization_id=organization_id, **customer_data.model_dump()
@@ -141,7 +150,7 @@ class CustomerService:
         for customer_data in customers_data.customers:
             # 重複チェック
             existing = await self._check_duplicate_code(
-                customer_data.code, organization_id
+                customer_data.customer_code, organization_id
             )
             if existing:
                 continue  # スキップ
@@ -179,12 +188,12 @@ class CustomerService:
             return None
 
         # コード重複チェック（自分以外）
-        if customer_data.code and customer_data.code != customer.code:
+        if hasattr(customer_data, 'customer_code') and customer_data.customer_code and customer_data.customer_code != customer.customer_code:
             existing = await self._check_duplicate_code(
-                customer_data.code, organization_id, exclude_id=customer_id
+                customer_data.customer_code, organization_id, exclude_id=customer_id
             )
             if existing:
-                raise ValueError(f"Customer code '{customer_data.code}' already exists")
+                raise ValueError(f"Customer code '{customer_data.customer_code}' already exists")
 
         # 更新
         for field, value in customer_data.model_dump(exclude_unset=True).items():
@@ -237,7 +246,7 @@ class CustomerService:
         if not customer:
             return False
 
-        customer.sales_rep_id = sales_rep_id
+        customer.assigned_to = sales_rep_id
         customer.updated_at = datetime.utcnow()
 
         await self.db.commit()
@@ -249,7 +258,7 @@ class CustomerService:
         organization_id: int,
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
-    ) -> Optional[dict]:
+    ) -> Optional[Dict[str, Any]]:
         """顧客売上サマリー"""
         query = select(Customer).where(
             and_(
@@ -294,7 +303,7 @@ class CustomerService:
             base_query = base_query.where(Customer.industry == industry)
 
         if sales_rep_id:
-            base_query = base_query.where(Customer.sales_rep_id == sales_rep_id)
+            base_query = base_query.where(Customer.assigned_to == sales_rep_id)
 
         # 基本統計
         total_query = select(func.count(Customer.id)).where(
@@ -370,22 +379,34 @@ class CustomerService:
         top_customers_data = [
             {
                 "id": customer.id,
-                "name": customer.name,
+                "name": customer.company_name,
                 "total_sales": customer.total_sales,
                 "total_transactions": customer.total_transactions,
             }
             for customer in top_customers
         ]
 
+        # 平均顧客価値を計算
+        avg_value_query = select(func.avg(Customer.total_sales)).where(
+            and_(
+                Customer.organization_id == organization_id,
+                Customer.deleted_at.is_(None),
+                Customer.total_sales > 0,
+            )
+        )
+        avg_value_result = await self.db.execute(avg_value_query)
+        average_customer_value = avg_value_result.scalar() or Decimal("0.00")
+
         return CustomerAnalytics(
-            total_customers=total_customers,
-            active_customers=status_stats.get("active", 0),
-            prospects=status_stats.get("prospect", 0),
-            inactive_customers=status_stats.get("inactive", 0),
+            total_customers=total_customers or 0,
+            active_customers=status_stats.get("active") or 0,
+            prospects=status_stats.get("prospect") or 0,
+            inactive_customers=status_stats.get("inactive") or 0,
             customers_by_industry=industry_stats,
             customers_by_scale=scale_stats,
             top_customers_by_sales=top_customers_data,
             recent_acquisitions=0,  # 新規獲得数（実装時）
+            average_customer_value=average_customer_value,
         )
 
     async def _check_duplicate_code(
@@ -394,7 +415,7 @@ class CustomerService:
         """コード重複チェック"""
         query = select(Customer).where(
             and_(
-                Customer.code == code,
+                Customer.customer_code == code,
                 Customer.organization_id == organization_id,
                 Customer.deleted_at.is_(None),
             )

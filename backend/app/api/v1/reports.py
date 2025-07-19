@@ -147,7 +147,7 @@ async def download_report(
     execution_id: int,
     format: str = Query("excel", regex="^(csv|excel|pdf)$"),
     db: Session = Depends(get_db),
-):
+) -> Any:
     """Download report in specified format."""
     service = ReportService(db)
     file_response = await service.download_report(execution_id, format)

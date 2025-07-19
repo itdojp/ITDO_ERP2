@@ -4,7 +4,7 @@ Customer Activity Service for CRM functionality.
 """
 
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy import and_, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -265,7 +265,7 @@ class CustomerActivityService:
         user_id: Optional[int] = None,
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
-    ) -> dict:
+    ) -> Dict[str, Any]:
         """活動サマリーレポート"""
         base_query = (
             select(CustomerActivity)

@@ -10,7 +10,6 @@ from app.core.dependencies import get_current_active_user, get_db
 from app.core.exceptions import NotFound, PermissionDenied
 from app.models.user import User
 from app.schemas.audit import (
-    AuditLogFilter,
     AuditLogListResponse,
     AuditLogSearch,
     AuditLogStats,
@@ -37,24 +36,21 @@ def get_organization_audit_logs(
     db: Session = Depends(get_db),
 ) -> AuditLogListResponse:
     """Get audit logs for an organization."""
-    # Create filter params
-    filter_params = AuditLogFilter(
-        user_id=user_id,
-        action=action,
-        resource_type=resource_type,
-        resource_id=resource_id,
-        date_from=date_from,
-        date_to=date_to,
-    )
+    service = AuditService()
 
-    service = AuditService(db)
     try:
         return service.get_organization_audit_logs(
             organization_id=organization_id,
             requester=current_user,
+            db=db,
             limit=limit,
             offset=offset,
-            filter_params=filter_params,
+            user_id=user_id,
+            action=action,
+            resource_type=resource_type,
+            resource_id=resource_id,
+            date_from=date_from,
+            date_to=date_to,
         )
     except PermissionDenied:
         raise HTTPException(
@@ -76,9 +72,9 @@ def search_audit_logs(
     # Ensure organization ID matches
     search_params.organization_id = organization_id
 
-    service = AuditService(db)
+    service = AuditService()
     try:
-        return service.search_audit_logs(search_params, current_user)
+        return service.search_audit_logs(search_params, current_user, db)
     except PermissionDenied:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -95,13 +91,14 @@ def get_audit_statistics(
     db: Session = Depends(get_db),
 ) -> AuditLogStats:
     """Get audit log statistics for an organization."""
-    service = AuditService(db)
+    service = AuditService()
     try:
         return service.get_audit_statistics(
             organization_id=organization_id,
             date_from=date_from,
             date_to=date_to,
             requester=current_user,
+            db=db,
         )
     except PermissionDenied:
         raise HTTPException(
@@ -123,7 +120,7 @@ def export_audit_logs(
     db: Session = Depends(get_db),
 ) -> Response:
     """Export audit logs as CSV."""
-    service = AuditService(db)
+    service = AuditService()
     try:
         csv_data = service.export_audit_logs_csv(
             organization_id=organization_id,
@@ -153,7 +150,7 @@ def verify_log_integrity(
     db: Session = Depends(get_db),
 ) -> Dict[str, bool]:
     """Verify the integrity of a single audit log."""
-    service = AuditService(db)
+    service = AuditService()
     try:
         is_valid = service.verify_log_integrity(log_id, current_user)
         return {"valid": is_valid}
@@ -192,9 +189,9 @@ def get_recent_activity(
         sort_order="desc",
     )
 
-    service = AuditService(db)
+    service = AuditService()
     try:
-        return service.search_audit_logs(search_params, current_user)
+        return service.search_audit_logs(search_params, current_user, db)
     except PermissionDenied:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

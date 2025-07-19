@@ -35,9 +35,11 @@ async def get_opportunities(
     limit: int = Query(100, ge=1, le=1000),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> List[OpportunityResponse]:
     """商談一覧取得"""
     service = OpportunityService(db)
+    if current_user.organization_id is None:
+        raise HTTPException(status_code=400, detail="User must belong to an organization")
     opportunities = await service.get_opportunities(
         organization_id=current_user.organization_id,
         customer_id=customer_id,

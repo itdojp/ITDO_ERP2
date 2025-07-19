@@ -6,6 +6,8 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, validator
 
+from app.schemas.base import BaseResponse
+
 
 class ExpenseCategoryBase(BaseModel):
     """Base schema for expense categories."""
@@ -141,20 +143,20 @@ class BudgetBase(BaseModel):
     )
 
     @validator("end_date")
-    def validate_end_date(cls, v, values):
+    def validate_end_date(cls, v: date, values: Dict[str, Any]) -> date:
         if "start_date" in values and v <= values["start_date"]:
             raise ValueError("End date must be after start date")
         return v
 
     @validator("budget_type")
-    def validate_budget_type(cls, v):
+    def validate_budget_type(cls, v: str) -> str:
         allowed_types = ["project", "department", "annual", "quarterly", "monthly"]
         if v not in allowed_types:
             raise ValueError(f"Budget type must be one of: {', '.join(allowed_types)}")
         return v
 
     @validator("budget_period")
-    def validate_budget_period(cls, v):
+    def validate_budget_period(cls, v: str) -> str:
         allowed_periods = ["annual", "quarterly", "monthly"]
         if v not in allowed_periods:
             raise ValueError(
@@ -198,7 +200,9 @@ class BudgetUpdate(BaseModel):
     department_id: Optional[int] = Field(None, description="Department ID")
 
     @validator("end_date")
-    def validate_end_date(cls, v, values):
+    def validate_end_date(
+        cls, v: Optional[date], values: Dict[str, Any]
+    ) -> Optional[date]:
         if (
             v
             and "start_date" in values
@@ -237,10 +241,14 @@ class BudgetResponse(BudgetBase):
     progress_percentage: Decimal
 
     # Relationships
-    organization: Optional[dict] = Field(None, description="Organization details")
-    project: Optional[dict] = Field(None, description="Project details")
-    department: Optional[dict] = Field(None, description="Department details")
-    approved_by_user: Optional[dict] = Field(None, description="Approver details")
+    organization: Optional[Dict[str, Any]] = Field(
+        None, description="Organization details"
+    )
+    project: Optional[Dict[str, Any]] = Field(None, description="Project details")
+    department: Optional[Dict[str, Any]] = Field(None, description="Department details")
+    approved_by_user: Optional[Dict[str, Any]] = Field(
+        None, description="Approver details"
+    )
     budget_items: List[BudgetItemResponse] = Field(
         default_factory=list, description="Budget items"
     )
@@ -258,7 +266,7 @@ class BudgetStatusUpdate(BaseModel):
     comments: Optional[str] = Field(None, description="Comments for the action")
 
     @validator("action")
-    def validate_action(cls, v):
+    def validate_action(cls, v: str) -> str:
         allowed_actions = ["submit", "approve", "reject", "activate", "close"]
         if v not in allowed_actions:
             raise ValueError(f"Action must be one of: {', '.join(allowed_actions)}")
@@ -278,12 +286,12 @@ class BudgetVarianceReport(BaseModel):
     total_variance_percentage: Decimal
 
     # Item-level variances
-    item_variances: List[dict] = Field(
+    item_variances: List[Dict[str, Any]] = Field(
         default_factory=list, description="Item-level variance details"
     )
 
     # Summary by category
-    category_summary: List[dict] = Field(
+    category_summary: List[Dict[str, Any]] = Field(
         default_factory=list, description="Variance summary by category"
     )
 
@@ -305,12 +313,12 @@ class BudgetUtilizationReport(BaseModel):
     utilization_percentage: Decimal
 
     # Time-based utilization
-    monthly_utilization: List[dict] = Field(
+    monthly_utilization: List[Dict[str, Any]] = Field(
         default_factory=list, description="Monthly utilization"
     )
 
     # Category-based utilization
-    category_utilization: List[dict] = Field(
+    category_utilization: List[Dict[str, Any]] = Field(
         default_factory=list, description="Category utilization"
     )
 
@@ -330,7 +338,7 @@ class BudgetAlertSettings(BaseModel):
     )
 
     @validator("notification_emails")
-    def validate_emails(cls, v):
+    def validate_emails(cls, v: List[str]) -> List[str]:
         # Basic email validation
         import re
 
@@ -398,7 +406,7 @@ class BudgetApprovalRequest(BaseModel):
     )
 
     @validator("action")
-    def validate_action(cls, v):
+    def validate_action(cls, v: str) -> str:
         valid_actions = ["approve", "reject", "request_changes"]
         if v not in valid_actions:
             raise ValueError(f"Action must be one of {valid_actions}")
@@ -415,12 +423,12 @@ class BudgetSummary(BaseModel):
     total_variance_percentage: Decimal
 
     # Status breakdown
-    status_breakdown: dict = Field(
+    status_breakdown: Dict[str, Any] = Field(
         default_factory=dict, description="Budget count by status"
     )
 
     # Type breakdown
-    type_breakdown: dict = Field(
+    type_breakdown: Dict[str, Any] = Field(
         default_factory=dict, description="Budget count by type"
     )
 
