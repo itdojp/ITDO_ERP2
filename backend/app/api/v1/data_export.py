@@ -14,7 +14,7 @@ from fastapi import (
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
-from app.api.dependencies import get_current_user, get_db
+from app.core.dependencies import get_current_user, get_db
 from app.models.user import User
 from app.schemas.data_export import (
     BulkExportRequest,

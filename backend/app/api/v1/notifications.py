@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from app.api.dependencies import get_current_user, get_db
+from app.core.dependencies import get_current_user, get_db
 from app.models.user import User
 from app.schemas.notification import (
     BulkNotificationCreate,
@@ -14,7 +14,6 @@ from app.schemas.notification import (
     NotificationPreferencesUpdate,
     NotificationQueueCreate,
     NotificationResponse,
-    NotificationUpdateRequest,
 )
 from app.services.notification import NotificationService
 

@@ -420,9 +420,9 @@ class NotificationSort(BaseModel):
     """Schema for sorting notifications."""
 
     sort_by: str = Field(
-        default="created_at", regex="^(created_at|priority|status|notification_type)$"
+        default="created_at", pattern="^(created_at|priority|status|notification_type)$"
     )
-    sort_order: str = Field(default="desc", regex="^(asc|desc)$")
+    sort_order: str = Field(default="desc", pattern="^(asc|desc)$")
 
 
 # Email-specific schemas
@@ -432,7 +432,7 @@ class EmailNotificationData(BaseModel):
     """Schema for email notification data."""
 
     to_email: str = Field(
-        ..., regex=r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+        ..., pattern=r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
     )
     subject: str = Field(..., min_length=1, max_length=255)
     html_content: str = Field(..., min_length=1)
