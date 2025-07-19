@@ -48,8 +48,8 @@ class AuditLog(BaseModel):
     )
 
     # Relationships
-    user = relationship("User", foreign_keys=[user_id], lazy="joined")
-    organization = relationship(
+    user: Mapped[Optional["User"]] = relationship("User", foreign_keys=[user_id], lazy="joined")
+    organization: Mapped[Optional["Organization"]] = relationship(
         "Organization", foreign_keys=[organization_id], lazy="select"
     )
 

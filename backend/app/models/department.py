@@ -164,7 +164,7 @@ class Department(SoftDeletableModel):
     manager: Mapped[Optional["User"]] = relationship(
         "User", foreign_keys=[manager_id], lazy="joined"
     )
-    users = relationship(
+    users: Mapped[list["User"]] = relationship(
         "User",
         secondary="user_roles",
         primaryjoin="Department.id == UserRole.department_id",
