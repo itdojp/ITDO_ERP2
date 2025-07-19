@@ -2,6 +2,7 @@
 
 import io
 from datetime import UTC, datetime
+from typing import Literal, cast
 
 import pytz
 from PIL import Image
@@ -183,9 +184,9 @@ class UserProfileService:
             language=prefs.language,
             timezone=prefs.timezone,
             date_format=prefs.date_format,
-            time_format="24h"
+            time_format=cast(Literal["12h", "24h"], "24h")
             if prefs.time_format not in ["12h", "24h"]
-            else prefs.time_format,
+            else cast(Literal["12h", "24h"], prefs.time_format),
             notification_email=prefs.notifications_email,
             notification_push=prefs.notifications_push,
             updated_at=prefs.updated_at,
@@ -253,9 +254,9 @@ class UserProfileService:
             language=prefs.language,
             timezone=prefs.timezone,
             date_format=prefs.date_format,
-            time_format="24h"
+            time_format=cast(Literal["12h", "24h"], "24h")
             if prefs.time_format not in ["12h", "24h"]
-            else prefs.time_format,
+            else cast(Literal["12h", "24h"], prefs.time_format),
             notification_email=prefs.notifications_email,
             notification_push=prefs.notifications_push,
             updated_at=prefs.updated_at,

@@ -1,7 +1,7 @@
 """Permission Matrix implementation for hierarchical role-based access control."""
 
 from enum import Enum
-from typing import Dict, Optional, Set, Union
+from typing import Any, Dict, Optional, Set, Union
 
 from app.models.user import User
 
@@ -135,7 +135,7 @@ class PermissionMatrix:
         },
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize permission matrix."""
         self._permission_cache: Dict[str, Set[str]] = {}
         self._build_permission_cache()
@@ -272,7 +272,7 @@ class PermissionMatrix:
             for ur in user.user_roles
             if ur.organization_id == organization_id
             and (department_id is None or ur.department_id == department_id)
-            and not ur.is_expired()
+            and not ur.is_expired
         ]
 
         if not user_roles:
@@ -343,7 +343,7 @@ class PermissionMatrix:
 
     def get_all_permissions(
         self, level: Union[str, PermissionLevel]
-    ) -> Dict[str, Set[str]]:
+    ) -> Dict[str, Union[Set[str], Dict[str, Set[str]]]]:
         """
         Get all permissions (base + context-specific) for a level.
 
@@ -356,11 +356,14 @@ class PermissionMatrix:
         if isinstance(level, str):
             level = PermissionLevel(level)
 
-        result = {"base": self.get_permissions_for_level(level), "contexts": {}}
-
+        contexts: Dict[str, Set[str]] = {}
         for context in self.CONTEXT_PERMISSIONS.keys():
-            result["contexts"][context] = self.get_context_permissions(level, context)
+            contexts[context] = self.get_context_permissions(level, context)
 
+        result: Dict[str, Union[Set[str], Dict[str, Set[str]]]] = {
+            "base": self.get_permissions_for_level(level),
+            "contexts": contexts
+        }
         return result
 
     def validate_permission_hierarchy(self) -> bool:
@@ -411,14 +414,14 @@ class PermissionMatrix:
             "common": perms1 & perms2,
         }
 
-    def generate_permission_report(self) -> Dict[str, any]:
+    def generate_permission_report(self) -> Dict[str, Any]:
         """
         Generate a comprehensive permission report.
 
         Returns:
             Dictionary with permission matrix information
         """
-        report = {
+        report: Dict[str, Any] = {
             "hierarchy": [level.value for level in self.PERMISSION_HIERARCHY],
             "levels": {},
             "validation": self.validate_permission_hierarchy(),

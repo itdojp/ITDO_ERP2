@@ -151,7 +151,7 @@ async def update_budget_item(
     item_data: BudgetItemUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> BudgetItemResponse:
     """予算項目更新"""
     service = BudgetService(db)
     item = await service.update_budget_item(

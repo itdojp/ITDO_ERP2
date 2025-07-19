@@ -5,13 +5,14 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from sqlalchemy import and_, func, or_, text
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.sql import ColumnElement
 
 from app.models.task import Task, TaskDependency, TaskHistory, TaskStatus
 from app.repositories.base import BaseRepository
-from app.schemas.task import TaskSearchParams
+from app.schemas.task import TaskCreate, TaskSearchParams, TaskUpdate
 
 
-class TaskRepository(BaseRepository[Task]):
+class TaskRepository(BaseRepository[Task, TaskCreate, TaskUpdate]):
     """Repository for task database operations."""
 
     def __init__(self, db: Session):
@@ -136,6 +137,7 @@ class TaskRepository(BaseRepository[Task]):
         total = query.count()
 
         # Apply sorting
+        order_col: ColumnElement[Any]
         if params.sort_by == "title":
             order_col = Task.title
         elif params.sort_by == "status":

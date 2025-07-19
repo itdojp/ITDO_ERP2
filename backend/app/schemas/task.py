@@ -177,3 +177,21 @@ class BulkUpdateResponse(BaseModel):
     updated_count: int
     failed_count: int
     errors: list[dict[str, Any]] | None = None
+
+
+class TaskSearchParams(BaseModel):
+    """Parameters for task search operations."""
+
+    query: str | None = Field(None, description="Search query for title/description")
+    project_id: int | None = Field(None, description="Filter by project ID")
+    status: TaskStatus | None = Field(None, description="Filter by task status")
+    priority: TaskPriority | None = Field(None, description="Filter by priority")
+    assignee_id: int | None = Field(None, description="Filter by assignee ID")
+    department_id: int | None = Field(None, description="Filter by department ID")
+    due_date_from: datetime | None = Field(None, description="Filter tasks due from this date")
+    due_date_to: datetime | None = Field(None, description="Filter tasks due until this date")
+    tags: list[str] | None = Field(None, description="Filter by tags")
+    page: int = Field(1, ge=1, description="Page number")
+    page_size: int = Field(20, ge=1, le=100, description="Items per page")
+    sort_by: str = Field("created_at", description="Sort field")
+    sort_order: str = Field("desc", description="Sort order (asc/desc)")
