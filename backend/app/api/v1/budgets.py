@@ -3,7 +3,7 @@ Budget API endpoints for financial management.
 予算管理APIエンドポイント（財務管理機能）
 """
 
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -50,7 +50,7 @@ async def get_budget(
     budget_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> BudgetResponse:
     """予算詳細取得"""
     service = BudgetService(db)
     budget = await service.get_budget_by_id(budget_id, current_user.organization_id)
@@ -66,7 +66,7 @@ async def create_budget(
     budget_data: BudgetCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> BudgetResponse:
     """予算新規作成"""
     service = BudgetService(db)
     budget = await service.create_budget(
@@ -81,7 +81,7 @@ async def update_budget(
     budget_data: BudgetUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> BudgetResponse:
     """予算更新"""
     service = BudgetService(db)
     budget = await service.update_budget(
@@ -99,7 +99,7 @@ async def delete_budget(
     budget_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> Dict[str, str]:
     """予算削除（論理削除）"""
     service = BudgetService(db)
     success = await service.delete_budget(budget_id, current_user.organization_id)
@@ -116,7 +116,7 @@ async def approve_budget(
     approval_data: dict,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> BudgetResponse:
     """予算承認"""
     service = BudgetService(db)
     budget = await service.approve_budget(
@@ -135,7 +135,7 @@ async def create_budget_item(
     item_data: BudgetItemCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> BudgetItemResponse:
     """予算項目新規作成"""
     service = BudgetService(db)
     item = await service.create_budget_item(

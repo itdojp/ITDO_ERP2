@@ -481,7 +481,7 @@ def check_permission(
 
 def get_user_permissions(
     user: User, organization_id: int, department_id: Optional[int] = None
-) -> Dict[str, Set[str]]:
+) -> Dict[str, Union[Set[str], Dict[str, Set[str]]]]:
     """
     Get all permissions for a user in a specific context.
 

@@ -77,10 +77,10 @@ class TaskRepository(BaseRepository[Task, TaskCreate, TaskUpdate]):
         if params.project_id:
             query = query.filter(Task.project_id == params.project_id)
 
-        if params.assigned_to:
-            query = query.filter(Task.assigned_to == params.assigned_to)
+        if params.assignee_id:
+            query = query.filter(Task.assigned_to == params.assignee_id)
 
-        if params.created_by:
+        if hasattr(params, 'created_by') and params.created_by:
             query = query.filter(Task.created_by == params.created_by)
 
         if params.status:
@@ -89,9 +89,9 @@ class TaskRepository(BaseRepository[Task, TaskCreate, TaskUpdate]):
         if params.priority:
             query = query.filter(Task.priority == params.priority)
 
-        if params.is_overdue is not None:
+        if hasattr(params, 'is_overdue') and params.is_overdue is not None:
             now = datetime.now(timezone.utc)
-            if params.is_overdue:
+            if getattr(params, 'is_overdue', False):
                 query = query.filter(
                     and_(
                         Task.due_date.isnot(None),
@@ -108,23 +108,23 @@ class TaskRepository(BaseRepository[Task, TaskCreate, TaskUpdate]):
                     )
                 )
 
-        if params.tags:
+        if params.tags and isinstance(params.tags, list):
             # Search for tasks containing any of the specified tags
-            tag_list = [tag.strip() for tag in params.tags.split(",")]
+            tag_list = params.tags
             tag_conditions = [Task.tags.contains(tag) for tag in tag_list]
             query = query.filter(or_(*tag_conditions))
 
-        if params.search:
-            search_term = f"%{params.search}%"
+        if params.query:
+            search_term = f"%{params.query}%"
             query = query.filter(
                 or_(Task.title.ilike(search_term), Task.description.ilike(search_term))
             )
 
         # Date range filters
-        if params.start_date_from:
+        if hasattr(params, 'start_date_from') and params.start_date_from:
             query = query.filter(Task.start_date >= params.start_date_from)
 
-        if params.start_date_to:
+        if hasattr(params, 'start_date_to') and params.start_date_to:
             query = query.filter(Task.start_date <= params.start_date_to)
 
         if params.due_date_from:
@@ -137,7 +137,7 @@ class TaskRepository(BaseRepository[Task, TaskCreate, TaskUpdate]):
         total = query.count()
 
         # Apply sorting
-        order_col: ColumnElement[Any]
+        order_col
         if params.sort_by == "title":
             order_col = Task.title
         elif params.sort_by == "status":
