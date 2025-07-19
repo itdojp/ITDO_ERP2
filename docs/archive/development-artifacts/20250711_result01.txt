@@ -1,0 +1,317 @@
+# ps aux | grep -E "(claude|agent-work|sleep 900)" | grep -v grep
+
+CC01
+root        1797  1.3  2.2 32993328 368404 pts/0 Sl+  08:13   8:24 claude
+
+CC02
+root      896142  0.0  0.0  76836  4352 pts/0    Sl+  08:12   0:00 node /usr/bin/claude -r
+root      896144  1.9  2.4 33020188 388016 pts/0 Sl+  08:12  12:24 claude
+
+CC03
+root        1230  0.6  2.2 33016884 357120 pts/2 Sl+  02:58   6:04 claude
+root        2765  2.3  1.9 32933628 316784 pts/3 Sl+  04:33  19:55 claude
+root        5093  1.8  3.5 33219032 565832 pts/0 Sl+  08:12  11:37 claude
+root       10840  0.0  0.0   7472  2480 ?        S    16:56   0:00 /bin/bash -c -l source /root/.claude/shell-snapshots/snapshot-bash-f0509eca.sh && eval 'source scripts/claude-code-automation/agent/agent-init-v2.sh CC03' \< /dev/null && pwd -P >| /tmp/claude-ac36-cwd
+root       14396  0.0  0.0   5684  1084 ?        S    18:41   0:00 sleep 900
+
+
+#  ps aux | grep bash
+
+CC01
+root         276  0.0  0.0   8780  5640 pts/0    Ss   02:30   0:00 -bash
+root         308  0.0  0.0   8528  5308 pts/1    S+   02:30   0:00 -bash
+root        6103  0.0  0.0   8648  5392 pts/2    Ss   13:59   0:00 -bash
+root        7320  0.0  0.0   6544  2044 pts/2    S+   18:45   0:00 grep --color=auto bash
+
+CC02
+root         297  0.0  0.0   8776  5504 pts/0    Ss   Jul10   0:00 -bash
+root         329  0.0  0.0   8528  5376 pts/1    S+   Jul10   0:00 -bash
+root     1188878  0.0  0.0   8644  5376 pts/2    Ss   13:59   0:00 -bash
+root     1431261  0.0  0.0   6544  2176 pts/2    S+   18:45   0:00 grep --color=auto bash
+
+CC03
+root         292  0.0  0.0   8776  5644 pts/0    Ss   02:33   0:00 -bash
+root         324  0.0  0.0   8528  5316 pts/1    S+   02:33   0:00 -bash
+root        1183  0.0  0.0   8776  5612 pts/2    Ss   02:57   0:00 -bash
+root        2634  0.0  0.0   8776  5660 pts/3    Ss   04:31   0:00 -bash
+root        9079  0.0  0.0   8776  5620 pts/4    Ss   14:17   0:00 -bash
+root       10840  0.0  0.0   7472  2480 ?        S    16:56   0:00 /bin/bash -c -l source /root/.claude/shell-snapshots/snapshot-bash-f0509eca.sh && eval 'source scripts/claude-code-automation/agent/agent-init-v2.sh CC03' \< /dev/null && pwd -P >| /tmp/claude-ac36-cwd
+root       14413  0.0  0.0   6544  2024 pts/4    S+   18:45   0:00 grep --color=auto bash
+
+# env | grep -E "(CLAUDE|AGENT)"
+これは別シェルでの実行だから意味が無いのでは？
+
+CC01
+CLAUDE_WELCOME_SHOWN=1
+PS1=\[\e[48;5;30m\]\[\e[97m\] [CLAUDE] \[\e[0m\] \[\e[36m\]\u@\h\[\e[0m\]:\[\e[93m\]\w\[\e[0m\]\$
+
+CC02
+CLAUDE_WELCOME_SHOWN=1
+PS1=\[\e[48;5;30m\]\[\e[97m\] [CLAUDE] \[\e[0m\] \[\e[36m\]\u@\h\[\e[0m\]:\[\e[93m\]\w\[\e[0m\]\$
+
+CC03
+CLAUDE_WELCOME_SHOWN=1
+PS1=\[\e[48;5;30m\]\[\e[97m\] [CLAUDE] \[\e[0m\] \[\e[36m\]\u@\h\[\e[0m\]:\[\e[93m\]\w\[\e[0m\]\$
+
+
+#  grep -E "(CLAUDE|AGENT)" ~/.bashrc
+
+CC01
+export PS1='\[\e[48;5;30m\]\[\e[97m\] [CLAUDE] \[\e[0m\] \[\e[36m\]\u@\h\[\e[0m\]:\[\e[93m\]\w\[\e[0m\]\$ '
+if [ -z "$CLAUDE_WELCOME_SHOWN" ]; then
+    export CLAUDE_WELCOME_SHOWN=1
+
+CC02
+export PS1='\[\e[48;5;30m\]\[\e[97m\] [CLAUDE] \[\e[0m\] \[\e[36m\]\u@\h\[\e[0m\]:\[\e[93m\]\w\[\e[0m\]\$ '
+if [ -z "$CLAUDE_WELCOME_SHOWN" ]; then
+    export CLAUDE_WELCOME_SHOWN=1
+
+CC03
+export PS1='\[\e[48;5;30m\]\[\e[97m\] [CLAUDE] \[\e[0m\] \[\e[36m\]\u@\h\[\e[0m\]:\[\e[93m\]\w\[\e[0m\]\$ '
+if [ -z "$CLAUDE_WELCOME_SHOWN" ]; then
+    export CLAUDE_WELCOME_SHOWN=1
+
+
+# find ~ -name "*claude*" -o -name "*agent*" 2>/dev/null | grep -v ".git"
+
+CC01
+/root/.cache/uv/archive-v0/3f9NnmgV7TdyJSR8d7raE/requests_toolbelt/utils/user_agent.py
+/root/.cache/uv/archive-v0/lt34R9lg1YMt6hCJLOGqo/celery/worker/consumer/agent.py
+/root/.cache/uv/archive-v0/M4S7JXPNkMf44a_hLnOZR/faker/providers/user_agent
+/root/.cache/uv/archive-v0/Fc43qk7ZS1458PWMQGuoc/celery/worker/consumer/agent.py
+/root/.claude.json.backup
+/root/workspace/ITDO_ERP2/backend/.venv/lib/python3.13/site-packages/faker/providers/user_agent
+/root/workspace/ITDO_ERP2/backend/.venv/lib/python3.13/site-packages/requests_toolbelt/utils/user_agent.py
+/root/workspace/ITDO_ERP2/docs/claude-code-usage-guide.md
+/root/workspace/ITDO_ERP2/frontend/node_modules/caniuse-lite/dist/unpacker/agents.js
+/root/workspace/ITDO_ERP2/frontend/node_modules/caniuse-lite/data/agents.js
+/root/workspace/ITDO_ERP2/frontend/node_modules/agent-base
+/root/workspace/ITDO_ERP2/frontend/node_modules/jsdom/lib/jsdom/living/helpers/agent-factory.js
+/root/workspace/ITDO_ERP2/frontend/node_modules/undici-types/mock-agent.d.ts
+/root/workspace/ITDO_ERP2/frontend/node_modules/undici-types/proxy-agent.d.ts
+/root/workspace/ITDO_ERP2/frontend/node_modules/undici-types/retry-agent.d.ts
+/root/workspace/ITDO_ERP2/frontend/node_modules/undici-types/agent.d.ts
+/root/workspace/ITDO_ERP2/frontend/node_modules/undici-types/env-http-proxy-agent.d.ts
+/root/workspace/ITDO_ERP2/frontend/node_modules/https-proxy-agent
+/root/workspace/ITDO_ERP2/frontend/node_modules/https-proxy-agent/dist/agent.js.map
+/root/workspace/ITDO_ERP2/frontend/node_modules/https-proxy-agent/dist/agent.js
+/root/workspace/ITDO_ERP2/frontend/node_modules/https-proxy-agent/dist/agent.d.ts
+/root/workspace/ITDO_ERP2/frontend/node_modules/http-proxy-agent
+/root/workspace/ITDO_ERP2/frontend/node_modules/http-proxy-agent/dist/agent.js.map
+/root/workspace/ITDO_ERP2/frontend/node_modules/http-proxy-agent/dist/agent.js
+/root/workspace/ITDO_ERP2/frontend/node_modules/http-proxy-agent/dist/agent.d.ts
+/root/workspace/ITDO_ERP2/.claude
+/root/.claude
+/root/.claude/todos/31f05d87-d823-42f3-94b6-75765a77d50c-agent-7d3e021e-0115-4b03-b88e-911880f7dcab.json
+/root/.claude/todos/09f8a6a0-7195-475b-ba7d-8595312f4e65-agent-09f8a6a0-7195-475b-ba7d-8595312f4e65.json
+/root/.claude/todos/53fdeb40-dddb-4693-929d-c88a04d9e4a0-agent-53fdeb40-dddb-4693-929d-c88a04d9e4a0.json
+/root/.claude/todos/49d14c8a-9744-45f5-b5a8-c00aa51dfef3-agent-b570d1c5-1f12-438f-94b3-318127d763de.json
+/root/.claude/todos/810a01ba-e4d0-4de6-b479-9951c5409a5e-agent-810a01ba-e4d0-4de6-b479-9951c5409a5e.json
+/root/.claude/todos/31f05d87-d823-42f3-94b6-75765a77d50c-agent-394def72-3c2e-46fe-b5fe-1eb597dd5eae.json
+/root/.claude/todos/3f979e39-22da-4ae7-bc92-25d234ecfdb1-agent-3f979e39-22da-4ae7-bc92-25d234ecfdb1.json
+/root/.claude/todos/31f05d87-d823-42f3-94b6-75765a77d50c-agent-a07a2aa6-aa5b-4078-a566-b2125bdce01a.json
+/root/.claude/todos/315566cb-c7c6-4b32-8ad9-de8c4aadea3e-agent-315566cb-c7c6-4b32-8ad9-de8c4aadea3e.json
+/root/.claude/todos/cabd4f7d-88aa-40b6-8fba-1c33d9604b8b-agent-cabd4f7d-88aa-40b6-8fba-1c33d9604b8b.json
+/root/.claude/todos/49d14c8a-9744-45f5-b5a8-c00aa51dfef3-agent-03bc0295-c1c2-47a9-aff0-e92f8cc05f09.json
+/root/.claude/todos/49d14c8a-9744-45f5-b5a8-c00aa51dfef3-agent-b20724b3-cf25-4e68-9cfd-7b34c083f06a.json
+/root/.claude/todos/f1bbd135-c144-418f-a4ac-0bd780365824-agent-f1bbd135-c144-418f-a4ac-0bd780365824.json
+/root/.claude/todos/31f05d87-d823-42f3-94b6-75765a77d50c-agent-30f60356-3463-40d8-bd4e-9dcccfbd7782.json
+/root/.claude/todos/fbba09fe-80ad-4e4f-a03e-7a3d5a20ffff-agent-fbba09fe-80ad-4e4f-a03e-7a3d5a20ffff.json
+/root/.claude/todos/31f05d87-d823-42f3-94b6-75765a77d50c-agent-fff984fc-ecea-402a-ab6a-9d192bb47c66.json
+/root/.claude/todos/5c020a08-0270-4e94-913b-726187842620-agent-5c020a08-0270-4e94-913b-726187842620.json
+/root/.claude/todos/7a9cae7f-6c7b-485b-bce8-ed80c35c2ab3-agent-7a9cae7f-6c7b-485b-bce8-ed80c35c2ab3.json
+/root/.claude/todos/3bd1afdf-55db-421d-8ddc-c285adb301bc-agent-3bd1afdf-55db-421d-8ddc-c285adb301bc.json
+/root/.claude/todos/b65fcb1d-ecce-49e8-8d2a-53588d85fab1-agent-b65fcb1d-ecce-49e8-8d2a-53588d85fab1.json
+/root/.claude/todos/f28a7e51-86c6-44ec-bdf4-d6d4cc062404-agent-f28a7e51-86c6-44ec-bdf4-d6d4cc062404.json
+/root/.claude/todos/31f05d87-d823-42f3-94b6-75765a77d50c-agent-6a367297-e71f-4b7b-86c8-9ff059c40489.json
+/root/.claude/todos/9fa313ce-cc0a-42f1-bfd5-b215bb7765ef-agent-9fa313ce-cc0a-42f1-bfd5-b215bb7765ef.json
+/root/.claude/todos/49d14c8a-9744-45f5-b5a8-c00aa51dfef3-agent-49d14c8a-9744-45f5-b5a8-c00aa51dfef3.json
+/root/.claude/todos/3f979e39-22da-4ae7-bc92-25d234ecfdb1-agent-f60b3464-a2cd-4e5f-913d-968f2129172b.json
+/root/.claude/todos/31f05d87-d823-42f3-94b6-75765a77d50c-agent-31f05d87-d823-42f3-94b6-75765a77d50c.json
+/root/.claude/todos/dafe2a41-2c4a-4d6c-aa6d-21ef2ebf7b8f-agent-dafe2a41-2c4a-4d6c-aa6d-21ef2ebf7b8f.json
+/root/.claude/projects/-mnt-c-work-ClaudeCode-claude-actions-optimizer
+/root/.claude.json
+
+CC02
+/root/.claude
+/root/.claude/todos/447e66b9-6af3-4c20-abbe-7479be69d4bc-agent-51ce67aa-80ce-49c5-b8da-85a4e06694f0.json
+/root/.claude/todos/f0df927c-fbba-4240-8c53-7d014f083d64-agent-8fe31a96-7c5a-4178-b570-d3cfbfb052e2.json
+/root/.claude/todos/1ce9e0ea-cfbc-48c3-8718-5c86b919b7b1-agent-1ce9e0ea-cfbc-48c3-8718-5c86b919b7b1.json
+/root/.claude/todos/447e66b9-6af3-4c20-abbe-7479be69d4bc-agent-1ce11cb4-fa5e-4712-9c24-c7e840a91514.json
+/root/.claude/todos/f86bdc6f-aebd-461b-bc33-41820ed3b407-agent-f86bdc6f-aebd-461b-bc33-41820ed3b407.json
+/root/.claude/todos/3560c508-3c58-4fc5-ba8a-26bad2cb37e4-agent-f8905d11-0708-401a-b974-62ac93d3032a.json
+/root/.claude/todos/15ce7ea2-fa9b-4b67-8b87-274749e4c510-agent-15ce7ea2-fa9b-4b67-8b87-274749e4c510.json
+/root/.claude/todos/084b011f-fc25-4d4b-96cd-12b0baba8f9b-agent-472dcc5e-816f-4f50-ae61-ee08326b6af9.json
+/root/.claude/todos/24cb11cf-6aba-4a7e-9ba7-27d7c96e5628-agent-69339865-4804-44dd-b22d-ee63bf2829f7.json
+/root/.claude/todos/f0df927c-fbba-4240-8c53-7d014f083d64-agent-e78416ba-c90b-4e11-bbe5-6210eaf8589b.json
+/root/.claude/todos/f659249b-6d16-465b-9a49-f90ac7a07a13-agent-f659249b-6d16-465b-9a49-f90ac7a07a13.json
+/root/.claude/todos/3560c508-3c58-4fc5-ba8a-26bad2cb37e4-agent-c44f402f-ba7d-4558-98a2-88e8338bccd5.json
+/root/.claude/todos/0cadfc3b-77c5-4adc-a53e-e357fe85d0f6-agent-0cadfc3b-77c5-4adc-a53e-e357fe85d0f6.json
+/root/.claude/todos/3560c508-3c58-4fc5-ba8a-26bad2cb37e4-agent-3560c508-3c58-4fc5-ba8a-26bad2cb37e4.json
+/root/.claude/todos/f0df927c-fbba-4240-8c53-7d014f083d64-agent-431c4876-5b94-4fd5-8bc6-b6a94fcd3373.json
+/root/.claude/todos/447e66b9-6af3-4c20-abbe-7479be69d4bc-agent-447e66b9-6af3-4c20-abbe-7479be69d4bc.json
+/root/.claude/todos/084b011f-fc25-4d4b-96cd-12b0baba8f9b-agent-6625897f-4153-4e98-b434-eeabcf51533f.json
+/root/.claude/todos/3560c508-3c58-4fc5-ba8a-26bad2cb37e4-agent-d4eaaa6d-4290-4da9-9449-426122d90a58.json
+/root/.claude/todos/35e53b65-8b0a-4c9f-8f2a-0242066d686b-agent-35e53b65-8b0a-4c9f-8f2a-0242066d686b.json
+/root/.claude/todos/084b011f-fc25-4d4b-96cd-12b0baba8f9b-agent-166649e1-cf1d-4421-b7cf-a5d5dbb8fc36.json
+/root/.claude/todos/3560c508-3c58-4fc5-ba8a-26bad2cb37e4-agent-e1a335bc-33d0-44cd-921c-65036ed3f2d4.json
+/root/.claude/todos/15ce7ea2-fa9b-4b67-8b87-274749e4c510-agent-daed2e5b-63e2-40bf-a032-c01060d1823f.json
+/root/.claude/todos/f0df927c-fbba-4240-8c53-7d014f083d64-agent-1474b0ba-a5a7-47bc-a6f3-2f204bd4a6d7.json
+/root/.claude/todos/f0df927c-fbba-4240-8c53-7d014f083d64-agent-ab314976-32ce-49ad-b074-0e24516c9ca0.json
+/root/.claude/todos/1ce9e0ea-cfbc-48c3-8718-5c86b919b7b1-agent-28c66a55-7db8-4b41-a98d-4f31439dffc9.json
+/root/.claude/todos/f0df927c-fbba-4240-8c53-7d014f083d64-agent-dba6f305-953f-4742-8ad4-4e58e64cf5f4.json
+/root/.claude/todos/084b011f-fc25-4d4b-96cd-12b0baba8f9b-agent-084b011f-fc25-4d4b-96cd-12b0baba8f9b.json
+/root/.claude/todos/f0df927c-fbba-4240-8c53-7d014f083d64-agent-244e6847-bc90-4961-8562-d923f5247dea.json
+/root/.claude/todos/f0df927c-fbba-4240-8c53-7d014f083d64-agent-334b9ead-2556-4d17-888c-7f577a83f3bc.json
+/root/.claude/todos/f0df927c-fbba-4240-8c53-7d014f083d64-agent-998747d2-57dc-4ada-8c13-3ddaed4fdb47.json
+/root/.claude/todos/f0df927c-fbba-4240-8c53-7d014f083d64-agent-f0df927c-fbba-4240-8c53-7d014f083d64.json
+/root/.claude/todos/14a0df32-1a88-429a-bc7d-f2fda2c8b4ff-agent-14a0df32-1a88-429a-bc7d-f2fda2c8b4ff.json
+/root/.claude/todos/1ce9e0ea-cfbc-48c3-8718-5c86b919b7b1-agent-b0f19159-a60b-475f-96b6-6b83c5774b2e.json
+/root/.claude/todos/63fb0dc9-5c7e-43b9-841b-195d2208effa-agent-63fb0dc9-5c7e-43b9-841b-195d2208effa.json
+/root/.claude/todos/fbb72e1a-cebc-41e0-b166-b60e6c658d53-agent-fbb72e1a-cebc-41e0-b166-b60e6c658d53.json
+/root/.claude/todos/5978e258-a56f-42cb-b3b7-c6c57842a945-agent-5978e258-a56f-42cb-b3b7-c6c57842a945.json
+/root/.claude/todos/f0df927c-fbba-4240-8c53-7d014f083d64-agent-65f7bc3b-ce9e-447d-955c-7ea86dd1a29f.json
+/root/.claude/todos/f0df927c-fbba-4240-8c53-7d014f083d64-agent-9fb98a99-8f37-46e8-8658-4ada6c3b9621.json
+/root/.claude/todos/f0df927c-fbba-4240-8c53-7d014f083d64-agent-dd9e43ba-9d3f-4db3-bd21-0c13d5f97209.json
+/root/.claude/todos/f0df927c-fbba-4240-8c53-7d014f083d64-agent-8d116084-32a0-43cb-a862-c2c0b84901b4.json
+/root/.claude/todos/3560c508-3c58-4fc5-ba8a-26bad2cb37e4-agent-1fb1361a-9243-4b7b-84bb-769ce4be8bd6.json
+/root/.claude/todos/084b011f-fc25-4d4b-96cd-12b0baba8f9b-agent-65df7d44-4825-4a30-a5fa-fdc9b3074b36.json
+/root/.claude/todos/f0df927c-fbba-4240-8c53-7d014f083d64-agent-81e31ee4-a570-4811-b78f-242a46cb70ab.json
+/root/.claude/todos/24cb11cf-6aba-4a7e-9ba7-27d7c96e5628-agent-24cb11cf-6aba-4a7e-9ba7-27d7c96e5628.json
+/root/.claude.json.backup
+/root/.npm/_npx/b61069f2430e9396/node_modules/caniuse-lite/data/agents.js
+/root/.npm/_npx/b61069f2430e9396/node_modules/caniuse-lite/dist/unpacker/agents.js
+/root/.npm/_npx/b61069f2430e9396/node_modules/undici-types/mock-agent.d.ts
+/root/.npm/_npx/b61069f2430e9396/node_modules/undici-types/proxy-agent.d.ts
+/root/.npm/_npx/b61069f2430e9396/node_modules/undici-types/agent.d.ts
+/root/.npm/_npx/b61069f2430e9396/node_modules/undici-types/retry-agent.d.ts
+/root/.npm/_npx/b61069f2430e9396/node_modules/undici-types/env-http-proxy-agent.d.ts
+/root/.volta/tools/image/npm/10.9.3/node_modules/@npmcli/agent
+/root/.volta/tools/image/npm/10.9.3/node_modules/@npmcli/agent/lib/agents.js
+/root/.volta/tools/image/npm/10.9.3/node_modules/socks-proxy-agent
+/root/.volta/tools/image/npm/10.9.3/node_modules/agent-base
+/root/.volta/tools/image/npm/10.9.3/node_modules/http-proxy-agent
+/root/.volta/tools/image/npm/10.9.3/node_modules/https-proxy-agent
+/root/.volta/tools/image/node/20.19.3/bin/claude
+/root/.volta/tools/image/node/20.19.3/lib/node_modules/@anthropic-ai/claude-code
+/root/.volta/tools/image/node/20.19.3/lib/node_modules/@anthropic-ai/claude-code/vendor/claude-code-jetbrains-plugin
+/root/.volta/tools/image/node/20.19.3/lib/node_modules/@anthropic-ai/claude-code/vendor/claude-code-jetbrains-plugin/lib/claude-code-jetbrains-plugin-0.1.11-beta.jar
+/root/.volta/tools/image/node/20.19.3/lib/node_modules/@anthropic-ai/claude-code/vendor/claude-code-jetbrains-plugin/lib/claude-code-jetbrains-plugin-0.1.11-beta-searchableOptions.jar
+/root/.volta/tools/image/node/20.19.3/lib/node_modules/@anthropic-ai/claude-code/vendor/claude-code.vsix
+/root/.volta/tools/image/node/20.19.3/lib/node_modules/npm/node_modules/@npmcli/agent
+/root/.volta/tools/image/node/20.19.3/lib/node_modules/npm/node_modules/@npmcli/agent/lib/agents.js
+/root/.volta/tools/image/node/20.19.3/lib/node_modules/npm/node_modules/socks-proxy-agent
+/root/.volta/tools/image/node/20.19.3/lib/node_modules/npm/node_modules/agent-base
+/root/.volta/tools/image/node/20.19.3/lib/node_modules/npm/node_modules/http-proxy-agent
+/root/.volta/tools/image/node/20.19.3/lib/node_modules/npm/node_modules/https-proxy-agent
+/root/.cache/uv/archive-v0/8UAwMT68JplxyW3ASI28A/celery/worker/consumer/agent.py
+/root/.cache/uv/archive-v0/5qDVP1P3NBrY3pPLCCv4R/faker/providers/user_agent
+/root/.cache/uv/archive-v0/UI4vGm978Xov7H-PXID8L/celery/worker/consumer/agent.py
+/root/.cache/uv/archive-v0/5GbL2Kv_AbXK3Rk06I_7S/requests_toolbelt/utils/user_agent.py
+/root/.cache/uv/archive-v0/L70B8KbbBJqZkgTPtvU2H/faker/providers/user_agent
+/root/.claude.json
+
+CC03
+/root/.claude.json.backup
+/root/.npm/_npx/b8d86e6551a4f492/node_modules/undici-types/mock-agent.d.ts
+/root/.npm/_npx/b8d86e6551a4f492/node_modules/undici-types/retry-agent.d.ts
+/root/.npm/_npx/b8d86e6551a4f492/node_modules/undici-types/proxy-agent.d.ts
+/root/.npm/_npx/b8d86e6551a4f492/node_modules/undici-types/agent.d.ts
+/root/.npm/_npx/b8d86e6551a4f492/node_modules/undici-types/env-http-proxy-agent.d.ts
+/root/.npm/_npx/b8d86e6551a4f492/node_modules/caniuse-lite/data/agents.js
+/root/.npm/_npx/b8d86e6551a4f492/node_modules/caniuse-lite/dist/unpacker/agents.js
+/root/.cache/uv/archive-v0/NcE2KIPsOZarrrhkjdZ7X/faker/providers/user_agent
+/root/.cache/uv/archive-v0/qIo4YzdbuGKpvNwACeEpm/requests_toolbelt/utils/user_agent.py
+/root/.cache/uv/archive-v0/kcdC08yI2QkFCXSPvUNSp/celery/worker/consumer/agent.py
+/root/.claude.json
+/root/.claude-code-automation
+/root/.claude-code-automation/agent-CC03.state
+/root/.claude-code-automation/agent-CC03.log
+/root/.claude
+/root/.claude/todos/e145d22c-f428-4363-95fe-c0abe7538e16-agent-e145d22c-f428-4363-95fe-c0abe7538e16.json
+/root/.claude/todos/bf7778a5-de1c-4016-827e-8db8c168bcd7-agent-bf7778a5-de1c-4016-827e-8db8c168bcd7.json
+/root/.claude/todos/e90a3490-171f-435c-9a93-0cbe4032336c-agent-e90a3490-171f-435c-9a93-0cbe4032336c.json
+/root/.claude/todos/5e79dc29-8e9e-4fac-b07b-bc2072cf270b-agent-5e79dc29-8e9e-4fac-b07b-bc2072cf270b.json
+/root/.claude/todos/57ac9cbc-8ae7-4933-ac2a-8c2a6f99aaad-agent-3b9399ac-dbbf-4f49-8074-4e652d7bfdd3.json
+/root/.claude/todos/57ac9cbc-8ae7-4933-ac2a-8c2a6f99aaad-agent-46c206bc-666d-4c4c-80da-8e77dec8b58e.json
+/root/.claude/todos/57ac9cbc-8ae7-4933-ac2a-8c2a6f99aaad-agent-57ac9cbc-8ae7-4933-ac2a-8c2a6f99aaad.json
+/root/.claude/todos/5aca9811-fe5c-491b-8341-affef0afbcad-agent-5aca9811-fe5c-491b-8341-affef0afbcad.json
+/root/.claude/todos/0e9e7df3-017c-4ee2-8a33-829c6e9d43a5-agent-0e9e7df3-017c-4ee2-8a33-829c6e9d43a5.json
+/root/.claude/todos/028ae9cd-20d3-4a01-84c8-2f8c06b1d113-agent-028ae9cd-20d3-4a01-84c8-2f8c06b1d113.json
+/root/.claude/todos/be4bd10c-2522-48ff-b6ce-c96092049052-agent-be4bd10c-2522-48ff-b6ce-c96092049052.json
+/root/.claude/todos/29cb2a12-3154-4b65-b1e2-b31d79cbf820-agent-cccffb54-6426-4b63-816b-fb56c58a3f7d.json
+/root/.claude/todos/be3f1ec8-e319-4734-88e6-ffbf4234721b-agent-be3f1ec8-e319-4734-88e6-ffbf4234721b.json
+/root/.claude/todos/c0deb741-4f38-4357-a319-c9210d7897aa-agent-c0deb741-4f38-4357-a319-c9210d7897aa.json
+/root/.claude/todos/e498671f-ba3c-42b6-baa2-e6dcd2371998-agent-e498671f-ba3c-42b6-baa2-e6dcd2371998.json
+/root/.claude/todos/f55512f4-a3b5-43ec-a575-655010dcb61c-agent-f55512f4-a3b5-43ec-a575-655010dcb61c.json
+/root/.claude/todos/29cb2a12-3154-4b65-b1e2-b31d79cbf820-agent-29cb2a12-3154-4b65-b1e2-b31d79cbf820.json
+/root/.claude/todos/828c4790-26ec-4feb-a1fd-3375c90879aa-agent-828c4790-26ec-4feb-a1fd-3375c90879aa.json
+/root/.claude/todos/7d092952-f490-4387-a2ef-0b69ab063091-agent-7d092952-f490-4387-a2ef-0b69ab063091.json
+/root/.claude/todos/29cb2a12-3154-4b65-b1e2-b31d79cbf820-agent-7f617478-d5fb-4a5d-93b2-79203cddeb81.json
+/root/.claude/todos/80a2f0a9-542c-44c0-8071-decb8e867bd1-agent-80a2f0a9-542c-44c0-8071-decb8e867bd1.json
+/root/.claude/todos/f901d10f-a9c2-4acd-a68c-f14626358af1-agent-f901d10f-a9c2-4acd-a68c-f14626358af1.json
+/root/.claude/todos/29cb2a12-3154-4b65-b1e2-b31d79cbf820-agent-a338ae63-ff8a-4ed4-adbd-a673149260f4.json
+/root/.claude/todos/76435bb8-b35f-4596-a230-491541f53fee-agent-76435bb8-b35f-4596-a230-491541f53fee.json
+/root/.claude/todos/4850bf7d-7701-4dfb-8e56-cb7d7ad7fdda-agent-4850bf7d-7701-4dfb-8e56-cb7d7ad7fdda.json
+/root/.claude/todos/57ac9cbc-8ae7-4933-ac2a-8c2a6f99aaad-agent-ac3fb8ea-e96b-435e-a8f0-fd2c8157cf78.json
+/root/.claude/todos/46707ac4-592e-4357-adfd-2575169f6355-agent-46707ac4-592e-4357-adfd-2575169f6355.json
+/root/.claude/todos/10fd7f95-7dee-47ee-8fb1-07a369abd616-agent-10fd7f95-7dee-47ee-8fb1-07a369abd616.json
+/root/.claude/todos/37bbf4a2-8c3e-4a23-8298-a7d72b954177-agent-37bbf4a2-8c3e-4a23-8298-a7d72b954177.json
+/root/.claude/todos/d8262c82-7c32-4551-b190-1e9ad3cd33ce-agent-d8262c82-7c32-4551-b190-1e9ad3cd33ce.json
+/root/.claude/todos/4e537a33-b7fb-4c52-ab99-89bc1ff4395f-agent-4e537a33-b7fb-4c52-ab99-89bc1ff4395f.json
+/root/.claude/todos/435fe022-c163-4ee6-aa10-c5e28a3d396f-agent-435fe022-c163-4ee6-aa10-c5e28a3d396f.json
+/root/.claude/todos/64359ead-cd15-43be-8f6c-10f4c800298d-agent-64359ead-cd15-43be-8f6c-10f4c800298d.json
+/root/.claude/todos/da206555-b198-4780-94ff-27609324fd91-agent-da206555-b198-4780-94ff-27609324fd91.json
+
+
+# find /home/work/ITDO_ERP2 -type f -mmin -240 -name "*.sh" 2>/dev/null
+間が空いたので時間間隔を長めに変更した。
+
+CC01
+/home/work/ITDO_ERP2/scripts/claude-code-automation/agent/agent-work.sh
+/home/work/ITDO_ERP2/scripts/claude-code-automation/agent/agent-init.sh
+/home/work/ITDO_ERP2/scripts/claude-code-automation/agent/auto-fix-ci.sh
+/home/work/ITDO_ERP2/scripts/claude-code-automation/pm/distribute-tasks.sh
+/home/work/ITDO_ERP2/scripts/claude-code-automation/pm/agent-status.sh
+
+CC02
+/home/work/ITDO_ERP2/scripts/agent-init-v2.sh
+/home/work/ITDO_ERP2/scripts/claude-code-automation/agent/auto-fix-ci.sh
+/home/work/ITDO_ERP2/scripts/claude-code-automation/agent/agent-init.sh
+/home/work/ITDO_ERP2/scripts/claude-code-automation/agent/agent-work.sh
+/home/work/ITDO_ERP2/scripts/claude-code-automation/pm/distribute-tasks.sh
+/home/work/ITDO_ERP2/scripts/claude-code-automation/pm/agent-status.sh
+
+CC03
+/home/work/ITDO_ERP2/scripts/claude-code-automation/agent/agent-init-v2.sh
+/home/work/ITDO_ERP2/claude-code-cluster/examples/scripts/setup-development.sh
+
+
+2# gh issue view 99 --json comments --jq '.comments[-5:] | .[] | "\(.createdAt) \(.author.login)"'
+
+CC01
+2025-07-11T06:15:23Z ootakazuhiko
+2025-07-11T06:29:36Z ootakazuhiko
+2025-07-11T06:59:56Z ootakazuhiko
+2025-07-11T07:15:15Z ootakazuhiko
+2025-07-11T09:10:49Z ootakazuhiko
+
+CC02
+2025-07-11T06:15:23Z ootakazuhiko
+2025-07-11T06:29:36Z ootakazuhiko
+2025-07-11T06:59:56Z ootakazuhiko
+2025-07-11T07:15:15Z ootakazuhiko
+2025-07-11T09:10:49Z ootakazuhiko
+
+CC03
+2025-07-11T06:15:23Z ootakazuhiko
+2025-07-11T06:29:36Z ootakazuhiko
+2025-07-11T06:59:56Z ootakazuhiko
+2025-07-11T07:15:15Z ootakazuhiko
+2025-07-11T09:10:49Z ootakazuhiko
+
+
+
+
+
+
