@@ -36,9 +36,9 @@ class WorkflowService:
             name=workflow_data.name,
             description=workflow_data.description,
             organization_id=workflow_data.organization_id,
-            definition=workflow_data.definition,
-            is_active=workflow_data.is_active,
-            created_by=workflow_data.created_by,
+            definition=workflow_data.workflow_definition,
+            is_active=(workflow_data.status == "active"),
+            created_by=getattr(workflow_data, 'created_by', None),
         )
 
         self.db.add(workflow)

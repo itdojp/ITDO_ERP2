@@ -66,7 +66,7 @@ async def get_current_superuser(
     return current_user
 
 
-def get_optional_current_user(
+async def get_optional_current_user(
     token: Optional[str] = Depends(security),
     db: Session = Depends(get_db),
 ) -> Optional[User]:
@@ -78,6 +78,6 @@ def get_optional_current_user(
         return None
 
     try:
-        return get_current_user(token, db)
+        return await get_current_user(token, db)
     except HTTPException:
         return None
