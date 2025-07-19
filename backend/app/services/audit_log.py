@@ -5,7 +5,7 @@ import io
 import json
 import uuid
 from datetime import datetime, timedelta
-from typing import List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -310,6 +310,7 @@ class AuditLogService:
                 alert_channels=["email"],
                 alert_recipients=["security@example.com"],
                 is_active=True,
+                last_triggered=None,
                 created_at=datetime.utcnow(),
                 updated_at=datetime.utcnow(),
             ),
@@ -374,7 +375,7 @@ class AuditLogService:
         permission_filter = AuditLogFilter(
             date_from=period_start,
             date_to=period_end,
-            resource_type="permission",
+            entity_type="permission",
         )
         permission_changes = self.list_audit_logs(permission_filter, limit=100)
 
