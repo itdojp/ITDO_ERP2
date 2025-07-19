@@ -46,10 +46,8 @@ class NotificationService:
     def _get_redis_client(self) -> Optional[redis.Redis]:
         """Get Redis client for queue management."""
         try:
-            client = redis.Redis(
-                host=settings.REDIS_HOST,
-                port=settings.REDIS_PORT,
-                db=settings.REDIS_DB,
+            client = redis.from_url(
+                settings.REDIS_URL,
                 decode_responses=True,
             )
             # Test connection

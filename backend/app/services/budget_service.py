@@ -10,7 +10,7 @@ from sqlalchemy import and_, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.budget import Budget, BudgetItem
+from app.models.budget import Budget, BudgetItem, BudgetStatus
 from app.schemas.budget import (
     BudgetAnalyticsResponse,
     BudgetApprovalRequest,
@@ -68,7 +68,7 @@ class BudgetService:
                     Budget.deleted_at.is_(None),
                 )
             )
-            .options(selectinload(Budget.items))
+            .options(selectinload(Budget.budget_items))
         )
 
         result = await self.db.execute(query)
@@ -196,13 +196,21 @@ class BudgetService:
         if not budget:
             return None
 
-        if budget.status != "pending":
-            raise ValueError("Only pending budgets can be approved")
+        if budget.status != BudgetStatus.SUBMITTED:
+            raise ValueError("Only submitted budgets can be approved")
 
-        budget.status = "approved" if approval_data.approved else "rejected"
+        # Map action to status
+        if approval_data.action == "approve":
+            budget.status = BudgetStatus.APPROVED
+        elif approval_data.action == "reject":
+            budget.status = BudgetStatus.REJECTED
+        else:
+            budget.status = BudgetStatus.SUBMITTED  # request_changes keeps it submitted
+            
         budget.approved_by_id = approved_by_id
         budget.approved_at = datetime.utcnow()
-        budget.approval_comment = approval_data.comment
+        if hasattr(budget, 'approval_comment'):  # Check if field exists
+            budget.approval_comment = approval_data.comments
         budget.updated_at = datetime.utcnow()
 
         await self.db.commit()
