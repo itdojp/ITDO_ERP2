@@ -546,7 +546,6 @@ def get_department_children(
             parent_id=child.parent_id,
             manager_id=child.manager_id,
             is_active=child.is_active,
-            depth=child.depth,
             user_count=len([u for u in child.users if u.is_active]) if hasattr(child, 'users') else 0,
         )
         for child in children
@@ -624,7 +623,7 @@ def move_department(
     
     try:
         updated_department = service.move_department(department_id, new_parent_id)
-        return DepartmentResponse.from_model(updated_department)
+        return DepartmentResponse.model_validate(updated_department, from_attributes=True)
     except Exception as e:
         raise HTTPException(
             status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,

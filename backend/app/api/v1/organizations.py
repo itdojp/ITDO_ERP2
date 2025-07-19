@@ -4,11 +4,13 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from fastapi.responses import JSONResponse
+from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.core.dependencies import get_current_active_user, get_db
 from app.models.user import User
+from app.models.department import Department
 from app.schemas.common import DeleteResponse, ErrorResponse, PaginatedResponse
 from app.schemas.organization import (
     OrganizationBasic,
@@ -450,11 +452,11 @@ def get_organization_users(
     skip: int = Query(0, ge=0, description="Number of items to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Number of items to return"),
     active_only: bool = Query(True, description="Only return active users"),
-    department_id: int  < /dev/null |  None = Query(None, description="Filter by department"),
+    department_id: int | None = Query(None, description="Filter by department"),
     search: str | None = Query(None, description="Search by name or email"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> PaginatedResponse[Any]:
+) -> PaginatedResponse[Any] | JSONResponse:
     """Get users within an organization."""
     service = OrganizationService(db)
     
@@ -486,40 +488,46 @@ def get_organization_users(
     if department_id:
         filters["department_id"] = department_id
     
-    # Get users
-    from app.services.user import UserService
-    user_service = UserService(db)
+    # Get users using direct database query since UserService has different interface
+    # Use the organization_id property to filter users
+    users_query = db.query(User).all()
+    organization_users = [user for user in users_query if user.organization_id == organization_id]
     
+    # Apply filters
+    if active_only:
+        organization_users = [user for user in organization_users if user.is_active]
+    if department_id:
+        organization_users = [user for user in organization_users if user.department_id == department_id]
     if search:
-        users, total = user_service.search_users(
-            query=search,
-            skip=skip,
-            limit=limit,
-            organization_id=organization_id,
-            active_only=active_only
-        )
-    else:
-        users, total = user_service.list_users(
-            skip=skip,
-            limit=limit,
-            filters=filters
-        )
+        search_term = search.lower()
+        organization_users = [
+            user for user in organization_users 
+            if search_term in user.full_name.lower() or 
+               search_term in user.email.lower()
+        ]
+    
+    total = len(organization_users)
+    users = organization_users[skip:skip + limit]
     
     # Convert to summary format  
-    from app.schemas.user import UserSummary
-    user_summaries = [
-        UserSummary(
+    from app.schemas.department import UserSummary
+    user_summaries = []
+    for user in users:
+        department_name = None
+        if user.department_id:
+            department = db.query(Department).filter(Department.id == user.department_id).first()
+            if department:
+                department_name = department.name
+        
+        user_summaries.append(UserSummary(
             id=user.id,
             email=user.email,
             full_name=user.full_name,
-            username=user.username,
+            phone=user.phone,
             is_active=user.is_active,
             department_id=user.department_id,
-            organization_id=user.organization_id,
-            last_login=user.last_login,
-        )
-        for user in users
-    ]
+            department_name=department_name,
+        ))
     
     return PaginatedResponse[Any](
         items=user_summaries,
