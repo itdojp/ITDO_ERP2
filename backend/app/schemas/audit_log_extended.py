@@ -74,7 +74,7 @@ class AuditLogSummary(BaseModel):
     """Summary statistics for audit logs."""
 
     total_count: int
-    date_range: Dict[str, datetime]
+    date_range: Dict[str, Optional[datetime]]
     by_category: Dict[str, int]
     by_level: Dict[str, int]
     by_action: Dict[str, int]

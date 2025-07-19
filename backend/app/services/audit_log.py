@@ -328,6 +328,7 @@ class AuditLogService:
         return AuditLogAlert(
             id=2,
             **alert.dict(),
+            last_triggered=None,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
         )
@@ -364,10 +365,10 @@ class AuditLogService:
         summary = self.get_audit_log_summary(filter)
 
         # Get high risk events (mock)
-        high_risk_events = []
+        high_risk_events: List[AuditLogDetail] = []
 
         # Get failed access attempts (mock)
-        failed_access_attempts = []
+        failed_access_attempts: List[AuditLogDetail] = []
 
         # Get permission changes
         permission_filter = AuditLogFilter(
@@ -386,7 +387,7 @@ class AuditLogService:
         data_modifications = self.list_audit_logs(data_filter, limit=100)
 
         # Detect anomalies (mock)
-        anomalies = []
+        anomalies: List[Dict[str, Any]] = []
 
         # Generate recommendations
         recommendations = [
