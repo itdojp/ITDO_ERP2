@@ -38,6 +38,7 @@ dependencies = [
     "deprecated>=1.2.18",
     "pandas>=2.3.1",
     "openpyxl>=3.1.5",
+    "reportlab>=4.4.2",
 ]
 requires-python = ">=3.13"
 readme = "README.md"
