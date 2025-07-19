@@ -1,0 +1,13 @@
+name: Status Check
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Status
+        run: echo "Status check at $(date)"
