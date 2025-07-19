@@ -74,7 +74,7 @@ class Notification(BaseModel):
     action_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     icon: Mapped[str | None] = mapped_column(String(100), nullable=True)
     category: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
-    metadata: Mapped[Dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    extra_data: Mapped[Dict[str, Any] | None] = mapped_column(JSON, nullable=True)
 
     # Organization context
     organization_id: Mapped[int | None] = mapped_column(

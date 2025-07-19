@@ -25,7 +25,7 @@ class NotificationBase(BaseModel):
     action_url: Optional[str] = Field(None, max_length=500, description="Optional action URL")
     icon: Optional[str] = Field(None, max_length=100, description="Icon identifier")
     category: Optional[str] = Field(None, max_length=50, description="Notification category")
-    metadata: Optional[Dict[str, Any]] = Field(None, description="Additional metadata")
+    extra_data: Optional[Dict[str, Any]] = Field(None, description="Additional metadata")
     expires_at: Optional[datetime] = Field(None, description="Expiration timestamp")
 
 
@@ -91,12 +91,12 @@ class NotificationPreferenceBase(BaseModel):
         default="daily",
         description="Email digest frequency: immediate, hourly, daily, weekly, never"
     )
-    quiet_hours_start: Optional[str] = Field(None, regex=r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$", description="Quiet hours start time (HH:MM)")
-    quiet_hours_end: Optional[str] = Field(None, regex=r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$", description="Quiet hours end time (HH:MM)")
+    quiet_hours_start: Optional[str] = Field(None, pattern=r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$", description="Quiet hours start time (HH:MM)")
+    quiet_hours_end: Optional[str] = Field(None, pattern=r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$", description="Quiet hours end time (HH:MM)")
     timezone: str = Field(default="UTC", max_length=50, description="User timezone")
 
     @validator("email_digest_frequency")
-    def validate_digest_frequency(cls, v):
+    def validate_digest_frequency(cls, v: str) -> str:
         allowed = ["immediate", "hourly", "daily", "weekly", "never"]
         if v not in allowed:
             raise ValueError(f"Invalid digest frequency. Must be one of: {allowed}")
@@ -116,12 +116,12 @@ class NotificationPreferenceUpdate(BaseModel):
     in_app_enabled: Optional[bool] = None
     category_preferences: Optional[Dict[str, Dict[str, bool]]] = None
     email_digest_frequency: Optional[str] = None
-    quiet_hours_start: Optional[str] = Field(None, regex=r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$")
-    quiet_hours_end: Optional[str] = Field(None, regex=r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$")
+    quiet_hours_start: Optional[str] = Field(None, pattern=r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$")
+    quiet_hours_end: Optional[str] = Field(None, pattern=r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$")
     timezone: Optional[str] = None
 
     @validator("email_digest_frequency")
-    def validate_digest_frequency(cls, v):
+    def validate_digest_frequency(cls, v: Optional[str]) -> Optional[str]:
         if v is not None:
             allowed = ["immediate", "hourly", "daily", "weekly", "never"]
             if v not in allowed:
@@ -244,7 +244,7 @@ class BulkNotificationCreate(BaseModel):
     action_url: Optional[str] = Field(None, max_length=500, description="Action URL")
     icon: Optional[str] = Field(None, max_length=100, description="Icon")
     category: Optional[str] = Field(None, max_length=50, description="Category")
-    metadata: Optional[Dict[str, Any]] = Field(None, description="Metadata")
+    extra_data: Optional[Dict[str, Any]] = Field(None, description="Metadata")
     expires_at: Optional[datetime] = Field(None, description="Expiration")
     organization_id: Optional[int] = Field(None, description="Organization context")
     channels: List[NotificationChannel] = Field(default=[NotificationChannel.IN_APP], description="Delivery channels")

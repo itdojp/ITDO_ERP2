@@ -100,7 +100,7 @@ class NotificationService:
             action_url=notification_data.action_url,
             icon=notification_data.icon,
             category=notification_data.category,
-            metadata=notification_data.metadata,
+            extra_data=notification_data.extra_data,
             organization_id=notification_data.organization_id,
             expires_at=notification_data.expires_at,
         )
@@ -303,7 +303,7 @@ class NotificationService:
                         action_url=bulk_data.action_url,
                         icon=bulk_data.icon,
                         category=bulk_data.category,
-                        metadata=bulk_data.metadata,
+                        extra_data=bulk_data.extra_data,
                         organization_id=bulk_data.organization_id,
                         expires_at=bulk_data.expires_at,
                     )
