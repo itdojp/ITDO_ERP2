@@ -507,3 +507,126 @@ def get_department_tasks_via_department_endpoint(
             status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get department tasks: {str(e)}",
         )
+
+
+# Hierarchical Structure APIs
+
+@router.get(
+    "/{department_id}/children",
+    response_model=list[DepartmentSummary],
+    responses={
+        401: {"model": ErrorResponse, "description": "Unauthorized"},
+        404: {"model": ErrorResponse, "description": "Department not found"},
+    },
+)
+def get_department_children(
+    department_id: int = Path(..., description="Department ID"),
+    include_inactive: bool = Query(False, description="Include inactive departments"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> list[DepartmentSummary]:
+    """Get direct children of a department."""
+    service = DepartmentService(db)
+    department = service.get_department(department_id)
+    
+    if not department:
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND, 
+            detail="Department not found"
+        )
+    
+    children = service.get_department_children(department_id, include_inactive)
+    return [
+        DepartmentSummary(
+            id=child.id,
+            code=child.code,
+            name=child.name,
+            short_name=child.short_name,
+            organization_id=child.organization_id,
+            parent_id=child.parent_id,
+            manager_id=child.manager_id,
+            is_active=child.is_active,
+            depth=child.depth,
+            user_count=len([u for u in child.users if u.is_active]) if hasattr(child, 'users') else 0,
+        )
+        for child in children
+    ]
+
+
+@router.put(
+    "/{department_id}/move",
+    response_model=DepartmentResponse,
+    responses={
+        401: {"model": ErrorResponse, "description": "Unauthorized"},
+        403: {"model": ErrorResponse, "description": "Insufficient permissions"},
+        404: {"model": ErrorResponse, "description": "Department not found"},
+        409: {"model": ErrorResponse, "description": "Invalid move operation"},
+    },
+)
+def move_department(
+    department_id: int = Path(..., description="Department ID to move"),
+    new_parent_id: int | None = Body(..., embed=True, description="New parent department ID (null for root)"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> DepartmentResponse | JSONResponse:
+    """Move department to a new parent."""
+    service = DepartmentService(db)
+    
+    # Check if department exists
+    department = service.get_department(department_id)
+    if not department:
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail="Department not found"
+        )
+    
+    # Check permissions
+    if not current_user.is_superuser:
+        if not service.user_has_permission(
+            current_user.id, "departments.update", department.organization_id
+        ):
+            return JSONResponse(
+                status_code=http_status.HTTP_403_FORBIDDEN,
+                content=ErrorResponse(
+                    detail="Insufficient permissions to move departments",
+                    code="PERMISSION_DENIED",
+                ).model_dump(),
+            )
+    
+    # Validate move operation
+    if new_parent_id is not None:
+        # Check if new parent exists and is in same organization
+        new_parent = service.get_department(new_parent_id)
+        if not new_parent:
+            raise HTTPException(
+                status_code=http_status.HTTP_404_NOT_FOUND,
+                detail="New parent department not found"
+            )
+        
+        if new_parent.organization_id != department.organization_id:
+            return JSONResponse(
+                status_code=http_status.HTTP_409_CONFLICT,
+                content=ErrorResponse(
+                    detail="Cannot move department to different organization",
+                    code="INVALID_MOVE_CROSS_ORG",
+                ).model_dump(),
+            )
+        
+        # Check for circular dependency
+        if service.would_create_cycle(department_id, new_parent_id):
+            return JSONResponse(
+                status_code=http_status.HTTP_409_CONFLICT,
+                content=ErrorResponse(
+                    detail="Move would create circular dependency",
+                    code="CIRCULAR_DEPENDENCY",
+                ).model_dump(),
+            )
+    
+    try:
+        updated_department = service.move_department(department_id, new_parent_id)
+        return DepartmentResponse.from_model(updated_department)
+    except Exception as e:
+        raise HTTPException(
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to move department: {str(e)}"
+        )

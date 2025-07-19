@@ -431,3 +431,100 @@ def deactivate_organization(
         )
 
     return service.get_organization_response(organization)
+
+
+
+# Organization User Management APIs
+
+@router.get(
+    "/{organization_id}/users",
+    response_model=PaginatedResponse[Any],  # UserSummary should be imported
+    responses={
+        401: {"model": ErrorResponse, "description": "Unauthorized"},
+        403: {"model": ErrorResponse, "description": "Insufficient permissions"},
+        404: {"model": ErrorResponse, "description": "Organization not found"},
+    },
+)
+def get_organization_users(
+    organization_id: int = Path(..., description="Organization ID"),
+    skip: int = Query(0, ge=0, description="Number of items to skip"),
+    limit: int = Query(100, ge=1, le=1000, description="Number of items to return"),
+    active_only: bool = Query(True, description="Only return active users"),
+    department_id: int  < /dev/null |  None = Query(None, description="Filter by department"),
+    search: str | None = Query(None, description="Search by name or email"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> PaginatedResponse[Any]:
+    """Get users within an organization."""
+    service = OrganizationService(db)
+    
+    # Check if organization exists
+    organization = service.get_organization(organization_id)
+    if not organization:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Organization not found"
+        )
+    
+    # Check permissions
+    if not current_user.is_superuser:
+        if not service.user_has_permission(
+            current_user.id, "organizations.read", organization_id
+        ):
+            return JSONResponse(
+                status_code=status.HTTP_403_FORBIDDEN,
+                content=ErrorResponse(
+                    detail="Insufficient permissions to view organization users",
+                    code="PERMISSION_DENIED",
+                ).model_dump(),
+            )
+    
+    # Build filters
+    filters = {"organization_id": organization_id}
+    if active_only:
+        filters["is_active"] = True
+    if department_id:
+        filters["department_id"] = department_id
+    
+    # Get users
+    from app.services.user import UserService
+    user_service = UserService(db)
+    
+    if search:
+        users, total = user_service.search_users(
+            query=search,
+            skip=skip,
+            limit=limit,
+            organization_id=organization_id,
+            active_only=active_only
+        )
+    else:
+        users, total = user_service.list_users(
+            skip=skip,
+            limit=limit,
+            filters=filters
+        )
+    
+    # Convert to summary format  
+    from app.schemas.user import UserSummary
+    user_summaries = [
+        UserSummary(
+            id=user.id,
+            email=user.email,
+            full_name=user.full_name,
+            username=user.username,
+            is_active=user.is_active,
+            department_id=user.department_id,
+            organization_id=user.organization_id,
+            last_login=user.last_login,
+        )
+        for user in users
+    ]
+    
+    return PaginatedResponse[Any](
+        items=user_summaries,
+        total=total,
+        page=skip // limit + 1,
+        size=limit,
+        pages=(total + limit - 1) // limit,
+    )

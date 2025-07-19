@@ -388,3 +388,91 @@ class DepartmentService:
                 return True
 
         return False
+
+    def get_department_children(
+        self, department_id: DepartmentId, include_inactive: bool = False
+    ) -> list[Department]:
+        """Get direct children of a department."""
+        query = self.db.query(Department).filter(
+            Department.parent_id == department_id,
+            ~Department.is_deleted,
+        )
+        
+        if not include_inactive:
+            query = query.filter(Department.is_active)
+        
+        return query.order_by(Department.display_order, Department.name).all()
+
+    def move_department(
+        self, department_id: DepartmentId, new_parent_id: DepartmentId | None
+    ) -> Department:
+        """Move department to a new parent."""
+        department = self.repository.get(department_id)
+        if not department:
+            raise ValueError(f"Department {department_id} not found")
+        
+        old_parent_id = department.parent_id
+        department.parent_id = new_parent_id
+        
+        # Update materialized path and depth
+        self._update_hierarchy_after_move(department, old_parent_id, new_parent_id)
+        
+        self.db.commit()
+        self.db.refresh(department)
+        return department
+
+    def would_create_cycle(
+        self, department_id: DepartmentId, potential_parent_id: DepartmentId
+    ) -> bool:
+        """Check if moving department would create a circular dependency."""
+        # Get all descendants of the department being moved
+        descendants = self._get_all_descendants(department_id)
+        descendant_ids = {d.id for d in descendants}
+        
+        # Check if potential parent is among descendants
+        return potential_parent_id in descendant_ids
+
+    def _get_all_descendants(self, department_id: DepartmentId) -> list[Department]:
+        """Get all descendants of a department recursively."""
+        descendants = []
+        children = self.get_department_children(department_id, include_inactive=True)
+        
+        for child in children:
+            descendants.append(child)
+            descendants.extend(self._get_all_descendants(child.id))
+        
+        return descendants
+
+    def _update_hierarchy_after_move(
+        self, 
+        department: Department, 
+        old_parent_id: DepartmentId | None, 
+        new_parent_id: DepartmentId | None
+    ) -> None:
+        """Update materialized path and depth after moving department."""
+        # Calculate new path and depth
+        if new_parent_id is None:
+            # Moving to root
+            department.path = f"/{department.id}/"
+            department.depth = 0
+        else:
+            parent = self.repository.get(new_parent_id)
+            if parent:
+                department.path = f"{parent.path}{department.id}/"
+                department.depth = parent.depth + 1
+            else:
+                raise ValueError(f"Parent department {new_parent_id} not found")
+        
+        # Update all descendants' paths and depths recursively
+        self._update_descendants_hierarchy(department)
+
+    def _update_descendants_hierarchy(self, parent_department: Department) -> None:
+        """Update hierarchy information for all descendants."""
+        children = self.get_department_children(parent_department.id, include_inactive=True)
+        
+        for child in children:
+            child.path = f"{parent_department.path}{child.id}/"
+            child.depth = parent_department.depth + 1
+            
+            # Recursively update grandchildren
+            self._update_descendants_hierarchy(child)
