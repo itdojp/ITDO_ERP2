@@ -375,7 +375,7 @@ async def export_applications_csv(
     end_date: Optional[datetime] = Query(None),
     status: Optional[str] = Query(None),
     db: Session = Depends(get_db),
-):
+) -> Any:
     """Export applications to CSV."""
     service = ApplicationService(db)
     csv_response = await service.export_applications_csv(
@@ -394,7 +394,7 @@ async def export_applications_excel(
     end_date: Optional[datetime] = Query(None),
     status: Optional[str] = Query(None),
     db: Session = Depends(get_db),
-):
+) -> Any:
     """Export applications to Excel."""
     service = ApplicationService(db)
     excel_response = await service.export_applications_excel(

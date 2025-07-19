@@ -193,7 +193,7 @@ class UserRoleInfo(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     @classmethod
-    def from_user_role_model(cls, user_role: "UserRole") -> "UserRoleInfo":  # type: ignore[name-defined]
+    def from_user_role_model(cls, user_role: "UserRole") -> "UserRoleInfo":
         """Create UserRoleInfo from UserRole model instance."""
         # Extract assigned_by user info if available
         assigned_by = None

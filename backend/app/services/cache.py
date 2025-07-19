@@ -12,7 +12,8 @@ import functools
 import json
 import logging
 import pickle
-from typing import Any, Callable, Dict, List, Optional, TypeVar, Union, cast
+from typing import Any, Dict, List, Optional, TypeVar, Union, cast
+from collections.abc import Callable
 
 import redis
 from sqlalchemy.orm import Session
@@ -179,6 +180,7 @@ class CacheService:
                     except Exception:
                         return value
             else:
+                # This block handles when value is None
                 if self.statistics:
                     self.statistics.increment_misses(key)
                 return default
@@ -289,7 +291,10 @@ class CacheService:
 
         try:
             ttl_value = self.redis_client.ttl(key)
-            return int(ttl_value) if ttl_value is not None else -1
+            if hasattr(ttl_value, '__await__'):
+                # Handle async client
+                return -1  # Cannot await in sync method
+            return int(ttl_value) if ttl_value is not None and isinstance(ttl_value, (int, float)) else -1
         except Exception as e:
             logger.error(f"Failed to get TTL for cache key {key}: {e}")
             return -1
@@ -322,15 +327,19 @@ class CacheService:
 
         try:
             info = self.redis_client.info()
+            # Handle async case
+            if hasattr(info, '__await__'):
+                info = {}  # Default for async client
+            
             stats = self.statistics.get_statistics() if self.statistics else {}
 
             return {
                 "status": "connected",
                 "redis_info": {
-                    "used_memory": info.get("used_memory_human", "unknown"),
-                    "connected_clients": info.get("connected_clients", 0),
-                    "keyspace_hits": info.get("keyspace_hits", 0),
-                    "keyspace_misses": info.get("keyspace_misses", 0),
+                    "used_memory": info.get("used_memory_human", "unknown") if isinstance(info, dict) else "unknown",
+                    "connected_clients": info.get("connected_clients", 0) if isinstance(info, dict) else 0,
+                    "keyspace_hits": info.get("keyspace_hits", 0) if isinstance(info, dict) else 0,
+                    "keyspace_misses": info.get("keyspace_misses", 0) if isinstance(info, dict) else 0,
                 },
                 "cache_statistics": stats,
                 "default_ttl": self.default_ttl,
@@ -358,8 +367,8 @@ class CacheService:
 def cached(
     key_prefix: str = "cache",
     ttl: Optional[int] = None,
-    key_builder: Optional[Callable] = None,
-) -> Callable:
+    key_builder: Optional[Callable[..., str]] = None,
+) -> Callable[..., Callable[..., T]]:
     """Decorator to cache function results.
 
     Args:
@@ -369,7 +378,7 @@ def cached(
     """
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
         @functools.wraps(func)
-        def wrapper(*args, **kwargs) -> T:
+        def wrapper(*args: Any, **kwargs: Any) -> T:
             cache = get_cache_service()
 
             # Build cache key
@@ -384,7 +393,7 @@ def cached(
             # Try to get from cache
             cached_result = cache.get(cache_key)
             if cached_result is not None:
-                return cached_result
+                return cast(T, cached_result)
 
             # Execute function and cache result
             result = func(*args, **kwargs)
@@ -395,11 +404,11 @@ def cached(
     return decorator
 
 
-def cache_invalidate(key_prefix: str) -> Callable:
+def cache_invalidate(key_prefix: str) -> Callable[..., Callable[..., T]]:
     """Decorator to invalidate cache with given prefix after function execution."""
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
         @functools.wraps(func)
-        def wrapper(*args, **kwargs) -> T:
+        def wrapper(*args: Any, **kwargs: Any) -> T:
             result = func(*args, **kwargs)
 
             cache = get_cache_service()

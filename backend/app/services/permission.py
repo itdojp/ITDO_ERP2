@@ -37,7 +37,7 @@ class PermissionService:
             raise ValueError(f"User with id {user_id} not found")
 
         # Get direct permissions (if any custom implementation exists)
-        direct_permissions = []
+        direct_permissions: list[str] = []
 
         # Get permissions from roles
         inherited_permissions = []
@@ -441,7 +441,7 @@ class PermissionService:
         permission_code: str,
         organization_id: Optional[int] = None,
         department_id: Optional[int] = None,
-        db: Session = None,
+        db: Optional[Session] = None,
     ) -> bool:
         """Check if user has specific permission.
 

@@ -12,6 +12,15 @@ wheels = [
 ]
 
 [[package]]
+name = "aiosmtplib"
+version = "3.0.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/91/2a/812517f8350cd317aad2ba1ce25dfc213c6f1f2e62e1cbf662b4bdc51d34/aiosmtplib-3.0.2.tar.gz", hash = "sha256:08fd840f9dbc23258025dca229e8a8f04d2ccf3ecb1319585615bfc7933f7f47", size = 59941, upload-time = "2024-07-31T05:13:10.065Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/87/35/441faea7a11159795881a6ec869454f40269e4e3806dced935a35d83a412/aiosmtplib-3.0.2-py3-none-any.whl", hash = "sha256:8783059603a34834c7c90ca51103c3aa129d5922003b5ce98dbaa6d4440f10fc", size = 27111, upload-time = "2024-07-31T05:13:08.515Z" },
+]
+
+[[package]]
 name = "alembic"
 version = "1.16.2"
 source = { registry = "https://pypi.org/simple" }
@@ -170,6 +179,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/e3/ee/adda3d46d4a9120772fae6de454c8495603c37c4c3b9c60f25b1ab6401fe/black-25.1.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:030b9759066a4ee5e5aca28c3c77f9c64789cdd4de8ac1df642c40b708be6171", size = 1782926, upload-time = "2025-01-29T04:18:58.564Z" },
     { url = "https://files.pythonhosted.org/packages/cc/64/94eb5f45dcb997d2082f097a3944cfc7fe87e071907f677e80788a2d7b7a/black-25.1.0-cp313-cp313-win_amd64.whl", hash = "sha256:a22f402b410566e2d1c950708c77ebf5ebd5d0d88a6a2e87c86d9fb48afa0d18", size = 1442613, upload-time = "2025-01-29T04:19:27.63Z" },
     { url = "https://files.pythonhosted.org/packages/09/71/54e999902aed72baf26bca0d50781b01838251a462612966e9fc4891eadd/black-25.1.0-py3-none-any.whl", hash = "sha256:95e8176dae143ba9097f351d174fdaf0ccd29efb414b362ae3fd72bf0f710717", size = 207646, upload-time = "2025-01-29T04:15:38.082Z" },
+]
+
+[[package]]
+name = "blinker"
+version = "1.9.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/21/28/9b3f50ce0e048515135495f198351908d99540d69bfdc8c1d15b73dc55ce/blinker-1.9.0.tar.gz", hash = "sha256:b4ce2265a7abece45e7cc896e98dbebe6cead56bcf805a3d23136d145f5445bf", size = 22460, upload-time = "2024-11-08T17:25:47.436Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/10/cb/f2ad4230dc2eb1a74edf38f1a38b9b52277f75bef262d8908e60d957e13c/blinker-1.9.0-py3-none-any.whl", hash = "sha256:ba0efaa9080b619ff2f3459d1d500c57bddea4a6b424b60a91141db6fd2f08bc", size = 8458, upload-time = "2024-11-08T17:25:46.184Z" },
 ]
 
 [[package]]
@@ -492,6 +510,24 @@ wheels = [
 ]
 
 [[package]]
+name = "fastapi-mail"
+version = "1.5.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "aiosmtplib" },
+    { name = "blinker" },
+    { name = "email-validator" },
+    { name = "jinja2" },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
+    { name = "starlette" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c0/3b/8987e2472303a7e3d12983c6edc62f85948df10439e067bb19355cbd3326/fastapi_mail-1.5.0.tar.gz", hash = "sha256:d2e59cde8ef27e5c9e196639c9506b895000350e19a13b3e0a60cd4e33813f09", size = 13271, upload-time = "2025-05-21T07:38:56.091Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/93/c0/9632fcf5201e9481ec0ac8d107f3b2ec058245325a235f0c651601e3552b/fastapi_mail-1.5.0-py3-none-any.whl", hash = "sha256:c7c811a2a06e5aa3e444f8ae15052479a7726ca52e82c31b9e7bbac51a491204", size = 15081, upload-time = "2025-05-21T07:38:54.602Z" },
+]
+
+[[package]]
 name = "filelock"
 version = "3.18.0"
 source = { registry = "https://pypi.org/simple" }
@@ -649,6 +685,7 @@ dependencies = [
     { name = "deprecated" },
     { name = "email-validator" },
     { name = "fastapi" },
+    { name = "fastapi-mail" },
     { name = "httpx" },
     { name = "openpyxl" },
     { name = "opentelemetry-api" },
@@ -722,6 +759,7 @@ requires-dist = [
     { name = "email-validator", specifier = ">=2.1.0" },
     { name = "factory-boy", marker = "extra == 'dev'", specifier = ">=3.3.0" },
     { name = "fastapi", specifier = ">=0.104.1" },
+    { name = "fastapi-mail", specifier = ">=1.5.0" },
     { name = "flake8", marker = "extra == 'dev'", specifier = ">=6.1.0" },
     { name = "httpx", specifier = ">=0.25.2" },
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.25.2" },
@@ -778,6 +816,18 @@ dev = [
     { name = "types-python-jose", specifier = ">=3.3.4" },
     { name = "types-pytz", specifier = ">=2025.2.0.20250516" },
     { name = "types-reportlab", specifier = ">=4.4.1.20250602" },
+]
+
+[[package]]
+name = "jinja2"
+version = "3.1.6"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "markupsafe" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/df/bf/f7da0350254c0ed7c72f3e33cef02e048281fec7ecec5f032d4aac52226b/jinja2-3.1.6.tar.gz", hash = "sha256:0137fb05990d35f1275a587e9aee6d56da821fc83491a0fb838183be43f66d6d", size = 245115, upload-time = "2025-03-05T20:05:02.478Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/62/a1/3d680cbfd5f4b8f15abc1d571870c5fc3e594bb582bc3b64ea099db13e56/jinja2-3.1.6-py3-none-any.whl", hash = "sha256:85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67", size = 134899, upload-time = "2025-03-05T20:05:00.369Z" },
 ]
 
 [[package]]

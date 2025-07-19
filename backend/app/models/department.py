@@ -203,7 +203,7 @@ class Department(SoftDeletableModel):
     @property
     def current_headcount(self) -> int:
         """Get current number of users in the department."""
-        count = self.users.filter_by(is_active=True).count()
+        count = len([user for user in self.users if user.is_active])
         return int(count) if count is not None else 0
 
     @property
@@ -232,11 +232,11 @@ class Department(SoftDeletableModel):
 
     def get_all_users(self, include_sub_departments: bool = False) -> list["User"]:
         """Get all users in this department and optionally in sub-departments."""
-        users = list(self.users.filter_by(is_active=True).all())
+        users = [user for user in self.users if user.is_active]
 
         if include_sub_departments:
             for sub_dept in self.get_all_sub_departments():
-                users.extend(sub_dept.users.filter_by(is_active=True).all())
+                users.extend([user for user in sub_dept.users if user.is_active])
 
         # Remove duplicates while preserving order
         seen = set()
