@@ -7,10 +7,12 @@ from app.api.v1 import (
     audit,
     audit_logs,
     auth,
-    budgets,
+    # budgets,  # Temporarily disabled due to import issues
     cross_tenant_permissions,
     # customer_activities,  # Disable if needed
     # customers,  # Disable if needed
+    dashboard,
+    dashboard_simple,
     departments,
     # expense_categories,  # Disable if needed
     health,
@@ -47,6 +49,8 @@ api_router.include_router(departments.router)
 api_router.include_router(roles.router)
 api_router.include_router(permission_management.router)
 api_router.include_router(audit_logs.router)
+api_router.include_router(dashboard_simple.router, prefix="/dashboard", tags=["dashboard"])
+# api_router.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])  # Complex version disabled
 # api_router.include_router(
 #     role_permission_ui.router, prefix="/role-permissions", tags=["role-permissions"]
 # )
@@ -69,18 +73,18 @@ api_router.include_router(
     user_privacy.router, prefix="/users/privacy", tags=["user-privacy"]
 )
 api_router.include_router(pm_automation.router)
-api_router.include_router(budgets.router, prefix="/budgets", tags=["budgets"])
+# api_router.include_router(budgets.router, prefix="/budgets", tags=["budgets"])
 
-# Phase 6-7 Advanced Features (Issue #155)
-api_router.include_router(budgets.router, prefix="/budgets", tags=["financial"])
-api_router.include_router(customers.router, prefix="/customers", tags=["crm"])
-api_router.include_router(
-    customer_activities.router, prefix="/customer-activities", tags=["crm"]
-)
-api_router.include_router(opportunities.router, prefix="/opportunities", tags=["crm"])
-api_router.include_router(
-    expense_categories.router, prefix="/expense-categories", tags=["financial"]
-)
+# Phase 6-7 Advanced Features (Issue #155) - Temporarily disabled
+# api_router.include_router(budgets.router, prefix="/budgets", tags=["financial"])
+# api_router.include_router(customers.router, prefix="/customers", tags=["crm"])
+# api_router.include_router(
+#     customer_activities.router, prefix="/customer-activities", tags=["crm"]
+# )
+# api_router.include_router(opportunities.router, prefix="/opportunities", tags=["crm"])
+# api_router.include_router(
+#     expense_categories.router, prefix="/expense-categories", tags=["financial"]
+# )
 api_router.include_router(workflows.router, prefix="/workflows", tags=["workflow"])
 api_router.include_router(
     applications.router, prefix="/applications", tags=["workflow"]
