@@ -175,7 +175,7 @@ class CacheService:
                     return json.loads(value)
                 except (json.JSONDecodeError, TypeError):
                     try:
-                        return pickle.loads(cast(str, value).encode('latin-1'))
+                        return pickle.loads(value.encode('latin-1'))
                     except Exception:
                         return value
             else:
@@ -288,7 +288,8 @@ class CacheService:
             return -1
 
         try:
-            return self.redis_client.ttl(key)
+            ttl_value = self.redis_client.ttl(key)
+            return int(ttl_value) if ttl_value is not None else -1
         except Exception as e:
             logger.error(f"Failed to get TTL for cache key {key}: {e}")
             return -1
@@ -298,9 +299,9 @@ class CacheService:
         pattern = self.key_builder.build_pattern(prefix)
         return self.delete_pattern(pattern)
 
-    def warm_cache(self, warming_functions: List[Callable]) -> Dict[str, Any]:
+    def warm_cache(self, warming_functions: List[Callable[[], None]]) -> Dict[str, Any]:
         """Warm cache with predefined data."""
-        results = {"success": 0, "failed": 0, "errors": []}
+        results: Dict[str, Any] = {"success": 0, "failed": 0, "errors": []}
 
         for func in warming_functions:
             try:
