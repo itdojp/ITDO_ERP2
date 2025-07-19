@@ -31,7 +31,9 @@ class SuccessResponse(BaseModel):
 
     success: bool = Field(True, description="Operation success status")
     message: str = Field(..., description="Success message")
-    data: dict[str, Any] | list[Any] | str | int | float | bool | None = Field(None, description="Additional data")
+    data: dict[str, Any] | list[Any] | str | int | float | bool | None = Field(
+        None, description="Additional data"
+    )
 
     class Config:
         json_schema_extra = {
@@ -144,7 +146,9 @@ class FilterOption(BaseModel):
     operator: str = Field(
         ..., description="Filter operator (eq, ne, gt, lt, gte, lte, like, in)"
     )
-    value: str | int | float | bool | list[Any] | None = Field(..., description="Filter value")
+    value: str | int | float | bool | list[Any] | None = Field(
+        ..., description="Filter value"
+    )
 
     class Config:
         json_schema_extra = {

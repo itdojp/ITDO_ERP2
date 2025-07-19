@@ -38,7 +38,7 @@ storage_client = StorageClient()
 def _get_valid_time_format(time_format: str) -> Literal["12h", "24h"]:
     """Return a valid time format, defaulting to 24h if invalid."""
     return (
-        cast(Literal["12h", "24h"], time_format)
+        cast("Literal['12h', '24h']", time_format)
         if time_format in ["12h", "24h"]
         else "24h"
     )

@@ -20,14 +20,14 @@ from app.core.exceptions import NotFound
 from app.models.notification import (
     Notification,
     NotificationChannel,
-    NotificationPreference,
+    NotificationPreferences,
     NotificationQueue,
 )
 from app.models.user import User
 from app.schemas.notification import (
     BulkNotificationCreate,
     NotificationCreate,
-    NotificationPreferenceCreate,
+    NotificationPreferencesUpdate,
     NotificationQueueCreate,
 )
 
@@ -93,12 +93,10 @@ class NotificationService:
             user_id=notification_data.user_id,
             title=notification_data.title,
             message=notification_data.message,
-            type=notification_data.type,
+            notification_type=notification_data.notification_type,
             priority=notification_data.priority,
             action_url=notification_data.action_url,
-            icon=notification_data.icon,
-            category=notification_data.category,
-            extra_data=notification_data.extra_data,
+            extra_metadata=notification_data.extra_metadata,
             organization_id=notification_data.organization_id,
             expires_at=notification_data.expires_at,
         )
@@ -111,7 +109,10 @@ class NotificationService:
         self._publish_notification_update(notification)
 
         logger.info(
-            f"Created notification {notification.id} for user {notification_data.user_id}"
+            (
+                f"Created notification {notification.id} "
+                f"for user {notification_data.user_id}"
+            )
         )
         return notification
 
@@ -290,12 +291,10 @@ class NotificationService:
                         user_id=user_id,
                         title=bulk_data.title,
                         message=bulk_data.message,
-                        type=bulk_data.type,
+                        notification_type=bulk_data.notification_type,
                         priority=bulk_data.priority,
                         action_url=bulk_data.action_url,
-                        icon=bulk_data.icon,
-                        category=bulk_data.category,
-                        extra_data=bulk_data.extra_data,
+                        extra_metadata=bulk_data.extra_metadata,
                         organization_id=bulk_data.organization_id,
                         expires_at=bulk_data.expires_at,
                     )
@@ -338,18 +337,18 @@ class NotificationService:
 
     # Notification Preferences
 
-    def get_user_preferences(self, user_id: int) -> Optional[NotificationPreference]:
+    def get_user_preferences(self, user_id: int) -> Optional[NotificationPreferences]:
         """Get notification preferences for a user."""
 
         return (
-            self.db.query(NotificationPreference)
-            .filter(NotificationPreference.user_id == user_id)
+            self.db.query(NotificationPreferences)
+            .filter(NotificationPreferences.user_id == user_id)
             .first()
         )
 
     def create_or_update_preferences(
-        self, user_id: int, preferences_data: NotificationPreferenceCreate
-    ) -> NotificationPreference:
+        self, user_id: int, preferences_data: NotificationPreferencesUpdate
+    ) -> NotificationPreferences:
         """Create or update notification preferences for a user."""
 
         existing = self.get_user_preferences(user_id)
@@ -362,7 +361,7 @@ class NotificationService:
             preferences = existing
         else:
             # Create new preferences
-            preferences = NotificationPreference(
+            preferences = NotificationPreferences(
                 user_id=user_id, **preferences_data.dict()
             )
             self.db.add(preferences)
@@ -463,8 +462,10 @@ class NotificationService:
 
         # Notifications by type
         type_stats = (
-            base_query.with_entities(Notification.type, func.count(Notification.id))
-            .group_by(Notification.type)
+            base_query.with_entities(
+                Notification.notification_type, func.count(Notification.id)
+            )
+            .group_by(Notification.notification_type)
             .all()
         )
         notifications_by_type = {

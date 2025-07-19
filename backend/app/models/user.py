@@ -12,7 +12,7 @@ from app.models.base import SoftDeletableModel
 
 if TYPE_CHECKING:
     from app.models.department import Department
-    from app.models.notification import Notification, NotificationPreference
+    from app.models.notification import Notification, NotificationPreferences
     from app.models.organization import Organization
     from app.models.role import Role, UserRole
     from app.models.task import Task
@@ -69,7 +69,10 @@ class User(SoftDeletableModel):
         overlaps="user,role,user_roles",
     )
     user_roles: Mapped[list["UserRole"]] = relationship(
-        "UserRole", back_populates="user", foreign_keys="UserRole.user_id", overlaps="roles,users"
+        "UserRole",
+        back_populates="user",
+        foreign_keys="UserRole.user_id",
+        overlaps="roles,users",
     )
     password_history: Mapped[list["PasswordHistory"]] = relationship(
         "PasswordHistory", back_populates="user", cascade="all, delete-orphan"
@@ -118,8 +121,8 @@ class User(SoftDeletableModel):
         cascade="all, delete-orphan",
         order_by="desc(Notification.created_at)",
     )
-    notification_preferences: Mapped["NotificationPreference | None"] = relationship(
-        "NotificationPreference",
+    notification_preferences: Mapped["NotificationPreferences | None"] = relationship(
+        "NotificationPreferences",
         back_populates="user",
         uselist=False,
         cascade="all, delete-orphan",

@@ -1,11 +1,10 @@
 """File upload service for secure file handling with validation."""
 
 import hashlib
-import os
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Any, BinaryIO, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from fastapi import HTTPException, UploadFile
 from sqlalchemy.orm import Session
@@ -13,9 +12,9 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.models.file_metadata import FileMetadata
 from app.schemas.file_upload import (
-    FileUploadResponse,
-    FileMetadataResponse,
     FileDeleteResponse,
+    FileMetadataResponse,
+    FileUploadResponse,
 )
 
 
@@ -34,14 +33,18 @@ class FileUploadService:
             "text/plain",
             "text/csv",
         ],
-        "archive": ["application/zip", "application/x-rar-compressed", "application/x-7z-compressed"],
+        "archive": [
+            "application/zip",
+            "application/x-rar-compressed",
+            "application/x-7z-compressed",
+        ],
     }
 
     # Maximum file sizes by category (in bytes)
     MAX_FILE_SIZES = {
-        "image": 10 * 1024 * 1024,      # 10MB
-        "document": 50 * 1024 * 1024,   # 50MB
-        "archive": 100 * 1024 * 1024,   # 100MB
+        "image": 10 * 1024 * 1024,  # 10MB
+        "document": 50 * 1024 * 1024,  # 50MB
+        "archive": 100 * 1024 * 1024,  # 100MB
     }
 
     def __init__(self, db: Session):
@@ -66,16 +69,16 @@ class FileUploadService:
         # Generate unique filename
         file_extension = Path(file.filename or "").suffix.lower()
         unique_filename = f"{uuid.uuid4()}{file_extension}"
-        
+
         # Determine file category
         file_category = self._determine_file_category(file.content_type or "")
-        
+
         # Create storage path
         storage_path = self._create_storage_path(file_category, unique_filename)
-        
+
         # Calculate file hash while reading
         file_hash = await self._save_file_with_hash(file, storage_path)
-        
+
         # Create file metadata record
         file_metadata = FileMetadata(
             original_filename=file.filename or "unknown",
@@ -154,7 +157,7 @@ class FileUploadService:
         try:
             with open(file_path, "rb") as f:
                 content = f.read()
-            
+
             return (
                 content,
                 file_metadata.original_filename,
@@ -178,7 +181,7 @@ class FileUploadService:
         file_metadata.is_active = False
         file_metadata.deleted_at = datetime.utcnow()
         file_metadata.deleted_by = deleted_by
-        
+
         self.db.commit()
 
         return FileDeleteResponse(
@@ -242,7 +245,7 @@ class FileUploadService:
 
         total_files = len(files)
         total_size = sum(f.file_size for f in files)
-        
+
         # Calculate statistics by category
         category_stats = {}
         for f in files:
@@ -277,10 +280,10 @@ class FileUploadService:
         try:
             # Calculate current hash
             current_hash = self._calculate_file_hash(file_path)
-            
+
             # Compare with stored hash
             is_valid = current_hash == file_metadata.file_hash
-            
+
             return {
                 "valid": is_valid,
                 "stored_hash": file_metadata.file_hash,
@@ -301,7 +304,10 @@ class FileUploadService:
         if file.size and file.size > max(self.MAX_FILE_SIZES.values()):
             raise HTTPException(
                 status_code=413,
-                detail=f"File too large. Maximum size is {max(self.MAX_FILE_SIZES.values()) // (1024*1024)}MB"
+                detail=(
+                    f"File too large. Maximum size is "
+                    f"{max(self.MAX_FILE_SIZES.values()) // (1024 * 1024)}MB"
+                ),
             )
 
         # Check MIME type
@@ -310,22 +316,26 @@ class FileUploadService:
             if file_category == "unknown":
                 raise HTTPException(
                     status_code=400,
-                    detail=f"File type '{file.content_type}' is not allowed"
+                    detail=f"File type '{file.content_type}' is not allowed",
                 )
 
             # Check size limit for specific category
-            max_size = self.MAX_FILE_SIZES.get(file_category, self.MAX_FILE_SIZES["document"])
+            max_size = self.MAX_FILE_SIZES.get(
+                file_category, self.MAX_FILE_SIZES["document"]
+            )
             if file.size and file.size > max_size:
                 raise HTTPException(
                     status_code=413,
-                    detail=f"File too large for {file_category}. Maximum size is {max_size // (1024*1024)}MB"
+                    detail=(
+                        f"File too large for {file_category}. "
+                        f"Maximum size is {max_size // (1024 * 1024)}MB"
+                    ),
                 )
 
         # Check filename for security
         if any(char in file.filename for char in ["../", "..\\", "/", "\\"]):
             raise HTTPException(
-                status_code=400,
-                detail="Invalid filename - path traversal not allowed"
+                status_code=400, detail="Invalid filename - path traversal not allowed"
             )
 
     def _determine_file_category(self, mime_type: str) -> str:
@@ -340,36 +350,36 @@ class FileUploadService:
         # Create category subdirectory
         category_dir = self.upload_dir / category
         category_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Create date-based subdirectory
         date_dir = category_dir / datetime.utcnow().strftime("%Y/%m/%d")
         date_dir.mkdir(parents=True, exist_ok=True)
-        
+
         return date_dir / filename
 
     async def _save_file_with_hash(self, file: UploadFile, storage_path: Path) -> str:
         """Save file and calculate hash simultaneously."""
         hash_sha256 = hashlib.sha256()
-        
+
         with open(storage_path, "wb") as f:
             # Reset file pointer
             await file.seek(0)
-            
+
             # Read and write in chunks while calculating hash
             while chunk := await file.read(8192):  # 8KB chunks
                 hash_sha256.update(chunk)
                 f.write(chunk)
-        
+
         return hash_sha256.hexdigest()
 
     def _calculate_file_hash(self, file_path: Path) -> str:
         """Calculate SHA256 hash of file."""
         hash_sha256 = hashlib.sha256()
-        
+
         with open(file_path, "rb") as f:
             while chunk := f.read(8192):
                 hash_sha256.update(chunk)
-        
+
         return hash_sha256.hexdigest()
 
     # Virus scanning integration point (placeholder)

@@ -32,13 +32,13 @@ async def upload_file(
 ) -> FileUploadResponse:
     """Upload a file with metadata."""
     service = FileUploadService(db)
-    
+
     # Parse metadata if provided
     metadata: Dict[str, Any] = {
         "uploaded_via": "api",
         "user_agent": "file_upload_api",
     }
-    
+
     try:
         result = await service.upload_file(
             file=file,
@@ -65,10 +65,10 @@ async def list_files(
 ) -> FileListResponse:
     """List files with filtering."""
     service = FileUploadService(db)
-    
+
     # Use current user's organization if not specified
     org_filter = organization_id or current_user.organization_id
-    
+
     files = await service.list_files(
         organization_id=org_filter,
         category=category,
@@ -76,7 +76,7 @@ async def list_files(
         skip=skip,
         limit=limit,
     )
-    
+
     return FileListResponse(
         files=files,
         total=len(files),  # TODO: Implement proper count query
@@ -93,18 +93,18 @@ async def get_file_metadata(
 ) -> FileMetadataResponse:
     """Get file metadata by ID."""
     service = FileUploadService(db)
-    
+
     file_metadata = await service.get_file_metadata(file_id)
     if not file_metadata:
         raise HTTPException(status_code=404, detail="File not found")
-    
+
     # Check access permissions (basic implementation)
     if (
         file_metadata.organization_id != current_user.organization_id
         and not current_user.is_superuser
     ):
         raise HTTPException(status_code=403, detail="Access denied")
-    
+
     return file_metadata
 
 
@@ -116,28 +116,28 @@ async def download_file(
 ) -> StreamingResponse:
     """Download file content."""
     service = FileUploadService(db)
-    
+
     # Check file metadata and permissions
     file_metadata = await service.get_file_metadata(file_id)
     if not file_metadata:
         raise HTTPException(status_code=404, detail="File not found")
-    
+
     # Check access permissions
     if (
         file_metadata.organization_id != current_user.organization_id
         and not current_user.is_superuser
     ):
         raise HTTPException(status_code=403, detail="Access denied")
-    
+
     # Get file content
     result = await service.get_file_content(file_id)
     if not result:
         raise HTTPException(status_code=404, detail="File content not found")
-    
+
     content, filename, mime_type = result
-    
+
     # TODO: Update download tracking
-    
+
     return StreamingResponse(
         iter([content]),
         media_type=mime_type,
@@ -156,12 +156,12 @@ async def delete_file(
 ) -> FileDeleteResponse:
     """Delete a file (soft delete)."""
     service = FileUploadService(db)
-    
+
     # Check file metadata and permissions
     file_metadata = await service.get_file_metadata(file_id)
     if not file_metadata:
         raise HTTPException(status_code=404, detail="File not found")
-    
+
     # Check permissions (only uploader or admin can delete)
     if (
         file_metadata.uploaded_by != current_user.id
@@ -169,7 +169,7 @@ async def delete_file(
         and not current_user.has_permission("file.delete")
     ):
         raise HTTPException(status_code=403, detail="Permission denied")
-    
+
     try:
         result = await service.delete_file(file_id, current_user.id)
         return result
@@ -185,17 +185,17 @@ async def get_file_statistics(
 ) -> FileStatisticsResponse:
     """Get file upload statistics."""
     service = FileUploadService(db)
-    
+
     # Use current user's organization if not specified
     org_filter = organization_id or current_user.organization_id
-    
+
     # Check permissions for cross-organization access
     if organization_id and organization_id != current_user.organization_id:
         if not current_user.is_superuser:
             raise HTTPException(status_code=403, detail="Access denied")
-    
+
     stats = await service.get_file_statistics(org_filter)
-    
+
     return FileStatisticsResponse(**stats)
 
 
@@ -207,21 +207,21 @@ async def check_file_integrity(
 ) -> FileIntegrityResponse:
     """Check file integrity by validating hash."""
     service = FileUploadService(db)
-    
+
     # Check file metadata and permissions
     file_metadata = await service.get_file_metadata(file_id)
     if not file_metadata:
         raise HTTPException(status_code=404, detail="File not found")
-    
+
     # Check access permissions
     if (
         file_metadata.organization_id != current_user.organization_id
         and not current_user.is_superuser
     ):
         raise HTTPException(status_code=403, detail="Access denied")
-    
+
     result = await service.validate_file_integrity(file_id)
-    
+
     return FileIntegrityResponse(**result)
 
 
@@ -233,16 +233,16 @@ async def scan_file_for_viruses(
 ) -> Dict[str, Any]:
     """Scan file for viruses (placeholder endpoint)."""
     service = FileUploadService(db)
-    
+
     # Check file metadata and permissions
     file_metadata = await service.get_file_metadata(file_id)
     if not file_metadata:
         raise HTTPException(status_code=404, detail="File not found")
-    
+
     # Check permissions (admin only for virus scanning)
     if not current_user.is_superuser and not current_user.has_permission("file.scan"):
         raise HTTPException(status_code=403, detail="Permission denied")
-    
+
     # Placeholder implementation
     return {
         "file_id": file_id,
@@ -259,12 +259,36 @@ async def get_file_categories(
 ) -> List[Dict[str, str]]:
     """Get available file categories."""
     return [
-        {"id": "general", "name": "General Files", "description": "General purpose files"},
-        {"id": "image", "name": "Images", "description": "Image files (JPEG, PNG, GIF, WebP)"},
-        {"id": "document", "name": "Documents", "description": "Documents (PDF, Word, Excel, CSV)"},
-        {"id": "archive", "name": "Archives", "description": "Archive files (ZIP, RAR, 7Z)"},
-        {"id": "profile", "name": "Profile", "description": "User profile related files"},
-        {"id": "attachment", "name": "Attachments", "description": "Email and message attachments"},
+        {
+            "id": "general",
+            "name": "General Files",
+            "description": "General purpose files",
+        },
+        {
+            "id": "image",
+            "name": "Images",
+            "description": "Image files (JPEG, PNG, GIF, WebP)",
+        },
+        {
+            "id": "document",
+            "name": "Documents",
+            "description": "Documents (PDF, Word, Excel, CSV)",
+        },
+        {
+            "id": "archive",
+            "name": "Archives",
+            "description": "Archive files (ZIP, RAR, 7Z)",
+        },
+        {
+            "id": "profile",
+            "name": "Profile",
+            "description": "User profile related files",
+        },
+        {
+            "id": "attachment",
+            "name": "Attachments",
+            "description": "Email and message attachments",
+        },
     ]
 
 

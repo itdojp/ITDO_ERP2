@@ -3,7 +3,7 @@
 import tempfile
 from io import BytesIO
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi import HTTPException, UploadFile
@@ -23,7 +23,9 @@ class TestFileUploadService:
     @pytest.fixture
     def service(self, mock_db: MagicMock) -> FileUploadService:
         """Create FileUploadService instance."""
-        with patch.object(FileUploadService, "__init__", lambda x, db: setattr(x, "db", db)):
+        with patch.object(
+            FileUploadService, "__init__", lambda x, db: setattr(x, "db", db)
+        ):
             service = FileUploadService(mock_db)
             service.upload_dir = Path(tempfile.gettempdir()) / "test_uploads"
             service.upload_dir.mkdir(exist_ok=True)
@@ -44,7 +46,10 @@ class TestFileUploadService:
 
     @pytest.mark.asyncio
     async def test_upload_file_success(
-        self, service: FileUploadService, mock_upload_file: UploadFile, mock_db: MagicMock
+        self,
+        service: FileUploadService,
+        mock_upload_file: UploadFile,
+        mock_db: MagicMock,
     ) -> None:
         """Test successful file upload."""
         # Setup
@@ -115,7 +120,9 @@ class TestFileUploadService:
         assert "File too large" in str(exc_info.value.detail)
 
     @pytest.mark.asyncio
-    async def test_validate_file_invalid_mime_type(self, service: FileUploadService) -> None:
+    async def test_validate_file_invalid_mime_type(
+        self, service: FileUploadService
+    ) -> None:
         """Test file validation with invalid MIME type."""
         file = UploadFile(
             filename="test.exe",
@@ -131,7 +138,9 @@ class TestFileUploadService:
         assert "not allowed" in str(exc_info.value.detail)
 
     @pytest.mark.asyncio
-    async def test_validate_file_path_traversal(self, service: FileUploadService) -> None:
+    async def test_validate_file_path_traversal(
+        self, service: FileUploadService
+    ) -> None:
         """Test file validation prevents path traversal."""
         file = UploadFile(
             filename="../../../etc/passwd",

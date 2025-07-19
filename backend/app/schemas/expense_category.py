@@ -203,7 +203,9 @@ class ExpenseCategoryBulkCreate(BaseModel):
     )
 
     @validator("categories")
-    def validate_categories(cls, v: List[ExpenseCategoryCreate]) -> List[ExpenseCategoryCreate]:
+    def validate_categories(
+        cls, v: List[ExpenseCategoryCreate]
+    ) -> List[ExpenseCategoryCreate]:
         if not v:
             raise ValueError("At least one category must be provided")
         return list(v)
@@ -310,7 +312,9 @@ class ExpenseCategoryImport(BaseModel):
     )
 
     @validator("categories")
-    def validate_categories(cls, v: List[ExpenseCategoryCreate]) -> List[ExpenseCategoryCreate]:
+    def validate_categories(
+        cls, v: List[ExpenseCategoryCreate]
+    ) -> List[ExpenseCategoryCreate]:
         if not v:
             raise ValueError("At least one category must be provided")
         return list(v)

@@ -21,6 +21,7 @@ class FileUploadResponse(BaseModel):
 
     class Config:
         """Pydantic configuration."""
+
         from_attributes = True
 
 
@@ -44,6 +45,7 @@ class FileMetadataResponse(BaseModel):
 
     class Config:
         """Pydantic configuration."""
+
         from_attributes = True
 
 
@@ -56,6 +58,7 @@ class FileDeleteResponse(BaseModel):
 
     class Config:
         """Pydantic configuration."""
+
         from_attributes = True
 
 
@@ -71,6 +74,7 @@ class FileUploadRequest(BaseModel):
 
     class Config:
         """Pydantic configuration."""
+
         from_attributes = True
 
 
@@ -84,6 +88,7 @@ class FileListResponse(BaseModel):
 
     class Config:
         """Pydantic configuration."""
+
         from_attributes = True
 
 
@@ -98,6 +103,7 @@ class FileStatisticsResponse(BaseModel):
 
     class Config:
         """Pydantic configuration."""
+
         from_attributes = True
 
 
@@ -112,6 +118,7 @@ class FileIntegrityResponse(BaseModel):
 
     class Config:
         """Pydantic configuration."""
+
         from_attributes = True
 
 
@@ -130,6 +137,7 @@ class FileSearchRequest(BaseModel):
 
     class Config:
         """Pydantic configuration."""
+
         from_attributes = True
 
 
@@ -143,4 +151,5 @@ class FileAccessLogResponse(BaseModel):
 
     class Config:
         """Pydantic configuration."""
+
         from_attributes = True

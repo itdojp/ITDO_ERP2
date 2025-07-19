@@ -281,7 +281,9 @@ class PMAutomationResponse(BaseModel):
     """Generic PM automation response wrapper."""
 
     success: bool = Field(..., description="Operation success status")
-    data: Dict[str, Any] | List[Any] | str | int | float | bool | None = Field(..., description="Response data")
+    data: Dict[str, Any] | List[Any] | str | int | float | bool | None = Field(
+        ..., description="Response data"
+    )
     message: str = Field(..., description="Response message")
     timestamp: datetime = Field(
         default_factory=datetime.now, description="Response timestamp"

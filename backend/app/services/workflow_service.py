@@ -39,7 +39,7 @@ class WorkflowService:
             organization_id=workflow_data.organization_id,
             definition=workflow_data.workflow_definition,
             is_active=(workflow_data.status == "active"),
-            created_by=getattr(workflow_data, 'created_by', None),
+            created_by=getattr(workflow_data, "created_by", None),
         )
 
         self.db.add(workflow)
@@ -404,7 +404,9 @@ class WorkflowService:
                         instance_id=instance.id,
                         node_id=next_node.id,
                         name=next_node.name,
-                        description=next_node.configuration.get("description", "") if next_node.configuration else "",
+                        description=next_node.configuration.get("description", "")
+                        if next_node.configuration
+                        else "",
                         status=TaskStatus.PENDING,
                         task_config=next_node.configuration,
                     )
@@ -519,7 +521,11 @@ class WorkflowService:
         """Get status breakdown for instances."""
         breakdown: Dict[str, int] = {}
         for instance in instances:
-            status = instance.status.value if hasattr(instance.status, 'value') else str(instance.status)
+            status = (
+                instance.status.value
+                if hasattr(instance.status, "value")
+                else str(instance.status)
+            )
             breakdown[status] = breakdown.get(status, 0) + 1
 
         return breakdown

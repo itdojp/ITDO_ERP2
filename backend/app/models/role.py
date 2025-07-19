@@ -18,8 +18,7 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
-from sqlalchemy.orm import Session
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
 
 from app.models.base import AuditableModel, Base, SoftDeletableModel
 from app.types import DepartmentId, OrganizationId, RoleId, UserId
@@ -173,10 +172,16 @@ class Role(SoftDeletableModel):
         "UserRole", back_populates="role", cascade="all, delete-orphan", lazy="dynamic"
     )
     permissions: Mapped[list["Permission"]] = relationship(
-        "Permission", secondary="role_permissions", back_populates="roles", overlaps="role_permissions"
+        "Permission",
+        secondary="role_permissions",
+        back_populates="roles",
+        overlaps="role_permissions",
     )
     role_permissions: Mapped[list["RolePermission"]] = relationship(
-        "RolePermission", back_populates="role", cascade="all, delete-orphan", overlaps="permissions,roles"
+        "RolePermission",
+        back_populates="role",
+        cascade="all, delete-orphan",
+        overlaps="permissions,roles",
     )
 
     # Inheritance relationships
@@ -364,18 +369,18 @@ class Role(SoftDeletableModel):
     @classmethod
     def init_system_roles(cls, db: Session) -> None:
         """Initialize system roles if they don't exist.
-        
+
         Args:
             db: Database session
         """
         from app.models.organization import Organization
         from app.models.permission import Permission
-        
+
         # Check if system roles already exist
         existing_system_roles = db.query(cls).filter_by(is_system=True).count()
         if existing_system_roles > 0:
             return
-            
+
         # Create a system organization if it doesn't exist
         system_org = db.query(Organization).filter_by(code="SYSTEM").first()
         if not system_org:
@@ -386,7 +391,7 @@ class Role(SoftDeletableModel):
             )
             db.add(system_org)
             db.flush()
-        
+
         # Create wildcard permission if it doesn't exist
         wildcard_permission = db.query(Permission).filter_by(code="*").first()
         if not wildcard_permission:
@@ -399,7 +404,7 @@ class Role(SoftDeletableModel):
             )
             db.add(wildcard_permission)
             db.flush()
-        
+
         # Define system roles
         system_roles = [
             {
@@ -411,7 +416,7 @@ class Role(SoftDeletableModel):
                 "is_system": True,
             },
             {
-                "code": "ORG_ADMIN", 
+                "code": "ORG_ADMIN",
                 "name": "Organization Administrator",
                 "description": "Organization-level administrative access",
                 "role_type": "system",
@@ -420,7 +425,7 @@ class Role(SoftDeletableModel):
             },
             {
                 "code": "DEPT_MANAGER",
-                "name": "Department Manager", 
+                "name": "Department Manager",
                 "description": "Department-level management access",
                 "role_type": "system",
                 "scope": "department",
@@ -430,22 +435,19 @@ class Role(SoftDeletableModel):
                 "code": "USER",
                 "name": "Standard User",
                 "description": "Basic user access",
-                "role_type": "system", 
+                "role_type": "system",
                 "scope": "organization",
                 "is_system": True,
                 "is_default": True,
             },
         ]
-        
+
         # Create system roles
         for role_data in system_roles:
-            role = cls(
-                organization_id=system_org.id,
-                **role_data
-            )
+            role = cls(organization_id=system_org.id, **role_data)
             db.add(role)
             db.flush()
-            
+
             # Grant wildcard permission to SYSTEM_ADMIN
             if role.code == "SYSTEM_ADMIN":
                 role_perm = RolePermission(
@@ -454,7 +456,7 @@ class Role(SoftDeletableModel):
                     is_granted=True,
                 )
                 db.add(role_perm)
-            
+
         db.commit()
 
 
@@ -557,7 +559,9 @@ class UserRole(AuditableModel):
     user: Mapped["User"] = relationship(
         "User", back_populates="user_roles", foreign_keys=[user_id]
     )
-    role: Mapped["Role"] = relationship("Role", back_populates="user_roles", overlaps="users")
+    role: Mapped["Role"] = relationship(
+        "Role", back_populates="user_roles", overlaps="users"
+    )
     organization: Mapped["Organization"] = relationship(
         "Organization", foreign_keys=[organization_id]
     )
@@ -692,10 +696,16 @@ class RolePermission(Base):
 
     # Relationships
     role: Mapped["Role"] = relationship(
-        "Role", back_populates="role_permissions", lazy="joined", overlaps="permissions,roles"
+        "Role",
+        back_populates="role_permissions",
+        lazy="joined",
+        overlaps="permissions,roles",
     )
     permission: Mapped["Permission"] = relationship(
-        "Permission", back_populates="role_permissions", lazy="joined", overlaps="permissions,roles"
+        "Permission",
+        back_populates="role_permissions",
+        lazy="joined",
+        overlaps="permissions,roles",
     )
 
     # Indexes and constraints

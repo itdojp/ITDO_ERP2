@@ -1,11 +1,11 @@
 """Tests for data export service."""
 
 import json
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from app.models.export_job import ExportJob, ExportStatus
+from app.models.export_job import ExportStatus
 from app.schemas.data_export import ExportJobCreate
 from app.services.data_export import DataExportService
 
@@ -212,7 +212,7 @@ class TestDataExportService:
         )
 
         assert isinstance(result, str)
-        
+
         # Parse and verify JSON structure
         parsed = json.loads(result)
         assert "metadata" in parsed
@@ -220,7 +220,7 @@ class TestDataExportService:
         assert parsed["metadata"]["entity_type"] == "users"
         assert parsed["metadata"]["total_records"] == 2
         assert len(parsed["data"]) == 2
-        
+
         # Check that only specified columns are included
         for item in parsed["data"]:
             assert "id" in item
@@ -237,7 +237,7 @@ class TestDataExportService:
                 {"id": "1", "name": "John", "email": "john@example.com"},
                 {"id": "2", "name": "Jane", "email": "jane@example.com"},
             ]
-            
+
             with patch.object(service, "_validate_row", return_value=[]):
                 result = await service.validate_import_data(
                     entity_type="users",
@@ -278,7 +278,7 @@ class TestDataExportService:
                 {"id": "1", "name": "John", "email": "invalid-email"},
                 {"id": "2", "name": "", "email": "jane@example.com"},
             ]
-            
+
             def mock_validate_row(entity_type, row, row_num):
                 errors = []
                 if row.get("email") == "invalid-email":
@@ -286,7 +286,7 @@ class TestDataExportService:
                 if not row.get("name"):
                     errors.append(f"Row {row_num}: Name is required")
                 return errors
-            
+
             with patch.object(service, "_validate_row", side_effect=mock_validate_row):
                 result = await service.validate_import_data(
                     entity_type="users",
@@ -304,7 +304,10 @@ class TestDataExportService:
     def test_get_mime_type(self, service: DataExportService) -> None:
         """Test MIME type determination."""
         assert service._get_mime_type("csv") == "text/csv"
-        assert service._get_mime_type("excel") == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        assert (
+            service._get_mime_type("excel")
+            == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
         assert service._get_mime_type("pdf") == "application/pdf"
         assert service._get_mime_type("json") == "application/json"
         assert service._get_mime_type("unknown") == "application/octet-stream"
@@ -312,9 +315,9 @@ class TestDataExportService:
     def test_parse_csv_data(self, service: DataExportService) -> None:
         """Test CSV data parsing."""
         csv_content = b"id,name,email\n1,John,john@example.com\n2,Jane,jane@example.com"
-        
+
         result = service._parse_csv_data(csv_content)
-        
+
         assert len(result) == 2
         assert result[0]["id"] == "1"
         assert result[0]["name"] == "John"
@@ -323,35 +326,37 @@ class TestDataExportService:
     def test_parse_json_data_list(self, service: DataExportService) -> None:
         """Test JSON data parsing with list format."""
         json_content = b'[{"id": 1, "name": "John"}, {"id": 2, "name": "Jane"}]'
-        
+
         result = service._parse_json_data(json_content)
-        
+
         assert len(result) == 2
         assert result[0]["id"] == 1
         assert result[1]["name"] == "Jane"
 
-    def test_parse_json_data_dict_with_data_key(self, service: DataExportService) -> None:
+    def test_parse_json_data_dict_with_data_key(
+        self, service: DataExportService
+    ) -> None:
         """Test JSON data parsing with data key structure."""
         json_content = b'{"data": [{"id": 1, "name": "John"}], "metadata": {}}'
-        
+
         result = service._parse_json_data(json_content)
-        
+
         assert len(result) == 1
         assert result[0]["id"] == 1
 
     def test_parse_json_data_single_object(self, service: DataExportService) -> None:
         """Test JSON data parsing with single object."""
         json_content = b'{"id": 1, "name": "John"}'
-        
+
         result = service._parse_json_data(json_content)
-        
+
         assert len(result) == 1
         assert result[0]["id"] == 1
 
     def test_validate_row_empty(self, service: DataExportService) -> None:
         """Test row validation with empty row."""
         errors = service._validate_row("users", {}, 1)
-        
+
         assert len(errors) == 1
         assert "Empty row" in errors[0]
 
@@ -359,5 +364,5 @@ class TestDataExportService:
         """Test row validation with valid row."""
         row = {"id": 1, "name": "John", "email": "john@example.com"}
         errors = service._validate_row("users", row, 1)
-        
+
         assert len(errors) == 0

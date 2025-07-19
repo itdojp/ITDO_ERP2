@@ -334,7 +334,9 @@ class ReportService:
 
         return None
 
-    async def download_report(self, execution_id: int, format_type: str) -> StreamingResponse | None:
+    async def download_report(
+        self, execution_id: int, format_type: str
+    ) -> StreamingResponse | None:
         """Download report in specified format."""
         execution = self.db.query(ReportExecution).get(execution_id)
         if not execution or execution.status != ExecutionStatus.COMPLETED:
@@ -440,9 +442,7 @@ class ReportService:
         """Cancel a scheduled report."""
         schedule = (
             self.db.query(ReportSchedule)
-            .filter(
-                and_(ReportSchedule.id == schedule_id, ~ReportSchedule.is_deleted)
-            )
+            .filter(and_(ReportSchedule.id == schedule_id, ~ReportSchedule.is_deleted))
             .first()
         )
 
@@ -602,8 +602,8 @@ class ReportService:
             return 0.0
 
         total_seconds = sum(
-            (e.completed_at - e.started_at).total_seconds() 
-            for e in completed 
+            (e.completed_at - e.started_at).total_seconds()
+            for e in completed
             if e.completed_at and e.started_at
         )
 

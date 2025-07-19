@@ -2,7 +2,15 @@
 
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    UploadFile,
+)
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
@@ -37,18 +45,18 @@ async def create_export_job(
 ) -> ExportJobResponse:
     """Create a new export job."""
     service = DataExportService(db)
-    
+
     # Set organization if not specified
     if not export_data.organization_id:
         export_data.organization_id = current_user.organization_id
-    
+
     # Check permissions for cross-organization access
     if (
         export_data.organization_id != current_user.organization_id
         and not current_user.is_superuser
     ):
         raise HTTPException(status_code=403, detail="Access denied")
-    
+
     try:
         result = await service.create_export_job(
             export_data=export_data,
@@ -68,13 +76,13 @@ async def get_export_job(
 ) -> ExportJobResponse:
     """Get export job by ID."""
     service = DataExportService(db)
-    
+
     job = await service.get_export_job(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Export job not found")
-    
+
     # TODO: Add permission check based on job ownership/organization
-    
+
     return job
 
 
@@ -86,11 +94,11 @@ async def get_export_progress(
 ) -> ExportProgressResponse:
     """Get export job progress."""
     service = DataExportService(db)
-    
+
     progress = await service.get_export_progress(job_id)
     if not progress:
         raise HTTPException(status_code=404, detail="Export job not found")
-    
+
     return progress
 
 
@@ -102,13 +110,15 @@ async def download_export(
 ) -> StreamingResponse:
     """Download completed export file."""
     service = DataExportService(db)
-    
+
     result = await service.download_export(job_id)
     if not result:
-        raise HTTPException(status_code=404, detail="Export file not found or not ready")
-    
+        raise HTTPException(
+            status_code=404, detail="Export file not found or not ready"
+        )
+
     content, filename, mime_type = result
-    
+
     return StreamingResponse(
         iter([content]),
         media_type=mime_type,
@@ -131,7 +141,7 @@ async def list_export_jobs(
     """List export jobs with filtering."""
     # This is a placeholder implementation
     # In practice, this would query the database with filters
-    
+
     return ExportListResponse(
         jobs=[],
         total=0,
@@ -149,17 +159,18 @@ async def create_bulk_export(
 ) -> BulkExportResponse:
     """Create multiple export jobs for different entity types."""
     service = DataExportService(db)
-    
+
     job_ids = []
-    
+
     for entity_type in bulk_request.entity_types:
         export_data = ExportJobCreate(
             entity_type=entity_type,
             format=bulk_request.format,
             filters=bulk_request.filters,
-            organization_id=bulk_request.organization_id or current_user.organization_id,
+            organization_id=bulk_request.organization_id
+            or current_user.organization_id,
         )
-        
+
         try:
             job = await service.create_export_job(
                 export_data=export_data,
@@ -170,7 +181,7 @@ async def create_bulk_export(
         except Exception:
             # Continue with other exports even if one fails
             continue
-    
+
     return BulkExportResponse(
         job_ids=job_ids,
         total_jobs=len(job_ids),
@@ -187,7 +198,7 @@ async def preview_export_data(
     """Preview data before export."""
     # This is a placeholder implementation
     # In practice, this would query the actual data
-    
+
     return DataPreviewResponse(
         entity_type=preview_request.entity_type,
         total_rows=100,
@@ -214,8 +225,16 @@ async def get_export_templates(
             supported_formats=["csv", "excel", "pdf"],
             default_columns=["id", "email", "first_name", "last_name", "created_at"],
             available_filters=[
-                {"field": "is_active", "type": "boolean", "description": "Active users only"},
-                {"field": "organization_id", "type": "integer", "description": "Filter by organization"},
+                {
+                    "field": "is_active",
+                    "type": "boolean",
+                    "description": "Active users only",
+                },
+                {
+                    "field": "organization_id",
+                    "type": "integer",
+                    "description": "Filter by organization",
+                },
             ],
         ),
         ExportTemplateResponse(
@@ -225,7 +244,11 @@ async def get_export_templates(
             supported_formats=["csv", "excel", "json"],
             default_columns=["id", "name", "code", "created_at"],
             available_filters=[
-                {"field": "is_active", "type": "boolean", "description": "Active organizations only"},
+                {
+                    "field": "is_active",
+                    "type": "boolean",
+                    "description": "Active organizations only",
+                },
             ],
         ),
         ExportTemplateResponse(
@@ -235,12 +258,20 @@ async def get_export_templates(
             supported_formats=["csv", "excel"],
             default_columns=["id", "code", "name", "role_type", "is_system"],
             available_filters=[
-                {"field": "role_type", "type": "string", "description": "Filter by role type"},
-                {"field": "is_active", "type": "boolean", "description": "Active roles only"},
+                {
+                    "field": "role_type",
+                    "type": "string",
+                    "description": "Filter by role type",
+                },
+                {
+                    "field": "is_active",
+                    "type": "boolean",
+                    "description": "Active roles only",
+                },
             ],
         ),
     ]
-    
+
     return templates
 
 
@@ -264,6 +295,7 @@ async def get_export_statistics(
 
 # Import endpoints
 
+
 @router.post("/import/validate", response_model=ImportValidationResponse)
 async def validate_import_file(
     file: UploadFile = File(...),
@@ -273,21 +305,21 @@ async def validate_import_file(
 ) -> ImportValidationResponse:
     """Validate import file before processing."""
     service = DataExportService(db)
-    
+
     if not file.filename:
         raise HTTPException(status_code=400, detail="Filename is required")
-    
+
     # Determine file format from filename
     file_extension = file.filename.split(".")[-1].lower()
     format_map = {"csv": "csv", "xlsx": "excel", "xls": "excel", "json": "json"}
-    
+
     file_format = format_map.get(file_extension)
     if not file_format:
         raise HTTPException(status_code=400, detail="Unsupported file format")
-    
+
     # Read file content
     content = await file.read()
-    
+
     try:
         result = await service.validate_import_data(
             entity_type=entity_type,
@@ -307,7 +339,7 @@ async def create_import_job(
 ) -> ImportJobResponse:
     """Create a new import job."""
     service = DataExportService(db)
-    
+
     try:
         result = await service.import_data(
             import_data=import_data,
@@ -334,7 +366,9 @@ async def get_supported_formats() -> Dict[str, Any]:
                 "format": "excel",
                 "name": "Excel",
                 "description": "Microsoft Excel spreadsheet",
-                "mime_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "mime_type": (
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                ),
                 "supports_large_datasets": True,
             },
             {
@@ -364,7 +398,9 @@ async def get_supported_formats() -> Dict[str, Any]:
                 "format": "excel",
                 "name": "Excel",
                 "description": "Microsoft Excel spreadsheet",
-                "mime_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "mime_type": (
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                ),
             },
             {
                 "format": "json",

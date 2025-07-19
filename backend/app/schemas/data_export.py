@@ -11,13 +11,18 @@ class ExportJobCreate(BaseModel):
 
     entity_type: str = Field(..., description="Type of entity to export")
     format: str = Field(..., description="Export format (csv, excel, pdf, json)")
-    filters: Optional[Dict[str, Any]] = Field(default={}, description="Filters to apply")
+    filters: Optional[Dict[str, Any]] = Field(
+        default={}, description="Filters to apply"
+    )
     columns: Optional[List[str]] = Field(default=[], description="Columns to include")
     organization_id: Optional[int] = Field(None, description="Organization ID filter")
-    configuration: Optional[Dict[str, Any]] = Field(default={}, description="Additional configuration")
+    configuration: Optional[Dict[str, Any]] = Field(
+        default={}, description="Additional configuration"
+    )
 
     class Config:
         """Pydantic configuration."""
+
         from_attributes = True
 
 
@@ -39,6 +44,7 @@ class ExportJobResponse(BaseModel):
 
     class Config:
         """Pydantic configuration."""
+
         from_attributes = True
 
 
@@ -57,6 +63,7 @@ class ExportProgressResponse(BaseModel):
 
     class Config:
         """Pydantic configuration."""
+
         from_attributes = True
 
 
@@ -70,6 +77,7 @@ class ExportListResponse(BaseModel):
 
     class Config:
         """Pydantic configuration."""
+
         from_attributes = True
 
 
@@ -78,12 +86,17 @@ class ImportJobCreate(BaseModel):
 
     entity_type: str = Field(..., description="Type of entity to import")
     source_format: str = Field(..., description="Source file format")
-    mapping_configuration: Optional[Dict[str, Any]] = Field(default={}, description="Column mapping")
-    validation_rules: Optional[Dict[str, Any]] = Field(default={}, description="Validation rules")
+    mapping_configuration: Optional[Dict[str, Any]] = Field(
+        default={}, description="Column mapping"
+    )
+    validation_rules: Optional[Dict[str, Any]] = Field(
+        default={}, description="Validation rules"
+    )
     organization_id: Optional[int] = Field(None, description="Organization ID")
 
     class Config:
         """Pydantic configuration."""
+
         from_attributes = True
 
 
@@ -100,6 +113,7 @@ class ImportJobResponse(BaseModel):
 
     class Config:
         """Pydantic configuration."""
+
         from_attributes = True
 
 
@@ -115,6 +129,7 @@ class ImportValidationResponse(BaseModel):
 
     class Config:
         """Pydantic configuration."""
+
         from_attributes = True
 
 
@@ -130,6 +145,7 @@ class ExportTemplateResponse(BaseModel):
 
     class Config:
         """Pydantic configuration."""
+
         from_attributes = True
 
 
@@ -143,6 +159,7 @@ class BulkExportRequest(BaseModel):
 
     class Config:
         """Pydantic configuration."""
+
         from_attributes = True
 
 
@@ -156,6 +173,7 @@ class BulkExportResponse(BaseModel):
 
     class Config:
         """Pydantic configuration."""
+
         from_attributes = True
 
 
@@ -171,6 +189,7 @@ class ExportStatisticsResponse(BaseModel):
 
     class Config:
         """Pydantic configuration."""
+
         from_attributes = True
 
 
@@ -178,11 +197,14 @@ class DataPreviewRequest(BaseModel):
     """Request schema for data preview before export."""
 
     entity_type: str = Field(..., description="Entity type to preview")
-    filters: Optional[Dict[str, Any]] = Field(default={}, description="Filters to apply")
+    filters: Optional[Dict[str, Any]] = Field(
+        default={}, description="Filters to apply"
+    )
     limit: int = Field(default=10, description="Number of rows to preview")
 
     class Config:
         """Pydantic configuration."""
+
         from_attributes = True
 
 
@@ -198,6 +220,7 @@ class DataPreviewResponse(BaseModel):
 
     class Config:
         """Pydantic configuration."""
+
         from_attributes = True
 
 
@@ -208,13 +231,18 @@ class ScheduledExportCreate(BaseModel):
     entity_type: str = Field(..., description="Entity type to export")
     format: str = Field(..., description="Export format")
     schedule_expression: str = Field(..., description="Cron expression for schedule")
-    filters: Optional[Dict[str, Any]] = Field(default={}, description="Filters to apply")
+    filters: Optional[Dict[str, Any]] = Field(
+        default={}, description="Filters to apply"
+    )
     columns: Optional[List[str]] = Field(default=[], description="Columns to include")
-    email_recipients: Optional[List[str]] = Field(default=[], description="Email recipients")
+    email_recipients: Optional[List[str]] = Field(
+        default=[], description="Email recipients"
+    )
     is_active: bool = Field(default=True, description="Whether schedule is active")
 
     class Config:
         """Pydantic configuration."""
+
         from_attributes = True
 
 
@@ -233,4 +261,5 @@ class ScheduledExportResponse(BaseModel):
 
     class Config:
         """Pydantic configuration."""
+
         from_attributes = True

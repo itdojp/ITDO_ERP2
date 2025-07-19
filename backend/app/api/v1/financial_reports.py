@@ -316,7 +316,9 @@ async def export_budget_performance_report(
             return JSONResponse(
                 content=report,
                 headers={
-                    "Content-Disposition": f"attachment; filename=budget_performance_{fiscal_year}.json"
+                    "Content-Disposition": (
+                        f"attachment; filename=budget_performance_{fiscal_year}.json"
+                    )
                 },
             )
 
@@ -364,7 +366,9 @@ async def export_budget_performance_report(
                 io.BytesIO(output.getvalue().encode()),
                 media_type="text/csv",
                 headers={
-                    "Content-Disposition": f"attachment; filename=budget_performance_{fiscal_year}.csv"
+                    "Content-Disposition": (
+                        f"attachment; filename=budget_performance_{fiscal_year}.csv"
+                    )
                 },
             )
 

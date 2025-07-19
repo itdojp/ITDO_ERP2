@@ -115,21 +115,27 @@ class RoleRepository(BaseRepository[Role, RoleCreate, RoleUpdate]):
         if role and not role.is_system:
             # Clear existing role permissions
             from app.models.role import RolePermission
+
             self.db.query(RolePermission).filter(RolePermission.role_id == id).delete()
-            
+
             # Add new permissions
             from app.models.permission import Permission
+
             for perm_code, perm_data in permissions.items():
-                permission = self.db.query(Permission).filter(Permission.code == perm_code).first()
+                permission = (
+                    self.db.query(Permission)
+                    .filter(Permission.code == perm_code)
+                    .first()
+                )
                 if permission:
                     role_perm = RolePermission(
                         role_id=id,
                         permission_id=permission.id,
                         granted_by=perm_data.get("granted_by"),
-                        granted_at=perm_data.get("granted_at")
+                        granted_at=perm_data.get("granted_at"),
                     )
                     self.db.add(role_perm)
-            
+
             self.db.commit()
             self.db.refresh(role)
         return role

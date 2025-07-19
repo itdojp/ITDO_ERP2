@@ -1,7 +1,7 @@
 """Role and UserRole schemas."""
 
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -9,6 +9,9 @@ from app.schemas.common import AuditInfo, SoftDeleteInfo
 from app.schemas.department import DepartmentBasic
 from app.schemas.organization import OrganizationBasic
 from app.schemas.user import UserBasic
+
+if TYPE_CHECKING:
+    from app.models.role import UserRole
 
 
 class PermissionBasic(BaseModel):
@@ -190,7 +193,7 @@ class UserRoleInfo(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     @classmethod
-    def from_user_role_model(cls, user_role: "UserRole") -> "UserRoleInfo":
+    def from_user_role_model(cls, user_role: "UserRole") -> "UserRoleInfo":  # type: ignore[name-defined]
         """Create UserRoleInfo from UserRole model instance."""
         # Extract assigned_by user info if available
         assigned_by = None
