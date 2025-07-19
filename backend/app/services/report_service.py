@@ -59,7 +59,7 @@ class ReportService:
         limit: int = 100,
     ) -> List[Dict[str, Any]]:
         """Get list of reports with filtering."""
-        query = self.db.query(Report).filter(not Report.is_deleted)
+        query = self.db.query(Report).filter(~Report.is_deleted)
 
         if organization_id:
             query = query.filter(Report.organization_id == organization_id)
@@ -77,7 +77,7 @@ class ReportService:
         """Get report by ID."""
         report = (
             self.db.query(Report)
-            .filter(and_(Report.id == report_id, not Report.is_deleted))
+            .filter(and_(Report.id == report_id, ~Report.is_deleted))
             .first()
         )
         return self._report_to_dict(report) if report else None
@@ -88,7 +88,7 @@ class ReportService:
         """Update report definition."""
         report = (
             self.db.query(Report)
-            .filter(and_(Report.id == report_id, not Report.is_deleted))
+            .filter(and_(Report.id == report_id, ~Report.is_deleted))
             .first()
         )
 
@@ -108,7 +108,7 @@ class ReportService:
         """Soft delete report."""
         report = (
             self.db.query(Report)
-            .filter(and_(Report.id == report_id, not Report.is_deleted))
+            .filter(and_(Report.id == report_id, ~Report.is_deleted))
             .first()
         )
 
@@ -130,7 +130,7 @@ class ReportService:
         """Execute a report with optional parameters."""
         report = (
             self.db.query(Report)
-            .filter(and_(Report.id == report_id, not Report.is_deleted))
+            .filter(and_(Report.id == report_id, ~Report.is_deleted))
             .first()
         )
 
@@ -292,7 +292,7 @@ class ReportService:
         return self._execution_to_dict(execution) if execution else None
 
     async def get_report_data(
-        self, execution_id: int, format: str
+        self, execution_id: int, format_type: str
     ) -> Optional[Dict[str, Any]]:
         """Get report execution data in specified format."""
         execution = self.db.query(ReportExecution).get(execution_id)
@@ -301,7 +301,7 @@ class ReportService:
 
         data = execution.result_data
 
-        if format == "json":
+        if format_type == "json":
             return {
                 "format": "json",
                 "data": data,
@@ -309,7 +309,7 @@ class ReportService:
                 "generated_at": datetime.utcnow().isoformat(),
             }
 
-        elif format == "csv":
+        elif format_type == "csv":
             # Convert to CSV format
             if data and "rows" in data:
                 df = pd.DataFrame(data["rows"])
@@ -323,7 +323,7 @@ class ReportService:
                     "generated_at": datetime.utcnow().isoformat(),
                 }
 
-        elif format == "excel":
+        elif format_type == "excel":
             # Convert to Excel format (placeholder)
             return {
                 "format": "excel",
@@ -334,7 +334,7 @@ class ReportService:
 
         return None
 
-    async def download_report(self, execution_id: int, format: str):
+    async def download_report(self, execution_id: int, format_type: str) -> StreamingResponse | None:
         """Download report in specified format."""
         execution = self.db.query(ReportExecution).get(execution_id)
         if not execution or execution.status != ExecutionStatus.COMPLETED:
@@ -345,7 +345,7 @@ class ReportService:
             f"report_{execution_id}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
         )
 
-        if format == "csv" and data and "rows" in data:
+        if format_type == "csv" and data and "rows" in data:
             df = pd.DataFrame(data["rows"])
             csv_buffer = io.StringIO()
             df.to_csv(csv_buffer, index=False)
@@ -429,7 +429,7 @@ class ReportService:
             .filter(
                 and_(
                     ReportSchedule.report_id == report_id,
-                    not ReportSchedule.is_deleted,
+                    ~ReportSchedule.is_deleted,
                 )
             )
             .all()
@@ -441,7 +441,7 @@ class ReportService:
         schedule = (
             self.db.query(ReportSchedule)
             .filter(
-                and_(ReportSchedule.id == schedule_id, not ReportSchedule.is_deleted)
+                and_(ReportSchedule.id == schedule_id, ~ReportSchedule.is_deleted)
             )
             .first()
         )
@@ -502,10 +502,10 @@ class ReportService:
             .all()
         )
 
-        total_reports = self.db.query(Report).filter(not Report.is_deleted).count()
+        total_reports = self.db.query(Report).filter(~Report.is_deleted).count()
         active_reports = (
             self.db.query(Report)
-            .filter(and_(not Report.is_deleted, Report.is_active))
+            .filter(and_(~Report.is_deleted, Report.is_active))
             .count()
         )
 
@@ -547,16 +547,22 @@ class ReportService:
             return {"status": "no_data", "message": "No completed executions found"}
 
         # Check if data is fresh enough
-        age_minutes = (
-            datetime.utcnow() - latest_execution.completed_at
-        ).total_seconds() / 60
-        is_fresh = age_minutes <= refresh_interval
+        if latest_execution.completed_at:
+            age_minutes = (
+                datetime.utcnow() - latest_execution.completed_at
+            ).total_seconds() / 60
+            is_fresh = age_minutes <= refresh_interval
+            last_updated = latest_execution.completed_at.isoformat()
+        else:
+            age_minutes = 0.0
+            is_fresh = False
+            last_updated = ""
 
         return {
             "status": "success",
             "data": latest_execution.result_data,
             "execution_id": latest_execution.id,
-            "last_updated": latest_execution.completed_at.isoformat(),
+            "last_updated": last_updated,
             "age_minutes": age_minutes,
             "is_fresh": is_fresh,
             "refresh_interval": refresh_interval,
@@ -596,7 +602,9 @@ class ReportService:
             return 0.0
 
         total_seconds = sum(
-            (e.completed_at - e.started_at).total_seconds() for e in completed
+            (e.completed_at - e.started_at).total_seconds() 
+            for e in completed 
+            if e.completed_at and e.started_at
         )
 
         return total_seconds / len(completed)
@@ -605,7 +613,7 @@ class ReportService:
         self, executions: List[ReportExecution]
     ) -> Dict[str, int]:
         """Get status breakdown for executions."""
-        breakdown = {}
+        breakdown: Dict[str, int] = {}
         for execution in executions:
             status = execution.status
             breakdown[status] = breakdown.get(status, 0) + 1
@@ -617,7 +625,7 @@ class ReportService:
     ) -> List[Dict[str, Any]]:
         """Get usage trend data."""
         # Group by date and count executions
-        trend_data = {}
+        trend_data: Dict[str, int] = {}
         for execution in executions:
             date = execution.created_at.date().isoformat()
             trend_data[date] = trend_data.get(date, 0) + 1
@@ -628,7 +636,7 @@ class ReportService:
 
     def _get_peak_usage_hours(self, executions: List[ReportExecution]) -> List[int]:
         """Get peak usage hours."""
-        hour_counts = {}
+        hour_counts: Dict[int, int] = {}
         for execution in executions:
             hour = execution.created_at.hour
             hour_counts[hour] = hour_counts.get(hour, 0) + 1
