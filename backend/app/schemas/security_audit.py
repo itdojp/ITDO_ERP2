@@ -10,7 +10,7 @@ from app.models.security_audit import RiskLevel, SecurityEventType
 
 class SecurityAuditLogBase(BaseModel):
     """Base schema for security audit log."""
-    
+
     event_type: SecurityEventType
     risk_level: RiskLevel = RiskLevel.LOW
     resource_type: Optional[str] = None
@@ -24,7 +24,7 @@ class SecurityAuditLogBase(BaseModel):
 
 class SecurityAuditLogCreate(SecurityAuditLogBase):
     """Schema for creating security audit log."""
-    
+
     user_id: Optional[int] = None
     organization_id: Optional[int] = None
     ip_address: Optional[str] = None
@@ -34,7 +34,7 @@ class SecurityAuditLogCreate(SecurityAuditLogBase):
 
 class SecurityAuditLogUpdate(BaseModel):
     """Schema for updating security audit log."""
-    
+
     is_resolved: Optional[bool] = None
     resolved_by: Optional[int] = None
     resolution_notes: Optional[str] = None
@@ -42,7 +42,7 @@ class SecurityAuditLogUpdate(BaseModel):
 
 class SecurityAuditLogResponse(SecurityAuditLogBase):
     """Schema for security audit log responses."""
-    
+
     id: int
     user_id: Optional[int]
     organization_id: Optional[int]
@@ -62,7 +62,7 @@ class SecurityAuditLogResponse(SecurityAuditLogBase):
 
 class SecurityAlertBase(BaseModel):
     """Base schema for security alert."""
-    
+
     alert_type: str
     severity: RiskLevel
     title: str = Field(..., max_length=255)
@@ -72,13 +72,13 @@ class SecurityAlertBase(BaseModel):
 
 class SecurityAlertCreate(SecurityAlertBase):
     """Schema for creating security alert."""
-    
+
     security_audit_log_id: int
 
 
 class SecurityAlertResponse(SecurityAlertBase):
     """Schema for security alert responses."""
-    
+
     id: int
     security_audit_log_id: int
     is_sent: bool
@@ -94,7 +94,7 @@ class SecurityAlertResponse(SecurityAlertBase):
 
 class SecurityEventFilter(BaseModel):
     """Filter for security events."""
-    
+
     event_types: Optional[List[SecurityEventType]] = None
     risk_levels: Optional[List[RiskLevel]] = None
     user_id: Optional[int] = None
@@ -108,7 +108,7 @@ class SecurityEventFilter(BaseModel):
 
 class SecurityAnalytics(BaseModel):
     """Security analytics response."""
-    
+
     total_events: int
     events_by_type: Dict[str, int]
     events_by_risk_level: Dict[str, int]
@@ -123,7 +123,7 @@ class SecurityAnalytics(BaseModel):
 
 class SecurityReport(BaseModel):
     """Comprehensive security report."""
-    
+
     period: str
     start_date: datetime
     end_date: datetime

@@ -29,7 +29,7 @@ async def create_notification(
 ) -> NotificationResponse:
     """Create a new notification."""
     service = NotificationService(db)
-    
+
     try:
         notification = await service.create_notification(
             notification_data=notification_data,
@@ -50,7 +50,7 @@ async def create_bulk_notifications(
 ) -> Dict[str, Any]:
     """Create multiple notifications in bulk."""
     service = NotificationService(db)
-    
+
     try:
         result = await service.create_bulk_notifications(
             bulk_data=bulk_data,
@@ -73,7 +73,7 @@ async def get_user_notifications(
 ) -> List[NotificationResponse]:
     """Get user's notifications with filtering."""
     service = NotificationService(db)
-    
+
     try:
         notifications = await service.get_user_notifications(
             user_id=current_user.id,
@@ -95,7 +95,7 @@ async def mark_notification_read(
 ) -> Dict[str, str]:
     """Mark a notification as read."""
     service = NotificationService(db)
-    
+
     try:
         await service.mark_as_read(
             notification_id=notification_id,
@@ -113,7 +113,7 @@ async def mark_all_notifications_read(
 ) -> Dict[str, str]:
     """Mark all user notifications as read."""
     service = NotificationService(db)
-    
+
     try:
         count = await service.mark_all_as_read(user_id=current_user.id)
         return {"message": f"Marked {count} notifications as read"}
@@ -129,7 +129,7 @@ async def delete_notification(
 ) -> Dict[str, str]:
     """Delete a notification."""
     service = NotificationService(db)
-    
+
     try:
         await service.delete_notification(
             notification_id=notification_id,
@@ -147,7 +147,7 @@ async def get_notification_preferences(
 ) -> NotificationPreferencesResponse:
     """Get user's notification preferences."""
     service = NotificationService(db)
-    
+
     try:
         preferences = await service.get_user_preferences(user_id=current_user.id)
         return preferences
@@ -163,7 +163,7 @@ async def update_notification_preferences(
 ) -> NotificationPreferencesResponse:
     """Update user's notification preferences."""
     service = NotificationService(db)
-    
+
     try:
         preferences = await service.update_user_preferences(
             user_id=current_user.id,
@@ -182,7 +182,7 @@ async def add_to_notification_queue(
 ) -> Dict[str, str]:
     """Add notification to processing queue."""
     service = NotificationService(db)
-    
+
     try:
         await service.add_to_queue(
             queue_data=queue_data,
@@ -200,7 +200,7 @@ async def get_notification_statistics(
 ) -> Dict[str, Any]:
     """Get user's notification statistics."""
     service = NotificationService(db)
-    
+
     try:
         stats = await service.get_notification_stats(user_id=current_user.id)
         return stats

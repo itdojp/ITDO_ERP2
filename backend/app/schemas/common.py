@@ -76,9 +76,9 @@ class PaginatedResponse(BaseModel, Generic[T]):
     def __init__(self, **data: Any) -> None:
         """Initialize paginated response with computed has_more field."""
         if "has_more" not in data:
-            total: int = cast(int, data.get("total", 0))
-            skip: int = cast(int, data.get("skip", 0))
-            items: list[Any] = cast(list[Any], data.get("items", []))
+            total: int = cast("int", data.get("total", 0))
+            skip: int = cast("int", data.get("skip", 0))
+            items: list[Any] = cast("list[Any]", data.get("items", []))
             has_more_value: bool = total > skip + len(items)
             data["has_more"] = has_more_value
         super().__init__(**data)

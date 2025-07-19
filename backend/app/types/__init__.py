@@ -5,7 +5,7 @@ the application.
 """
 
 from datetime import datetime
-from typing import Any, Protocol, TypeVar, runtime_checkable
+from typing import Any, Generic, Protocol, TypeVar, runtime_checkable
 
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -65,11 +65,11 @@ class SoftDeletableProtocol(Protocol):
 
 
 # Result types for service layer
-class ServiceResult(BaseModel):
+class ServiceResult(BaseModel, Generic[T]):
     """Generic service operation result."""
 
     success: bool
-    data: Any | None = None
+    data: T | None = None
     error: str | None = None
     error_code: str | None = None
 

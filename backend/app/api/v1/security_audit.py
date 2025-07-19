@@ -53,7 +53,7 @@ async def get_security_events(
         requires_attention=requires_attention,
         is_resolved=is_resolved,
     )
-    
+
     service = SecurityAuditService(db)
     return await service.get_security_events(filters, skip, limit)
 
@@ -67,13 +67,13 @@ async def get_security_event(
     filters = SecurityEventFilter()
     service = SecurityAuditService(db)
     events = await service.get_security_events(filters, skip=0, limit=1)
-    
+
     # Find the specific event (this is a simplified approach)
     # In production, you might want a dedicated get_event_by_id method
     for event in events:
         if event.id == event_id:
             return event
-    
+
     raise HTTPException(status_code=404, detail="Security event not found")
 
 
@@ -87,10 +87,10 @@ async def resolve_security_event(
     """Resolve a security event."""
     service = SecurityAuditService(db)
     result = await service.resolve_security_event(event_id, resolution_data, resolved_by)
-    
+
     if not result:
         raise HTTPException(status_code=404, detail="Security event not found")
-    
+
     return result
 
 
@@ -130,7 +130,7 @@ async def get_unresolved_events(
         risk_levels=[risk_level] if risk_level else None,
         is_resolved=False,
     )
-    
+
     service = SecurityAuditService(db)
     return await service.get_security_events(filters, skip, limit)
 
@@ -147,6 +147,6 @@ async def get_high_risk_events(
         organization_id=organization_id,
         risk_levels=[RiskLevel.HIGH, RiskLevel.CRITICAL],
     )
-    
+
     service = SecurityAuditService(db)
     return await service.get_security_events(filters, skip, limit)

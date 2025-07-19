@@ -528,13 +528,13 @@ def get_department_children(
     """Get direct children of a department."""
     service = DepartmentService(db)
     department = service.get_department(department_id)
-    
+
     if not department:
         raise HTTPException(
-            status_code=http_status.HTTP_404_NOT_FOUND, 
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail="Department not found"
         )
-    
+
     children = service.get_department_children(department_id, include_inactive)
     return [
         DepartmentSummary(
@@ -570,7 +570,7 @@ def move_department(
 ) -> DepartmentResponse | JSONResponse:
     """Move department to a new parent."""
     service = DepartmentService(db)
-    
+
     # Check if department exists
     department = service.get_department(department_id)
     if not department:
@@ -578,7 +578,7 @@ def move_department(
             status_code=http_status.HTTP_404_NOT_FOUND,
             detail="Department not found"
         )
-    
+
     # Check permissions
     if not current_user.is_superuser:
         if not service.user_has_permission(
@@ -591,7 +591,7 @@ def move_department(
                     code="PERMISSION_DENIED",
                 ).model_dump(),
             )
-    
+
     # Validate move operation
     if new_parent_id is not None:
         # Check if new parent exists and is in same organization
@@ -601,7 +601,7 @@ def move_department(
                 status_code=http_status.HTTP_404_NOT_FOUND,
                 detail="New parent department not found"
             )
-        
+
         if new_parent.organization_id != department.organization_id:
             return JSONResponse(
                 status_code=http_status.HTTP_409_CONFLICT,
@@ -610,7 +610,7 @@ def move_department(
                     code="INVALID_MOVE_CROSS_ORG",
                 ).model_dump(),
             )
-        
+
         # Check for circular dependency
         if service.would_create_cycle(department_id, new_parent_id):
             return JSONResponse(
@@ -620,7 +620,7 @@ def move_department(
                     code="CIRCULAR_DEPENDENCY",
                 ).model_dump(),
             )
-    
+
     try:
         updated_department = service.move_department(department_id, new_parent_id)
         return DepartmentResponse.model_validate(updated_department, from_attributes=True)

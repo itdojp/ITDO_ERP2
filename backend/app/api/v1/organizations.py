@@ -4,13 +4,12 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from fastapi.responses import JSONResponse
-from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_active_user, get_db
-from app.models.user import User
 from app.models.department import Department
+from app.models.user import User
 from app.schemas.common import DeleteResponse, ErrorResponse, PaginatedResponse
 from app.schemas.organization import (
     OrganizationBasic,
@@ -95,7 +94,7 @@ def get_organization_tree_by_id(
 ) -> OrganizationTree | JSONResponse:
     """Get organization hierarchy tree for a specific organization."""
     service = OrganizationService(db)
-    
+
     # Check if organization exists
     organization = service.get_organization(organization_id)
     if not organization:
@@ -103,7 +102,7 @@ def get_organization_tree_by_id(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Organization not found"
         )
-    
+
     # Get organization tree for this specific organization
     tree = service.get_organization_tree_by_id(organization_id)
     return tree
@@ -488,7 +487,7 @@ def get_organization_users(
 ) -> PaginatedResponse[Any] | JSONResponse:
     """Get users within an organization."""
     service = OrganizationService(db)
-    
+
     # Check if organization exists
     organization = service.get_organization(organization_id)
     if not organization:
@@ -496,7 +495,7 @@ def get_organization_users(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Organization not found"
         )
-    
+
     # Check permissions
     if not current_user.is_superuser:
         if not service.user_has_permission(
@@ -509,19 +508,19 @@ def get_organization_users(
                     code="PERMISSION_DENIED",
                 ).model_dump(),
             )
-    
+
     # Build filters
     filters = {"organization_id": organization_id}
     if active_only:
         filters["is_active"] = True
     if department_id:
         filters["department_id"] = department_id
-    
+
     # Get users using direct database query since UserService has different interface
     # Use the organization_id property to filter users
     users_query = db.query(User).all()
     organization_users = [user for user in users_query if user.organization_id == organization_id]
-    
+
     # Apply filters
     if active_only:
         organization_users = [user for user in organization_users if user.is_active]
@@ -530,15 +529,15 @@ def get_organization_users(
     if search:
         search_term = search.lower()
         organization_users = [
-            user for user in organization_users 
-            if search_term in user.full_name.lower() or 
+            user for user in organization_users
+            if search_term in user.full_name.lower() or
                search_term in user.email.lower()
         ]
-    
+
     total = len(organization_users)
     users = organization_users[skip:skip + limit]
-    
-    # Convert to summary format  
+
+    # Convert to summary format
     from app.schemas.department import UserSummary
     user_summaries = []
     for user in users:
@@ -547,7 +546,7 @@ def get_organization_users(
             department = db.query(Department).filter(Department.id == user.department_id).first()
             if department:
                 department_name = department.name
-        
+
         user_summaries.append(UserSummary(
             id=user.id,
             email=user.email,
@@ -557,7 +556,7 @@ def get_organization_users(
             department_id=user.department_id,
             department_name=department_name,
         ))
-    
+
     return PaginatedResponse[Any](
         items=user_summaries,
         total=total,

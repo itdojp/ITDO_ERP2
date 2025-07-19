@@ -97,7 +97,7 @@ api_router.include_router(
 )
 api_router.include_router(reports.router, prefix="/reports", tags=["analytics"])
 
-# Issue #288 Service Layer APIs  
+# Issue #288 Service Layer APIs
 api_router.include_router(notifications.router, prefix="/notifications", tags=["notifications"])
 api_router.include_router(file_upload.router, prefix="/files", tags=["file-management"])
 api_router.include_router(data_export.router, prefix="/export", tags=["data-export"])

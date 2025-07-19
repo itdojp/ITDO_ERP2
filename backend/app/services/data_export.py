@@ -543,7 +543,7 @@ class DataExportService:
     def _parse_excel_data(self, content: bytes) -> List[Dict[str, Any]]:
         """Parse Excel data from bytes."""
         df = pd.read_excel(io.BytesIO(content))
-        return cast(List[Dict[str, Any]], df.to_dict("records"))
+        return cast("List[Dict[str, Any]]", df.to_dict("records"))
 
     def _parse_json_data(self, content: bytes) -> List[Dict[str, Any]]:
         """Parse JSON data from bytes."""
@@ -554,7 +554,7 @@ class DataExportService:
         if isinstance(data, list):
             return data
         elif isinstance(data, dict) and "data" in data:
-            return cast(list[dict[str, Any]], data["data"])
+            return cast("list[dict[str, Any]]", data["data"])
         else:
             return [data]
 

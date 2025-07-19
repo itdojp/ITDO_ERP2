@@ -17,7 +17,6 @@ from app.schemas.expense_category import (
     ExpenseCategoryCreate,
     ExpenseCategoryResponse,
     ExpenseCategoryTree,
-    ExpenseCategoryTreeResponse,
     ExpenseCategoryUpdate,
 )
 

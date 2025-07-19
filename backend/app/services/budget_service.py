@@ -206,7 +206,7 @@ class BudgetService:
             budget.status = BudgetStatus.REJECTED
         else:
             budget.status = BudgetStatus.SUBMITTED  # request_changes keeps it submitted
-            
+
         budget.approved_by_id = approved_by_id
         budget.approved_at = datetime.utcnow()
         if hasattr(budget, 'approval_comment'):  # Check if field exists

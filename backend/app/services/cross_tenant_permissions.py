@@ -17,11 +17,13 @@ from app.models.user_organization import UserOrganization
 from app.schemas.cross_tenant_permissions import (
     BatchCrossTenantPermissionResult,
     CrossTenantPermissionResult,
-    CrossTenantPermissionRule as CrossTenantPermissionRuleSchema,
     CrossTenantPermissionRuleCreate,
     CrossTenantPermissionRuleUpdate,
     OrganizationCrossTenantSummary,
     UserCrossTenantAccess,
+)
+from app.schemas.cross_tenant_permissions import (
+    CrossTenantPermissionRule as CrossTenantPermissionRuleSchema,
 )
 
 

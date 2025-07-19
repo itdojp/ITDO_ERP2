@@ -40,7 +40,7 @@ async def get_customers(
     service = CustomerService(db)
     if current_user.organization_id is None:
         raise HTTPException(status_code=400, detail="User must belong to an organization")
-        
+
     customers = await service.get_customers(
         organization_id=current_user.organization_id,
         status=status,

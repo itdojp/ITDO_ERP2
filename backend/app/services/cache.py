@@ -12,8 +12,8 @@ import functools
 import json
 import logging
 import pickle
-from typing import Any, Dict, List, Optional, TypeVar, Union, cast
 from collections.abc import Callable
+from typing import Any, Dict, List, Optional, TypeVar, Union, cast
 
 import redis
 from sqlalchemy.orm import Session
@@ -166,7 +166,7 @@ class CacheService:
             return default
 
         try:
-            value = cast(str, self.redis_client.get(key))
+            value = cast("str", self.redis_client.get(key))
             if value is not None:
                 if self.statistics:
                     self.statistics.increment_hits(key)
@@ -179,7 +179,7 @@ class CacheService:
                         return pickle.loads(value.encode('latin-1'))
                     except Exception:
                         return value
-            
+
             # This block handles when value is None
             if self.statistics:
                 self.statistics.increment_misses(key)
@@ -252,9 +252,9 @@ class CacheService:
         try:
             keys = self.redis_client.keys(pattern)
             if keys:
-                deleted_count = cast(int, self.redis_client.delete(*cast(list[str], keys)))
+                deleted_count = cast("int", self.redis_client.delete(*cast("list[str]", keys)))
                 if self.statistics:
-                    for key in cast(list[str], keys):
+                    for key in cast("list[str]", keys):
                         self.statistics.increment_deletes(key)
                 return deleted_count
             return 0
@@ -330,7 +330,7 @@ class CacheService:
             # Handle async case
             if hasattr(info, '__await__'):
                 info = {}  # Default for async client
-            
+
             stats = self.statistics.get_statistics() if self.statistics else {}
 
             return {
@@ -393,7 +393,7 @@ def cached(
             # Try to get from cache
             cached_result = cache.get(cache_key)
             if cached_result is not None:
-                return cast(T, cached_result)
+                return cast("T", cached_result)
 
             # Execute function and cache result
             result = func(*args, **kwargs)

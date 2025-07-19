@@ -93,10 +93,10 @@ class AuditLogService:
     def get_audit_log_by_id(self, audit_log_id: int) -> Optional[AuditLogDetail]:
         """Get a specific audit log by ID."""
         audit_log = self.db.query(AuditLog).filter(AuditLog.id == audit_log_id).first()
-        
+
         if not audit_log:
             return None
-            
+
         return AuditLogDetail(
             id=audit_log.id,
             user_id=audit_log.user_id,
@@ -141,7 +141,7 @@ class AuditLogService:
             func.min(AuditLog.created_at).label("min_date"),
             func.max(AuditLog.created_at).label("max_date"),
         )
-        
+
         # Apply same filters as the main query
         if filter.user_id:
             base_query = base_query.filter(AuditLog.user_id == filter.user_id)
@@ -151,7 +151,7 @@ class AuditLogService:
             base_query = base_query.filter(AuditLog.created_at >= filter.date_from)
         if filter.date_to:
             base_query = base_query.filter(AuditLog.created_at <= filter.date_to)
-            
+
         date_range = base_query.first()
 
         # Get counts by action

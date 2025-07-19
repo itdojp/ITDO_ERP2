@@ -10,10 +10,10 @@ from alembic import context
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 from app.core.config import Settings
-from app.models.base import Base
 
 # Import all models to ensure they are registered with SQLAlchemy
 from app.models import security_audit  # noqa: F401
+from app.models.base import Base
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

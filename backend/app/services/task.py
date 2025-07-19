@@ -8,7 +8,8 @@ from sqlalchemy.orm import Session, joinedload
 from app.core.exceptions import BusinessLogicError, NotFound, PermissionDenied
 from app.models.department import Department
 from app.models.project import Project
-from app.models.task import Task, TaskPriority, TaskStatus as ModelTaskStatus
+from app.models.task import Task, TaskPriority
+from app.models.task import TaskStatus as ModelTaskStatus
 from app.models.user import User
 from app.schemas.task import (
     BulkStatusUpdate,
@@ -21,7 +22,7 @@ from app.schemas.task import (
     TaskUpdate,
 )
 from app.services.audit import AuditLogger
-from app.services.permission import PermissionService, permission_service
+from app.services.permission import PermissionService
 
 
 class TaskService:
@@ -847,7 +848,7 @@ class TaskService:
         # TODO: Implement proper dependency removal via TaskDependency model
         # if task.parent_task_id != depends_on:
         #     raise BusinessLogicError("Dependency does not exist")
-        
+
         # task.parent_task_id = None
         task.updated_by = user.id
         task.updated_at = datetime.utcnow()
