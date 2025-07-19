@@ -172,7 +172,9 @@ class BulkNotificationCreate(BaseModel):
     message: str = Field(..., min_length=1)
     notification_type: NotificationType
 
-    user_ids: List[int] = Field(..., description="List of target user IDs", min_length=1)
+    user_ids: List[int] = Field(
+        ..., description="List of target user IDs", min_length=1
+    )
     organization_id: Optional[int] = Field(None, gt=0)
 
     channels: List[NotificationChannel] = Field(default=[NotificationChannel.IN_APP])

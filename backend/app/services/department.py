@@ -447,7 +447,7 @@ class DepartmentService:
         self,
         department: Department,
         old_parent_id: DepartmentId | None,
-        new_parent_id: DepartmentId | None
+        new_parent_id: DepartmentId | None,
     ) -> None:
         """Update materialized path and depth after moving department."""
         # Calculate new path and depth
@@ -468,7 +468,9 @@ class DepartmentService:
 
     def _update_descendants_hierarchy(self, parent_department: Department) -> None:
         """Update hierarchy information for all descendants."""
-        children = self.get_department_children(parent_department.id, include_inactive=True)
+        children = self.get_department_children(
+            parent_department.id, include_inactive=True
+        )
 
         for child in children:
             child.path = f"{parent_department.path}{child.id}/"

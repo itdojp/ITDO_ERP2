@@ -484,7 +484,9 @@ class DataExportService:
                 f.write(csv_content)
 
         elif job.format == "excel":
-            excel_content = await self.export_to_excel(job.entity_type, data, job.columns)
+            excel_content = await self.export_to_excel(
+                job.entity_type, data, job.columns
+            )
             with open(file_path, "wb") as f:
                 f.write(excel_content)
 

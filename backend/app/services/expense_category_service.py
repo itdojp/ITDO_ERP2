@@ -79,9 +79,7 @@ class ExpenseCategoryService:
 
         return [self._build_tree_node(cat) for cat in root_categories]
 
-    def _build_tree_node(
-        self, category: ExpenseCategory
-    ) -> ExpenseCategoryTree:
+    def _build_tree_node(self, category: ExpenseCategory) -> ExpenseCategoryTree:
         """ツリーノード構築"""
         children = []
         if category.children:
@@ -96,7 +94,7 @@ class ExpenseCategoryService:
             id=category.id,
             code=category.code,
             name=category.name,
-            name_en=getattr(category, 'name_en', None),
+            name_en=getattr(category, "name_en", None),
             category_type=category.category_type,
             is_active=category.is_active,
             level=self._calculate_level(category),
@@ -108,7 +106,7 @@ class ExpenseCategoryService:
         """カテゴリのレベルを計算"""
         level = 0
         current = category
-        while current.parent_id and hasattr(current, 'parent') and current.parent:
+        while current.parent_id and hasattr(current, "parent") and current.parent:
             level += 1
             current = current.parent
         return level
@@ -119,7 +117,7 @@ class ExpenseCategoryService:
         current = category
         while current:
             names.append(current.name)
-            if not hasattr(current, 'parent') or not current.parent:
+            if not hasattr(current, "parent") or not current.parent:
                 break
             current = current.parent
         return " > ".join(reversed(names))
@@ -163,9 +161,7 @@ class ExpenseCategoryService:
 
         category_dict = category_data.model_dump()
         category_dict["sort_order"] = sort_order
-        category = ExpenseCategory(
-            organization_id=organization_id, **category_dict
-        )
+        category = ExpenseCategory(organization_id=organization_id, **category_dict)
 
         self.db.add(category)
         await self.db.commit()
@@ -196,9 +192,7 @@ class ExpenseCategoryService:
 
             category_dict = category_data.model_dump()
             category_dict["sort_order"] = sort_order
-            category = ExpenseCategory(
-                organization_id=organization_id, **category_dict
-            )
+            category = ExpenseCategory(organization_id=organization_id, **category_dict)
             categories.append(category)
 
         if categories:

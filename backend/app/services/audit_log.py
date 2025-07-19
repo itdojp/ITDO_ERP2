@@ -204,7 +204,11 @@ class AuditLogService:
         # Handle date range with proper typing
         start_date = None
         end_date = None
-        if date_range and hasattr(date_range, 'min_date') and hasattr(date_range, 'max_date'):
+        if (
+            date_range
+            and hasattr(date_range, "min_date")
+            and hasattr(date_range, "max_date")
+        ):
             start_date = date_range.min_date
             end_date = date_range.max_date
 

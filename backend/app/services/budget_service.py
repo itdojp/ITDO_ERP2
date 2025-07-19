@@ -209,7 +209,7 @@ class BudgetService:
 
         budget.approved_by_id = approved_by_id
         budget.approved_at = datetime.utcnow()
-        if hasattr(budget, 'approval_comment'):  # Check if field exists
+        if hasattr(budget, "approval_comment"):  # Check if field exists
             budget.approval_comment = approval_data.comments
         budget.updated_at = datetime.utcnow()
 

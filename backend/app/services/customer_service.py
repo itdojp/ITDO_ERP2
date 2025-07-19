@@ -109,11 +109,13 @@ class CustomerService:
                 **customer.__dict__,
                 contacts=[
                     CustomerContactResponse.model_validate(contact)
-                    for contact in customer.contacts if not contact.deleted_at
+                    for contact in customer.contacts
+                    if not contact.deleted_at
                 ],
                 opportunities=[
                     OpportunityResponse.model_validate(opp)
-                    for opp in customer.opportunities if not opp.deleted_at
+                    for opp in customer.opportunities
+                    if not opp.deleted_at
                 ],
                 recent_activities=[
                     CustomerActivityResponse.model_validate(activity)
@@ -127,9 +129,13 @@ class CustomerService:
     ) -> CustomerResponse:
         """顧客新規作成"""
         # 重複チェック
-        existing = await self._check_duplicate_code(customer_data.customer_code, organization_id)
+        existing = await self._check_duplicate_code(
+            customer_data.customer_code, organization_id
+        )
         if existing:
-            raise ValueError(f"Customer code '{customer_data.customer_code}' already exists")
+            raise ValueError(
+                f"Customer code '{customer_data.customer_code}' already exists"
+            )
 
         customer = Customer(
             organization_id=organization_id, **customer_data.model_dump()
@@ -188,12 +194,18 @@ class CustomerService:
             return None
 
         # コード重複チェック（自分以外）
-        if hasattr(customer_data, 'customer_code') and customer_data.customer_code and customer_data.customer_code != customer.customer_code:
+        if (
+            hasattr(customer_data, "customer_code")
+            and customer_data.customer_code
+            and customer_data.customer_code != customer.customer_code
+        ):
             existing = await self._check_duplicate_code(
                 customer_data.customer_code, organization_id, exclude_id=customer_id
             )
             if existing:
-                raise ValueError(f"Customer code '{customer_data.customer_code}' already exists")
+                raise ValueError(
+                    f"Customer code '{customer_data.customer_code}' already exists"
+                )
 
         # 更新
         for field, value in customer_data.model_dump(exclude_unset=True).items():

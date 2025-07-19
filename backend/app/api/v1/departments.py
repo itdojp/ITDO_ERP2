@@ -511,6 +511,7 @@ def get_department_tasks_via_department_endpoint(
 
 # Hierarchical Structure APIs
 
+
 @router.get(
     "/{department_id}/children",
     response_model=list[DepartmentSummary],
@@ -531,8 +532,7 @@ def get_department_children(
 
     if not department:
         raise HTTPException(
-            status_code=http_status.HTTP_404_NOT_FOUND,
-            detail="Department not found"
+            status_code=http_status.HTTP_404_NOT_FOUND, detail="Department not found"
         )
 
     children = service.get_department_children(department_id, include_inactive)
@@ -546,7 +546,9 @@ def get_department_children(
             parent_id=child.parent_id,
             manager_id=child.manager_id,
             is_active=child.is_active,
-            user_count=len([u for u in child.users if u.is_active]) if hasattr(child, 'users') else 0,
+            user_count=len([u for u in child.users if u.is_active])
+            if hasattr(child, "users")
+            else 0,
         )
         for child in children
     ]
@@ -564,7 +566,9 @@ def get_department_children(
 )
 def move_department(
     department_id: int = Path(..., description="Department ID to move"),
-    new_parent_id: int | None = Body(..., embed=True, description="New parent department ID (null for root)"),
+    new_parent_id: int | None = Body(
+        ..., embed=True, description="New parent department ID (null for root)"
+    ),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ) -> DepartmentResponse | JSONResponse:
@@ -575,8 +579,7 @@ def move_department(
     department = service.get_department(department_id)
     if not department:
         raise HTTPException(
-            status_code=http_status.HTTP_404_NOT_FOUND,
-            detail="Department not found"
+            status_code=http_status.HTTP_404_NOT_FOUND, detail="Department not found"
         )
 
     # Check permissions
@@ -599,7 +602,7 @@ def move_department(
         if not new_parent:
             raise HTTPException(
                 status_code=http_status.HTTP_404_NOT_FOUND,
-                detail="New parent department not found"
+                detail="New parent department not found",
             )
 
         if new_parent.organization_id != department.organization_id:
@@ -623,9 +626,11 @@ def move_department(
 
     try:
         updated_department = service.move_department(department_id, new_parent_id)
-        return DepartmentResponse.model_validate(updated_department, from_attributes=True)
+        return DepartmentResponse.model_validate(
+            updated_department, from_attributes=True
+        )
     except Exception as e:
         raise HTTPException(
             status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to move department: {str(e)}"
+            detail=f"Failed to move department: {str(e)}",
         )

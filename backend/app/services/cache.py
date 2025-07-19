@@ -80,7 +80,11 @@ class CacheStatistics:
     def get_statistics(self) -> Dict[str, Any]:
         """Get cache statistics."""
         try:
-            stats = self.redis_client.hgetall(self.stats_key) if hasattr(self.redis_client, 'hgetall') else {}
+            stats = (
+                self.redis_client.hgetall(self.stats_key)
+                if hasattr(self.redis_client, "hgetall")
+                else {}
+            )
             if not isinstance(stats, dict):
                 stats = {}
 
@@ -88,9 +92,9 @@ class CacheStatistics:
             processed_stats = {}
             for key, value in stats.items():
                 if isinstance(key, bytes):
-                    key = key.decode('utf-8')
+                    key = key.decode("utf-8")
                 if isinstance(value, bytes):
-                    value = value.decode('utf-8')
+                    value = value.decode("utf-8")
 
                 # Convert numeric values
                 try:
@@ -176,7 +180,7 @@ class CacheService:
                     return json.loads(value)
                 except (json.JSONDecodeError, TypeError):
                     try:
-                        return pickle.loads(value.encode('latin-1'))
+                        return pickle.loads(value.encode("latin-1"))
                     except Exception:
                         return value
 
@@ -196,7 +200,7 @@ class CacheService:
         key: str,
         value: Any,
         ttl: Optional[int] = None,
-        serialize_json: bool = True
+        serialize_json: bool = True,
     ) -> bool:
         """Set value in cache with optional TTL."""
         if not self.redis_client:
@@ -209,11 +213,11 @@ class CacheService:
                     serialized_value = json.dumps(value, default=str)
                 except (TypeError, ValueError):
                     # Fall back to pickle for complex objects
-                    serialized_value = pickle.dumps(value).decode('latin-1')
+                    serialized_value = pickle.dumps(value).decode("latin-1")
                     serialize_json = False
             else:
                 if isinstance(value, (dict, list)):
-                    serialized_value = pickle.dumps(value).decode('latin-1')
+                    serialized_value = pickle.dumps(value).decode("latin-1")
                 else:
                     serialized_value = str(value)
 
@@ -252,7 +256,9 @@ class CacheService:
         try:
             keys = self.redis_client.keys(pattern)
             if keys:
-                deleted_count = cast("int", self.redis_client.delete(*cast("list[str]", keys)))
+                deleted_count = cast(
+                    "int", self.redis_client.delete(*cast("list[str]", keys))
+                )
                 if self.statistics:
                     for key in cast("list[str]", keys):
                         self.statistics.increment_deletes(key)
@@ -291,10 +297,14 @@ class CacheService:
 
         try:
             ttl_value = self.redis_client.ttl(key)
-            if hasattr(ttl_value, '__await__'):
+            if hasattr(ttl_value, "__await__"):
                 # Handle async client
                 return -1  # Cannot await in sync method
-            return int(ttl_value) if ttl_value is not None and isinstance(ttl_value, (int, float)) else -1
+            return (
+                int(ttl_value)
+                if ttl_value is not None and isinstance(ttl_value, (int, float))
+                else -1
+            )
         except Exception as e:
             logger.error(f"Failed to get TTL for cache key {key}: {e}")
             return -1
@@ -328,7 +338,7 @@ class CacheService:
         try:
             info = self.redis_client.info()
             # Handle async case
-            if hasattr(info, '__await__'):
+            if hasattr(info, "__await__"):
                 info = {}  # Default for async client
 
             stats = self.statistics.get_statistics() if self.statistics else {}
@@ -336,10 +346,18 @@ class CacheService:
             return {
                 "status": "connected",
                 "redis_info": {
-                    "used_memory": info.get("used_memory_human", "unknown") if isinstance(info, dict) else "unknown",
-                    "connected_clients": info.get("connected_clients", 0) if isinstance(info, dict) else 0,
-                    "keyspace_hits": info.get("keyspace_hits", 0) if isinstance(info, dict) else 0,
-                    "keyspace_misses": info.get("keyspace_misses", 0) if isinstance(info, dict) else 0,
+                    "used_memory": info.get("used_memory_human", "unknown")
+                    if isinstance(info, dict)
+                    else "unknown",
+                    "connected_clients": info.get("connected_clients", 0)
+                    if isinstance(info, dict)
+                    else 0,
+                    "keyspace_hits": info.get("keyspace_hits", 0)
+                    if isinstance(info, dict)
+                    else 0,
+                    "keyspace_misses": info.get("keyspace_misses", 0)
+                    if isinstance(info, dict)
+                    else 0,
                 },
                 "cache_statistics": stats,
                 "default_ttl": self.default_ttl,
@@ -364,6 +382,7 @@ class CacheService:
 
 # Cache decorators for easy integration
 
+
 def cached(
     key_prefix: str = "cache",
     ttl: Optional[int] = None,
@@ -376,6 +395,7 @@ def cached(
         ttl: Time to live in seconds
         key_builder: Custom function to build cache key from function args
     """
+
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> T:
@@ -400,12 +420,15 @@ def cached(
             cache.set(cache_key, result, ttl=ttl)
 
             return result
+
         return wrapper
+
     return decorator
 
 
 def cache_invalidate(key_prefix: str) -> Callable[..., Callable[..., T]]:
     """Decorator to invalidate cache with given prefix after function execution."""
+
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> T:
@@ -415,7 +438,9 @@ def cache_invalidate(key_prefix: str) -> Callable[..., Callable[..., T]]:
             cache.invalidate_pattern(key_prefix)
 
             return result
+
         return wrapper
+
     return decorator
 
 
@@ -439,6 +464,7 @@ def initialize_cache_service(redis_url: Optional[str] = None) -> CacheService:
 
 
 # Cache warming functions examples
+
 
 def warm_user_cache(db: Session) -> None:
     """Example cache warming function for user data."""
@@ -508,4 +534,3 @@ __all__ = [
     "warm_user_cache",
     "warm_organization_cache",
 ]
-

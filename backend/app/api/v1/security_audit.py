@@ -86,7 +86,9 @@ async def resolve_security_event(
 ) -> SecurityAuditLogResponse:
     """Resolve a security event."""
     service = SecurityAuditService(db)
-    result = await service.resolve_security_event(event_id, resolution_data, resolved_by)
+    result = await service.resolve_security_event(
+        event_id, resolution_data, resolved_by
+    )
 
     if not result:
         raise HTTPException(status_code=404, detail="Security event not found")

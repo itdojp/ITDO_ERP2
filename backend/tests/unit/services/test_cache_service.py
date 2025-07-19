@@ -192,7 +192,7 @@ class TestCacheService:
     def test_get_existing_pickle(self, cache_service: CacheService) -> None:
         """Test getting existing pickled value from cache."""
         test_data = {"complex": "simple_object"}  # Simple data for pickling
-        pickled_data = pickle.dumps(test_data).decode('latin-1')
+        pickled_data = pickle.dumps(test_data).decode("latin-1")
         cache_service.redis_client.get.return_value = pickled_data
 
         result = cache_service.get("test_key")
@@ -319,6 +319,7 @@ class TestCacheService:
 
     def test_warm_cache_success(self, cache_service: CacheService) -> None:
         """Test cache warming with successful functions."""
+
         def warm_func1():
             cache_service.set("warm1", "value1")
 
@@ -333,6 +334,7 @@ class TestCacheService:
 
     def test_warm_cache_with_errors(self, cache_service: CacheService) -> None:
         """Test cache warming with some failing functions."""
+
         def warm_func_success():
             cache_service.set("warm1", "value1")
 
@@ -386,6 +388,7 @@ class TestCacheDecorators:
         with patch(
             "app.services.cache.get_cache_service", return_value=mock_cache_service
         ):
+
             @cached(key_prefix="test")
             def test_function(arg1: str, arg2: int) -> str:
                 return f"result_{arg1}_{arg2}"
@@ -403,6 +406,7 @@ class TestCacheDecorators:
         with patch(
             "app.services.cache.get_cache_service", return_value=mock_cache_service
         ):
+
             @cached(key_prefix="test", ttl=300)
             def test_function(arg1: str, arg2: int) -> str:
                 return f"result_{arg1}_{arg2}"
@@ -420,6 +424,7 @@ class TestCacheDecorators:
         with patch(
             "app.services.cache.get_cache_service", return_value=mock_cache_service
         ):
+
             @cache_invalidate(key_prefix="test")
             def test_function() -> str:
                 return "result"
@@ -437,6 +442,7 @@ class TestCacheServiceSingleton:
         """Test getting cache service instance."""
         # Reset global instance
         import app.services.cache
+
         app.services.cache._cache_service = None
 
         service1 = get_cache_service()
@@ -496,4 +502,3 @@ class TestCachePerformance:
 
         # Should be very fast
         assert duration < 0.1  # Less than 100ms for 1000 key builds
-

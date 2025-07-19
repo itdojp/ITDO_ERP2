@@ -271,7 +271,9 @@ class OrganizationService:
 
         return [build_tree(root) for root in roots]
 
-    def get_organization_tree_by_id(self, organization_id: OrganizationId) -> OrganizationTree | None:
+    def get_organization_tree_by_id(
+        self, organization_id: OrganizationId
+    ) -> OrganizationTree | None:
         """Get organization hierarchy tree for a specific organization."""
         organization = self.repository.get(organization_id)
         if not organization:

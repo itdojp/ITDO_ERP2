@@ -153,8 +153,8 @@ class TaskService:
         # User can view tasks they created or are assigned to (owner-based access)
         # or if they have general task.view permission
         has_general_permission = (
-            self.permission_service and
-            self.permission_service.has_permission(
+            self.permission_service
+            and self.permission_service.has_permission(
                 user, "task.view", organization_id=user.organization_id, db=db
             )
         )
@@ -324,8 +324,8 @@ class TaskService:
         # Apply permission-based filtering
         # If user doesn't have general task.view permission, only show their own tasks
         has_general_permission = (
-            self.permission_service and
-            self.permission_service.has_permission(
+            self.permission_service
+            and self.permission_service.has_permission(
                 user, "task.view", organization_id=user.organization_id, db=db
             )
         )
@@ -457,8 +457,8 @@ class TaskService:
         # (owner-based access)
         # or if they have general task.view permission
         has_general_permission = (
-            self.permission_service and
-            self.permission_service.has_permission(
+            self.permission_service
+            and self.permission_service.has_permission(
                 user, "task.view", organization_id=user.organization_id, db=db
             )
         )

@@ -367,7 +367,9 @@ class OpportunityService:
             won_opportunities=won_count,
             lost_opportunities=lost_count,
             total_pipeline_value=Decimal(str(total_pipeline_value)),
-            weighted_pipeline_value=Decimal(str(total_pipeline_value * 0.5)),  # 仮の重み付け
+            weighted_pipeline_value=Decimal(
+                str(total_pipeline_value * 0.5)
+            ),  # 仮の重み付け
             average_deal_size=Decimal(str(average_deal_size)),
             win_rate=Decimal(str(win_rate)),
             opportunities_by_stage=stage_stats,

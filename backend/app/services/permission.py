@@ -246,8 +246,8 @@ class PermissionService:
                     performed_by=log.user_id,
                     performed_at=log.created_at,
                     reason=log.changes.get("reason") if log.changes else None,
-                    previous_state=log.changes.get('old_values'),
-                    new_state=log.changes.get('new_values'),
+                    previous_state=log.changes.get("old_values"),
+                    new_state=log.changes.get("new_values"),
                 )
             )
 

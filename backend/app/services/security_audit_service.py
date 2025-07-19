@@ -69,7 +69,8 @@ class SecurityAuditService:
 
             # Create alert if necessary
             if security_log.requires_attention or risk_level in [
-                RiskLevel.HIGH, RiskLevel.CRITICAL
+                RiskLevel.HIGH,
+                RiskLevel.CRITICAL,
             ]:
                 await self._create_security_alert(security_log)
 
@@ -179,12 +180,8 @@ class SecurityAuditService:
         total_events = total_result.scalar() or 0
 
         # Events by type
-        type_query = (
-            base_query.group_by(SecurityAuditLog.event_type)
-            .with_only_columns(
-                SecurityAuditLog.event_type,
-                func.count(SecurityAuditLog.id).label("count")
-            )
+        type_query = base_query.group_by(SecurityAuditLog.event_type).with_only_columns(
+            SecurityAuditLog.event_type, func.count(SecurityAuditLog.id).label("count")
         )
         type_result = await self.db.execute(type_query)
         events_by_type: Dict[str, int] = {}
@@ -192,12 +189,8 @@ class SecurityAuditService:
             events_by_type[str(row[0])] = row[1]
 
         # Events by risk level
-        risk_query = (
-            base_query.group_by(SecurityAuditLog.risk_level)
-            .with_only_columns(
-                SecurityAuditLog.risk_level,
-                func.count(SecurityAuditLog.id).label("count")
-            )
+        risk_query = base_query.group_by(SecurityAuditLog.risk_level).with_only_columns(
+            SecurityAuditLog.risk_level, func.count(SecurityAuditLog.id).label("count")
         )
         risk_result = await self.db.execute(risk_query)
         events_by_risk_level: Dict[str, int] = {}

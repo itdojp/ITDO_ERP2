@@ -122,9 +122,7 @@ class SecurityAlert(BaseModel):
         Integer, ForeignKey("security_audit_logs.id"), nullable=False
     )
     alert_type: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
-    severity: Mapped[RiskLevel] = mapped_column(
-        String(20), nullable=False, index=True
-    )
+    severity: Mapped[RiskLevel] = mapped_column(String(20), nullable=False, index=True)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     message: Mapped[str] = mapped_column(Text, nullable=False)
 

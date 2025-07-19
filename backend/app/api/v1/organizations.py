@@ -99,8 +99,7 @@ def get_organization_tree_by_id(
     organization = service.get_organization(organization_id)
     if not organization:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Organization not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found"
         )
 
     # Get organization tree for this specific organization
@@ -463,8 +462,8 @@ def deactivate_organization(
     return service.get_organization_response(organization)
 
 
-
 # Organization User Management APIs
+
 
 @router.get(
     "/{organization_id}/users",
@@ -492,8 +491,7 @@ def get_organization_users(
     organization = service.get_organization(organization_id)
     if not organization:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Organization not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found"
         )
 
     # Check permissions
@@ -519,43 +517,53 @@ def get_organization_users(
     # Get users using direct database query since UserService has different interface
     # Use the organization_id property to filter users
     users_query = db.query(User).all()
-    organization_users = [user for user in users_query if user.organization_id == organization_id]
+    organization_users = [
+        user for user in users_query if user.organization_id == organization_id
+    ]
 
     # Apply filters
     if active_only:
         organization_users = [user for user in organization_users if user.is_active]
     if department_id:
-        organization_users = [user for user in organization_users if user.department_id == department_id]
+        organization_users = [
+            user for user in organization_users if user.department_id == department_id
+        ]
     if search:
         search_term = search.lower()
         organization_users = [
-            user for user in organization_users
-            if search_term in user.full_name.lower() or
-               search_term in user.email.lower()
+            user
+            for user in organization_users
+            if search_term in user.full_name.lower()
+            or search_term in user.email.lower()
         ]
 
     total = len(organization_users)
-    users = organization_users[skip:skip + limit]
+    users = organization_users[skip : skip + limit]
 
     # Convert to summary format
     from app.schemas.department import UserSummary
+
     user_summaries = []
     for user in users:
         department_name = None
         if user.department_id:
-            department = db.query(Department).filter(Department.id == user.department_id).first()
+            department = (
+                db.query(Department).filter(Department.id == user.department_id).first()
+            )
             if department:
                 department_name = department.name
 
-        user_summaries.append(UserSummary(
-            id=user.id,
-            email=user.email,
-            full_name=user.full_name,
-            phone=user.phone,
-            is_active=user.is_active,
-            department_id=user.department_id,
-            department_name=department_name,
-        ))
+        user_summaries.append(
+            UserSummary(
+                id=user.id,
+                email=user.email,
+                full_name=user.full_name,
+                phone=user.phone,
+                is_active=user.is_active,
+                department_id=user.department_id,
+                department_name=department_name,
+            )
+        )
 
     return PaginatedResponse[Any](
         items=user_summaries,
