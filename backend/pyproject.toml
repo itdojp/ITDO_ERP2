@@ -230,4 +230,5 @@ dev = [
     "faker>=37.4.0",
     "types-pytz>=2025.2.0.20250516",
     "pandas-stubs>=2.3.0.250703",
+    "types-reportlab>=4.4.1.20250602",
 ]

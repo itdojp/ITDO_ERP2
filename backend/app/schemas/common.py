@@ -1,7 +1,7 @@
 """Common schemas used across the ITDO ERP System."""
 
 from datetime import datetime
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, TypeVar, cast
 
 from pydantic import BaseModel, Field
 
@@ -76,9 +76,11 @@ class PaginatedResponse(BaseModel, Generic[T]):
     def __init__(self, **data: dict[str, Any]) -> None:
         """Initialize paginated response with computed has_more field."""
         if "has_more" not in data:
-            data["has_more"] = data.get("total", 0) > data.get("skip", 0) + len(
-                data.get("items", [])
-            )
+            total: int = cast(int, data.get("total", 0))
+            skip: int = cast(int, data.get("skip", 0))
+            items: list[Any] = cast(list[Any], data.get("items", []))
+            has_more_value: bool = total > skip + len(items)
+            data["has_more"] = has_more_value
         super().__init__(**data)
 
     class Config:

@@ -96,7 +96,7 @@ class NotificationMarkRead(BaseModel):
     """Schema for marking notifications as read."""
 
     notification_ids: List[int] = Field(
-        min_items=1, description="List of notification IDs to mark as read"
+        description="List of notification IDs to mark as read", min_length=1
     )
 
 
@@ -105,7 +105,7 @@ class NotificationPreferencesUpdate(BaseModel):
 
     email_enabled: Optional[bool] = None
     email_digest: Optional[bool] = None
-    email_frequency: Optional[str] = Field(None, regex="^(immediate|hourly|daily)$")
+    email_frequency: Optional[str] = Field(None, pattern="^(immediate|hourly|daily)$")
 
     in_app_enabled: Optional[bool] = None
     desktop_notifications: Optional[bool] = None
@@ -115,10 +115,10 @@ class NotificationPreferencesUpdate(BaseModel):
 
     quiet_hours_enabled: Optional[bool] = None
     quiet_hours_start: Optional[str] = Field(
-        None, regex="^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$"
+        None, pattern="^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$"
     )
     quiet_hours_end: Optional[str] = Field(
-        None, regex="^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$"
+        None, pattern="^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$"
     )
 
 

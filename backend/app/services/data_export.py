@@ -5,7 +5,7 @@ import io
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 import pandas as pd
 from fastapi import BackgroundTasks, HTTPException
@@ -479,19 +479,19 @@ class DataExportService:
         file_path = export_dir / filename
 
         if job.format == "csv":
-            content = await self.export_to_csv(job.entity_type, data, job.columns)
+            csv_content = await self.export_to_csv(job.entity_type, data, job.columns)
             with open(file_path, "w", encoding="utf-8") as f:
-                f.write(content)
+                f.write(csv_content)
 
         elif job.format == "excel":
-            content = await self.export_to_excel(job.entity_type, data, job.columns)
+            excel_content = await self.export_to_excel(job.entity_type, data, job.columns)
             with open(file_path, "wb") as f:
-                f.write(content)
+                f.write(excel_content)
 
         elif job.format == "pdf":
-            content = await self.export_to_pdf(job.entity_type, data, job.columns)
+            pdf_content = await self.export_to_pdf(job.entity_type, data, job.columns)
             with open(file_path, "wb") as f:
-                f.write(content)
+                f.write(pdf_content)
 
         elif job.format == "json":
             content = await self.export_to_json(job.entity_type, data, job.columns)
@@ -543,7 +543,7 @@ class DataExportService:
     def _parse_excel_data(self, content: bytes) -> List[Dict[str, Any]]:
         """Parse Excel data from bytes."""
         df = pd.read_excel(io.BytesIO(content))
-        return df.to_dict("records")
+        return cast(List[Dict[str, Any]], df.to_dict("records"))
 
     def _parse_json_data(self, content: bytes) -> List[Dict[str, Any]]:
         """Parse JSON data from bytes."""

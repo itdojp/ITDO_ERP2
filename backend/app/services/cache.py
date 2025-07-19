@@ -79,7 +79,9 @@ class CacheStatistics:
     def get_statistics(self) -> Dict[str, Any]:
         """Get cache statistics."""
         try:
-            stats = self.redis_client.hgetall(self.stats_key)
+            stats = self.redis_client.hgetall(self.stats_key) if hasattr(self.redis_client, 'hgetall') else {}
+            if not isinstance(stats, dict):
+                stats = {}
 
             # Convert byte strings to proper types
             processed_stats = {}
@@ -102,10 +104,10 @@ class CacheStatistics:
 
             processed_stats["total_requests"] = total_requests
             processed_stats["hit_rate"] = (
-                (hits / total_requests * 100) if total_requests > 0 else 0
+                int(hits / total_requests * 100) if total_requests > 0 else 0
             )
             processed_stats["miss_rate"] = (
-                (misses / total_requests * 100) if total_requests > 0 else 0
+                int(misses / total_requests * 100) if total_requests > 0 else 0
             )
 
             return processed_stats
@@ -140,7 +142,7 @@ class CacheService:
         """Get Redis client connection."""
         try:
             if redis_url:
-                client = redis.from_url(redis_url, decode_responses=True)
+                client = redis.from_url(redis_url, decode_responses=True)  # type: ignore[no-untyped-call]
             else:
                 client = redis.Redis(
                     host=getattr(settings, "REDIS_HOST", "localhost"),
@@ -152,7 +154,7 @@ class CacheService:
             # Test connection
             client.ping()
             logger.info("Redis cache connection established")
-            return client
+            return client  # type: ignore[no-any-return]
         except Exception as e:
             logger.warning(f"Redis cache connection failed: {e}")
             return None

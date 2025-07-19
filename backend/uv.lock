@@ -709,6 +709,7 @@ dev = [
     { name = "types-psutil" },
     { name = "types-python-jose" },
     { name = "types-pytz" },
+    { name = "types-reportlab" },
 ]
 
 [package.metadata]
@@ -776,6 +777,7 @@ dev = [
     { name = "types-psutil", specifier = ">=7.0.0.20250601" },
     { name = "types-python-jose", specifier = ">=3.3.4" },
     { name = "types-pytz", specifier = ">=2025.2.0.20250516" },
+    { name = "types-reportlab", specifier = ">=4.4.1.20250602" },
 ]
 
 [[package]]
@@ -1753,6 +1755,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/bd/72/b0e711fd90409f5a76c75349055d3eb19992c110f0d2d6aabbd6cfbc14bf/types_pytz-2025.2.0.20250516.tar.gz", hash = "sha256:e1216306f8c0d5da6dafd6492e72eb080c9a166171fa80dd7a1990fd8be7a7b3", size = 10940, upload-time = "2025-05-16T03:07:01.91Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c1/ba/e205cd11c1c7183b23c97e4bcd1de7bc0633e2e867601c32ecfc6ad42675/types_pytz-2025.2.0.20250516-py3-none-any.whl", hash = "sha256:e0e0c8a57e2791c19f718ed99ab2ba623856b11620cb6b637e5f62ce285a7451", size = 10136, upload-time = "2025-05-16T03:07:01.075Z" },
+]
+
+[[package]]
+name = "types-reportlab"
+version = "4.4.1.20250602"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/cd/ff/9b43c06f572bd0de79ce2c23795216746e7f990ad63a8902ab09882423c9/types_reportlab-4.4.1.20250602.tar.gz", hash = "sha256:ef26555384e9114e751ac6587740adcb4f241844cf103dd6f6f141d5254c1644", size = 68380, upload-time = "2025-06-02T03:14:44.544Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8b/54/ec7fa9b4ff7cd68ba338468bf1bb44d6a10c24acb489ff5100aaaa4b67f3/types_reportlab-4.4.1.20250602-py3-none-any.whl", hash = "sha256:35f23b5a3526fed8cbd5d611673551761280d129ec702467c1d11dd08b8fb971", size = 109189, upload-time = "2025-06-02T03:14:43.295Z" },
 ]
 
 [[package]]
