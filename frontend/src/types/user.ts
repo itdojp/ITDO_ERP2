@@ -3,21 +3,21 @@
  */
 
 export interface User {
-  id: number
-  email: string
-  full_name: string
-  phone?: string
-  profile_image_url?: string
-  bio?: string
-  location?: string
-  website?: string
-  is_active: boolean
-  created_at: string
-  updated_at: string
-  last_login_at?: string
-  organizations: Organization[]
-  departments: Department[]
-  roles: UserRole[]
+  id: number                    // Unique user identifier
+  email: string                 // User email address (login credential)
+  full_name: string            // User's display name
+  phone?: string               // Optional phone number
+  profile_image_url?: string   // Optional profile picture URL
+  bio?: string                 // Optional user bio/description
+  location?: string            // Optional location information
+  website?: string             // Optional personal website
+  is_active: boolean           // Whether user account is active
+  created_at: string           // Account creation timestamp
+  updated_at: string           // Last update timestamp
+  last_login_at?: string       // Last login timestamp (optional)
+  organizations: Organization[] // Organizations user belongs to
+  departments: Department[]     // Departments user is assigned to
+  roles: UserRole[]            // Roles assigned to the user
 }
 
 export interface Organization {
@@ -128,4 +128,67 @@ export interface UserListResponse {
   total: number
   page: number
   limit: number
+}
+
+// Additional types for user management CRUD operations
+export interface CreateUserRequest {
+  full_name: string
+  email: string
+  phone?: string
+  password: string
+  confirm_password: string
+  role?: string
+  organization_ids?: number[]
+  department_ids?: number[]
+}
+
+export interface UpdateUserRequest {
+  full_name?: string
+  email?: string
+  phone?: string
+  role?: string
+  is_active?: boolean
+  organization_ids?: number[]
+  department_ids?: number[]
+}
+
+export interface UserTableRow {
+  id: number
+  full_name: string
+  email: string
+  role: string
+  status: 'Active' | 'Inactive'
+  last_login_at?: string
+  actions: boolean
+}
+
+export interface UserFilters {
+  search?: string
+  role?: string
+  status?: 'active' | 'inactive'
+  organization_id?: number
+  department_id?: number
+}
+
+export interface PaginationParams {
+  page: number
+  limit: number
+}
+
+export interface BulkActionRequest {
+  user_ids: number[]
+  action: 'activate' | 'deactivate' | 'delete'
+}
+
+export interface UserFormData extends CreateUserRequest {
+  id?: number
+}
+
+export interface UserFormErrors {
+  full_name?: string
+  email?: string
+  phone?: string
+  password?: string
+  confirm_password?: string
+  role?: string
 }
