@@ -54,7 +54,7 @@ async def get_expenses(
     # Parse date strings to date objects
     parsed_date_from = None
     parsed_date_to = None
-    
+
     if date_from:
         try:
             parsed_date_from = date.fromisoformat(date_from)
@@ -63,7 +63,7 @@ async def get_expenses(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid date_from format. Use YYYY-MM-DD"
             )
-    
+
     if date_to:
         try:
             parsed_date_to = date.fromisoformat(date_to)

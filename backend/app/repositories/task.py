@@ -5,7 +5,6 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from sqlalchemy import and_, func, or_, text
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy.sql import ColumnElement
 
 from app.models.task import Task, TaskDependency, TaskHistory, TaskStatus
 from app.repositories.base import BaseRepository
@@ -137,7 +136,7 @@ class TaskRepository(BaseRepository[Task, TaskCreate, TaskUpdate]):
         total = query.count()
 
         # Apply sorting
-        order_col
+        order_col = Task.created_at  # default
         if params.sort_by == "title":
             order_col = Task.title
         elif params.sort_by == "status":

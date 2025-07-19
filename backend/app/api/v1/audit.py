@@ -10,7 +10,6 @@ from app.core.dependencies import get_current_active_user, get_db
 from app.core.exceptions import NotFound, PermissionDenied
 from app.models.user import User
 from app.schemas.audit import (
-    AuditLogFilter,
     AuditLogListResponse,
     AuditLogSearch,
     AuditLogStats,
@@ -37,24 +36,21 @@ def get_organization_audit_logs(
     db: Session = Depends(get_db),
 ) -> AuditLogListResponse:
     """Get audit logs for an organization."""
-    # Create filter params
-    filter_params = AuditLogFilter(
-        user_id=user_id,
-        action=action,
-        resource_type=resource_type,
-        resource_id=resource_id,
-        date_from=date_from,
-        date_to=date_to,
-    )
-
     service = AuditService()
+
     try:
         return service.get_organization_audit_logs(
             organization_id=organization_id,
             requester=current_user,
             db=db,
             limit=limit,
-            offset=offset
+            offset=offset,
+            user_id=user_id,
+            action=action,
+            resource_type=resource_type,
+            resource_id=resource_id,
+            date_from=date_from,
+            date_to=date_to,
         )
     except PermissionDenied:
         raise HTTPException(

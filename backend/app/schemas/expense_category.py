@@ -144,13 +144,13 @@ class ExpenseCategoryTree(BaseModel):
 
 class ExpenseCategoryTreeResponse(BaseModel):
     """Schema for expense category tree response."""
-    
+
     roots: List[ExpenseCategoryTree] = Field(
         default_factory=list, description="Root categories"
     )
     total_categories: int
     max_depth: int
-    
+
     class Config:
         from_attributes = True
 
@@ -195,7 +195,7 @@ class ExpenseCategoryBulkCreate(BaseModel):
     """Schema for bulk creating expense categories."""
 
     categories: List[ExpenseCategoryCreate] = Field(..., description="Categories to create")
-    
+
     @validator("categories")
     def validate_categories(cls, v: Any) -> List[ExpenseCategoryCreate]:
         if not v:

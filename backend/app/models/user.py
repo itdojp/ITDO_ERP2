@@ -12,6 +12,7 @@ from app.models.base import SoftDeletableModel
 
 if TYPE_CHECKING:
     from app.models.department import Department
+    from app.models.notification import Notification, NotificationPreference
     from app.models.organization import Organization
     from app.models.role import Role, UserRole
     from app.models.task import Task
@@ -106,6 +107,20 @@ class User(SoftDeletableModel):
         "UserOrganization",
         foreign_keys="UserOrganization.user_id",
         back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
+    # Notification relationships
+    notifications: Mapped[list["Notification"]] = relationship(
+        "Notification",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        order_by="desc(Notification.created_at)",
+    )
+    notification_preferences: Mapped["NotificationPreference | None"] = relationship(
+        "NotificationPreference",
+        back_populates="user",
+        uselist=False,
         cascade="all, delete-orphan",
     )
 

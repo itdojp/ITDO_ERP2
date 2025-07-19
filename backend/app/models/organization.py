@@ -1,10 +1,9 @@
 """Organization model implementation."""
 
-from typing import TYPE_CHECKING, Optional, Any
-from sqlalchemy.orm import Session
+from typing import TYPE_CHECKING, Any, Optional
 
 from sqlalchemy import Boolean, ForeignKey, Integer, String, Text
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
 
 from app.models.base import SoftDeletableModel
 from app.types import OrganizationId

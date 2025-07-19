@@ -20,6 +20,15 @@ from app.models.department import Department
 # Phase 4-7 Models
 from app.models.expense import Expense, ExpenseApprovalFlow
 from app.models.expense_category import ExpenseCategory
+from app.models.notification import (
+    Notification,
+    NotificationChannel,
+    NotificationPreference,
+    NotificationPriority,
+    NotificationQueue,
+    NotificationType,
+    WebhookEndpoint,
+)
 from app.models.organization import Organization
 from app.models.password_history import PasswordHistory
 from app.models.permission import Permission
@@ -87,6 +96,13 @@ __all__ = [
     "ExpenseCategory",
     "Expense",
     "ExpenseApprovalFlow",
+    "Notification",
+    "NotificationPreference",
+    "NotificationQueue",
+    "WebhookEndpoint",
+    "NotificationType",
+    "NotificationChannel",
+    "NotificationPriority",
     "Customer",
     "CustomerContact",
     "Opportunity",
