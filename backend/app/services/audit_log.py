@@ -44,7 +44,7 @@ class AuditLogService:
         if filter.entity_type:
             query = query.filter(AuditLog.resource_type == filter.entity_type)
         if filter.entity_id:
-            query = query.filter(AuditLog.entity_id == filter.entity_id)
+            query = query.filter(AuditLog.resource_id == filter.entity_id)
         if filter.action:
             query = query.filter(AuditLog.action == filter.action)
         if filter.date_from:
@@ -70,17 +70,20 @@ class AuditLogService:
                     user_email=user.email if user else None,
                     user_name=user.full_name if user else None,
                     action=log.action,
-                    entity_type=log.entity_type,
-                    entity_id=log.entity_id,
-                    entity_name=log.entity_name,
+                    entity_type=log.resource_type,
+                    entity_id=log.resource_id,
+                    entity_name=None,  # Not available in current model
                     category=self._determine_category(log),
                     level=self._determine_level(log),
                     success=True,  # Default for now
                     ip_address=log.ip_address,
                     user_agent=log.user_agent,
                     changes=log.changes,
-                    old_values=log.old_values,
-                    new_values=log.new_values,
+                    old_values=None,  # Not available in current model
+                    new_values=None,  # Not available in current model
+                    request_id=None,  # Required field
+                    session_id=None,  # Required field
+                    metadata=None,  # Required field
                     created_at=log.created_at,
                 )
             )
@@ -97,14 +100,21 @@ class AuditLogService:
         return AuditLogDetail(
             id=audit_log.id,
             user_id=audit_log.user_id,
-            entity_type=audit_log.resource_type or "unknown",
-            entity_id=audit_log.entity_id,
+            user_email=None,  # Would need user lookup
+            user_name=None,  # Would need user lookup
+            entity_type=audit_log.resource_type,
+            entity_id=audit_log.resource_id,
+            entity_name=None,  # Not available in current model
             action=audit_log.action,
-            description=audit_log.description or "",
-            changes=audit_log.new_values or {},
-            timestamp=audit_log.created_at,
-            ip_address=getattr(audit_log, 'ip_address', None),
-            user_agent=getattr(audit_log, 'user_agent', None),
+            changes=audit_log.changes,
+            old_values=None,  # Not available in current model
+            new_values=None,  # Not available in current model
+            request_id=None,  # Required field
+            session_id=None,  # Required field
+            metadata=None,  # Required field
+            created_at=audit_log.created_at,
+            ip_address=audit_log.ip_address,
+            user_agent=audit_log.user_agent,
             category=self._determine_category(audit_log),
             level=self._determine_level(audit_log),
         )
@@ -127,14 +137,22 @@ class AuditLogService:
         total_count = query.count()
 
         # Get date range
-        date_range = (
-            self.db.query(
-                func.min(AuditLog.created_at).label("min_date"),
-                func.max(AuditLog.created_at).label("max_date"),
-            )
-            .filter(query.whereclause)
-            .first()
+        base_query = self.db.query(
+            func.min(AuditLog.created_at).label("min_date"),
+            func.max(AuditLog.created_at).label("max_date"),
         )
+        
+        # Apply same filters as the main query
+        if filter.user_id:
+            base_query = base_query.filter(AuditLog.user_id == filter.user_id)
+        if filter.entity_type:
+            base_query = base_query.filter(AuditLog.resource_type == filter.entity_type)
+        if filter.date_from:
+            base_query = base_query.filter(AuditLog.created_at >= filter.date_from)
+        if filter.date_to:
+            base_query = base_query.filter(AuditLog.created_at <= filter.date_to)
+            
+        date_range = base_query.first()
 
         # Get counts by action
         by_action = {}
@@ -183,11 +201,18 @@ class AuditLogService:
             .count()
         )
 
+        # Handle date range with proper typing
+        start_date = None
+        end_date = None
+        if date_range and hasattr(date_range, 'min_date') and hasattr(date_range, 'max_date'):
+            start_date = date_range.min_date
+            end_date = date_range.max_date
+
         return AuditLogSummary(
             total_count=total_count,
             date_range={
-                "start": date_range.min_date if date_range else None,
-                "end": date_range.max_date if date_range else None,
+                "start": start_date,
+                "end": end_date,
             },
             by_category={},  # Would need category field in model
             by_level={},  # Would need level field in model
@@ -228,8 +253,11 @@ class AuditLogService:
                 id=1,
                 name="Default Retention",
                 description="Default retention policy for all logs",
+                category=None,
+                level=None,
                 retention_days=90,
                 archive_enabled=True,
+                archive_location=None,
                 is_active=True,
                 created_at=datetime.utcnow(),
                 updated_at=datetime.utcnow(),
@@ -239,8 +267,10 @@ class AuditLogService:
                 name="Security Events",
                 description="Extended retention for security events",
                 category=AuditLogCategory.SECURITY_EVENT,
+                level=None,
                 retention_days=365,
                 archive_enabled=True,
+                archive_location=None,
                 is_active=True,
                 created_at=datetime.utcnow(),
                 updated_at=datetime.utcnow(),
@@ -423,9 +453,9 @@ class AuditLogService:
         """Determine audit log category based on action and entity."""
         if log.action in ["login", "logout", "login_failed"]:
             return AuditLogCategory.AUTHENTICATION
-        elif log.entity_type == "permission":
+        elif log.resource_type == "permission":
             return AuditLogCategory.PERMISSION_CHANGE
-        elif log.entity_type == "user":
+        elif log.resource_type == "user":
             return AuditLogCategory.USER_MANAGEMENT
         elif log.action in ["create", "update", "delete"]:
             return AuditLogCategory.DATA_MODIFICATION

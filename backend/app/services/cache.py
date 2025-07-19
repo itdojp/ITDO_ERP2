@@ -179,11 +179,11 @@ class CacheService:
                         return pickle.loads(value.encode('latin-1'))
                     except Exception:
                         return value
-            else:
-                # This block handles when value is None
-                if self.statistics:
-                    self.statistics.increment_misses(key)
-                return default
+            
+            # This block handles when value is None
+            if self.statistics:
+                self.statistics.increment_misses(key)
+            return default
 
         except Exception as e:
             logger.error(f"Failed to get cache key {key}: {e}")
