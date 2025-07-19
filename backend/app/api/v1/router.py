@@ -11,12 +11,15 @@ from app.api.v1 import (
     cross_tenant_permissions,
     customer_activities,
     customers,
+    data_export,
     departments,
     expense_categories,
     expenses,
+    file_upload,
     financial_reports,
     health,
     multi_tenant,
+    notifications,
     opportunities,
     organizations,
     # permission_inheritance,  # Temporarily disabled due to syntax errors
@@ -92,6 +95,11 @@ api_router.include_router(
     applications.router, prefix="/applications", tags=["workflow"]
 )
 api_router.include_router(reports.router, prefix="/reports", tags=["analytics"])
+
+# Issue #288 Service Layer APIs  
+api_router.include_router(notifications.router, prefix="/notifications", tags=["notifications"])
+api_router.include_router(file_upload.router, prefix="/files", tags=["file-management"])
+api_router.include_router(data_export.router, prefix="/export", tags=["data-export"])
 
 
 @api_router.get("/ping")
