@@ -532,7 +532,9 @@ class CustomerImport(BaseModel):
 
     file_format: str = Field(..., description="File format: csv/xlsx")
     mapping: Dict[str, Any] = Field(..., description="Field mapping configuration")
-    validation_rules: Dict[str, Any] = Field(default_factory=dict, description="Validation rules")
+    validation_rules: Dict[str, Any] = Field(
+        default_factory=dict, description="Validation rules"
+    )
     import_mode: str = Field("create", description="Import mode: create/update/upsert")
 
 

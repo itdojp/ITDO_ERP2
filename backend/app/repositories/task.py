@@ -79,7 +79,7 @@ class TaskRepository(BaseRepository[Task, TaskCreate, TaskUpdate]):
         if params.assignee_id:
             query = query.filter(Task.assigned_to == params.assignee_id)
 
-        if hasattr(params, 'created_by') and params.created_by:
+        if hasattr(params, "created_by") and params.created_by:
             query = query.filter(Task.created_by == params.created_by)
 
         if params.status:
@@ -88,9 +88,9 @@ class TaskRepository(BaseRepository[Task, TaskCreate, TaskUpdate]):
         if params.priority:
             query = query.filter(Task.priority == params.priority)
 
-        if hasattr(params, 'is_overdue') and params.is_overdue is not None:
+        if hasattr(params, "is_overdue") and params.is_overdue is not None:
             now = datetime.now(timezone.utc)
-            if getattr(params, 'is_overdue', False):
+            if getattr(params, "is_overdue", False):
                 query = query.filter(
                     and_(
                         Task.due_date.isnot(None),
@@ -120,10 +120,10 @@ class TaskRepository(BaseRepository[Task, TaskCreate, TaskUpdate]):
             )
 
         # Date range filters
-        if hasattr(params, 'start_date_from') and params.start_date_from:
+        if hasattr(params, "start_date_from") and params.start_date_from:
             query = query.filter(Task.start_date >= params.start_date_from)
 
-        if hasattr(params, 'start_date_to') and params.start_date_to:
+        if hasattr(params, "start_date_to") and params.start_date_to:
             query = query.filter(Task.start_date <= params.start_date_to)
 
         if params.due_date_from:
@@ -136,7 +136,7 @@ class TaskRepository(BaseRepository[Task, TaskCreate, TaskUpdate]):
         total = query.count()
 
         # Apply sorting
-        order_col = Task.created_at  # default
+        order_col: Any
         if params.sort_by == "title":
             order_col = Task.title
         elif params.sort_by == "status":
@@ -158,8 +158,8 @@ class TaskRepository(BaseRepository[Task, TaskCreate, TaskUpdate]):
             query = query.order_by(order_col.desc())
 
         # Apply pagination
-        skip = (params.page - 1) * params.limit
-        tasks = query.offset(skip).limit(params.limit).all()
+        skip = (params.page - 1) * params.page_size
+        tasks = query.offset(skip).limit(params.page_size).all()
 
         return tasks, total
 

@@ -113,8 +113,12 @@ class ExpenseCategoryResponse(ExpenseCategoryBase, BaseResponse):
     path: str
 
     # Relationships
-    organization: Optional[Dict[str, Any]] = Field(None, description="Organization details")
-    parent: Optional[Dict[str, Any]] = Field(None, description="Parent category details")
+    organization: Optional[Dict[str, Any]] = Field(
+        None, description="Organization details"
+    )
+    parent: Optional[Dict[str, Any]] = Field(
+        None, description="Parent category details"
+    )
     children: List["ExpenseCategoryResponse"] = Field(
         default_factory=list, description="Child categories"
     )
@@ -194,7 +198,9 @@ class ExpenseCategoryMove(BaseModel):
 class ExpenseCategoryBulkCreate(BaseModel):
     """Schema for bulk creating expense categories."""
 
-    categories: List[ExpenseCategoryCreate] = Field(..., description="Categories to create")
+    categories: List[ExpenseCategoryCreate] = Field(
+        ..., description="Categories to create"
+    )
 
     @validator("categories")
     def validate_categories(cls, v: Any) -> List[ExpenseCategoryCreate]:
@@ -250,7 +256,9 @@ class ExpenseCategoryAnalytics(BaseModel):
     )
 
     # Type breakdown
-    type_breakdown: Dict[str, Any] = Field(default_factory=dict, description="Categories by type")
+    type_breakdown: Dict[str, Any] = Field(
+        default_factory=dict, description="Categories by type"
+    )
 
     # Hierarchy statistics
     max_depth: int

@@ -46,7 +46,7 @@ async def get_expenses(
     if not current_user.organization_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User must belong to an organization"
+            detail="User must belong to an organization",
         )
 
     service = ExpenseService(db)
@@ -61,7 +61,7 @@ async def get_expenses(
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid date_from format. Use YYYY-MM-DD"
+                detail="Invalid date_from format. Use YYYY-MM-DD",
             )
 
     if date_to:
@@ -70,7 +70,7 @@ async def get_expenses(
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid date_to format. Use YYYY-MM-DD"
+                detail="Invalid date_to format. Use YYYY-MM-DD",
             )
 
     # Create search filters
@@ -102,7 +102,7 @@ async def get_expense(
     if not current_user.organization_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User must belong to an organization"
+            detail="User must belong to an organization",
         )
 
     service = ExpenseService(db)
@@ -110,8 +110,7 @@ async def get_expense(
 
     if not expense:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Expense not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Expense not found"
         )
 
     return expense
@@ -127,7 +126,7 @@ async def create_expense(
     if not current_user.organization_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User must belong to an organization"
+            detail="User must belong to an organization",
         )
 
     service = ExpenseService(db)
@@ -139,10 +138,7 @@ async def create_expense(
             employee_id=current_user.id,
         )
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.put("/{expense_id}", response_model=ExpenseResponse)
@@ -156,7 +152,7 @@ async def update_expense(
     if not current_user.organization_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User must belong to an organization"
+            detail="User must belong to an organization",
         )
 
     service = ExpenseService(db)
@@ -170,17 +166,13 @@ async def update_expense(
 
         if not expense:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Expense not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Expense not found"
             )
 
         return expense
 
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.delete("/{expense_id}")
@@ -193,7 +185,7 @@ async def delete_expense(
     if not current_user.organization_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User must belong to an organization"
+            detail="User must belong to an organization",
         )
 
     service = ExpenseService(db)
@@ -206,17 +198,13 @@ async def delete_expense(
 
         if not success:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Expense not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Expense not found"
             )
 
         return {"message": "Expense deleted successfully"}
 
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.post("/{expense_id}/submit", response_model=ExpenseResponse)
@@ -230,7 +218,7 @@ async def submit_expense(
     if not current_user.organization_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User must belong to an organization"
+            detail="User must belong to an organization",
         )
 
     service = ExpenseService(db)
@@ -243,10 +231,7 @@ async def submit_expense(
         )
 
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.post("/{expense_id}/approve", response_model=ExpenseResponse)
@@ -260,7 +245,7 @@ async def approve_expense(
     if not current_user.organization_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User must belong to an organization"
+            detail="User must belong to an organization",
         )
 
     service = ExpenseService(db)
@@ -274,10 +259,7 @@ async def approve_expense(
         )
 
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.post("/{expense_id}/payment", response_model=ExpenseResponse)
@@ -290,7 +272,7 @@ async def process_payment(
     if not current_user.organization_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User must belong to an organization"
+            detail="User must belong to an organization",
         )
 
     service = ExpenseService(db)
@@ -303,10 +285,7 @@ async def process_payment(
         )
 
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.get("/{expense_id}/approvals", response_model=List[ExpenseApprovalFlowResponse])
@@ -319,7 +298,7 @@ async def get_approval_flows(
     if not current_user.organization_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User must belong to an organization"
+            detail="User must belong to an organization",
         )
 
     service = ExpenseService(db)
@@ -341,7 +320,7 @@ async def get_expense_summary(
     if not current_user.organization_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User must belong to an organization"
+            detail="User must belong to an organization",
         )
 
     service = ExpenseService(db)
@@ -364,7 +343,7 @@ async def get_my_pending_approvals(
     if not current_user.organization_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User must belong to an organization"
+            detail="User must belong to an organization",
         )
 
     service = ExpenseService(db)
@@ -392,7 +371,7 @@ async def get_my_expenses(
     if not current_user.organization_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User must belong to an organization"
+            detail="User must belong to an organization",
         )
 
     service = ExpenseService(db)
@@ -408,4 +387,3 @@ async def get_my_expenses(
         skip=skip,
         limit=limit,
     )
-

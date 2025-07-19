@@ -50,7 +50,7 @@ class NotificationService:
                 host=settings.REDIS_HOST,
                 port=settings.REDIS_PORT,
                 db=settings.REDIS_DB,
-                decode_responses=True
+                decode_responses=True,
             )
             # Test connection
             client.ping()
@@ -80,9 +80,7 @@ class NotificationService:
     # Notification CRUD Operations
 
     def create_notification(
-        self,
-        notification_data: NotificationCreate,
-        created_by: Optional[int] = None
+        self, notification_data: NotificationCreate, created_by: Optional[int] = None
     ) -> Notification:
         """Create a new in-app notification."""
 
@@ -112,7 +110,9 @@ class NotificationService:
         # Add to Redis for real-time updates
         self._publish_notification_update(notification)
 
-        logger.info(f"Created notification {notification.id} for user {notification_data.user_id}")
+        logger.info(
+            f"Created notification {notification.id} for user {notification_data.user_id}"
+        )
         return notification
 
     def get_user_notifications(
@@ -122,7 +122,7 @@ class NotificationService:
         limit: int = 20,
         unread_only: bool = False,
         category: Optional[str] = None,
-        organization_id: Optional[int] = None
+        organization_id: Optional[int] = None,
     ) -> tuple[List[Notification], int]:
         """Get notifications for a user with pagination."""
 
@@ -142,7 +142,7 @@ class NotificationService:
         query = query.filter(
             or_(
                 Notification.expires_at.is_(None),
-                Notification.expires_at > datetime.utcnow()
+                Notification.expires_at > datetime.utcnow(),
             )
         )
 
@@ -158,9 +158,7 @@ class NotificationService:
         return notifications, total
 
     def mark_notifications_as_read(
-        self,
-        user_id: int,
-        notification_ids: List[int]
+        self, user_id: int, notification_ids: List[int]
     ) -> int:
         """Mark multiple notifications as read."""
 
@@ -170,16 +168,16 @@ class NotificationService:
                 and_(
                     Notification.user_id == user_id,
                     Notification.id.in_(notification_ids),
-                    ~Notification.is_read
+                    ~Notification.is_read,
                 )
             )
             .update(
                 {
                     "is_read": True,
                     "read_at": datetime.utcnow(),
-                    "updated_at": datetime.utcnow()
+                    "updated_at": datetime.utcnow(),
                 },
-                synchronize_session=False
+                synchronize_session=False,
             )
         )
 
@@ -197,19 +195,14 @@ class NotificationService:
 
         updated_count = (
             self.db.query(Notification)
-            .filter(
-                and_(
-                    Notification.user_id == user_id,
-                    ~Notification.is_read
-                )
-            )
+            .filter(and_(Notification.user_id == user_id, ~Notification.is_read))
             .update(
                 {
                     "is_read": True,
                     "read_at": datetime.utcnow(),
-                    "updated_at": datetime.utcnow()
+                    "updated_at": datetime.utcnow(),
                 },
-                synchronize_session=False
+                synchronize_session=False,
             )
         )
 
@@ -218,7 +211,9 @@ class NotificationService:
         if updated_count > 0:
             self._publish_read_status_update(user_id, [])
 
-        logger.info(f"Marked all {updated_count} notifications as read for user {user_id}")
+        logger.info(
+            f"Marked all {updated_count} notifications as read for user {user_id}"
+        )
         return updated_count
 
     def get_unread_count(self, user_id: int) -> int:
@@ -232,8 +227,8 @@ class NotificationService:
                     ~Notification.is_read,
                     or_(
                         Notification.expires_at.is_(None),
-                        Notification.expires_at > datetime.utcnow()
-                    )
+                        Notification.expires_at > datetime.utcnow(),
+                    ),
                 )
             )
             .count()
@@ -246,8 +241,7 @@ class NotificationService:
             self.db.query(Notification)
             .filter(
                 and_(
-                    Notification.id == notification_id,
-                    Notification.user_id == user_id
+                    Notification.id == notification_id, Notification.user_id == user_id
                 )
             )
             .first()
@@ -268,7 +262,7 @@ class NotificationService:
         self,
         bulk_data: BulkNotificationCreate,
         created_by: Optional[int] = None,
-        background_tasks: Optional[BackgroundTasks] = None
+        background_tasks: Optional[BackgroundTasks] = None,
     ) -> Dict[str, Any]:
         """Create notifications for multiple users."""
 
@@ -279,9 +273,7 @@ class NotificationService:
 
         # Validate users exist
         valid_users = (
-            self.db.query(User.id)
-            .filter(User.id.in_(bulk_data.user_ids))
-            .all()
+            self.db.query(User.id).filter(User.id.in_(bulk_data.user_ids)).all()
         )
         valid_user_ids = {user.id for user in valid_users}
 
@@ -319,13 +311,12 @@ class NotificationService:
                             title=bulk_data.title,
                             message=bulk_data.message,
                             priority=bulk_data.priority,
-                            organization_id=bulk_data.organization_id
+                            organization_id=bulk_data.organization_id,
                         )
 
                         if background_tasks:
                             background_tasks.add_task(
-                                self._queue_notification,
-                                queue_data
+                                self._queue_notification, queue_data
                             )
                         else:
                             self._queue_notification(queue_data)
@@ -333,14 +324,16 @@ class NotificationService:
 
             except Exception as e:
                 failed_count += 1
-                errors.append(f"Failed to create notification for user {user_id}: {str(e)}")
+                errors.append(
+                    f"Failed to create notification for user {user_id}: {str(e)}"
+                )
                 logger.error(f"Bulk notification error for user {user_id}: {e}")
 
         return {
             "created_count": created_count,
             "queued_count": queued_count,
             "failed_count": failed_count,
-            "errors": errors
+            "errors": errors,
         }
 
     # Notification Preferences
@@ -355,9 +348,7 @@ class NotificationService:
         )
 
     def create_or_update_preferences(
-        self,
-        user_id: int,
-        preferences_data: NotificationPreferenceCreate
+        self, user_id: int, preferences_data: NotificationPreferenceCreate
     ) -> NotificationPreference:
         """Create or update notification preferences for a user."""
 
@@ -372,8 +363,7 @@ class NotificationService:
         else:
             # Create new preferences
             preferences = NotificationPreference(
-                user_id=user_id,
-                **preferences_data.dict()
+                user_id=user_id, **preferences_data.dict()
             )
             self.db.add(preferences)
 
@@ -385,7 +375,9 @@ class NotificationService:
 
     # Queue Management
 
-    def _queue_notification(self, queue_data: NotificationQueueCreate) -> NotificationQueue:
+    def _queue_notification(
+        self, queue_data: NotificationQueueCreate
+    ) -> NotificationQueue:
         """Add notification to processing queue."""
 
         queue_item = NotificationQueue(
@@ -399,7 +391,7 @@ class NotificationService:
             priority=queue_data.priority,
             organization_id=queue_data.organization_id,
             status="pending",
-            next_attempt_at=datetime.utcnow()
+            next_attempt_at=datetime.utcnow(),
         )
 
         self.db.add(queue_item)
@@ -409,11 +401,16 @@ class NotificationService:
         # Add to Redis queue for background processing
         if self.redis_client:
             queue_name = f"notifications:{queue_data.channel.value}"
-            self.redis_client.lpush(queue_name, json.dumps({
-                "id": queue_item.id,
-                "channel": queue_data.channel.value,
-                "priority": queue_data.priority.value
-            }))
+            self.redis_client.lpush(
+                queue_name,
+                json.dumps(
+                    {
+                        "id": queue_item.id,
+                        "channel": queue_data.channel.value,
+                        "priority": queue_data.priority.value,
+                    }
+                ),
+            )
 
         return queue_item
 
@@ -432,12 +429,14 @@ class NotificationService:
             "title": notification.title,
             "message": notification.message,
             "priority": notification.priority.value,
-            "created_at": notification.created_at.isoformat()
+            "created_at": notification.created_at.isoformat(),
         }
 
         self.redis_client.publish(channel, json.dumps(message))
 
-    def _publish_read_status_update(self, user_id: int, notification_ids: List[int]) -> None:
+    def _publish_read_status_update(
+        self, user_id: int, notification_ids: List[int]
+    ) -> None:
         """Publish read status update to Redis."""
 
         if not self.redis_client:
@@ -447,7 +446,7 @@ class NotificationService:
         message = {
             "type": "read_status_update",
             "notification_ids": notification_ids,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat(),
         }
 
         self.redis_client.publish(channel, json.dumps(message))
@@ -464,38 +463,38 @@ class NotificationService:
 
         # Notifications by type
         type_stats = (
-            base_query
-            .with_entities(Notification.type, func.count(Notification.id))
+            base_query.with_entities(Notification.type, func.count(Notification.id))
             .group_by(Notification.type)
             .all()
         )
-        notifications_by_type = {type_val.value: count for type_val, count in type_stats}
+        notifications_by_type = {
+            type_val.value: count for type_val, count in type_stats
+        }
 
         # Notifications by priority
         priority_stats = (
-            base_query
-            .with_entities(Notification.priority, func.count(Notification.id))
+            base_query.with_entities(Notification.priority, func.count(Notification.id))
             .group_by(Notification.priority)
             .all()
         )
-        notifications_by_priority = {priority.value: count for priority, count in priority_stats}
+        notifications_by_priority = {
+            priority.value: count for priority, count in priority_stats
+        }
 
         # Notifications by category
         category_stats = (
-            base_query
-            .filter(Notification.category.isnot(None))
+            base_query.filter(Notification.category.isnot(None))
             .with_entities(Notification.category, func.count(Notification.id))
             .group_by(Notification.category)
             .all()
         )
-        notifications_by_category = {category: count for category, count in category_stats}
+        notifications_by_category = {
+            category: count for category, count in category_stats
+        }
 
         # Recent activity (last 10 notifications)
         recent_notifications = (
-            base_query
-            .order_by(desc(Notification.created_at))
-            .limit(10)
-            .all()
+            base_query.order_by(desc(Notification.created_at)).limit(10).all()
         )
 
         return {
@@ -504,7 +503,7 @@ class NotificationService:
             "notifications_by_type": notifications_by_type,
             "notifications_by_priority": notifications_by_priority,
             "notifications_by_category": notifications_by_category,
-            "recent_activity": recent_notifications
+            "recent_activity": recent_notifications,
         }
 
     # Cleanup Operations
@@ -517,7 +516,7 @@ class NotificationService:
             .filter(
                 and_(
                     Notification.expires_at.isnot(None),
-                    Notification.expires_at < datetime.utcnow()
+                    Notification.expires_at < datetime.utcnow(),
                 )
             )
             .delete(synchronize_session=False)
@@ -535,12 +534,7 @@ class NotificationService:
 
         deleted_count = (
             self.db.query(Notification)
-            .filter(
-                and_(
-                    Notification.is_read,
-                    Notification.read_at < cutoff_date
-                )
-            )
+            .filter(and_(Notification.is_read, Notification.read_at < cutoff_date))
             .delete(synchronize_session=False)
         )
 

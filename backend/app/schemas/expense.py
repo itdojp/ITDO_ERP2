@@ -172,7 +172,9 @@ class ExpenseSummary(BaseModel):
     by_category: List[Dict[str, Any]] = Field(
         default_factory=list, description="Amount by category"
     )
-    by_month: List[Dict[str, Any]] = Field(default_factory=list, description="Amount by month")
+    by_month: List[Dict[str, Any]] = Field(
+        default_factory=list, description="Amount by month"
+    )
     by_employee: List[Dict[str, Any]] = Field(
         default_factory=list, description="Amount by employee"
     )

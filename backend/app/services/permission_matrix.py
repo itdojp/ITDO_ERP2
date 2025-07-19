@@ -362,7 +362,7 @@ class PermissionMatrix:
 
         result: Dict[str, Union[Set[str], Dict[str, Set[str]]]] = {
             "base": self.get_permissions_for_level(level),
-            "contexts": contexts
+            "contexts": contexts,
         }
         return result
 

@@ -63,12 +63,18 @@ class Notification(BaseModel):
         SQLEnum(NotificationType), default=NotificationType.INFO, nullable=False
     )
     priority: Mapped[NotificationPriority] = mapped_column(
-        SQLEnum(NotificationPriority), default=NotificationPriority.NORMAL, nullable=False
+        SQLEnum(NotificationPriority),
+        default=NotificationPriority.NORMAL,
+        nullable=False,
     )
 
     # Status tracking
-    is_read: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
-    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    is_read: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False, index=True
+    )
+    read_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # Metadata
     action_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
@@ -78,11 +84,16 @@ class Notification(BaseModel):
 
     # Organization context
     organization_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=True, index=True
+        Integer,
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
     )
 
     # Expiration
-    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="notifications")
@@ -116,20 +127,25 @@ class NotificationPreference(BaseModel):
 
     # Category preferences (JSON object for flexibility)
     category_preferences: Mapped[Dict[str, Dict[str, bool]] | None] = mapped_column(
-        JSON, nullable=True,
-        comment="Category-specific channel preferences"
+        JSON, nullable=True, comment="Category-specific channel preferences"
     )
 
     # Timing preferences
     email_digest_frequency: Mapped[str] = mapped_column(
         String(20), default="daily", nullable=False
     )  # immediate, hourly, daily, weekly, never
-    quiet_hours_start: Mapped[str | None] = mapped_column(String(5), nullable=True)  # HH:MM
-    quiet_hours_end: Mapped[str | None] = mapped_column(String(5), nullable=True)    # HH:MM
+    quiet_hours_start: Mapped[str | None] = mapped_column(
+        String(5), nullable=True
+    )  # HH:MM
+    quiet_hours_end: Mapped[str | None] = mapped_column(
+        String(5), nullable=True
+    )  # HH:MM
     timezone: Mapped[str] = mapped_column(String(50), default="UTC", nullable=False)
 
     # Relationships
-    user: Mapped["User"] = relationship("User", back_populates="notification_preferences")
+    user: Mapped["User"] = relationship(
+        "User", back_populates="notification_preferences"
+    )
 
 
 class NotificationQueue(BaseModel):
@@ -154,7 +170,9 @@ class NotificationQueue(BaseModel):
     # Delivery configuration
     recipient_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     priority: Mapped[NotificationPriority] = mapped_column(
-        SQLEnum(NotificationPriority), default=NotificationPriority.NORMAL, nullable=False
+        SQLEnum(NotificationPriority),
+        default=NotificationPriority.NORMAL,
+        nullable=False,
     )
 
     # Status tracking
@@ -163,15 +181,22 @@ class NotificationQueue(BaseModel):
     )  # pending, processing, sent, failed, cancelled
     attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     max_attempts: Mapped[int] = mapped_column(Integer, default=3, nullable=False)
-    next_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    next_attempt_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # Result tracking
-    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    sent_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Organization context
     organization_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=True, index=True
+        Integer,
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
     )
 
     # Relationships
@@ -185,7 +210,10 @@ class WebhookEndpoint(BaseModel):
 
     # Organization context
     organization_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True
+        Integer,
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
 
     # Endpoint configuration
@@ -198,8 +226,12 @@ class WebhookEndpoint(BaseModel):
     active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     # Status tracking
-    last_success_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    last_failure_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_success_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    last_failure_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     failure_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     # Created by

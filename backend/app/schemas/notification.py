@@ -20,12 +20,22 @@ class NotificationBase(BaseModel):
 
     title: str = Field(..., max_length=255, description="Notification title")
     message: str = Field(..., description="Notification message content")
-    type: NotificationType = Field(default=NotificationType.INFO, description="Notification type")
-    priority: NotificationPriority = Field(default=NotificationPriority.NORMAL, description="Notification priority")
-    action_url: Optional[str] = Field(None, max_length=500, description="Optional action URL")
+    type: NotificationType = Field(
+        default=NotificationType.INFO, description="Notification type"
+    )
+    priority: NotificationPriority = Field(
+        default=NotificationPriority.NORMAL, description="Notification priority"
+    )
+    action_url: Optional[str] = Field(
+        None, max_length=500, description="Optional action URL"
+    )
     icon: Optional[str] = Field(None, max_length=100, description="Icon identifier")
-    category: Optional[str] = Field(None, max_length=50, description="Notification category")
-    extra_data: Optional[Dict[str, Any]] = Field(None, description="Additional metadata")
+    category: Optional[str] = Field(
+        None, max_length=50, description="Notification category"
+    )
+    extra_data: Optional[Dict[str, Any]] = Field(
+        None, description="Additional metadata"
+    )
     expires_at: Optional[datetime] = Field(None, description="Expiration timestamp")
 
 
@@ -75,7 +85,9 @@ class NotificationListResponse(BaseModel):
 class NotificationMarkReadRequest(BaseModel):
     """Schema for marking notifications as read."""
 
-    notification_ids: List[int] = Field(..., description="List of notification IDs to mark as read")
+    notification_ids: List[int] = Field(
+        ..., description="List of notification IDs to mark as read"
+    )
 
 
 class NotificationPreferenceBase(BaseModel):
@@ -83,16 +95,26 @@ class NotificationPreferenceBase(BaseModel):
 
     email_enabled: bool = Field(default=True, description="Email notifications enabled")
     push_enabled: bool = Field(default=True, description="Push notifications enabled")
-    in_app_enabled: bool = Field(default=True, description="In-app notifications enabled")
+    in_app_enabled: bool = Field(
+        default=True, description="In-app notifications enabled"
+    )
     category_preferences: Optional[Dict[str, Dict[str, bool]]] = Field(
         None, description="Category-specific channel preferences"
     )
     email_digest_frequency: str = Field(
         default="daily",
-        description="Email digest frequency: immediate, hourly, daily, weekly, never"
+        description="Email digest frequency: immediate, hourly, daily, weekly, never",
     )
-    quiet_hours_start: Optional[str] = Field(None, pattern=r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$", description="Quiet hours start time (HH:MM)")
-    quiet_hours_end: Optional[str] = Field(None, pattern=r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$", description="Quiet hours end time (HH:MM)")
+    quiet_hours_start: Optional[str] = Field(
+        None,
+        pattern=r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$",
+        description="Quiet hours start time (HH:MM)",
+    )
+    quiet_hours_end: Optional[str] = Field(
+        None,
+        pattern=r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$",
+        description="Quiet hours end time (HH:MM)",
+    )
     timezone: str = Field(default="UTC", max_length=50, description="User timezone")
 
     @validator("email_digest_frequency")
@@ -105,6 +127,7 @@ class NotificationPreferenceBase(BaseModel):
 
 class NotificationPreferenceCreate(NotificationPreferenceBase):
     """Schema for creating notification preferences."""
+
     pass
 
 
@@ -116,8 +139,12 @@ class NotificationPreferenceUpdate(BaseModel):
     in_app_enabled: Optional[bool] = None
     category_preferences: Optional[Dict[str, Dict[str, bool]]] = None
     email_digest_frequency: Optional[str] = None
-    quiet_hours_start: Optional[str] = Field(None, pattern=r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$")
-    quiet_hours_end: Optional[str] = Field(None, pattern=r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$")
+    quiet_hours_start: Optional[str] = Field(
+        None, pattern=r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
+    )
+    quiet_hours_end: Optional[str] = Field(
+        None, pattern=r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
+    )
     timezone: Optional[str] = None
 
     @validator("email_digest_frequency")
@@ -148,10 +175,16 @@ class NotificationQueueCreate(BaseModel):
     channel: NotificationChannel = Field(..., description="Delivery channel")
     title: str = Field(..., max_length=255, description="Notification title")
     message: str = Field(..., description="Notification message")
-    template_name: Optional[str] = Field(None, max_length=100, description="Template name")
+    template_name: Optional[str] = Field(
+        None, max_length=100, description="Template name"
+    )
     template_data: Optional[Dict[str, Any]] = Field(None, description="Template data")
-    recipient_email: Optional[str] = Field(None, max_length=255, description="Recipient email")
-    priority: NotificationPriority = Field(default=NotificationPriority.NORMAL, description="Priority")
+    recipient_email: Optional[str] = Field(
+        None, max_length=255, description="Recipient email"
+    )
+    priority: NotificationPriority = Field(
+        default=NotificationPriority.NORMAL, description="Priority"
+    )
     organization_id: Optional[int] = Field(None, description="Organization context")
 
 
@@ -227,10 +260,18 @@ class NotificationStatsResponse(BaseModel):
 
     total_notifications: int = Field(..., description="Total notifications")
     unread_notifications: int = Field(..., description="Unread notifications")
-    notifications_by_type: Dict[str, int] = Field(..., description="Notifications by type")
-    notifications_by_priority: Dict[str, int] = Field(..., description="Notifications by priority")
-    notifications_by_category: Dict[str, int] = Field(..., description="Notifications by category")
-    recent_activity: List[NotificationResponse] = Field(..., description="Recent notifications")
+    notifications_by_type: Dict[str, int] = Field(
+        ..., description="Notifications by type"
+    )
+    notifications_by_priority: Dict[str, int] = Field(
+        ..., description="Notifications by priority"
+    )
+    notifications_by_category: Dict[str, int] = Field(
+        ..., description="Notifications by category"
+    )
+    recent_activity: List[NotificationResponse] = Field(
+        ..., description="Recent notifications"
+    )
 
 
 class BulkNotificationCreate(BaseModel):
@@ -239,15 +280,21 @@ class BulkNotificationCreate(BaseModel):
     user_ids: List[int] = Field(..., description="Target user IDs")
     title: str = Field(..., max_length=255, description="Notification title")
     message: str = Field(..., description="Notification message")
-    type: NotificationType = Field(default=NotificationType.INFO, description="Notification type")
-    priority: NotificationPriority = Field(default=NotificationPriority.NORMAL, description="Priority")
+    type: NotificationType = Field(
+        default=NotificationType.INFO, description="Notification type"
+    )
+    priority: NotificationPriority = Field(
+        default=NotificationPriority.NORMAL, description="Priority"
+    )
     action_url: Optional[str] = Field(None, max_length=500, description="Action URL")
     icon: Optional[str] = Field(None, max_length=100, description="Icon")
     category: Optional[str] = Field(None, max_length=50, description="Category")
     extra_data: Optional[Dict[str, Any]] = Field(None, description="Metadata")
     expires_at: Optional[datetime] = Field(None, description="Expiration")
     organization_id: Optional[int] = Field(None, description="Organization context")
-    channels: List[NotificationChannel] = Field(default=[NotificationChannel.IN_APP], description="Delivery channels")
+    channels: List[NotificationChannel] = Field(
+        default=[NotificationChannel.IN_APP], description="Delivery channels"
+    )
 
 
 class BulkNotificationResponse(BaseModel):

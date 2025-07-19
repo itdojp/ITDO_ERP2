@@ -200,7 +200,9 @@ class BudgetUpdate(BaseModel):
     department_id: Optional[int] = Field(None, description="Department ID")
 
     @validator("end_date")
-    def validate_end_date(cls, v: Optional[date], values: Dict[str, Any]) -> Optional[date]:
+    def validate_end_date(
+        cls, v: Optional[date], values: Dict[str, Any]
+    ) -> Optional[date]:
         if (
             v
             and "start_date" in values
@@ -239,10 +241,14 @@ class BudgetResponse(BudgetBase):
     progress_percentage: Decimal
 
     # Relationships
-    organization: Optional[Dict[str, Any]] = Field(None, description="Organization details")
+    organization: Optional[Dict[str, Any]] = Field(
+        None, description="Organization details"
+    )
     project: Optional[Dict[str, Any]] = Field(None, description="Project details")
     department: Optional[Dict[str, Any]] = Field(None, description="Department details")
-    approved_by_user: Optional[Dict[str, Any]] = Field(None, description="Approver details")
+    approved_by_user: Optional[Dict[str, Any]] = Field(
+        None, description="Approver details"
+    )
     budget_items: List[BudgetItemResponse] = Field(
         default_factory=list, description="Budget items"
     )

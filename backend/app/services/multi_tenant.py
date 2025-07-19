@@ -142,7 +142,9 @@ class MultiTenantService:
             .first()
         )
 
-        if not organization or not self._can_manage_organization_membership(updated_by, organization):
+        if not organization or not self._can_manage_organization_membership(
+            updated_by, organization
+        ):
             raise PermissionDenied("Insufficient permissions to update membership")
 
         # Update fields
@@ -198,7 +200,9 @@ class MultiTenantService:
             .first()
         )
 
-        if not organization or not self._can_manage_organization_membership(removed_by, organization):
+        if not organization or not self._can_manage_organization_membership(
+            removed_by, organization
+        ):
             raise PermissionDenied("Insufficient permissions to remove user")
 
         if soft_delete:
@@ -535,7 +539,9 @@ class MultiTenantService:
         can_approve_source = from_org and self._can_manage_organization_membership(
             approver, from_org
         )
-        can_approve_target = to_org and self._can_manage_organization_membership(approver, to_org)
+        can_approve_target = to_org and self._can_manage_organization_membership(
+            approver, to_org
+        )
 
         if not (can_approve_source or can_approve_target):
             raise PermissionDenied("Insufficient permissions to approve transfer")

@@ -35,6 +35,15 @@ class StorageClient:
 storage_client = StorageClient()
 
 
+def _get_valid_time_format(time_format: str) -> Literal["12h", "24h"]:
+    """Return a valid time format, defaulting to 24h if invalid."""
+    return (
+        cast(Literal["12h", "24h"], time_format)
+        if time_format in ["12h", "24h"]
+        else "24h"
+    )
+
+
 class UserProfileService:
     """Service for managing user profiles."""
 
@@ -184,9 +193,7 @@ class UserProfileService:
             language=prefs.language,
             timezone=prefs.timezone,
             date_format=prefs.date_format,
-            time_format=cast("Literal['12h', '24h']", "24h")
-            if prefs.time_format not in ["12h", "24h"]
-            else cast("Literal['12h', '24h']", prefs.time_format),
+            time_format=_get_valid_time_format(prefs.time_format),
             notification_email=prefs.notifications_email,
             notification_push=prefs.notifications_push,
             updated_at=prefs.updated_at,
@@ -254,9 +261,7 @@ class UserProfileService:
             language=prefs.language,
             timezone=prefs.timezone,
             date_format=prefs.date_format,
-            time_format=cast("Literal['12h', '24h']", "24h")
-            if prefs.time_format not in ["12h", "24h"]
-            else cast("Literal['12h', '24h']", prefs.time_format),
+            time_format=_get_valid_time_format(prefs.time_format),
             notification_email=prefs.notifications_email,
             notification_push=prefs.notifications_push,
             updated_at=prefs.updated_at,
