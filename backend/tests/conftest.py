@@ -158,11 +158,13 @@ def db_session() -> Generator[Session]:
     try:
         yield session
     except Exception:
-        transaction.rollback()
+        if transaction.is_active:
+            transaction.rollback()
         raise
     finally:
         session.close()
-        transaction.rollback()
+        if transaction.is_active:
+            transaction.rollback()
         connection.close()
 
 

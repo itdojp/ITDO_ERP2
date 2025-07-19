@@ -31,7 +31,7 @@ class SuccessResponse(BaseModel):
 
     success: bool = Field(True, description="Operation success status")
     message: str = Field(..., description="Success message")
-    data: Any | None = Field(None, description="Additional data")
+    data: dict[str, Any] | list[Any] | str | int | float | bool | None = Field(None, description="Additional data")
 
     class Config:
         json_schema_extra = {
@@ -71,7 +71,7 @@ class PaginatedResponse(BaseModel, Generic[T]):
     limit: int = Field(..., description="Maximum number of items returned")
     has_more: bool | None = Field(None, description="Whether more items are available")
 
-    def __init__(self, **data: Any) -> None:
+    def __init__(self, **data: dict[str, Any]) -> None:
         """Initialize paginated response with computed has_more field."""
         if "has_more" not in data:
             data["has_more"] = data.get("total", 0) > data.get("skip", 0) + len(
@@ -144,7 +144,7 @@ class FilterOption(BaseModel):
     operator: str = Field(
         ..., description="Filter operator (eq, ne, gt, lt, gte, lte, like, in)"
     )
-    value: Any = Field(..., description="Filter value")
+    value: str | int | float | bool | list[Any] | None = Field(..., description="Filter value")
 
     class Config:
         json_schema_extra = {

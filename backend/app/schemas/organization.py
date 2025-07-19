@@ -159,7 +159,7 @@ class OrganizationResponse(
 
     @field_validator("settings", mode="before")
     @classmethod
-    def parse_settings_json(cls, v: Any) -> dict[str, Any]:
+    def parse_settings_json(cls, v: str | dict[str, Any] | None) -> dict[str, Any]:
         """Parse settings JSON string to dict."""
         if isinstance(v, str):
             try:

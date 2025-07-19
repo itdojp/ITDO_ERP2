@@ -39,7 +39,8 @@ class TestRoleModel:
 
         # システム管理者ロールの権限確認
         admin_role = next(r for r in roles if r.code == "SYSTEM_ADMIN")
-        assert "*" in admin_role.permissions
+        permission_codes = [p.code for p in admin_role.permissions]
+        assert "*" in permission_codes
 
     def test_create_custom_role(self, db_session) -> None:
         """カスタムロールが作成できることを確認."""
@@ -216,7 +217,7 @@ class TestUserRoleModel:
             user_id=user.id,
             role_id=role.id,
             organization_id=org.id,
-            expires_at=datetime.utcnow() - timedelta(days=1),
+            expires_at=datetime.now(datetime.UTC) - timedelta(days=1),
         )
 
         # 有効なロール
@@ -224,7 +225,7 @@ class TestUserRoleModel:
             user_id=user.id,
             role_id=role.id,
             organization_id=org.id,
-            expires_at=datetime.utcnow() + timedelta(days=1),
+            expires_at=datetime.now(datetime.UTC) + timedelta(days=1),
         )
 
         # Then:

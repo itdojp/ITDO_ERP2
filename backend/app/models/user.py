@@ -66,9 +66,10 @@ class User(SoftDeletableModel):
         primaryjoin="User.id == UserRole.user_id",
         secondaryjoin="UserRole.role_id == Role.id",
         back_populates="users",
+        overlaps="user,role,user_roles",
     )
     user_roles: Mapped[list["UserRole"]] = relationship(
-        "UserRole", back_populates="user", foreign_keys="UserRole.user_id"
+        "UserRole", back_populates="user", foreign_keys="UserRole.user_id", overlaps="roles,users"
     )
     password_history: Mapped[list["PasswordHistory"]] = relationship(
         "PasswordHistory", back_populates="user", cascade="all, delete-orphan"

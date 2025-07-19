@@ -92,7 +92,7 @@ class ReportDataResponse(BaseModel):
     """Schema for report data response."""
 
     format: str
-    data: Any
+    data: dict[str, Any] | list[Any] | str | bytes
     execution_id: int
     generated_at: str
 
