@@ -4,14 +4,16 @@ Opportunity Service for CRM functionality.
 """
 
 from datetime import datetime
-from typing import List, Optional
+from decimal import Decimal
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy import and_, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.customer import Opportunity
+from app.models.customer import Opportunity, OpportunityStage
 from app.schemas.customer import (
+    CustomerActivityResponse,
     OpportunityAnalytics,
     OpportunityCreate,
     OpportunityDetailResponse,
@@ -99,7 +101,7 @@ class OpportunityService:
             return OpportunityDetailResponse(
                 **opportunity.__dict__,
                 activities=[
-                    activity
+                    CustomerActivityResponse.model_validate(activity)
                     for activity in opportunity.activities
                     if not activity.deleted_at
                 ],
@@ -227,7 +229,7 @@ class OpportunityService:
         if not opportunity:
             return None
 
-        opportunity.stage = stage
+        opportunity.stage = OpportunityStage(stage)
         opportunity.update_probability_by_stage()
         opportunity.updated_at = datetime.utcnow()
 
@@ -267,10 +269,10 @@ class OpportunityService:
 
         if status == "won":
             opportunity.probability = 100
-            opportunity.stage = "closed_won"
+            opportunity.stage = OpportunityStage.CLOSED_WON
         elif status == "lost":
             opportunity.probability = 0
-            opportunity.stage = "closed_lost"
+            opportunity.stage = OpportunityStage.CLOSED_LOST
             if reason:
                 opportunity.loss_reason = reason
 
@@ -330,7 +332,8 @@ class OpportunityService:
             func.coalesce(func.sum(Opportunity.estimated_value), 0)
         ).select_from(pipeline_query.subquery())
         pipeline_result = await self.db.execute(pipeline_value_query)
-        total_pipeline_value = float(pipeline_result.scalar())
+        pipeline_value = pipeline_result.scalar()
+        total_pipeline_value = float(pipeline_value or 0)
 
         # 平均案件サイズ
         avg_deal_query = base_query.where(Opportunity.status == "won")
@@ -338,11 +341,13 @@ class OpportunityService:
             func.coalesce(func.avg(Opportunity.estimated_value), 0)
         ).select_from(avg_deal_query.subquery())
         avg_result = await self.db.execute(avg_deal_size_query)
-        average_deal_size = float(avg_result.scalar())
+        avg_value = avg_result.scalar()
+        average_deal_size = float(avg_value or 0)
 
         # 成約率
-        won_count = status_stats.get("won", 0)
-        total_closed = won_count + status_stats.get("lost", 0)
+        won_count = status_stats.get("won", 0) or 0
+        lost_count = status_stats.get("lost", 0) or 0
+        total_closed = won_count + lost_count
         win_rate = (won_count / total_closed * 100) if total_closed > 0 else 0.0
 
         # ステージ別統計
@@ -357,13 +362,14 @@ class OpportunityService:
         stage_stats = {row.stage: row.count for row in stage_stats_result}
 
         return OpportunityAnalytics(
-            total_opportunities=total_opportunities,
-            open_opportunities=status_stats.get("open", 0),
+            total_opportunities=total_opportunities or 0,
+            open_opportunities=status_stats.get("open", 0) or 0,
             won_opportunities=won_count,
-            lost_opportunities=status_stats.get("lost", 0),
-            total_pipeline_value=total_pipeline_value,
-            average_deal_size=average_deal_size,
-            win_rate=win_rate,
+            lost_opportunities=lost_count,
+            total_pipeline_value=Decimal(str(total_pipeline_value)),
+            weighted_pipeline_value=Decimal(str(total_pipeline_value * 0.5)),  # 仮の重み付け
+            average_deal_size=Decimal(str(average_deal_size)),
+            win_rate=Decimal(str(win_rate)),
             opportunities_by_stage=stage_stats,
             monthly_closed_deals={},  # 月次クローズ実績（実装時）
         )
@@ -373,7 +379,7 @@ class OpportunityService:
         organization_id: int,
         owner_id: Optional[int] = None,
         quarters: int = 4,
-    ) -> dict:
+    ) -> Dict[str, Any]:
         """パイプライン予測"""
         # 実装時：確度と金額に基づく予測計算
         return {
@@ -390,7 +396,7 @@ class OpportunityService:
         owner_id: Optional[int] = None,
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
-    ) -> dict:
+    ) -> Dict[str, Any]:
         """成約率レポート"""
         # 実装時：ステージ間の成約率分析
         return {

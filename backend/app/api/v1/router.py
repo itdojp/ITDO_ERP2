@@ -28,6 +28,7 @@ from app.api.v1 import (
     reports,
     # role_permission_ui,  # Temporarily disabled due to syntax errors
     roles,
+    security_audit,
     tasks,
     user_preferences,
     user_privacy,
@@ -100,6 +101,9 @@ api_router.include_router(reports.router, prefix="/reports", tags=["analytics"])
 api_router.include_router(notifications.router, prefix="/notifications", tags=["notifications"])
 api_router.include_router(file_upload.router, prefix="/files", tags=["file-management"])
 api_router.include_router(data_export.router, prefix="/export", tags=["data-export"])
+
+# Issue #46 Security Audit and Monitoring
+api_router.include_router(security_audit.router, prefix="/security", tags=["security"])
 
 
 @api_router.get("/ping")

@@ -37,7 +37,7 @@ class PermissionService:
             raise ValueError(f"User with id {user_id} not found")
 
         # Get direct permissions (if any custom implementation exists)
-        direct_permissions: list[str] = []
+        direct_permissions: list[PermissionDetail] = []
 
         # Get permissions from roles
         inherited_permissions = []
@@ -229,7 +229,7 @@ class PermissionService:
             query = query.filter(AuditLog.user_id == user_id)
 
         if permission_id:
-            query = query.filter(AuditLog.entity_id == permission_id)
+            query = query.filter(AuditLog.resource_id == permission_id)
 
         logs = (
             query.order_by(AuditLog.created_at.desc()).limit(limit).offset(offset).all()
@@ -241,13 +241,13 @@ class PermissionService:
                 PermissionAuditLog(
                     id=log.id,
                     user_id=log.user_id,
-                    permission_id=log.entity_id,
+                    permission_id=log.resource_id,
                     action=log.action,
                     performed_by=log.user_id,
                     performed_at=log.created_at,
                     reason=log.changes.get("reason") if log.changes else None,
-                    previous_state=log.old_values,
-                    new_state=log.new_values,
+                    previous_state=log.changes.get('old_values'),
+                    new_state=log.changes.get('new_values'),
                 )
             )
 
@@ -531,7 +531,7 @@ class PermissionService:
         permission_code: str,
         organization_id: Optional[int] = None,
         department_id: Optional[int] = None,
-        db: Session = None,
+        db: Optional[Session] = None,
     ) -> None:
         """Require user to have specific permission, raise exception if not.
 
@@ -555,7 +555,7 @@ class PermissionService:
         user: User,
         organization_id: Optional[int] = None,
         department_id: Optional[int] = None,
-        db: Session = None,
+        db: Optional[Session] = None,
     ) -> List[str]:
         """Get list of all permissions for a user.
 
