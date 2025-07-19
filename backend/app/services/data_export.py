@@ -12,7 +12,7 @@ from fastapi import BackgroundTasks, HTTPException
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Table, TableStyle
+from reportlab.platypus import Flowable, Paragraph, SimpleDocTemplate, Table, TableStyle
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -211,7 +211,7 @@ class DataExportService:
         styles = getSampleStyleSheet()
 
         # Create story (content)
-        story = []
+        story: list[Flowable] = []
 
         # Add title
         title = Paragraph(f"{entity_type.title()} Export Report", styles["Title"])
@@ -554,7 +554,7 @@ class DataExportService:
         if isinstance(data, list):
             return data
         elif isinstance(data, dict) and "data" in data:
-            return data["data"]
+            return cast(list[dict[str, Any]], data["data"])
         else:
             return [data]
 

@@ -12,7 +12,7 @@ import functools
 import json
 import logging
 import pickle
-from typing import Any, Callable, Dict, List, Optional, TypeVar, Union
+from typing import Any, Callable, Dict, List, Optional, TypeVar, Union, cast
 
 import redis
 from sqlalchemy.orm import Session
@@ -165,7 +165,7 @@ class CacheService:
             return default
 
         try:
-            value = self.redis_client.get(key)
+            value = cast(str, self.redis_client.get(key))
             if value is not None:
                 if self.statistics:
                     self.statistics.increment_hits(key)
@@ -175,7 +175,7 @@ class CacheService:
                     return json.loads(value)
                 except (json.JSONDecodeError, TypeError):
                     try:
-                        return pickle.loads(value.encode('latin-1'))
+                        return pickle.loads(cast(str, value).encode('latin-1'))
                     except Exception:
                         return value
             else:
@@ -250,9 +250,9 @@ class CacheService:
         try:
             keys = self.redis_client.keys(pattern)
             if keys:
-                deleted_count = self.redis_client.delete(*keys)
+                deleted_count = cast(int, self.redis_client.delete(*cast(list[str], keys)))
                 if self.statistics:
-                    for key in keys:
+                    for key in cast(list[str], keys):
                         self.statistics.increment_deletes(key)
                 return deleted_count
             return 0
