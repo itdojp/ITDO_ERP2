@@ -91,7 +91,7 @@ def assign_permissions_to_role(
     assignment: RolePermissionAssignment,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> dict:
+) -> dict[str, str]:
     """Assign permissions to a role."""
     service = PermissionService(db)
 
@@ -123,7 +123,7 @@ def create_user_permission_override(
     override: UserPermissionOverride,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_superuser),
-) -> dict:
+) -> dict[str, str]:
     """Create a user-specific permission override (superuser only)."""
     service = PermissionService(db)
 
@@ -151,8 +151,8 @@ def create_user_permission_override(
     },
 )
 def get_permission_audit_log(
-    user_id: int = None,
-    permission_id: int = None,
+    user_id: int | None = None,
+    permission_id: int | None = None,
     limit: int = 100,
     offset: int = 0,
     db: Session = Depends(get_db),
@@ -179,7 +179,7 @@ def get_permission_audit_log(
     },
 )
 def list_permission_templates(
-    is_active: bool = None,
+    is_active: bool | None = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ) -> List[PermissionTemplate]:

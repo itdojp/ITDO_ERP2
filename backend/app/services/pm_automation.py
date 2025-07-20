@@ -10,7 +10,7 @@ from app.core.exceptions import NotFound, PermissionDenied
 from app.models.project import Project
 from app.models.task import Task
 from app.models.user import User
-from app.schemas.task import TaskCreate
+from app.schemas.task import TaskCreate, TaskPriority
 from app.services.task import TaskService
 from app.types import UserId
 
@@ -114,7 +114,8 @@ class PMAutomationService:
         assigned_count = 0
         for task_id, assignee_id in assignments:
             try:
-                await self.task_service.assign_user(task_id, assignee_id, user, self.db)
+                if user is not None:
+                    self.task_service.assign_user(task_id, assignee_id, user, self.db)
                 assigned_count += 1
             except Exception:
                 # Log error but continue with other assignments
@@ -286,8 +287,8 @@ class PMAutomationService:
             task_create = TaskCreate(
                 title=str(task_data["title"]),
                 project_id=project_id,
-                priority=task_data["priority"],
-                estimated_hours=float(task_data.get("estimated_hours", 0)),
+                priority=TaskPriority(task_data["priority"]) if isinstance(task_data["priority"], str) else task_data["priority"],
+                estimated_hours=float(task_data.get("estimated_hours", 0)) if task_data.get("estimated_hours") is not None else 0.0,
             )
 
             task = self.task_service.create_task(task_create, user, self.db)
@@ -320,8 +321,8 @@ class PMAutomationService:
             task_create = TaskCreate(
                 title=str(task_data["title"]),
                 project_id=project_id,
-                priority=task_data["priority"],
-                estimated_hours=float(task_data.get("estimated_hours", 0)),
+                priority=TaskPriority(task_data["priority"]) if isinstance(task_data["priority"], str) else task_data["priority"],
+                estimated_hours=float(task_data.get("estimated_hours", 0)) if task_data.get("estimated_hours") is not None else 0.0,
             )
 
             task = self.task_service.create_task(task_create, user, self.db)
@@ -350,8 +351,8 @@ class PMAutomationService:
             task_create = TaskCreate(
                 title=str(task_data["title"]),
                 project_id=project_id,
-                priority=task_data["priority"],
-                estimated_hours=float(task_data.get("estimated_hours", 0)),
+                priority=TaskPriority(task_data["priority"]) if isinstance(task_data["priority"], str) else task_data["priority"],
+                estimated_hours=float(task_data.get("estimated_hours", 0)) if task_data.get("estimated_hours") is not None else 0.0,
             )
 
             task = self.task_service.create_task(task_create, user, self.db)
@@ -368,7 +369,7 @@ class PMAutomationService:
         stmt = select(Task).where(
             and_(
                 Task.project_id == project_id,
-                Task.assignee_id.is_(None),
+                Task.assigned_to.is_(None),
                 Task.deleted_at.is_(None),
             )
         )
@@ -425,7 +426,7 @@ class PMAutomationService:
             # Count active tasks
             stmt = select(func.count(Task.id)).where(
                 and_(
-                    Task.assignee_id == member.id,
+                    Task.assigned_to == member.id,
                     Task.status.in_(["not_started", "in_progress"]),
                     Task.deleted_at.is_(None),
                 )
@@ -522,7 +523,7 @@ class PMAutomationService:
 
         return {
             "daily_completions": daily_completions,
-            "average_daily_completion": (sum(daily_completions.values())
+            "average_daily_completion": (sum(v for v in daily_completions.values() if v is not None)
             / len(daily_completions)
             if daily_completions and len(daily_completions) > 0
             else 0),

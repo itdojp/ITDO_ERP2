@@ -1,6 +1,6 @@
 """Permission inheritance API endpoints."""
 
-from typing import List
+from typing import Any, List
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
@@ -120,7 +120,7 @@ def get_effective_permissions(
     ),
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
-):
+) -> dict[str, Any]:
     """Get effective permissions for a role."""
     service = PermissionInheritanceService(db)
     try:
@@ -154,7 +154,7 @@ def resolve_inheritance_conflict(
     resolution: InheritanceConflictResolution,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
-):
+) -> dict[str, str]:
     """Resolve an inheritance conflict."""
     service = PermissionInheritanceService(db)
     try:
@@ -178,7 +178,7 @@ def get_inheritance_audit_logs(
     limit: int = Query(50, ge=1, le=1000, description="Number of results"),
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
-):
+) -> dict[str, Any]:
     """Get inheritance audit logs for a role."""
     service = PermissionInheritanceService(db)
     try:
@@ -201,7 +201,7 @@ def get_permission_dependencies(
     transitive: bool = Query(False, description="Include transitive dependencies"),
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
-):
+) -> List[PermissionDependency]:
     """Get dependencies for a permission."""
     service = PermissionInheritanceService(db)
     if transitive:

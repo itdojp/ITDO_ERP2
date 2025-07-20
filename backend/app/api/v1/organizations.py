@@ -104,6 +104,10 @@ def get_organization_tree_by_id(
 
     # Get organization tree for this specific organization
     tree = service.get_organization_tree_by_id(organization_id)
+    if tree is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Organization tree not found"
+        )
     return tree
 
 

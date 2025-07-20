@@ -62,7 +62,7 @@ def check_user_permission(
                     )
 
             # Get target user
-            target_user = db.query(User).filter(User.id == user_id).first()
+            target_user: User | None = db.query(User).filter(User.id == user_id).first()
             if not target_user:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
@@ -132,7 +132,7 @@ def get_user_permission_level(
                     )
 
             # Get target user
-            target_user = db.query(User).filter(User.id == user_id).first()
+            target_user: User | None = db.query(User).filter(User.id == user_id).first()
             if not target_user:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
@@ -202,7 +202,7 @@ def get_user_all_permissions(
                     )
 
             # Get target user
-            target_user = db.query(User).filter(User.id == user_id).first()
+            target_user: User | None = db.query(User).filter(User.id == user_id).first()
             if not target_user:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
@@ -220,8 +220,11 @@ def get_user_all_permissions(
             "contexts": {},
         }
 
-        for context, perms in user_permissions["contexts"].items():
-            serialized_permissions["contexts"][context] = list(perms)
+        contexts = user_permissions.get("contexts", {})
+        if isinstance(contexts, dict):
+            for context, perms in contexts.items():
+                if isinstance(perms, set):
+                    serialized_permissions["contexts"][context] = list(perms)
 
         return {
             "user_id": target_user.id,
@@ -328,8 +331,11 @@ def get_level_permissions(
         # Convert sets to lists for JSON serialization
         serialized_permissions = {"base": list(all_permissions["base"]), "contexts": {}}
 
-        for context, perms in all_permissions["contexts"].items():
-            serialized_permissions["contexts"][context] = list(perms)
+        contexts = all_permissions.get("contexts", {})
+        if isinstance(contexts, dict):
+            for context, perms in contexts.items():
+                if isinstance(perms, set):
+                    serialized_permissions["contexts"][context] = list(perms)
 
         return {
             "level": level,
@@ -337,7 +343,8 @@ def get_level_permissions(
             "base_permission_count": len(all_permissions["base"]),
             "context_permission_counts": {
                 context: len(perms)
-                for context, perms in all_permissions["contexts"].items()
+                for context, perms in contexts.items()
+                if isinstance(perms, set)
             },
         }
 

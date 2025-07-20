@@ -3,7 +3,7 @@ Customer Activity API endpoints for CRM functionality.
 顧客活動履歴APIエンドポイント（CRM機能）
 """
 
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -125,9 +125,11 @@ async def get_activity_summary(
     end_date: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> dict[str, Any]:
     """活動サマリーレポート"""
     service = CustomerActivityService(db)
+    if current_user.organization_id is None:
+        raise HTTPException(status_code=400, detail="User must belong to an organization")
     summary = await service.get_activity_summary(
         organization_id=current_user.organization_id,
         customer_id=customer_id,
@@ -144,9 +146,11 @@ async def get_upcoming_actions(
     days_ahead: int = Query(7, ge=1, le=30),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> dict[str, Any]:
     """今後のアクション予定"""
     service = CustomerActivityService(db)
+    if current_user.organization_id is None:
+        raise HTTPException(status_code=400, detail="User must belong to an organization")
     actions = await service.get_upcoming_actions(
         organization_id=current_user.organization_id,
         user_id=user_id or current_user.id,
@@ -163,9 +167,11 @@ async def complete_activity(
     next_action_date: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> dict[str, Any]:
     """活動完了"""
     service = CustomerActivityService(db)
+    if current_user.organization_id is None:
+        raise HTTPException(status_code=400, detail="User must belong to an organization")
     activity = await service.complete_activity(
         activity_id=activity_id,
         organization_id=current_user.organization_id,

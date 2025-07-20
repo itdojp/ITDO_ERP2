@@ -7,6 +7,7 @@ from datetime import date
 from typing import Any, Dict, List, Optional, Union
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -286,7 +287,7 @@ async def export_budget_performance_report(
     format: str = Query("json", description="Export format: json, csv"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> Union[Dict[str, Any], "JSONResponse", "StreamingResponse"]:
+) -> Union[Dict[str, Any], JSONResponse, StreamingResponse]:
     """Export budget performance report in various formats."""
     if not current_user.organization_id:
         raise HTTPException(
