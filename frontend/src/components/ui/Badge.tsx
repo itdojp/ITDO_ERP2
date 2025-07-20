@@ -7,7 +7,7 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   children: React.ReactNode
 }
 
-const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
+const Badge = React.memo(React.forwardRef<HTMLSpanElement, BadgeProps>(
   ({ className, variant = 'primary', size = 'md', children, ...props }, ref) => {
     const baseClasses = [
       'inline-flex items-center font-medium rounded-full px-2 py-1',
@@ -46,7 +46,7 @@ const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
       </span>
     )
   }
-)
+))
 
 Badge.displayName = 'Badge'
 
