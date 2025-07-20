@@ -19,7 +19,7 @@ from app.schemas.organization import (
     OrganizationTree,
     OrganizationUpdate,
 )
-from app.schemas.user import UserSummary
+from app.schemas.department import UserSummary
 from app.services.organization import OrganizationService
 
 router = APIRouter(prefix="/organizations", tags=["organizations"])

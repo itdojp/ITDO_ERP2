@@ -183,8 +183,14 @@ def get_inheritance_audit_logs(
     service = PermissionInheritanceService(db)
     try:
         logs = service.get_inheritance_audit_logs(role_id)
-        # Apply limit
-        return logs[:limit]
+        # Apply limit and return as dict
+        limited_logs = logs[:limit]
+        return {
+            "role_id": role_id,
+            "logs": limited_logs,
+            "total": len(logs),
+            "limit": limit,
+        }
     except NotFound as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

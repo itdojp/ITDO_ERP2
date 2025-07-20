@@ -166,7 +166,10 @@ async def delete_file(
     if (
         file_metadata.uploaded_by != current_user.id
         and not current_user.is_superuser
-        and not current_user.has_permission("file.delete", current_user.organization_id)
+        and not (
+            current_user.organization_id is not None
+            and current_user.has_permission("file.delete", current_user.organization_id)
+        )
     ):
         raise HTTPException(status_code=403, detail="Permission denied")
 
@@ -240,7 +243,10 @@ async def scan_file_for_viruses(
         raise HTTPException(status_code=404, detail="File not found")
 
     # Check permissions (admin only for virus scanning)
-    if not current_user.is_superuser and not current_user.has_permission("file.scan", current_user.organization_id):
+    if not current_user.is_superuser and not (
+        current_user.organization_id is not None
+        and current_user.has_permission("file.scan", current_user.organization_id)
+    ):
         raise HTTPException(status_code=403, detail="Permission denied")
 
     # Placeholder implementation

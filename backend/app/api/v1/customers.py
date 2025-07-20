@@ -3,7 +3,7 @@ Customer API endpoints for CRM functionality.
 顧客管理APIエンドポイント（CRM機能）
 """
 
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -61,9 +61,13 @@ async def get_customer(
     customer_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> CustomerDetailResponse:
     """顧客詳細取得"""
     service = CustomerService(db)
+    if current_user.organization_id is None:
+        raise HTTPException(
+            status_code=400, detail="User must belong to an organization"
+        )
     customer = await service.get_customer_by_id(
         customer_id, current_user.organization_id
     )
@@ -79,9 +83,13 @@ async def create_customer(
     customer_data: CustomerCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> CustomerResponse:
     """顧客新規作成"""
     service = CustomerService(db)
+    if current_user.organization_id is None:
+        raise HTTPException(
+            status_code=400, detail="User must belong to an organization"
+        )
     customer = await service.create_customer(
         customer_data, current_user.organization_id
     )
@@ -93,9 +101,13 @@ async def create_customers_bulk(
     customers_data: CustomerBulkCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> List[CustomerResponse]:
     """顧客一括作成"""
     service = CustomerService(db)
+    if current_user.organization_id is None:
+        raise HTTPException(
+            status_code=400, detail="User must belong to an organization"
+        )
     customers = await service.create_customers_bulk(
         customers_data, current_user.organization_id
     )
@@ -108,9 +120,13 @@ async def update_customer(
     customer_data: CustomerUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> CustomerResponse:
     """顧客更新"""
     service = CustomerService(db)
+    if current_user.organization_id is None:
+        raise HTTPException(
+            status_code=400, detail="User must belong to an organization"
+        )
     customer = await service.update_customer(
         customer_id, customer_data, current_user.organization_id
     )
@@ -126,9 +142,13 @@ async def delete_customer(
     customer_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> Dict[str, str]:
     """顧客削除（論理削除）"""
     service = CustomerService(db)
+    if current_user.organization_id is None:
+        raise HTTPException(
+            status_code=400, detail="User must belong to an organization"
+        )
     success = await service.delete_customer(customer_id, current_user.organization_id)
     if not success:
         raise HTTPException(
@@ -143,9 +163,13 @@ async def get_customer_analytics(
     sales_rep_id: Optional[int] = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> CustomerAnalytics:
     """顧客分析サマリー"""
     service = CustomerService(db)
+    if current_user.organization_id is None:
+        raise HTTPException(
+            status_code=400, detail="User must belong to an organization"
+        )
     analytics = await service.get_customer_analytics(
         organization_id=current_user.organization_id,
         industry=industry,
@@ -160,9 +184,13 @@ async def assign_sales_rep(
     sales_rep_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> Dict[str, str]:
     """営業担当者アサイン"""
     service = CustomerService(db)
+    if current_user.organization_id is None:
+        raise HTTPException(
+            status_code=400, detail="User must belong to an organization"
+        )
     success = await service.assign_sales_rep(
         customer_id, sales_rep_id, current_user.organization_id
     )
@@ -180,9 +208,13 @@ async def get_customer_sales_summary(
     end_date: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> Dict[str, Any]:
     """顧客売上サマリー"""
     service = CustomerService(db)
+    if current_user.organization_id is None:
+        raise HTTPException(
+            status_code=400, detail="User must belong to an organization"
+        )
     summary = await service.get_sales_summary(
         customer_id,
         current_user.organization_id,

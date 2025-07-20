@@ -3,7 +3,7 @@
 import asyncio
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from sqlalchemy import and_, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -35,10 +35,15 @@ class SecurityThreat:
 class SecurityMonitoringService:
     """Advanced security monitoring and threat detection service."""
 
-    def __init__(self, db: Session | AsyncSession):
+    def __init__(self, db: Union[Session, AsyncSession]):
         """Initialize security monitoring service."""
         self.db = db
-        self.audit_logger = AuditLogger(db)
+        # AuditLogger expects Session only, so we cast for type safety
+        if isinstance(db, Session):
+            self.audit_logger: Optional[AuditLogger] = AuditLogger(db)
+        else:
+            # For AsyncSession, we'll handle audit logging differently
+            self.audit_logger = None
         
         # Threat detection thresholds
         self.FAILED_LOGIN_THRESHOLD = 5
@@ -70,10 +75,8 @@ class SecurityMonitoringService:
             result = await self.db.execute(query)
             failed_attempts = result.fetchall()
         else:
-            # Sync query
-            query = self.db.query(
-                func.count(AuditLog.id), AuditLog.user_id, AuditLog.ip_address
-            ).filter(
+            # Sync query using select() for SQLAlchemy 2.0 compatibility
+            query = select(func.count(AuditLog.id), AuditLog.user_id, AuditLog.ip_address).where(
                 and_(
                     AuditLog.action == "login_failed",
                     AuditLog.created_at >= time_threshold,
@@ -81,11 +84,12 @@ class SecurityMonitoringService:
             ).group_by(AuditLog.user_id, AuditLog.ip_address)
             
             if user_id:
-                query = query.filter(AuditLog.user_id == user_id)
+                query = query.where(AuditLog.user_id == user_id)
             if ip_address:
-                query = query.filter(AuditLog.ip_address == ip_address)
+                query = query.where(AuditLog.ip_address == ip_address)
                 
-            failed_attempts = query.all()
+            result = self.db.execute(query)
+            failed_attempts = result.fetchall()
 
         for count, failed_user_id, failed_ip in failed_attempts:
             if count >= self.FAILED_LOGIN_THRESHOLD:
@@ -124,9 +128,7 @@ class SecurityMonitoringService:
             result = await self.db.execute(query)
             access_counts = result.fetchall()
         else:
-            query = self.db.query(
-                func.count(AuditLog.id), AuditLog.user_id
-            ).filter(
+            query = select(func.count(AuditLog.id), AuditLog.user_id).where(
                 and_(
                     AuditLog.action.in_(["read", "export", "download"]),
                     AuditLog.created_at >= time_threshold,
@@ -134,9 +136,10 @@ class SecurityMonitoringService:
             ).group_by(AuditLog.user_id)
             
             if user_id:
-                query = query.filter(AuditLog.user_id == user_id)
+                query = query.where(AuditLog.user_id == user_id)
                 
-            access_counts = query.all()
+            result = self.db.execute(query)
+            access_counts = result.fetchall()
 
         for count, access_user_id in access_counts:
             if count >= self.BULK_ACCESS_THRESHOLD:
@@ -174,7 +177,7 @@ class SecurityMonitoringService:
             result = await self.db.execute(query)
             escalation_logs = result.scalars().all()
         else:
-            query = self.db.query(AuditLog).filter(
+            query = select(AuditLog).where(
                 and_(
                     AuditLog.action.in_(["permission_grant", "role_change", "admin_access"]),
                     AuditLog.created_at >= time_threshold,
@@ -182,9 +185,10 @@ class SecurityMonitoringService:
             )
             
             if user_id:
-                query = query.filter(AuditLog.user_id == user_id)
+                query = query.where(AuditLog.user_id == user_id)
                 
-            escalation_logs = query.all()
+            result = self.db.execute(query)
+            escalation_logs = result.scalars().all()
 
         # Group by user to detect patterns
         user_escalations = defaultdict(list)
@@ -229,9 +233,7 @@ class SecurityMonitoringService:
             result = await self.db.execute(query)
             ip_counts = result.fetchall()
         else:
-            query = self.db.query(
-                AuditLog.user_id, func.count(func.distinct(AuditLog.ip_address))
-            ).filter(
+            query = select(AuditLog.user_id, func.count(func.distinct(AuditLog.ip_address))).where(
                 and_(
                     AuditLog.action == "login_success",
                     AuditLog.created_at >= time_threshold,
@@ -239,9 +241,10 @@ class SecurityMonitoringService:
             ).group_by(AuditLog.user_id)
             
             if user_id:
-                query = query.filter(AuditLog.user_id == user_id)
+                query = query.where(AuditLog.user_id == user_id)
                 
-            ip_counts = query.all()
+            result = self.db.execute(query)
+            ip_counts = result.fetchall()
 
         for pattern_user_id, distinct_ips in ip_counts:
             if distinct_ips >= 3:  # Login from 3+ different IPs in 1 hour
@@ -301,31 +304,33 @@ class SecurityMonitoringService:
             successful_logins_today = success_logins_result.scalar() or 0
             
         else:
-            # Sync queries
-            failed_logins_query = self.db.query(func.count(AuditLog.id)).filter(
+            # Sync queries using select() for SQLAlchemy 2.0 compatibility
+            failed_logins_query = select(func.count(AuditLog.id)).where(
                 and_(
                     AuditLog.action == "login_failed",
                     AuditLog.created_at >= day_ago,
                 )
             )
             if organization_id:
-                failed_logins_query = failed_logins_query.filter(AuditLog.organization_id == organization_id)
+                failed_logins_query = failed_logins_query.where(AuditLog.organization_id == organization_id)
             
-            failed_logins_today = failed_logins_query.scalar() or 0
+            failed_logins_result = self.db.execute(failed_logins_query)
+            failed_logins_today = failed_logins_result.scalar() or 0
             
-            success_logins_query = self.db.query(func.count(AuditLog.id)).filter(
+            success_logins_query = select(func.count(AuditLog.id)).where(
                 and_(
                     AuditLog.action == "login_success",
                     AuditLog.created_at >= day_ago,
                 )
             )
             if organization_id:
-                success_logins_query = success_logins_query.filter(AuditLog.organization_id == organization_id)
+                success_logins_query = success_logins_query.where(AuditLog.organization_id == organization_id)
             
-            successful_logins_today = success_logins_query.scalar() or 0
+            success_logins_result = self.db.execute(success_logins_query)
+            successful_logins_today = success_logins_result.scalar() or 0
 
         # Threat statistics
-        threat_counts = defaultdict(int)
+        threat_counts: Dict[str, int] = defaultdict(int)
         for threat in threats:
             threat_counts[threat.severity] += 1
 
@@ -392,22 +397,23 @@ class SecurityMonitoringService:
             result = await self.db.execute(query)
             logs = result.scalars().all()
         else:
-            query = self.db.query(AuditLog).filter(
+            query = select(AuditLog).where(
                 and_(
                     AuditLog.created_at >= start_date,
                     AuditLog.created_at <= end_date,
                 )
             )
             if organization_id:
-                query = query.filter(AuditLog.organization_id == organization_id)
+                query = query.where(AuditLog.organization_id == organization_id)
             
-            logs = query.all()
+            result = self.db.execute(query)
+            logs = result.scalars().all()
 
         # Analyze logs
-        action_counts = defaultdict(int)
-        user_activity = defaultdict(int)
-        ip_activity = defaultdict(int)
-        resource_access = defaultdict(int)
+        action_counts: Dict[str, int] = defaultdict(int)
+        user_activity: Dict[Optional[int], int] = defaultdict(int)
+        ip_activity: Dict[str, int] = defaultdict(int)
+        resource_access: Dict[Optional[str], int] = defaultdict(int)
         
         for log in logs:
             action_counts[log.action] += 1
@@ -450,7 +456,7 @@ class SecurityMonitoringService:
         user_agent: Optional[str] = None,
     ) -> None:
         """Log a security event for audit trail."""
-        if isinstance(self.db, Session):
+        if isinstance(self.db, Session) and self.audit_logger is not None:
             self.audit_logger.log(
                 action="security_threat_detected",
                 resource_type="security_monitoring",

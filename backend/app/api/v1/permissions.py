@@ -47,7 +47,7 @@ def check_user_permission(
     """
     try:
         # Determine target user
-        target_user = current_user
+        target_user: User = current_user
         if user_id and user_id != current_user.id:
             # Check if current user can check other users' permissions
             if not current_user.is_superuser:
@@ -62,12 +62,13 @@ def check_user_permission(
                     )
 
             # Get target user
-            target_user: User | None = db.query(User).filter(User.id == user_id).first()
-            if not target_user:
+            found_user: User | None = db.query(User).filter(User.id == user_id).first()
+            if not found_user:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="User not found",
                 )
+            target_user = found_user
 
         # Check permission
         has_permission = check_permission(
@@ -116,7 +117,7 @@ def get_user_permission_level(
     """
     try:
         # Determine target user
-        target_user = current_user
+        target_user: User = current_user
         if user_id and user_id != current_user.id:
             # Check if current user can view other users' permission levels
             if not current_user.is_superuser:
@@ -132,12 +133,13 @@ def get_user_permission_level(
                     )
 
             # Get target user
-            target_user: User | None = db.query(User).filter(User.id == user_id).first()
-            if not target_user:
+            found_user: User | None = db.query(User).filter(User.id == user_id).first()
+            if not found_user:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="User not found",
                 )
+            target_user = found_user
 
         # Get permission level
         permission_level = get_permission_level(
@@ -187,7 +189,7 @@ def get_user_all_permissions(
     """
     try:
         # Determine target user
-        target_user = current_user
+        target_user: User = current_user
         if user_id and user_id != current_user.id:
             # Check if current user can view other users' permissions
             if not current_user.is_superuser:
@@ -202,12 +204,13 @@ def get_user_all_permissions(
                     )
 
             # Get target user
-            target_user: User | None = db.query(User).filter(User.id == user_id).first()
-            if not target_user:
+            found_user: User | None = db.query(User).filter(User.id == user_id).first()
+            if not found_user:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="User not found",
                 )
+            target_user = found_user
 
         # Get all permissions
         user_permissions = get_user_permissions(
@@ -215,7 +218,7 @@ def get_user_all_permissions(
         )
 
         # Convert sets to lists for JSON serialization
-        serialized_permissions = {
+        serialized_permissions: dict[str, Any] = {
             "base": list(user_permissions["base"]),
             "contexts": {},
         }
@@ -329,7 +332,7 @@ def get_level_permissions(
         all_permissions = matrix.get_all_permissions(permission_level)
 
         # Convert sets to lists for JSON serialization
-        serialized_permissions = {"base": list(all_permissions["base"]), "contexts": {}}
+        serialized_permissions: dict[str, Any] = {"base": list(all_permissions["base"]), "contexts": {}}
 
         contexts = all_permissions.get("contexts", {})
         if isinstance(contexts, dict):
@@ -343,7 +346,7 @@ def get_level_permissions(
             "base_permission_count": len(all_permissions["base"]),
             "context_permission_counts": {
                 context: len(perms)
-                for context, perms in contexts.items()
+                for context, perms in (contexts.items() if isinstance(contexts, dict) else {}.items())
                 if isinstance(perms, set)
             },
         }

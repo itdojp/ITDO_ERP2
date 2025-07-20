@@ -287,8 +287,8 @@ class PMAutomationService:
             task_create = TaskCreate(
                 title=str(task_data["title"]),
                 project_id=project_id,
-                priority=TaskPriority(task_data["priority"]) if isinstance(task_data["priority"], str) else task_data["priority"],
-                estimated_hours=float(task_data.get("estimated_hours", 0)) if task_data.get("estimated_hours") is not None else 0.0,
+                priority=TaskPriority(str(task_data["priority"])) if task_data.get("priority") else TaskPriority.MEDIUM,
+                estimated_hours=float(str(task_data.get("estimated_hours", 0))) if task_data.get("estimated_hours") not in (None, "") else 0.0,
             )
 
             task = self.task_service.create_task(task_create, user, self.db)
@@ -321,8 +321,8 @@ class PMAutomationService:
             task_create = TaskCreate(
                 title=str(task_data["title"]),
                 project_id=project_id,
-                priority=TaskPriority(task_data["priority"]) if isinstance(task_data["priority"], str) else task_data["priority"],
-                estimated_hours=float(task_data.get("estimated_hours", 0)) if task_data.get("estimated_hours") is not None else 0.0,
+                priority=TaskPriority(str(task_data["priority"])) if task_data.get("priority") else TaskPriority.MEDIUM,
+                estimated_hours=float(str(task_data.get("estimated_hours", 0))) if task_data.get("estimated_hours") not in (None, "") else 0.0,
             )
 
             task = self.task_service.create_task(task_create, user, self.db)
@@ -351,8 +351,8 @@ class PMAutomationService:
             task_create = TaskCreate(
                 title=str(task_data["title"]),
                 project_id=project_id,
-                priority=TaskPriority(task_data["priority"]) if isinstance(task_data["priority"], str) else task_data["priority"],
-                estimated_hours=float(task_data.get("estimated_hours", 0)) if task_data.get("estimated_hours") is not None else 0.0,
+                priority=TaskPriority(str(task_data["priority"])) if task_data.get("priority") else TaskPriority.MEDIUM,
+                estimated_hours=float(str(task_data.get("estimated_hours", 0))) if task_data.get("estimated_hours") not in (None, "") else 0.0,
             )
 
             task = self.task_service.create_task(task_create, user, self.db)

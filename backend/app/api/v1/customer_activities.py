@@ -3,7 +3,7 @@ Customer Activity API endpoints for CRM functionality.
 顧客活動履歴APIエンドポイント（CRM機能）
 """
 
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -33,9 +33,13 @@ async def get_customer_activities(
     limit: int = Query(100, ge=1, le=1000),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> List[CustomerActivityResponse]:
     """顧客活動履歴一覧取得"""
     service = CustomerActivityService(db)
+    if current_user.organization_id is None:
+        raise HTTPException(
+            status_code=400, detail="User must belong to an organization"
+        )
     activities = await service.get_activities(
         organization_id=current_user.organization_id,
         customer_id=customer_id,
@@ -55,9 +59,13 @@ async def get_customer_activity(
     activity_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> CustomerActivityResponse:
     """顧客活動詳細取得"""
     service = CustomerActivityService(db)
+    if current_user.organization_id is None:
+        raise HTTPException(
+            status_code=400, detail="User must belong to an organization"
+        )
     activity = await service.get_activity_by_id(
         activity_id, current_user.organization_id
     )
@@ -73,9 +81,13 @@ async def create_customer_activity(
     activity_data: CustomerActivityCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> CustomerActivityResponse:
     """顧客活動新規作成"""
     service = CustomerActivityService(db)
+    if current_user.organization_id is None:
+        raise HTTPException(
+            status_code=400, detail="User must belong to an organization"
+        )
     activity = await service.create_activity(
         activity_data, current_user.organization_id, current_user.id
     )
@@ -88,9 +100,13 @@ async def update_customer_activity(
     activity_data: CustomerActivityUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> CustomerActivityResponse:
     """顧客活動更新"""
     service = CustomerActivityService(db)
+    if current_user.organization_id is None:
+        raise HTTPException(
+            status_code=400, detail="User must belong to an organization"
+        )
     activity = await service.update_activity(
         activity_id, activity_data, current_user.organization_id
     )
@@ -106,9 +122,13 @@ async def delete_customer_activity(
     activity_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> Dict[str, str]:
     """顧客活動削除（論理削除）"""
     service = CustomerActivityService(db)
+    if current_user.organization_id is None:
+        raise HTTPException(
+            status_code=400, detail="User must belong to an organization"
+        )
     success = await service.delete_activity(activity_id, current_user.organization_id)
     if not success:
         raise HTTPException(
@@ -156,7 +176,7 @@ async def get_upcoming_actions(
         user_id=user_id or current_user.id,
         days_ahead=days_ahead,
     )
-    return actions
+    return {"actions": actions}
 
 
 @router.put("/{activity_id}/complete")
@@ -183,4 +203,4 @@ async def complete_activity(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Activity not found"
         )
-    return activity
+    return {"activity": activity}
