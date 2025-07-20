@@ -1,7 +1,7 @@
 """Audit log API endpoints."""
 
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
@@ -79,7 +79,10 @@ def get_audit_log(
             raise PermissionDenied("Cannot view other users' audit logs")
 
     try:
-        return service.get_audit_log_by_id(audit_log_id)
+        audit_log = service.get_audit_log_by_id(audit_log_id)
+        if not audit_log:
+            raise NotFound("Audit log not found")
+        return audit_log
     except ValueError as e:
         raise NotFound(str(e))
 
@@ -288,7 +291,7 @@ def cleanup_audit_logs(
     archive_before_delete: bool = True,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_superuser),
-) -> dict:
+) -> dict[str, Any]:
     """Clean up audit logs based on retention policies (admin only)."""
     service = AuditLogService(db)
 

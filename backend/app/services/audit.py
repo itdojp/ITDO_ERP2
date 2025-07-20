@@ -297,6 +297,8 @@ class AuditService:
         db: Session | None = None,
     ) -> bool:
         """Verify integrity of a specific audit log."""
+        if db is None:
+            raise ValueError("Database session is required")
         audit_log = db.query(AuditLog).filter(AuditLog.id == log_id).first()
         if not audit_log:
             return False
@@ -333,6 +335,8 @@ class AuditService:
         db: Session | None = None,
     ) -> dict[str, Any]:
         """Verify integrity of multiple audit logs."""
+        if db is None:
+            raise ValueError("Database session is required")
         query = db.query(AuditLog)
 
         # Filter by organization if not superuser
@@ -436,6 +440,8 @@ class AuditService:
         db: Session | None = None,
     ) -> list[AuditLog]:
         """Get audit logs for organization."""
+        if db is None:
+            raise ValueError("Database session is required")
         query = db.query(AuditLog)
 
         # Filter by organization if not superuser
@@ -461,6 +467,8 @@ class AuditService:
         if not requester.is_superuser:
             raise PermissionError("Only superusers can apply retention policies")
 
+        if db is None:
+            raise ValueError("Database session is required")
         cutoff_date = datetime.now() - timedelta(days=retention_days)
         query = db.query(AuditLog).filter(AuditLog.created_at < cutoff_date)
 

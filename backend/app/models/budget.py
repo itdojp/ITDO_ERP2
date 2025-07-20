@@ -248,9 +248,15 @@ class Budget(SoftDeletableModel):
         if not self.budget_items:
             return
 
-        self.total_amount = sum(item.budgeted_amount for item in self.budget_items)
-        self.actual_amount = sum(item.actual_amount for item in self.budget_items)
-        self.committed_amount = sum(item.committed_amount for item in self.budget_items)
+        self.total_amount = sum(
+            (item.budgeted_amount for item in self.budget_items), Decimal("0")
+        )
+        self.actual_amount = sum(
+            (item.actual_amount for item in self.budget_items), Decimal("0")
+        )
+        self.committed_amount = sum(
+            (item.committed_amount for item in self.budget_items), Decimal("0")
+        )
         self.variance_amount = self.actual_amount - self.total_amount
 
         if self.total_amount > 0:

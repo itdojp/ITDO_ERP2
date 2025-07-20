@@ -102,7 +102,7 @@ class TaskService:
             project_id=task_data.project_id,
             assignee_id=task_data.assignee_ids[0] if task_data.assignee_ids else None,
             reporter_id=user.id,
-            # parent_task_id=task_data.parent_task_id,  # TODO: Implement via TaskDependency
+            # parent_task_id=task_data.parent_task_id,  # TODO: via TaskDependency
             due_date=task_data.due_date,
             start_date=None,  # Not in TaskCreate schema
             estimated_hours=task_data.estimated_hours,
@@ -1055,7 +1055,7 @@ class TaskService:
             project_id=task_data.project_id,
             assignee_id=task_data.assignee_ids[0] if task_data.assignee_ids else None,
             reporter_id=user.id,
-            # parent_task_id=task_data.parent_task_id,  # TODO: Implement via TaskDependency
+            # parent_task_id=task_data.parent_task_id,  # TODO: via TaskDependency
             due_date=task_data.due_date,
             start_date=None,
             estimated_hours=task_data.estimated_hours,

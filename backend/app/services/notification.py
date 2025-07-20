@@ -43,11 +43,11 @@ class NotificationService:
         self.redis_client = self._get_redis_client()
         self.mail_config = self._get_mail_config()
 
-    def _get_redis_client(self) -> Optional[redis.Redis[str]]:
+    def _get_redis_client(self) -> Optional[redis.Redis]:  # type: ignore[type-arg]
         """Get Redis client for queue management."""
         try:
             client = cast(
-                redis.Redis[str],
+                redis.Redis,
                 redis.from_url(
                     settings.REDIS_URL,
                     decode_responses=True,

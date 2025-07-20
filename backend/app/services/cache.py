@@ -170,7 +170,7 @@ class CacheService:
             return default
 
         try:
-            value = cast("str", self.redis_client.get(key))
+            value = cast("str | None", self.redis_client.get(key))
             if value is not None:
                 if self.statistics:
                     self.statistics.increment_hits(key)
@@ -183,11 +183,11 @@ class CacheService:
                         return pickle.loads(value.encode("latin-1"))
                     except Exception:
                         return value
-            
-            # This block handles when value is None
-            if self.statistics:
-                self.statistics.increment_misses(key)
-            return default
+            else:
+                # This block handles when value is None
+                if self.statistics:
+                    self.statistics.increment_misses(key)
+                return default
 
         except Exception as e:
             logger.error(f"Failed to get cache key {key}: {e}")

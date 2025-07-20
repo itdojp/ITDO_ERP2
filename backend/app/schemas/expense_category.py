@@ -22,7 +22,7 @@ class ExpenseCategoryBase(BaseModel):
     approval_limit: Optional[float] = Field(
         None, ge=0, description="Approval limit amount"
     )
-    sort_order: int = Field(0, description="Sort order")
+    sort_order: Optional[int] = Field(None, description="Sort order")
     parent_id: Optional[int] = Field(None, description="Parent category ID")
 
     @validator("category_type")

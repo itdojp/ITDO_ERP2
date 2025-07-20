@@ -4,7 +4,8 @@ Budget Service for financial management.
 """
 
 from datetime import datetime
-from typing import List, Optional
+from decimal import Decimal
+from typing import Any, List, Optional
 
 from sqlalchemy import and_, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -207,7 +208,7 @@ class BudgetService:
         else:
             budget.status = BudgetStatus.SUBMITTED  # request_changes keeps it submitted
 
-        budget.approved_by_id = approved_by_id
+        budget.approved_by = approved_by_id
         budget.approved_at = datetime.utcnow()
         if hasattr(budget, "approval_comment"):  # Check if field exists
             budget.approval_comment = approval_data.comments
@@ -354,12 +355,24 @@ class BudgetService:
             return None
 
         # 実績データは別途実装
-        report_data = {
-            "budget": budget,
-            "actual_amount": 0.0,  # 実績額（実装時に計算）
-            "variance": 0.0,  # 差異額
-            "utilization_rate": 0.0,  # 利用率
-            "items_report": [],  # 項目別レポート
+        report_data: dict[str, Any] = {
+            "report_id": f"BR-{budget.id}-{datetime.utcnow().strftime('%Y%m%d')}",
+            "budget_period": f"{budget.start_date} - {budget.end_date}",
+            "generated_at": datetime.utcnow(),
+            "summary": {
+                "total_budget": float(budget.total_amount),
+                "actual_amount": 0.0,  # 実績額（実装時に計算）
+                "variance": 0.0,  # 差異額
+                "utilization_rate": 0.0,  # 利用率
+            },
+            "department_details": [],  # 部門別詳細（実装時に計算）
+            "category_details": [],  # カテゴリ別詳細（実装時に計算）
+            "variance_analysis": {
+                "positive_variance": 0.0,
+                "negative_variance": 0.0,
+                "significant_variances": []
+            },
+            "recommendations": [],  # 推奨事項（実装時に生成）
         }
 
         return BudgetReportResponse(**report_data)
@@ -385,20 +398,21 @@ class BudgetService:
         budgets = result.scalars().all()
 
         # 集計計算
-        total_budgets = len(budgets)
         total_amount = sum(budget.total_amount for budget in budgets)
-        status_summary = {}
+        status_summary: dict[str, int] = {}
 
         for budget in budgets:
             status_summary[budget.status] = status_summary.get(budget.status, 0) + 1
 
         return BudgetAnalyticsResponse(
-            total_budgets=total_budgets,
-            total_amount=total_amount,
-            status_summary=status_summary,
-            average_amount=total_amount / total_budgets if total_budgets > 0 else 0,
-            department_summary={},  # 部門別サマリー（実装時に計算）
-            trend_data={},  # トレンドデータ（実装時に計算）
+            total_budget_amount=float(total_amount),
+            total_utilized_amount=0.0,  # 実装時に計算
+            utilization_percentage=0.0,  # 実装時に計算
+            variance_amount=0.0,  # 実装時に計算
+            variance_percentage=0.0,  # 実装時に計算
+            department_breakdown={},  # 部門別サマリー（実装時に計算）
+            category_breakdown={},  # カテゴリ別サマリー（実装時に計算）
+            monthly_trends=[],  # トレンドデータ（実装時に計算）
         )
 
     async def _check_duplicate_code(
@@ -426,11 +440,11 @@ class BudgetService:
 
     async def _update_budget_total(self, budget_id: int) -> None:
         """予算合計額更新"""
-        total_query = select(func.sum(BudgetItem.budget_amount)).where(
+        total_query = select(func.sum(BudgetItem.budgeted_amount)).where(
             and_(BudgetItem.budget_id == budget_id, BudgetItem.deleted_at.is_(None))
         )
         total_result = await self.db.execute(total_query)
-        total_amount = total_result.scalar() or 0.0
+        total_amount = total_result.scalar() or Decimal("0.00")
 
         budget_query = select(Budget).where(Budget.id == budget_id)
         budget_result = await self.db.execute(budget_query)
@@ -443,7 +457,7 @@ class BudgetService:
 
     async def get_budget_vs_actual_analysis(
         self, organization_id: int, fiscal_year: int
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Budget vs Actual comparison analysis for Phase 4."""
         # Get all budgets for the fiscal year
         budgets_query = select(Budget).where(
