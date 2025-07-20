@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/services/api'
+import Loading from '@/components/ui/Loading'
+import Alert from '@/components/ui/Alert'
 
 export function HomePage() {
   const { data, isLoading, error } = useQuery({
@@ -7,8 +9,8 @@ export function HomePage() {
     queryFn: () => apiClient.get('/health')
   })
 
-  if (isLoading) return <div>Loading...</div>
-  if (error) return <div>Error connecting to backend</div>
+  if (isLoading) return <Loading message="Connecting to backend..." />
+  if (error) return <Alert variant="error" title="Connection Error" message="Error connecting to backend" />
 
   return (
     <div className="px-4 py-6 sm:px-0">
