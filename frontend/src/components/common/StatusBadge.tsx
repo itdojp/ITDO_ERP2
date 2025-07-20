@@ -1,10 +1,10 @@
 import React from "react";
 
-interface StatusBadgeProps {
+export interface StatusBadgeProps {
   status: "active" | "inactive" | "pending";
 }
 
-export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
+const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
   const colors = {
     active: "bg-green-500",
     inactive: "bg-red-500",
@@ -17,3 +17,5 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
     </span>
   );
 };
+
+export default StatusBadge;

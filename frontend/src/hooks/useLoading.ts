@@ -1,10 +1,10 @@
 import { useState, useCallback } from 'react'
 
-interface LoadingState {
+export interface LoadingState {
   [key: string]: boolean
 }
 
-interface UseLoadingReturn {
+export interface UseLoadingReturn {
   isLoading: (key?: string) => boolean
   setLoading: (loading: boolean, key?: string) => void
   startLoading: (key?: string) => void

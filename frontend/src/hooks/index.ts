@@ -4,4 +4,5 @@
 export { default as useLoading } from './useLoading'
 export type { UseLoadingReturn, LoadingState } from './useLoading'
 
-export { default as useUserProfile } from './useUserProfile'
+// Re-export all user profile hooks (no default export)
+export * from './useUserProfile'
