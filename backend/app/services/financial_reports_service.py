@@ -4,7 +4,7 @@ Financial Reports Service for Phase 4 Financial Management.
 """
 
 from datetime import date, datetime
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional, Sequence
 
 from sqlalchemy import and_, extract, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,7 +24,7 @@ class FinancialReportsService:
         fiscal_year: int,
         include_variance_analysis: bool = True,
         include_trend_data: bool = True,
-    ) -> Dict:
+    ) -> Dict[str, Any]:
         """Generate comprehensive budget performance report."""
         # Get all budgets for the fiscal year
         budgets_query = select(Budget).where(
@@ -112,7 +112,7 @@ class FinancialReportsService:
 
         if include_variance_analysis:
             report["variance_analysis"] = await self._generate_variance_analysis(
-                budgets, expenses
+                list(budgets), list(expenses)
             )
 
         if include_trend_data:
@@ -129,7 +129,7 @@ class FinancialReportsService:
         date_to: Optional[date] = None,
         include_employee_breakdown: bool = True,
         include_category_breakdown: bool = True,
-    ) -> Dict:
+    ) -> Dict[str, Any]:
         """Generate expense summary report."""
         # Build query for expenses
         query = (
@@ -185,12 +185,12 @@ class FinancialReportsService:
 
         if include_employee_breakdown:
             report["employee_breakdown"] = await self._generate_employee_breakdown(
-                expenses
+                list(expenses)
             )
 
         if include_category_breakdown:
             report["category_breakdown"] = await self._generate_category_breakdown(
-                expenses
+                list(expenses)
             )
 
         return report
@@ -200,7 +200,7 @@ class FinancialReportsService:
         organization_id: int,
         year: int,
         month: int,
-    ) -> Dict:
+    ) -> Dict[str, Any]:
         """Generate monthly financial report combining budgets and expenses."""
         # Get monthly budget data
         budgets_query = select(Budget).where(
@@ -280,7 +280,7 @@ class FinancialReportsService:
         self,
         organization_id: int,
         year: int,
-    ) -> Dict:
+    ) -> Dict[str, Any]:
         """Generate yearly financial summary report."""
         # Get yearly budget data
         budgets_query = select(Budget).where(
@@ -343,7 +343,7 @@ class FinancialReportsService:
             },
             "monthly_breakdown": monthly_data,
             "top_expense_categories": await self._get_top_expense_categories(
-                expenses, limit=10
+                list(expenses), limit=10
             ),
             "expense_trends": await self._generate_yearly_expense_trends(
                 organization_id, year
@@ -352,9 +352,9 @@ class FinancialReportsService:
 
     async def _generate_variance_analysis(
         self, budgets: List[Budget], expenses: List[Expense]
-    ) -> Dict:
+    ) -> Dict[str, Any]:
         """Generate detailed variance analysis."""
-        variance_categories = {
+        variance_categories: Dict[str, List[Dict[str, Any]]] = {
             "significant_overruns": [],
             "significant_underruns": [],
             "on_track": [],
@@ -394,7 +394,7 @@ class FinancialReportsService:
 
     async def _generate_budget_trend_data(
         self, organization_id: int, fiscal_year: int
-    ) -> Dict:
+    ) -> Dict[str, Any]:
         """Generate budget trend data for the past 3 years."""
         trend_data = []
 
@@ -436,9 +436,9 @@ class FinancialReportsService:
 
         return {"historical_trends": trend_data}
 
-    async def _generate_employee_breakdown(self, expenses: List[Expense]) -> List[Dict]:
+    async def _generate_employee_breakdown(self, expenses: List[Expense]) -> List[Dict[str, Any]]:
         """Generate employee expense breakdown."""
-        employee_data = {}
+        employee_data: Dict[int, Dict[str, Any]] = {}
 
         for expense in expenses:
             employee_id = expense.employee_id
@@ -464,9 +464,9 @@ class FinancialReportsService:
 
         return list(employee_data.values())
 
-    async def _generate_category_breakdown(self, expenses: List[Expense]) -> List[Dict]:
+    async def _generate_category_breakdown(self, expenses: List[Expense]) -> List[Dict[str, Any]]:
         """Generate expense category breakdown."""
-        category_data = {}
+        category_data: Dict[int, Dict[str, Any]] = {}
 
         for expense in expenses:
             category_id = expense.expense_category_id
@@ -499,7 +499,7 @@ class FinancialReportsService:
 
     async def _get_previous_months_data(
         self, organization_id: int, year: int, month: int, months_back: int
-    ) -> List[Dict]:
+    ) -> List[Dict[str, Any]]:
         """Get expense data for previous months for trend analysis."""
         previous_data = []
 
@@ -538,9 +538,9 @@ class FinancialReportsService:
 
     async def _get_top_expense_categories(
         self, expenses: List[Expense], limit: int = 10
-    ) -> List[Dict]:
+    ) -> List[Dict[str, Any]]:
         """Get top expense categories by amount."""
-        category_totals = {}
+        category_totals: Dict[str, Dict[str, Any]] = {}
 
         for expense in expenses:
             category_name = (
@@ -562,7 +562,7 @@ class FinancialReportsService:
         # Sort by total amount and return top categories
         sorted_categories = sorted(
             category_totals.values(),
-            key=lambda x: x["total_amount"],
+            key=lambda x: float(x["total_amount"]),
             reverse=True,
         )
 
@@ -570,7 +570,7 @@ class FinancialReportsService:
 
     async def _generate_yearly_expense_trends(
         self, organization_id: int, year: int
-    ) -> Dict:
+    ) -> Dict[str, Any]:
         """Generate yearly expense trends and projections."""
         # Get monthly expense data for the year
         monthly_trends = []

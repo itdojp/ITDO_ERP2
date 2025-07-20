@@ -12,7 +12,7 @@ from app.models.base import SoftDeletableModel
 from app.types import OrganizationId, UserId
 
 if TYPE_CHECKING:
-    from app.models.budget import ExpenseCategory
+    from app.models.expense_category import ExpenseCategory
     from app.models.organization import Organization
     from app.models.project import Project
     from app.models.user import User

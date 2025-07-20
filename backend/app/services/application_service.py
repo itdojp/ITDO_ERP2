@@ -1,10 +1,12 @@
 """Application management service for WF-002 functionality."""
 
 from datetime import datetime, timedelta
+from io import BytesIO
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
 from fastapi import BackgroundTasks, HTTPException
+from fastapi.responses import Response
 from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Session
 
@@ -763,7 +765,7 @@ class ApplicationService:
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
         status: Optional[str] = None,
-    ):
+    ) -> Response:
         """Export applications to CSV."""
         query = self.db.query(Application).filter(
             Application.organization_id == organization_id
@@ -816,7 +818,7 @@ class ApplicationService:
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
         status: Optional[str] = None,
-    ):
+    ) -> Response:
         """Export applications to Excel."""
         query = self.db.query(Application).filter(
             Application.organization_id == organization_id

@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional, cast
 import redis
 from fastapi import BackgroundTasks
 from fastapi_mail import ConnectionConfig
+from pydantic import SecretStr
 from sqlalchemy import and_, desc, func, or_
 from sqlalchemy.orm import Session
 
@@ -43,7 +44,7 @@ class NotificationService:
         self.redis_client = self._get_redis_client()
         self.mail_config = self._get_mail_config()
 
-    def _get_redis_client(self) -> Optional[redis.Redis]:  # type: ignore[type-arg]
+    def _get_redis_client(self) -> Optional[redis.Redis]:
         """Get Redis client for queue management."""
         try:
             client = cast(
@@ -65,7 +66,7 @@ class NotificationService:
         try:
             return ConnectionConfig(
                 MAIL_USERNAME=settings.MAIL_USERNAME,
-                MAIL_PASSWORD=settings.MAIL_PASSWORD,
+                MAIL_PASSWORD=SecretStr(settings.MAIL_PASSWORD),
                 MAIL_FROM=settings.MAIL_FROM,
                 MAIL_PORT=settings.MAIL_PORT,
                 MAIL_SERVER=settings.MAIL_SERVER,
@@ -409,7 +410,7 @@ class NotificationService:
                     {
                         "id": queue_item.id,
                         "channel": queue_data.channel.value,
-                        "priority": queue_data.priority.value,
+                        "priority": queue_data.priority,
                     }
                 ),
             )
@@ -430,7 +431,7 @@ class NotificationService:
             "notification_id": notification.id,
             "title": notification.title,
             "message": notification.message,
-            "priority": notification.priority.value,
+            "priority": notification.priority,
             "created_at": notification.created_at.isoformat(),
         }
 

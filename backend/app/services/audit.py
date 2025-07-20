@@ -438,6 +438,12 @@ class AuditService:
         limit: int = 50,
         offset: int = 0,
         db: Session | None = None,
+        user_id: int | None = None,
+        action: str | None = None,
+        resource_type: str | None = None,
+        resource_id: int | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
     ) -> list[AuditLog]:
         """Get audit logs for organization."""
         if db is None:
@@ -451,6 +457,20 @@ class AuditService:
 
         if organization_id:
             query = query.filter(AuditLog.organization_id == organization_id)
+
+        # Apply additional filters
+        if user_id:
+            query = query.filter(AuditLog.user_id == user_id)
+        if action:
+            query = query.filter(AuditLog.action == action)
+        if resource_type:
+            query = query.filter(AuditLog.resource_type == resource_type)
+        if resource_id:
+            query = query.filter(AuditLog.resource_id == resource_id)
+        if date_from:
+            query = query.filter(AuditLog.created_at >= date_from)
+        if date_to:
+            query = query.filter(AuditLog.created_at <= date_to)
 
         return (
             query.order_by(AuditLog.created_at.desc()).offset(offset).limit(limit).all()

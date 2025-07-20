@@ -4,7 +4,7 @@ Financial Reports API endpoints for Phase 4 Financial Management.
 """
 
 from datetime import date
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,7 +26,7 @@ async def get_budget_performance_report(
     include_trend_data: bool = Query(True, description="Include historical trend data"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> Dict[str, Any]:
     """Generate comprehensive budget performance report."""
     if not current_user.organization_id:
         raise HTTPException(
@@ -68,7 +68,7 @@ async def get_expense_summary_report(
     ),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> Dict[str, Any]:
     """Generate expense summary report."""
     if not current_user.organization_id:
         raise HTTPException(
@@ -101,7 +101,7 @@ async def get_monthly_financial_report(
     month: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> Dict[str, Any]:
     """Generate monthly financial report."""
     if not current_user.organization_id:
         raise HTTPException(
@@ -138,7 +138,7 @@ async def get_yearly_financial_summary(
     year: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> Dict[str, Any]:
     """Generate yearly financial summary report."""
     if not current_user.organization_id:
         raise HTTPException(
@@ -166,7 +166,7 @@ async def get_yearly_financial_summary(
 async def get_current_year_financial_dashboard(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> Dict[str, Any]:
     """Get financial dashboard data for current year."""
     if not current_user.organization_id:
         raise HTTPException(
@@ -224,7 +224,7 @@ async def get_variance_analysis_report(
     ),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> Dict[str, Any]:
     """Generate detailed variance analysis report."""
     if not current_user.organization_id:
         raise HTTPException(
@@ -286,7 +286,7 @@ async def export_budget_performance_report(
     format: str = Query("json", description="Export format: json, csv"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> Dict[str, Any]:
     """Export budget performance report in various formats."""
     if not current_user.organization_id:
         raise HTTPException(
@@ -379,7 +379,7 @@ async def export_budget_performance_report(
         )
 
 
-async def _generate_variance_recommendations(significant_variances) -> list:
+async def _generate_variance_recommendations(significant_variances: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Generate recommendations based on variance analysis."""
     recommendations = []
 

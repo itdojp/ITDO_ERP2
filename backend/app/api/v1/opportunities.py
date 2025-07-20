@@ -61,8 +61,14 @@ async def get_opportunity(
     opportunity_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> OpportunityDetailResponse:
     """商談詳細取得"""
+    if current_user.organization_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="User must belong to an organization"
+        )
+    
     service = OpportunityService(db)
     opportunity = await service.get_opportunity_by_id(
         opportunity_id, current_user.organization_id
@@ -79,8 +85,14 @@ async def create_opportunity(
     opportunity_data: OpportunityCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> OpportunityResponse:
     """商談新規作成"""
+    if current_user.organization_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="User must belong to an organization"
+        )
+    
     service = OpportunityService(db)
     opportunity = await service.create_opportunity(
         opportunity_data, current_user.organization_id
@@ -94,8 +106,14 @@ async def update_opportunity(
     opportunity_data: OpportunityUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> OpportunityResponse:
     """商談更新"""
+    if current_user.organization_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="User must belong to an organization"
+        )
+    
     service = OpportunityService(db)
     opportunity = await service.update_opportunity(
         opportunity_id, opportunity_data, current_user.organization_id
@@ -112,8 +130,14 @@ async def delete_opportunity(
     opportunity_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> dict[str, str]:
     """商談削除（論理削除）"""
+    if current_user.organization_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="User must belong to an organization"
+        )
+    
     service = OpportunityService(db)
     success = await service.delete_opportunity(
         opportunity_id, current_user.organization_id
@@ -131,8 +155,14 @@ async def update_opportunity_stage(
     stage: str,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> OpportunityResponse:
     """商談ステージ更新"""
+    if current_user.organization_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="User must belong to an organization"
+        )
+    
     service = OpportunityService(db)
     opportunity = await service.update_stage(
         opportunity_id, stage, current_user.organization_id
@@ -151,8 +181,14 @@ async def close_opportunity(
     reason: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> OpportunityResponse:
     """商談クローズ"""
+    if current_user.organization_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="User must belong to an organization"
+        )
+    
     service = OpportunityService(db)
     opportunity = await service.close_opportunity(
         opportunity_id, status, current_user.organization_id, reason=reason

@@ -43,7 +43,7 @@ def add_user_to_organization(
             added_by=current_user,
             access_type=user_data.access_type,
             is_primary=user_data.is_primary,
-            expires_at=user_data.expires_at,
+            expires_at=user_data.access_expires_at,
             notes=user_data.notes,
         )
     except (NotFound, PermissionDenied, BusinessLogicError) as e:
@@ -60,11 +60,12 @@ def update_user_organization_membership(
     """Update user organization membership."""
     service = MultiTenantService(db)
     try:
-        return service.update_user_organization_membership(
+        result = service.update_user_organization_membership(
             membership_id=membership_id,
             update_data=update_data,
             updated_by=current_user,
         )
+        return UserOrganization.model_validate(result)
     except (NotFound, PermissionDenied, BusinessLogicError) as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
@@ -108,7 +109,8 @@ def invite_user_to_organization(
     # Override organization_id from URL
     invitation_data.organization_id = organization_id
     try:
-        return service.invite_user_to_organization(invitation_data, current_user)
+        result = service.invite_user_to_organization(invitation_data, current_user)
+        return OrganizationInvitation.model_validate(result)
     except (NotFound, PermissionDenied, BusinessLogicError) as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
@@ -142,7 +144,8 @@ def accept_organization_invitation(
     """Accept organization invitation."""
     service = MultiTenantService(db)
     try:
-        return service.accept_organization_invitation(invitation_id, current_user)
+        result = service.accept_organization_invitation(invitation_id, current_user)
+        return UserOrganization.model_validate(result)
     except (NotFound, PermissionDenied, BusinessLogicError) as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
@@ -171,7 +174,8 @@ def request_user_transfer(
     """Request to transfer user between organizations."""
     service = MultiTenantService(db)
     try:
-        return service.request_user_transfer(transfer_data, current_user)
+        result = service.request_user_transfer(transfer_data, current_user)
+        return UserTransferRequest.model_validate(result)
     except (NotFound, PermissionDenied, BusinessLogicError) as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
@@ -188,7 +192,8 @@ def approve_transfer_request(
     """Approve or reject transfer request."""
     service = MultiTenantService(db)
     try:
-        return service.approve_transfer_request(request_id, approval, current_user)
+        result = service.approve_transfer_request(request_id, approval, current_user)
+        return UserTransferRequest.model_validate(result)
     except (NotFound, PermissionDenied, BusinessLogicError) as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
@@ -210,7 +215,8 @@ def get_user_organizations(
             detail="Insufficient permissions to view user organizations",
         )
 
-    return service.get_user_organizations(user_id, include_inactive)
+    results = service.get_user_organizations(user_id, include_inactive)
+    return [UserOrganization.model_validate(result) for result in results]
 
 
 @router.get(
@@ -242,7 +248,8 @@ def get_organization_users(
             detail="Insufficient permissions to view organization users",
         )
 
-    return service.get_organization_users(organization_id, include_inactive)
+    results = service.get_organization_users(organization_id, include_inactive)
+    return [UserOrganization.model_validate(result) for result in results]
 
 
 @router.get(

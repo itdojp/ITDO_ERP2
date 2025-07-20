@@ -1,5 +1,7 @@
 """Cross-tenant permissions API endpoints."""
 
+from typing import Any
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
 
@@ -24,8 +26,8 @@ router = APIRouter()
 
 def get_client_info(request: Request) -> tuple[str, str]:
     """Extract client IP and user agent from request."""
-    ip_address = request.client.host if request.client else None
-    user_agent = request.headers.get("User-Agent")
+    ip_address = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("User-Agent", "unknown")
     return ip_address, user_agent
 
 
@@ -38,7 +40,8 @@ def create_cross_tenant_rule(
     """Create a new cross-tenant permission rule."""
     service = CrossTenantPermissionService(db)
     try:
-        return service.create_permission_rule(rule_data, current_user)
+        rule_model = service.create_permission_rule(rule_data, current_user)
+        return CrossTenantPermissionRule.model_validate(rule_model)
     except (NotFound, PermissionDenied, BusinessLogicError) as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
@@ -53,7 +56,8 @@ def update_cross_tenant_rule(
     """Update an existing cross-tenant permission rule."""
     service = CrossTenantPermissionService(db)
     try:
-        return service.update_permission_rule(rule_id, update_data, current_user)
+        rule_model = service.update_permission_rule(rule_id, update_data, current_user)
+        return CrossTenantPermissionRule.model_validate(rule_model)
     except (NotFound, PermissionDenied, BusinessLogicError) as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
@@ -223,7 +227,7 @@ def get_user_cross_tenant_organizations(
     user_id: int,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
-) -> dict[str, list]:
+) -> dict[str, Any]:
     """Get organizations that user can access via cross-tenant permissions."""
     # Only allow users to view their own access or superusers to view any
     if not current_user.is_superuser and current_user.id != user_id:
@@ -253,7 +257,7 @@ def quick_permission_check(
     permission: str = Query(..., description="Permission to check"),
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
-) -> dict[str, bool]:
+) -> dict[str, Any]:
     """Quick permission check endpoint."""
     # Only allow users to check their own permissions or superusers to check any
     if not current_user.is_superuser and current_user.id != user_id:

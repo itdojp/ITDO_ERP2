@@ -379,7 +379,7 @@ class ExpenseService:
 
         # Calculate summary statistics
         total_expenses = len(expenses)
-        total_amount = sum(expense.amount for expense in expenses)
+        total_amount = Decimal(str(sum(expense.amount for expense in expenses) or 0))
 
         pending_expenses = [e for e in expenses if e.status == ExpenseStatus.SUBMITTED]
         approved_expenses = [e for e in expenses if e.status == ExpenseStatus.APPROVED]
@@ -390,13 +390,13 @@ class ExpenseService:
             total_expenses=total_expenses,
             total_amount=total_amount,
             pending_approval_count=len(pending_expenses),
-            pending_approval_amount=sum(e.amount for e in pending_expenses),
+            pending_approval_amount=Decimal(str(sum(e.amount for e in pending_expenses) or 0)),
             approved_count=len(approved_expenses),
-            approved_amount=sum(e.amount for e in approved_expenses),
+            approved_amount=Decimal(str(sum(e.amount for e in approved_expenses) or 0)),
             rejected_count=len(rejected_expenses),
-            rejected_amount=sum(e.amount for e in rejected_expenses),
+            rejected_amount=Decimal(str(sum(e.amount for e in rejected_expenses) or 0)),
             paid_count=len(paid_expenses),
-            paid_amount=sum(e.amount for e in paid_expenses),
+            paid_amount=Decimal(str(sum(e.amount for e in paid_expenses) or 0)),
         )
 
     async def _generate_expense_number(self, organization_id: int) -> str:
