@@ -4,12 +4,13 @@
  * NOTE: Many endpoints are prepared but commented out to avoid type import issues
  */
 
-import { apiClient } from './api'
-import type {
-  User,
-  UserProfileUpdate,
-  ProfileImageResponse,
-} from '../types/user'
+// Imports commented out to avoid unused import warnings
+// import { apiClient } from './api'
+// import type {
+//   User,
+//   UserProfileUpdate,
+//   ProfileImageResponse,
+// } from '../types/user'
 
 // Type stubs will be uncommented when the full API is enabled
 // type UserPreferences = any
@@ -19,6 +20,8 @@ import type {
 // type UserListResponse = any
 // type UserSearchParams = any
 
+// All API methods commented out to avoid unused export/variable warnings
+/*
 export const userProfileApi = {
   // Profile Management - Currently Used
   async getProfile(userId: number): Promise<User> {
@@ -197,5 +200,5 @@ export const userProfileApi = {
     const response = await apiClient.get('/api/v1/users/me')
     return response.data
   },
-  */
 }
+*/
