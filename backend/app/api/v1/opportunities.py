@@ -3,7 +3,7 @@ Opportunity API endpoints for CRM functionality.
 商談管理APIエンドポイント（CRM機能）
 """
 
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -257,8 +257,15 @@ async def get_conversion_rate_report(
     end_date: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> Dict[str, Any]:
     """成約率レポート"""
+    # Ensure organization_id is not None
+    if current_user.organization_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User must be associated with an organization"
+        )
+    
     service = OpportunityService(db)
     report = await service.get_conversion_rate_report(
         organization_id=current_user.organization_id,

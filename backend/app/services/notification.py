@@ -47,12 +47,10 @@ class NotificationService:
     def _get_redis_client(self) -> Optional[redis.Redis]:
         """Get Redis client for queue management."""
         try:
-            client = cast(
-                redis.Redis,
-                redis.from_url(
-                    settings.REDIS_URL,
-                    decode_responses=True,
-                )
+            # Type ignore for redis.from_url as it's not fully typed in redis-py
+            client: redis.Redis = redis.from_url(  # type: ignore[no-untyped-call]
+                settings.REDIS_URL,
+                decode_responses=True,
             )
             # Test connection
             client.ping()
