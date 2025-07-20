@@ -29,6 +29,7 @@ from app.api.v1 import (
     # role_permission_ui,  # Temporarily disabled due to syntax errors
     roles,
     security_audit,
+    security_monitoring,
     tasks,
     user_preferences,
     user_privacy,
@@ -53,6 +54,11 @@ api_router.include_router(departments.router)
 api_router.include_router(roles.router)
 api_router.include_router(permission_management.router)
 api_router.include_router(audit_logs.router)
+api_router.include_router(
+    security_monitoring.router, 
+    prefix="/security-monitoring", 
+    tags=["security-monitoring"]
+)
 # api_router.include_router(
 #     role_permission_ui.router, prefix="/role-permissions", tags=["role-permissions"]
 # )
