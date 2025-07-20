@@ -3,7 +3,7 @@ Opportunity API endpoints for CRM functionality.
 商談管理APIエンドポイント（CRM機能）
 """
 
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -177,7 +177,7 @@ async def update_opportunity_stage(
 @router.put("/{opportunity_id}/close")
 async def close_opportunity(
     opportunity_id: int,
-    status: str,
+    close_status: str,
     reason: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -191,7 +191,7 @@ async def close_opportunity(
     
     service = OpportunityService(db)
     opportunity = await service.close_opportunity(
-        opportunity_id, status, current_user.organization_id, reason=reason
+        opportunity_id, close_status, current_user.organization_id, reason=reason
     )
     if not opportunity:
         raise HTTPException(
@@ -208,8 +208,14 @@ async def get_opportunity_analytics(
     end_date: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> OpportunityAnalytics:
     """商談分析サマリー"""
+    if current_user.organization_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="User must belong to an organization"
+        )
+    
     service = OpportunityService(db)
     analytics = await service.get_opportunity_analytics(
         organization_id=current_user.organization_id,
@@ -227,8 +233,14 @@ async def get_pipeline_forecast(
     quarters: int = Query(4, ge=1, le=8),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> dict[str, Any]:
     """パイプライン予測"""
+    if current_user.organization_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="User must belong to an organization"
+        )
+    
     service = OpportunityService(db)
     forecast = await service.get_pipeline_forecast(
         organization_id=current_user.organization_id,
