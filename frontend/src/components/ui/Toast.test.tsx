@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, act } from '@testing-library/react'
 import { vi } from 'vitest'
 import Toast from './Toast'
 
@@ -92,10 +92,15 @@ describe('Toast', () => {
     render(<Toast message="test" closable onClose={onClose} duration={0} />)
     
     const closeButton = screen.getByRole('button', { name: /close toast/i })
-    fireEvent.click(closeButton)
+    
+    act(() => {
+      fireEvent.click(closeButton)
+    })
     
     // Wait for the exit animation
-    vi.advanceTimersByTime(200)
+    act(() => {
+      vi.advanceTimersByTime(200)
+    })
     
     expect(onClose).toHaveBeenCalledTimes(1)
   })
@@ -110,10 +115,14 @@ describe('Toast', () => {
     render(<Toast message="test" duration={3000} onClose={onClose} />)
     
     // Fast-forward time
-    vi.advanceTimersByTime(3000)
+    act(() => {
+      vi.advanceTimersByTime(3000)
+    })
     
     // Wait for the exit animation
-    vi.advanceTimersByTime(200)
+    act(() => {
+      vi.advanceTimersByTime(200)
+    })
     
     expect(onClose).toHaveBeenCalledTimes(1)
   })

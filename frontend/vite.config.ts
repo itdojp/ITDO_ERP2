@@ -24,5 +24,14 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: './src/test/setup.ts',
     exclude: ['**/e2e/**', '**/node_modules/**', '**/dist/**', '**/cypress/**', '**/.{idea,git,cache,output,temp}/**'],
+    // Optimize React Testing Library configuration
+    environmentOptions: {
+      jsdom: {
+        resources: 'usable',
+      },
+    },
+    // Reduce noise from deprecated warnings
+    silent: false,
+    logHeapUsage: false,
   },
 })
