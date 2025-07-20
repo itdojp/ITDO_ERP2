@@ -2,7 +2,7 @@
 
 **Date**: 20250720  
 **Branch**: logs/CC01/20250720  
-**Generated**: Sun Jul 20 02:00:36 AM JST 2025
+**Generated**: 2025-07-20 17:44:00
 
 ## Files Collected
 - `agent-activity-20250720.log` - Complete activity log
@@ -13,9 +13,9 @@
 
 ## Agent Information
 - **Agent ID**: CC01
-- **Collection Time**: Sun Jul 20 02:00:36 AM JST 2025
-- **Host**: AH57U-005
-- **Working Directory**: /home/work/ITDO_ERP2
+- **Collection Time**: 2025-07-20 17:44:00
+- **Host**: workstation
+- **Working Directory**: /home/work/ITDO_ERP2/frontend
 
 ## Next Steps
 1. Review the activity log for agent behavior analysis
