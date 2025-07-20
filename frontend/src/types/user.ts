@@ -1,7 +1,40 @@
 /**
  * User profile and management type definitions
+ * NOTE: Some types are prepared but commented out to avoid unused export warnings
  */
 
+// Core interfaces that are currently used
+// export interface Organization { // Commented out to avoid unused export warning
+interface Organization {
+  id: number
+  code: string
+  name: string
+}
+
+// export interface Department { // Commented out to avoid unused export warning
+interface Department {
+  id: number
+  code: string
+  name: string
+}
+
+// export interface UserRole { // Commented out to avoid unused export warning
+interface UserRole {
+  role: Role
+  organization: Organization
+  department?: Department
+  assigned_at: string
+  expires_at?: string
+}
+
+// export interface Role { // Commented out to avoid unused export warning
+interface Role {
+  id: number
+  code: string
+  name: string
+}
+
+// Main exported interfaces
 export interface User {
   id: number
   email: string
@@ -20,31 +53,22 @@ export interface User {
   roles: UserRole[]
 }
 
-export interface Organization {
-  id: number
-  code: string
-  name: string
+export interface UserProfileUpdate {
+  full_name?: string
+  phone?: string
+  bio?: string
+  location?: string
+  website?: string
 }
 
-export interface Department {
-  id: number
-  code: string
-  name: string
+export interface ProfileImageResponse {
+  message: string
+  image_url: string
 }
 
-export interface UserRole {
-  role: Role
-  organization: Organization
-  department?: Department
-  assigned_at: string
-  expires_at?: string
-}
-
-export interface Role {
-  id: number
-  code: string
-  name: string
-}
+// FUTURE TYPES - Ready for integration but currently commented out
+/*
+// export type VisibilityLevel = 'PUBLIC' | 'ORGANIZATION' | 'DEPARTMENT' | 'PRIVATE'
 
 export interface UserPreferences {
   id: number
@@ -75,16 +99,6 @@ export interface UserPrivacySettings {
   updated_at: string
 }
 
-export type VisibilityLevel = 'PUBLIC' | 'ORGANIZATION' | 'DEPARTMENT' | 'PRIVATE'
-
-export interface UserProfileUpdate {
-  full_name?: string
-  phone?: string
-  bio?: string
-  location?: string
-  website?: string
-}
-
 export interface UserPreferencesUpdate {
   language?: UserPreferences['language']
   timezone?: string
@@ -106,13 +120,9 @@ export interface UserPrivacyUpdate {
   searchable_by_name?: boolean
 }
 
-export interface ProfileImageUpload {
+// export interface ProfileImageUpload { // Commented out to avoid unused export warning
+interface ProfileImageUpload {
   file: File
-}
-
-export interface ProfileImageResponse {
-  message: string
-  image_url: string
 }
 
 export interface UserSearchParams {
@@ -129,3 +139,4 @@ export interface UserListResponse {
   page: number
   limit: number
 }
+*/

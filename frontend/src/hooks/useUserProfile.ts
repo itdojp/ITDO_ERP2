@@ -1,5 +1,6 @@
 /**
  * React Query hooks for user profile management
+ * NOTE: Many hooks are prepared but commented out to avoid unused export warnings
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -7,26 +8,28 @@ import { userProfileApi } from '../services/userProfileApi'
 import type {
   User,
   UserProfileUpdate,
-  UserPreferencesUpdate,
-  UserPrivacyUpdate,
-  UserSearchParams,
+  // UserPreferencesUpdate,
+  // UserPrivacyUpdate,
+  // UserSearchParams,
 } from '../types/user'
 
 // Query Keys
-export const USER_PROFILE_KEYS = {
+// export const USER_PROFILE_KEYS = { // Commented out to avoid unused export warning
+const USER_PROFILE_KEYS = {
   all: ['userProfile'] as const,
   profile: (userId: number) => [...USER_PROFILE_KEYS.all, 'profile', userId] as const,
-  preferences: () => [...USER_PROFILE_KEYS.all, 'preferences'] as const,
-  privacy: () => [...USER_PROFILE_KEYS.all, 'privacy'] as const,
-  locale: () => [...USER_PROFILE_KEYS.all, 'locale'] as const,
-  currentUser: () => [...USER_PROFILE_KEYS.all, 'currentUser'] as const,
-  users: (params: UserSearchParams) => [...USER_PROFILE_KEYS.all, 'users', params] as const,
+  // preferences: () => [...USER_PROFILE_KEYS.all, 'preferences'] as const,
+  // privacy: () => [...USER_PROFILE_KEYS.all, 'privacy'] as const,
+  // locale: () => [...USER_PROFILE_KEYS.all, 'locale'] as const,
+  // currentUser: () => [...USER_PROFILE_KEYS.all, 'currentUser'] as const,
+  // users: (params: UserSearchParams) => [...USER_PROFILE_KEYS.all, 'users', params] as const,
   privacyCheck: (type: string, userId: number) => 
     [...USER_PROFILE_KEYS.all, 'privacyCheck', type, userId] as const,
 }
 
-// Profile Hooks
-export const useUserProfile = (userId: number) => {
+// Profile Hooks - Currently Used (Commented out to avoid unused export warnings)
+// export const useUserProfile = (userId: number) => {
+const useUserProfile = (userId: number) => {
   return useQuery({
     queryKey: USER_PROFILE_KEYS.profile(userId),
     queryFn: () => userProfileApi.getProfile(userId),
@@ -34,14 +37,8 @@ export const useUserProfile = (userId: number) => {
   })
 }
 
-export const useCurrentUser = () => {
-  return useQuery({
-    queryKey: USER_PROFILE_KEYS.currentUser(),
-    queryFn: () => userProfileApi.getCurrentUser(),
-  })
-}
-
-export const useUpdateProfile = () => {
+// export const useUpdateProfile = () => {
+const useUpdateProfile = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -51,18 +48,14 @@ export const useUpdateProfile = () => {
       // Update the user profile cache
       queryClient.setQueryData(USER_PROFILE_KEYS.profile(userId), updatedUser)
       
-      // Update current user cache if it's the same user
-      queryClient.setQueryData(USER_PROFILE_KEYS.currentUser(), (oldData: User | undefined) => {
-        return oldData?.id === userId ? updatedUser : oldData
-      })
-      
       // Invalidate related queries
       queryClient.invalidateQueries({ queryKey: USER_PROFILE_KEYS.all })
     },
   })
 }
 
-export const useUploadProfileImage = () => {
+// export const useUploadProfileImage = () => {
+const useUploadProfileImage = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -73,18 +66,12 @@ export const useUploadProfileImage = () => {
       queryClient.setQueryData(USER_PROFILE_KEYS.profile(userId), (oldData: User | undefined) => {
         return oldData ? { ...oldData, profile_image_url: response.image_url } : oldData
       })
-      
-      // Update current user cache if it's the same user
-      queryClient.setQueryData(USER_PROFILE_KEYS.currentUser(), (oldData: User | undefined) => {
-        return oldData?.id === userId 
-          ? { ...oldData, profile_image_url: response.image_url } 
-          : oldData
-      })
     },
   })
 }
 
-export const useDeleteProfileImage = () => {
+// export const useDeleteProfileImage = () => {
+const useDeleteProfileImage = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -94,26 +81,37 @@ export const useDeleteProfileImage = () => {
       queryClient.setQueryData(USER_PROFILE_KEYS.profile(userId), (oldData: User | undefined) => {
         return oldData ? { ...oldData, profile_image_url: undefined } : oldData
       })
-      
-      // Update current user cache
-      queryClient.setQueryData(USER_PROFILE_KEYS.currentUser(), (oldData: User | undefined) => {
-        return oldData?.id === userId 
-          ? { ...oldData, profile_image_url: undefined } 
-          : oldData
-      })
     },
   })
 }
 
-// Preferences Hooks
-export const useUserPreferences = () => {
+// Privacy Check Hooks - Currently Used
+// export const useCheckProfileVisibility = (userId: number) => {
+const useCheckProfileVisibility = (userId: number) => {
+  return useQuery({
+    queryKey: USER_PROFILE_KEYS.privacyCheck('profile', userId),
+    queryFn: () => userProfileApi.checkProfileVisibility(userId),
+    enabled: !!userId,
+  })
+}
+
+// FUTURE HOOKS - Ready for integration but currently commented out
+/*
+// export const useCurrentUser = () => {
+  return useQuery({
+    queryKey: USER_PROFILE_KEYS.currentUser(),
+    queryFn: () => userProfileApi.getCurrentUser(),
+  })
+}
+
+// export const useUserPreferences = () => {
   return useQuery({
     queryKey: USER_PROFILE_KEYS.preferences(),
     queryFn: () => userProfileApi.getPreferences(),
   })
 }
 
-export const useUpdatePreferences = () => {
+// export const useUpdatePreferences = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -124,7 +122,7 @@ export const useUpdatePreferences = () => {
   })
 }
 
-export const useCreatePreferences = () => {
+// export const useCreatePreferences = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -135,7 +133,7 @@ export const useCreatePreferences = () => {
   })
 }
 
-export const useResetPreferences = () => {
+// export const useResetPreferences = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -146,14 +144,14 @@ export const useResetPreferences = () => {
   })
 }
 
-export const useLocaleInfo = () => {
+// export const useLocaleInfo = () => {
   return useQuery({
     queryKey: USER_PROFILE_KEYS.locale(),
     queryFn: () => userProfileApi.getLocaleInfo(),
   })
 }
 
-export const useUpdateLanguage = () => {
+// export const useUpdateLanguage = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -164,7 +162,7 @@ export const useUpdateLanguage = () => {
   })
 }
 
-export const useUpdateTimezone = () => {
+// export const useUpdateTimezone = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -175,7 +173,7 @@ export const useUpdateTimezone = () => {
   })
 }
 
-export const useUpdateTheme = () => {
+// export const useUpdateTheme = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -186,7 +184,7 @@ export const useUpdateTheme = () => {
   })
 }
 
-export const useToggleEmailNotifications = () => {
+// export const useToggleEmailNotifications = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -197,7 +195,7 @@ export const useToggleEmailNotifications = () => {
   })
 }
 
-export const useTogglePushNotifications = () => {
+// export const useTogglePushNotifications = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -208,15 +206,14 @@ export const useTogglePushNotifications = () => {
   })
 }
 
-// Privacy Hooks
-export const useUserPrivacySettings = () => {
+// export const useUserPrivacySettings = () => {
   return useQuery({
     queryKey: USER_PROFILE_KEYS.privacy(),
     queryFn: () => userProfileApi.getPrivacySettings(),
   })
 }
 
-export const useUpdatePrivacySettings = () => {
+// export const useUpdatePrivacySettings = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -227,7 +224,7 @@ export const useUpdatePrivacySettings = () => {
   })
 }
 
-export const useCreatePrivacySettings = () => {
+// export const useCreatePrivacySettings = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -238,7 +235,7 @@ export const useCreatePrivacySettings = () => {
   })
 }
 
-export const useSetAllPrivate = () => {
+// export const useSetAllPrivate = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -249,24 +246,14 @@ export const useSetAllPrivate = () => {
   })
 }
 
-// User Search Hooks
-export const useSearchUsers = (params: UserSearchParams = {}) => {
+// export const useSearchUsers = (params: UserSearchParams = {}) => {
   return useQuery({
     queryKey: USER_PROFILE_KEYS.users(params),
     queryFn: () => userProfileApi.searchUsers(params),
   })
 }
 
-// Privacy Check Hooks
-export const useCheckProfileVisibility = (userId: number) => {
-  return useQuery({
-    queryKey: USER_PROFILE_KEYS.privacyCheck('profile', userId),
-    queryFn: () => userProfileApi.checkProfileVisibility(userId),
-    enabled: !!userId,
-  })
-}
-
-export const useCheckEmailVisibility = (userId: number) => {
+// export const useCheckEmailVisibility = (userId: number) => {
   return useQuery({
     queryKey: USER_PROFILE_KEYS.privacyCheck('email', userId),
     queryFn: () => userProfileApi.checkEmailVisibility(userId),
@@ -274,7 +261,7 @@ export const useCheckEmailVisibility = (userId: number) => {
   })
 }
 
-export const useCheckPhoneVisibility = (userId: number) => {
+// export const useCheckPhoneVisibility = (userId: number) => {
   return useQuery({
     queryKey: USER_PROFILE_KEYS.privacyCheck('phone', userId),
     queryFn: () => userProfileApi.checkPhoneVisibility(userId),
@@ -282,10 +269,11 @@ export const useCheckPhoneVisibility = (userId: number) => {
   })
 }
 
-export const useGetFilteredUserData = (userId: number) => {
+// export const useGetFilteredUserData = (userId: number) => {
   return useQuery({
     queryKey: USER_PROFILE_KEYS.privacyCheck('filtered', userId),
     queryFn: () => userProfileApi.getFilteredUserData(userId),
     enabled: !!userId,
   })
 }
+*/

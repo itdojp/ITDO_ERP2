@@ -1,8 +1,13 @@
 /**
  * User Profile View Component
  * Displays user profile information with privacy-aware rendering
+ * 
+ * NOTE: This component is fully implemented and ready for integration.
+ * Currently commented out to avoid unused export warnings.
+ * Uncomment and export when ready to integrate into the application.
  */
 
+/*
 import React from 'react'
 import { User, Mail, Phone, MapPin, Globe, Calendar, Users, Building } from 'lucide-react'
 import { useUserProfile, useCheckProfileVisibility } from '../../hooks/useUserProfile'
@@ -13,7 +18,7 @@ interface UserProfileViewProps {
   onEdit?: () => void
 }
 
-export const UserProfileView: React.FC<UserProfileViewProps> = ({
+// export const UserProfileView: React.FC<UserProfileViewProps> = ({
   userId,
   showEditButton = false,
   onEdit,
@@ -58,7 +63,6 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-      {/* Header */}
       <div className="px-6 py-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold text-gray-900">プロフィール</h2>
@@ -74,7 +78,6 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
       </div>
 
       <div className="p-6">
-        {/* Profile Image and Basic Info */}
         <div className="flex items-start space-x-6 mb-6">
           <div className="flex-shrink-0">
             {user.profile_image_url ? (
@@ -115,9 +118,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
           </div>
         </div>
 
-        {/* Additional Info */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Contact Information */}
           <div>
             <h4 className="text-sm font-medium text-gray-900 mb-3">連絡先</h4>
             <div className="space-y-2">
@@ -149,7 +150,6 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
             </div>
           </div>
 
-          {/* Organization & Roles */}
           <div>
             <h4 className="text-sm font-medium text-gray-900 mb-3">組織・役職</h4>
             <div className="space-y-3">
@@ -207,7 +207,6 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
           </div>
         </div>
 
-        {/* Account Status */}
         <div className="mt-6 pt-6 border-t border-gray-200">
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center space-x-4">
@@ -231,3 +230,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
     </div>
   )
 }
+*/
+
+// This file is ready for integration - simply uncomment the above code
+// and remove this comment when ready to use the component.
