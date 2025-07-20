@@ -22,7 +22,7 @@ from app.api.v1 import (
     notifications,
     opportunities,
     organizations,
-    # permission_inheritance,  # Temporarily disabled due to syntax errors
+    permission_inheritance,
     permission_management,
     pm_automation,
     reports,
@@ -62,11 +62,11 @@ api_router.include_router(
 # api_router.include_router(
 #     role_permission_ui.router, prefix="/role-permissions", tags=["role-permissions"]
 # )
-# api_router.include_router(
-#     permission_inheritance.router,
-#     prefix="/permission-inheritance",
-#     tags=["permission-inheritance"],
-# )
+api_router.include_router(
+    permission_inheritance.router,
+    prefix="/permission-inheritance",
+    tags=["permission-inheritance"],
+)
 api_router.include_router(
     multi_tenant.router, prefix="/multi-tenant", tags=["multi-tenant"]
 )
