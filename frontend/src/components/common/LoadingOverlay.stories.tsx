@@ -1,4 +1,19 @@
-import type { Meta, StoryObj } from '@storybook/react'
+// Storybook types - temporary definitions since @storybook/react is not installed
+interface Meta<T> {
+  title: string;
+  component: T;
+  parameters?: any;
+  argTypes?: any;
+  tags?: string[];
+}
+
+interface StoryObj {
+  args?: any;
+  render?: (args: any) => React.ReactElement;
+  parameters?: any;
+}
+
+import React from 'react';
 import LoadingOverlay from './LoadingOverlay'
 
 const meta: Meta<typeof LoadingOverlay> = {
@@ -45,7 +60,7 @@ const meta: Meta<typeof LoadingOverlay> = {
 }
 
 export default meta
-type Story = StoryObj<typeof LoadingOverlay>
+type Story = StoryObj
 
 export const Default: Story = {
   args: {
@@ -55,7 +70,7 @@ export const Default: Story = {
     size: 'medium',
     color: 'primary'
   },
-  render: (args) => (
+  render: (args: any) => (
     <div className="relative h-64 w-96 bg-gray-100 border rounded-lg p-4">
       <h3 className="text-lg font-semibold mb-2">Container Content</h3>
       <p>This content is covered by the loading overlay.</p>
@@ -73,7 +88,7 @@ export const WithMessage: Story = {
     size: 'medium',
     color: 'primary'
   },
-  render: (args) => (
+  render: (args: any) => (
     <div className="relative h-64 w-96 bg-gray-100 border rounded-lg p-4">
       <h3 className="text-lg font-semibold mb-2">Container Content</h3>
       <p>This content is covered by the loading overlay with a message.</p>
@@ -91,7 +106,7 @@ export const NoBackdrop: Story = {
     size: 'medium',
     color: 'primary'
   },
-  render: (args) => (
+  render: (args: any) => (
     <div className="relative h-64 w-96 bg-gray-100 border rounded-lg p-4">
       <h3 className="text-lg font-semibold mb-2">Container Content</h3>
       <p>This content is visible behind the loading overlay.</p>
@@ -109,7 +124,7 @@ export const WhiteSpinner: Story = {
     size: 'large',
     color: 'white'
   },
-  render: (args) => (
+  render: (args: any) => (
     <div className="relative h-64 w-96 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg p-4">
       <h3 className="text-lg font-semibold mb-2 text-white">Dark Container</h3>
       <p className="text-white">White spinner works well on dark backgrounds.</p>
@@ -145,7 +160,7 @@ export const WithCustomContent: Story = {
     size: 'medium',
     color: 'primary'
   },
-  render: (args) => (
+  render: (args: any) => (
     <div className="relative h-64 w-96 bg-gray-100 border rounded-lg p-4">
       <h3 className="text-lg font-semibold mb-2">Container Content</h3>
       <p>Loading overlay with custom additional content.</p>

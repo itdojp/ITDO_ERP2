@@ -1,4 +1,19 @@
-import type { Meta, StoryObj } from '@storybook/react'
+// Storybook types - temporary definitions since @storybook/react is not installed
+interface Meta<T> {
+  title: string;
+  component: T;
+  parameters?: any;
+  argTypes?: any;
+  tags?: string[];
+}
+
+interface StoryObj {
+  args?: any;
+  render?: (args: any) => React.ReactElement;
+  parameters?: any;
+}
+
+import React from 'react';
 import LoadingSpinner from './LoadingSpinner'
 
 const meta: Meta<typeof LoadingSpinner> = {
@@ -32,7 +47,7 @@ const meta: Meta<typeof LoadingSpinner> = {
 }
 
 export default meta
-type Story = StoryObj<typeof LoadingSpinner>
+type Story = StoryObj
 
 export const Default: Story = {
   args: {
