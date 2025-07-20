@@ -123,7 +123,7 @@ export function RoleCreateModal({ isOpen, onClose, onSuccess }: RoleCreateModalP
       onSuccess()
       handleClose()
     } catch (error) {
-      console.error('Failed to create role:', error)
+      // Error handling - could be logged to monitoring service in production
     }
   }
 

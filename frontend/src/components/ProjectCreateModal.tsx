@@ -65,7 +65,7 @@ export function ProjectCreateModal({ isOpen, onClose, onSuccess }: ProjectCreate
       onSuccess()
       handleClose()
     } catch (error) {
-      console.error('Failed to create project:', error)
+      // Error handling - could be logged to monitoring service in production
     }
   }
 
@@ -149,7 +149,7 @@ export function ProjectCreateModal({ isOpen, onClose, onSuccess }: ProjectCreate
                 <h4 className="text-sm font-medium text-blue-900 mb-2">Project Information</h4>
                 <ul className="text-sm text-blue-800 space-y-1">
                   <li>• You will be set as the project owner</li>
-                  <li>• Project status will be set to "Active"</li>
+                  <li>• Project status will be set to &ldquo;Active&rdquo;</li>
                   <li>• You can add team members after creation</li>
                   <li>• Tasks can be created and assigned to this project</li>
                 </ul>

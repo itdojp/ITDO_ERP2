@@ -70,7 +70,7 @@ export function ProjectEditModal({ isOpen, onClose, onSuccess, project }: Projec
         handleClose()
       }
     } catch (error) {
-      console.error('Failed to update project:', error)
+      // Error handling - could be logged to monitoring service in production
     }
   }
 

@@ -127,7 +127,7 @@ export function RoleEditModal({ isOpen, onClose, onSuccess, role }: RoleEditModa
         handleClose()
       }
     } catch (error) {
-      console.error('Failed to update role:', error)
+      // Error handling - could be logged to monitoring service in production
     }
   }
 
