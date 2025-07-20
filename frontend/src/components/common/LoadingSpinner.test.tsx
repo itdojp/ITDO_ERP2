@@ -1,10 +1,13 @@
 import { render, screen } from '@testing-library/react'
 import { describe, it, expect } from 'vitest'
+import { act } from 'react'
 import LoadingSpinner from './LoadingSpinner'
 
 describe('LoadingSpinner', () => {
   it('renders with default props', () => {
-    render(<LoadingSpinner />)
+    act(() => {
+      render(<LoadingSpinner />)
+    })
     
     const spinner = screen.getByRole('status')
     expect(spinner).toBeInTheDocument()
@@ -13,49 +16,63 @@ describe('LoadingSpinner', () => {
   })
 
   it('renders with small size', () => {
-    render(<LoadingSpinner size="small" />)
+    act(() => {
+      render(<LoadingSpinner size="small" />)
+    })
     
     const spinner = screen.getByRole('status')
     expect(spinner).toHaveClass('h-4', 'w-4')
   })
 
   it('renders with medium size (default)', () => {
-    render(<LoadingSpinner size="medium" />)
+    act(() => {
+      render(<LoadingSpinner size="medium" />)
+    })
     
     const spinner = screen.getByRole('status')
     expect(spinner).toHaveClass('h-6', 'w-6')
   })
 
   it('renders with large size', () => {
-    render(<LoadingSpinner size="large" />)
+    act(() => {
+      render(<LoadingSpinner size="large" />)
+    })
     
     const spinner = screen.getByRole('status')
     expect(spinner).toHaveClass('h-8', 'w-8')
   })
 
   it('renders with primary color (default)', () => {
-    render(<LoadingSpinner color="primary" />)
+    act(() => {
+      render(<LoadingSpinner color="primary" />)
+    })
     
     const spinner = screen.getByRole('status')
     expect(spinner).toHaveClass('border-blue-600', 'border-t-transparent')
   })
 
   it('renders with secondary color', () => {
-    render(<LoadingSpinner color="secondary" />)
+    act(() => {
+      render(<LoadingSpinner color="secondary" />)
+    })
     
     const spinner = screen.getByRole('status')
     expect(spinner).toHaveClass('border-gray-500', 'border-t-transparent')
   })
 
   it('renders with white color', () => {
-    render(<LoadingSpinner color="white" />)
+    act(() => {
+      render(<LoadingSpinner color="white" />)
+    })
     
     const spinner = screen.getByRole('status')
     expect(spinner).toHaveClass('border-white', 'border-t-transparent')
   })
 
   it('applies custom className', () => {
-    render(<LoadingSpinner className="custom-class" />)
+    act(() => {
+      render(<LoadingSpinner className="custom-class" />)
+    })
     
     const spinner = screen.getByRole('status')
     expect(spinner).toHaveClass('custom-class')
@@ -63,27 +80,35 @@ describe('LoadingSpinner', () => {
 
   it('forwards ref correctly', () => {
     const ref = { current: null }
-    render(<LoadingSpinner ref={ref} />)
+    act(() => {
+      render(<LoadingSpinner ref={ref} />)
+    })
     
     expect(ref.current).toBeInstanceOf(HTMLDivElement)
   })
 
   it('passes through additional props', () => {
-    render(<LoadingSpinner data-testid="spinner" />)
+    act(() => {
+      render(<LoadingSpinner data-testid="spinner" />)
+    })
     
     const spinner = screen.getByTestId('spinner')
     expect(spinner).toBeInTheDocument()
   })
 
   it('contains screen reader text', () => {
-    render(<LoadingSpinner />)
+    act(() => {
+      render(<LoadingSpinner />)
+    })
     
     const srText = screen.getByText('Loading...')
     expect(srText).toHaveClass('sr-only')
   })
 
   it('has proper accessibility attributes', () => {
-    render(<LoadingSpinner />)
+    act(() => {
+      render(<LoadingSpinner />)
+    })
     
     const spinner = screen.getByRole('status')
     expect(spinner).toHaveAttribute('role', 'status')

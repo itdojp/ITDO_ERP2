@@ -1,10 +1,13 @@
 import { render, screen } from '@testing-library/react'
 import { describe, it, expect } from 'vitest'
+import { act } from 'react'
 import SkeletonLoader from './SkeletonLoader'
 
 describe('SkeletonLoader', () => {
   it('renders with default props', () => {
-    render(<SkeletonLoader />)
+    act(() => {
+      render(<SkeletonLoader />)
+    })
     
     const skeleton = screen.getByRole('status')
     expect(skeleton).toBeInTheDocument()
@@ -12,14 +15,18 @@ describe('SkeletonLoader', () => {
   })
 
   it('renders text variant with single line', () => {
-    render(<SkeletonLoader variant="text" />)
+    act(() => {
+      render(<SkeletonLoader variant="text" />)
+    })
     
     const skeleton = screen.getByRole('status')
     expect(skeleton).toHaveClass('h-4', 'rounded')
   })
 
   it('renders text variant with multiple lines', () => {
-    render(<SkeletonLoader variant="text" lines={3} />)
+    act(() => {
+      render(<SkeletonLoader variant="text" lines={3} />)
+    })
     
     // Should render container with multiple skeleton lines
     const container = screen.getByTestId('skeleton-container')
@@ -31,7 +38,9 @@ describe('SkeletonLoader', () => {
   })
 
   it('renders card variant with image and text', () => {
-    render(<SkeletonLoader variant="card" />)
+    act(() => {
+      render(<SkeletonLoader variant="card" />)
+    })
     
     // Should render container with card structure
     const container = screen.getByTestId('skeleton-container')
@@ -43,14 +52,18 @@ describe('SkeletonLoader', () => {
   })
 
   it('renders avatar variant', () => {
-    render(<SkeletonLoader variant="avatar" />)
+    act(() => {
+      render(<SkeletonLoader variant="avatar" />)
+    })
     
     const skeleton = screen.getByRole('status')
     expect(skeleton).toHaveClass('h-10', 'w-10', 'rounded-full')
   })
 
   it('renders table variant with multiple rows', () => {
-    render(<SkeletonLoader variant="table" lines={2} />)
+    act(() => {
+      render(<SkeletonLoader variant="table" lines={2} />)
+    })
     
     // Should render container with table structure
     const container = screen.getByTestId('skeleton-container')
@@ -62,35 +75,45 @@ describe('SkeletonLoader', () => {
   })
 
   it('disables animation when animate is false', () => {
-    render(<SkeletonLoader animate={false} />)
+    act(() => {
+      render(<SkeletonLoader animate={false} />)
+    })
     
     const skeleton = screen.getByRole('status')
     expect(skeleton).not.toHaveClass('animate-pulse')
   })
 
   it('applies rounded styling when rounded is true', () => {
-    render(<SkeletonLoader rounded={true} />)
+    act(() => {
+      render(<SkeletonLoader rounded={true} />)
+    })
     
     const skeleton = screen.getByRole('status')
     expect(skeleton).toHaveClass('rounded-md')
   })
 
   it('applies custom width', () => {
-    render(<SkeletonLoader width="200px" />)
+    act(() => {
+      render(<SkeletonLoader width="200px" />)
+    })
     
     const skeleton = screen.getByRole('status')
     expect(skeleton).toHaveStyle({ width: '200px' })
   })
 
   it('applies custom height', () => {
-    render(<SkeletonLoader height="100px" />)
+    act(() => {
+      render(<SkeletonLoader height="100px" />)
+    })
     
     const skeleton = screen.getByRole('status')
     expect(skeleton).toHaveStyle({ height: '100px' })
   })
 
   it('applies custom className', () => {
-    render(<SkeletonLoader className="custom-skeleton" />)
+    act(() => {
+      render(<SkeletonLoader className="custom-skeleton" />)
+    })
     
     const skeleton = screen.getByRole('status')
     expect(skeleton).toHaveClass('custom-skeleton')
@@ -98,13 +121,17 @@ describe('SkeletonLoader', () => {
 
   it('forwards ref correctly', () => {
     const ref = { current: null }
-    render(<SkeletonLoader ref={ref} />)
+    act(() => {
+      render(<SkeletonLoader ref={ref} />)
+    })
     
     expect(ref.current).toBeInstanceOf(HTMLDivElement)
   })
 
   it('has proper accessibility attributes', () => {
-    render(<SkeletonLoader />)
+    act(() => {
+      render(<SkeletonLoader />)
+    })
     
     const skeleton = screen.getByRole('status')
     expect(skeleton).toHaveAttribute('role', 'status')
@@ -112,14 +139,18 @@ describe('SkeletonLoader', () => {
   })
 
   it('applies shimmer animation classes when animate is true', () => {
-    render(<SkeletonLoader animate={true} />)
+    act(() => {
+      render(<SkeletonLoader animate={true} />)
+    })
     
     const skeleton = screen.getByRole('status')
     expect(skeleton).toHaveClass('relative', 'overflow-hidden')
   })
 
   it('text variant last line is shorter', () => {
-    render(<SkeletonLoader variant="text" lines={2} />)
+    act(() => {
+      render(<SkeletonLoader variant="text" lines={2} />)
+    })
     
     const container = screen.getByTestId('skeleton-container')
     const skeletons = container?.querySelectorAll('.bg-gray-200')
@@ -129,7 +160,9 @@ describe('SkeletonLoader', () => {
   })
 
   it('avatar variant has fixed dimensions', () => {
-    render(<SkeletonLoader variant="avatar" width="custom" />)
+    act(() => {
+      render(<SkeletonLoader variant="avatar" width="custom" />)
+    })
     
     const skeleton = screen.getByRole('status')
     // Avatar should ignore custom width and use fixed dimensions
