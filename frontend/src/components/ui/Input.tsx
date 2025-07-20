@@ -106,7 +106,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
       )
 
       if (React.isValidElement(icon)) {
-        return React.cloneElement(icon, { className: iconClasses } as any)
+        return React.cloneElement(icon, { className: iconClasses } as React.HTMLAttributes<HTMLElement>)
       }
 
       return <div className={iconClasses}>{icon}</div>
