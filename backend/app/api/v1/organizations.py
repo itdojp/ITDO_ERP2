@@ -19,6 +19,7 @@ from app.schemas.organization import (
     OrganizationTree,
     OrganizationUpdate,
 )
+from app.schemas.user import UserSummary
 from app.services.organization import OrganizationService
 
 router = APIRouter(prefix="/organizations", tags=["organizations"])
@@ -471,7 +472,7 @@ def deactivate_organization(
 
 @router.get(
     "/{organization_id}/users",
-    response_model=PaginatedResponse[Any],  # UserSummary should be imported
+    response_model=PaginatedResponse[UserSummary],
     responses={
         401: {"model": ErrorResponse, "description": "Unauthorized"},
         403: {"model": ErrorResponse, "description": "Insufficient permissions"},
@@ -545,7 +546,6 @@ def get_organization_users(
     users = organization_users[skip : skip + limit]
 
     # Convert to summary format
-    from app.schemas.department import UserSummary
 
     user_summaries = []
     for user in users:
@@ -569,7 +569,7 @@ def get_organization_users(
             )
         )
 
-    return PaginatedResponse[Any](
+    return PaginatedResponse[UserSummary](
         items=user_summaries,
         total=total,
         page=skip // limit + 1,

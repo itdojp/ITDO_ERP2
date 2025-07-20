@@ -281,7 +281,7 @@ async def get_variance_analysis_report(
         )
 
 
-@router.get("/export/budget-performance/{fiscal_year}")
+@router.get("/export/budget-performance/{fiscal_year}", response_model=None)
 async def export_budget_performance_report(
     fiscal_year: int,
     format: str = Query("json", description="Export format: json, csv"),
