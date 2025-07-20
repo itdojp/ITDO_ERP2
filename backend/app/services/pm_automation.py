@@ -1,7 +1,7 @@
 """Project Management Automation Service Implementation."""
 
 from datetime import datetime, timedelta
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Sequence
 
 from sqlalchemy import and_, func, select
 from sqlalchemy.orm import Session
@@ -287,10 +287,10 @@ class PMAutomationService:
                 title=str(task_data["title"]),
                 project_id=project_id,
                 priority=task_data["priority"],
-                estimated_hours=float(task_data["estimated_hours"]),
+                estimated_hours=float(task_data.get("estimated_hours", 0)),
             )
 
-            task = await self.task_service.create_task(task_create, user, self.db)
+            task = self.task_service.create_task(task_create, user, self.db)
             created_tasks.append(task)
 
         return {
@@ -321,10 +321,10 @@ class PMAutomationService:
                 title=str(task_data["title"]),
                 project_id=project_id,
                 priority=task_data["priority"],
-                estimated_hours=float(task_data["estimated_hours"]),
+                estimated_hours=float(task_data.get("estimated_hours", 0)),
             )
 
-            task = await self.task_service.create_task(task_create, user, self.db)
+            task = self.task_service.create_task(task_create, user, self.db)
             created_tasks.append(task)
 
         return {
@@ -351,10 +351,10 @@ class PMAutomationService:
                 title=str(task_data["title"]),
                 project_id=project_id,
                 priority=task_data["priority"],
-                estimated_hours=float(task_data["estimated_hours"]),
+                estimated_hours=float(task_data.get("estimated_hours", 0)),
             )
 
-            task = await self.task_service.create_task(task_create, user, self.db)
+            task = self.task_service.create_task(task_create, user, self.db)
             created_tasks.append(task)
 
         return {
@@ -373,7 +373,7 @@ class PMAutomationService:
             )
         )
         result = self.db.execute(stmt)
-        return result.scalars().all()
+        return list(result.scalars().all())
 
     async def _get_project_team(self, project_id: int) -> List[User]:
         """Get project team members."""
@@ -381,7 +381,7 @@ class PMAutomationService:
         # In reality, you'd query project_members or similar table
         stmt = select(User).where(User.is_active).limit(10)
         result = self.db.execute(stmt)
-        return result.scalars().all()
+        return list(result.scalars().all())
 
     async def _balanced_assignment(
         self, tasks: List[Task], team_members: List[User]
@@ -430,16 +430,17 @@ class PMAutomationService:
                     Task.deleted_at.is_(None),
                 )
             )
-            count = self.db.execute(stmt).scalar()
+            count = self.db.execute(stmt).scalar() or 0
             workloads[member.id] = count
 
         # Assign to member with lowest workload
         assignments = []
         for task in tasks:
             if team_members:
-                min_workload_member = min(workloads, key=workloads.get)
+                min_workload_member = min(workloads, key=lambda x: workloads[x])
                 assignments.append((task.id, min_workload_member))
-                workloads[min_workload_member] += 1
+                current_workload = workloads.get(min_workload_member, 0)
+                workloads[min_workload_member] = current_workload + 1
 
         return assignments
 
@@ -451,7 +452,7 @@ class PMAutomationService:
         total_tasks_stmt = select(func.count(Task.id)).where(
             and_(Task.project_id == project_id, Task.deleted_at.is_(None))
         )
-        total_tasks = self.db.execute(total_tasks_stmt).scalar()
+        total_tasks = self.db.execute(total_tasks_stmt).scalar() or 0
 
         # Completed tasks
         completed_tasks_stmt = select(func.count(Task.id)).where(
@@ -461,7 +462,7 @@ class PMAutomationService:
                 Task.deleted_at.is_(None),
             )
         )
-        completed_tasks = self.db.execute(completed_tasks_stmt).scalar()
+        completed_tasks = self.db.execute(completed_tasks_stmt).scalar() or 0
 
         # Tasks completed in period
         period_completed_stmt = select(func.count(Task.id)).where(
@@ -472,7 +473,7 @@ class PMAutomationService:
                 Task.deleted_at.is_(None),
             )
         )
-        period_completed = self.db.execute(period_completed_stmt).scalar()
+        period_completed = self.db.execute(period_completed_stmt).scalar() or 0
 
         # Overdue tasks
         overdue_tasks_stmt = select(func.count(Task.id)).where(
@@ -483,7 +484,7 @@ class PMAutomationService:
                 Task.deleted_at.is_(None),
             )
         )
-        overdue_tasks = self.db.execute(overdue_tasks_stmt).scalar()
+        overdue_tasks = self.db.execute(overdue_tasks_stmt).scalar() or 0
 
         completion_rate = (
             (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0
@@ -495,7 +496,7 @@ class PMAutomationService:
             "period_completed": period_completed,
             "overdue_tasks": overdue_tasks,
             "completion_rate": round(completion_rate, 2),
-            "in_progress_tasks": total_tasks - completed_tasks,
+            "in_progress_tasks": (total_tasks or 0) - (completed_tasks or 0),
         }
 
     async def _calculate_completion_trends(
@@ -521,10 +522,10 @@ class PMAutomationService:
 
         return {
             "daily_completions": daily_completions,
-            "average_daily_completion": sum(daily_completions.values())
+            "average_daily_completion": (sum(daily_completions.values())
             / len(daily_completions)
-            if daily_completions
-            else 0,
+            if daily_completions and len(daily_completions) > 0
+            else 0),
         }
 
     async def _identify_project_risks(self, project_id: int) -> List[Dict[str, Any]]:
@@ -540,7 +541,7 @@ class PMAutomationService:
                 Task.deleted_at.is_(None),
             )
         )
-        overdue_count = self.db.execute(overdue_stmt).scalar()
+        overdue_count = self.db.execute(overdue_stmt).scalar() or 0
 
         if overdue_count > 5:
             risks.append(
@@ -560,7 +561,7 @@ class PMAutomationService:
                 Task.deleted_at.is_(None),
             )
         )
-        recent_activity = self.db.execute(recent_activity_stmt).scalar()
+        recent_activity = self.db.execute(recent_activity_stmt).scalar() or 0
 
         if recent_activity == 0:
             risks.append(

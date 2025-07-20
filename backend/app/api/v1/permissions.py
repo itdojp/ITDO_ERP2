@@ -1,6 +1,6 @@
 """Permission Matrix API endpoints."""
 
-from typing import Optional
+from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
@@ -21,7 +21,7 @@ router = APIRouter(prefix="/permissions", tags=["permissions"])
 
 @router.get(
     "/check",
-    response_model=dict,
+    response_model=dict[str, Any],
     responses={
         401: {"model": ErrorResponse, "description": "Unauthorized"},
         403: {"model": ErrorResponse, "description": "Insufficient permissions"},
@@ -39,7 +39,7 @@ def check_user_permission(
     ),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> dict:
+) -> dict[str, Any]:
     """
     Check if a user has a specific permission.
 
@@ -94,7 +94,7 @@ def check_user_permission(
 
 @router.get(
     "/user/level",
-    response_model=dict,
+    response_model=dict[str, Any],
     responses={
         401: {"model": ErrorResponse, "description": "Unauthorized"},
         403: {"model": ErrorResponse, "description": "Insufficient permissions"},
@@ -108,7 +108,7 @@ def get_user_permission_level(
     ),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> dict:
+) -> dict[str, Any]:
     """
     Get the effective permission level for a user.
 
@@ -165,7 +165,7 @@ def get_user_permission_level(
 
 @router.get(
     "/user/permissions",
-    response_model=dict,
+    response_model=dict[str, Any],
     responses={
         401: {"model": ErrorResponse, "description": "Unauthorized"},
         403: {"model": ErrorResponse, "description": "Insufficient permissions"},
@@ -179,7 +179,7 @@ def get_user_all_permissions(
     ),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-) -> dict:
+) -> dict[str, Any]:
     """
     Get all permissions for a user.
 
@@ -242,7 +242,7 @@ def get_user_all_permissions(
 
 @router.get(
     "/matrix/levels",
-    response_model=dict,
+    response_model=dict[str, Any],
     responses={
         401: {"model": ErrorResponse, "description": "Unauthorized"},
         403: {"model": ErrorResponse, "description": "Insufficient permissions"},
@@ -250,7 +250,7 @@ def get_user_all_permissions(
 )
 def get_permission_levels(
     current_user: User = Depends(get_current_active_user),
-) -> dict:
+) -> dict[str, Any]:
     """
     Get all permission levels and their hierarchy.
 
@@ -289,7 +289,7 @@ def get_permission_levels(
 
 @router.get(
     "/matrix/level/{level}/permissions",
-    response_model=dict,
+    response_model=dict[str, Any],
     responses={
         401: {"model": ErrorResponse, "description": "Unauthorized"},
         403: {"model": ErrorResponse, "description": "Insufficient permissions"},
@@ -299,7 +299,7 @@ def get_permission_levels(
 def get_level_permissions(
     level: str,
     current_user: User = Depends(get_current_active_user),
-) -> dict:
+) -> dict[str, Any]:
     """
     Get all permissions for a specific permission level.
 
@@ -352,7 +352,7 @@ def get_level_permissions(
 
 @router.get(
     "/matrix/compare",
-    response_model=dict,
+    response_model=dict[str, Any],
     responses={
         401: {"model": ErrorResponse, "description": "Unauthorized"},
         403: {"model": ErrorResponse, "description": "Insufficient permissions"},
@@ -363,7 +363,7 @@ def compare_permission_levels(
     level1: str = Query(..., description="First permission level"),
     level2: str = Query(..., description="Second permission level"),
     current_user: User = Depends(get_current_active_user),
-) -> dict:
+) -> dict[str, Any]:
     """
     Compare permissions between two permission levels.
 
@@ -417,7 +417,7 @@ def compare_permission_levels(
 
 @router.get(
     "/matrix/report",
-    response_model=dict,
+    response_model=dict[str, Any],
     responses={
         401: {"model": ErrorResponse, "description": "Unauthorized"},
         403: {"model": ErrorResponse, "description": "Insufficient permissions"},
@@ -425,7 +425,7 @@ def compare_permission_levels(
 )
 def get_permission_matrix_report(
     current_user: User = Depends(get_current_active_user),
-) -> dict:
+) -> dict[str, Any]:
     """
     Generate a comprehensive permission matrix report.
 
@@ -455,7 +455,7 @@ def get_permission_matrix_report(
 
 @router.post(
     "/matrix/validate",
-    response_model=dict,
+    response_model=dict[str, Any],
     responses={
         401: {"model": ErrorResponse, "description": "Unauthorized"},
         403: {"model": ErrorResponse, "description": "Insufficient permissions"},
@@ -463,7 +463,7 @@ def get_permission_matrix_report(
 )
 def validate_permission_matrix(
     current_user: User = Depends(get_current_active_user),
-) -> dict:
+) -> dict[str, Any]:
     """
     Validate the permission matrix hierarchy.
 

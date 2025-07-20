@@ -4,7 +4,7 @@ Financial Reports API endpoints for Phase 4 Financial Management.
 """
 
 from datetime import date
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -286,7 +286,7 @@ async def export_budget_performance_report(
     format: str = Query("json", description="Export format: json, csv"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> Dict[str, Any]:
+) -> Union[Dict[str, Any], "JSONResponse", "StreamingResponse"]:
     """Export budget performance report in various formats."""
     if not current_user.organization_id:
         raise HTTPException(
@@ -371,6 +371,9 @@ async def export_budget_performance_report(
                     )
                 },
             )
+
+        # This should never be reached, but needed for type checking
+        return {"error": "Unknown format"}
 
     except Exception as e:
         raise HTTPException(

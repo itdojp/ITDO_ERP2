@@ -13,9 +13,8 @@ import type {
   // UserSearchParams,
 } from '../types/user'
 
-// Query Keys
-// export const USER_PROFILE_KEYS = { // Commented out to avoid unused export warning
-const USER_PROFILE_KEYS = {
+// Query Keys - Exported for use in components and other hooks
+export const USER_PROFILE_KEYS = {
   all: ['userProfile'] as const,
   profile: (userId: number) => [...USER_PROFILE_KEYS.all, 'profile', userId] as const,
   // preferences: () => [...USER_PROFILE_KEYS.all, 'preferences'] as const,
@@ -27,9 +26,8 @@ const USER_PROFILE_KEYS = {
     [...USER_PROFILE_KEYS.all, 'privacyCheck', type, userId] as const,
 }
 
-// Profile Hooks - Currently Used (Commented out to avoid unused export warnings)
-// export const useUserProfile = (userId: number) => {
-const useUserProfile = (userId: number) => {
+// Profile Hooks - Exported for use throughout the application
+export const useUserProfile = (userId: number) => {
   return useQuery({
     queryKey: USER_PROFILE_KEYS.profile(userId),
     queryFn: () => userProfileApi.getProfile(userId),
@@ -37,8 +35,7 @@ const useUserProfile = (userId: number) => {
   })
 }
 
-// export const useUpdateProfile = () => {
-const useUpdateProfile = () => {
+export const useUpdateProfile = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -54,8 +51,7 @@ const useUpdateProfile = () => {
   })
 }
 
-// export const useUploadProfileImage = () => {
-const useUploadProfileImage = () => {
+export const useUploadProfileImage = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -70,8 +66,7 @@ const useUploadProfileImage = () => {
   })
 }
 
-// export const useDeleteProfileImage = () => {
-const useDeleteProfileImage = () => {
+export const useDeleteProfileImage = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -85,9 +80,8 @@ const useDeleteProfileImage = () => {
   })
 }
 
-// Privacy Check Hooks - Currently Used
-// export const useCheckProfileVisibility = (userId: number) => {
-const useCheckProfileVisibility = (userId: number) => {
+// Privacy Check Hooks - Exported for use throughout the application
+export const useCheckProfileVisibility = (userId: number) => {
   return useQuery({
     queryKey: USER_PROFILE_KEYS.privacyCheck('profile', userId),
     queryFn: () => userProfileApi.checkProfileVisibility(userId),
