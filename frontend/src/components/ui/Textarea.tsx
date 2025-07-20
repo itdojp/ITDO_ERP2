@@ -29,7 +29,8 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
     rows = 3,
     ...props
   }, ref) => {
-    const textareaId = id || React.useId()
+    const generatedId = React.useId()
+    const textareaId = id || generatedId
 
     const baseStyles = [
       'w-full rounded-md border transition-colors duration-200',
