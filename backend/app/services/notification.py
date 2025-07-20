@@ -7,7 +7,7 @@ in-app notifications, email notifications, push notifications, and webhook integ
 import json
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 import redis
 from fastapi import BackgroundTasks
@@ -43,12 +43,15 @@ class NotificationService:
         self.redis_client = self._get_redis_client()
         self.mail_config = self._get_mail_config()
 
-    def _get_redis_client(self) -> Optional[redis.Redis]:
+    def _get_redis_client(self) -> Optional[redis.Redis[str]]:
         """Get Redis client for queue management."""
         try:
-            client = redis.from_url(
-                settings.REDIS_URL,
-                decode_responses=True,
+            client = cast(
+                redis.Redis[str],
+                redis.from_url(
+                    settings.REDIS_URL,
+                    decode_responses=True,
+                )
             )
             # Test connection
             client.ping()
@@ -131,8 +134,10 @@ class NotificationService:
         if unread_only:
             query = query.filter(~Notification.is_read)
 
-        if category:
-            query = query.filter(Notification.category == category)
+        # Note: category field does not exist in Notification model
+        # This filter is commented out until category field is added
+        # if category:
+        #     query = query.filter(Notification.category == category)
 
         if organization_id:
             query = query.filter(Notification.organization_id == organization_id)
@@ -480,16 +485,14 @@ class NotificationService:
             priority.value: count for priority, count in priority_stats
         }
 
-        # Notifications by category
-        category_stats = (
-            base_query.filter(Notification.category.isnot(None))
-            .with_entities(Notification.category, func.count(Notification.id))
-            .group_by(Notification.category)
-            .all()
-        )
-        notifications_by_category = {
-            category: count for category, count in category_stats
-        }
+        # Notifications by category (disabled until category field is added)
+        # category_stats = (
+        #     base_query.filter(Notification.category.isnot(None))
+        #     .with_entities(Notification.category, func.count(Notification.id))
+        #     .group_by(Notification.category)
+        #     .all()
+        # )
+        notifications_by_category: Dict[str, int] = {}
 
         # Recent activity (last 10 notifications)
         recent_notifications = (

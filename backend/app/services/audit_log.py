@@ -420,7 +420,7 @@ class AuditLogService:
         self,
         apply_retention_policies: bool = True,
         archive_before_delete: bool = True,
-        performed_by: int = None,
+        performed_by: Optional[int] = None,
     ) -> Tuple[int, int]:
         """Clean up audit logs based on retention policies."""
         deleted_count = 0

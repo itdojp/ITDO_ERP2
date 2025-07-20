@@ -162,6 +162,8 @@ class AuditService:
         db: Session | None = None,
     ) -> dict[str, Any]:
         """Get audit log statistics."""
+        if db is None:
+            raise ValueError("Database session is required")
         query = db.query(AuditLog)
 
         # Filter by organization if not superuser
@@ -212,6 +214,8 @@ class AuditService:
         db: Session | None = None,
     ) -> str:
         """Export audit logs as CSV."""
+        if db is None:
+            raise ValueError("Database session is required")
         query = db.query(AuditLog)
 
         # Filter by organization if not superuser

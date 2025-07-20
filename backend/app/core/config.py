@@ -126,6 +126,17 @@ class Settings(BaseSettings):
     BCRYPT_ROUNDS: int = 12
     PASSWORD_MIN_LENGTH: int = 8
 
+    # Email configuration
+    MAIL_USERNAME: str = Field(default="", description="Email username")
+    MAIL_PASSWORD: str = Field(default="", description="Email password")
+    MAIL_FROM: str = Field(default="noreply@itdo.jp", description="From email address")
+    MAIL_PORT: int = Field(default=587, description="Email port")
+    MAIL_SERVER: str = Field(default="smtp.gmail.com", description="Email server")
+    MAIL_FROM_NAME: str = Field(default="ITDO ERP System", description="From name")
+    MAIL_STARTTLS: bool = Field(default=True, description="Use STARTTLS")
+    MAIL_SSL_TLS: bool = Field(default=False, description="Use SSL/TLS")
+    MAIL_USE_CREDENTIALS: bool = Field(default=True, description="Use credentials")
+
     # 開発環境フラグ
     DEBUG: bool = False
     ENVIRONMENT: str = "development"
