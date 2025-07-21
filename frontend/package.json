@@ -20,7 +20,15 @@
     "e2e:report": "playwright show-report playwright-report",
     "e2e:install": "playwright install",
     "test:e2e": "playwright test",
-    "test:e2e:headed": "playwright test --headed"
+    "test:e2e:headed": "playwright test --headed",
+    "analyze": "ANALYZE=true vite build --config vite.config.analyzer.ts",
+    "analyze:serve": "ANALYZE=true vite build --config vite.config.analyzer.ts && npx serve dist",
+    "build:analyze": "vite build --config vite.config.analyzer.ts",
+    "bundle:stats": "vite build --config vite.config.analyzer.ts --mode production",
+    "size:check": "bundlesize",
+    "deps:analyze": "npx depcheck",
+    "deps:unused": "npx unimported",
+    "perf:profile": "vite build --profile"
   },
   "dependencies": {
     "@tanstack/react-query": "^4.36.1",
@@ -58,7 +66,11 @@
     "tailwindcss": "^3.3.5",
     "typescript": "^5.2.2",
     "vite": "^4.5.0",
-    "vitest": "^0.34.6"
+    "vitest": "^0.34.6",
+    "rollup-plugin-visualizer": "^5.12.0",
+    "bundlesize": "^0.18.2",
+    "depcheck": "^1.4.7",
+    "unimported": "^1.31.1"
   },
   "volta": {
     "node": "18.18.2",

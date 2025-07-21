@@ -14,7 +14,7 @@ export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElem
   loading?: boolean
 }
 
-const Input = React.forwardRef<HTMLInputElement, InputProps>(
+const Input = React.memo(React.forwardRef<HTMLInputElement, InputProps>(
   ({
     className,
     variant = 'default',
@@ -197,7 +197,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
       </div>
     )
   }
-)
+))
 
 Input.displayName = 'Input'
 

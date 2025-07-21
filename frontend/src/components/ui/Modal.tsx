@@ -16,7 +16,7 @@ export interface ModalProps {
   className?: string
 }
 
-const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
+const Modal = React.memo(React.forwardRef<HTMLDivElement, ModalProps>(
   ({
     isOpen,
     onClose,
@@ -186,7 +186,7 @@ const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
 
     return createPortal(modalContent, document.body)
   }
-)
+))
 
 Modal.displayName = 'Modal'
 

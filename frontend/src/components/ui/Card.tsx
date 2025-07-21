@@ -8,7 +8,7 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode
 }
 
-const Card = React.forwardRef<HTMLDivElement, CardProps>(
+const Card = React.memo(React.forwardRef<HTMLDivElement, CardProps>(
   ({ className, title, variant = 'default', size = 'md', children, ...props }, ref) => {
     const baseClasses = [
       'border rounded-lg shadow-sm transition-colors duration-150'
@@ -67,7 +67,7 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
       </div>
     )
   }
-)
+))
 
 Card.displayName = 'Card'
 

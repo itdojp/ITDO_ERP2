@@ -1,5 +1,6 @@
 import React from 'react'
 import { cn } from '../../lib/utils'
+import { usePerformanceMonitor } from '../../hooks/usePerformanceMonitor'
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'default' | 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive'
@@ -10,7 +11,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   iconPosition?: 'left' | 'right'
 }
 
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+const Button = React.memo(React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({
     className,
     variant = 'default',
@@ -23,6 +24,11 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     children,
     ...props
   }, ref) => {
+    // Performance monitoring
+    const { metrics } = usePerformanceMonitor({
+      componentName: 'Button',
+      threshold: 5 // Buttons should render very quickly
+    })
     const baseStyles = [
       'inline-flex items-center justify-center rounded-md font-medium transition-colors',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
@@ -53,7 +59,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       className
     )
 
-    const renderIcon = (position: 'left' | 'right') => {
+    const renderIcon = React.useCallback((position: 'left' | 'right') => {
       if (!icon || iconPosition !== position) return null
       return (
         <span className={cn(
@@ -64,9 +70,9 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           {icon}
         </span>
       )
-    }
+    }, [icon, iconPosition, loading])
 
-    const renderContent = () => {
+    const renderContent = React.useCallback(() => {
       if (loading) {
         return (
           <>
@@ -89,7 +95,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           {renderIcon('right')}
         </>
       )
-    }
+    }, [loading, renderIcon, children])
 
     return (
       <button
@@ -102,7 +108,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       </button>
     )
   }
-)
+))
 
 Button.displayName = 'Button'
 

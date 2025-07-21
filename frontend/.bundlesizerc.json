@@ -1,0 +1,32 @@
+{
+  "files": [
+    {
+      "path": "dist/**/*.js",
+      "maxSize": "500kb",
+      "compression": "gzip"
+    },
+    {
+      "path": "dist/**/vendor*.js",
+      "maxSize": "800kb",
+      "compression": "gzip"
+    },
+    {
+      "path": "dist/**/main*.js",
+      "maxSize": "300kb",
+      "compression": "gzip"
+    },
+    {
+      "path": "dist/**/*.css",
+      "maxSize": "100kb",
+      "compression": "gzip"
+    },
+    {
+      "path": "dist/assets/**/*.{png,jpg,jpeg,gif,svg}",
+      "maxSize": "50kb"
+    }
+  ],
+  "ci": {
+    "trackBranches": ["main", "develop"],
+    "repoBranchBase": "main"
+  }
+}
