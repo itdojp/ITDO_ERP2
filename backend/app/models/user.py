@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from app.models.user_preferences import UserPreferences
     from app.models.user_privacy import UserPrivacySettings
     from app.models.user_session import UserSession
+    from app.models.notification import NotificationPreference, Notification
 
 # Re-export for backwards compatibility
 from app.models.password_history import PasswordHistory
@@ -107,6 +108,18 @@ class User(SoftDeletableModel):
         foreign_keys="UserOrganization.user_id",
         back_populates="user",
         cascade="all, delete-orphan",
+    )
+
+    # Notification relationships
+    notification_preferences: Mapped[list["NotificationPreference"]] = relationship(
+        "NotificationPreference",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+    received_notifications: Mapped[list["Notification"]] = relationship(
+        "Notification",
+        foreign_keys="Notification.recipient_user_id",
+        back_populates="recipient_user",
     )
 
     @classmethod

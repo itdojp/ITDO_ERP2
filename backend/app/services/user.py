@@ -4,12 +4,15 @@ import random
 import string
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
+from typing import Any, Dict, List, Optional, Union
 
 from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.base_service import CachedService
 from app.core.exceptions import BusinessLogicError, NotFound, PermissionDenied
+from app.core.service_registry import register_service
 from app.models.role import UserRole
 from app.models.user import User
 from app.repositories.user import UserRepository
@@ -33,12 +36,13 @@ class ExportData:
     rows: list[list[str]]
 
 
-class UserService:
-    """User management service class with type-safe operations."""
+@register_service(name="user", singleton=False, aliases=["users", "user_management"])
+class UserService(CachedService[User]):
+    """User management service class with type-safe operations and caching."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Union[Session, AsyncSession]):
         """Initialize service with database session."""
-        self.db = db
+        super().__init__(User, db, cache_ttl=600)  # 10 minutes cache
         self.repository = UserRepository(db)
         self.audit_logger = AuditLogger()
 

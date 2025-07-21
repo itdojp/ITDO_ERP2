@@ -51,6 +51,14 @@ from app.models.workflow import (
     WorkflowNode,
     WorkflowTask,
 )
+from app.models.security_event import (
+    SecurityEvent,
+    SecurityIncident,
+    SecurityAlert,
+    ThreatLevel,
+    SecurityEventType,
+    SecurityIncidentStatus,
+)
 
 __all__ = [
     "User",
@@ -102,4 +110,11 @@ __all__ = [
     "DashboardWidget",
     "ReportExecution",
     "DataSource",
+    # Security Models
+    "SecurityEvent",
+    "SecurityIncident",
+    "SecurityAlert",
+    "ThreatLevel",
+    "SecurityEventType",
+    "SecurityIncidentStatus",
 ]

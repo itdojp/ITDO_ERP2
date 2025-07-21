@@ -15,9 +15,44 @@ from app.core.monitoring import (
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
+    description="ITDO ERP System v2 - Modern ERP with GraphQL, Inventory Management, and Advanced Features",
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     docs_url=f"{settings.API_V1_STR}/docs",
     redoc_url=f"{settings.API_V1_STR}/redoc",
+    openapi_tags=[
+        {
+            "name": "Authentication",
+            "description": "User authentication and authorization operations",
+        },
+        {
+            "name": "Users",
+            "description": "User management operations",
+        },
+        {
+            "name": "Organizations",
+            "description": "Organization and department management",
+        },
+        {
+            "name": "GraphQL",
+            "description": "GraphQL API endpoint with flexible querying",
+        },
+        {
+            "name": "Inventory",
+            "description": "Inventory and stock management operations",
+        },
+        {
+            "name": "Orders",
+            "description": "Order processing and management",
+        },
+        {
+            "name": "Security",
+            "description": "Security audit and monitoring features",
+        },
+        {
+            "name": "Analytics",
+            "description": "Reports and analytics endpoints",
+        },
+    ]
 )
 
 # Add monitoring middleware

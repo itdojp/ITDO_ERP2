@@ -16,6 +16,7 @@ if TYPE_CHECKING:
         OrganizationInvitation,
         UserOrganization,
     )
+    from app.models.notification import NotificationTemplate
 
 
 class Organization(SoftDeletableModel):
@@ -198,6 +199,13 @@ class Organization(SoftDeletableModel):
     )
     updater: Mapped[Optional["User"]] = relationship(
         "User", foreign_keys="Organization.updated_by", lazy="joined"
+    )
+
+    # Notification relationships
+    notification_templates: Mapped[list["NotificationTemplate"]] = relationship(
+        "NotificationTemplate",
+        back_populates="organization",
+        cascade="all, delete-orphan",
     )
 
     def __repr__(self) -> str:

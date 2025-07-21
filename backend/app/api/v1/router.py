@@ -3,22 +3,36 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.api.v1 import (
+    advanced_api_security,
+    advanced_graphql,
+    advanced_search,
+    api_versioning,
     applications,
     audit,
     audit_logs,
     auth,
     budgets,
+    business_intelligence,
+    cache_management,
+    comprehensive_audit,
+    comprehensive_security_audit,
     cross_tenant_permissions,
     customer_activities,
     customer_import_export,
     customers,
+    data_pipeline,
     departments,
     enhanced_security_monitoring,
     expense_categories,
     expenses,
     financial_reports,
+    graphql,
     health,
+    inventory,
+    microservices_management,
     multi_tenant,
+    multi_tenant_performance,
+    notifications,
     opportunities,
     organizations,
     password_security,
@@ -29,12 +43,14 @@ from app.api.v1 import (
     # role_permission_ui,  # Temporarily disabled due to syntax errors
     roles,
     sales_analytics,
+    security_compliance,
     tasks,
     user_preferences,
     user_privacy,
     user_profile,
     users,
     users_extended,
+    workflow_automation,
     workflows,
 )
 from app.core.database import get_db
@@ -80,6 +96,9 @@ api_router.include_router(
 api_router.include_router(
     enhanced_security_monitoring.router, prefix="/security-monitoring", tags=["security", "monitoring"]
 )
+api_router.include_router(
+    comprehensive_security_audit.router, prefix="/api/v1", tags=["security", "audit"]
+)
 api_router.include_router(pm_automation.router)
 api_router.include_router(budgets.router, prefix="/budgets", tags=["budgets"])
 
@@ -109,6 +128,110 @@ api_router.include_router(
     customer_import_export.router,
     prefix="/customer-import-export",
     tags=["crm", "data-management"]
+)
+
+# GraphQL API endpoint
+api_router.include_router(
+    graphql.graphql_app, 
+    prefix="/graphql", 
+    tags=["graphql", "api"]
+)
+
+# Inventory Management API
+api_router.include_router(
+    inventory.router, 
+    tags=["inventory", "stock-management"]
+)
+
+# Notification System API
+api_router.include_router(
+    notifications.router, 
+    prefix="/notifications",
+    tags=["notifications", "communication"]
+)
+
+# API Versioning System
+api_router.include_router(
+    api_versioning.router,
+    prefix="/api-versioning",
+    tags=["versioning", "management"]
+)
+
+# Comprehensive Audit System
+api_router.include_router(
+    comprehensive_audit.router,
+    prefix="/comprehensive-audit",
+    tags=["audit", "compliance", "security"]
+)
+
+# Microservices Management
+api_router.include_router(
+    microservices_management.router,
+    prefix="/microservices",
+    tags=["microservices", "service-discovery", "gateway"]
+)
+
+# Advanced Cache Management
+api_router.include_router(
+    cache_management.router,
+    prefix="/cache",
+    tags=["cache", "performance", "multi-level"]
+)
+
+# Multi-Tenant Performance Optimization
+api_router.include_router(
+    multi_tenant_performance.router,
+    prefix="/performance",
+    tags=["performance", "multi-tenant", "optimization"]
+)
+
+# Business Intelligence & Analytics
+api_router.include_router(
+    business_intelligence.router,
+    prefix="/bi",
+    tags=["business-intelligence", "analytics", "reporting"]
+)
+
+# Data Pipeline & ETL Processing
+api_router.include_router(
+    data_pipeline.router,
+    prefix="/data-pipeline",
+    tags=["data-pipeline", "etl", "data-processing"]
+)
+
+# Enterprise Security & Compliance
+api_router.include_router(
+    security_compliance.router,
+    prefix="/security",
+    tags=["security", "compliance", "enterprise"]
+)
+
+# Workflow Automation & Integration
+api_router.include_router(
+    workflow_automation.router,
+    prefix="/workflow-automation",
+    tags=["workflow", "automation", "integration"]
+)
+
+# Advanced API Security & Protection
+api_router.include_router(
+    advanced_api_security.router,
+    prefix="/api-security",
+    tags=["api-security", "protection", "rate-limiting"]
+)
+
+# Advanced GraphQL Features
+api_router.include_router(
+    advanced_graphql.router,
+    prefix="/advanced-graphql",
+    tags=["graphql", "advanced", "federation", "analytics"]
+)
+
+# Advanced Search & Indexing
+api_router.include_router(
+    advanced_search.router,
+    prefix="/advanced-search",
+    tags=["search", "indexing", "full-text", "analytics"]
 )
 
 
