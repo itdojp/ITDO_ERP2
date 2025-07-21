@@ -22,7 +22,9 @@ from app.api.v1 import (
     customers,
     data_pipeline,
     departments,
+    distributed_cache,
     enhanced_security_monitoring,
+    event_api,
     expense_categories,
     expenses,
     financial_reports,
@@ -50,6 +52,7 @@ from app.api.v1 import (
     user_profile,
     users,
     users_extended,
+    websocket_api,
     workflow_automation,
     workflows,
 )
@@ -232,6 +235,27 @@ api_router.include_router(
     advanced_search.router,
     prefix="/advanced-search",
     tags=["search", "indexing", "full-text", "analytics"]
+)
+
+# Distributed Cache Management
+api_router.include_router(
+    distributed_cache.router,
+    prefix="/distributed-cache",
+    tags=["cache", "distributed", "performance"]
+)
+
+# Real-time WebSocket API
+api_router.include_router(
+    websocket_api.router,
+    prefix="/websocket",
+    tags=["websocket", "real-time", "messaging"]
+)
+
+# Event-Driven Architecture
+api_router.include_router(
+    event_api.router,
+    prefix="/events",
+    tags=["events", "event-driven", "architecture"]
 )
 
 
