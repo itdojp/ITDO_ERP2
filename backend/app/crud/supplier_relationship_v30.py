@@ -1,29 +1,41 @@
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import or_, and_, func, desc, asc, case
-from typing import Optional, List, Dict, Any
-from datetime import datetime, timedelta, date
 import uuid
+from datetime import date, datetime, timedelta
 from decimal import Decimal
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy import and_, asc, desc, or_
+from sqlalchemy.orm import Session, joinedload
 
 from app.models.supplier_relationship_extended import (
-    SupplierRelationship, SupplierPerformanceReview, SupplierNegotiation, 
-    SupplierContract, ContractAmendment, ContractMilestone, NegotiationMeeting
+    ContractMilestone,
+    SupplierContract,
+    SupplierNegotiation,
+    SupplierPerformanceReview,
+    SupplierRelationship,
 )
 from app.schemas.supplier_relationship_v30 import (
-    SupplierRelationshipCreate, SupplierRelationshipUpdate,
-    SupplierPerformanceReviewCreate, SupplierPerformanceReviewUpdate,
-    SupplierNegotiationCreate, SupplierNegotiationUpdate,
-    SupplierContractCreate, SupplierContractUpdate
+    SupplierContractCreate,
+    SupplierContractUpdate,
+    SupplierNegotiationCreate,
+    SupplierNegotiationUpdate,
+    SupplierPerformanceReviewCreate,
+    SupplierPerformanceReviewUpdate,
+    SupplierRelationshipCreate,
+    SupplierRelationshipUpdate,
 )
+
 
 class NotFoundError(Exception):
     pass
 
+
 class DuplicateError(Exception):
     pass
 
+
 class InvalidStatusError(Exception):
     pass
+
 
 class SupplierRelationshipCRUD:
     def __init__(self, db: Session):
@@ -34,62 +46,89 @@ class SupplierRelationshipCRUD:
             self.db.query(SupplierRelationship)
             .options(
                 joinedload(SupplierRelationship.supplier),
-                joinedload(SupplierRelationship.relationship_manager)
+                joinedload(SupplierRelationship.relationship_manager),
             )
             .filter(SupplierRelationship.id == relationship_id)
             .first()
         )
 
     def get_by_supplier(self, supplier_id: str) -> Optional[SupplierRelationship]:
-        return self.db.query(SupplierRelationship).filter(
-            SupplierRelationship.supplier_id == supplier_id
-        ).first()
+        return (
+            self.db.query(SupplierRelationship)
+            .filter(SupplierRelationship.supplier_id == supplier_id)
+            .first()
+        )
 
     def get_multi(
-        self,
-        skip: int = 0,
-        limit: int = 100,
-        filters: Optional[Dict[str, Any]] = None
+        self, skip: int = 0, limit: int = 100, filters: Optional[Dict[str, Any]] = None
     ) -> tuple[List[SupplierRelationship], int]:
         query = self.db.query(SupplierRelationship)
 
         if filters:
             if filters.get("supplier_id"):
-                query = query.filter(SupplierRelationship.supplier_id == filters["supplier_id"])
+                query = query.filter(
+                    SupplierRelationship.supplier_id == filters["supplier_id"]
+                )
             if filters.get("relationship_manager_id"):
-                query = query.filter(SupplierRelationship.relationship_manager_id == filters["relationship_manager_id"])
+                query = query.filter(
+                    SupplierRelationship.relationship_manager_id
+                    == filters["relationship_manager_id"]
+                )
             if filters.get("relationship_type"):
-                query = query.filter(SupplierRelationship.relationship_type == filters["relationship_type"])
+                query = query.filter(
+                    SupplierRelationship.relationship_type
+                    == filters["relationship_type"]
+                )
             if filters.get("partnership_level"):
-                query = query.filter(SupplierRelationship.partnership_level == filters["partnership_level"])
+                query = query.filter(
+                    SupplierRelationship.partnership_level
+                    == filters["partnership_level"]
+                )
             if filters.get("contract_type"):
-                query = query.filter(SupplierRelationship.contract_type == filters["contract_type"])
+                query = query.filter(
+                    SupplierRelationship.contract_type == filters["contract_type"]
+                )
             if filters.get("status"):
                 query = query.filter(SupplierRelationship.status == filters["status"])
             if filters.get("risk_level"):
-                query = query.filter(SupplierRelationship.risk_level == filters["risk_level"])
+                query = query.filter(
+                    SupplierRelationship.risk_level == filters["risk_level"]
+                )
             if filters.get("strategic_importance"):
-                query = query.filter(SupplierRelationship.strategic_importance == filters["strategic_importance"])
+                query = query.filter(
+                    SupplierRelationship.strategic_importance
+                    == filters["strategic_importance"]
+                )
             if filters.get("overall_score_min"):
-                query = query.filter(SupplierRelationship.overall_score >= filters["overall_score_min"])
+                query = query.filter(
+                    SupplierRelationship.overall_score >= filters["overall_score_min"]
+                )
             if filters.get("annual_spend_min"):
-                query = query.filter(SupplierRelationship.annual_spend >= filters["annual_spend_min"])
+                query = query.filter(
+                    SupplierRelationship.annual_spend >= filters["annual_spend_min"]
+                )
             if filters.get("contract_expiring_days"):
-                expiry_date = date.today() + timedelta(days=filters["contract_expiring_days"])
+                expiry_date = date.today() + timedelta(
+                    days=filters["contract_expiring_days"]
+                )
                 query = query.filter(
                     SupplierRelationship.contract_end_date <= expiry_date,
-                    SupplierRelationship.contract_end_date >= date.today()
+                    SupplierRelationship.contract_end_date >= date.today(),
                 )
             if filters.get("review_overdue"):
-                query = query.filter(SupplierRelationship.next_review_date < date.today())
+                query = query.filter(
+                    SupplierRelationship.next_review_date < date.today()
+                )
 
         total = query.count()
-        
+
         # Sorting
         sort_by = filters.get("sort_by", "created_at") if filters else "created_at"
         sort_order = filters.get("sort_order", "desc") if filters else "desc"
-        
-        sort_column = getattr(SupplierRelationship, sort_by, SupplierRelationship.created_at)
+
+        sort_column = getattr(
+            SupplierRelationship, sort_by, SupplierRelationship.created_at
+        )
         if sort_order == "asc":
             query = query.order_by(asc(sort_column))
         else:
@@ -99,11 +138,15 @@ class SupplierRelationshipCRUD:
 
         return relationships, total
 
-    def create(self, relationship_in: SupplierRelationshipCreate, user_id: str) -> SupplierRelationship:
+    def create(
+        self, relationship_in: SupplierRelationshipCreate, user_id: str
+    ) -> SupplierRelationship:
         # Check if relationship already exists for this supplier
         existing = self.get_by_supplier(relationship_in.supplier_id)
         if existing:
-            raise DuplicateError("Supplier relationship already exists for this supplier")
+            raise DuplicateError(
+                "Supplier relationship already exists for this supplier"
+            )
 
         db_relationship = SupplierRelationship(
             id=str(uuid.uuid4()),
@@ -139,7 +182,7 @@ class SupplierRelationshipCRUD:
             strengths=relationship_in.strengths,
             weaknesses=relationship_in.weaknesses,
             improvement_areas=relationship_in.improvement_areas,
-            action_items=relationship_in.action_items
+            action_items=relationship_in.action_items,
         )
 
         self.db.add(db_relationship)
@@ -148,7 +191,9 @@ class SupplierRelationshipCRUD:
 
         return db_relationship
 
-    def update(self, relationship_id: str, relationship_in: SupplierRelationshipUpdate) -> Optional[SupplierRelationship]:
+    def update(
+        self, relationship_id: str, relationship_in: SupplierRelationshipUpdate
+    ) -> Optional[SupplierRelationship]:
         relationship = self.get_by_id(relationship_id)
         if not relationship:
             raise NotFoundError(f"Supplier relationship {relationship_id} not found")
@@ -194,26 +239,30 @@ class SupplierPerformanceReviewCRUD:
         self.db = db
 
     def get_by_id(self, review_id: str) -> Optional[SupplierPerformanceReview]:
-        return self.db.query(SupplierPerformanceReview).filter(
-            SupplierPerformanceReview.id == review_id
-        ).first()
+        return (
+            self.db.query(SupplierPerformanceReview)
+            .filter(SupplierPerformanceReview.id == review_id)
+            .first()
+        )
 
     def get_multi_by_relationship(
-        self,
-        relationship_id: str,
-        skip: int = 0,
-        limit: int = 100
+        self, relationship_id: str, skip: int = 0, limit: int = 100
     ) -> tuple[List[SupplierPerformanceReview], int]:
         query = self.db.query(SupplierPerformanceReview).filter(
             SupplierPerformanceReview.supplier_relationship_id == relationship_id
         )
         total = query.count()
-        reviews = query.offset(skip).limit(limit).order_by(
-            SupplierPerformanceReview.review_period_end.desc()
-        ).all()
+        reviews = (
+            query.offset(skip)
+            .limit(limit)
+            .order_by(SupplierPerformanceReview.review_period_end.desc())
+            .all()
+        )
         return reviews, total
 
-    def create(self, review_in: SupplierPerformanceReviewCreate, user_id: str) -> SupplierPerformanceReview:
+    def create(
+        self, review_in: SupplierPerformanceReviewCreate, user_id: str
+    ) -> SupplierPerformanceReview:
         db_review = SupplierPerformanceReview(
             id=str(uuid.uuid4()),
             supplier_relationship_id=review_in.supplier_relationship_id,
@@ -244,19 +293,24 @@ class SupplierPerformanceReviewCRUD:
             cost_comments=review_in.cost_comments,
             general_comments=review_in.general_comments,
             next_period_goals=review_in.next_period_goals,
-            improvement_plan=review_in.improvement_plan
+            improvement_plan=review_in.improvement_plan,
         )
 
         # Calculate overall rating
         ratings = [
-            review_in.quality_rating, review_in.delivery_rating, review_in.service_rating,
-            review_in.cost_rating, review_in.innovation_rating, review_in.compliance_rating,
-            review_in.communication_rating, review_in.responsiveness_rating
+            review_in.quality_rating,
+            review_in.delivery_rating,
+            review_in.service_rating,
+            review_in.cost_rating,
+            review_in.innovation_rating,
+            review_in.compliance_rating,
+            review_in.communication_rating,
+            review_in.responsiveness_rating,
         ]
         valid_ratings = [r for r in ratings if r is not None]
         if valid_ratings:
             db_review.overall_rating = sum(valid_ratings) / len(valid_ratings)
-            
+
             # Assign grade based on overall rating
             if db_review.overall_rating >= 4.5:
                 db_review.overall_grade = "A+"
@@ -284,7 +338,9 @@ class SupplierPerformanceReviewCRUD:
 
         return db_review
 
-    def update(self, review_id: str, review_in: SupplierPerformanceReviewUpdate) -> Optional[SupplierPerformanceReview]:
+    def update(
+        self, review_id: str, review_in: SupplierPerformanceReviewUpdate
+    ) -> Optional[SupplierPerformanceReview]:
         review = self.get_by_id(review_id)
         if not review:
             raise NotFoundError(f"Performance review {review_id} not found")
@@ -318,12 +374,16 @@ class SupplierPerformanceReviewCRUD:
 
         return review
 
-    def _update_relationship_scores(self, relationship_id: str, review: SupplierPerformanceReview):
+    def _update_relationship_scores(
+        self, relationship_id: str, review: SupplierPerformanceReview
+    ):
         """関係のスコアを最新レビューで更新"""
-        relationship = self.db.query(SupplierRelationship).filter(
-            SupplierRelationship.id == relationship_id
-        ).first()
-        
+        relationship = (
+            self.db.query(SupplierRelationship)
+            .filter(SupplierRelationship.id == relationship_id)
+            .first()
+        )
+
         if relationship and review.overall_rating:
             relationship.overall_score = review.overall_rating
             if review.quality_rating:
@@ -332,7 +392,7 @@ class SupplierPerformanceReviewCRUD:
                 relationship.delivery_score = review.delivery_rating
             if review.service_rating:
                 relationship.service_score = review.service_rating
-            
+
             relationship.last_reviewed_at = datetime.utcnow()
             self.db.commit()
 
@@ -350,33 +410,45 @@ class SupplierNegotiationCRUD:
         )
 
     def get_multi(
-        self,
-        skip: int = 0,
-        limit: int = 100,
-        filters: Optional[Dict[str, Any]] = None
+        self, skip: int = 0, limit: int = 100, filters: Optional[Dict[str, Any]] = None
     ) -> tuple[List[SupplierNegotiation], int]:
         query = self.db.query(SupplierNegotiation)
 
         if filters:
             if filters.get("supplier_relationship_id"):
-                query = query.filter(SupplierNegotiation.supplier_relationship_id == filters["supplier_relationship_id"])
+                query = query.filter(
+                    SupplierNegotiation.supplier_relationship_id
+                    == filters["supplier_relationship_id"]
+                )
             if filters.get("lead_negotiator_id"):
-                query = query.filter(SupplierNegotiation.lead_negotiator_id == filters["lead_negotiator_id"])
+                query = query.filter(
+                    SupplierNegotiation.lead_negotiator_id
+                    == filters["lead_negotiator_id"]
+                )
             if filters.get("negotiation_type"):
-                query = query.filter(SupplierNegotiation.negotiation_type == filters["negotiation_type"])
+                query = query.filter(
+                    SupplierNegotiation.negotiation_type == filters["negotiation_type"]
+                )
             if filters.get("status"):
                 query = query.filter(SupplierNegotiation.status == filters["status"])
             if filters.get("current_phase"):
-                query = query.filter(SupplierNegotiation.current_phase == filters["current_phase"])
+                query = query.filter(
+                    SupplierNegotiation.current_phase == filters["current_phase"]
+                )
 
         total = query.count()
-        negotiations = query.offset(skip).limit(limit).order_by(
-            SupplierNegotiation.created_at.desc()
-        ).all()
+        negotiations = (
+            query.offset(skip)
+            .limit(limit)
+            .order_by(SupplierNegotiation.created_at.desc())
+            .all()
+        )
 
         return negotiations, total
 
-    def create(self, negotiation_in: SupplierNegotiationCreate, user_id: str) -> SupplierNegotiation:
+    def create(
+        self, negotiation_in: SupplierNegotiationCreate, user_id: str
+    ) -> SupplierNegotiation:
         db_negotiation = SupplierNegotiation(
             id=str(uuid.uuid4()),
             supplier_relationship_id=negotiation_in.supplier_relationship_id,
@@ -401,7 +473,7 @@ class SupplierNegotiationCRUD:
             mitigation_strategies=negotiation_in.mitigation_strategies,
             escalation_points=negotiation_in.escalation_points,
             negotiation_team=negotiation_in.negotiation_team,
-            supplier_representatives=negotiation_in.supplier_representatives
+            supplier_representatives=negotiation_in.supplier_representatives,
         )
 
         self.db.add(db_negotiation)
@@ -410,7 +482,9 @@ class SupplierNegotiationCRUD:
 
         return db_negotiation
 
-    def update(self, negotiation_id: str, negotiation_in: SupplierNegotiationUpdate) -> Optional[SupplierNegotiation]:
+    def update(
+        self, negotiation_id: str, negotiation_in: SupplierNegotiationUpdate
+    ) -> Optional[SupplierNegotiation]:
         negotiation = self.get_by_id(negotiation_id)
         if not negotiation:
             raise NotFoundError(f"Negotiation {negotiation_id} not found")
@@ -426,7 +500,9 @@ class SupplierNegotiationCRUD:
 
         return negotiation
 
-    def complete(self, negotiation_id: str, final_agreement_document: Optional[str] = None) -> SupplierNegotiation:
+    def complete(
+        self, negotiation_id: str, final_agreement_document: Optional[str] = None
+    ) -> SupplierNegotiation:
         """交渉完了"""
         negotiation = self.get_by_id(negotiation_id)
         if not negotiation:
@@ -441,9 +517,13 @@ class SupplierNegotiationCRUD:
         # Calculate success metrics
         if negotiation.primary_objectives and negotiation.achieved_outcomes:
             achieved_count = len(negotiation.achieved_outcomes)
-            total_objectives = len(negotiation.primary_objectives) + len(negotiation.secondary_objectives or [])
+            total_objectives = len(negotiation.primary_objectives) + len(
+                negotiation.secondary_objectives or []
+            )
             if total_objectives > 0:
-                negotiation.objectives_achieved_percentage = Decimal(achieved_count / total_objectives * 100)
+                negotiation.objectives_achieved_percentage = Decimal(
+                    achieved_count / total_objectives * 100
+                )
 
         self.db.commit()
         self.db.refresh(negotiation)
@@ -460,64 +540,75 @@ class SupplierContractCRUD:
             self.db.query(SupplierContract)
             .options(
                 joinedload(SupplierContract.amendments),
-                joinedload(SupplierContract.milestones)
+                joinedload(SupplierContract.milestones),
             )
             .filter(SupplierContract.id == contract_id)
             .first()
         )
 
     def get_by_number(self, contract_number: str) -> Optional[SupplierContract]:
-        return self.db.query(SupplierContract).filter(
-            SupplierContract.contract_number == contract_number
-        ).first()
+        return (
+            self.db.query(SupplierContract)
+            .filter(SupplierContract.contract_number == contract_number)
+            .first()
+        )
 
     def get_multi(
-        self,
-        skip: int = 0,
-        limit: int = 100,
-        filters: Optional[Dict[str, Any]] = None
+        self, skip: int = 0, limit: int = 100, filters: Optional[Dict[str, Any]] = None
     ) -> tuple[List[SupplierContract], int]:
         query = self.db.query(SupplierContract)
 
         if filters:
             if filters.get("supplier_id"):
-                query = query.filter(SupplierContract.supplier_id == filters["supplier_id"])
+                query = query.filter(
+                    SupplierContract.supplier_id == filters["supplier_id"]
+                )
             if filters.get("contract_manager_id"):
-                query = query.filter(SupplierContract.contract_manager_id == filters["contract_manager_id"])
+                query = query.filter(
+                    SupplierContract.contract_manager_id
+                    == filters["contract_manager_id"]
+                )
             if filters.get("contract_type"):
-                query = query.filter(SupplierContract.contract_type == filters["contract_type"])
+                query = query.filter(
+                    SupplierContract.contract_type == filters["contract_type"]
+                )
             if filters.get("status"):
                 query = query.filter(SupplierContract.status == filters["status"])
             if filters.get("expiring_days"):
                 expiry_date = date.today() + timedelta(days=filters["expiring_days"])
                 query = query.filter(
                     SupplierContract.expiration_date <= expiry_date,
-                    SupplierContract.expiration_date >= date.today()
+                    SupplierContract.expiration_date >= date.today(),
                 )
             if filters.get("signed"):
                 if filters["signed"]:
                     query = query.filter(
                         and_(
-                            SupplierContract.signed_by_supplier == True,
-                            SupplierContract.signed_by_company == True
+                            SupplierContract.signed_by_supplier,
+                            SupplierContract.signed_by_company,
                         )
                     )
                 else:
                     query = query.filter(
                         or_(
-                            SupplierContract.signed_by_supplier == False,
-                            SupplierContract.signed_by_company == False
+                            not SupplierContract.signed_by_supplier,
+                            not SupplierContract.signed_by_company,
                         )
                     )
 
         total = query.count()
-        contracts = query.offset(skip).limit(limit).order_by(
-            SupplierContract.created_at.desc()
-        ).all()
+        contracts = (
+            query.offset(skip)
+            .limit(limit)
+            .order_by(SupplierContract.created_at.desc())
+            .all()
+        )
 
         return contracts, total
 
-    def create(self, contract_in: SupplierContractCreate, user_id: str) -> SupplierContract:
+    def create(
+        self, contract_in: SupplierContractCreate, user_id: str
+    ) -> SupplierContract:
         # Generate contract number
         contract_number = self._generate_contract_number()
 
@@ -560,7 +651,7 @@ class SupplierContractCRUD:
             related_documents=contract_in.related_documents,
             confidentiality_level=contract_in.confidentiality_level,
             tags=contract_in.tags,
-            notes=contract_in.notes
+            notes=contract_in.notes,
         )
 
         self.db.add(db_contract)
@@ -569,12 +660,16 @@ class SupplierContractCRUD:
 
         # Create renewal milestone if applicable
         if db_contract.expiration_date and db_contract.renewal_notice_days:
-            milestone_date = db_contract.expiration_date - timedelta(days=db_contract.renewal_notice_days)
+            milestone_date = db_contract.expiration_date - timedelta(
+                days=db_contract.renewal_notice_days
+            )
             self._create_renewal_milestone(db_contract.id, milestone_date)
 
         return db_contract
 
-    def update(self, contract_id: str, contract_in: SupplierContractUpdate) -> Optional[SupplierContract]:
+    def update(
+        self, contract_id: str, contract_in: SupplierContractUpdate
+    ) -> Optional[SupplierContract]:
         contract = self.get_by_id(contract_id)
         if not contract:
             raise NotFoundError(f"Contract {contract_id} not found")
@@ -600,20 +695,20 @@ class SupplierContractCRUD:
         """契約番号生成"""
         today = datetime.now()
         prefix = f"SC-{today.year}{today.month:02d}"
-        
+
         last_contract = (
             self.db.query(SupplierContract)
             .filter(SupplierContract.contract_number.like(f"{prefix}%"))
             .order_by(SupplierContract.contract_number.desc())
             .first()
         )
-        
+
         if last_contract:
-            last_number = int(last_contract.contract_number.split('-')[-1])
+            last_number = int(last_contract.contract_number.split("-")[-1])
             new_number = last_number + 1
         else:
             new_number = 1
-            
+
         return f"{prefix}-{new_number:04d}"
 
     def _create_renewal_milestone(self, contract_id: str, milestone_date: date):
@@ -625,9 +720,9 @@ class SupplierContractCRUD:
             milestone_type="renewal",
             description="Send renewal notice to supplier",
             planned_date=milestone_date,
-            reminder_days_before=7
+            reminder_days_before=7,
         )
-        
+
         self.db.add(milestone)
         self.db.commit()
 
@@ -639,66 +734,81 @@ class SupplierContractCRUD:
             .filter(
                 SupplierContract.expiration_date <= expiry_date,
                 SupplierContract.expiration_date >= date.today(),
-                SupplierContract.status == "active"
+                SupplierContract.status == "active",
             )
             .all()
         )
 
-    def get_relationship_analytics(self, filters: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def get_relationship_analytics(
+        self, filters: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
         """サプライヤー関係分析データ取得"""
         query = self.db.query(SupplierRelationship)
 
         if filters:
             if filters.get("date_from"):
-                query = query.filter(SupplierRelationship.created_at >= filters["date_from"])
+                query = query.filter(
+                    SupplierRelationship.created_at >= filters["date_from"]
+                )
             if filters.get("date_to"):
-                query = query.filter(SupplierRelationship.created_at <= filters["date_to"])
+                query = query.filter(
+                    SupplierRelationship.created_at <= filters["date_to"]
+                )
 
         relationships = query.all()
-        
+
         total_relationships = len(relationships)
         active_relationships = len([r for r in relationships if r.status == "active"])
-        strategic_partnerships = len([r for r in relationships if r.partnership_level == "strategic"])
-        
+        strategic_partnerships = len(
+            [r for r in relationships if r.partnership_level == "strategic"]
+        )
+
         # 平均スコア
         scores = [r.overall_score for r in relationships if r.overall_score > 0]
-        avg_relationship_score = sum(scores) / len(scores) if scores else Decimal('0')
-        
+        avg_relationship_score = sum(scores) / len(scores) if scores else Decimal("0")
+
         # 支出統計
         total_annual_spend = sum(r.annual_spend for r in relationships)
         cost_savings_achieved = sum(r.cost_savings_achieved for r in relationships)
-        
+
         # 期限切れ契約
         contracts_expiring_soon = len(self.get_expiring_contracts(30))
-        
+
         # レビュー期限切れ
-        reviews_overdue = len([r for r in relationships 
-                             if r.next_review_date and r.next_review_date < date.today()])
-        
+        reviews_overdue = len(
+            [
+                r
+                for r in relationships
+                if r.next_review_date and r.next_review_date < date.today()
+            ]
+        )
+
         # パートナーシップレベル別分布
         by_partnership_level = {}
         for level in ["strategic", "preferred", "standard", "conditional"]:
             count = len([r for r in relationships if r.partnership_level == level])
             by_partnership_level[level] = count
-        
+
         # リスクレベル別分布
         by_risk_level = {}
         for level in ["critical", "high", "medium", "low"]:
             count = len([r for r in relationships if r.risk_level == level])
             by_risk_level[level] = count
-        
+
         # トップサプライヤー（支出別）
-        top_suppliers = sorted(relationships, key=lambda x: x.annual_spend, reverse=True)[:5]
+        top_suppliers = sorted(
+            relationships, key=lambda x: x.annual_spend, reverse=True
+        )[:5]
         top_suppliers_data = [
             {
                 "supplier_id": r.supplier_id,
                 "annual_spend": r.annual_spend,
                 "overall_score": r.overall_score,
-                "partnership_level": r.partnership_level
+                "partnership_level": r.partnership_level,
             }
             for r in top_suppliers
         ]
-        
+
         # 関係タイプ別分布
         relationship_distribution = {}
         for rel_type in ["vendor", "partner", "strategic", "preferred"]:
@@ -717,5 +827,5 @@ class SupplierContractCRUD:
             "by_partnership_level": by_partnership_level,
             "by_risk_level": by_risk_level,
             "top_suppliers_by_spend": top_suppliers_data,
-            "relationship_distribution": relationship_distribution
+            "relationship_distribution": relationship_distribution,
         }
