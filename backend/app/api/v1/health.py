@@ -1,11 +1,12 @@
 """Enhanced health check API endpoints."""
 
-from typing import Any
+from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.health import get_health_checker, SystemHealthReport, HealthStatus
 from app.core.monitoring import health_checker, setup_health_checks
 
 router = APIRouter(prefix="/health", tags=["health"])
@@ -13,28 +14,71 @@ router = APIRouter(prefix="/health", tags=["health"])
 
 @router.get("/", response_model=dict[str, Any])
 async def comprehensive_health_check(
+    detailed: bool = Query(False, description="Include detailed system metrics"),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
-    """Comprehensive health check with all system components."""
-
-    # Setup health checks if not already done
+    """
+    Comprehensive health check with all system components.
+    
+    This endpoint provides a complete health assessment of the ITDO ERP system,
+    including database, cache, external dependencies, and system resources.
+    """
+    
+    health_checker = get_health_checker()
+    
     try:
-        setup_health_checks(None, lambda: db, None)
-    except Exception:
-        # Health checks might already be setup
-        pass
-
-    # Run all health checks
-    health_results = await health_checker.run_checks()
-
-    # Return results
-    return {
-        "status": "healthy" if health_results["healthy"] else "unhealthy",
-        "timestamp": health_results["timestamp"],
-        "version": "2.0.0",
-        "checks": health_results["checks"],
-        "overall_healthy": health_results["healthy"],
-    }
+        # Run comprehensive health check
+        health_report: SystemHealthReport = await health_checker.check_system_health(
+            include_detailed=detailed
+        )
+        
+        # Convert to API response format
+        return {
+            "status": health_report.overall_status.value,
+            "timestamp": health_report.timestamp.isoformat(),
+            "version": health_report.version,
+            "environment": health_report.environment,
+            "uptime_seconds": health_report.uptime_seconds,
+            "components": [
+                {
+                    "component": comp.component,
+                    "type": comp.component_type.value,
+                    "status": comp.status.value,
+                    "response_time_ms": comp.response_time_ms,
+                    "timestamp": comp.timestamp.isoformat(),
+                    "message": comp.message,
+                    "details": comp.details,
+                    "metrics": [
+                        {
+                            "name": metric.name,
+                            "value": metric.value,
+                            "unit": metric.unit,
+                            "threshold_warning": metric.threshold_warning,
+                            "threshold_critical": metric.threshold_critical,
+                            "description": metric.description
+                        }
+                        for metric in comp.metrics
+                    ],
+                    "error": comp.error
+                }
+                for comp in health_report.components
+            ],
+            "summary": health_report.summary,
+            "overall_healthy": health_report.overall_status == HealthStatus.HEALTHY
+        }
+        
+    except Exception as e:
+        # Fallback to basic health check if comprehensive fails
+        from datetime import datetime, timezone
+        return {
+            "status": "unhealthy",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "version": health_checker.version,
+            "environment": health_checker.environment,
+            "error": f"Health check failed: {str(e)}",
+            "overall_healthy": False,
+            "fallback_mode": True
+        }
 
 
 @router.get("/live", response_model=dict[str, str])
@@ -46,19 +90,50 @@ async def liveness_probe() -> dict[str, str]:
 @router.get("/ready", response_model=dict[str, Any])
 async def readiness_probe(db: Session = Depends(get_db)) -> dict[str, Any]:
     """Kubernetes readiness probe - checks if app can serve traffic."""
-
+    
+    from datetime import datetime, timezone
+    health_checker_instance = get_health_checker()
+    
     try:
+        # Quick essential health checks for readiness
+        ready_checks = {
+            "database": False,
+            "redis": False,
+            "application": True  # Application is running if we reached this point
+        }
+        
         # Test database connectivity
         from sqlalchemy import text
-
         db.execute(text("SELECT 1"))
-
+        ready_checks["database"] = True
+        
+        # Test Redis connectivity
+        try:
+            from app.core.database import get_redis
+            redis_client = get_redis()
+            await redis_client.ping()
+            ready_checks["redis"] = True
+        except:
+            # Redis failure is not critical for readiness
+            pass
+        
+        # Service is ready if essential services are available
+        is_ready = ready_checks["database"] and ready_checks["application"]
+        
+        if not is_ready:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Service dependencies not ready"
+            )
+        
         return {
             "status": "ready",
-            "database": "connected",
-            "timestamp": health_checker.last_check_time.get("database", "never"),
+            "checks": ready_checks,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,

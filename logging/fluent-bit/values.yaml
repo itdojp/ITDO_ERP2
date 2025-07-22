@@ -1,0 +1,352 @@
+# Fluent Bit Configuration for ITDO ERP Logging Pipeline
+image:
+  repository: fluent/fluent-bit
+  tag: 2.2.0
+  pullPolicy: Always
+
+nameOverride: ""
+fullnameOverride: ""
+
+# DaemonSet configuration
+kind: DaemonSet
+replicaCount: 1
+
+# Service Account
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# RBAC configuration
+rbac:
+  create: true
+  nodeAccess: true
+
+# Pod Security Context
+podSecurityContext:
+  runAsUser: 0
+  runAsGroup: 0
+  runAsNonRoot: false
+
+# Security Context
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: false
+  runAsUser: 0
+
+# Resources
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# Node selector, tolerations and affinity
+nodeSelector: {}
+tolerations:
+  - key: node-role.kubernetes.io/master
+    operator: Exists
+    effect: NoSchedule
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule
+
+affinity: {}
+
+# Configure Fluent Bit
+config:
+  # Service configuration
+  service: |
+    [SERVICE]
+        Daemon Off
+        Flush {{ .Values.flush | default 1 }}
+        Log_Level {{ .Values.logLevel | default "info" }}
+        Parsers_File parsers.conf
+        Parsers_File custom_parsers.conf
+        HTTP_Server On
+        HTTP_Listen 0.0.0.0
+        HTTP_Port {{ .Values.metricsPort | default 2020 }}
+        Health_Check On
+        storage.path /tmp/flb-storage/
+        storage.sync normal
+        storage.checksum off
+        storage.backlog.mem_limit 10M
+
+  # Input configurations
+  inputs: |
+    # Kubernetes container logs
+    [INPUT]
+        Name tail
+        Path /var/log/containers/*.log
+        multiline.parser docker, cri
+        Tag kube.*
+        Mem_Buf_Limit 50MB
+        Skip_Long_Lines On
+        Skip_Empty_Lines On
+        DB /tmp/flb_kube.db
+        storage.type filesystem
+        
+    # System logs  
+    [INPUT]
+        Name systemd
+        Tag host.*
+        Systemd_Filter _SYSTEMD_UNIT=kubelet.service
+        Systemd_Filter _SYSTEMD_UNIT=docker.service
+        Systemd_Filter _SYSTEMD_UNIT=containerd.service
+        Read_From_Tail On
+        DB /tmp/flb_systemd.db
+        
+    # Node metrics
+    [INPUT]
+        Name node_exporter_metrics
+        Tag node_metrics
+        Scrape_Interval 30s
+
+  # Filter configurations
+  filters: |
+    # Kubernetes enrichment
+    [FILTER]
+        Name kubernetes
+        Match kube.*
+        Kube_URL https://kubernetes.default.svc:443
+        Kube_CA_File /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        Kube_Token_File /var/run/secrets/kubernetes.io/serviceaccount/token
+        Kube_Tag_Prefix kube.var.log.containers.
+        Merge_Log On
+        Merge_Log_Key log_processed
+        K8S-Logging.Parser On
+        K8S-Logging.Exclude Off
+        Annotations Off
+        Labels On
+        
+    # Parse JSON logs from applications
+    [FILTER]
+        Name parser
+        Match kube.*itdo-erp*
+        Key_Name log
+        Parser json
+        Reserve_Data On
+        Preserve_Key On
+        
+    # Add environment info
+    [FILTER]
+        Name modify
+        Match kube.*
+        Add cluster_name itdo-erp-k8s
+        Add environment production
+        
+    # Filter out unwanted logs
+    [FILTER]
+        Name grep
+        Match kube.*
+        Exclude log .*health.*
+        Exclude log .*readiness.*
+        Exclude log .*liveness.*
+        
+    # Enhance ITDO ERP application logs
+    [FILTER]
+        Name modify
+        Match kube.*itdo-erp*
+        Add service_type itdo_erp_application
+        Add log_type application
+        
+    # Add timestamp normalization
+    [FILTER]
+        Name parser
+        Match *
+        Key_Name time
+        Parser kubernetes_timestamp
+        Reserve_Data On
+
+  # Output configurations  
+  outputs: |
+    # ElasticSearch output for production
+    [OUTPUT]
+        Name es
+        Match kube.*itdo-erp*
+        Host elasticsearch.logging.svc.cluster.local
+        Port 9200
+        Index itdo-erp-logs
+        Type _doc
+        HTTP_User elastic
+        HTTP_Passwd ${ELASTIC_PASSWORD}
+        tls On
+        tls.verify Off
+        Retry_Limit 3
+        Replace_Dots On
+        Trace_Error On
+        storage.total_limit_size 10G
+        
+    # ElasticSearch output for system logs
+    [OUTPUT]
+        Name es
+        Match host.*
+        Host elasticsearch.logging.svc.cluster.local
+        Port 9200
+        Index system-logs
+        Type _doc
+        HTTP_User elastic
+        HTTP_Passwd ${ELASTIC_PASSWORD}
+        tls On
+        tls.verify Off
+        Retry_Limit 3
+        
+    # Loki output for high-volume logs
+    [OUTPUT]
+        Name loki
+        Match kube.*
+        Host loki.logging.svc.cluster.local
+        Port 3100
+        Labels job=fluent-bit, cluster=itdo-erp-k8s
+        Label_Keys $kubernetes['namespace_name'],$kubernetes['pod_name'],$kubernetes['container_name']
+        Batch_Wait 1s
+        Batch_Size 10240
+        Line_Format json
+        Remove_Keys kubernetes,time
+        
+    # CloudWatch output for compliance/audit
+    [OUTPUT]
+        Name cloudwatch_logs
+        Match kube.*itdo-erp*
+        region ap-northeast-1
+        log_group_name /aws/kubernetes/itdo-erp
+        log_stream_prefix fluent-bit-
+        auto_create_group On
+        
+    # Prometheus metrics output
+    [OUTPUT]
+        Name prometheus_exporter
+        Match node_metrics
+        Host 0.0.0.0
+        Port 2021
+        
+    # Debug output (disabled in production)
+    # [OUTPUT]
+    #     Name stdout
+    #     Match *
+    #     Format json_lines
+
+  # Custom parsers
+  customParsers: |
+    [PARSER]
+        Name docker_no_time
+        Format json
+        Time_Keep Off
+        Time_Key time
+        Time_Format %Y-%m-%dT%H:%M:%S.%L
+        
+    [PARSER]
+        Name json
+        Format json
+        Time_Key time
+        Time_Format %Y-%m-%dT%H:%M:%S.%L
+        Time_Keep On
+        
+    [PARSER]
+        Name kubernetes_timestamp
+        Format regex
+        Regex ^(?<timestamp>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z)
+        Time_Key timestamp
+        Time_Format %Y-%m-%dT%H:%M:%S.%LZ
+        Time_Keep On
+        
+    [PARSER]
+        Name itdo_erp_json
+        Format json
+        Time_Key timestamp
+        Time_Format %Y-%m-%dT%H:%M:%S.%L
+        Time_Keep On
+        Decode_Field_As escaped_utf8 message
+        
+    [PARSER]
+        Name nginx_access
+        Format regex
+        Regex ^(?<remote>[^ ]*) (?<host>[^ ]*) (?<user>[^ ]*) \[(?<time>[^\]]*)\] "(?<method>\S+)(?: +(?<path>[^\"]*?)(?: +\S*)?)?" (?<code>[^ ]*) (?<size>[^ ]*)(?: "(?<referer>[^\"]*)" "(?<agent>[^\"]*)")?$
+        Time_Key time
+        Time_Format %d/%b/%Y:%H:%M:%S %z
+
+# Environment variables
+env:
+  - name: ELASTIC_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: elasticsearch-credentials
+        key: password
+
+# Extra volumes
+extraVolumes:
+  - name: flb-storage
+    hostPath:
+      path: /tmp/flb-storage
+      type: DirectoryOrCreate
+  - name: varlog
+    hostPath:
+      path: /var/log
+  - name: varlibdockercontainers
+    hostPath:
+      path: /var/lib/docker/containers
+  - name: etcmachineid
+    hostPath:
+      path: /etc/machine-id
+      type: File
+
+# Extra volume mounts
+extraVolumeMounts:
+  - name: flb-storage
+    mountPath: /tmp/flb-storage
+  - name: varlog
+    mountPath: /var/log
+    readOnly: true
+  - name: varlibdockercontainers
+    mountPath: /var/lib/docker/containers
+    readOnly: true
+  - name: etcmachineid
+    mountPath: /etc/machine-id
+    readOnly: true
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 2020
+  labels: {}
+  annotations: {}
+
+# ServiceMonitor for Prometheus
+serviceMonitor:
+  enabled: true
+  namespace: monitoring
+  interval: 30s
+  scrapeTimeout: 10s
+  labels: {}
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: true
+  maxUnavailable: 1
+
+# Network Policy
+networkPolicy:
+  enabled: true
+
+# Priority Class
+priorityClassName: system-cluster-critical
+
+# Annotations
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "2020"
+  prometheus.io/path: "/api/v1/metrics/prometheus"
+
+# Additional environment variables
+flush: 5
+logLevel: info
+metricsPort: 2020
+
+# Helm test configuration
+test:
+  enabled: true

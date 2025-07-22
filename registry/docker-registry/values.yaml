@@ -1,0 +1,307 @@
+# Docker Registry Configuration for ITDO ERP Development Environment
+# Lightweight alternative to Harbor for simple container image storage
+
+# Image configuration
+image:
+  repository: registry
+  tag: 2.8.3
+  pullPolicy: IfNotPresent
+
+# Service configuration
+service:
+  name: docker-registry
+  type: ClusterIP
+  port: 5000
+  targetPort: 5000
+  nodePort: null
+  annotations: {}
+  labels: {}
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/auth-type: basic
+    nginx.ingress.kubernetes.io/auth-secret: registry-basic-auth
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: docker-registry.itdo-erp.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: docker-registry-tls
+      hosts:
+        - docker-registry.itdo-erp.com
+
+# Resources
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+# Pod Security Context
+podSecurityContext:
+  fsGroup: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+  runAsUser: 1000
+
+# Security Context
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+
+# Persistence configuration
+persistence:
+  enabled: true
+  size: 50Gi
+  accessMode: ReadWriteOnce
+  storageClass: gp3
+  annotations: {}
+
+# Registry configuration
+config:
+  version: 0.1
+  log:
+    level: info
+    formatter: text
+    fields:
+      service: registry
+  storage:
+    filesystem:
+      rootdirectory: /var/lib/registry
+    delete:
+      enabled: true
+    maintenance:
+      uploadpurging:
+        enabled: true
+        age: 168h
+        interval: 24h
+        dryrun: false
+  http:
+    addr: :5000
+    secret: asecretforlocaldevelopment
+    relativeurls: false
+    draintimeout: 60s
+  health:
+    storagedriver:
+      enabled: true
+      interval: 10s
+      threshold: 3
+  notifications:
+    endpoints:
+      - name: itdo-erp-webhook
+        disabled: false
+        url: https://api.itdo-erp.com/webhooks/registry
+        headers:
+          Authorization: ["Bearer webhook-secret-token"]
+        timeout: 1000ms
+        threshold: 10
+        backoff: 1000ms
+        ignoredmediatypes:
+          - application/octet-stream
+
+# Auth configuration  
+auth:
+  htpasswd:
+    realm: "Docker Registry"
+    path: /auth/htpasswd
+
+# TLS configuration (handled by ingress)
+tls:
+  enabled: false
+
+# Proxy configuration
+proxy:
+  enabled: false
+  remoteurl: https://registry-1.docker.io
+  username: ""
+  password: ""
+
+# Health checks
+livenessProbe:
+  httpGet:
+    path: /
+    port: 5000
+  initialDelaySeconds: 30
+  periodSeconds: 30
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /
+    port: 5000
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Node selector and scheduling
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# Service Account
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Pod annotations
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "5000"
+  prometheus.io/path: "/metrics"
+
+# Pod labels
+podLabels: {}
+
+# Update strategy
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 1
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: true
+  maxUnavailable: 1
+
+# Network Policy
+networkPolicy:
+  enabled: true
+
+# Horizontal Pod Autoscaler
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+# Priority class
+priorityClassName: ""
+
+# Extra environment variables
+extraEnv: []
+
+# Extra volumes
+extraVolumes:
+  - name: auth
+    secret:
+      secretName: registry-auth
+  - name: tmp
+    emptyDir: {}
+
+# Extra volume mounts
+extraVolumeMounts:
+  - name: auth
+    mountPath: /auth
+    readOnly: true
+  - name: tmp
+    mountPath: /tmp
+
+# Additional containers (for auth proxy, etc.)
+sidecars: []
+
+# Init containers
+initContainers: []
+
+# Service monitor for Prometheus
+serviceMonitor:
+  enabled: true
+  namespace: monitoring
+  labels: {}
+  interval: 30s
+  scrapeTimeout: 10s
+
+# Garbage collection configuration
+gc:
+  enabled: true
+  schedule: "0 3 * * *"  # Daily at 3 AM
+  command:
+    - /bin/registry
+    - garbage-collect
+    - --delete-untagged
+    - /etc/registry/config.yml
+
+# Registry UI (optional)
+ui:
+  enabled: false
+  image:
+    repository: joxit/docker-registry-ui
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 80
+  ingress:
+    enabled: true
+    hosts:
+      - host: registry-ui.itdo-erp.com
+        paths:
+          - path: /
+            pathType: Prefix
+
+# Backup configuration
+backup:
+  enabled: false
+  schedule: "0 2 * * *"
+  retention: 7
+  s3:
+    bucket: ""
+    region: ""
+    accessKey: ""
+    secretKey: ""
+
+# Migration tools
+migration:
+  enabled: false
+  
+# Development settings
+dev:
+  enabled: true
+  debug: false
+
+# Registry catalog API
+catalog:
+  maxEntries: 5000
+
+# CORS configuration
+cors:
+  enabled: false
+  allowedOrigins:
+    - https://registry-ui.itdo-erp.com
+  allowedMethods:
+    - HEAD
+    - GET
+    - OPTIONS
+    - DELETE
+  allowedHeaders:
+    - Authorization
+    - Accept
+    - Cache-Control
+
+# Name overrides
+nameOverride: ""
+fullnameOverride: ""
+
+# Global configuration
+global:
+  imageRegistry: ""
+  imagePullSecrets: []

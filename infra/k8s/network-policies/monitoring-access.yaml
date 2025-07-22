@@ -1,0 +1,565 @@
+# Monitoring Access Network Policy - Zero Trust Implementation
+# Secure monitoring infrastructure with proper access controls
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: monitoring-access-policy
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: monitoring-access-policy
+    security.istio.io/policy: "zero-trust"
+    app.kubernetes.io/component: monitoring-security
+spec:
+  podSelector: {}  # Apply to all pods in monitoring namespace
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow access from Istio gateway for external monitoring
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: istio-system
+      podSelector:
+        matchLabels:
+          istio: ingressgateway
+    ports:
+    - protocol: TCP
+      port: 3000  # Grafana
+    - protocol: TCP
+      port: 9090  # Prometheus
+    - protocol: TCP
+      port: 9093  # Alertmanager
+  # Allow internal monitoring communication
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 3000  # Grafana
+    - protocol: TCP
+      port: 9090  # Prometheus
+    - protocol: TCP
+      port: 9093  # Alertmanager
+    - protocol: TCP
+      port: 9094  # Alertmanager cluster
+    - protocol: TCP
+      port: 8080  # Various exporters
+    - protocol: TCP
+      port: 9100  # Node exporter
+    - protocol: TCP
+      port: 9187  # PostgreSQL exporter
+    - protocol: TCP
+      port: 9121  # Redis exporter
+    - protocol: TCP
+      port: 15090 # Istio Envoy metrics
+      
+  egress:
+  # Allow DNS resolution
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # Allow scraping from application namespaces
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: itdo-erp
+    ports:
+    - protocol: TCP
+      port: 8000  # Backend API metrics
+    - protocol: TCP
+      port: 9090  # App metrics
+    - protocol: TCP
+      port: 15090 # Istio sidecar metrics
+  # Allow scraping from Istio system
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: istio-system
+    ports:
+    - protocol: TCP
+      port: 15090  # Envoy admin
+    - protocol: TCP
+      port: 15000  # Envoy admin
+    - protocol: TCP
+      port: 8080   # Istiod metrics
+  # Allow scraping from kube-system
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: TCP
+      port: 10250  # Kubelet metrics
+    - protocol: TCP
+      port: 10251  # Kube-scheduler
+    - protocol: TCP
+      port: 10252  # Kube-controller-manager
+  # Allow webhook notifications
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443   # HTTPS webhooks
+    - protocol: TCP
+      port: 587   # SMTP TLS
+      
+---
+# Prometheus Specific Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: prometheus-server-policy
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: prometheus-server-policy
+spec:
+  podSelector:
+    matchLabels:
+      app: prometheus
+      component: server
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow access from Grafana
+  - from:
+    - podSelector:
+        matchLabels:
+          app: grafana
+    ports:
+    - protocol: TCP
+      port: 9090
+  # Allow access from Alertmanager
+  - from:
+    - podSelector:
+        matchLabels:
+          app: alertmanager
+    ports:
+    - protocol: TCP
+      port: 9090
+  # Allow access from API Gateway
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: istio-system
+      podSelector:
+        matchLabels:
+          istio: ingressgateway
+    ports:
+    - protocol: TCP
+      port: 9090
+  # Allow access from authorized admin users
+  - from:
+    - podSelector:
+        matchLabels:
+          role: monitoring-admin
+    ports:
+    - protocol: TCP
+      port: 9090
+      
+  egress:
+  # Allow DNS resolution
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+  # Allow scraping targets across all namespaces
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 8000   # Application metrics
+    - protocol: TCP
+      port: 8080   # Service metrics
+    - protocol: TCP
+      port: 9090   # Prometheus federated
+    - protocol: TCP
+      port: 9100   # Node exporter
+    - protocol: TCP
+      port: 9187   # PostgreSQL exporter
+    - protocol: TCP
+      port: 9121   # Redis exporter
+    - protocol: TCP
+      port: 15090  # Istio Envoy
+    - protocol: TCP
+      port: 10250  # Kubelet
+  # Allow federation with other Prometheus instances
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 9090
+      
+---
+# Grafana Specific Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: grafana-policy
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: grafana-policy
+spec:
+  podSelector:
+    matchLabels:
+      app: grafana
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow access from external users through gateway
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: istio-system
+      podSelector:
+        matchLabels:
+          istio: ingressgateway
+    ports:
+    - protocol: TCP
+      port: 3000
+  # Allow access from monitoring tools
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 3000
+      
+  egress:
+  # Allow DNS resolution
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+  # Allow connection to Prometheus
+  - to:
+    - podSelector:
+        matchLabels:
+          app: prometheus
+    ports:
+    - protocol: TCP
+      port: 9090
+  # Allow connection to external data sources
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443   # HTTPS APIs
+  # Allow SMTP for notifications
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 587   # SMTP TLS
+    - protocol: TCP
+      port: 25    # SMTP
+      
+---
+# Alertmanager Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: alertmanager-policy
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: alertmanager-policy
+spec:
+  podSelector:
+    matchLabels:
+      app: alertmanager
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow alerts from Prometheus
+  - from:
+    - podSelector:
+        matchLabels:
+          app: prometheus
+    ports:
+    - protocol: TCP
+      port: 9093
+  # Allow cluster communication between Alertmanager instances
+  - from:
+    - podSelector:
+        matchLabels:
+          app: alertmanager
+    ports:
+    - protocol: TCP
+      port: 9094
+  # Allow access from gateway
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: istio-system
+      podSelector:
+        matchLabels:
+          istio: ingressgateway
+    ports:
+    - protocol: TCP
+      port: 9093
+      
+  egress:
+  # Allow DNS resolution
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+  # Allow webhook notifications
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443   # HTTPS webhooks (Slack, PagerDuty, etc.)
+  # Allow SMTP notifications
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 587   # SMTP TLS
+    - protocol: TCP
+      port: 25    # SMTP
+  # Allow cluster communication
+  - to:
+    - podSelector:
+        matchLabels:
+          app: alertmanager
+    ports:
+    - protocol: TCP
+      port: 9094
+      
+---
+# Node Exporter Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: node-exporter-policy
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: node-exporter-policy
+spec:
+  podSelector:
+    matchLabels:
+      app: prometheus
+      component: node-exporter
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow scraping from Prometheus
+  - from:
+    - podSelector:
+        matchLabels:
+          app: prometheus
+          component: server
+    ports:
+    - protocol: TCP
+      port: 9100
+      
+  egress:
+  # Node exporter typically doesn't need egress
+  # but allow DNS for hostname resolution
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+      
+---
+# Monitoring Security L7 Policy (Cilium)
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: monitoring-l7-security
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: monitoring-l7-security
+spec:
+  description: "L7 security for monitoring services"
+  endpointSelector:
+    matchLabels:
+      app: grafana
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        "k8s:io.kubernetes.pod.namespace": "istio-system"
+        "k8s:app": "istio-proxy"
+    toPorts:
+    - ports:
+      - port: "3000"
+        protocol: TCP
+      rules:
+        http:
+        # Login page
+        - method: "GET"
+          path: "/login"
+        - method: "POST"
+          path: "/login"
+          headers:
+          - "Content-Type: application/x-www-form-urlencoded"
+        # Dashboard access (authenticated users only)
+        - method: "GET"
+          path: "/api/.*"
+          headers:
+          - "Authorization: .*"
+        - method: "GET"
+          path: "/d/.*"  # Dashboard URLs
+          headers:
+          - "Cookie: .*grafana_session.*"
+        # API endpoints
+        - method: "GET"
+          path: "/api/datasources/.*"
+          headers:
+          - "Authorization: .*"
+        - method: "POST"
+          path: "/api/.*"
+          headers:
+          - "Authorization: .*"
+          - "Content-Type: application/json"
+        # Block admin API from non-admin sources
+        - method: ".*"
+          path: "/api/admin/.*"
+          headers:
+          - "X-Grafana-Admin: true"
+          
+---
+# Monitoring Egress Security (Calico)
+apiVersion: projectcalico.org/v3
+kind: GlobalNetworkPolicy
+metadata:
+  name: monitoring-egress-security
+  labels:
+    app.kubernetes.io/name: monitoring-egress-security
+spec:
+  order: 300
+  selector: 'k8s:io.kubernetes.pod.namespace == "monitoring"'
+  types:
+  - Egress
+  egress:
+  # Allow DNS
+  - action: Allow
+    destination:
+      ports: [53]
+    protocol: UDP
+  - action: Allow
+    destination:
+      ports: [53]
+    protocol: TCP
+  # Allow HTTPS to specific external services
+  - action: Allow
+    destination:
+      nets:
+      - "0.0.0.0/0"  # This should be restricted to specific IPs
+      ports: [443]
+    metadata:
+      annotations:
+        "allowed-domains": "hooks.slack.com,api.pagerduty.com,smtp.gmail.com"
+  # Allow SMTP
+  - action: Allow
+    destination:
+      ports: [25, 587]
+    protocol: TCP
+  # Block all other egress
+  - action: Deny
+    metadata:
+      annotations:
+        "audit-log": "monitoring-egress-denied"
+        
+---
+# Monitoring Data Retention Policy
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: monitoring-security-config
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: monitoring-security-config
+data:
+  prometheus-security.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+      external_labels:
+        cluster: 'itdo-erp-production'
+        
+    # Security configuration
+    rule_files:
+    - "/etc/prometheus/rules/*.yml"
+    
+    # Scrape configurations with security headers
+    scrape_configs:
+    - job_name: 'kubernetes-apiservers'
+      kubernetes_sd_configs:
+      - role: endpoints
+      scheme: https
+      tls_config:
+        ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        insecure_skip_verify: false
+      bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+      relabel_configs:
+      - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+        action: keep
+        regex: default;kubernetes;https
+        
+    - job_name: 'kubernetes-nodes'
+      kubernetes_sd_configs:
+      - role: node
+      scheme: https
+      tls_config:
+        ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        insecure_skip_verify: false
+      bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+      
+    - job_name: 'itdo-erp-backend'
+      kubernetes_sd_configs:
+      - role: endpoints
+        namespaces:
+          names:
+          - itdo-erp
+      relabel_configs:
+      - source_labels: [__meta_kubernetes_service_name]
+        action: keep
+        regex: itdo-erp-backend-api
+        
+  grafana-security.ini: |
+    [security]
+    admin_user = admin
+    admin_password = $__file{/etc/secrets/admin_password}
+    secret_key = $__file{/etc/secrets/secret_key}
+    login_remember_days = 7
+    cookie_secure = true
+    cookie_samesite = strict
+    
+    [auth]
+    disable_login_form = false
+    disable_signout_menu = false
+    
+    [auth.anonymous]
+    enabled = false
+    
+    [users]
+    allow_sign_up = false
+    allow_org_create = false
+    auto_assign_org = true
+    auto_assign_org_role = Viewer
+    
+    [server]
+    protocol = http
+    http_port = 3000
+    enforce_domain = true
+    root_url = https://grafana.itdo-erp.com/
+    
+    [database]
+    type = postgres
+    host = postgresql.itdo-erp.svc.cluster.local:5432
+    name = grafana
+    user = grafana
+    password = $__file{/etc/secrets/db_password}
+    ssl_mode = require
+    
+    [session]
+    provider = postgres
+    provider_config = host=postgresql.itdo-erp.svc.cluster.local port=5432 user=grafana password=$__file{/etc/secrets/db_password} dbname=grafana sslmode=require
+    cookie_name = grafana_sess
+    cookie_secure = true

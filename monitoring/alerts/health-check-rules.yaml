@@ -1,0 +1,212 @@
+# Health Check Alerting Rules for ITDO ERP
+# Provides comprehensive monitoring and alerting for system health
+
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: itdo-erp-health-alerts
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: itdo-erp
+    app.kubernetes.io/component: monitoring
+    prometheus: kube-prometheus
+spec:
+  groups:
+  - name: itdo-erp.health.critical
+    interval: 30s
+    rules:
+    - alert: ITDOERPServiceDown
+      expr: up{job="itdo-erp-backend"} == 0
+      for: 1m
+      labels:
+        severity: critical
+        component: backend-api
+        escalation: level-1
+      annotations:
+        summary: "ITDO ERP Backend Service is Down"
+        description: "The ITDO ERP backend service has been down for more than 1 minute. Immediate attention required."
+        runbook_url: "https://docs.itdo-erp.com/runbooks/service-down"
+
+    - alert: ITDOERPHealthCheckFailing
+      expr: probe_success{job="itdo-erp-health"} == 0
+      for: 2m
+      labels:
+        severity: critical
+        component: health-check
+        escalation: level-1
+      annotations:
+        summary: "ITDO ERP Health Check Failing"
+        description: "Health check endpoint has been failing for {{ $labels.instance }} for more than 2 minutes."
+        runbook_url: "https://docs.itdo-erp.com/runbooks/health-check-failure"
+
+    - alert: ITDOERPDatabaseDown
+      expr: itdo_erp_database_connection_status == 0
+      for: 30s
+      labels:
+        severity: critical
+        component: database
+        escalation: level-1
+      annotations:
+        summary: "ITDO ERP Database Connection Failed"
+        description: "Database connection has been failing for more than 30 seconds. Data operations are impacted."
+        runbook_url: "https://docs.itdo-erp.com/runbooks/database-failure"
+
+    - alert: ITDOERPMemoryUsageCritical
+      expr: (itdo_erp_memory_usage_percent) > 95
+      for: 2m
+      labels:
+        severity: critical
+        component: system
+        escalation: level-2
+      annotations:
+        summary: "ITDO ERP Critical Memory Usage"
+        description: "Memory usage is above 95% for {{ $labels.instance }} for more than 2 minutes."
+        runbook_url: "https://docs.itdo-erp.com/runbooks/memory-exhaustion"
+
+    - alert: ITDOERPDiskSpaceCritical
+      expr: (itdo_erp_disk_usage_percent) > 95
+      for: 5m
+      labels:
+        severity: critical
+        component: system
+        escalation: level-2
+      annotations:
+        summary: "ITDO ERP Critical Disk Space"
+        description: "Disk usage is above 95% for {{ $labels.instance }} for more than 5 minutes."
+        runbook_url: "https://docs.itdo-erp.com/runbooks/disk-exhaustion"
+
+  - name: itdo-erp.health.warning
+    interval: 60s
+    rules:
+    - alert: ITDOERPHighResponseTime
+      expr: avg_over_time(itdo_erp_health_check_response_time_ms[5m]) > 2000
+      for: 3m
+      labels:
+        severity: warning
+        component: performance
+        escalation: level-3
+      annotations:
+        summary: "ITDO ERP High Health Check Response Time"
+        description: "Average health check response time is {{ $value }}ms over the last 5 minutes on {{ $labels.instance }}."
+        runbook_url: "https://docs.itdo-erp.com/runbooks/performance-degradation"
+
+    - alert: ITDOERPMemoryUsageHigh
+      expr: (itdo_erp_memory_usage_percent) > 80
+      for: 10m
+      labels:
+        severity: warning
+        component: system
+        escalation: level-3
+      annotations:
+        summary: "ITDO ERP High Memory Usage"
+        description: "Memory usage is above 80% for {{ $labels.instance }} for more than 10 minutes."
+        runbook_url: "https://docs.itdo-erp.com/runbooks/high-memory-usage"
+
+    - alert: ITDOERPCPUUsageHigh
+      expr: (itdo_erp_cpu_usage_percent) > 80
+      for: 10m
+      labels:
+        severity: warning
+        component: system
+        escalation: level-3
+      annotations:
+        summary: "ITDO ERP High CPU Usage"
+        description: "CPU usage is above 80% for {{ $labels.instance }} for more than 10 minutes."
+        runbook_url: "https://docs.itdo-erp.com/runbooks/high-cpu-usage"
+
+    - alert: ITDOERPDiskSpaceHigh
+      expr: (itdo_erp_disk_usage_percent) > 85
+      for: 15m
+      labels:
+        severity: warning
+        component: system
+        escalation: level-3
+      annotations:
+        summary: "ITDO ERP High Disk Usage"
+        description: "Disk usage is above 85% for {{ $labels.instance }} for more than 15 minutes."
+        runbook_url: "https://docs.itdo-erp.com/runbooks/high-disk-usage"
+
+    - alert: ITDOERPRedisConnectionDegraded
+      expr: itdo_erp_redis_connection_status == 0
+      for: 5m
+      labels:
+        severity: warning
+        component: cache
+        escalation: level-3
+      annotations:
+        summary: "ITDO ERP Redis Connection Issues"
+        description: "Redis connection has been failing for {{ $labels.instance }} for more than 5 minutes."
+        runbook_url: "https://docs.itdo-erp.com/runbooks/redis-connection-issues"
+
+    - alert: ITDOERPDatabaseSlowQuery
+      expr: avg_over_time(itdo_erp_database_response_time_ms[5m]) > 1000
+      for: 5m
+      labels:
+        severity: warning
+        component: database
+        escalation: level-3
+      annotations:
+        summary: "ITDO ERP Database Slow Queries"
+        description: "Average database response time is {{ $value }}ms over the last 5 minutes on {{ $labels.instance }}."
+        runbook_url: "https://docs.itdo-erp.com/runbooks/slow-database-queries"
+
+  - name: itdo-erp.health.info
+    interval: 300s  # 5 minutes
+    rules:
+    - alert: ITDOERPExternalDependencyDown
+      expr: itdo_erp_external_dependency_status{dependency!="optional"} == 0
+      for: 10m
+      labels:
+        severity: info
+        component: external
+        escalation: level-4
+      annotations:
+        summary: "ITDO ERP External Dependency Unavailable"
+        description: "External dependency {{ $labels.dependency }} has been unavailable for more than 10 minutes."
+        runbook_url: "https://docs.itdo-erp.com/runbooks/external-dependency-failure"
+
+    - alert: ITDOERPHighErrorRate
+      expr: rate(itdo_erp_http_requests_total{status=~"5.."}[5m]) / rate(itdo_erp_http_requests_total[5m]) > 0.05
+      for: 5m
+      labels:
+        severity: info
+        component: application
+        escalation: level-4
+      annotations:
+        summary: "ITDO ERP High Error Rate"
+        description: "Error rate is {{ $value | humanizePercentage }} over the last 5 minutes on {{ $labels.instance }}."
+        runbook_url: "https://docs.itdo-erp.com/runbooks/high-error-rate"
+
+  # Recovery alerts
+  - name: itdo-erp.health.recovery
+    interval: 60s
+    rules:
+    - alert: ITDOERPServiceRecovered
+      expr: up{job="itdo-erp-backend"} == 1 and up{job="itdo-erp-backend"} offset 5m == 0
+      labels:
+        severity: info
+        component: backend-api
+        type: recovery
+      annotations:
+        summary: "ITDO ERP Backend Service Recovered"
+        description: "The ITDO ERP backend service has recovered and is now available."
+
+    - alert: ITDOERPHealthCheckRecovered
+      expr: probe_success{job="itdo-erp-health"} == 1 and probe_success{job="itdo-erp-health"} offset 5m == 0
+      labels:
+        severity: info
+        component: health-check
+        type: recovery
+      annotations:
+        summary: "ITDO ERP Health Check Recovered"
+        description: "Health check endpoint has recovered for {{ $labels.instance }}."
+
+    - alert: ITDOERPDatabaseRecovered
+      expr: itdo_erp_database_connection_status == 1 and itdo_erp_database_connection_status offset 2m == 0
+      labels:
+        severity: info
+        component: database
+        type: recovery
+      annotations:
+        summary: "ITDO ERP Database Connection Recovered"
+        description: "Database connection has been restored for {{ $labels.instance }}."

@@ -1,0 +1,404 @@
+# Grafana Tempo Configuration for ITDO ERP Distributed Tracing
+# Alternative to Jaeger for cloud-native trace storage
+
+# Global settings
+global:
+  image:
+    registry: docker.io
+  clusterDomain: cluster.local
+
+# Tempo configuration
+tempo:
+  repository: grafana/tempo
+  tag: 2.3.0
+  pullPolicy: IfNotPresent
+
+  # Tempo configuration
+  config: |
+    multitenancy_enabled: false
+    usage_report:
+      reporting_enabled: false
+    compactor:
+      compaction:
+        block_retention: 240h # 10 days
+        compacted_block_retention: 1h
+    distributor:
+      receivers:
+        otlp:
+          protocols:
+            grpc:
+              endpoint: 0.0.0.0:4317
+            http:
+              endpoint: 0.0.0.0:4318
+        jaeger:
+          protocols:
+            grpc:
+              endpoint: 0.0.0.0:14250
+            thrift_compact:
+              endpoint: 0.0.0.0:6831
+            thrift_http:
+              endpoint: 0.0.0.0:14268
+        zipkin:
+          endpoint: 0.0.0.0:9411
+    ingester:
+      max_block_duration: 5m
+    server:
+      http_listen_port: 3100
+      grpc_listen_port: 9095
+    storage:
+      trace:
+        backend: local
+        local:
+          path: /tmp/tempo/blocks
+        pool:
+          max_workers: 100
+          queue_depth: 10000
+    querier:
+      frontend_worker:
+        frontend_address: tempo-query-frontend:9095
+    query_frontend:
+      search:
+        duration_slo: 5s
+        throughput_bytes_slo: 1.073741824e+09
+      trace_by_id:
+        duration_slo: 5s
+
+# Deployment configuration
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+# Pod security
+podSecurityContext:
+  fsGroup: 10001
+  runAsGroup: 10001  
+  runAsNonRoot: true
+  runAsUser: 10001
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  runAsNonRoot: true
+
+# Resources
+resources:
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+# Persistence
+persistence:
+  enabled: true
+  storageClassName: gp3
+  accessModes:
+    - ReadWriteOnce
+  size: 100Gi
+  annotations: {}
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 3100
+  annotations: {}
+  labels: {}
+
+# Ingress for Tempo query
+ingress:
+  enabled: true
+  ingressClassName: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/auth-type: basic
+    nginx.ingress.kubernetes.io/auth-secret: tempo-basic-auth
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: tempo.itdo-erp.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: tempo-tls
+      hosts:
+        - tempo.itdo-erp.com
+
+# ServiceMonitor for Prometheus
+serviceMonitor:
+  enabled: true
+  namespace: monitoring
+  interval: 30s
+  scrapeTimeout: 10s
+  labels: {}
+
+# Node selection
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# Pod disruption budget
+podDisruptionBudget:
+  maxUnavailable: 1
+
+# Horizontal Pod Autoscaler
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+
+# Liveness and readiness probes
+livenessProbe:
+  httpGet:
+    path: /ready
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 15
+  timeoutSeconds: 10
+  failureThreshold: 5
+
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 10
+  failureThreshold: 3
+
+# Extra containers for microservices deployment
+extraContainers: []
+
+# Extra volumes and mounts
+extraVolumes: []
+extraVolumeMounts: []
+
+# Microservices components (for scalable deployment)
+gateway:
+  enabled: true
+  replicas: 2
+  
+  image:
+    repository: nginxinc/nginx-unprivileged
+    tag: 1.25-alpine
+    
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+      
+  config:
+    nginx.conf: |
+      worker_processes  auto;
+      error_log  /dev/stderr;
+      pid        /tmp/nginx.pid;
+      
+      events {
+        worker_connections  1024;
+      }
+      
+      http {
+        include       /etc/nginx/mime.types;
+        default_type  application/octet-stream;
+        
+        log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                        '$status $body_bytes_sent "$http_referer" '
+                        '"$http_user_agent" "$http_x_forwarded_for"';
+        
+        access_log /dev/stdout main;
+        
+        upstream distributor {
+          server tempo-distributor.tracing.svc.cluster.local:3100;
+        }
+        
+        upstream query-frontend {
+          server tempo-query-frontend.tracing.svc.cluster.local:3100;
+        }
+        
+        server {
+          listen 3100;
+          
+          # Distributor endpoints
+          location = /api/push {
+            proxy_pass http://distributor$request_uri;
+          }
+          
+          location = /otlp/v1/traces {
+            proxy_pass http://distributor$request_uri;
+          }
+          
+          location = /api/v1/spans {
+            proxy_pass http://distributor$request_uri;
+          }
+          
+          # Query endpoints
+          location = /api/traces {
+            proxy_pass http://query-frontend$request_uri;
+          }
+          
+          location ~ /api/traces/.* {
+            proxy_pass http://query-frontend$request_uri;
+          }
+          
+          location = /api/search {
+            proxy_pass http://query-frontend$request_uri;
+          }
+          
+          location = /ready {
+            return 200 "ready\n";
+            add_header Content-Type text/plain;
+          }
+        }
+      }
+
+# Distributor (receives traces)
+distributor:
+  replicas: 2
+  
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+
+# Ingester (writes traces to storage)      
+ingester:
+  replicas: 2
+  
+  persistence:
+    enabled: true
+    storageClassName: gp3
+    size: 50Gi
+    
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+
+# Query Frontend (query coordination)
+queryFrontend:
+  replicas: 1
+  
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+# Querier (executes queries)
+querier:
+  replicas: 2
+  
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+
+# Compactor (manages block compaction)
+compactor:
+  replicas: 1
+  
+  persistence:
+    enabled: true
+    storageClassName: gp3
+    size: 20Gi
+    
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+
+# Metrics generator (generates metrics from traces)
+metricsGenerator:
+  enabled: true
+  replicas: 1
+  
+  config:
+    registry:
+      collection_interval: 5s
+      stale_duration: 15s
+    storage:
+      path: /tmp/tempo/generator/wal
+      remote_write:
+        - url: http://prometheus-server.monitoring.svc.cluster.local:9090/api/v1/write
+          send_exemplars: true
+          headers:
+            x-scope-orgid: fake
+    
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+# Memcached (for caching)
+memcached:
+  enabled: true
+  
+# Memcached-exporter
+memcachedExporter:
+  enabled: true
+
+# Global overrides
+nameOverride: ""
+fullnameOverride: ""
+
+# Network policy
+networkPolicy:
+  enabled: true
+
+# Pod annotations
+podAnnotations: 
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "3100"
+  prometheus.io/path: "/metrics"
+
+# Additional labels
+podLabels: {}
+
+# Image pull secrets
+imagePullSecrets: []
+
+# Priority class
+priorityClassName: ""
+
+# Topology spread constraints
+topologySpreadConstraints: []
+
+# Test configuration
+test:
+  enabled: true
+  image: grafana/tempo:2.3.0
+  timeout: 30s
+
+# Grafana integration
+grafana:
+  datasource:
+    enabled: true
+    uid: tempo
+    url: http://tempo-query-frontend.tracing.svc.cluster.local:3100

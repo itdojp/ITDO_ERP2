@@ -1,0 +1,408 @@
+# Default Deny All Ingress Network Policy
+# Implements Zero Trust networking by denying all ingress traffic by default
+# Each service must explicitly allow required connections
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-all-ingress
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: deny-all-ingress
+    security.istio.io/policy: "zero-trust"
+    app.kubernetes.io/component: network-security
+spec:
+  podSelector: {}  # Apply to all pods in namespace
+  policyTypes:
+  - Ingress
+  # No ingress rules = deny all ingress traffic
+  
+---
+# Default Deny All Egress Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-all-egress
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: deny-all-egress
+    security.istio.io/policy: "zero-trust"
+spec:
+  podSelector: {}  # Apply to all pods in namespace
+  policyTypes:
+  - Egress
+  egress:
+  # Allow DNS resolution only
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # Allow access to Kubernetes API server
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: TCP
+      port: 443
+      
+---
+# System Namespace Deny All (Monitoring)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-all-ingress
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: deny-all-ingress-monitoring
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-all-egress
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: deny-all-egress-monitoring
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: TCP
+      port: 443
+      
+---
+# Istio System Namespace Deny All
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-all-ingress
+  namespace: istio-system
+  labels:
+    app.kubernetes.io/name: deny-all-ingress-istio
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-all-egress
+  namespace: istio-system
+  labels:
+    app.kubernetes.io/name: deny-all-egress-istio
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: TCP
+      port: 443
+  # Allow Istio control plane communication
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: istio-system
+    ports:
+    - protocol: TCP
+      port: 15010  # Pilot
+    - protocol: TCP
+      port: 15011  # Pilot
+    - protocol: TCP
+      port: 15012  # Pilot
+      
+---
+# Kube System Basic Access
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: kube-system-basic-access
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: kube-system-access
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow access from all namespaces to kube-system services
+  - from:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 443  # API server
+    - protocol: UDP
+      port: 53   # DNS
+    - protocol: TCP
+      port: 53   # DNS
+  egress:
+  # Allow all egress for system components
+  - to: []
+    
+---
+# Default Network Policy for Unlabeled Namespaces
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: default
+  labels:
+    app.kubernetes.io/name: default-deny-all
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  egress:
+  # Minimal egress for basic functionality
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: TCP
+      port: 443
+      
+---
+# Global Network Policy Template (Cilium)
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: global-deny-all
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: cilium-global-deny
+spec:
+  description: "Global deny all policy with explicit allows"
+  endpointSelector: {}  # Apply to all endpoints
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        "k8s:io.kubernetes.pod.namespace": "istio-system"
+        "k8s:app": "istio-proxy"
+    toPorts:
+    - ports:
+      - port: "15090"  # Envoy admin
+        protocol: TCP
+  egress:
+  # Allow DNS
+  - toEndpoints:
+    - matchLabels:
+        "k8s:io.kubernetes.pod.namespace": "kube-system"
+        "k8s:k8s-app": "kube-dns"
+    toPorts:
+    - ports:
+      - port: "53"
+        protocol: UDP
+      - port: "53"
+        protocol: TCP
+  # Allow to Istio system
+  - toEndpoints:
+    - matchLabels:
+        "k8s:io.kubernetes.pod.namespace": "istio-system"
+    toPorts:
+    - ports:
+      - port: "15010"  # Pilot discovery
+      - port: "15011"  # Pilot discovery
+      - port: "15012"  # Pilot discovery
+        protocol: TCP
+        
+---
+# Global L7 Policy (Cilium)
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: global-l7-policy
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: cilium-l7-policy
+spec:
+  description: "Global L7 HTTP policy for application security"
+  endpointSelector:
+    matchLabels:
+      app: itdo-erp-backend-api
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        app: itdo-erp-frontend-app
+    - matchLabels:
+        "k8s:io.kubernetes.pod.namespace": "istio-system"
+        "k8s:app": "istio-proxy"
+    toPorts:
+    - ports:
+      - port: "8000"
+        protocol: TCP
+      rules:
+        http:
+        - method: "GET"
+          path: "/api/v1/.*"
+          headers:
+          - "Authorization: Bearer .*"
+        - method: "POST"
+          path: "/api/v1/.*"
+          headers:
+          - "Content-Type: application/json"
+          - "Authorization: Bearer .*"
+        - method: "PUT"
+          path: "/api/v1/.*"
+        - method: "DELETE"
+          path: "/api/v1/.*"
+        - method: "PATCH"
+          path: "/api/v1/.*"
+        # Deny admin endpoints from non-admin sources
+        - method: "GET"
+          path: "/api/v1/admin/.*"
+          headers:
+          - "X-Admin-Token: .*"  # Require admin token
+          
+---
+# Node-Level Security Policy (Calico)
+apiVersion: projectcalico.org/v3
+kind: GlobalNetworkPolicy
+metadata:
+  name: global-node-security
+  labels:
+    app.kubernetes.io/name: calico-global-node-security
+spec:
+  order: 100
+  # Apply to all node traffic
+  applyOnForward: true
+  preDNAT: true
+  # Ingress rules for nodes
+  ingress:
+  # Allow SSH from management networks only
+  - action: Allow
+    protocol: TCP
+    source:
+      nets:
+      - "10.0.1.0/24"    # Management network
+      - "10.0.2.0/24"    # Admin network
+    destination:
+      ports: [22]
+  # Allow Kubernetes API server
+  - action: Allow
+    protocol: TCP
+    destination:
+      ports: [6443]
+  # Allow kubelet API
+  - action: Allow
+    protocol: TCP
+    source:
+      nets:
+      - "10.0.0.0/8"     # Cluster network
+    destination:
+      ports: [10250]
+  # Allow NodePort services
+  - action: Allow
+    protocol: TCP
+    destination:
+      ports: [30000:32767]
+  # Deny all other node access
+  - action: Deny
+    
+  # Egress rules for nodes
+  egress:
+  # Allow all egress from nodes (for updates, etc.)
+  - action: Allow
+    
+---
+# Host Network Policy (Calico)
+apiVersion: projectcalico.org/v3
+kind: GlobalNetworkPolicy
+metadata:
+  name: global-host-endpoints
+  labels:
+    app.kubernetes.io/name: calico-host-endpoints
+spec:
+  order: 10
+  # Apply to host network interfaces
+  selector: "has(host-endpoint)"
+  ingress:
+  # Allow established connections
+  - action: Allow
+    source: {}
+    destination: {}
+    protocol: TCP
+    # Match established connections
+    metadata:
+      annotations:
+        "established": "true"
+  # Allow ICMP
+  - action: Allow
+    protocol: ICMP
+  - action: Allow
+    protocol: ICMPv6
+  # Allow localhost
+  - action: Allow
+    source:
+      nets: ["127.0.0.0/8", "::1/128"]
+  # Deny all other traffic to host
+  - action: Deny
+    
+  egress:
+  # Allow all egress from host
+  - action: Allow
+    
+---
+# Emergency Override Policy (Break Glass)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: emergency-override
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: emergency-override
+    security.emergency: "break-glass"
+  annotations:
+    # This policy should only be applied in emergencies
+    description: "Emergency override - allows all traffic. DELETE AFTER USE."
+    contact: "security-team@itdo-erp.com"
+spec:
+  podSelector:
+    matchLabels:
+      security.emergency: "allow-all"  # Only affects specially labeled pods
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from: []
+  egress:
+  - to: []

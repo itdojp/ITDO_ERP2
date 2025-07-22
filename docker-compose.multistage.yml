@@ -1,0 +1,305 @@
+# Docker Compose for ITDO ERP Multi-Stage Development
+# Supports development, testing, and production targets
+
+version: '3.8'
+
+services:
+  # Backend API Service
+  backend-api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: ${BACKEND_TARGET:-production}
+      args:
+        BUILD_DATE: ${BUILD_DATE:-}
+        VCS_REF: ${VCS_REF:-}
+        VERSION: ${VERSION:-latest}
+    image: itdo-erp/backend:${VERSION:-latest}
+    container_name: itdo-erp-backend
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/itdo_erp
+      - REDIS_URL=redis://redis:6379/0
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - JWT_SECRET=${JWT_SECRET:-dev-secret-key}
+      - ALLOWED_ORIGINS=http://localhost:3000,http://frontend:80
+    ports:
+      - "8000:8000"
+    volumes:
+      # Development mode volumes (only for development target)
+      - ./backend/app:/app/app:ro
+      - ./backend/tests:/app/tests:ro
+      - backend-logs:/app/logs
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - itdo-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Frontend App Service  
+  frontend-app:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: ${FRONTEND_TARGET:-production}
+      args:
+        BUILD_DATE: ${BUILD_DATE:-}
+        VCS_REF: ${VCS_REF:-}
+        VERSION: ${VERSION:-latest}
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+        VITE_APP_VERSION: ${VERSION:-latest}
+    image: itdo-erp/frontend:${VERSION:-latest}
+    container_name: itdo-erp-frontend
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+    ports:
+      - "3000:80"
+    volumes:
+      # Development mode volumes (only for development target)
+      - ./frontend/src:/app/src:ro
+      - ./frontend/public:/app/public:ro
+    depends_on:
+      - backend-api
+    networks:
+      - itdo-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: itdo-erp-postgres
+    environment:
+      POSTGRES_DB: itdo_erp
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./backend/scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    networks:
+      - itdo-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d itdo_erp"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    command: >
+      postgres
+        -c log_statement=all
+        -c log_min_duration_statement=0
+        -c log_line_prefix='%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h '
+        -c log_checkpoints=on
+        -c log_connections=on
+        -c log_disconnections=on
+        -c log_lock_waits=on
+        -c shared_preload_libraries='pg_stat_statements'
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: itdo-erp-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
+    networks:
+      - itdo-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    command: redis-server /usr/local/etc/redis/redis.conf
+
+  # Testing Services (only active in testing mode)
+  backend-test:
+    profiles: ["testing"]
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: testing
+    image: itdo-erp/backend:test
+    container_name: itdo-erp-backend-test
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres-test:5432/itdo_erp_test
+      - REDIS_URL=redis://redis-test:6379/1
+      - ENVIRONMENT=testing
+    volumes:
+      - ./backend:/app:ro
+      - backend-test-reports:/app/test-reports
+    depends_on:
+      - postgres-test
+      - redis-test
+    networks:
+      - itdo-test-network
+    command: ["python", "-m", "pytest", "tests/", "-v", "--cov=app", "--cov-report=html:/app/test-reports/coverage", "--junit-xml=/app/test-reports/junit.xml"]
+
+  frontend-test:
+    profiles: ["testing"]
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: testing
+    image: itdo-erp/frontend:test
+    container_name: itdo-erp-frontend-test
+    environment:
+      - NODE_ENV=testing
+      - CI=true
+    volumes:
+      - ./frontend:/app:ro
+      - frontend-test-reports:/app/test-reports
+    networks:
+      - itdo-test-network
+    command: ["npm", "run", "test:ci"]
+
+  # Test Database
+  postgres-test:
+    profiles: ["testing"]
+    image: postgres:15-alpine
+    container_name: itdo-erp-postgres-test
+    environment:
+      POSTGRES_DB: itdo_erp_test
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-test-data:/var/lib/postgresql/data
+    networks:
+      - itdo-test-network
+    tmpfs:
+      - /var/lib/postgresql/data:noexec,nosuid,size=1G
+
+  # Test Redis
+  redis-test:
+    profiles: ["testing"]
+    image: redis:7-alpine
+    container_name: itdo-erp-redis-test
+    ports:
+      - "6380:6379"
+    networks:
+      - itdo-test-network
+    tmpfs:
+      - /data:noexec,nosuid,size=100M
+
+  # Security scanning service
+  security-scanner:
+    profiles: ["security"]
+    build:
+      context: .
+      dockerfile: Dockerfile.security
+    image: itdo-erp/security-scanner
+    container_name: itdo-erp-security-scanner
+    volumes:
+      - ./:/workspace:ro
+      - security-reports:/reports
+    networks:
+      - itdo-network
+    environment:
+      - SCAN_TARGET=${SCAN_TARGET:-all}
+    command: ["/scan.sh"]
+
+  # Performance testing service
+  performance-test:
+    profiles: ["performance"]
+    image: grafana/k6:latest
+    container_name: itdo-erp-performance-test
+    volumes:
+      - ./performance-testing:/scripts:ro
+      - performance-reports:/reports
+    networks:
+      - itdo-network
+    environment:
+      - BASE_URL=http://backend-api:8000
+      - FRONTEND_URL=http://frontend-app:80
+    depends_on:
+      - backend-api
+      - frontend-app
+    command: ["run", "/scripts/load-test.js", "--out", "json=/reports/k6-results.json"]
+
+  # Development tools (only for development)
+  pgadmin:
+    profiles: ["development"]
+    image: dpage/pgadmin4:latest
+    container_name: itdo-erp-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@itdo-erp.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - itdo-network
+
+  # Redis Commander (only for development)
+  redis-commander:
+    profiles: ["development"]
+    image: rediscommander/redis-commander:latest
+    container_name: itdo-erp-redis-commander
+    environment:
+      REDIS_HOSTS: local:redis:6379
+      HTTP_USER: admin
+      HTTP_PASSWORD: admin123
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    networks:
+      - itdo-network
+
+networks:
+  itdo-network:
+    driver: bridge
+    name: itdo-network
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+          
+  itdo-test-network:
+    driver: bridge
+    name: itdo-test-network
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
+
+volumes:
+  postgres-data:
+    name: itdo-postgres-data
+  postgres-test-data:
+    name: itdo-postgres-test-data
+  redis-data:
+    name: itdo-redis-data
+  backend-logs:
+    name: itdo-backend-logs
+  backend-test-reports:
+    name: itdo-backend-test-reports
+  frontend-test-reports:
+    name: itdo-frontend-test-reports
+  security-reports:
+    name: itdo-security-reports
+  performance-reports:
+    name: itdo-performance-reports
+  pgadmin-data:
+    name: itdo-pgadmin-data

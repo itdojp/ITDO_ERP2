@@ -1,0 +1,346 @@
+# Loki Configuration for ITDO ERP High-Volume Logging
+loki:
+  # Loki configuration
+  config: |
+    auth_enabled: false
+    
+    server:
+      http_listen_port: 3100
+      grpc_listen_port: 9096
+      log_level: info
+      
+    common:
+      path_prefix: /tmp/loki
+      storage:
+        filesystem:
+          chunks_directory: /tmp/loki/chunks
+          rules_directory: /tmp/loki/rules
+      replication_factor: 1
+      ring:
+        instance_addr: 127.0.0.1
+        kvstore:
+          store: inmemory
+          
+    query_range:
+      results_cache:
+        cache:
+          embedded_cache:
+            enabled: true
+            max_size_mb: 100
+            
+    schema_config:
+      configs:
+        - from: 2023-01-01
+          store: boltdb-shipper
+          object_store: filesystem
+          schema: v11
+          index:
+            prefix: index_
+            period: 24h
+            
+    storage_config:
+      boltdb_shipper:
+        active_index_directory: /tmp/loki/boltdb-shipper-active
+        cache_location: /tmp/loki/boltdb-shipper-cache
+        cache_ttl: 24h
+        shared_store: filesystem
+      filesystem:
+        directory: /tmp/loki/chunks
+        
+    compactor:
+      working_directory: /tmp/loki/boltdb-shipper-compactor
+      shared_store: filesystem
+      
+    limits_config:
+      reject_old_samples: true
+      reject_old_samples_max_age: 168h
+      ingestion_rate_mb: 16
+      ingestion_burst_size_mb: 32
+      max_query_parallelism: 32
+      max_streams_per_user: 10000
+      max_query_series: 100000
+      max_query_length: 721h
+      
+    chunk_store_config:
+      max_look_back_period: 168h
+      
+    table_manager:
+      retention_deletes_enabled: true
+      retention_period: 168h
+      
+    ruler:
+      storage:
+        type: local
+        local:
+          directory: /tmp/loki/rules
+      rule_path: /tmp/loki/rules-temp
+      alertmanager_url: http://kube-prometheus-stack-alertmanager.monitoring:9093
+      ring:
+        kvstore:
+          store: inmemory
+      enable_api: true
+      
+    analytics:
+      reporting_enabled: false
+
+  # Storage configuration
+  persistence:
+    enabled: true
+    storageClassName: gp3
+    accessModes:
+      - ReadWriteOnce
+    size: 100Gi
+
+  # Resources
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+
+  # Security Context
+  securityContext:
+    fsGroup: 10001
+    runAsGroup: 10001
+    runAsNonRoot: true
+    runAsUser: 10001
+
+  # Pod disruption budget
+  podDisruptionBudget:
+    maxUnavailable: 1
+
+# Gateway (nginx) configuration
+gateway:
+  enabled: true
+  replicas: 2
+  
+  image:
+    registry: docker.io
+    repository: nginxinc/nginx-unprivileged
+    tag: 1.25-alpine
+    
+  # Gateway configuration
+  nginxConfig:
+    file: |
+      worker_processes  5;  # Automatically determine number of processes
+      error_log  /dev/stderr;
+      pid        /tmp/nginx.pid;
+      worker_rlimit_nofile 8192;
+
+      events {
+        worker_connections  4096;  # More connections per worker
+      }
+
+      http {
+        include       /etc/nginx/mime.types;
+        default_type  application/octet-stream;
+        log_format   main '$remote_addr - $remote_user [$time_local]  $status '
+          '"$request" $body_bytes_sent "$http_referer" '
+          '"$http_user_agent" "$http_x_forwarded_for"';
+        access_log   /dev/stderr  main;
+
+        sendfile     on;
+        tcp_nopush   on;
+        resolver kube-dns.kube-system.svc.cluster.local;
+
+        upstream read {
+          server loki-read.logging.svc.cluster.local:3100;
+        }
+
+        upstream write {
+          server loki-write.logging.svc.cluster.local:3100;
+        }
+
+        proxy_http_version 1.1;
+
+        server {
+          listen             8080;
+          
+          # Health check endpoint
+          location = /ready {
+            return 200 "ready\n";
+            add_header Content-Type text/plain;
+          }
+
+          # Loki API endpoints routing
+          location = /api/prom/push {
+            proxy_pass       http://write$request_uri;
+          }
+          location = /api/prom/tail {
+            proxy_pass       http://read$request_uri;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+          }
+          location ~ /api/prom/.* {
+            proxy_pass       http://read$request_uri;
+          }
+          location = /loki/api/v1/push {
+            proxy_pass       http://write$request_uri;
+          }
+          location = /loki/api/v1/tail {
+            proxy_pass       http://read$request_uri;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+          }
+          location ~ /loki/api/.* {
+            proxy_pass       http://read$request_uri;
+          }
+        }
+      }
+
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+# Write configuration (for ingestion)
+write:
+  replicas: 2
+  
+  persistence:
+    storageClass: gp3
+    size: 50Gi
+
+  resources:
+    limits:
+      cpu: 1500m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+
+# Read configuration (for queries)
+read:
+  replicas: 2
+  
+  persistence:
+    storageClass: gp3
+    size: 50Gi
+
+  resources:
+    limits:
+      cpu: 1500m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+
+# Backend configuration (for storage)
+backend:
+  replicas: 2
+  
+  persistence:
+    storageClass: gp3
+    size: 100Gi
+
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+    requests:
+      cpu: 300m
+      memory: 1Gi
+
+# Service configuration
+singleBinary:
+  replicas: 0  # Disabled in favor of microservices mode
+  
+# Ingress configuration
+gateway:
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    annotations:
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/auth-type: basic
+      nginx.ingress.kubernetes.io/auth-secret: loki-basic-auth
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    hosts:
+      - host: loki.itdo-erp.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: loki-tls
+        hosts:
+          - loki.itdo-erp.com
+
+# Monitoring
+serviceMonitor:
+  enabled: true
+  namespace: monitoring
+  interval: 30s
+  additionalLabels: {}
+
+# Promtail configuration (log collection agent)
+promtail:
+  enabled: true
+  
+  config:
+    clients:
+      - url: http://loki-gateway.logging.svc.cluster.local/loki/api/v1/push
+        tenant_id: itdo-erp
+        
+    scrape_configs:
+      - job_name: kubernetes-pods
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_controller_name]
+            regex: ([0-9a-z-.]+?)(-[0-9a-f]{8,10})?
+            action: replace
+            target_label: __meta_kubernetes_pod_controller_name
+          - source_labels: [__meta_kubernetes_pod_label_name]
+            action: replace
+            target_label: __meta_kubernetes_pod_name
+          - source_labels: [__meta_kubernetes_pod_node_name]
+            action: replace
+            target_label: __meta_kubernetes_pod_node_name
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            action: replace
+            target_label: pod
+          - source_labels: [__meta_kubernetes_pod_container_name]
+            action: replace
+            target_label: container
+          - replacement: /var/log/pods/*$1/*.log
+            separator: /
+            source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_pod_container_name]
+            target_label: __path__
+          - action: replace
+            source_labels: [__meta_kubernetes_pod_container_id]
+            regex: ^(\w+)://(.*)
+            replacement: $2
+            target_label: container_runtime_id
+
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+# Test configuration
+test:
+  enabled: true
+
+# Chart metadata
+nameOverride: ""
+fullnameOverride: ""
+
+# Global configuration
+global:
+  image:
+    registry: docker.io
+
+# Network policy
+networkPolicy:
+  enabled: true

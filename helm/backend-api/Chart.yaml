@@ -1,0 +1,31 @@
+apiVersion: v2
+name: backend-api
+description: ITDO ERP Backend API Helm Chart
+version: 2.1.0
+appVersion: "2.1.0"
+
+keywords:
+- fastapi
+- python
+- api
+- erp
+- itdo
+
+maintainers:
+- name: ITDO Platform Team
+  email: platform@itdo-erp.com
+
+dependencies:
+- name: postgresql
+  version: "12.1.9"
+  repository: "https://charts.bitnami.com/bitnami"
+  condition: postgresql.enabled
+- name: redis
+  version: "17.4.3"
+  repository: "https://charts.bitnami.com/bitnami"
+  condition: redis.enabled
+
+annotations:
+  category: ERP
+  itdo-erp.com/component: backend
+  itdo-erp.com/layer: api
