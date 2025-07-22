@@ -19,7 +19,11 @@ if TYPE_CHECKING:
 
 
 class Organization(SoftDeletableModel):
-    """Organization model representing a company or business entity."""
+    """Organization model representing a company or business entity.
+    
+    v17.0: Enhanced for ERP basic functionality with improved hierarchy
+    support, business metrics, and multi-tenant capabilities.
+    """
 
     __tablename__ = "organizations"
 
@@ -247,3 +251,44 @@ class Organization(SoftDeletableModel):
             path.insert(0, current.parent)
             current = current.parent
         return path
+    
+    def get_erp_context(self) -> dict:
+        """Get ERP-specific organization context - v17.0."""
+        return {
+            "organization_id": self.id,
+            "code": self.code,
+            "name": self.name,
+            "name_en": self.name_en,
+            "is_active": self.is_active,
+            "parent_id": self.parent_id,
+            "is_subsidiary": self.is_subsidiary,
+            "is_parent": self.is_parent,
+            "industry": self.industry,
+            "business_type": self.business_type,
+            "employee_count": self.employee_count,
+            "fiscal_year_start": self.fiscal_year_start,
+            "contact": {
+                "email": self.email,
+                "phone": self.phone,
+                "website": self.website
+            },
+            "address": self.full_address
+        }
+    
+    def get_display_name(self) -> str:
+        """Get display name for ERP UI."""
+        if self.name_en:
+            return f"{self.name} ({self.name_en})"
+        return self.name
+    
+    def can_be_deleted(self) -> tuple[bool, str]:
+        """Check if organization can be safely deleted."""
+        if self.subsidiaries:
+            return False, "Cannot delete organization with subsidiaries"
+        
+        if hasattr(self, 'departments') and self.departments.count() > 0:
+            return False, "Cannot delete organization with departments"
+        
+        # Would need to check for ERP data like orders, products, etc.
+        # For now, basic validation
+        return True, "OK"
