@@ -24,7 +24,6 @@ class AuditLogBase(BaseModel):
 class AuditLogCreate(AuditLogBase):
     """Schema for creating audit logs."""
 
-    pass
 
 
 class AuditLogResponse(AuditLogBase):

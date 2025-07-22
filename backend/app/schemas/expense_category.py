@@ -49,7 +49,6 @@ class ExpenseCategoryBase(BaseModel):
 class ExpenseCategoryCreate(ExpenseCategoryBase):
     """Schema for creating expense categories."""
 
-    pass
 
 
 class ExpenseCategoryUpdate(BaseModel):

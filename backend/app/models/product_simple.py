@@ -1,9 +1,12 @@
-from sqlalchemy import Column, String, Float, Boolean, DateTime, ForeignKey
+from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, String
 from sqlalchemy.sql import func
+
 from app.core.database_simple import Base
+
 
 class Product(Base):  # type: ignore[valid-type,misc]
     """Simple product model - v19.0 practical approach"""
+
     __tablename__ = "products_simple"
 
     id = Column(String, primary_key=True)
@@ -16,9 +19,11 @@ class Product(Base):  # type: ignore[valid-type,misc]
     category = Column(String, nullable=True)  # type: ignore[arg-type]
     is_active = Column(Boolean, default=True)
     # Simple organization reference
-    organization_id = Column(String, ForeignKey('organizations_simple.id'), nullable=True)  # type: ignore[arg-type]
+    organization_id = Column(
+        String, ForeignKey("organizations_simple.id"), nullable=True
+    )  # type: ignore[arg-type]
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    
+
     def __repr__(self):  # type: ignore[no-untyped-def]
         return f"<Product(id={self.id}, code={self.code}, name={self.name})>"

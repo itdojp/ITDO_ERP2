@@ -10,22 +10,27 @@ CC02 段階的API開発プロトコル v30.0 - Task 1.10
 - 棚卸管理 (10エンドポイント)
 """
 
-import pytest
-from fastapi.testclient import TestClient
-from unittest.mock import Mock, patch, AsyncMock
+import uuid
 from datetime import datetime, timedelta
 from decimal import Decimal
-import uuid
+from unittest.mock import patch
+
+import pytest
+from fastapi.testclient import TestClient
 
 from app.main import app
 from app.models.warehouse_extended import (
-    Warehouse, WarehouseZone, WarehouseLocation, InventoryMovement, 
-    CycleCount, CycleCountLine, WarehousePerformance
+    CycleCount,
+    CycleCountLine,
+    InventoryMovement,
+    Warehouse,
+    WarehouseLocation,
+    WarehouseZone,
 )
-
 
 # テストクライアント設定
 client = TestClient(app)
+
 
 # モック用セキュリティ依存関係
 def mock_get_current_user():
@@ -33,22 +38,27 @@ def mock_get_current_user():
         "id": "test-user-id",
         "email": "test@example.com",
         "is_active": True,
-        "roles": ["admin"]
+        "roles": ["admin"],
     }
+
 
 def mock_require_permissions(permissions):
     def decorator(func):
         return func
+
     return decorator
+
 
 # セキュリティ依存関係をモック化
 app.dependency_overrides[app.dependencies["get_current_user"]] = mock_get_current_user
-app.dependency_overrides[app.dependencies["require_permissions"]] = mock_require_permissions
+app.dependency_overrides[app.dependencies["require_permissions"]] = (
+    mock_require_permissions
+)
 
 
 class TestWarehouseAPI:
     """倉庫CRUD操作のテストクラス (10エンドポイント)"""
-    
+
     @pytest.fixture
     def sample_warehouse_data(self):
         return {
@@ -121,10 +131,10 @@ class TestWarehouseAPI:
             "security_breach_alert": True,
             "tags": ["distribution", "automated", "climate_controlled"],
             "custom_fields": {"vendor": "LogisticsCorp", "contract_end": "2025-12-31"},
-            "notes": "Primary distribution center for Tokyo region"
+            "notes": "Primary distribution center for Tokyo region",
         }
 
-    @patch('app.crud.warehouse_v30.create_warehouse')
+    @patch("app.crud.warehouse_v30.create_warehouse")
     def test_create_warehouse_success(self, mock_create, sample_warehouse_data):
         """倉庫作成APIのテスト"""
         # モック設定
@@ -132,21 +142,21 @@ class TestWarehouseAPI:
         created_warehouse.id = str(uuid.uuid4())
         created_warehouse.created_at = datetime.utcnow()
         mock_create.return_value = created_warehouse
-        
+
         # APIコール
         response = client.post("/api/v1/warehouses/", json=sample_warehouse_data)
-        
+
         # 検証
         assert response.status_code == 201
         data = response.json()
         assert data["warehouse_code"] == sample_warehouse_data["warehouse_code"]
         assert data["warehouse_name"] == sample_warehouse_data["warehouse_name"]
         assert data["warehouse_type"] == sample_warehouse_data["warehouse_type"]
-        assert data["climate_controlled"] == True
+        assert data["climate_controlled"]
         assert len(data["storage_systems"]) == 3
         mock_create.assert_called_once()
 
-    @patch('app.crud.warehouse_v30.get_warehouses')
+    @patch("app.crud.warehouse_v30.get_warehouses")
     def test_get_warehouses_with_filters(self, mock_get):
         """倉庫一覧取得APIのテスト（フィルタ付き）"""
         # モック設定
@@ -156,23 +166,23 @@ class TestWarehouseAPI:
                 warehouse_code="WH001",
                 warehouse_name="Central DC",
                 warehouse_type="distribution",
-                status="active"
+                status="active",
             ),
             Warehouse(
                 id=str(uuid.uuid4()),
                 warehouse_code="WH002",
                 warehouse_name="Regional DC",
                 warehouse_type="distribution",
-                status="active"
-            )
+                status="active",
+            ),
         ]
         mock_get.return_value = {"items": mock_warehouses, "total": 2}
-        
+
         # APIコール
         response = client.get(
             "/api/v1/warehouses/?warehouse_type=distribution&status=active&skip=0&limit=10"
         )
-        
+
         # 検証
         assert response.status_code == 200
         data = response.json()
@@ -181,7 +191,7 @@ class TestWarehouseAPI:
         assert data["items"][0]["warehouse_code"] == "WH001"
         mock_get.assert_called_once()
 
-    @patch('app.crud.warehouse_v30.get_warehouse_by_id')
+    @patch("app.crud.warehouse_v30.get_warehouse_by_id")
     def test_get_warehouse_by_id_success(self, mock_get):
         """倉庫詳細取得APIのテスト"""
         # モック設定
@@ -192,13 +202,13 @@ class TestWarehouseAPI:
             warehouse_name="Central DC",
             warehouse_type="distribution",
             total_area=Decimal("50000.00"),
-            current_utilization=Decimal("78.50")
+            current_utilization=Decimal("78.50"),
         )
         mock_get.return_value = mock_warehouse
-        
+
         # APIコール
         response = client.get(f"/api/v1/warehouses/{warehouse_id}")
-        
+
         # 検証
         assert response.status_code == 200
         data = response.json()
@@ -207,41 +217,43 @@ class TestWarehouseAPI:
         assert float(data["current_utilization"]) == 78.50
         mock_get.assert_called_once_with(warehouse_id)
 
-    @patch('app.crud.warehouse_v30.get_warehouse_by_id')
+    @patch("app.crud.warehouse_v30.get_warehouse_by_id")
     def test_get_warehouse_not_found(self, mock_get):
         """存在しない倉庫取得APIのテスト"""
         # モック設定
         warehouse_id = str(uuid.uuid4())
         mock_get.return_value = None
-        
+
         # APIコール
         response = client.get(f"/api/v1/warehouses/{warehouse_id}")
-        
+
         # 検証
         assert response.status_code == 404
         assert "Warehouse not found" in response.json()["detail"]
 
-    @patch('app.crud.warehouse_v30.update_warehouse')
-    @patch('app.crud.warehouse_v30.get_warehouse_by_id')
-    def test_update_warehouse_success(self, mock_get, mock_update, sample_warehouse_data):
+    @patch("app.crud.warehouse_v30.update_warehouse")
+    @patch("app.crud.warehouse_v30.get_warehouse_by_id")
+    def test_update_warehouse_success(
+        self, mock_get, mock_update, sample_warehouse_data
+    ):
         """倉庫更新APIのテスト"""
         # モック設定
         warehouse_id = str(uuid.uuid4())
         existing_warehouse = Warehouse(**sample_warehouse_data)
         existing_warehouse.id = warehouse_id
         mock_get.return_value = existing_warehouse
-        
+
         updated_data = sample_warehouse_data.copy()
         updated_data["warehouse_name"] = "Updated Central DC"
         updated_data["current_utilization"] = "82.30"
-        
+
         updated_warehouse = Warehouse(**updated_data)
         updated_warehouse.id = warehouse_id
         mock_update.return_value = updated_warehouse
-        
+
         # APIコール
         response = client.put(f"/api/v1/warehouses/{warehouse_id}", json=updated_data)
-        
+
         # 検証
         assert response.status_code == 200
         data = response.json()
@@ -249,8 +261,8 @@ class TestWarehouseAPI:
         assert float(data["current_utilization"]) == 82.30
         mock_update.assert_called_once()
 
-    @patch('app.crud.warehouse_v30.delete_warehouse')
-    @patch('app.crud.warehouse_v30.get_warehouse_by_id')
+    @patch("app.crud.warehouse_v30.delete_warehouse")
+    @patch("app.crud.warehouse_v30.get_warehouse_by_id")
     def test_delete_warehouse_success(self, mock_get, mock_delete):
         """倉庫削除APIのテスト"""
         # モック設定
@@ -259,20 +271,20 @@ class TestWarehouseAPI:
             id=warehouse_id,
             warehouse_code="WH001",
             warehouse_name="Central DC",
-            status="active"
+            status="active",
         )
         mock_get.return_value = mock_warehouse
         mock_delete.return_value = True
-        
+
         # APIコール
         response = client.delete(f"/api/v1/warehouses/{warehouse_id}")
-        
+
         # 検証
         assert response.status_code == 200
         assert "successfully deleted" in response.json()["message"]
         mock_delete.assert_called_once_with(warehouse_id)
 
-    @patch('app.crud.warehouse_v30.get_warehouse_utilization')
+    @patch("app.crud.warehouse_v30.get_warehouse_utilization")
     def test_get_warehouse_utilization(self, mock_get_utilization):
         """倉庫稼働率取得APIのテスト"""
         # モック設定
@@ -284,14 +296,14 @@ class TestWarehouseAPI:
             "equipment_utilization": Decimal("82.10"),
             "zone_utilization": [
                 {"zone_id": "zone-1", "utilization": Decimal("85.20")},
-                {"zone_id": "zone-2", "utilization": Decimal("71.80")}
-            ]
+                {"zone_id": "zone-2", "utilization": Decimal("71.80")},
+            ],
         }
         mock_get_utilization.return_value = mock_utilization
-        
+
         # APIコール
         response = client.get(f"/api/v1/warehouses/{warehouse_id}/utilization")
-        
+
         # 検証
         assert response.status_code == 200
         data = response.json()
@@ -300,7 +312,7 @@ class TestWarehouseAPI:
         assert len(data["zone_utilization"]) == 2
         mock_get_utilization.assert_called_once_with(warehouse_id)
 
-    @patch('app.crud.warehouse_v30.get_warehouse_analytics')
+    @patch("app.crud.warehouse_v30.get_warehouse_analytics")
     def test_get_warehouse_analytics(self, mock_get_analytics):
         """倉庫分析データ取得APIのテスト"""
         # モック設定
@@ -312,22 +324,18 @@ class TestWarehouseAPI:
             "average_dwell_time": Decimal("12.3"),
             "pick_accuracy": Decimal("99.65"),
             "shipment_on_time": Decimal("98.20"),
-            "monthly_throughput": {
-                "receipts": 1250,
-                "shipments": 1320,
-                "picks": 15680
-            },
+            "monthly_throughput": {"receipts": 1250, "shipments": 1320, "picks": 15680},
             "cost_metrics": {
                 "cost_per_pick": Decimal("2.35"),
                 "cost_per_shipment": Decimal("28.50"),
-                "storage_cost_per_unit": Decimal("1.85")
-            }
+                "storage_cost_per_unit": Decimal("1.85"),
+            },
         }
         mock_get_analytics.return_value = mock_analytics
-        
+
         # APIコール
         response = client.get(f"/api/v1/warehouses/{warehouse_id}/analytics")
-        
+
         # 検証
         assert response.status_code == 200
         data = response.json()
@@ -337,7 +345,7 @@ class TestWarehouseAPI:
         assert float(data["cost_metrics"]["cost_per_pick"]) == 2.35
         mock_get_analytics.assert_called_once_with(warehouse_id)
 
-    @patch('app.crud.warehouse_v30.create_warehouses_bulk')
+    @patch("app.crud.warehouse_v30.create_warehouses_bulk")
     def test_bulk_create_warehouses(self, mock_bulk_create):
         """倉庫一括作成APIのテスト"""
         # モック設定
@@ -345,26 +353,28 @@ class TestWarehouseAPI:
             {
                 "warehouse_code": "WH001",
                 "warehouse_name": "Central DC",
-                "warehouse_type": "distribution"
+                "warehouse_type": "distribution",
             },
             {
-                "warehouse_code": "WH002", 
+                "warehouse_code": "WH002",
                 "warehouse_name": "Regional DC",
-                "warehouse_type": "distribution"
-            }
+                "warehouse_type": "distribution",
+            },
         ]
-        
+
         mock_result = {
             "created": 2,
             "failed": 0,
             "warehouse_ids": [str(uuid.uuid4()), str(uuid.uuid4())],
-            "errors": []
+            "errors": [],
         }
         mock_bulk_create.return_value = mock_result
-        
+
         # APIコール
-        response = client.post("/api/v1/warehouses/bulk", json={"warehouses": bulk_data})
-        
+        response = client.post(
+            "/api/v1/warehouses/bulk", json={"warehouses": bulk_data}
+        )
+
         # 検証
         assert response.status_code == 201
         data = response.json()
@@ -373,7 +383,7 @@ class TestWarehouseAPI:
         assert len(data["warehouse_ids"]) == 2
         mock_bulk_create.assert_called_once()
 
-    @patch('app.crud.warehouse_v30.get_warehouse_dashboard')
+    @patch("app.crud.warehouse_v30.get_warehouse_dashboard")
     def test_get_warehouses_dashboard(self, mock_get_dashboard):
         """倉庫ダッシュボード取得APIのテスト"""
         # モック設定
@@ -385,19 +395,23 @@ class TestWarehouseAPI:
             "total_inventory_value": Decimal("12500000.00"),
             "alerts": [
                 {"warehouse_id": "wh-1", "type": "low_space", "severity": "warning"},
-                {"warehouse_id": "wh-2", "type": "high_temperature", "severity": "critical"}
+                {
+                    "warehouse_id": "wh-2",
+                    "type": "high_temperature",
+                    "severity": "critical",
+                },
             ],
             "performance_summary": {
                 "pick_accuracy": Decimal("99.42"),
                 "shipment_on_time": Decimal("97.85"),
-                "receiving_efficiency": Decimal("94.20")
-            }
+                "receiving_efficiency": Decimal("94.20"),
+            },
         }
         mock_get_dashboard.return_value = mock_dashboard
-        
+
         # APIコール
         response = client.get("/api/v1/warehouses/dashboard")
-        
+
         # 検証
         assert response.status_code == 200
         data = response.json()
@@ -411,7 +425,7 @@ class TestWarehouseAPI:
 
 class TestWarehouseZoneAPI:
     """ゾーン管理APIのテストクラス (8エンドポイント)"""
-    
+
     @pytest.fixture
     def sample_zone_data(self):
         return {
@@ -446,10 +460,10 @@ class TestWarehouseZoneAPI:
             "max_utilization_target": "85.00",
             "location_count": 200,
             "occupied_locations": 131,
-            "status": "active"
+            "status": "active",
         }
 
-    @patch('app.crud.warehouse_v30.create_zone')
+    @patch("app.crud.warehouse_v30.create_zone")
     def test_create_zone_success(self, mock_create, sample_zone_data):
         """ゾーン作成APIのテスト"""
         # モック設定
@@ -457,21 +471,21 @@ class TestWarehouseZoneAPI:
         created_zone.id = str(uuid.uuid4())
         created_zone.created_at = datetime.utcnow()
         mock_create.return_value = created_zone
-        
+
         # APIコール
         response = client.post("/api/v1/warehouse-zones/", json=sample_zone_data)
-        
+
         # 検証
         assert response.status_code == 201
         data = response.json()
         assert data["zone_code"] == sample_zone_data["zone_code"]
         assert data["zone_name"] == sample_zone_data["zone_name"]
         assert data["zone_type"] == "receiving"
-        assert data["picking_zone"] == True
+        assert data["picking_zone"]
         assert len(data["allowed_product_categories"]) == 2
         mock_create.assert_called_once()
 
-    @patch('app.crud.warehouse_v30.get_zones_by_warehouse')
+    @patch("app.crud.warehouse_v30.get_zones_by_warehouse")
     def test_get_zones_by_warehouse(self, mock_get):
         """倉庫別ゾーン一覧取得APIのテスト"""
         # モック設定
@@ -483,7 +497,7 @@ class TestWarehouseZoneAPI:
                 zone_code="Z001",
                 zone_name="Receiving Zone A",
                 zone_type="receiving",
-                status="active"
+                status="active",
             ),
             WarehouseZone(
                 id=str(uuid.uuid4()),
@@ -491,14 +505,14 @@ class TestWarehouseZoneAPI:
                 zone_code="Z002",
                 zone_name="Storage Zone B",
                 zone_type="storage",
-                status="active"
-            )
+                status="active",
+            ),
         ]
         mock_get.return_value = {"items": mock_zones, "total": 2}
-        
+
         # APIコール
         response = client.get(f"/api/v1/warehouse-zones/warehouse/{warehouse_id}")
-        
+
         # 検証
         assert response.status_code == 200
         data = response.json()
@@ -508,7 +522,7 @@ class TestWarehouseZoneAPI:
         assert data["items"][1]["zone_type"] == "storage"
         mock_get.assert_called_once_with(warehouse_id)
 
-    @patch('app.crud.warehouse_v30.get_zone_by_id')
+    @patch("app.crud.warehouse_v30.get_zone_by_id")
     def test_get_zone_by_id_success(self, mock_get):
         """ゾーン詳細取得APIのテスト"""
         # モック設定
@@ -520,13 +534,13 @@ class TestWarehouseZoneAPI:
             zone_type="receiving",
             current_utilization=Decimal("65.50"),
             location_count=200,
-            occupied_locations=131
+            occupied_locations=131,
         )
         mock_get.return_value = mock_zone
-        
+
         # APIコール
         response = client.get(f"/api/v1/warehouse-zones/{zone_id}")
-        
+
         # 検証
         assert response.status_code == 200
         data = response.json()
@@ -536,8 +550,8 @@ class TestWarehouseZoneAPI:
         assert data["location_count"] == 200
         mock_get.assert_called_once_with(zone_id)
 
-    @patch('app.crud.warehouse_v30.update_zone')
-    @patch('app.crud.warehouse_v30.get_zone_by_id')
+    @patch("app.crud.warehouse_v30.update_zone")
+    @patch("app.crud.warehouse_v30.get_zone_by_id")
     def test_update_zone_success(self, mock_get, mock_update, sample_zone_data):
         """ゾーン更新APIのテスト"""
         # モック設定
@@ -545,18 +559,18 @@ class TestWarehouseZoneAPI:
         existing_zone = WarehouseZone(**sample_zone_data)
         existing_zone.id = zone_id
         mock_get.return_value = existing_zone
-        
+
         updated_data = sample_zone_data.copy()
         updated_data["zone_name"] = "Updated Receiving Zone A"
         updated_data["current_utilization"] = "72.30"
-        
+
         updated_zone = WarehouseZone(**updated_data)
         updated_zone.id = zone_id
         mock_update.return_value = updated_zone
-        
+
         # APIコール
         response = client.put(f"/api/v1/warehouse-zones/{zone_id}", json=updated_data)
-        
+
         # 検証
         assert response.status_code == 200
         data = response.json()
@@ -564,30 +578,27 @@ class TestWarehouseZoneAPI:
         assert float(data["current_utilization"]) == 72.30
         mock_update.assert_called_once()
 
-    @patch('app.crud.warehouse_v30.delete_zone')
-    @patch('app.crud.warehouse_v30.get_zone_by_id')
+    @patch("app.crud.warehouse_v30.delete_zone")
+    @patch("app.crud.warehouse_v30.get_zone_by_id")
     def test_delete_zone_success(self, mock_get, mock_delete):
         """ゾーン削除APIのテスト"""
         # モック設定
         zone_id = str(uuid.uuid4())
         mock_zone = WarehouseZone(
-            id=zone_id,
-            zone_code="Z001",
-            zone_name="Receiving Zone A",
-            status="active"
+            id=zone_id, zone_code="Z001", zone_name="Receiving Zone A", status="active"
         )
         mock_get.return_value = mock_zone
         mock_delete.return_value = True
-        
+
         # APIコール
         response = client.delete(f"/api/v1/warehouse-zones/{zone_id}")
-        
+
         # 検証
         assert response.status_code == 200
         assert "successfully deleted" in response.json()["message"]
         mock_delete.assert_called_once_with(zone_id)
 
-    @patch('app.crud.warehouse_v30.get_zone_utilization')
+    @patch("app.crud.warehouse_v30.get_zone_utilization")
     def test_get_zone_utilization(self, mock_get_utilization):
         """ゾーン稼働率取得APIのテスト"""
         # モック設定
@@ -602,14 +613,14 @@ class TestWarehouseZoneAPI:
                 "total_locations": 200,
                 "occupied_locations": 131,
                 "available_locations": 69,
-                "blocked_locations": 0
-            }
+                "blocked_locations": 0,
+            },
         }
         mock_get_utilization.return_value = mock_utilization
-        
+
         # APIコール
         response = client.get(f"/api/v1/warehouse-zones/{zone_id}/utilization")
-        
+
         # 検証
         assert response.status_code == 200
         data = response.json()
@@ -618,7 +629,7 @@ class TestWarehouseZoneAPI:
         assert data["location_breakdown"]["occupied_locations"] == 131
         mock_get_utilization.assert_called_once_with(zone_id)
 
-    @patch('app.crud.warehouse_v30.create_zones_bulk')
+    @patch("app.crud.warehouse_v30.create_zones_bulk")
     def test_bulk_create_zones(self, mock_bulk_create):
         """ゾーン一括作成APIのテスト"""
         # モック設定
@@ -627,27 +638,29 @@ class TestWarehouseZoneAPI:
                 "warehouse_id": str(uuid.uuid4()),
                 "zone_code": "Z001",
                 "zone_name": "Receiving Zone A",
-                "zone_type": "receiving"
+                "zone_type": "receiving",
             },
             {
                 "warehouse_id": str(uuid.uuid4()),
                 "zone_code": "Z002",
-                "zone_name": "Storage Zone B", 
-                "zone_type": "storage"
-            }
+                "zone_name": "Storage Zone B",
+                "zone_type": "storage",
+            },
         ]
-        
+
         mock_result = {
             "created": 2,
             "failed": 0,
             "zone_ids": [str(uuid.uuid4()), str(uuid.uuid4())],
-            "errors": []
+            "errors": [],
         }
         mock_bulk_create.return_value = mock_result
-        
+
         # APIコール
-        response = client.post("/api/v1/warehouse-zones/bulk", json={"zones": bulk_data})
-        
+        response = client.post(
+            "/api/v1/warehouse-zones/bulk", json={"zones": bulk_data}
+        )
+
         # 検証
         assert response.status_code == 201
         data = response.json()
@@ -656,7 +669,7 @@ class TestWarehouseZoneAPI:
         assert len(data["zone_ids"]) == 2
         mock_bulk_create.assert_called_once()
 
-    @patch('app.crud.warehouse_v30.get_zone_analytics')
+    @patch("app.crud.warehouse_v30.get_zone_analytics")
     def test_get_zone_analytics(self, mock_get_analytics):
         """ゾーン分析データ取得APIのテスト"""
         # モック設定
@@ -671,19 +684,15 @@ class TestWarehouseZoneAPI:
             "utilization_trend": [
                 {"period": "2024-01", "utilization": Decimal("62.30")},
                 {"period": "2024-02", "utilization": Decimal("68.50")},
-                {"period": "2024-03", "utilization": Decimal("65.80")}
+                {"period": "2024-03", "utilization": Decimal("65.80")},
             ],
-            "product_mix": {
-                "electronics": 45,
-                "clothing": 35,
-                "accessories": 20
-            }
+            "product_mix": {"electronics": 45, "clothing": 35, "accessories": 20},
         }
         mock_get_analytics.return_value = mock_analytics
-        
+
         # APIコール
         response = client.get(f"/api/v1/warehouse-zones/{zone_id}/analytics")
-        
+
         # 検証
         assert response.status_code == 200
         data = response.json()
@@ -696,7 +705,7 @@ class TestWarehouseZoneAPI:
 
 class TestWarehouseLocationAPI:
     """ロケーション管理APIのテストクラス (8エンドポイント)"""
-    
+
     @pytest.fixture
     def sample_location_data(self):
         return {
@@ -745,10 +754,10 @@ class TestWarehouseLocationAPI:
             "damage_assessment": None,
             "location_attributes": {"temperature_zone": "standard", "pick_face": True},
             "tags": ["pick_face", "forklift_accessible"],
-            "notes": "Primary picking location for aisle A01"
+            "notes": "Primary picking location for aisle A01",
         }
 
-    @patch('app.crud.warehouse_v30.create_location')
+    @patch("app.crud.warehouse_v30.create_location")
     def test_create_location_success(self, mock_create, sample_location_data):
         """ロケーション作成APIのテスト"""
         # モック設定
@@ -756,21 +765,23 @@ class TestWarehouseLocationAPI:
         created_location.id = str(uuid.uuid4())
         created_location.created_at = datetime.utcnow()
         mock_create.return_value = created_location
-        
+
         # APIコール
-        response = client.post("/api/v1/warehouse-locations/", json=sample_location_data)
-        
+        response = client.post(
+            "/api/v1/warehouse-locations/", json=sample_location_data
+        )
+
         # 検証
         assert response.status_code == 201
         data = response.json()
         assert data["location_code"] == sample_location_data["location_code"]
         assert data["location_type"] == "bin"
-        assert data["pickable"] == True
+        assert data["pickable"]
         assert data["access_method"] == "forklift"
         assert len(data["equipment_required"]) == 2
         mock_create.assert_called_once()
 
-    @patch('app.crud.warehouse_v30.get_locations_by_zone')
+    @patch("app.crud.warehouse_v30.get_locations_by_zone")
     def test_get_locations_by_zone(self, mock_get):
         """ゾーン別ロケーション一覧取得APIのテスト"""
         # モック設定
@@ -782,7 +793,7 @@ class TestWarehouseLocationAPI:
                 location_code="A01-001-001",
                 location_type="bin",
                 status="available",
-                is_occupied=False
+                is_occupied=False,
             ),
             WarehouseLocation(
                 id=str(uuid.uuid4()),
@@ -790,24 +801,24 @@ class TestWarehouseLocationAPI:
                 location_code="A01-001-002",
                 location_type="bin",
                 status="occupied",
-                is_occupied=True
-            )
+                is_occupied=True,
+            ),
         ]
         mock_get.return_value = {"items": mock_locations, "total": 2}
-        
+
         # APIコール
         response = client.get(f"/api/v1/warehouse-locations/zone/{zone_id}")
-        
+
         # 検証
         assert response.status_code == 200
         data = response.json()
         assert data["total"] == 2
         assert len(data["items"]) == 2
         assert data["items"][0]["location_code"] == "A01-001-001"
-        assert data["items"][1]["is_occupied"] == True
+        assert data["items"][1]["is_occupied"]
         mock_get.assert_called_once_with(zone_id)
 
-    @patch('app.crud.warehouse_v30.get_location_by_id')
+    @patch("app.crud.warehouse_v30.get_location_by_id")
     def test_get_location_by_id_success(self, mock_get):
         """ロケーション詳細取得APIのテスト"""
         # モック設定
@@ -818,13 +829,13 @@ class TestWarehouseLocationAPI:
             location_type="bin",
             weight_capacity=Decimal("500.00"),
             current_stock_quantity=Decimal("125.500"),
-            occupancy_percentage=Decimal("25.10")
+            occupancy_percentage=Decimal("25.10"),
         )
         mock_get.return_value = mock_location
-        
+
         # APIコール
         response = client.get(f"/api/v1/warehouse-locations/{location_id}")
-        
+
         # 検証
         assert response.status_code == 200
         data = response.json()
@@ -834,8 +845,8 @@ class TestWarehouseLocationAPI:
         assert float(data["current_stock_quantity"]) == 125.500
         mock_get.assert_called_once_with(location_id)
 
-    @patch('app.crud.warehouse_v30.update_location')
-    @patch('app.crud.warehouse_v30.get_location_by_id')
+    @patch("app.crud.warehouse_v30.update_location")
+    @patch("app.crud.warehouse_v30.get_location_by_id")
     def test_update_location_success(self, mock_get, mock_update, sample_location_data):
         """ロケーション更新APIのテスト"""
         # モック設定
@@ -843,29 +854,31 @@ class TestWarehouseLocationAPI:
         existing_location = WarehouseLocation(**sample_location_data)
         existing_location.id = location_id
         mock_get.return_value = existing_location
-        
+
         updated_data = sample_location_data.copy()
         updated_data["pick_priority"] = 85
         updated_data["current_stock_quantity"] = "250.000"
         updated_data["is_occupied"] = True
-        
+
         updated_location = WarehouseLocation(**updated_data)
         updated_location.id = location_id
         mock_update.return_value = updated_location
-        
+
         # APIコール
-        response = client.put(f"/api/v1/warehouse-locations/{location_id}", json=updated_data)
-        
+        response = client.put(
+            f"/api/v1/warehouse-locations/{location_id}", json=updated_data
+        )
+
         # 検証
         assert response.status_code == 200
         data = response.json()
         assert data["pick_priority"] == 85
         assert float(data["current_stock_quantity"]) == 250.000
-        assert data["is_occupied"] == True
+        assert data["is_occupied"]
         mock_update.assert_called_once()
 
-    @patch('app.crud.warehouse_v30.delete_location')
-    @patch('app.crud.warehouse_v30.get_location_by_id')
+    @patch("app.crud.warehouse_v30.delete_location")
+    @patch("app.crud.warehouse_v30.get_location_by_id")
     def test_delete_location_success(self, mock_get, mock_delete):
         """ロケーション削除APIのテスト"""
         # モック設定
@@ -874,20 +887,20 @@ class TestWarehouseLocationAPI:
             id=location_id,
             location_code="A01-001-001",
             status="available",
-            is_occupied=False
+            is_occupied=False,
         )
         mock_get.return_value = mock_location
         mock_delete.return_value = True
-        
+
         # APIコール
         response = client.delete(f"/api/v1/warehouse-locations/{location_id}")
-        
+
         # 検証
         assert response.status_code == 200
         assert "successfully deleted" in response.json()["message"]
         mock_delete.assert_called_once_with(location_id)
 
-    @patch('app.crud.warehouse_v30.get_available_locations')
+    @patch("app.crud.warehouse_v30.get_available_locations")
     def test_get_available_locations(self, mock_get_available):
         """利用可能ロケーション取得APIのテスト"""
         # モック設定
@@ -899,32 +912,32 @@ class TestWarehouseLocationAPI:
                 location_type="bin",
                 status="available",
                 is_occupied=False,
-                weight_capacity=Decimal("500.00")
+                weight_capacity=Decimal("500.00"),
             ),
             WarehouseLocation(
                 id=str(uuid.uuid4()),
                 location_code="A01-001-003",
-                location_type="bin", 
+                location_type="bin",
                 status="available",
                 is_occupied=False,
-                weight_capacity=Decimal("500.00")
-            )
+                weight_capacity=Decimal("500.00"),
+            ),
         ]
         mock_get_available.return_value = {"items": mock_locations, "total": 2}
-        
+
         # APIコール
         response = client.get(f"/api/v1/warehouse-locations/available/{warehouse_id}")
-        
+
         # 検証
         assert response.status_code == 200
         data = response.json()
         assert data["total"] == 2
         assert len(data["items"]) == 2
         assert data["items"][0]["status"] == "available"
-        assert data["items"][1]["is_occupied"] == False
+        assert not data["items"][1]["is_occupied"]
         mock_get_available.assert_called_once_with(warehouse_id)
 
-    @patch('app.crud.warehouse_v30.create_locations_bulk')
+    @patch("app.crud.warehouse_v30.create_locations_bulk")
     def test_bulk_create_locations(self, mock_bulk_create):
         """ロケーション一括作成APIのテスト"""
         # モック設定
@@ -933,27 +946,29 @@ class TestWarehouseLocationAPI:
                 "warehouse_id": str(uuid.uuid4()),
                 "zone_id": str(uuid.uuid4()),
                 "location_code": "A01-001-001",
-                "location_type": "bin"
+                "location_type": "bin",
             },
             {
                 "warehouse_id": str(uuid.uuid4()),
                 "zone_id": str(uuid.uuid4()),
                 "location_code": "A01-001-002",
-                "location_type": "bin"
-            }
+                "location_type": "bin",
+            },
         ]
-        
+
         mock_result = {
             "created": 2,
             "failed": 0,
             "location_ids": [str(uuid.uuid4()), str(uuid.uuid4())],
-            "errors": []
+            "errors": [],
         }
         mock_bulk_create.return_value = mock_result
-        
+
         # APIコール
-        response = client.post("/api/v1/warehouse-locations/bulk", json={"locations": bulk_data})
-        
+        response = client.post(
+            "/api/v1/warehouse-locations/bulk", json={"locations": bulk_data}
+        )
+
         # 検証
         assert response.status_code == 201
         data = response.json()
@@ -962,7 +977,7 @@ class TestWarehouseLocationAPI:
         assert len(data["location_ids"]) == 2
         mock_bulk_create.assert_called_once()
 
-    @patch('app.crud.warehouse_v30.get_location_history')
+    @patch("app.crud.warehouse_v30.get_location_history")
     def test_get_location_history(self, mock_get_history):
         """ロケーション履歴取得APIのテスト"""
         # モック設定
@@ -974,7 +989,7 @@ class TestWarehouseLocationAPI:
                 "quantity": Decimal("100.000"),
                 "product_id": str(uuid.uuid4()),
                 "performed_by": "user-001",
-                "reference": "PO-12345"
+                "reference": "PO-12345",
             },
             {
                 "timestamp": datetime.utcnow() - timedelta(hours=2),
@@ -982,14 +997,14 @@ class TestWarehouseLocationAPI:
                 "quantity": Decimal("25.000"),
                 "product_id": str(uuid.uuid4()),
                 "performed_by": "user-002",
-                "reference": "SO-67890"
-            }
+                "reference": "SO-67890",
+            },
         ]
         mock_get_history.return_value = {"items": mock_history, "total": 2}
-        
+
         # APIコール
         response = client.get(f"/api/v1/warehouse-locations/{location_id}/history")
-        
+
         # 検証
         assert response.status_code == 200
         data = response.json()
@@ -1002,7 +1017,7 @@ class TestWarehouseLocationAPI:
 
 class TestInventoryMovementAPI:
     """在庫移動管理APIのテストクラス (9エンドポイント)"""
-    
+
     @pytest.fixture
     def sample_movement_data(self):
         return {
@@ -1057,10 +1072,10 @@ class TestInventoryMovementAPI:
             "value_impact": "2550.00",
             "custom_fields": {"supplier_id": "SUP-001", "po_line_id": "POL-001"},
             "tags": ["purchase", "bulk_receipt"],
-            "notes": "Initial stock receipt for new product line"
+            "notes": "Initial stock receipt for new product line",
         }
 
-    @patch('app.crud.warehouse_v30.create_movement')
+    @patch("app.crud.warehouse_v30.create_movement")
     def test_create_movement_success(self, mock_create, sample_movement_data):
         """在庫移動作成APIのテスト"""
         # モック設定
@@ -1068,10 +1083,12 @@ class TestInventoryMovementAPI:
         created_movement.id = str(uuid.uuid4())
         created_movement.created_at = datetime.utcnow()
         mock_create.return_value = created_movement
-        
+
         # APIコール
-        response = client.post("/api/v1/inventory-movements/", json=sample_movement_data)
-        
+        response = client.post(
+            "/api/v1/inventory-movements/", json=sample_movement_data
+        )
+
         # 検証
         assert response.status_code == 201
         data = response.json()
@@ -1082,7 +1099,7 @@ class TestInventoryMovementAPI:
         assert data["lot_number"] == "LOT-20240315-001"
         mock_create.assert_called_once()
 
-    @patch('app.crud.warehouse_v30.get_movements')
+    @patch("app.crud.warehouse_v30.get_movements")
     def test_get_movements_with_filters(self, mock_get):
         """在庫移動一覧取得APIのテスト（フィルタ付き）"""
         # モック設定
@@ -1092,23 +1109,23 @@ class TestInventoryMovementAPI:
                 movement_type="receipt",
                 reference_number="PO-12345",
                 quantity=Decimal("100.000"),
-                status="completed"
+                status="completed",
             ),
             InventoryMovement(
                 id=str(uuid.uuid4()),
                 movement_type="shipment",
                 reference_number="SO-67890",
                 quantity=Decimal("50.000"),
-                status="completed"
-            )
+                status="completed",
+            ),
         ]
         mock_get.return_value = {"items": mock_movements, "total": 2}
-        
+
         # APIコール
         response = client.get(
             "/api/v1/inventory-movements/?movement_type=receipt&status=completed"
         )
-        
+
         # 検証
         assert response.status_code == 200
         data = response.json()
@@ -1118,7 +1135,7 @@ class TestInventoryMovementAPI:
         assert data["items"][1]["movement_type"] == "shipment"
         mock_get.assert_called_once()
 
-    @patch('app.crud.warehouse_v30.get_movement_by_id')
+    @patch("app.crud.warehouse_v30.get_movement_by_id")
     def test_get_movement_by_id_success(self, mock_get):
         """在庫移動詳細取得APIのテスト"""
         # モック設定
@@ -1130,13 +1147,13 @@ class TestInventoryMovementAPI:
             quantity=Decimal("100.000"),
             cost_per_unit=Decimal("25.5000"),
             total_cost=Decimal("2550.00"),
-            status="completed"
+            status="completed",
         )
         mock_get.return_value = mock_movement
-        
+
         # APIコール
         response = client.get(f"/api/v1/inventory-movements/{movement_id}")
-        
+
         # 検証
         assert response.status_code == 200
         data = response.json()
@@ -1146,8 +1163,8 @@ class TestInventoryMovementAPI:
         assert float(data["cost_per_unit"]) == 25.5000
         mock_get.assert_called_once_with(movement_id)
 
-    @patch('app.crud.warehouse_v30.update_movement')
-    @patch('app.crud.warehouse_v30.get_movement_by_id')
+    @patch("app.crud.warehouse_v30.update_movement")
+    @patch("app.crud.warehouse_v30.get_movement_by_id")
     def test_update_movement_success(self, mock_get, mock_update, sample_movement_data):
         """在庫移動更新APIのテスト"""
         # モック設定
@@ -1155,19 +1172,21 @@ class TestInventoryMovementAPI:
         existing_movement = InventoryMovement(**sample_movement_data)
         existing_movement.id = movement_id
         mock_get.return_value = existing_movement
-        
+
         updated_data = sample_movement_data.copy()
         updated_data["status"] = "completed"
         updated_data["actual_date"] = "2024-03-20T14:30:00"
         updated_data["performed_by"] = "user-001"
-        
+
         updated_movement = InventoryMovement(**updated_data)
         updated_movement.id = movement_id
         mock_update.return_value = updated_movement
-        
+
         # APIコール
-        response = client.put(f"/api/v1/inventory-movements/{movement_id}", json=updated_data)
-        
+        response = client.put(
+            f"/api/v1/inventory-movements/{movement_id}", json=updated_data
+        )
+
         # 検証
         assert response.status_code == 200
         data = response.json()
@@ -1175,44 +1194,44 @@ class TestInventoryMovementAPI:
         assert data["performed_by"] == "user-001"
         mock_update.assert_called_once()
 
-    @patch('app.crud.warehouse_v30.complete_movement')
-    @patch('app.crud.warehouse_v30.get_movement_by_id')
+    @patch("app.crud.warehouse_v30.complete_movement")
+    @patch("app.crud.warehouse_v30.get_movement_by_id")
     def test_complete_movement_success(self, mock_get, mock_complete):
         """在庫移動完了APIのテスト"""
         # モック設定
         movement_id = str(uuid.uuid4())
         mock_movement = InventoryMovement(
-            id=movement_id,
-            movement_type="receipt",
-            status="in_progress"
+            id=movement_id, movement_type="receipt", status="in_progress"
         )
         mock_get.return_value = mock_movement
-        
+
         completed_movement = InventoryMovement(
             id=movement_id,
             movement_type="receipt",
             status="completed",
-            actual_date=datetime.utcnow()
+            actual_date=datetime.utcnow(),
         )
         mock_complete.return_value = completed_movement
-        
+
         completion_data = {
             "actual_quantity": "98.000",
             "performed_by": "user-001",
-            "completion_notes": "Received with minor damage to packaging"
+            "completion_notes": "Received with minor damage to packaging",
         }
-        
+
         # APIコール
-        response = client.post(f"/api/v1/inventory-movements/{movement_id}/complete", json=completion_data)
-        
+        response = client.post(
+            f"/api/v1/inventory-movements/{movement_id}/complete", json=completion_data
+        )
+
         # 検証
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "completed"
         mock_complete.assert_called_once()
 
-    @patch('app.crud.warehouse_v30.reverse_movement')
-    @patch('app.crud.warehouse_v30.get_movement_by_id')
+    @patch("app.crud.warehouse_v30.reverse_movement")
+    @patch("app.crud.warehouse_v30.get_movement_by_id")
     def test_reverse_movement_success(self, mock_get, mock_reverse):
         """在庫移動取消APIのテスト"""
         # モック設定
@@ -1221,27 +1240,29 @@ class TestInventoryMovementAPI:
             id=movement_id,
             movement_type="receipt",
             status="completed",
-            is_reversed=False
+            is_reversed=False,
         )
         mock_get.return_value = mock_movement
-        
+
         reversal_data = {
             "reversal_reason": "Damaged goods returned to supplier",
-            "reversal_quantity": "100.000"
+            "reversal_quantity": "100.000",
         }
-        
+
         reversal_movement = InventoryMovement(
             id=str(uuid.uuid4()),
             movement_type="adjustment",
             status="completed",
             is_reversed=False,
-            reversal_movement_id=movement_id
+            reversal_movement_id=movement_id,
         )
         mock_reverse.return_value = reversal_movement
-        
+
         # APIコール
-        response = client.post(f"/api/v1/inventory-movements/{movement_id}/reverse", json=reversal_data)
-        
+        response = client.post(
+            f"/api/v1/inventory-movements/{movement_id}/reverse", json=reversal_data
+        )
+
         # 検証
         assert response.status_code == 200
         data = response.json()
@@ -1249,7 +1270,7 @@ class TestInventoryMovementAPI:
         assert data["reversal_movement_id"] == movement_id
         mock_reverse.assert_called_once()
 
-    @patch('app.crud.warehouse_v30.get_movements_by_product')
+    @patch("app.crud.warehouse_v30.get_movements_by_product")
     def test_get_movements_by_product(self, mock_get_by_product):
         """商品別移動履歴取得APIのテスト"""
         # モック設定
@@ -1260,21 +1281,21 @@ class TestInventoryMovementAPI:
                 product_id=product_id,
                 movement_type="receipt",
                 quantity=Decimal("100.000"),
-                created_at=datetime.utcnow() - timedelta(days=5)
+                created_at=datetime.utcnow() - timedelta(days=5),
             ),
             InventoryMovement(
                 id=str(uuid.uuid4()),
                 product_id=product_id,
                 movement_type="shipment",
                 quantity=Decimal("30.000"),
-                created_at=datetime.utcnow() - timedelta(days=3)
-            )
+                created_at=datetime.utcnow() - timedelta(days=3),
+            ),
         ]
         mock_get_by_product.return_value = {"items": mock_movements, "total": 2}
-        
+
         # APIコール
         response = client.get(f"/api/v1/inventory-movements/product/{product_id}")
-        
+
         # 検証
         assert response.status_code == 200
         data = response.json()
@@ -1284,7 +1305,7 @@ class TestInventoryMovementAPI:
         assert float(data["items"][1]["quantity"]) == 30.000
         mock_get_by_product.assert_called_once_with(product_id)
 
-    @patch('app.crud.warehouse_v30.create_movements_bulk')
+    @patch("app.crud.warehouse_v30.create_movements_bulk")
     def test_bulk_create_movements(self, mock_bulk_create):
         """在庫移動一括作成APIのテスト"""
         # モック設定
@@ -1294,28 +1315,30 @@ class TestInventoryMovementAPI:
                 "product_id": str(uuid.uuid4()),
                 "movement_type": "receipt",
                 "quantity": "100.000",
-                "unit_of_measure": "PC"
+                "unit_of_measure": "PC",
             },
             {
                 "warehouse_id": str(uuid.uuid4()),
                 "product_id": str(uuid.uuid4()),
                 "movement_type": "receipt",
                 "quantity": "50.000",
-                "unit_of_measure": "PC"
-            }
+                "unit_of_measure": "PC",
+            },
         ]
-        
+
         mock_result = {
             "created": 2,
             "failed": 0,
             "movement_ids": [str(uuid.uuid4()), str(uuid.uuid4())],
-            "errors": []
+            "errors": [],
         }
         mock_bulk_create.return_value = mock_result
-        
+
         # APIコール
-        response = client.post("/api/v1/inventory-movements/bulk", json={"movements": bulk_data})
-        
+        response = client.post(
+            "/api/v1/inventory-movements/bulk", json={"movements": bulk_data}
+        )
+
         # 検証
         assert response.status_code == 201
         data = response.json()
@@ -1324,7 +1347,7 @@ class TestInventoryMovementAPI:
         assert len(data["movement_ids"]) == 2
         mock_bulk_create.assert_called_once()
 
-    @patch('app.crud.warehouse_v30.get_movement_analytics')
+    @patch("app.crud.warehouse_v30.get_movement_analytics")
     def test_get_movement_analytics(self, mock_get_analytics):
         """移動分析データ取得APIのテスト"""
         # モック設定
@@ -1334,29 +1357,29 @@ class TestInventoryMovementAPI:
                 "receipt": 650,
                 "shipment": 580,
                 "adjustment": 120,
-                "transfer": 1100
+                "transfer": 1100,
             },
             "monthly_volume": [
                 {"month": "2024-01", "volume": 850},
                 {"month": "2024-02", "volume": 920},
-                {"month": "2024-03", "volume": 680}
+                {"month": "2024-03", "volume": 680},
             ],
             "value_summary": {
                 "total_value": Decimal("12500000.00"),
                 "receipts_value": Decimal("8200000.00"),
-                "shipments_value": Decimal("4300000.00")
+                "shipments_value": Decimal("4300000.00"),
             },
             "accuracy_metrics": {
                 "movement_accuracy": Decimal("99.65"),
                 "variance_rate": Decimal("0.35"),
-                "error_count": 15
-            }
+                "error_count": 15,
+            },
         }
         mock_get_analytics.return_value = mock_analytics
-        
+
         # APIコール
         response = client.get("/api/v1/inventory-movements/analytics")
-        
+
         # 検証
         assert response.status_code == 200
         data = response.json()
@@ -1370,7 +1393,7 @@ class TestInventoryMovementAPI:
 
 class TestCycleCountAPI:
     """棚卸管理APIのテストクラス (10エンドポイント)"""
-    
+
     @pytest.fixture
     def sample_cycle_count_data(self):
         return {
@@ -1413,10 +1436,10 @@ class TestCycleCountAPI:
             "generate_adjustments": True,
             "instructions": "Count all items in assigned zones. Report any discrepancies immediately.",
             "notes": "Quarterly cycle count covering high-velocity zones",
-            "tags": ["quarterly", "high_velocity", "zones_A_B"]
+            "tags": ["quarterly", "high_velocity", "zones_A_B"],
         }
 
-    @patch('app.crud.warehouse_v30.create_cycle_count')
+    @patch("app.crud.warehouse_v30.create_cycle_count")
     def test_create_cycle_count_success(self, mock_create, sample_cycle_count_data):
         """棚卸作成APIのテスト"""
         # モック設定
@@ -1424,10 +1447,10 @@ class TestCycleCountAPI:
         created_count.id = str(uuid.uuid4())
         created_count.created_at = datetime.utcnow()
         mock_create.return_value = created_count
-        
+
         # APIコール
         response = client.post("/api/v1/cycle-counts/", json=sample_cycle_count_data)
-        
+
         # 検証
         assert response.status_code == 201
         data = response.json()
@@ -1439,7 +1462,7 @@ class TestCycleCountAPI:
         assert data["count_method"] == "scanner"
         mock_create.assert_called_once()
 
-    @patch('app.crud.warehouse_v30.get_cycle_counts')
+    @patch("app.crud.warehouse_v30.get_cycle_counts")
     def test_get_cycle_counts_with_filters(self, mock_get):
         """棚卸一覧取得APIのテスト（フィルタ付き）"""
         # モック設定
@@ -1449,21 +1472,23 @@ class TestCycleCountAPI:
                 count_number="CC-2024-001",
                 count_name="Quarterly Count Q1",
                 count_type="cycle",
-                status="in_progress"
+                status="in_progress",
             ),
             CycleCount(
                 id=str(uuid.uuid4()),
                 count_number="CC-2024-002",
                 count_name="Quarterly Count Q1 Zone C",
                 count_type="cycle",
-                status="completed"
-            )
+                status="completed",
+            ),
         ]
         mock_get.return_value = {"items": mock_counts, "total": 2}
-        
+
         # APIコール
-        response = client.get("/api/v1/cycle-counts/?count_type=cycle&status=in_progress")
-        
+        response = client.get(
+            "/api/v1/cycle-counts/?count_type=cycle&status=in_progress"
+        )
+
         # 検証
         assert response.status_code == 200
         data = response.json()
@@ -1473,7 +1498,7 @@ class TestCycleCountAPI:
         assert data["items"][1]["status"] == "completed"
         mock_get.assert_called_once()
 
-    @patch('app.crud.warehouse_v30.get_cycle_count_by_id')
+    @patch("app.crud.warehouse_v30.get_cycle_count_by_id")
     def test_get_cycle_count_by_id_success(self, mock_get):
         """棚卸詳細取得APIのテスト"""
         # モック設定
@@ -1485,13 +1510,13 @@ class TestCycleCountAPI:
             total_locations_planned=500,
             locations_counted=320,
             completion_percentage=Decimal("64.00"),
-            accuracy_percentage=Decimal("98.80")
+            accuracy_percentage=Decimal("98.80"),
         )
         mock_get.return_value = mock_count
-        
+
         # APIコール
         response = client.get(f"/api/v1/cycle-counts/{count_id}")
-        
+
         # 検証
         assert response.status_code == 200
         data = response.json()
@@ -1502,28 +1527,30 @@ class TestCycleCountAPI:
         assert float(data["completion_percentage"]) == 64.00
         mock_get.assert_called_once_with(count_id)
 
-    @patch('app.crud.warehouse_v30.update_cycle_count')
-    @patch('app.crud.warehouse_v30.get_cycle_count_by_id')
-    def test_update_cycle_count_success(self, mock_get, mock_update, sample_cycle_count_data):
+    @patch("app.crud.warehouse_v30.update_cycle_count")
+    @patch("app.crud.warehouse_v30.get_cycle_count_by_id")
+    def test_update_cycle_count_success(
+        self, mock_get, mock_update, sample_cycle_count_data
+    ):
         """棚卸更新APIのテスト"""
         # モック設定
         count_id = str(uuid.uuid4())
         existing_count = CycleCount(**sample_cycle_count_data)
         existing_count.id = count_id
         mock_get.return_value = existing_count
-        
+
         updated_data = sample_cycle_count_data.copy()
         updated_data["status"] = "in_progress"
         updated_data["start_date"] = "2024-03-25T08:00:00"
         updated_data["completion_percentage"] = "25.50"
-        
+
         updated_count = CycleCount(**updated_data)
         updated_count.id = count_id
         mock_update.return_value = updated_count
-        
+
         # APIコール
         response = client.put(f"/api/v1/cycle-counts/{count_id}", json=updated_data)
-        
+
         # 検証
         assert response.status_code == 200
         data = response.json()
@@ -1531,31 +1558,29 @@ class TestCycleCountAPI:
         assert float(data["completion_percentage"]) == 25.50
         mock_update.assert_called_once()
 
-    @patch('app.crud.warehouse_v30.start_cycle_count')
-    @patch('app.crud.warehouse_v30.get_cycle_count_by_id')
+    @patch("app.crud.warehouse_v30.start_cycle_count")
+    @patch("app.crud.warehouse_v30.get_cycle_count_by_id")
     def test_start_cycle_count_success(self, mock_get, mock_start):
         """棚卸開始APIのテスト"""
         # モック設定
         count_id = str(uuid.uuid4())
         mock_count = CycleCount(
-            id=count_id,
-            count_number="CC-2024-001",
-            status="planned"
+            id=count_id, count_number="CC-2024-001", status="planned"
         )
         mock_get.return_value = mock_count
-        
+
         started_count = CycleCount(
             id=count_id,
             count_number="CC-2024-001",
             status="in_progress",
             start_date=datetime.utcnow(),
-            total_locations_planned=450
+            total_locations_planned=450,
         )
         mock_start.return_value = started_count
-        
+
         # APIコール
         response = client.post(f"/api/v1/cycle-counts/{count_id}/start")
-        
+
         # 検証
         assert response.status_code == 200
         data = response.json()
@@ -1563,37 +1588,37 @@ class TestCycleCountAPI:
         assert data["total_locations_planned"] == 450
         mock_start.assert_called_once_with(count_id)
 
-    @patch('app.crud.warehouse_v30.complete_cycle_count')
-    @patch('app.crud.warehouse_v30.get_cycle_count_by_id')
+    @patch("app.crud.warehouse_v30.complete_cycle_count")
+    @patch("app.crud.warehouse_v30.get_cycle_count_by_id")
     def test_complete_cycle_count_success(self, mock_get, mock_complete):
         """棚卸完了APIのテスト"""
         # モック設定
         count_id = str(uuid.uuid4())
         mock_count = CycleCount(
-            id=count_id,
-            count_number="CC-2024-001",
-            status="in_progress"
+            id=count_id, count_number="CC-2024-001", status="in_progress"
         )
         mock_get.return_value = mock_count
-        
+
         completed_count = CycleCount(
             id=count_id,
             count_number="CC-2024-001",
             status="completed",
             end_date=datetime.utcnow(),
             completion_percentage=Decimal("100.00"),
-            accuracy_percentage=Decimal("98.75")
+            accuracy_percentage=Decimal("98.75"),
         )
         mock_complete.return_value = completed_count
-        
+
         completion_data = {
             "final_notes": "Count completed successfully with minor variances",
-            "generate_adjustments": True
+            "generate_adjustments": True,
         }
-        
+
         # APIコール
-        response = client.post(f"/api/v1/cycle-counts/{count_id}/complete", json=completion_data)
-        
+        response = client.post(
+            f"/api/v1/cycle-counts/{count_id}/complete", json=completion_data
+        )
+
         # 検証
         assert response.status_code == 200
         data = response.json()
@@ -1602,8 +1627,8 @@ class TestCycleCountAPI:
         assert float(data["accuracy_percentage"]) == 98.75
         mock_complete.assert_called_once()
 
-    @patch('app.crud.warehouse_v30.approve_cycle_count')
-    @patch('app.crud.warehouse_v30.get_cycle_count_by_id')
+    @patch("app.crud.warehouse_v30.approve_cycle_count")
+    @patch("app.crud.warehouse_v30.get_cycle_count_by_id")
     def test_approve_cycle_count_success(self, mock_get, mock_approve):
         """棚卸承認APIのテスト"""
         # モック設定
@@ -1612,34 +1637,36 @@ class TestCycleCountAPI:
             id=count_id,
             count_number="CC-2024-001",
             status="completed",
-            requires_approval=True
+            requires_approval=True,
         )
         mock_get.return_value = mock_count
-        
+
         approved_count = CycleCount(
             id=count_id,
             count_number="CC-2024-001",
             status="completed",
             approved_by="user-001",
-            approved_at=datetime.utcnow()
+            approved_at=datetime.utcnow(),
         )
         mock_approve.return_value = approved_count
-        
+
         approval_data = {
             "approval_notes": "Count results reviewed and approved. Minor variances acceptable.",
-            "generate_adjustments": True
+            "generate_adjustments": True,
         }
-        
+
         # APIコール
-        response = client.post(f"/api/v1/cycle-counts/{count_id}/approve", json=approval_data)
-        
+        response = client.post(
+            f"/api/v1/cycle-counts/{count_id}/approve", json=approval_data
+        )
+
         # 検証
         assert response.status_code == 200
         data = response.json()
         assert data["approved_by"] == "user-001"
         mock_approve.assert_called_once()
 
-    @patch('app.crud.warehouse_v30.get_cycle_count_lines')
+    @patch("app.crud.warehouse_v30.get_cycle_count_lines")
     def test_get_cycle_count_lines(self, mock_get_lines):
         """棚卸明細取得APIのテスト"""
         # モック設定
@@ -1653,7 +1680,7 @@ class TestCycleCountAPI:
                 book_quantity=Decimal("100.000"),
                 counted_quantity=Decimal("98.000"),
                 variance_quantity=Decimal("-2.000"),
-                count_status="counted"
+                count_status="counted",
             ),
             CycleCountLine(
                 id=str(uuid.uuid4()),
@@ -1663,14 +1690,14 @@ class TestCycleCountAPI:
                 book_quantity=Decimal("50.000"),
                 counted_quantity=Decimal("50.000"),
                 variance_quantity=Decimal("0.000"),
-                count_status="approved"
-            )
+                count_status="approved",
+            ),
         ]
         mock_get_lines.return_value = {"items": mock_lines, "total": 2}
-        
+
         # APIコール
         response = client.get(f"/api/v1/cycle-counts/{count_id}/lines")
-        
+
         # 検証
         assert response.status_code == 200
         data = response.json()
@@ -1680,7 +1707,7 @@ class TestCycleCountAPI:
         assert data["items"][1]["count_status"] == "approved"
         mock_get_lines.assert_called_once_with(count_id)
 
-    @patch('app.crud.warehouse_v30.get_cycle_count_analytics')
+    @patch("app.crud.warehouse_v30.get_cycle_count_analytics")
     def test_get_cycle_count_analytics(self, mock_get_analytics):
         """棚卸分析データ取得APIのテスト"""
         # モック設定
@@ -1690,30 +1717,38 @@ class TestCycleCountAPI:
             "accuracy_summary": {
                 "overall_accuracy": Decimal("98.75"),
                 "location_accuracy": Decimal("99.20"),
-                "quantity_accuracy": Decimal("98.30")
+                "quantity_accuracy": Decimal("98.30"),
             },
             "variance_analysis": {
                 "total_variances": 25,
                 "positive_variances": 12,
                 "negative_variances": 13,
                 "variance_value": Decimal("2450.80"),
-                "variance_percentage": Decimal("0.98")
+                "variance_percentage": Decimal("0.98"),
             },
             "productivity_metrics": {
                 "locations_per_hour": Decimal("45.5"),
                 "items_per_hour": Decimal("180.3"),
-                "time_per_location": Decimal("1.32")
+                "time_per_location": Decimal("1.32"),
             },
             "zone_performance": [
-                {"zone_id": "zone-1", "accuracy": Decimal("99.10"), "variance_count": 8},
-                {"zone_id": "zone-2", "accuracy": Decimal("98.40"), "variance_count": 17}
-            ]
+                {
+                    "zone_id": "zone-1",
+                    "accuracy": Decimal("99.10"),
+                    "variance_count": 8,
+                },
+                {
+                    "zone_id": "zone-2",
+                    "accuracy": Decimal("98.40"),
+                    "variance_count": 17,
+                },
+            ],
         }
         mock_get_analytics.return_value = mock_analytics
-        
+
         # APIコール
         response = client.get(f"/api/v1/cycle-counts/{count_id}/analytics")
-        
+
         # 検証
         assert response.status_code == 200
         data = response.json()
@@ -1723,7 +1758,7 @@ class TestCycleCountAPI:
         assert len(data["zone_performance"]) == 2
         mock_get_analytics.assert_called_once_with(count_id)
 
-    @patch('app.crud.warehouse_v30.create_cycle_counts_bulk')
+    @patch("app.crud.warehouse_v30.create_cycle_counts_bulk")
     def test_bulk_create_cycle_counts(self, mock_bulk_create):
         """棚卸一括作成APIのテスト"""
         # モック設定
@@ -1733,28 +1768,30 @@ class TestCycleCountAPI:
                 "count_number": "CC-2024-001",
                 "count_name": "Q1 Zone A Count",
                 "count_type": "cycle",
-                "planned_date": "2024-03-25T08:00:00"
+                "planned_date": "2024-03-25T08:00:00",
             },
             {
                 "warehouse_id": str(uuid.uuid4()),
                 "count_number": "CC-2024-002",
                 "count_name": "Q1 Zone B Count",
                 "count_type": "cycle",
-                "planned_date": "2024-03-26T08:00:00"
-            }
+                "planned_date": "2024-03-26T08:00:00",
+            },
         ]
-        
+
         mock_result = {
             "created": 2,
             "failed": 0,
             "count_ids": [str(uuid.uuid4()), str(uuid.uuid4())],
-            "errors": []
+            "errors": [],
         }
         mock_bulk_create.return_value = mock_result
-        
+
         # APIコール
-        response = client.post("/api/v1/cycle-counts/bulk", json={"cycle_counts": bulk_data})
-        
+        response = client.post(
+            "/api/v1/cycle-counts/bulk", json={"cycle_counts": bulk_data}
+        )
+
         # 検証
         assert response.status_code == 201
         data = response.json()
