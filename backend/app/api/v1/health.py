@@ -1,13 +1,13 @@
 """Enhanced health check API endpoints."""
 
-from typing import Any, Optional
+from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.health import get_health_checker, SystemHealthReport, HealthStatus
-from app.core.monitoring import health_checker, setup_health_checks
+from app.core.health import HealthStatus, SystemHealthReport, get_health_checker
+from app.core.monitoring import health_checker
 
 router = APIRouter(prefix="/health", tags=["health"])
 
@@ -19,19 +19,19 @@ async def comprehensive_health_check(
 ) -> dict[str, Any]:
     """
     Comprehensive health check with all system components.
-    
+
     This endpoint provides a complete health assessment of the ITDO ERP system,
     including database, cache, external dependencies, and system resources.
     """
-    
+
     health_checker = get_health_checker()
-    
+
     try:
         # Run comprehensive health check
         health_report: SystemHealthReport = await health_checker.check_system_health(
             include_detailed=detailed
         )
-        
+
         # Convert to API response format
         return {
             "status": health_report.overall_status.value,
@@ -66,7 +66,7 @@ async def comprehensive_health_check(
             "summary": health_report.summary,
             "overall_healthy": health_report.overall_status == HealthStatus.HEALTHY
         }
-        
+
     except Exception as e:
         # Fallback to basic health check if comprehensive fails
         from datetime import datetime, timezone
@@ -90,10 +90,10 @@ async def liveness_probe() -> dict[str, str]:
 @router.get("/ready", response_model=dict[str, Any])
 async def readiness_probe(db: Session = Depends(get_db)) -> dict[str, Any]:
     """Kubernetes readiness probe - checks if app can serve traffic."""
-    
+
     from datetime import datetime, timezone
-    health_checker_instance = get_health_checker()
-    
+    get_health_checker()
+
     try:
         # Quick essential health checks for readiness
         ready_checks = {
@@ -101,12 +101,12 @@ async def readiness_probe(db: Session = Depends(get_db)) -> dict[str, Any]:
             "redis": False,
             "application": True  # Application is running if we reached this point
         }
-        
+
         # Test database connectivity
         from sqlalchemy import text
         db.execute(text("SELECT 1"))
         ready_checks["database"] = True
-        
+
         # Test Redis connectivity
         try:
             from app.core.database import get_redis
@@ -116,16 +116,16 @@ async def readiness_probe(db: Session = Depends(get_db)) -> dict[str, Any]:
         except:
             # Redis failure is not critical for readiness
             pass
-        
+
         # Service is ready if essential services are available
         is_ready = ready_checks["database"] and ready_checks["application"]
-        
+
         if not is_ready:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="Service dependencies not ready"
             )
-        
+
         return {
             "status": "ready",
             "checks": ready_checks,

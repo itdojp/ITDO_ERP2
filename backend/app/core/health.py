@@ -3,20 +3,15 @@ Comprehensive Health Check System for ITDO ERP
 Provides detailed health monitoring for all system components
 """
 
-import asyncio
 import time
-import json
-from typing import Dict, List, Any, Optional, Union
-from enum import Enum
-from datetime import datetime, timezone
 from dataclasses import dataclass, field
-import redis
-import sqlalchemy
-from sqlalchemy import text
-from sqlalchemy.orm import Session
+from datetime import datetime, timezone
+from enum import Enum
+from typing import Any, Dict, List, Optional, Union
+
 import httpx
 import psutil
-from fastapi import HTTPException
+from sqlalchemy import text
 
 from app.core.config import get_settings
 from app.core.database import get_db, get_redis
@@ -83,26 +78,26 @@ class SystemHealthReport:
 
 class HealthChecker:
     """Comprehensive health checking service"""
-    
+
     def __init__(self):
         self.settings = get_settings()
         self.start_time = time.time()
         self.version = getattr(self.settings, 'APP_VERSION', '1.0.0')
         self.environment = getattr(self.settings, 'ENVIRONMENT', 'development')
-    
+
     async def check_system_health(self, include_detailed: bool = False) -> SystemHealthReport:
         """
         Perform comprehensive system health check
-        
+
         Args:
             include_detailed: Include detailed metrics and diagnostics
-            
+
         Returns:
             SystemHealthReport: Complete health assessment
         """
         start_time = time.time()
         components = []
-        
+
         # Core infrastructure checks
         try:
             components.append(await self._check_database())
@@ -115,7 +110,7 @@ class HealthChecker:
                 timestamp=datetime.now(timezone.utc),
                 error=str(e)
             ))
-        
+
         try:
             components.append(await self._check_redis())
         except Exception as e:
@@ -127,7 +122,7 @@ class HealthChecker:
                 timestamp=datetime.now(timezone.utc),
                 error=str(e)
             ))
-        
+
         # System resource checks
         if include_detailed:
             components.extend([
@@ -136,7 +131,7 @@ class HealthChecker:
                 await self._check_disk(),
                 await self._check_network()
             ])
-        
+
         # External dependency checks
         try:
             components.append(await self._check_external_dependencies())
@@ -149,18 +144,18 @@ class HealthChecker:
                 timestamp=datetime.now(timezone.utc),
                 error=str(e)
             ))
-        
+
         # Application-specific checks
         components.append(await self._check_application_health())
-        
+
         # Calculate overall status
         overall_status = self._calculate_overall_status(components)
-        
+
         # Generate summary
         summary = self._generate_summary(components)
-        
+
         total_time = (time.time() - start_time) * 1000
-        
+
         return SystemHealthReport(
             overall_status=overall_status,
             timestamp=datetime.now(timezone.utc),
@@ -174,19 +169,19 @@ class HealthChecker:
                 "checks_performed": len(components)
             }
         )
-    
+
     async def _check_database(self) -> HealthCheckResult:
         """Check PostgreSQL database health"""
         start_time = time.time()
-        
+
         try:
             # Get database session
             db_gen = get_db()
             db = next(db_gen)
-            
+
             # Basic connectivity test
             result = db.execute(text("SELECT 1 as test, version() as version")).fetchone()
-            
+
             # Connection pool stats
             pool_info = {}
             if hasattr(db.bind.pool, 'status'):
@@ -197,14 +192,14 @@ class HealthChecker:
                     "checked_out": getattr(pool, 'checkedout', 0),
                     "invalid": getattr(pool, 'invalid', 0)
                 }
-            
+
             # Performance test - simple query
             perf_start = time.time()
             db.execute(text("SELECT COUNT(*) FROM information_schema.tables")).fetchone()
             query_time_ms = (time.time() - perf_start) * 1000
-            
+
             response_time_ms = (time.time() - start_time) * 1000
-            
+
             # Determine status based on response time
             if response_time_ms > 1000:  # > 1 second
                 status = HealthStatus.DEGRADED
@@ -215,9 +210,9 @@ class HealthChecker:
             else:
                 status = HealthStatus.HEALTHY
                 message = "Database operating normally"
-            
+
             db.close()
-            
+
             return HealthCheckResult(
                 component="database",
                 component_type=ComponentType.DATABASE,
@@ -241,7 +236,7 @@ class HealthChecker:
                     )
                 ]
             )
-            
+
         except Exception as e:
             response_time_ms = (time.time() - start_time) * 1000
             return HealthCheckResult(
@@ -253,17 +248,17 @@ class HealthChecker:
                 message="Database connection failed",
                 error=str(e)
             )
-    
+
     async def _check_redis(self) -> HealthCheckResult:
         """Check Redis cache health"""
         start_time = time.time()
-        
+
         try:
             redis_client = get_redis()
-            
+
             # Basic connectivity
             await redis_client.ping()
-            
+
             # Performance test
             test_key = "healthcheck:test"
             perf_start = time.time()
@@ -271,13 +266,13 @@ class HealthChecker:
             value = await redis_client.get(test_key)
             await redis_client.delete(test_key)
             cache_operation_ms = (time.time() - perf_start) * 1000
-            
+
             # Get Redis info
             info = await redis_client.info()
             memory_info = await redis_client.info('memory')
-            
+
             response_time_ms = (time.time() - start_time) * 1000
-            
+
             # Determine status
             if response_time_ms > 100:
                 status = HealthStatus.DEGRADED
@@ -288,7 +283,7 @@ class HealthChecker:
             else:
                 status = HealthStatus.HEALTHY
                 message = "Redis operating normally"
-            
+
             return HealthCheckResult(
                 component="redis",
                 component_type=ComponentType.CACHE,
@@ -321,7 +316,7 @@ class HealthChecker:
                     )
                 ]
             )
-            
+
         except Exception as e:
             response_time_ms = (time.time() - start_time) * 1000
             return HealthCheckResult(
@@ -333,15 +328,15 @@ class HealthChecker:
                 message="Redis connection failed",
                 error=str(e)
             )
-    
+
     async def _check_memory(self) -> HealthCheckResult:
         """Check system memory usage"""
         start_time = time.time()
-        
+
         try:
             memory = psutil.virtual_memory()
             swap = psutil.swap_memory()
-            
+
             # Determine status based on memory usage
             if memory.percent > 90:
                 status = HealthStatus.UNHEALTHY
@@ -352,9 +347,9 @@ class HealthChecker:
             else:
                 status = HealthStatus.HEALTHY
                 message = "Memory usage normal"
-            
+
             response_time_ms = (time.time() - start_time) * 1000
-            
+
             return HealthCheckResult(
                 component="memory",
                 component_type=ComponentType.MEMORY,
@@ -388,7 +383,7 @@ class HealthChecker:
                     )
                 ]
             )
-            
+
         except Exception as e:
             response_time_ms = (time.time() - start_time) * 1000
             return HealthCheckResult(
@@ -400,17 +395,17 @@ class HealthChecker:
                 message="Memory check failed",
                 error=str(e)
             )
-    
+
     async def _check_cpu(self) -> HealthCheckResult:
         """Check CPU usage and load"""
         start_time = time.time()
-        
+
         try:
             # Get CPU usage over a short interval
             cpu_percent = psutil.cpu_percent(interval=0.1)
             cpu_count = psutil.cpu_count()
             load_avg = psutil.getloadavg() if hasattr(psutil, 'getloadavg') else (0, 0, 0)
-            
+
             # Determine status
             if cpu_percent > 90:
                 status = HealthStatus.UNHEALTHY
@@ -421,9 +416,9 @@ class HealthChecker:
             else:
                 status = HealthStatus.HEALTHY
                 message = "CPU usage normal"
-            
+
             response_time_ms = (time.time() - start_time) * 1000
-            
+
             return HealthCheckResult(
                 component="cpu",
                 component_type=ComponentType.CPU,
@@ -456,7 +451,7 @@ class HealthChecker:
                     )
                 ]
             )
-            
+
         except Exception as e:
             response_time_ms = (time.time() - start_time) * 1000
             return HealthCheckResult(
@@ -468,17 +463,17 @@ class HealthChecker:
                 message="CPU check failed",
                 error=str(e)
             )
-    
+
     async def _check_disk(self) -> HealthCheckResult:
         """Check disk space and I/O"""
         start_time = time.time()
-        
+
         try:
             disk_usage = psutil.disk_usage('/')
             disk_io = psutil.disk_io_counters()
-            
+
             usage_percent = (disk_usage.used / disk_usage.total) * 100
-            
+
             # Determine status based on disk usage
             if usage_percent > 95:
                 status = HealthStatus.UNHEALTHY
@@ -489,9 +484,9 @@ class HealthChecker:
             else:
                 status = HealthStatus.HEALTHY
                 message = "Disk space normal"
-            
+
             response_time_ms = (time.time() - start_time) * 1000
-            
+
             return HealthCheckResult(
                 component="disk",
                 component_type=ComponentType.DISK,
@@ -517,7 +512,7 @@ class HealthChecker:
                     )
                 ]
             )
-            
+
         except Exception as e:
             response_time_ms = (time.time() - start_time) * 1000
             return HealthCheckResult(
@@ -529,11 +524,11 @@ class HealthChecker:
                 message="Disk check failed",
                 error=str(e)
             )
-    
+
     async def _check_network(self) -> HealthCheckResult:
         """Check network connectivity"""
         start_time = time.time()
-        
+
         try:
             # Test external connectivity
             async with httpx.AsyncClient(timeout=5.0) as client:
@@ -542,19 +537,19 @@ class HealthChecker:
                     external_connectivity = response.status_code == 200
                 except:
                     external_connectivity = False
-            
+
             # Get network I/O stats
             net_io = psutil.net_io_counters()
-            
+
             if not external_connectivity:
                 status = HealthStatus.DEGRADED
                 message = "External connectivity limited"
             else:
                 status = HealthStatus.HEALTHY
                 message = "Network connectivity normal"
-            
+
             response_time_ms = (time.time() - start_time) * 1000
-            
+
             return HealthCheckResult(
                 component="network",
                 component_type=ComponentType.NETWORK,
@@ -577,7 +572,7 @@ class HealthChecker:
                     )
                 ]
             )
-            
+
         except Exception as e:
             response_time_ms = (time.time() - start_time) * 1000
             return HealthCheckResult(
@@ -589,14 +584,14 @@ class HealthChecker:
                 message="Network check failed",
                 error=str(e)
             )
-    
+
     async def _check_external_dependencies(self) -> HealthCheckResult:
         """Check external service dependencies"""
         start_time = time.time()
-        
+
         try:
             dependencies_status = []
-            
+
             # Test Keycloak if configured
             if hasattr(self.settings, 'KEYCLOAK_URL') and self.settings.KEYCLOAK_URL:
                 try:
@@ -606,12 +601,12 @@ class HealthChecker:
                         dependencies_status.append(("keycloak", keycloak_ok))
                 except:
                     dependencies_status.append(("keycloak", False))
-            
+
             # Add other external dependencies here
             # Example: payment gateway, email service, etc.
-            
+
             failed_dependencies = [name for name, status in dependencies_status if not status]
-            
+
             if failed_dependencies:
                 status = HealthStatus.DEGRADED
                 message = f"Some dependencies unavailable: {', '.join(failed_dependencies)}"
@@ -621,9 +616,9 @@ class HealthChecker:
             else:
                 status = HealthStatus.HEALTHY
                 message = "All dependencies available"
-            
+
             response_time_ms = (time.time() - start_time) * 1000
-            
+
             return HealthCheckResult(
                 component="external_dependencies",
                 component_type=ComponentType.DEPENDENCY,
@@ -637,7 +632,7 @@ class HealthChecker:
                     "failed_dependencies": failed_dependencies
                 }
             )
-            
+
         except Exception as e:
             response_time_ms = (time.time() - start_time) * 1000
             return HealthCheckResult(
@@ -649,11 +644,11 @@ class HealthChecker:
                 message="Dependencies check failed",
                 error=str(e)
             )
-    
+
     async def _check_application_health(self) -> HealthCheckResult:
         """Check application-specific health metrics"""
         start_time = time.time()
-        
+
         try:
             # Check feature flags service
             feature_flags_ok = True
@@ -663,24 +658,24 @@ class HealthChecker:
                 await ff_service.list_flags()  # Simple test call
             except:
                 feature_flags_ok = False
-            
+
             # Add other application-specific checks
             app_checks = {
                 "feature_flags": feature_flags_ok,
                 "startup_complete": True,  # Could check if all initialization is done
             }
-            
+
             failed_checks = [name for name, status in app_checks.items() if not status]
-            
+
             if failed_checks:
                 status = HealthStatus.DEGRADED
                 message = f"Application issues: {', '.join(failed_checks)}"
             else:
                 status = HealthStatus.HEALTHY
                 message = "Application running normally"
-            
+
             response_time_ms = (time.time() - start_time) * 1000
-            
+
             return HealthCheckResult(
                 component="application",
                 component_type=ComponentType.APPLICATION,
@@ -703,7 +698,7 @@ class HealthChecker:
                     )
                 ]
             )
-            
+
         except Exception as e:
             response_time_ms = (time.time() - start_time) * 1000
             return HealthCheckResult(
@@ -715,17 +710,17 @@ class HealthChecker:
                 message="Application health check failed",
                 error=str(e)
             )
-    
+
     def _calculate_overall_status(self, components: List[HealthCheckResult]) -> HealthStatus:
         """Calculate overall system status from component statuses"""
         if not components:
             return HealthStatus.UNKNOWN
-        
+
         # Count status types
         status_counts = {status: 0 for status in HealthStatus}
         for component in components:
             status_counts[component.status] += 1
-        
+
         # Determine overall status
         if status_counts[HealthStatus.UNHEALTHY] > 0:
             return HealthStatus.UNHEALTHY
@@ -735,25 +730,25 @@ class HealthChecker:
             return HealthStatus.DEGRADED  # Treat unknown as degraded
         else:
             return HealthStatus.HEALTHY
-    
+
     def _generate_summary(self, components: List[HealthCheckResult]) -> Dict[str, Any]:
         """Generate health check summary statistics"""
         if not components:
             return {}
-        
+
         status_counts = {status.value: 0 for status in HealthStatus}
         total_response_time = 0
         component_types = {}
-        
+
         for component in components:
             status_counts[component.status.value] += 1
             total_response_time += component.response_time_ms
-            
+
             comp_type = component.component_type.value
             if comp_type not in component_types:
                 component_types[comp_type] = []
             component_types[comp_type].append(component.status.value)
-        
+
         return {
             "status_distribution": status_counts,
             "average_response_time_ms": round(total_response_time / len(components), 2),

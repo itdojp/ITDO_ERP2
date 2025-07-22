@@ -1,4 +1,4 @@
-name: CI/CD Pipeline - Optimized
+name: CI/CD Pipeline - Main
 
 on:
   push:
@@ -12,9 +12,30 @@ env:
   NODE_CACHE_DIR: /tmp/.npm-cache
 
 jobs:
+  # Path-based change detection for optimized CI runs
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.changes.outputs.backend }}
+      frontend: ${{ steps.changes.outputs.frontend }}
+    steps:
+    - uses: actions/checkout@v4
+    - uses: dorny/paths-filter@v3
+      id: changes
+      with:
+        filters: |
+          backend:
+            - 'backend/**'
+            - '.github/workflows/**'
+          frontend:
+            - 'frontend/**'
+            - '.github/workflows/**'
+
   # Job parallelization optimization - Run type checks and security scans simultaneously
   python-typecheck:
     runs-on: ubuntu-latest
+    needs: changes
+    if: ${{ needs.changes.outputs.backend == 'true' }}
     defaults:
       run:
         working-directory: ./backend
@@ -64,6 +85,8 @@ jobs:
 
   typescript-typecheck:
     runs-on: ubuntu-latest
+    needs: changes
+    if: ${{ needs.changes.outputs.frontend == 'true' }}
     defaults:
       run:
         working-directory: ./frontend
@@ -98,16 +121,22 @@ jobs:
   # Optimization: Combined linting and security scan job
   quality-and-security:
     runs-on: ubuntu-latest
+    needs: changes
     strategy:
       matrix:
         target: [backend, frontend]
+        include:
+          - target: backend
+            condition: ${{ needs.changes.outputs.backend == 'true' }}
+          - target: frontend  
+            condition: ${{ needs.changes.outputs.frontend == 'true' }}
     
     steps:
     - uses: actions/checkout@v4
     
     # Backend quality checks
     - name: Backend quality and security
-      if: matrix.target == 'backend'
+      if: matrix.target == 'backend' && needs.changes.outputs.backend == 'true'
       working-directory: ./backend
       run: |
         # Setup UV with cache
@@ -135,7 +164,7 @@ jobs:
     
     # Frontend quality checks
     - name: Frontend quality and security
-      if: matrix.target == 'frontend'
+      if: matrix.target == 'frontend' && needs.changes.outputs.frontend == 'true'
       working-directory: ./frontend
       run: |
         # Setup Node with cache
