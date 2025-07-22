@@ -1,7 +1,30 @@
-FROM node:20-alpine
+# Multi-stage development Dockerfile for React/Vite
+FROM node:20-alpine as development
+
+# Set work directory
 WORKDIR /app
+
+# Install system dependencies
+RUN apk add --no-cache \
+    git \
+    curl \
+    && rm -rf /var/cache/apk/*
+
+# Copy dependency files
 COPY package*.json ./
-RUN npm ci
+
+# Install dependencies including dev dependencies
+RUN npm ci --include=dev
+
+# Copy application code
 COPY . .
+
+# Expose port
 EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:3000 || exit 1
+
+# Development command with hot reload
 CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
