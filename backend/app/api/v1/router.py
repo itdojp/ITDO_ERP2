@@ -16,6 +16,7 @@ from app.api.v1 import (
     expenses,
     financial_reports,
     health,
+    health_simple,  # v19.0 practical health check
     inventory_basic,  # ERP v17.0 basic inventory
     multi_tenant,
     opportunities,
@@ -43,6 +44,7 @@ api_router = APIRouter()
 
 # Include routers
 api_router.include_router(health.router)
+api_router.include_router(health_simple.router, prefix="/simple", tags=["health-simple"])  # v19.0 practical
 api_router.include_router(auth.router)
 api_router.include_router(audit.router, prefix="/audit", tags=["audit"])
 api_router.include_router(users.router)
