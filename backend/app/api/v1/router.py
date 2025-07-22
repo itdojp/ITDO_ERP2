@@ -30,6 +30,7 @@ from app.api.v1 import (
     user_privacy,
     user_profile,
     users,
+    users_basic,  # ERP v17.0 basic users
     users_extended,
     workflows,
 )
@@ -42,6 +43,7 @@ api_router.include_router(health.router)
 api_router.include_router(auth.router)
 api_router.include_router(audit.router, prefix="/audit", tags=["audit"])
 api_router.include_router(users.router)
+api_router.include_router(users_basic.router)  # ERP v17.0 basic user API
 api_router.include_router(users_extended.router)
 api_router.include_router(user_profile.router, tags=["user-profile"])
 api_router.include_router(organizations.router)
