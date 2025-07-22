@@ -16,6 +16,7 @@ from app.api.v1 import (
     expenses,
     financial_reports,
     health,
+    inventory_basic,  # ERP v17.0 basic inventory
     multi_tenant,
     opportunities,
     organizations,
@@ -51,6 +52,7 @@ api_router.include_router(user_profile.router, tags=["user-profile"])
 api_router.include_router(organizations.router)
 api_router.include_router(organizations_basic.router)  # ERP v17.0 basic organization API
 api_router.include_router(products_basic.router)  # ERP v17.0 basic product API
+api_router.include_router(inventory_basic.router)  # ERP v17.0 basic inventory API
 api_router.include_router(departments.router)
 api_router.include_router(roles.router)
 api_router.include_router(permission_management.router)
