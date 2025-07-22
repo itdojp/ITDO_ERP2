@@ -52,6 +52,12 @@ from app.models.workflow import (
     WorkflowTask,
 )
 
+# ERP Basic API Models
+from app.models.employee import Employee
+from app.models.product import Product, ProductPriceHistory
+from app.models.sales import Customer as SalesCustomer, SalesOrder, SalesOrderItem
+from app.models.warehouse import Warehouse, InventoryItem, StockMovement
+
 __all__ = [
     "User",
     "Organization",
@@ -102,4 +108,14 @@ __all__ = [
     "DashboardWidget",
     "ReportExecution",
     "DataSource",
+    # ERP Basic API Models
+    "Employee",
+    "Product", 
+    "ProductPriceHistory",
+    "SalesCustomer",
+    "SalesOrder",
+    "SalesOrderItem",
+    "Warehouse",
+    "InventoryItem",
+    "StockMovement",
 ]
