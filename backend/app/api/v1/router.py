@@ -9,13 +9,15 @@ from app.api.v1 import (
     auth,
     budgets,
     cross_tenant_permissions,
-    # customer_activities,  # Disable if needed
-    # customers,  # Disable if needed
+    customer_activities,
+    customers,
     departments,
-    # expense_categories,  # Disable if needed
+    expense_categories,
+    expenses,
+    financial_reports,
     health,
     multi_tenant,
-    # opportunities,  # Disabled due to auth import issue
+    opportunities,
     organizations,
     # permission_inheritance,  # Temporarily disabled due to syntax errors
     permission_management,
@@ -80,6 +82,10 @@ api_router.include_router(
 api_router.include_router(opportunities.router, prefix="/opportunities", tags=["crm"])
 api_router.include_router(
     expense_categories.router, prefix="/expense-categories", tags=["financial"]
+)
+api_router.include_router(expenses.router, prefix="/expenses", tags=["financial"])
+api_router.include_router(
+    financial_reports.router, prefix="/financial-reports", tags=["financial"]
 )
 api_router.include_router(workflows.router, prefix="/workflows", tags=["workflow"])
 api_router.include_router(

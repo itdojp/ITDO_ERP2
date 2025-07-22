@@ -32,7 +32,7 @@ async def get_budgets(
     limit: int = Query(100, ge=1, le=1000),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> List[BudgetResponse]:
     """予算一覧取得"""
     service = BudgetService(db)
     budgets = await service.get_budgets(
@@ -221,3 +221,17 @@ async def get_budget_analytics(
         department_id=department_id,
     )
     return analytics
+
+
+@router.get("/analytics/budget-vs-actual/{fiscal_year}", response_model=dict)
+async def get_budget_vs_actual_analysis(
+    fiscal_year: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    """Budget vs Actual comparison analysis for Phase 4 Financial Management."""
+    service = BudgetService(db)
+    analysis = await service.get_budget_vs_actual_analysis(
+        organization_id=current_user.organization_id, fiscal_year=fiscal_year
+    )
+    return analysis

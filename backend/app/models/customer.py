@@ -228,7 +228,10 @@ class Customer(SoftDeletableModel):
         return f"{self.customer_code} - {self.company_name}"
 
     def __repr__(self) -> str:
-        return f"<Customer(id={self.id}, code='{self.customer_code}', name='{self.company_name}', status='{self.status}')>"
+        return (
+            f"<Customer(id={self.id}, code='{self.customer_code}', "
+            f"name='{self.company_name}', status='{self.status}')>"
+        )
 
 
 class CustomerContact(SoftDeletableModel):
@@ -302,7 +305,10 @@ class CustomerContact(SoftDeletableModel):
         return f"{self.full_name} ({self.customer.company_name})"
 
     def __repr__(self) -> str:
-        return f"<CustomerContact(id={self.id}, name='{self.name}', customer_id={self.customer_id})>"
+        return (
+            f"<CustomerContact(id={self.id}, name='{self.name}', "
+            f"customer_id={self.customer_id})>"
+        )
 
 
 class Opportunity(SoftDeletableModel):
@@ -429,7 +435,10 @@ class Opportunity(SoftDeletableModel):
         return f"{self.title}"
 
     def __repr__(self) -> str:
-        return f"<Opportunity(id={self.id}, title='{self.title}', status='{self.status}', probability={self.probability})>"
+        return (
+            f"<Opportunity(id={self.id}, title='{self.title}', "
+            f"status='{self.status}', probability={self.probability})>"
+        )
 
 
 class CustomerActivity(SoftDeletableModel):
@@ -506,4 +515,7 @@ class CustomerActivity(SoftDeletableModel):
         return f"{self.activity_type.value}: {self.subject}"
 
     def __repr__(self) -> str:
-        return f"<CustomerActivity(id={self.id}, type='{self.activity_type}', subject='{self.subject}', date={self.activity_date})>"
+        return (
+            f"<CustomerActivity(id={self.id}, type='{self.activity_type}', "
+            f"subject='{self.subject}', date={self.activity_date})>"
+        )
