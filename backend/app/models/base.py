@@ -17,7 +17,6 @@ from app.types import UserId
 class Base(DeclarativeBase):
     """Base class for all models."""
 
-    pass
 
 
 # Type variable for model types

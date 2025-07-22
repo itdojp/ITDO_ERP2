@@ -1,16 +1,23 @@
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import or_, and_, func, desc, asc, text
-from typing import Optional, List, Dict, Any, Tuple
-from datetime import datetime
 import uuid
-from decimal import Decimal
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
+
+from sqlalchemy import and_, asc, desc, or_, text
+from sqlalchemy.orm import Session, joinedload
 
 from app.models.category_extended import (
-    Category, CategoryAttribute, CategoryPricingRule, CategoryAuditLog, CategoryHierarchyView
+    Category,
+    CategoryAttribute,
+    CategoryAuditLog,
+    CategoryPricingRule,
 )
 from app.schemas.category_v30 import (
-    CategoryCreate, CategoryUpdate, CategoryAttributeCreate, CategoryAttributeUpdate,
-    CategoryPricingRuleCreate, CategoryPricingRuleUpdate
+    CategoryAttributeCreate,
+    CategoryAttributeUpdate,
+    CategoryCreate,
+    CategoryPricingRuleCreate,
+    CategoryPricingRuleUpdate,
+    CategoryUpdate,
 )
 
 
@@ -37,16 +44,18 @@ class CategoryCRUD:
                 joinedload(Category.parent),
                 joinedload(Category.children),
                 joinedload(Category.creator),
-                joinedload(Category.updater)
+                joinedload(Category.updater),
             )
             .filter(Category.id == category_id)
             .first()
         )
 
     def get_by_code(self, category_code: str) -> Optional[Category]:
-        return self.db.query(Category).filter(
-            Category.category_code == category_code
-        ).first()
+        return (
+            self.db.query(Category)
+            .filter(Category.category_code == category_code)
+            .first()
+        )
 
     def get_by_parent(self, parent_id: Optional[str] = None) -> List[Category]:
         """親カテゴリIDで子カテゴリを取得"""
@@ -55,52 +64,58 @@ class CategoryCRUD:
             query = query.filter(Category.parent_id == parent_id)
         else:
             query = query.filter(Category.parent_id.is_(None))
-        
-        return query.filter(Category.is_active == True).order_by(
-            Category.sort_order, Category.category_name
-        ).all()
+
+        return (
+            query.filter(Category.is_active)
+            .order_by(Category.sort_order, Category.category_name)
+            .all()
+        )
 
     def get_hierarchy_path(self, category_id: str) -> List[Category]:
         """カテゴリの階層パスを取得（ルートから現在まで）"""
         category = self.get_by_id(category_id)
         if not category:
             return []
-        
+
         path = []
         current = category
         while current:
             path.insert(0, current)
             current = current.parent if current.parent_id else None
-        
+
         return path
 
-    def get_descendants(self, category_id: str, include_inactive: bool = False) -> List[Category]:
+    def get_descendants(
+        self, category_id: str, include_inactive: bool = False
+    ) -> List[Category]:
         """すべての子孫カテゴリを取得"""
         # WITH RECURSIVE を使用して階層データを取得
-        recursive_query = text("""
+        recursive_query = text(
+            """
             WITH RECURSIVE category_tree AS (
                 SELECT id, parent_id, category_name, level, is_active
                 FROM categories
                 WHERE id = :category_id
-                
+
                 UNION ALL
-                
+
                 SELECT c.id, c.parent_id, c.category_name, c.level, c.is_active
                 FROM categories c
                 INNER JOIN category_tree ct ON c.parent_id = ct.id
             )
-            SELECT id FROM category_tree 
+            SELECT id FROM category_tree
             WHERE id != :category_id
             {}
             ORDER BY level, category_name
-        """.format("" if include_inactive else "AND is_active = true"))
-        
+        """.format("" if include_inactive else "AND is_active = true")
+        )
+
         result = self.db.execute(recursive_query, {"category_id": category_id})
         descendant_ids = [row[0] for row in result]
-        
+
         if not descendant_ids:
             return []
-        
+
         return (
             self.db.query(Category)
             .filter(Category.id.in_(descendant_ids))
@@ -109,10 +124,7 @@ class CategoryCRUD:
         )
 
     def get_multi(
-        self,
-        skip: int = 0,
-        limit: int = 100,
-        filters: Optional[Dict[str, Any]] = None
+        self, skip: int = 0, limit: int = 100, filters: Optional[Dict[str, Any]] = None
     ) -> Tuple[List[Category], int]:
         query = self.db.query(Category)
 
@@ -129,24 +141,32 @@ class CategoryCRUD:
             if filters.get("level"):
                 query = query.filter(Category.level == filters["level"])
             if filters.get("industry_vertical"):
-                query = query.filter(Category.industry_vertical == filters["industry_vertical"])
+                query = query.filter(
+                    Category.industry_vertical == filters["industry_vertical"]
+                )
             if filters.get("business_unit"):
                 query = query.filter(Category.business_unit == filters["business_unit"])
             if filters.get("tax_category"):
                 query = query.filter(Category.tax_category == filters["tax_category"])
             if filters.get("lifecycle_stage"):
-                query = query.filter(Category.lifecycle_stage == filters["lifecycle_stage"])
+                query = query.filter(
+                    Category.lifecycle_stage == filters["lifecycle_stage"]
+                )
             if filters.get("profitability_rating"):
-                query = query.filter(Category.profitability_rating == filters["profitability_rating"])
+                query = query.filter(
+                    Category.profitability_rating == filters["profitability_rating"]
+                )
             if filters.get("abc_analysis_class"):
-                query = query.filter(Category.abc_analysis_class == filters["abc_analysis_class"])
+                query = query.filter(
+                    Category.abc_analysis_class == filters["abc_analysis_class"]
+                )
             if filters.get("search"):
                 search_term = f"%{filters['search']}%"
                 query = query.filter(
                     or_(
                         Category.category_name.ilike(search_term),
                         Category.category_code.ilike(search_term),
-                        Category.description.ilike(search_term)
+                        Category.description.ilike(search_term),
                     )
                 )
             if filters.get("tags"):
@@ -159,9 +179,11 @@ class CategoryCRUD:
         total = query.count()
 
         # ソート
-        sort_by = filters.get("sort_by", "category_name") if filters else "category_name"
+        sort_by = (
+            filters.get("sort_by", "category_name") if filters else "category_name"
+        )
         sort_order = filters.get("sort_order", "asc") if filters else "asc"
-        
+
         sort_column = getattr(Category, sort_by, Category.category_name)
         if sort_order == "desc":
             query = query.order_by(desc(sort_column))
@@ -175,24 +197,36 @@ class CategoryCRUD:
         # カテゴリコード重複チェック
         existing = self.get_by_code(category_in.category_code)
         if existing:
-            raise DuplicateError(f"Category code '{category_in.category_code}' already exists")
+            raise DuplicateError(
+                f"Category code '{category_in.category_code}' already exists"
+            )
 
         # 親カテゴリ存在確認
         parent = None
         level = 1
         path = category_in.category_name
         path_ids = ""
-        
+
         if category_in.parent_id:
             parent = self.get_by_id(category_in.parent_id)
             if not parent:
-                raise NotFoundError(f"Parent category {category_in.parent_id} not found")
+                raise NotFoundError(
+                    f"Parent category {category_in.parent_id} not found"
+                )
             if not parent.is_active:
-                raise InvalidOperationError("Cannot create category under inactive parent")
-            
+                raise InvalidOperationError(
+                    "Cannot create category under inactive parent"
+                )
+
             level = parent.level + 1
-            path = f"{parent.path} > {category_in.category_name}" if parent.path else category_in.category_name
-            path_ids = f"{parent.path_ids},{parent.id}" if parent.path_ids else parent.id
+            path = (
+                f"{parent.path} > {category_in.category_name}"
+                if parent.path
+                else category_in.category_name
+            )
+            path_ids = (
+                f"{parent.path_ids},{parent.id}" if parent.path_ids else parent.id
+            )
 
         # URLスラッグ生成
         url_slug = category_in.url_slug
@@ -251,7 +285,7 @@ class CategoryCRUD:
             low_stock_alert_enabled=category_in.low_stock_alert_enabled,
             price_change_alert_enabled=category_in.price_change_alert_enabled,
             new_product_alert_enabled=category_in.new_product_alert_enabled,
-            created_by=user_id
+            created_by=user_id,
         )
 
         self.db.add(db_category)
@@ -268,7 +302,9 @@ class CategoryCRUD:
 
         return db_category
 
-    def update(self, category_id: str, category_in: CategoryUpdate, user_id: str) -> Optional[Category]:
+    def update(
+        self, category_id: str, category_in: CategoryUpdate, user_id: str
+    ) -> Optional[Category]:
         category = self.get_by_id(category_id)
         if not category:
             raise NotFoundError(f"Category {category_id} not found")
@@ -276,15 +312,17 @@ class CategoryCRUD:
         # 変更内容を記録
         changes = []
         update_data = category_in.dict(exclude_unset=True)
-        
+
         for field, new_value in update_data.items():
             old_value = getattr(category, field, None)
             if old_value != new_value:
-                changes.append({
-                    "field": field,
-                    "old_value": str(old_value) if old_value is not None else None,
-                    "new_value": str(new_value) if new_value is not None else None
-                })
+                changes.append(
+                    {
+                        "field": field,
+                        "old_value": str(old_value) if old_value is not None else None,
+                        "new_value": str(new_value) if new_value is not None else None,
+                    }
+                )
                 setattr(category, field, new_value)
 
         if changes:
@@ -301,8 +339,10 @@ class CategoryCRUD:
             # 監査ログ作成
             for change in changes:
                 self._create_audit_log(
-                    category_id, "update", user_id, 
-                    f"Updated {change['field']}: {change['old_value']} -> {change['new_value']}"
+                    category_id,
+                    "update",
+                    user_id,
+                    f"Updated {change['field']}: {change['old_value']} -> {change['new_value']}",
                 )
 
         return category
@@ -312,17 +352,17 @@ class CategoryCRUD:
         category = self.get_by_id(category_id)
         if not category:
             raise NotFoundError(f"Category {category_id} not found")
-        
+
         if category.is_active:
             return category
-            
+
         category.is_active = True
         category.updated_at = datetime.utcnow()
         category.updated_by = user_id
-        
+
         self.db.commit()
         self.db.refresh(category)
-        
+
         self._create_audit_log(category_id, "activate", user_id, "Category activated")
         return category
 
@@ -331,70 +371,80 @@ class CategoryCRUD:
         category = self.get_by_id(category_id)
         if not category:
             raise NotFoundError(f"Category {category_id} not found")
-        
+
         # 子カテゴリがある場合は非アクティブ化できない
         children = self.get_by_parent(category_id)
         if children:
-            raise InvalidOperationError("Cannot deactivate category with active children")
-        
+            raise InvalidOperationError(
+                "Cannot deactivate category with active children"
+            )
+
         # アクティブな商品がある場合の確認（実装時に追加）
         # if category.product_count > 0:
         #     raise InvalidOperationError("Cannot deactivate category with active products")
-        
+
         if not category.is_active:
             return category
-            
+
         category.is_active = False
         category.updated_at = datetime.utcnow()
         category.updated_by = user_id
-        
+
         self.db.commit()
         self.db.refresh(category)
-        
-        self._create_audit_log(category_id, "deactivate", user_id, "Category deactivated")
+
+        self._create_audit_log(
+            category_id, "deactivate", user_id, "Category deactivated"
+        )
         return category
 
-    def move_category(self, category_id: str, new_parent_id: Optional[str], user_id: str) -> Category:
+    def move_category(
+        self, category_id: str, new_parent_id: Optional[str], user_id: str
+    ) -> Category:
         """カテゴリを別の親の下に移動"""
         category = self.get_by_id(category_id)
         if not category:
             raise NotFoundError(f"Category {category_id} not found")
-        
+
         # 循環参照チェック
         if new_parent_id:
             if new_parent_id == category_id:
                 raise InvalidOperationError("Cannot move category to itself")
-            
+
             new_parent = self.get_by_id(new_parent_id)
             if not new_parent:
                 raise NotFoundError(f"New parent category {new_parent_id} not found")
-            
+
             # 新しい親が現在のカテゴリの子孫でないことを確認
             descendants = self.get_descendants(category_id)
             if any(d.id == new_parent_id for d in descendants):
-                raise InvalidOperationError("Cannot move category under its own descendant")
+                raise InvalidOperationError(
+                    "Cannot move category under its own descendant"
+                )
 
         old_parent_id = category.parent_id
         category.parent_id = new_parent_id
-        
+
         # レベルとパスの更新
         self._update_category_hierarchy(category)
-        
+
         category.updated_at = datetime.utcnow()
         category.updated_by = user_id
-        
+
         self.db.commit()
         self.db.refresh(category)
-        
+
         # 旧親と新親のis_leafを更新
         self._update_parent_leaf_status(old_parent_id)
         self._update_parent_leaf_status(new_parent_id)
-        
+
         self._create_audit_log(
-            category_id, "move", user_id, 
-            f"Moved from parent {old_parent_id} to {new_parent_id}"
+            category_id,
+            "move",
+            user_id,
+            f"Moved from parent {old_parent_id} to {new_parent_id}",
         )
-        
+
         return category
 
     def delete(self, category_id: str, user_id: str) -> bool:
@@ -402,85 +452,95 @@ class CategoryCRUD:
         category = self.get_by_id(category_id)
         if not category:
             raise NotFoundError(f"Category {category_id} not found")
-        
+
         # 子カテゴリがある場合は削除できない
         children = self.get_by_parent(category_id)
         if children:
             raise InvalidOperationError("Cannot delete category with children")
-        
+
         # 商品がある場合は削除できない（実装時に追加）
         # if category.product_count > 0:
         #     raise InvalidOperationError("Cannot delete category with products")
-        
+
         parent_id = category.parent_id
-        
+
         self.db.delete(category)
         self.db.commit()
-        
+
         # 親のis_leafを更新
         self._update_parent_leaf_status(parent_id)
-        
+
         self._create_audit_log(category_id, "delete", user_id, "Category deleted")
-        
+
         return True
 
     def get_analytics(self, filters: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """カテゴリ分析データを取得"""
         base_query = self.db.query(Category)
-        
+
         if filters:
             if filters.get("date_from"):
-                base_query = base_query.filter(Category.created_at >= filters["date_from"])
+                base_query = base_query.filter(
+                    Category.created_at >= filters["date_from"]
+                )
             if filters.get("date_to"):
-                base_query = base_query.filter(Category.created_at <= filters["date_to"])
-        
+                base_query = base_query.filter(
+                    Category.created_at <= filters["date_to"]
+                )
+
         categories = base_query.all()
-        
+
         total_categories = len(categories)
         active_categories = len([c for c in categories if c.is_active])
         inactive_categories = total_categories - active_categories
         leaf_categories = len([c for c in categories if c.is_leaf])
-        
+
         # 階層深度統計
         levels = [c.level for c in categories]
         avg_hierarchy_depth = sum(levels) / len(levels) if levels else 0
         max_hierarchy_depth = max(levels) if levels else 0
-        
+
         # タイプ別分布
         categories_by_type = {}
         for category in categories:
             cat_type = category.category_type
             categories_by_type[cat_type] = categories_by_type.get(cat_type, 0) + 1
-        
+
         # レベル別分布
         categories_by_level = {}
         for level in levels:
             categories_by_level[level] = categories_by_level.get(level, 0) + 1
-        
+
         # トップカテゴリ（商品数別）
         top_categories_by_product_count = [
             {
                 "id": c.id,
                 "name": c.category_name,
                 "product_count": c.product_count,
-                "level": c.level
+                "level": c.level,
             }
-            for c in sorted(categories, key=lambda x: x.product_count, reverse=True)[:10]
+            for c in sorted(categories, key=lambda x: x.product_count, reverse=True)[
+                :10
+            ]
             if c.product_count > 0
         ]
-        
+
         # トップカテゴリ（売上別）
         top_categories_by_sales = [
             {
                 "id": c.id,
                 "name": c.category_name,
                 "total_sales": float(c.total_sales_amount),
-                "margin_percentage": float(c.avg_margin_percentage) if c.avg_margin_percentage else 0
+                "margin_percentage": float(c.avg_margin_percentage)
+                if c.avg_margin_percentage
+                else 0,
             }
-            for c in sorted(categories, key=lambda x: x.total_sales_amount, reverse=True)[:10]
+            for c in sorted(
+                categories, key=lambda x: x.total_sales_amount, reverse=True
+            )[:10]
             if c.total_sales_amount > 0
         ]
-        
+
         # 要注意カテゴリ
         categories_needing_attention = []
         for c in categories:
@@ -489,25 +549,34 @@ class CategoryCRUD:
                 issues.append("inactive")
             if c.product_count == 0 and c.is_leaf:
                 issues.append("no_products")
-            if c.last_activity_date and (datetime.utcnow() - c.last_activity_date).days > 90:
+            if (
+                c.last_activity_date
+                and (datetime.utcnow() - c.last_activity_date).days > 90
+            ):
                 issues.append("no_recent_activity")
-            
+
             if issues:
-                categories_needing_attention.append({
-                    "id": c.id,
-                    "name": c.category_name,
-                    "issues": issues,
-                    "product_count": c.product_count
-                })
-        
+                categories_needing_attention.append(
+                    {
+                        "id": c.id,
+                        "name": c.category_name,
+                        "issues": issues,
+                        "product_count": c.product_count,
+                    }
+                )
+
         # 分類体系完成度
         taxonomy_completeness = {
-            "categories_with_description": len([c for c in categories if c.description]),
+            "categories_with_description": len(
+                [c for c in categories if c.description]
+            ),
             "categories_with_attributes": len([c for c in categories if c.attributes]),
             "categories_with_seo": len([c for c in categories if c.seo_title]),
-            "categories_with_translations": len([c for c in categories if c.translations])
+            "categories_with_translations": len(
+                [c for c in categories if c.translations]
+            ),
         }
-        
+
         return {
             "total_categories": total_categories,
             "active_categories": active_categories,
@@ -520,10 +589,12 @@ class CategoryCRUD:
             "top_categories_by_product_count": top_categories_by_product_count,
             "top_categories_by_sales": top_categories_by_sales,
             "categories_needing_attention": categories_needing_attention,
-            "taxonomy_completeness": taxonomy_completeness
+            "taxonomy_completeness": taxonomy_completeness,
         }
 
-    def get_tree_structure(self, root_id: Optional[str] = None, include_inactive: bool = False) -> List[Dict[str, Any]]:
+    def get_tree_structure(
+        self, root_id: Optional[str] = None, include_inactive: bool = False
+    ) -> List[Dict[str, Any]]:
         """階層ツリー構造でカテゴリを取得"""
         if root_id:
             root_categories = [self.get_by_id(root_id)]
@@ -531,13 +602,13 @@ class CategoryCRUD:
                 return []
         else:
             root_categories = self.get_by_parent(None)
-        
+
         def build_tree(categories):
             tree = []
             for category in categories:
                 if not include_inactive and not category.is_active:
                     continue
-                    
+
                 children = self.get_by_parent(category.id)
                 node = {
                     "id": category.id,
@@ -547,28 +618,29 @@ class CategoryCRUD:
                     "is_active": category.is_active,
                     "is_leaf": category.is_leaf,
                     "product_count": category.product_count,
-                    "children": build_tree(children) if children else []
+                    "children": build_tree(children) if children else [],
                 }
                 tree.append(node)
             return tree
-        
+
         return build_tree(root_categories)
 
     def _generate_url_slug(self, name: str) -> str:
         """URLスラッグを生成"""
         import re
+
         # 日本語文字を除去してスラッグ生成
-        slug = re.sub(r'[^\w\s-]', '', name.lower())
-        slug = re.sub(r'[\s_-]+', '-', slug)
-        slug = slug.strip('-')
-        
+        slug = re.sub(r"[^\w\s-]", "", name.lower())
+        slug = re.sub(r"[\s_-]+", "-", slug)
+        slug = slug.strip("-")
+
         # 重複チェック
         base_slug = slug
         counter = 1
         while self.db.query(Category).filter(Category.url_slug == slug).first():
             slug = f"{base_slug}-{counter}"
             counter += 1
-        
+
         return slug
 
     def _update_category_paths(self, category: Category):
@@ -576,17 +648,17 @@ class CategoryCRUD:
         path_parts = []
         path_ids_parts = []
         current = category
-        
+
         while current.parent:
             current = current.parent
             path_parts.insert(0, current.category_name)
             path_ids_parts.insert(0, current.id)
-        
+
         path_parts.append(category.category_name)
-        
+
         category.path = " > ".join(path_parts)
         category.path_ids = ",".join(path_ids_parts) if path_ids_parts else ""
-        
+
         # 子孫カテゴリのパスも更新
         descendants = self.get_descendants(category.id)
         for descendant in descendants:
@@ -599,9 +671,9 @@ class CategoryCRUD:
             category.level = parent.level + 1
         else:
             category.level = 1
-        
+
         self._update_category_paths(category)
-        
+
         # 子孫カテゴリの階層も更新
         descendants = self.get_descendants(category.id)
         for descendant in descendants:
@@ -611,14 +683,16 @@ class CategoryCRUD:
         """親カテゴリのis_leafステータスを更新"""
         if not parent_id:
             return
-        
+
         parent = self.get_by_id(parent_id)
         if parent:
             children = self.get_by_parent(parent_id)
             parent.is_leaf = len(children) == 0
             self.db.commit()
 
-    def _create_audit_log(self, category_id: str, action: str, user_id: str, description: str):
+    def _create_audit_log(
+        self, category_id: str, action: str, user_id: str, description: str
+    ):
         """監査ログを作成"""
         audit_log = CategoryAuditLog(
             id=str(uuid.uuid4()),
@@ -626,7 +700,7 @@ class CategoryCRUD:
             action=action,
             user_id=user_id,
             change_reason=description,
-            integration_source="api"
+            integration_source="api",
         )
         self.db.add(audit_log)
         self.db.commit()
@@ -637,9 +711,11 @@ class CategoryAttributeCRUD:
         self.db = db
 
     def get_by_id(self, attribute_id: str) -> Optional[CategoryAttribute]:
-        return self.db.query(CategoryAttribute).filter(
-            CategoryAttribute.id == attribute_id
-        ).first()
+        return (
+            self.db.query(CategoryAttribute)
+            .filter(CategoryAttribute.id == attribute_id)
+            .first()
+        )
 
     def get_by_category(self, category_id: str) -> List[CategoryAttribute]:
         return (
@@ -649,19 +725,31 @@ class CategoryAttributeCRUD:
             .all()
         )
 
-    def get_by_code(self, category_id: str, attribute_code: str) -> Optional[CategoryAttribute]:
-        return self.db.query(CategoryAttribute).filter(
-            and_(
-                CategoryAttribute.category_id == category_id,
-                CategoryAttribute.attribute_code == attribute_code
+    def get_by_code(
+        self, category_id: str, attribute_code: str
+    ) -> Optional[CategoryAttribute]:
+        return (
+            self.db.query(CategoryAttribute)
+            .filter(
+                and_(
+                    CategoryAttribute.category_id == category_id,
+                    CategoryAttribute.attribute_code == attribute_code,
+                )
             )
-        ).first()
+            .first()
+        )
 
-    def create(self, attribute_in: CategoryAttributeCreate, user_id: str) -> CategoryAttribute:
+    def create(
+        self, attribute_in: CategoryAttributeCreate, user_id: str
+    ) -> CategoryAttribute:
         # 属性コード重複チェック
-        existing = self.get_by_code(attribute_in.category_id, attribute_in.attribute_code)
+        existing = self.get_by_code(
+            attribute_in.category_id, attribute_in.attribute_code
+        )
         if existing:
-            raise DuplicateError(f"Attribute code '{attribute_in.attribute_code}' already exists in this category")
+            raise DuplicateError(
+                f"Attribute code '{attribute_in.attribute_code}' already exists in this category"
+            )
 
         db_attribute = CategoryAttribute(
             id=str(uuid.uuid4()),
@@ -694,7 +782,7 @@ class CategoryAttributeCRUD:
             translations=attribute_in.translations,
             inherit_from_parent=attribute_in.inherit_from_parent,
             shared_across_categories=attribute_in.shared_across_categories,
-            created_by=user_id
+            created_by=user_id,
         )
 
         self.db.add(db_attribute)
@@ -703,7 +791,9 @@ class CategoryAttributeCRUD:
 
         return db_attribute
 
-    def update(self, attribute_id: str, attribute_in: CategoryAttributeUpdate) -> Optional[CategoryAttribute]:
+    def update(
+        self, attribute_id: str, attribute_in: CategoryAttributeUpdate
+    ) -> Optional[CategoryAttribute]:
         attribute = self.get_by_id(attribute_id)
         if not attribute:
             raise NotFoundError(f"Attribute {attribute_id} not found")
@@ -735,47 +825,63 @@ class CategoryPricingRuleCRUD:
         self.db = db
 
     def get_by_id(self, rule_id: str) -> Optional[CategoryPricingRule]:
-        return self.db.query(CategoryPricingRule).filter(
-            CategoryPricingRule.id == rule_id
-        ).first()
+        return (
+            self.db.query(CategoryPricingRule)
+            .filter(CategoryPricingRule.id == rule_id)
+            .first()
+        )
 
-    def get_by_category(self, category_id: str, active_only: bool = True) -> List[CategoryPricingRule]:
+    def get_by_category(
+        self, category_id: str, active_only: bool = True
+    ) -> List[CategoryPricingRule]:
         query = self.db.query(CategoryPricingRule).filter(
             CategoryPricingRule.category_id == category_id
         )
-        
+
         if active_only:
-            query = query.filter(CategoryPricingRule.is_active == True)
-        
+            query = query.filter(CategoryPricingRule.is_active)
+
         return query.order_by(CategoryPricingRule.priority.desc()).all()
 
     def get_multi(
-        self,
-        skip: int = 0,
-        limit: int = 100,
-        filters: Optional[Dict[str, Any]] = None
+        self, skip: int = 0, limit: int = 100, filters: Optional[Dict[str, Any]] = None
     ) -> Tuple[List[CategoryPricingRule], int]:
         query = self.db.query(CategoryPricingRule)
 
         if filters:
             if filters.get("category_id"):
-                query = query.filter(CategoryPricingRule.category_id == filters["category_id"])
+                query = query.filter(
+                    CategoryPricingRule.category_id == filters["category_id"]
+                )
             if filters.get("rule_type"):
-                query = query.filter(CategoryPricingRule.rule_type == filters["rule_type"])
+                query = query.filter(
+                    CategoryPricingRule.rule_type == filters["rule_type"]
+                )
             if filters.get("is_active") is not None:
-                query = query.filter(CategoryPricingRule.is_active == filters["is_active"])
+                query = query.filter(
+                    CategoryPricingRule.is_active == filters["is_active"]
+                )
             if filters.get("currency"):
-                query = query.filter(CategoryPricingRule.currency == filters["currency"])
+                query = query.filter(
+                    CategoryPricingRule.currency == filters["currency"]
+                )
 
         total = query.count()
-        rules = query.offset(skip).limit(limit).order_by(
-            CategoryPricingRule.priority.desc(),
-            CategoryPricingRule.created_at.desc()
-        ).all()
+        rules = (
+            query.offset(skip)
+            .limit(limit)
+            .order_by(
+                CategoryPricingRule.priority.desc(),
+                CategoryPricingRule.created_at.desc(),
+            )
+            .all()
+        )
 
         return rules, total
 
-    def create(self, rule_in: CategoryPricingRuleCreate, user_id: str) -> CategoryPricingRule:
+    def create(
+        self, rule_in: CategoryPricingRuleCreate, user_id: str
+    ) -> CategoryPricingRule:
         db_rule = CategoryPricingRule(
             id=str(uuid.uuid4()),
             category_id=rule_in.category_id,
@@ -804,7 +910,7 @@ class CategoryPricingRuleCRUD:
             market_position=rule_in.market_position,
             price_elasticity=rule_in.price_elasticity,
             approval_required=rule_in.approval_required,
-            created_by=user_id
+            created_by=user_id,
         )
 
         self.db.add(db_rule)
@@ -813,7 +919,9 @@ class CategoryPricingRuleCRUD:
 
         return db_rule
 
-    def update(self, rule_id: str, rule_in: CategoryPricingRuleUpdate) -> Optional[CategoryPricingRule]:
+    def update(
+        self, rule_id: str, rule_in: CategoryPricingRuleUpdate
+    ) -> Optional[CategoryPricingRule]:
         rule = self.get_by_id(rule_id)
         if not rule:
             raise NotFoundError(f"Pricing rule {rule_id} not found")

@@ -869,35 +869,29 @@ class ApplicationService:
     async def _send_submission_notifications(self, application_id: int) -> None:
         """Send notifications when application is submitted."""
         # Implementation for sending notifications
-        pass
 
     async def _send_resubmission_notifications(self, application_id: int) -> None:
         """Send notifications when application is resubmitted."""
         # Implementation for sending notifications
-        pass
 
     async def _send_approval_notifications(
         self, application_id: int, status: str
     ) -> None:
         """Send notifications when application is approved/rejected."""
         # Implementation for sending notifications
-        pass
 
     async def _send_clarification_request(
         self, application_id: int, message: str
     ) -> None:
         """Send clarification request notification."""
         # Implementation for sending notifications
-        pass
 
     async def _send_custom_notification(
         self, application_id: int, message: str, recipients: List[int]
     ) -> None:
         """Send custom notification."""
         # Implementation for sending notifications
-        pass
 
     async def _send_approval_reminder(self, application_id: int) -> None:
         """Send approval reminder notification."""
         # Implementation for sending notifications
-        pass
