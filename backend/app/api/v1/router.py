@@ -19,6 +19,7 @@ from app.api.v1 import (
     multi_tenant,
     opportunities,
     organizations,
+    organizations_basic,  # ERP v17.0 basic organizations
     # permission_inheritance,  # Temporarily disabled due to syntax errors
     permission_management,
     pm_automation,
@@ -47,6 +48,7 @@ api_router.include_router(users_basic.router)  # ERP v17.0 basic user API
 api_router.include_router(users_extended.router)
 api_router.include_router(user_profile.router, tags=["user-profile"])
 api_router.include_router(organizations.router)
+api_router.include_router(organizations_basic.router)  # ERP v17.0 basic organization API
 api_router.include_router(departments.router)
 api_router.include_router(roles.router)
 api_router.include_router(permission_management.router)
