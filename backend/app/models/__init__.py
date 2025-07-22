@@ -20,6 +20,20 @@ from app.models.department import Department
 # Phase 4-7 Models
 from app.models.expense import Expense, ExpenseApprovalFlow
 from app.models.expense_category import ExpenseCategory
+
+# CC02 v31.0 Phase 2 - Finance Management Models
+from app.models.finance_extended import (
+    Account,
+    Budget as FinanceBudget,
+    BudgetLine,
+    CostCenter,
+    FinanceAuditLog,
+    FinancialPeriod,
+    FinancialReport,
+    JournalEntry,
+    JournalEntryLine,
+    TaxConfiguration,
+)
 from app.models.organization import Organization
 from app.models.password_history import PasswordHistory
 from app.models.permission import Permission
@@ -102,4 +116,15 @@ __all__ = [
     "DashboardWidget",
     "ReportExecution",
     "DataSource",
+    # CC02 v31.0 Phase 2 - Finance Management Models
+    "Account",
+    "FinanceBudget",
+    "BudgetLine",
+    "CostCenter",
+    "FinanceAuditLog",
+    "FinancialPeriod", 
+    "FinancialReport",
+    "JournalEntry",
+    "JournalEntryLine",
+    "TaxConfiguration",
 ]
