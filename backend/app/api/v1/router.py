@@ -27,6 +27,7 @@ from app.api.v1 import (
     permission_management,
     pm_automation,
     products_basic,  # ERP v17.0 basic products
+    products_simple,  # v19.0 practical products
     reports,
     # role_permission_ui,  # Temporarily disabled due to syntax errors
     roles,
@@ -58,6 +59,7 @@ api_router.include_router(organizations.router)
 api_router.include_router(organizations_basic.router)  # ERP v17.0 basic organization API
 api_router.include_router(organizations_simple.router, prefix="/simple", tags=["organizations-simple"])  # v19.0 practical
 api_router.include_router(products_basic.router)  # ERP v17.0 basic product API
+api_router.include_router(products_simple.router, prefix="/simple", tags=["products-simple"])  # v19.0 practical
 api_router.include_router(inventory_basic.router)  # ERP v17.0 basic inventory API
 api_router.include_router(departments.router)
 api_router.include_router(roles.router)
