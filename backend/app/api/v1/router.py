@@ -36,6 +36,7 @@ from app.api.v1 import (
     users,
     users_basic,  # ERP v17.0 basic users
     users_extended,
+    users_simple,  # v19.0 practical users
     workflows,
 )
 from app.core.database import get_db
@@ -50,6 +51,7 @@ api_router.include_router(audit.router, prefix="/audit", tags=["audit"])
 api_router.include_router(users.router)
 api_router.include_router(users_basic.router)  # ERP v17.0 basic user API
 api_router.include_router(users_extended.router)
+api_router.include_router(users_simple.router, prefix="/simple", tags=["users-simple"])  # v19.0 practical
 api_router.include_router(user_profile.router, tags=["user-profile"])
 api_router.include_router(organizations.router)
 api_router.include_router(organizations_basic.router)  # ERP v17.0 basic organization API
