@@ -22,6 +22,7 @@ from app.api.v1 import (
     opportunities,
     organizations,
     organizations_basic,  # ERP v17.0 basic organizations
+    organizations_simple,  # v19.0 practical organizations
     # permission_inheritance,  # Temporarily disabled due to syntax errors
     permission_management,
     pm_automation,
@@ -55,6 +56,7 @@ api_router.include_router(users_simple.router, prefix="/simple", tags=["users-si
 api_router.include_router(user_profile.router, tags=["user-profile"])
 api_router.include_router(organizations.router)
 api_router.include_router(organizations_basic.router)  # ERP v17.0 basic organization API
+api_router.include_router(organizations_simple.router, prefix="/simple", tags=["organizations-simple"])  # v19.0 practical
 api_router.include_router(products_basic.router)  # ERP v17.0 basic product API
 api_router.include_router(inventory_basic.router)  # ERP v17.0 basic inventory API
 api_router.include_router(departments.router)
