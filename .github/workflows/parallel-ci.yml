@@ -1,0 +1,55 @@
+name: Parallel CI Pipeline
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.changes.outputs.backend }}
+      frontend: ${{ steps.changes.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+            frontend:
+              - 'frontend/**'
+
+  backend-checks:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        check: [lint, typecheck, test-unit, test-integration]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run ${{ matrix.check }}
+        run: |
+          cd backend
+          case "${{ matrix.check }}" in
+            lint) uv run ruff check . ;;
+            typecheck) uv run mypy app/ ;;
+            test-unit) uv run pytest tests/unit/ -n auto ;;
+            test-integration) uv run pytest tests/integration/ ;;
+          esac
+
+  frontend-checks:
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        check: [lint, typecheck, test, build]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run ${{ matrix.check }}
+        run: |
+          cd frontend
+          npm ci
+          npm run ${{ matrix.check }}
