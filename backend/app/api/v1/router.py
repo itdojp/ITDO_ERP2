@@ -18,6 +18,7 @@ from app.api.v1 import (
     financial_reports,
     health,
     health_simple,  # v19.0 practical health check
+    hr_v31,  # CC02 v31.0 Phase 2 - HR Management API
     inventory_basic,  # ERP v17.0 basic inventory
     multi_tenant,
     opportunities,
@@ -112,6 +113,9 @@ api_router.include_router(reports.router, prefix="/reports", tags=["analytics"])
 
 # CC02 v31.0 Phase 2 - Finance Management API
 api_router.include_router(finance_v31.router, prefix="/finance", tags=["finance-v31"])
+
+# CC02 v31.0 Phase 2 - HR Management API
+api_router.include_router(hr_v31.router, prefix="/hr", tags=["hr-v31"])
 
 
 @api_router.get("/ping")

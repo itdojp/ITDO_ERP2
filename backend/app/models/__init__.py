@@ -34,6 +34,20 @@ from app.models.finance_extended import (
     JournalEntryLine,
     TaxConfiguration,
 )
+
+# CC02 v31.0 Phase 2 - HR Management Models
+from app.models.hr_extended import (
+    Employee,
+    EmployeeBenefit,
+    HRAnalytics,
+    JobPosting,
+    LeaveRequest,
+    OnboardingRecord,
+    PayrollRecord,
+    PerformanceReview,
+    Position,
+    TrainingRecord,
+)
 from app.models.organization import Organization
 from app.models.password_history import PasswordHistory
 from app.models.permission import Permission
@@ -127,4 +141,15 @@ __all__ = [
     "JournalEntry",
     "JournalEntryLine",
     "TaxConfiguration",
+    # CC02 v31.0 Phase 2 - HR Management Models
+    "Employee",
+    "EmployeeBenefit",
+    "HRAnalytics",
+    "JobPosting",
+    "LeaveRequest",
+    "OnboardingRecord",
+    "PayrollRecord",
+    "PerformanceReview",
+    "Position",
+    "TrainingRecord",
 ]
