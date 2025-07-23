@@ -50,7 +50,11 @@ def list_products(
     db: Session = Depends(get_db),
 ) -> Any:
     """List products - v19.0 practical approach"""
+<<<<<<< HEAD
     query = db.query(Product).filter(Product.is_active)  # type: ignore[misc]
+=======
+    query = db.query(Product).filter(Product.is_active == True)  # type: ignore[misc]
+>>>>>>> main
 
     if search:
         query = query.filter(  # type: ignore[misc]
@@ -164,7 +168,5 @@ def deactivate_product(product_id: str, db: Session = Depends(get_db)) -> Any:
 @router.get("/categories")
 def list_categories(db: Session = Depends(get_db)) -> Any:
     """List all unique categories - v19.0 practical approach"""
-    categories = (
-        db.query(Product.category).distinct().filter(Product.category.isnot(None)).all()
-    )  # type: ignore[misc]
+    categories = db.query(Product.category).distinct().filter(Product.category.isnot(None)).all()  # type: ignore[misc]
     return [cat[0] for cat in categories if cat[0]]  # type: ignore[return-value]

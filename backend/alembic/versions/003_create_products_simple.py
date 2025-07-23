@@ -4,14 +4,12 @@ Revision ID: 003_simple
 Revises: 002_simple
 Create Date: 2025-01-22
 """
-
 import sqlalchemy as sa
 
 from alembic import op
 
-revision = "003_simple"
-down_revision = "002_simple"
-
+revision = '003_simple'
+down_revision = '002_simple'
 
 def upgrade():  # type: ignore[no-untyped-def]
     op.create_table(
@@ -37,4 +35,4 @@ def upgrade():  # type: ignore[no-untyped-def]
 
 
 def downgrade():  # type: ignore[no-untyped-def]
-    op.drop_table("products_simple")
+    op.drop_table('products_simple')

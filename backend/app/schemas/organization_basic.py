@@ -36,14 +36,14 @@ class OrganizationCreate(BaseModel):
     is_active: bool = Field(True, description="Active status")
     description: Optional[str] = Field(None, description="Description")
 
-    @field_validator("email")
+    @field_validator('email')
     @classmethod
     def validate_email(cls, v):
         if v and "@" not in v:
             raise ValueError("Invalid email format")
         return v
 
-    @field_validator("code")
+    @field_validator('code')
     @classmethod
     def validate_code(cls, v):
         if not v or not v.strip():
@@ -65,7 +65,7 @@ class OrganizationUpdate(BaseModel):
     is_active: Optional[bool] = None
     description: Optional[str] = None
 
-    @field_validator("email")
+    @field_validator('email')
     @classmethod
     def validate_email(cls, v):
         if v and "@" not in v:

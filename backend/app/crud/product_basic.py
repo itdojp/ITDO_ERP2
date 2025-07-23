@@ -21,7 +21,9 @@ from app.schemas.product_basic import (
 
 # Product CRUD operations
 def create_product(
-    db: Session, product_data: ProductCreate, created_by: int
+    db: Session,
+    product_data: ProductCreate,
+    created_by: int
 ) -> Product:
     """Create a new product with validation."""
     # Check if product code exists
@@ -33,13 +35,10 @@ def create_product(
                 Product.organization_id == product_data.organization_id,
             )
         )
-        .first()
-    )
+    ).first()
 
     if existing_product:
-        raise BusinessLogicError(
-            "Product with this code already exists in the organization"
-        )
+        raise BusinessLogicError("Product with this code already exists in the organization")
 
     # Check SKU uniqueness if provided
     if product_data.sku:
@@ -49,7 +48,7 @@ def create_product(
 
     # Create product
     product_dict = product_data.dict()
-    product_dict["created_by"] = created_by
+    product_dict['created_by'] = created_by
 
     product = Product(**product_dict)
 
@@ -232,7 +231,9 @@ def deactivate_product(
 
 
 def get_products_by_category(
-    db: Session, category_id: int, include_subcategories: bool = False
+    db: Session,
+    category_id: int,
+    include_subcategories: bool = False
 ) -> List[Product]:
     """Get products by category."""
     if include_subcategories:
@@ -250,26 +251,20 @@ def get_products_by_category(
         )
         category_ids.extend([cat.id for cat in subcategories])
 
-        return (
-            db.query(Product)
-            .filter(
-                and_(
-                    Product.category_id.in_(category_ids),
-                    Product.deleted_at.is_(None),
-                    Product.is_active,
-                )
+        return db.query(Product).filter(
+            and_(
+                Product.category_id.in_(category_ids),
+                Product.deleted_at.is_(None),
+                Product.is_active
             )
             .all()
         )
     else:
-        return (
-            db.query(Product)
-            .filter(
-                and_(
-                    Product.category_id == category_id,
-                    Product.deleted_at.is_(None),
-                    Product.is_active,
-                )
+        return db.query(Product).filter(
+            and_(
+                Product.category_id == category_id,
+                Product.deleted_at.is_(None),
+                Product.is_active
             )
             .all()
         )
@@ -277,7 +272,9 @@ def get_products_by_category(
 
 # Product Category CRUD operations
 def create_category(
-    db: Session, category_data: ProductCategoryCreate, created_by: int
+    db: Session,
+    category_data: ProductCategoryCreate,
+    created_by: int
 ) -> ProductCategory:
     """Create a new product category."""
     # Check if category code exists in organization
@@ -290,17 +287,14 @@ def create_category(
                 ProductCategory.deleted_at.is_(None),
             )
         )
-        .first()
-    )
+    ).first()
 
     if existing_category:
-        raise BusinessLogicError(
-            "Category with this code already exists in the organization"
-        )
+        raise BusinessLogicError("Category with this code already exists in the organization")
 
     # Create category
     category_dict = category_data.dict()
-    category_dict["created_by"] = created_by
+    category_dict['created_by'] = created_by
 
     category = ProductCategory(**category_dict)
 
@@ -358,7 +352,11 @@ def get_product_statistics(
         query = query.filter(Product.organization_id == organization_id)
 
     total_products = query.count()
+<<<<<<< HEAD
     active_products = query.filter(Product.is_active).count()
+=======
+    active_products = query.filter(Product.is_active == True).count()
+>>>>>>> main
 
     # Products by status
     status_counts = {}
@@ -430,5 +428,5 @@ def convert_category_to_response(category: ProductCategory) -> ProductCategoryRe
         is_active=category.is_active,
         sort_order=category.sort_order,
         created_at=category.created_at,
-        updated_at=category.updated_at,
+        updated_at=category.updated_at
     )

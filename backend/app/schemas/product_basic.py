@@ -99,38 +99,32 @@ class ProductBase(BaseModel):
         None, max_length=200, description="Manufacturer"
     )
     brand: Optional[str] = Field(None, max_length=200, description="Brand")
-    model_number: Optional[str] = Field(
-        None, max_length=100, description="Model number"
-    )
-    warranty_period: Optional[int] = Field(
-        None, ge=0, description="Warranty period in months"
-    )
+    model_number: Optional[str] = Field(None, max_length=100, description="Model number")
+    warranty_period: Optional[int] = Field(None, ge=0, description="Warranty period in months")
 
     # Media
     image_url: Optional[str] = Field(None, max_length=500, description="Image URL")
-    thumbnail_url: Optional[str] = Field(
-        None, max_length=500, description="Thumbnail URL"
-    )
+    thumbnail_url: Optional[str] = Field(None, max_length=500, description="Thumbnail URL")
 
     # Notes
     notes: Optional[str] = Field(None, description="Public notes")
     internal_notes: Optional[str] = Field(None, description="Internal notes")
 
-    @field_validator("product_type")
+    @field_validator('product_type')
     @classmethod
     def validate_product_type(cls, v):
         if v not in [t.value for t in ProductType]:
             raise ValueError("Invalid product type")
         return v
 
-    @field_validator("status")
+    @field_validator('status')
     @classmethod
     def validate_status(cls, v):
         if v not in [s.value for s in ProductStatus]:
             raise ValueError("Invalid product status")
         return v
 
-    @field_validator("code")
+    @field_validator('code')
     @classmethod
     def validate_code(cls, v):
         if not v or not v.strip():
@@ -177,14 +171,14 @@ class ProductUpdate(BaseModel):
     notes: Optional[str] = None
     internal_notes: Optional[str] = None
 
-    @field_validator("product_type")
+    @field_validator('product_type')
     @classmethod
     def validate_product_type(cls, v):
         if v and v not in [t.value for t in ProductType]:
             raise ValueError("Invalid product type")
         return v
 
-    @field_validator("status")
+    @field_validator('status')
     @classmethod
     def validate_status(cls, v):
         if v and v not in [s.value for s in ProductStatus]:

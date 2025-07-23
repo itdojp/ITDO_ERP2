@@ -286,7 +286,7 @@ class Organization(SoftDeletableModel):
         if self.subsidiaries:
             return False, "Cannot delete organization with subsidiaries"
 
-        if hasattr(self, "departments") and self.departments.count() > 0:
+        if hasattr(self, 'departments') and self.departments.count() > 0:
             return False, "Cannot delete organization with departments"
 
         # Would need to check for ERP data like orders, products, etc.

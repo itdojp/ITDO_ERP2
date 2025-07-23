@@ -33,7 +33,9 @@ from app.schemas.inventory_basic import (
 
 # Warehouse CRUD operations
 def create_warehouse(
-    db: Session, warehouse_data: WarehouseCreate, created_by: int
+    db: Session,
+    warehouse_data: WarehouseCreate,
+    created_by: int
 ) -> Warehouse:
     """Create a new warehouse with validation."""
     # Check if warehouse code exists in organization
@@ -46,17 +48,14 @@ def create_warehouse(
                 Warehouse.deleted_at.is_(None),
             )
         )
-        .first()
-    )
+    ).first()
 
     if existing_warehouse:
-        raise BusinessLogicError(
-            "Warehouse with this code already exists in the organization"
-        )
+        raise BusinessLogicError("Warehouse with this code already exists in the organization")
 
     # Create warehouse
     warehouse_dict = warehouse_data.dict()
-    warehouse_dict["created_by"] = created_by
+    warehouse_dict['created_by'] = created_by
 
     warehouse = Warehouse(**warehouse_dict)
 
@@ -173,22 +172,19 @@ def create_inventory_item(
                 InventoryItem.deleted_at.is_(None),
             )
         )
-        .first()
-    )
+    ).first()
 
     if existing_item:
-        raise BusinessLogicError(
-            "Inventory item already exists for this product in this warehouse"
-        )
+        raise BusinessLogicError("Inventory item already exists for this product in this warehouse")
 
     # Create inventory item
     item_dict = item_data.dict()
-    item_dict["created_by"] = created_by
+    item_dict['created_by'] = created_by
 
     # Calculate available quantity
-    item_dict["quantity_available"] = max(
+    item_dict['quantity_available'] = max(
         Decimal(0),
-        item_dict.get("quantity_on_hand", 0) - item_dict.get("quantity_reserved", 0),
+        item_dict.get('quantity_on_hand', 0) - item_dict.get('quantity_reserved', 0)
     )
 
     inventory_item = InventoryItem(**item_dict)
@@ -296,10 +292,10 @@ def create_stock_movement(
 
     # Create movement
     movement_dict = movement_data.dict()
-    movement_dict["transaction_number"] = transaction_number
-    movement_dict["performed_by"] = performed_by
-    movement_dict["created_by"] = performed_by
-    movement_dict["quantity_before"] = inventory_item.quantity_on_hand
+    movement_dict['transaction_number'] = transaction_number
+    movement_dict['performed_by'] = performed_by
+    movement_dict['created_by'] = performed_by
+    movement_dict['quantity_before'] = inventory_item.quantity_on_hand
 
     # Calculate quantity after based on movement type
     if movement_data.movement_type in [
@@ -315,7 +311,7 @@ def create_stock_movement(
     else:  # ADJUSTMENT, TRANSFER
         new_quantity = inventory_item.quantity_on_hand + movement_data.quantity
 
-    movement_dict["quantity_after"] = new_quantity
+    movement_dict['quantity_after'] = new_quantity
 
     # Create movement record
     movement = StockMovement(**movement_dict)
@@ -325,9 +321,7 @@ def create_stock_movement(
 
     # Update cost if provided
     if movement_data.unit_cost and movement_data.movement_type == MovementType.IN.value:
-        inventory_item.update_average_cost(
-            movement_data.unit_cost, movement_data.quantity
-        )
+        inventory_item.update_average_cost(movement_data.unit_cost, movement_data.quantity)
 
     # Update dates
     if movement_data.movement_type == MovementType.IN.value:
@@ -467,9 +461,7 @@ def get_inventory_statistics(
 
     # Basic counts
     total_items = query.count()
-    active_items = query.filter(
-        InventoryItem.status == InventoryStatus.AVAILABLE.value
-    ).count()
+    active_items = query.filter(InventoryItem.status == InventoryStatus.AVAILABLE.value).count()
 
     # Stock value calculations
     total_value = db.query(func.sum(InventoryItem.total_cost)).filter(
@@ -528,12 +520,9 @@ def generate_transaction_number(db: Session, movement_type: str) -> str:
     }.get(movement_type, "TXN")
 
     # Get next sequence number
-    last_movement = (
-        db.query(StockMovement)
-        .filter(StockMovement.transaction_number.like(f"{prefix}-%"))
-        .order_by(desc(StockMovement.id))
-        .first()
-    )
+    last_movement = db.query(StockMovement).filter(
+        StockMovement.transaction_number.like(f"{prefix}-%")
+    ).order_by(desc(StockMovement.id)).first()
 
     if last_movement and last_movement.transaction_number:
         try:
@@ -635,5 +624,5 @@ def convert_stock_movement_to_response(
         performed_by=movement.performed_by,
         is_posted=movement.is_posted,
         is_reversed=movement.is_reversed,
-        created_at=movement.created_at,
+        created_at=movement.created_at
     )

@@ -1,0 +1,1182 @@
+{
+  "timestamp": "2025-07-23T20:26:09.693799",
+  "optimizations": [
+    {
+      "type": "missing_foreign_key_index",
+      "file": "expense.py",
+      "description": "Foreign key columns should have indexes for better JOIN performance",
+      "priority": "high"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "expense.py",
+      "line": 51,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "expense.py",
+      "line": 82,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "expense.py",
+      "line": 104,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "expense.py",
+      "line": 112,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "expense.py",
+      "line": 174,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "potential_composite_index",
+      "file": "expense.py",
+      "description": "Consider composite indexes for tables with multiple foreign keys",
+      "priority": "low"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "product.py",
+      "line": 42,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "product.py",
+      "line": 88,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "product.py",
+      "line": 144,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "product.py",
+      "line": 145,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "potential_composite_index",
+      "file": "product.py",
+      "description": "Consider composite indexes for tables with multiple foreign keys",
+      "priority": "low"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "cross_tenant_permissions.py",
+      "line": 47,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "cross_tenant_permissions.py",
+      "line": 151,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "cross_tenant_permissions.py",
+      "line": 154,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "cross_tenant_permissions.py",
+      "line": 157,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "cross_tenant_permissions.py",
+      "line": 67,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "potential_composite_index",
+      "file": "cross_tenant_permissions.py",
+      "description": "Consider composite indexes for tables with multiple foreign keys",
+      "priority": "low"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "organization.py",
+      "line": 39,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_foreign_key_index",
+      "file": "project_milestone.py",
+      "description": "Foreign key columns should have indexes for better JOIN performance",
+      "priority": "high"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "project_milestone.py",
+      "line": 22,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "project_milestone.py",
+      "line": 25,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_foreign_key_index",
+      "file": "analytics.py",
+      "description": "Foreign key columns should have indexes for better JOIN performance",
+      "priority": "high"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "analytics.py",
+      "line": 87,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "analytics.py",
+      "line": 93,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "analytics.py",
+      "line": 184,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "analytics.py",
+      "line": 187,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "analytics.py",
+      "line": 190,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "analytics.py",
+      "line": 209,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "analytics.py",
+      "line": 251,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "analytics.py",
+      "line": 317,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "analytics.py",
+      "line": 320,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "analytics.py",
+      "line": 380,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "analytics.py",
+      "line": 470,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "analytics.py",
+      "line": 517,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "analytics.py",
+      "line": 520,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "analytics.py",
+      "line": 560,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "analytics.py",
+      "line": 566,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "analytics.py",
+      "line": 137,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "analytics.py",
+      "line": 145,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "analytics.py",
+      "line": 390,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "analytics.py",
+      "line": 393,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "analytics.py",
+      "line": 481,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "analytics.py",
+      "line": 484,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "analytics.py",
+      "line": 590,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "potential_composite_index",
+      "file": "analytics.py",
+      "description": "Consider composite indexes for tables with multiple foreign keys",
+      "priority": "low"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "permission_inheritance.py",
+      "line": 132,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "permission_inheritance.py",
+      "line": 170,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "permission_inheritance.py",
+      "line": 38,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "permission_inheritance.py",
+      "line": 85,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "permission_inheritance.py",
+      "line": 91,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "permission_inheritance.py",
+      "line": 138,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "permission_inheritance.py",
+      "line": 178,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "potential_composite_index",
+      "file": "permission_inheritance.py",
+      "description": "Consider composite indexes for tables with multiple foreign keys",
+      "priority": "low"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "user_session.py",
+      "line": 32,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "user_session.py",
+      "line": 35,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "user_session.py",
+      "line": 38,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "password_history.py",
+      "line": 24,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "password_history.py",
+      "line": 26,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "user_preferences.py",
+      "line": 29,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "user_preferences.py",
+      "line": 30,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "user_preferences.py",
+      "line": 33,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "user_preferences.py",
+      "line": 41,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "user_preferences.py",
+      "line": 43,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "user_preferences.py",
+      "line": 47,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "user_preferences.py",
+      "line": 50,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "user_privacy.py",
+      "line": 53,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "user_privacy.py",
+      "line": 56,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "permission.py",
+      "line": 31,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "department.py",
+      "line": 33,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "potential_composite_index",
+      "file": "department.py",
+      "description": "Consider composite indexes for tables with multiple foreign keys",
+      "priority": "low"
+    },
+    {
+      "type": "potential_composite_index",
+      "file": "audit.py",
+      "description": "Consider composite indexes for tables with multiple foreign keys",
+      "priority": "low"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "customer.py",
+      "line": 78,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "customer.py",
+      "line": 89,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "customer.py",
+      "line": 255,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "customer.py",
+      "line": 324,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "customer.py",
+      "line": 327,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "customer.py",
+      "line": 468,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "customer.py",
+      "line": 471,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "customer.py",
+      "line": 187,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "customer.py",
+      "line": 190,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "customer.py",
+      "line": 363,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "customer.py",
+      "line": 366,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "customer.py",
+      "line": 479,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "customer.py",
+      "line": 493,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "customer.py",
+      "line": 504,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "potential_composite_index",
+      "file": "customer.py",
+      "description": "Consider composite indexes for tables with multiple foreign keys",
+      "priority": "low"
+    },
+    {
+      "type": "missing_foreign_key_index",
+      "file": "workflow.py",
+      "description": "Foreign key columns should have indexes for better JOIN performance",
+      "priority": "high"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "workflow.py",
+      "line": 101,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "workflow.py",
+      "line": 183,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "workflow.py",
+      "line": 185,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "workflow.py",
+      "line": 187,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "workflow.py",
+      "line": 396,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "workflow.py",
+      "line": 480,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "workflow.py",
+      "line": 486,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "workflow.py",
+      "line": 324,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "workflow.py",
+      "line": 327,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "workflow.py",
+      "line": 330,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "workflow.py",
+      "line": 415,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "workflow.py",
+      "line": 418,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "workflow.py",
+      "line": 421,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "workflow.py",
+      "line": 424,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "workflow.py",
+      "line": 513,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "workflow.py",
+      "line": 516,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "workflow.py",
+      "line": 519,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "workflow.py",
+      "line": 586,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "potential_composite_index",
+      "file": "workflow.py",
+      "description": "Consider composite indexes for tables with multiple foreign keys",
+      "priority": "low"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "user_organization.py",
+      "line": 150,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "potential_composite_index",
+      "file": "user_organization.py",
+      "description": "Consider composite indexes for tables with multiple foreign keys",
+      "priority": "low"
+    },
+    {
+      "type": "missing_foreign_key_index",
+      "file": "project_member.py",
+      "description": "Foreign key columns should have indexes for better JOIN performance",
+      "priority": "high"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "project_member.py",
+      "line": 21,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "potential_composite_index",
+      "file": "project_member.py",
+      "description": "Consider composite indexes for tables with multiple foreign keys",
+      "priority": "low"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "organization_simple.py",
+      "line": 16,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "organization_simple.py",
+      "line": 17,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "user_simple.py",
+      "line": 16,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "user_simple.py",
+      "line": 17,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "sales.py",
+      "line": 84,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "sales.py",
+      "line": 362,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "sales.py",
+      "line": 363,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "potential_composite_index",
+      "file": "sales.py",
+      "description": "Consider composite indexes for tables with multiple foreign keys",
+      "priority": "low"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "task.py",
+      "line": 106,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "task.py",
+      "line": 112,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "potential_composite_index",
+      "file": "task.py",
+      "description": "Consider composite indexes for tables with multiple foreign keys",
+      "priority": "low"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "inventory.py",
+      "line": 57,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "inventory.py",
+      "line": 263,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "inventory.py",
+      "line": 163,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "inventory.py",
+      "line": 164,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "inventory.py",
+      "line": 264,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "potential_composite_index",
+      "file": "inventory.py",
+      "description": "Consider composite indexes for tables with multiple foreign keys",
+      "priority": "low"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "budget.py",
+      "line": 62,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "budget.py",
+      "line": 339,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "budget.py",
+      "line": 160,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "budget.py",
+      "line": 163,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "potential_composite_index",
+      "file": "budget.py",
+      "description": "Consider composite indexes for tables with multiple foreign keys",
+      "priority": "low"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "base.py",
+      "line": 36,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "base.py",
+      "line": 39,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "potential_composite_index",
+      "file": "base.py",
+      "description": "Consider composite indexes for tables with multiple foreign keys",
+      "priority": "low"
+    },
+    {
+      "type": "missing_foreign_key_index",
+      "file": "project.py",
+      "description": "Foreign key columns should have indexes for better JOIN performance",
+      "priority": "high"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "project.py",
+      "line": 28,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "project.py",
+      "line": 43,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "project.py",
+      "line": 44,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "potential_composite_index",
+      "file": "project.py",
+      "description": "Consider composite indexes for tables with multiple foreign keys",
+      "priority": "low"
+    },
+    {
+      "type": "missing_foreign_key_index",
+      "file": "product_simple.py",
+      "description": "Foreign key columns should have indexes for better JOIN performance",
+      "priority": "high"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "product_simple.py",
+      "line": 22,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "product_simple.py",
+      "line": 23,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "expense_category.py",
+      "line": 25,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "expense_category.py",
+      "line": 50,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "potential_composite_index",
+      "file": "expense_category.py",
+      "description": "Consider composite indexes for tables with multiple foreign keys",
+      "priority": "low"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "user.py",
+      "line": 42,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "user.py",
+      "line": 57,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "user.py",
+      "line": 59,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "user.py",
+      "line": 62,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_text_index",
+      "file": "role.py",
+      "line": 52,
+      "description": "Non-nullable text fields that are frequently queried should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "role.py",
+      "line": 401,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "role.py",
+      "line": 409,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "role.py",
+      "line": 415,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "role.py",
+      "line": 420,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "role.py",
+      "line": 455,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "role.py",
+      "line": 572,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "role.py",
+      "line": 586,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "missing_datetime_index",
+      "file": "role.py",
+      "line": 589,
+      "description": "DateTime fields used for filtering should be indexed",
+      "priority": "medium"
+    },
+    {
+      "type": "potential_composite_index",
+      "file": "role.py",
+      "description": "Consider composite indexes for tables with multiple foreign keys",
+      "priority": "low"
+    }
+  ],
+  "indexes": [
+    {
+      "table": "audit_logs",
+      "columns": [
+        "user_id",
+        "created_at"
+      ],
+      "type": "composite",
+      "reason": "Frequently filtered by user and time range",
+      "sql": "CREATE INDEX idx_audit_logs_user_time ON audit_logs(user_id, created_at);",
+      "estimated_improvement": "60-80% faster filtered queries"
+    },
+    {
+      "table": "user_activity_logs",
+      "columns": [
+        "user_id",
+        "timestamp"
+      ],
+      "type": "composite",
+      "reason": "Common query pattern for user activity reports",
+      "sql": "CREATE INDEX idx_user_activity_user_time ON user_activity_logs(user_id, timestamp);",
+      "estimated_improvement": "60-80% faster filtered queries"
+    },
+    {
+      "table": "tasks",
+      "columns": [
+        "status",
+        "due_date"
+      ],
+      "type": "composite",
+      "reason": "Task management queries often filter by status and due date",
+      "sql": "CREATE INDEX idx_tasks_status_due ON tasks(status, due_date);",
+      "estimated_improvement": "60-80% faster filtered queries"
+    },
+    {
+      "table": "expenses",
+      "columns": [
+        "category_id",
+        "created_at"
+      ],
+      "type": "composite",
+      "reason": "Financial reports often group by category and time",
+      "sql": "CREATE INDEX idx_expenses_category_time ON expenses(category_id, created_at);",
+      "estimated_improvement": "60-80% faster filtered queries"
+    },
+    {
+      "table": "users",
+      "columns": [
+        "email"
+      ],
+      "type": "unique",
+      "reason": "Email is used for authentication and should be unique",
+      "sql": "CREATE UNIQUE INDEX idx_users_email ON users(email);",
+      "estimated_improvement": "90-95% faster lookups"
+    },
+    {
+      "table": "organizations",
+      "columns": [
+        "is_active",
+        "created_at"
+      ],
+      "type": "composite",
+      "reason": "Active organization queries with temporal filtering",
+      "sql": "CREATE INDEX idx_organizations_active_time ON organizations(is_active, created_at);",
+      "estimated_improvement": "60-80% faster filtered queries"
+    }
+  ],
+  "queries": [],
+  "recommendations": []
+}
