@@ -1,0 +1,472 @@
+{
+  "generation_timestamp": "2025-07-23T15:24:08.045106",
+  "total_patterns": 8,
+  "total_test_methods": 11,
+  "generated_files": {
+    "boundary_value": {
+      "file_path": "/home/work/ITDO_ERP2/scripts/generated_test_patterns/test_boundary_value_patterns.py",
+      "test_count": 4,
+      "pattern_type": "boundary_value"
+    },
+    "equivalence_class": {
+      "file_path": "/home/work/ITDO_ERP2/scripts/generated_test_patterns/test_equivalence_class_patterns.py",
+      "test_count": 1,
+      "pattern_type": "equivalence_class"
+    },
+    "error_guessing": {
+      "file_path": "/home/work/ITDO_ERP2/scripts/generated_test_patterns/test_error_guessing_patterns.py",
+      "test_count": 1,
+      "pattern_type": "error_guessing"
+    },
+    "state_transition": {
+      "file_path": "/home/work/ITDO_ERP2/scripts/generated_test_patterns/test_state_transition_patterns.py",
+      "test_count": 1,
+      "pattern_type": "state_transition"
+    },
+    "mutation_testing": {
+      "file_path": "/home/work/ITDO_ERP2/scripts/generated_test_patterns/test_mutation_testing_patterns.py",
+      "test_count": 1,
+      "pattern_type": "mutation_testing"
+    },
+    "property_based": {
+      "file_path": "/home/work/ITDO_ERP2/scripts/generated_test_patterns/test_property_based_patterns.py",
+      "test_count": 1,
+      "pattern_type": "property_based"
+    },
+    "contract_testing": {
+      "file_path": "/home/work/ITDO_ERP2/scripts/generated_test_patterns/test_contract_testing_patterns.py",
+      "test_count": 1,
+      "pattern_type": "contract_testing"
+    },
+    "chaos_engineering": {
+      "file_path": "/home/work/ITDO_ERP2/scripts/generated_test_patterns/test_chaos_engineering_patterns.py",
+      "test_count": 1,
+      "pattern_type": "chaos_engineering"
+    }
+  },
+  "pattern_analysis": {
+    "high_priority": [
+      {
+        "pattern": "error_guessing",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/users.py",
+        "reason": "Authentication/authorization logic detected"
+      },
+      {
+        "pattern": "error_guessing",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/auth.py",
+        "reason": "Authentication/authorization logic detected"
+      },
+      {
+        "pattern": "error_guessing",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/cross_tenant_permissions.py",
+        "reason": "Authentication/authorization logic detected"
+      },
+      {
+        "pattern": "state_transition",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/notification_v31.py",
+        "reason": "Transactional operations detected"
+      },
+      {
+        "pattern": "error_guessing",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/notification_v31.py",
+        "reason": "Authentication/authorization logic detected"
+      },
+      {
+        "pattern": "error_guessing",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/integration_v31.py",
+        "reason": "Authentication/authorization logic detected"
+      },
+      {
+        "pattern": "error_guessing",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/organizations.py",
+        "reason": "Authentication/authorization logic detected"
+      },
+      {
+        "pattern": "error_guessing",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/project_v31.py",
+        "reason": "Authentication/authorization logic detected"
+      },
+      {
+        "pattern": "state_transition",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/finance_v31.py",
+        "reason": "Transactional operations detected"
+      },
+      {
+        "pattern": "error_guessing",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/crm_v31.py",
+        "reason": "Authentication/authorization logic detected"
+      },
+      {
+        "pattern": "error_guessing",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/opportunities.py",
+        "reason": "Authentication/authorization logic detected"
+      },
+      {
+        "pattern": "error_guessing",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/permission_inheritance.py",
+        "reason": "Authentication/authorization logic detected"
+      },
+      {
+        "pattern": "error_guessing",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/departments.py",
+        "reason": "Authentication/authorization logic detected"
+      },
+      {
+        "pattern": "error_guessing",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/user_privacy.py",
+        "reason": "Authentication/authorization logic detected"
+      },
+      {
+        "pattern": "error_guessing",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/roles.py",
+        "reason": "Authentication/authorization logic detected"
+      },
+      {
+        "pattern": "error_guessing",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/router.py",
+        "reason": "Authentication/authorization logic detected"
+      },
+      {
+        "pattern": "error_guessing",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/multi_tenant.py",
+        "reason": "Authentication/authorization logic detected"
+      },
+      {
+        "pattern": "error_guessing",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/audit_logs.py",
+        "reason": "Authentication/authorization logic detected"
+      },
+      {
+        "pattern": "error_guessing",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/audit.py",
+        "reason": "Authentication/authorization logic detected"
+      },
+      {
+        "pattern": "error_guessing",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/organizations_basic.py",
+        "reason": "Authentication/authorization logic detected"
+      },
+      {
+        "pattern": "error_guessing",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/role_permission_ui.py",
+        "reason": "Authentication/authorization logic detected"
+      },
+      {
+        "pattern": "error_guessing",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/tasks.py",
+        "reason": "Authentication/authorization logic detected"
+      },
+      {
+        "pattern": "state_transition",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/document_v31.py",
+        "reason": "Transactional operations detected"
+      },
+      {
+        "pattern": "error_guessing",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/document_v31.py",
+        "reason": "Authentication/authorization logic detected"
+      },
+      {
+        "pattern": "error_guessing",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/users_extended.py",
+        "reason": "Authentication/authorization logic detected"
+      },
+      {
+        "pattern": "error_guessing",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/customers.py",
+        "reason": "Authentication/authorization logic detected"
+      },
+      {
+        "pattern": "error_guessing",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/customer_activities.py",
+        "reason": "Authentication/authorization logic detected"
+      },
+      {
+        "pattern": "error_guessing",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/users_basic.py",
+        "reason": "Authentication/authorization logic detected"
+      },
+      {
+        "pattern": "error_guessing",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/permissions.py",
+        "reason": "Authentication/authorization logic detected"
+      },
+      {
+        "pattern": "error_guessing",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/pm_automation.py",
+        "reason": "Authentication/authorization logic detected"
+      },
+      {
+        "pattern": "error_guessing",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/workflow_v31.py",
+        "reason": "Authentication/authorization logic detected"
+      },
+      {
+        "pattern": "state_transition",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/inventory_basic.py",
+        "reason": "Transactional operations detected"
+      },
+      {
+        "pattern": "error_guessing",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/inventory_basic.py",
+        "reason": "Authentication/authorization logic detected"
+      },
+      {
+        "pattern": "error_guessing",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/permission_management.py",
+        "reason": "Authentication/authorization logic detected"
+      },
+      {
+        "pattern": "error_guessing",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/expense_categories.py",
+        "reason": "Authentication/authorization logic detected"
+      }
+    ],
+    "medium_priority": [
+      {
+        "pattern": "chaos_engineering",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/errors.py",
+        "reason": "Async operations detected"
+      },
+      {
+        "pattern": "boundary_value",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/base.py",
+        "reason": "Validation logic detected"
+      },
+      {
+        "pattern": "chaos_engineering",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/base.py",
+        "reason": "Async operations detected"
+      },
+      {
+        "pattern": "chaos_engineering",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/agent_health.py",
+        "reason": "Async operations detected"
+      },
+      {
+        "pattern": "boundary_value",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/users.py",
+        "reason": "Validation logic detected"
+      },
+      {
+        "pattern": "chaos_engineering",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/users.py",
+        "reason": "Async operations detected"
+      },
+      {
+        "pattern": "chaos_engineering",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/notification_v31.py",
+        "reason": "Async operations detected"
+      },
+      {
+        "pattern": "boundary_value",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/integration_v31.py",
+        "reason": "Validation logic detected"
+      },
+      {
+        "pattern": "chaos_engineering",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/integration_v31.py",
+        "reason": "Async operations detected"
+      },
+      {
+        "pattern": "chaos_engineering",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/health_simple.py",
+        "reason": "Async operations detected"
+      },
+      {
+        "pattern": "boundary_value",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/financial_reports.py",
+        "reason": "Validation logic detected"
+      },
+      {
+        "pattern": "chaos_engineering",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/financial_reports.py",
+        "reason": "Async operations detected"
+      },
+      {
+        "pattern": "chaos_engineering",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/products_basic.py",
+        "reason": "Async operations detected"
+      },
+      {
+        "pattern": "boundary_value",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/organizations.py",
+        "reason": "Validation logic detected"
+      },
+      {
+        "pattern": "chaos_engineering",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/expenses.py",
+        "reason": "Async operations detected"
+      },
+      {
+        "pattern": "boundary_value",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/project_v31.py",
+        "reason": "Validation logic detected"
+      },
+      {
+        "pattern": "chaos_engineering",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/project_v31.py",
+        "reason": "Async operations detected"
+      },
+      {
+        "pattern": "chaos_engineering",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/hr_v31.py",
+        "reason": "Async operations detected"
+      },
+      {
+        "pattern": "chaos_engineering",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/crm_v31.py",
+        "reason": "Async operations detected"
+      },
+      {
+        "pattern": "chaos_engineering",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/opportunities.py",
+        "reason": "Async operations detected"
+      },
+      {
+        "pattern": "boundary_value",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/departments.py",
+        "reason": "Validation logic detected"
+      },
+      {
+        "pattern": "chaos_engineering",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/reports.py",
+        "reason": "Async operations detected"
+      },
+      {
+        "pattern": "chaos_engineering",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/router.py",
+        "reason": "Async operations detected"
+      },
+      {
+        "pattern": "boundary_value",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/audit_logs.py",
+        "reason": "Validation logic detected"
+      },
+      {
+        "pattern": "boundary_value",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/audit_v31.py",
+        "reason": "Validation logic detected"
+      },
+      {
+        "pattern": "chaos_engineering",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/audit_v31.py",
+        "reason": "Async operations detected"
+      },
+      {
+        "pattern": "chaos_engineering",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/organizations_basic.py",
+        "reason": "Async operations detected"
+      },
+      {
+        "pattern": "chaos_engineering",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/analytics_v31.py",
+        "reason": "Async operations detected"
+      },
+      {
+        "pattern": "boundary_value",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/document_v31.py",
+        "reason": "Validation logic detected"
+      },
+      {
+        "pattern": "chaos_engineering",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/document_v31.py",
+        "reason": "Async operations detected"
+      },
+      {
+        "pattern": "boundary_value",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/user_profile.py",
+        "reason": "Validation logic detected"
+      },
+      {
+        "pattern": "chaos_engineering",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/user_profile.py",
+        "reason": "Async operations detected"
+      },
+      {
+        "pattern": "chaos_engineering",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/customers.py",
+        "reason": "Async operations detected"
+      },
+      {
+        "pattern": "chaos_engineering",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/customer_activities.py",
+        "reason": "Async operations detected"
+      },
+      {
+        "pattern": "chaos_engineering",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/users_basic.py",
+        "reason": "Async operations detected"
+      },
+      {
+        "pattern": "boundary_value",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/permissions.py",
+        "reason": "Validation logic detected"
+      },
+      {
+        "pattern": "chaos_engineering",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/pm_automation.py",
+        "reason": "Async operations detected"
+      },
+      {
+        "pattern": "chaos_engineering",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/applications.py",
+        "reason": "Async operations detected"
+      },
+      {
+        "pattern": "chaos_engineering",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/budgets.py",
+        "reason": "Async operations detected"
+      },
+      {
+        "pattern": "boundary_value",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/workflow_v31.py",
+        "reason": "Validation logic detected"
+      },
+      {
+        "pattern": "chaos_engineering",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/workflow_v31.py",
+        "reason": "Async operations detected"
+      },
+      {
+        "pattern": "chaos_engineering",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/health.py",
+        "reason": "Async operations detected"
+      },
+      {
+        "pattern": "chaos_engineering",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/workflows.py",
+        "reason": "Async operations detected"
+      },
+      {
+        "pattern": "chaos_engineering",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/inventory_basic.py",
+        "reason": "Async operations detected"
+      },
+      {
+        "pattern": "chaos_engineering",
+        "file": "/home/work/ITDO_ERP2/backend/app/api/v1/expense_categories.py",
+        "reason": "Async operations detected"
+      }
+    ],
+    "low_priority": []
+  },
+  "recommendations": [
+    "🔴 High priority: 35 critical patterns identified",
+    "Implement state transition and security testing immediately",
+    "🟡 Medium priority: 45 patterns for enhancement",
+    "Consider boundary value and chaos testing for robustness",
+    "🧪 Integrate property-based testing for data validation",
+    "📊 Add performance monitoring to all test patterns",
+    "🔄 Schedule regular pattern-based test execution",
+    "📈 Track test effectiveness metrics over time",
+    "🎯 Focus on contract testing for API stability"
+  ],
+  "next_improvements": [
+    "Integrate with existing test suite",
+    "Add custom test data generators",
+    "Implement test result analytics",
+    "Create pattern-specific assertions",
+    "Add automated test scheduling"
+  ]
+}
