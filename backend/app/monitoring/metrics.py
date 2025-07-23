@@ -1,12 +1,13 @@
 """アプリケーションメトリクス"""
+from typing import Any, Callable, Dict
 from prometheus_client import Counter, Histogram, Gauge, generate_latest, REGISTRY
 from functools import wraps
 import time
 
 # Clear existing metrics to prevent duplicates
 try:
-    REGISTRY.unregister(REGISTRY._collector_to_names.copy())
-except:
+    REGISTRY.unregister(REGISTRY._collector_to_names.copy())  # type: ignore[arg-type]
+except Exception:
     pass
 
 # メトリクス定義
@@ -51,11 +52,11 @@ code_coverage = Gauge(
 )
 
 
-def track_request(func) -> dict:
+def track_request(func: Callable[..., Any]) -> Callable[..., Any]:
     """リクエストトラッキングデコレータ"""
 
     @wraps(func)
-    async def wrapper(*args, **kwargs) -> dict:
+    async def wrapper(*args: Any, **kwargs: Any) -> Any:
         start = time.time()
         method = kwargs.get("method", "GET")
         endpoint = kwargs.get("endpoint", "unknown")
@@ -81,17 +82,17 @@ def track_request(func) -> dict:
     return wrapper
 
 
-def track_test_result(test_type: str, test_file: str, success: bool) -> dict:
+def track_test_result(test_type: str, test_file: str, success: bool) -> None:
     """テスト結果トラッキング"""
     if not success:
         test_failures.labels(test_type=test_type, test_file=test_file).inc()
 
 
-def update_coverage(component: str, percentage: float) -> dict:
+def update_coverage(component: str, percentage: float) -> None:
     """カバレッジ更新"""
     code_coverage.labels(component=component).set(percentage)
 
 
-def track_ci_build(build_type: str, duration: float) -> dict:
+def track_ci_build(build_type: str, duration: float) -> None:
     """CIビルド時間トラッキング"""
     ci_build_duration.labels(build_type=build_type).observe(duration)
