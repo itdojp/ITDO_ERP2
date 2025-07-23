@@ -119,7 +119,11 @@ def update_user(
     # Update fields
     update_dict = user_data.dict(exclude_unset=True)
     if updated_by:
+<<<<<<< HEAD
         update_dict["updated_by"] = updated_by
+=======
+        update_dict['updated_by'] = updated_by
+>>>>>>> main
 
     user.update(db, **update_dict)
     db.commit()
@@ -149,7 +153,16 @@ def deactivate_user(
 
 def get_active_users_count(db: Session, organization_id: Optional[int] = None) -> int:
     """Get count of active users."""
+<<<<<<< HEAD
     query = db.query(User).filter(and_(User.deleted_at.is_(None), User.is_active))
+=======
+    query = db.query(User).filter(
+        and_(
+            User.deleted_at.is_(None),
+            User.is_active == True
+        )
+    )
+>>>>>>> main
 
     if organization_id:
         query = query.filter(User.organization_id == organization_id)
@@ -160,9 +173,18 @@ def get_active_users_count(db: Session, organization_id: Optional[int] = None) -
 def get_user_statistics(db: Session) -> Dict[str, Any]:
     """Get basic user statistics."""
     total_users = db.query(User).filter(User.deleted_at.is_(None)).count()
+<<<<<<< HEAD
     active_users = (
         db.query(User).filter(and_(User.deleted_at.is_(None), User.is_active)).count()
     )
+=======
+    active_users = db.query(User).filter(
+        and_(
+            User.deleted_at.is_(None),
+            User.is_active == True
+        )
+    ).count()
+>>>>>>> main
 
     return {
         "total_users": total_users,
@@ -184,5 +206,9 @@ def convert_to_erp_response(user: User) -> UserERPResponse:
         department_id=user.department_id,
         is_erp_user=user.is_erp_user(),
         created_at=user.created_at,
+<<<<<<< HEAD
         last_login_at=user.last_login_at,
+=======
+        last_login_at=user.last_login_at
+>>>>>>> main
     )

@@ -39,6 +39,10 @@ from app.api.v1 import (  # permission_inheritance,  # Temporarily disabled due 
     users_extended,
     workflows,
 )
+from app.api.v1.endpoints.monitoring.performance import router as performance_router
+
+# New CC02 v35.0 API modules
+from app.api.v1.endpoints.security.audit import router as security_audit_router
 from app.core.database import get_db
 
 api_router = APIRouter()
@@ -116,6 +120,10 @@ api_router.include_router(
     applications.router, prefix="/applications", tags=["workflow"]
 )
 api_router.include_router(reports.router, prefix="/reports", tags=["analytics"])
+
+# CC02 v35.0 - Security and Monitoring APIs
+api_router.include_router(security_audit_router, prefix="/security/audit", tags=["security"])
+api_router.include_router(performance_router, prefix="/monitoring/performance", tags=["monitoring"])
 
 
 @api_router.get("/ping")

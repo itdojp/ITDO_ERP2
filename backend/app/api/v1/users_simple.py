@@ -49,11 +49,16 @@ def get_user(user_id: str, db: Session = Depends(get_db)) -> Any:
         raise HTTPException(status_code=404, detail="User not found")
     return user  # type: ignore[return-value]
 
+<<<<<<< HEAD
 
 @router.put("/users/{user_id}", response_model=UserResponse)
 def update_user(
     user_id: str, user_update: UserUpdate, db: Session = Depends(get_db)
 ) -> Any:
+=======
+@router.put("/users/{user_id}", response_model=UserResponse)
+def update_user(user_id: str, user_update: UserUpdate, db: Session = Depends(get_db)) -> Any:
+>>>>>>> main
     """Update user - v19.0 practical approach"""
     user = db.query(User).filter(User.id == user_id).first()  # type: ignore[misc]
     if not user:

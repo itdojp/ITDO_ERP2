@@ -17,9 +17,13 @@ async def test_create_user_simple():
 
     # For now, just check that the endpoint exists - ignore errors
     # This is the practical v19.0 approach
+<<<<<<< HEAD
     assert response.status_code in [
         200,
         201,
         400,
         500,
     ]  # Any response means endpoint works
+=======
+    assert response.status_code in [200, 201, 400, 500]  # Any response means endpoint works
+>>>>>>> main
