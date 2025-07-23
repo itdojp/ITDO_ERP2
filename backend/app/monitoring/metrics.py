@@ -1,8 +1,10 @@
 """アプリケーションメトリクス"""
-from typing import Any, Callable, Dict
-from prometheus_client import Counter, Histogram, Gauge, generate_latest, REGISTRY
-from functools import wraps
+
 import time
+from functools import wraps
+from typing import Any, Callable
+
+from prometheus_client import REGISTRY, Counter, Gauge, Histogram
 
 # Clear existing metrics to prevent duplicates
 try:
@@ -12,43 +14,29 @@ except Exception:
 
 # メトリクス定義
 http_requests_total = Counter(
-    'itdo_http_requests_total',
-    'Total HTTP requests',
-    ['method', 'endpoint', 'status']
+    "itdo_http_requests_total", "Total HTTP requests", ["method", "endpoint", "status"]
 )
 
 http_request_duration = Histogram(
-    'itdo_http_request_duration_seconds',
-    'HTTP request duration',
-    ['method', 'endpoint']
+    "itdo_http_request_duration_seconds",
+    "HTTP request duration",
+    ["method", "endpoint"],
 )
 
-active_users = Gauge(
-    'itdo_active_users',
-    'Number of active users'
-)
+active_users = Gauge("itdo_active_users", "Number of active users")
 
-db_connections = Gauge(
-    'itdo_db_connections_active',
-    'Active database connections'
-)
+db_connections = Gauge("itdo_db_connections_active", "Active database connections")
 
 test_failures = Counter(
-    'itdo_test_failures_total',
-    'Total test failures',
-    ['test_type', 'test_file']
+    "itdo_test_failures_total", "Total test failures", ["test_type", "test_file"]
 )
 
 ci_build_duration = Histogram(
-    'itdo_ci_build_duration_seconds',
-    'CI build duration',
-    ['build_type']
+    "itdo_ci_build_duration_seconds", "CI build duration", ["build_type"]
 )
 
 code_coverage = Gauge(
-    'itdo_code_coverage_percentage',
-    'Code coverage percentage',
-    ['component']
+    "itdo_code_coverage_percentage", "Code coverage percentage", ["component"]
 )
 
 

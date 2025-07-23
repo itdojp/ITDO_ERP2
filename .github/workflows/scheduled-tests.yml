@@ -1,5 +1,10 @@
 name: Scheduled Test Suite
 on:
+
+permissions:
+  contents: read
+  pull-requests: read
+  checks: read
   schedule:
     - cron: '0 */6 * * *'  # 6時間ごと
   workflow_dispatch:

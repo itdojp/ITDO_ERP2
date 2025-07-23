@@ -20,7 +20,8 @@
     "e2e:report": "playwright show-report playwright-report",
     "e2e:install": "playwright install",
     "test:e2e": "playwright test",
-    "test:e2e:headed": "playwright test --headed"
+    "test:e2e:headed": "playwright test --headed",
+    "lint:fix": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0 --fix"
   },
   "dependencies": {
     "@tanstack/react-query": "^4.40.1",

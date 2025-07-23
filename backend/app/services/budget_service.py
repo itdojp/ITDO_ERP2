@@ -20,7 +20,6 @@ from app.schemas.budget import (
     BudgetItemUpdate,
     BudgetReportResponse,
     BudgetResponse,
-    BudgetSummary,
     BudgetUpdate,
 )
 

@@ -1,6 +1,11 @@
 name: Optimized Cache Strategy
 on: [push, pull_request]
 
+permissions:
+  contents: read
+  pull-requests: read
+  checks: read
+
 jobs:
   setup-cache:
     runs-on: ubuntu-latest

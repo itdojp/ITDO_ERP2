@@ -1,17 +1,19 @@
 """Performance testing framework."""
+
 import asyncio
-import time
 import statistics
-from typing import List, Dict, Any, Callable
-from concurrent.futures import ThreadPoolExecutor
-import aiohttp
+import time
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any, Dict, List
+
+import aiohttp
 
 
 @dataclass
 class PerformanceResult:
     """Performance test result."""
+
     endpoint: str
     method: str
     total_requests: int
@@ -43,11 +45,13 @@ class PerformanceTestFramework:
         payload: Dict[str, Any] = None,
         concurrent_users: int = 10,
         requests_per_user: int = 10,
-        ramp_up_time: int = 0
+        ramp_up_time: int = 0,
     ) -> PerformanceResult:
         """Run load test on endpoint."""
         print(f"Running load test: {method} {endpoint}")
-        print(f"Concurrent users: {concurrent_users}, Requests per user: {requests_per_user}")
+        print(
+            f"Concurrent users: {concurrent_users}, Requests per user: {requests_per_user}"
+        )
 
         start_time = time.time()
         response_times = []
@@ -109,7 +113,7 @@ class PerformanceTestFramework:
                 p95=self._percentile(response_times, 95),
                 p99=self._percentile(response_times, 99),
                 requests_per_second=total_requests / total_time,
-                errors=errors[:10]  # First 10 errors
+                errors=errors[:10],  # First 10 errors
             )
         else:
             # All requests failed
@@ -127,7 +131,7 @@ class PerformanceTestFramework:
                 p95=0,
                 p99=0,
                 requests_per_second=0,
-                errors=errors[:10]
+                errors=errors[:10],
             )
 
         self.results.append(result)
@@ -139,7 +143,7 @@ class PerformanceTestFramework:
         endpoint: str,
         method: str,
         headers: Dict[str, str],
-        payload: Dict[str, Any] = None
+        payload: Dict[str, Any] = None,
     ) -> Dict[str, Any]:
         """Make single request and measure time."""
         url = f"{self.base_url}{endpoint}"
@@ -156,19 +160,19 @@ class PerformanceTestFramework:
                     return {
                         "success": True,
                         "response_time": response_time,
-                        "status": response.status
+                        "status": response.status,
                     }
                 else:
                     return {
                         "success": False,
                         "error": f"HTTP {response.status}",
-                        "response_time": response_time
+                        "response_time": response_time,
                     }
         except Exception as e:
             return {
                 "success": False,
                 "error": str(e),
-                "response_time": (time.time() - start) * 1000
+                "response_time": (time.time() - start) * 1000,
             }
 
     def _percentile(self, data: List[float], percentile: int) -> float:
@@ -198,9 +202,15 @@ Generated: {datetime.now().isoformat()}
 """
 
         for result in self.results:
-            success_rate = (result.successful_requests / result.total_requests * 100) if result.total_requests > 0 else 0
+            success_rate = (
+                (result.successful_requests / result.total_requests * 100)
+                if result.total_requests > 0
+                else 0
+            )
 
-            report += f"| {result.endpoint} | {result.method} | {result.total_requests} | "
+            report += (
+                f"| {result.endpoint} | {result.method} | {result.total_requests} | "
+            )
             report += f"{result.successful_requests} ({success_rate:.1f}%) | {result.failed_requests} | "
             report += f"{result.avg_response_time:.1f} | {result.p95:.1f} | {result.p99:.1f} | "
             report += f"{result.requests_per_second:.1f} |\n"
@@ -214,7 +224,7 @@ Generated: {datetime.now().isoformat()}
             report += f"- Percentiles: P50={result.p50:.1f}ms, P90={result.p90:.1f}ms\n"
 
             if result.errors:
-                report += f"- Sample errors:\n"
+                report += "- Sample errors:\n"
                 for error in result.errors[:5]:
                     report += f"  - {error}\n"
 

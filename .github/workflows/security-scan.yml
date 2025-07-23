@@ -1,5 +1,10 @@
 name: Security Scan
 on:
+
+permissions:
+  contents: read
+  pull-requests: read
+  checks: read
   push:
     branches: [main, develop]
   pull_request:

@@ -1,5 +1,10 @@
 name: Quick CI
 on:
+
+permissions:
+  contents: read
+  pull-requests: read
+  checks: read
   pull_request:
     types: [opened, synchronize]
 
