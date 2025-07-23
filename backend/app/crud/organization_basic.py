@@ -183,7 +183,7 @@ def get_organization_hierarchy(db: Session, org_id: int) -> Optional[Dict[str, A
         and_(
             Organization.parent_id == org_id,
             Organization.deleted_at.is_(None),
-            Organization.is_active == True
+            Organization.is_active
         )
     ).all()
 
@@ -207,7 +207,7 @@ def get_root_organizations(db: Session) -> List[Organization]:
         and_(
             Organization.parent_id.is_(None),
             Organization.deleted_at.is_(None),
-            Organization.is_active == True
+            Organization.is_active
         )
     ).order_by(Organization.name).all()
 
@@ -221,7 +221,7 @@ def get_organization_statistics(db: Session) -> Dict[str, Any]:
     active_orgs = db.query(Organization).filter(
         and_(
             Organization.deleted_at.is_(None),
-            Organization.is_active == True
+            Organization.is_active
         )
     ).count()
 

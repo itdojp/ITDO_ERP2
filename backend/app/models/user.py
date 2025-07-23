@@ -29,7 +29,7 @@ __all__ = ["User", "PasswordHistory"]
 
 class User(SoftDeletableModel):
     """User model with enhanced security and audit features.
-    
+
     v17.0: Enhanced for ERP basic functionality with improved organization
     and department relationships, security tracking, and session management.
     """

@@ -48,7 +48,11 @@ def list_products(
     db: Session = Depends(get_db)
 ) -> Any:
     """List products - v19.0 practical approach"""
+<<<<<<< HEAD
+    query = db.query(Product).filter(Product.is_active)  # type: ignore[misc]
+=======
     query = db.query(Product).filter(Product.is_active == True)  # type: ignore[misc]
+>>>>>>> main
 
     if search:
         query = query.filter(  # type: ignore[misc]

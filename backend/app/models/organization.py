@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 class Organization(SoftDeletableModel):
     """Organization model representing a company or business entity.
-    
+
     v17.0: Enhanced for ERP basic functionality with improved hierarchy
     support, business metrics, and multi-tenant capabilities.
     """

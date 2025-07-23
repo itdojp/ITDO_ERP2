@@ -1,0 +1,987 @@
+{
+  "timestamp": "2025-07-23T20:44:26.352542",
+  "generated_tests": [
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_expensestatus_advanced.py",
+      "target": "ExpenseStatus",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_paymentmethod_advanced.py",
+      "target": "PaymentMethod",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_expense_advanced.py",
+      "target": "Expense",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_expenseapprovalflow_advanced.py",
+      "target": "ExpenseApprovalFlow",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_productstatus_advanced.py",
+      "target": "ProductStatus",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_producttype_advanced.py",
+      "target": "ProductType",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_productcategory_advanced.py",
+      "target": "ProductCategory",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_product_advanced.py",
+      "target": "Product",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_crosstenantpermissionrule_advanced.py",
+      "target": "CrossTenantPermissionRule",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_crosstenantauditlog_advanced.py",
+      "target": "CrossTenantAuditLog",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_organization_advanced.py",
+      "target": "Organization",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_projectmilestone_advanced.py",
+      "target": "ProjectMilestone",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_reporttype_advanced.py",
+      "target": "ReportType",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_reportstatus_advanced.py",
+      "target": "ReportStatus",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_reportfrequency_advanced.py",
+      "target": "ReportFrequency",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_charttype_advanced.py",
+      "target": "ChartType",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_datasourcetype_advanced.py",
+      "target": "DataSourceType",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_report_advanced.py",
+      "target": "Report",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_reportwidget_advanced.py",
+      "target": "ReportWidget",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_dashboard_advanced.py",
+      "target": "Dashboard",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_dashboardwidget_advanced.py",
+      "target": "DashboardWidget",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_executionstatus_advanced.py",
+      "target": "ExecutionStatus",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_reportexecution_advanced.py",
+      "target": "ReportExecution",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_reportschedule_advanced.py",
+      "target": "ReportSchedule",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_chart_advanced.py",
+      "target": "Chart",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_datasource_advanced.py",
+      "target": "DataSource",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_useractivitylog_advanced.py",
+      "target": "UserActivityLog",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_permissiondependency_advanced.py",
+      "target": "PermissionDependency",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_roleinheritancerule_advanced.py",
+      "target": "RoleInheritanceRule",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_inheritanceconflictresolution_advanced.py",
+      "target": "InheritanceConflictResolution",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_inheritanceauditlog_advanced.py",
+      "target": "InheritanceAuditLog",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_usersession_advanced.py",
+      "target": "UserSession",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_passwordhistory_advanced.py",
+      "target": "PasswordHistory",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_userpreferences_advanced.py",
+      "target": "UserPreferences",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_userprivacysettings_advanced.py",
+      "target": "UserPrivacySettings",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_permission_advanced.py",
+      "target": "Permission",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_department_advanced.py",
+      "target": "Department",
+      "test_count": 5
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_auditlog_advanced.py",
+      "target": "AuditLog",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_customertype_advanced.py",
+      "target": "CustomerType",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_customerstatus_advanced.py",
+      "target": "CustomerStatus",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_opportunitystage_advanced.py",
+      "target": "OpportunityStage",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_activitytype_advanced.py",
+      "target": "ActivityType",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_customer_advanced.py",
+      "target": "Customer",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_customercontact_advanced.py",
+      "target": "CustomerContact",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_opportunity_advanced.py",
+      "target": "Opportunity",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_customeractivity_advanced.py",
+      "target": "CustomerActivity",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_workflowstatus_advanced.py",
+      "target": "WorkflowStatus",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_workflowinstancestatus_advanced.py",
+      "target": "WorkflowInstanceStatus",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_taskstatus_advanced.py",
+      "target": "TaskStatus",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_applicationstatus_advanced.py",
+      "target": "ApplicationStatus",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_applicationtype_advanced.py",
+      "target": "ApplicationType",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_approvalstatus_advanced.py",
+      "target": "ApprovalStatus",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_nodetype_advanced.py",
+      "target": "NodeType",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_workflow_advanced.py",
+      "target": "Workflow",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_workflownode_advanced.py",
+      "target": "WorkflowNode",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_workflowconnection_advanced.py",
+      "target": "WorkflowConnection",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_workflowinstance_advanced.py",
+      "target": "WorkflowInstance",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_workflowtask_advanced.py",
+      "target": "WorkflowTask",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_application_advanced.py",
+      "target": "Application",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_applicationapproval_advanced.py",
+      "target": "ApplicationApproval",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_userorganization_advanced.py",
+      "target": "UserOrganization",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_organizationinvitation_advanced.py",
+      "target": "OrganizationInvitation",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_usertransferrequest_advanced.py",
+      "target": "UserTransferRequest",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_projectmember_advanced.py",
+      "target": "ProjectMember",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_organization_advanced.py",
+      "target": "Organization",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_user_advanced.py",
+      "target": "User",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_customerstatus_advanced.py",
+      "target": "CustomerStatus",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_customertype_advanced.py",
+      "target": "CustomerType",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_orderstatus_advanced.py",
+      "target": "OrderStatus",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_paymentstatus_advanced.py",
+      "target": "PaymentStatus",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_paymentmethod_advanced.py",
+      "target": "PaymentMethod",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_customer_advanced.py",
+      "target": "Customer",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_salesorder_advanced.py",
+      "target": "SalesOrder",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_salesorderitem_advanced.py",
+      "target": "SalesOrderItem",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_taskstatus_advanced.py",
+      "target": "TaskStatus",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_taskpriority_advanced.py",
+      "target": "TaskPriority",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_dependencytype_advanced.py",
+      "target": "DependencyType",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_task_advanced.py",
+      "target": "Task",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_taskdependency_advanced.py",
+      "target": "TaskDependency",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_taskhistory_advanced.py",
+      "target": "TaskHistory",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_movementtype_advanced.py",
+      "target": "MovementType",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_inventorystatus_advanced.py",
+      "target": "InventoryStatus",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_warehouse_advanced.py",
+      "target": "Warehouse",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_inventoryitem_advanced.py",
+      "target": "InventoryItem",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_stockmovement_advanced.py",
+      "target": "StockMovement",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_budgetstatus_advanced.py",
+      "target": "BudgetStatus",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_budgettype_advanced.py",
+      "target": "BudgetType",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_budget_advanced.py",
+      "target": "Budget",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_budgetitem_advanced.py",
+      "target": "BudgetItem",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_base_advanced.py",
+      "target": "Base",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_basemodel_advanced.py",
+      "target": "BaseModel",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_auditablemodel_advanced.py",
+      "target": "AuditableModel",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_softdeletablemodel_advanced.py",
+      "target": "SoftDeletableModel",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_project_advanced.py",
+      "target": "Project",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_product_advanced.py",
+      "target": "Product",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_expensecategory_advanced.py",
+      "target": "ExpenseCategory",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_user_advanced.py",
+      "target": "User",
+      "test_count": 5
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_role_advanced.py",
+      "target": "Role",
+      "test_count": 5
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_userrole_advanced.py",
+      "target": "UserRole",
+      "test_count": 4
+    },
+    {
+      "type": "model",
+      "file": "tests/unit/models/test_rolepermission_advanced.py",
+      "target": "RolePermission",
+      "test_count": 4
+    },
+    {
+      "type": "service",
+      "file": "tests/unit/services/test_customer_activity_service_advanced.py",
+      "target": "customer_activity_service",
+      "test_count": 20
+    },
+    {
+      "type": "service",
+      "file": "tests/unit/services/test_auth_advanced.py",
+      "target": "auth",
+      "test_count": 10
+    },
+    {
+      "type": "service",
+      "file": "tests/unit/services/test_audit_log_advanced.py",
+      "target": "audit_log",
+      "test_count": 34
+    },
+    {
+      "type": "service",
+      "file": "tests/unit/services/test_cross_tenant_permissions_advanced.py",
+      "target": "cross_tenant_permissions",
+      "test_count": 30
+    },
+    {
+      "type": "service",
+      "file": "tests/unit/services/test_budget_service_advanced.py",
+      "target": "budget_service",
+      "test_count": 32
+    },
+    {
+      "type": "service",
+      "file": "tests/unit/services/test_organization_advanced.py",
+      "target": "organization",
+      "test_count": 38
+    },
+    {
+      "type": "service",
+      "file": "tests/unit/services/test_financial_reports_service_advanced.py",
+      "target": "financial_reports_service",
+      "test_count": 24
+    },
+    {
+      "type": "service",
+      "file": "tests/unit/services/test_permission_inheritance_advanced.py",
+      "target": "permission_inheritance",
+      "test_count": 52
+    },
+    {
+      "type": "service",
+      "file": "tests/unit/services/test_user_preferences_advanced.py",
+      "target": "user_preferences",
+      "test_count": 26
+    },
+    {
+      "type": "service",
+      "file": "tests/unit/services/test_user_privacy_advanced.py",
+      "target": "user_privacy",
+      "test_count": 38
+    },
+    {
+      "type": "service",
+      "file": "tests/unit/services/test_permission_advanced.py",
+      "target": "permission",
+      "test_count": 34
+    },
+    {
+      "type": "service",
+      "file": "tests/unit/services/test_multi_tenant_advanced.py",
+      "target": "multi_tenant",
+      "test_count": 38
+    },
+    {
+      "type": "service",
+      "file": "tests/unit/services/test_department_advanced.py",
+      "target": "department",
+      "test_count": 42
+    },
+    {
+      "type": "service",
+      "file": "tests/unit/services/test_audit_advanced.py",
+      "target": "audit",
+      "test_count": 30
+    },
+    {
+      "type": "service",
+      "file": "tests/unit/services/test_role_permission_ui_advanced.py",
+      "target": "role_permission_ui",
+      "test_count": 32
+    },
+    {
+      "type": "service",
+      "file": "tests/unit/services/test_permission_matrix_advanced.py",
+      "target": "permission_matrix",
+      "test_count": 36
+    },
+    {
+      "type": "service",
+      "file": "tests/unit/services/test_user_profile_advanced.py",
+      "target": "user_profile",
+      "test_count": 26
+    },
+    {
+      "type": "service",
+      "file": "tests/unit/services/test_report_service_advanced.py",
+      "target": "report_service",
+      "test_count": 66
+    },
+    {
+      "type": "service",
+      "file": "tests/unit/services/test_task_advanced.py",
+      "target": "task",
+      "test_count": 50
+    },
+    {
+      "type": "service",
+      "file": "tests/unit/services/test_opportunity_service_advanced.py",
+      "target": "opportunity_service",
+      "test_count": 24
+    },
+    {
+      "type": "service",
+      "file": "tests/unit/services/test_pm_automation_advanced.py",
+      "target": "pm_automation",
+      "test_count": 50
+    },
+    {
+      "type": "service",
+      "file": "tests/unit/services/test_project_advanced.py",
+      "target": "project",
+      "test_count": 20
+    },
+    {
+      "type": "service",
+      "file": "tests/unit/services/test_expense_service_advanced.py",
+      "target": "expense_service",
+      "test_count": 28
+    },
+    {
+      "type": "service",
+      "file": "tests/unit/services/test_application_service_advanced.py",
+      "target": "application_service",
+      "test_count": 66
+    },
+    {
+      "type": "service",
+      "file": "tests/unit/services/test_customer_service_advanced.py",
+      "target": "customer_service",
+      "test_count": 24
+    },
+    {
+      "type": "service",
+      "file": "tests/unit/services/test_workflow_service_advanced.py",
+      "target": "workflow_service",
+      "test_count": 50
+    },
+    {
+      "type": "service",
+      "file": "tests/unit/services/test_user_advanced.py",
+      "target": "user",
+      "test_count": 34
+    },
+    {
+      "type": "service",
+      "file": "tests/unit/services/test_expense_category_service_advanced.py",
+      "target": "expense_category_service",
+      "test_count": 26
+    },
+    {
+      "type": "service",
+      "file": "tests/unit/services/test_role_advanced.py",
+      "target": "role",
+      "test_count": 48
+    },
+    {
+      "type": "service",
+      "file": "tests/unit/services/test_audit_service_advanced.py",
+      "target": "audit_service",
+      "test_count": 12
+    },
+    {
+      "type": "api",
+      "file": "tests/unit/api/test_agent_health_advanced.py",
+      "target": "agent_health",
+      "test_count": 20
+    },
+    {
+      "type": "api",
+      "file": "tests/unit/api/test_cross_tenant_permissions_advanced.py",
+      "target": "cross_tenant_permissions",
+      "test_count": 27
+    },
+    {
+      "type": "api",
+      "file": "tests/unit/api/test_health_simple_advanced.py",
+      "target": "health_simple",
+      "test_count": 2
+    },
+    {
+      "type": "api",
+      "file": "tests/unit/api/test_organizations_simple_advanced.py",
+      "target": "organizations_simple",
+      "test_count": 10
+    },
+    {
+      "type": "api",
+      "file": "tests/unit/api/test_financial_reports_advanced.py",
+      "target": "financial_reports",
+      "test_count": 21
+    },
+    {
+      "type": "api",
+      "file": "tests/unit/api/test_products_basic_advanced.py",
+      "target": "products_basic",
+      "test_count": 39
+    },
+    {
+      "type": "api",
+      "file": "tests/unit/api/test_expenses_advanced.py",
+      "target": "expenses",
+      "test_count": 36
+    },
+    {
+      "type": "api",
+      "file": "tests/unit/api/test_products_simple_advanced.py",
+      "target": "products_simple",
+      "test_count": 16
+    },
+    {
+      "type": "api",
+      "file": "tests/unit/api/test_opportunities_advanced.py",
+      "target": "opportunities",
+      "test_count": 30
+    },
+    {
+      "type": "api",
+      "file": "tests/unit/api/test_permission_inheritance_advanced.py",
+      "target": "permission_inheritance",
+      "test_count": 18
+    },
+    {
+      "type": "api",
+      "file": "tests/unit/api/test_user_preferences_advanced.py",
+      "target": "user_preferences",
+      "test_count": 27
+    },
+    {
+      "type": "api",
+      "file": "tests/unit/api/test_user_privacy_advanced.py",
+      "target": "user_privacy",
+      "test_count": 36
+    },
+    {
+      "type": "api",
+      "file": "tests/unit/api/test_users_simple_advanced.py",
+      "target": "users_simple",
+      "test_count": 10
+    },
+    {
+      "type": "api",
+      "file": "tests/unit/api/test_reports_advanced.py",
+      "target": "reports",
+      "test_count": 40
+    },
+    {
+      "type": "api",
+      "file": "tests/unit/api/test_multi_tenant_advanced.py",
+      "target": "multi_tenant",
+      "test_count": 24
+    },
+    {
+      "type": "api",
+      "file": "tests/unit/api/test_audit_advanced.py",
+      "target": "audit",
+      "test_count": 12
+    },
+    {
+      "type": "api",
+      "file": "tests/unit/api/test_organizations_basic_advanced.py",
+      "target": "organizations_basic",
+      "test_count": 30
+    },
+    {
+      "type": "api",
+      "file": "tests/unit/api/test_role_permission_ui_advanced.py",
+      "target": "role_permission_ui",
+      "test_count": 27
+    },
+    {
+      "type": "api",
+      "file": "tests/unit/api/test_tasks_advanced.py",
+      "target": "tasks",
+      "test_count": 21
+    },
+    {
+      "type": "api",
+      "file": "tests/unit/api/test_customers_advanced.py",
+      "target": "customers",
+      "test_count": 27
+    },
+    {
+      "type": "api",
+      "file": "tests/unit/api/test_customer_activities_advanced.py",
+      "target": "customer_activities",
+      "test_count": 24
+    },
+    {
+      "type": "api",
+      "file": "tests/unit/api/test_users_basic_advanced.py",
+      "target": "users_basic",
+      "test_count": 24
+    },
+    {
+      "type": "api",
+      "file": "tests/unit/api/test_pm_automation_advanced.py",
+      "target": "pm_automation",
+      "test_count": 24
+    },
+    {
+      "type": "api",
+      "file": "tests/unit/api/test_applications_advanced.py",
+      "target": "applications",
+      "test_count": 48
+    },
+    {
+      "type": "api",
+      "file": "tests/unit/api/test_budgets_advanced.py",
+      "target": "budgets",
+      "test_count": 36
+    },
+    {
+      "type": "api",
+      "file": "tests/unit/api/test_health_advanced.py",
+      "target": "health",
+      "test_count": 16
+    },
+    {
+      "type": "api",
+      "file": "tests/unit/api/test_workflows_advanced.py",
+      "target": "workflows",
+      "test_count": 28
+    },
+    {
+      "type": "api",
+      "file": "tests/unit/api/test_inventory_basic_advanced.py",
+      "target": "inventory_basic",
+      "test_count": 54
+    },
+    {
+      "type": "api",
+      "file": "tests/unit/api/test_expense_categories_advanced.py",
+      "target": "expense_categories",
+      "test_count": 24
+    },
+    {
+      "type": "api",
+      "file": "tests/unit/api/test_performance_advanced.py",
+      "target": "performance",
+      "test_count": 15
+    },
+    {
+      "type": "api",
+      "file": "tests/unit/api/test_audit_advanced.py",
+      "target": "audit",
+      "test_count": 15
+    }
+  ],
+  "coverage_improvements": [],
+  "mutation_tests": [],
+  "performance_tests": [
+    {
+      "file": "tests/performance/test_api_performance.py",
+      "test_count": 4,
+      "type": "performance"
+    }
+  ],
+  "integration_tests": [
+    {
+      "file": "tests/integration/test_complete_workflows.py",
+      "test_count": 4,
+      "type": "integration"
+    }
+  ]
+}
