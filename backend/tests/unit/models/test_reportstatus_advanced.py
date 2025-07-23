@@ -23,7 +23,7 @@ class TestReportStatus:
         """Test model validation rules."""
         # Test required fields
         with pytest.raises((ValueError, IntegrityError)):
-            instance = ReportStatus()
+            ReportStatus()
             # Add validation tests based on model structure
 
     def test_model_relationships(self, db_session):

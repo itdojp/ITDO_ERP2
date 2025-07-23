@@ -23,7 +23,7 @@ class TestDepartment:
         """Test model validation rules."""
         # Test required fields
         with pytest.raises((ValueError, IntegrityError)):
-            instance = Department()
+            Department()
             # Add validation tests based on model structure
 
     def test_model_relationships(self, db_session):
@@ -42,7 +42,7 @@ class TestDepartment:
 
     def test_validate_hierarchy(self):
         """Test validate_hierarchy validation method."""
-        instance = Department()
+        Department()
 
         # Test valid cases
         # TODO: Add specific test cases for validate_hierarchy

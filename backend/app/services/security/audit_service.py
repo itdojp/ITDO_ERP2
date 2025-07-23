@@ -80,7 +80,7 @@ class SecurityAuditService:
             end_date = datetime.utcnow()
 
         # Base query with date filter
-        base_query = select(SecurityAuditLog).where(
+        select(SecurityAuditLog).where(
             and_(
                 SecurityAuditLog.created_at >= start_date,
                 SecurityAuditLog.created_at <= end_date

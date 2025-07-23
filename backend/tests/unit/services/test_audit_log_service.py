@@ -95,7 +95,7 @@ def test_list_audit_logs_with_entity_filter(audit_service, mock_db):
     mock_db.query.return_value = mock_query
 
     # Act
-    result = audit_service.list_audit_logs(filter_data, limit=50, offset=10)
+    audit_service.list_audit_logs(filter_data, limit=50, offset=10)
 
     # Assert
     mock_db.query.assert_called_once_with(AuditLog)
@@ -124,7 +124,7 @@ def test_list_audit_logs_with_date_range(audit_service, mock_db):
     mock_db.query.return_value = mock_query
 
     # Act
-    result = audit_service.list_audit_logs(filter_data)
+    audit_service.list_audit_logs(filter_data)
 
     # Assert
     mock_db.query.assert_called_once_with(AuditLog)
@@ -169,7 +169,7 @@ def test_list_audit_logs_pagination(audit_service, mock_db):
     mock_db.query.return_value = mock_query
 
     # Act
-    result = audit_service.list_audit_logs(filter_data, limit=25, offset=50)
+    audit_service.list_audit_logs(filter_data, limit=25, offset=50)
 
     # Assert
     mock_query.offset.assert_called_with(50)
@@ -265,7 +265,7 @@ def test_audit_log_complex_filtering(audit_service, mock_db):
     mock_db.query.return_value = mock_query
 
     # Act
-    result = audit_service.list_audit_logs(filter_data, limit=200, offset=0)
+    audit_service.list_audit_logs(filter_data, limit=200, offset=0)
 
     # Assert
     # Should apply all 6 filters
@@ -289,7 +289,7 @@ def test_audit_log_service_default_parameters(audit_service, mock_db):
     mock_db.query.return_value = mock_query
 
     # Act - Call without explicit limit/offset
-    result = audit_service.list_audit_logs(filter_data)
+    audit_service.list_audit_logs(filter_data)
 
     # Assert - Should use default limit=100, offset=0
     mock_query.limit.assert_called_with(100)

@@ -23,7 +23,7 @@ class TestMovementType:
         """Test model validation rules."""
         # Test required fields
         with pytest.raises((ValueError, IntegrityError)):
-            instance = MovementType()
+            MovementType()
             # Add validation tests based on model structure
 
     def test_model_relationships(self, db_session):

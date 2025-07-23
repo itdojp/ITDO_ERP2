@@ -16,7 +16,7 @@ def client():
 
 class TestInputValidationSecurity:
     """Security tests for input validation"""
-    
+
     def test_malicious_input_rejected(self, client):
         """Test that malicious input is rejected"""
         malicious_inputs = [
@@ -27,16 +27,16 @@ class TestInputValidationSecurity:
             {"email": "invalid-email"},
             {"id": "'; UNION SELECT * FROM users --"}
         ]
-        
+
         for malicious_input in malicious_inputs:
             # Test various endpoints
             endpoints = ["/api/v1/users", "/api/v1/organizations", "/api/v1/test"]
-            
+
             for endpoint in endpoints:
                 response = client.post(endpoint, json=malicious_input)
                 # Should reject malicious input with validation error
                 assert response.status_code in [400, 422, 404]  # 404 if endpoint doesn't exist
-    
+
     def test_oversized_input_rejected(self, client):
         """Test that oversized input is rejected"""
         oversized_data = {
@@ -44,11 +44,11 @@ class TestInputValidationSecurity:
             "description": "y" * 50000,
             "data": ["item"] * 1000  # Large array
         }
-        
+
         response = client.post("/api/v1/test-endpoint", json=oversized_data)
         # Should reject oversized input
         assert response.status_code in [400, 413, 422, 404]
-    
+
     def test_type_confusion_attacks(self, client):
         """Test protection against type confusion attacks"""
         type_confusion_inputs = [
@@ -57,12 +57,12 @@ class TestInputValidationSecurity:
             {"enabled": "yes"},  # String instead of boolean
             {"date": 123456},  # Number instead of date string
         ]
-        
+
         for confusing_input in type_confusion_inputs:
             response = client.post("/api/v1/test-endpoint", json=confusing_input)
             # Should validate types properly
             assert response.status_code in [400, 422, 404]
-    
+
     def test_null_and_empty_input_handling(self, client):
         """Test proper handling of null and empty inputs"""
         edge_case_inputs = [
@@ -71,12 +71,12 @@ class TestInputValidationSecurity:
             {"name": None},  # Null value
             {"name": "   "},  # Whitespace only
         ]
-        
+
         for edge_input in edge_case_inputs:
             response = client.post("/api/v1/test-endpoint", json=edge_input)
             # Should handle edge cases gracefully
             assert response.status_code in [200, 400, 422, 404]
-    
+
     def test_unicode_and_encoding_attacks(self, client):
         """Test protection against unicode and encoding attacks"""
         unicode_attacks = [
@@ -85,7 +85,7 @@ class TestInputValidationSecurity:
             {"name": "test\uFEFFzero-width"},  # Zero-width no-break space
             {"name": "test\u200Binvisible"},  # Zero-width space
         ]
-        
+
         for unicode_input in unicode_attacks:
             response = client.post("/api/v1/test-endpoint", json=unicode_input)
             # Should handle unicode properly or reject

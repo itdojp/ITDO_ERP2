@@ -23,7 +23,7 @@ class TestRole:
         """Test model validation rules."""
         # Test required fields
         with pytest.raises((ValueError, IntegrityError)):
-            instance = Role()
+            Role()
             # Add validation tests based on model structure
 
     def test_model_relationships(self, db_session):
@@ -42,7 +42,7 @@ class TestRole:
 
     def test_validate_scope(self):
         """Test validate_scope validation method."""
-        instance = Role()
+        Role()
 
         # Test valid cases
         # TODO: Add specific test cases for validate_scope

@@ -23,7 +23,7 @@ class TestUser:
         """Test model validation rules."""
         # Test required fields
         with pytest.raises((ValueError, IntegrityError)):
-            instance = User()
+            User()
             # Add validation tests based on model structure
 
     def test_model_relationships(self, db_session):
@@ -42,7 +42,7 @@ class TestUser:
 
     def test_validate_session(self):
         """Test validate_session validation method."""
-        instance = User()
+        User()
 
         # Test valid cases
         # TODO: Add specific test cases for validate_session

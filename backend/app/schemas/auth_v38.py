@@ -3,10 +3,10 @@ CC02 v38.0 Enhanced Authentication Schemas
 認証システム用のPydanticスキーマ定義
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, EmailStr, Field, validator
 
+from pydantic import BaseModel, EmailStr, Field, validator
 
 # =============================================================================
 # Token Models
@@ -41,7 +41,7 @@ class UserRegister(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=8)
     full_name: Optional[str] = Field(None, max_length=100)
-    
+
     @validator('password')
     def validate_password(cls, v):
         if len(v) < 8:
@@ -104,7 +104,7 @@ class APIKeyCreateRequest(BaseModel):
     description: Optional[str] = Field(None, max_length=500)
     scopes: List[str] = Field(default=["read"])
     expires_at: Optional[datetime] = None
-    
+
     @validator('expires_at')
     def validate_expires_at(cls, v):
         if v and v <= datetime.utcnow():
@@ -163,13 +163,13 @@ class PasswordChangeRequest(BaseModel):
     current_password: str = Field(..., min_length=1)
     new_password: str = Field(..., min_length=8)
     confirm_password: str = Field(..., min_length=8)
-    
+
     @validator('confirm_password')
     def passwords_match(cls, v, values, **kwargs):
         if 'new_password' in values and v != values['new_password']:
             raise ValueError('Passwords do not match')
         return v
-    
+
     @validator('new_password')
     def validate_new_password(cls, v):
         if len(v) < 8:
@@ -191,7 +191,7 @@ class PasswordResetConfirm(BaseModel):
     token: str = Field(..., min_length=1)
     new_password: str = Field(..., min_length=8)
     confirm_password: str = Field(..., min_length=8)
-    
+
     @validator('confirm_password')
     def passwords_match(cls, v, values, **kwargs):
         if 'new_password' in values and v != values['new_password']:

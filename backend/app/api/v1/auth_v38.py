@@ -3,41 +3,60 @@ CC02 v38.0 Enhanced Authentication & Authorization System
 OAuth2完全実装、マルチファクタ認証、APIキー管理、セッション管理
 """
 
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
-import secrets
-import hashlib
 import base64
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-import smtplib
+import hashlib
+import secrets
+from datetime import datetime, timedelta
+from io import BytesIO
+from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Security, status, Request, Response
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_
-from passlib.context import CryptContext
-from jose import JWTError, jwt
 import pyotp
 import qrcode
-from io import BytesIO
-import base64
-
-from app.core.database import get_db
-from app.core.config import settings
-from app.models.user import User
-from app.models.auth import (
-    UserSession, APIKey, LoginAttempt, MFADevice, 
-    PasswordHistory, UserRole, Permission
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Request,
+    Security,
+    status,
 )
+from fastapi.security import (
+    HTTPAuthorizationCredentials,
+    HTTPBearer,
+    OAuth2PasswordBearer,
+    OAuth2PasswordRequestForm,
+)
+from jose import JWTError, jwt
+from passlib.context import CryptContext
+from sqlalchemy import and_, or_
+from sqlalchemy.orm import Session
+
+from app.core.config import settings
+from app.core.database import get_db
+from app.models.auth import (
+    APIKey,
+    LoginAttempt,
+    MFADevice,
+    PasswordHistory,
+    UserRole,
+    UserSession,
+)
+from app.models.user import User
 from app.schemas.auth_v38 import (
-    Token, TokenResponse, UserLogin, UserRegister,
-    MFASetupRequest, MFAVerifyRequest, MFASetupResponse,
-    APIKeyCreateRequest, APIKeyResponse, APIKeyListResponse,
-    SessionInfo, SessionListResponse, 
-    PasswordChangeRequest, PasswordResetRequest,
-    OAuth2TokenRequest, OAuth2AuthorizeRequest,
-    PermissionCheck, RoleAssignRequest
+    APIKeyCreateRequest,
+    APIKeyListResponse,
+    APIKeyResponse,
+    MFASetupRequest,
+    MFASetupResponse,
+    MFAVerifyRequest,
+    OAuth2TokenRequest,
+    PasswordChangeRequest,
+    PasswordResetRequest,
+    PermissionCheck,
+    RoleAssignRequest,
+    SessionInfo,
+    SessionListResponse,
+    TokenResponse,
 )
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
@@ -65,7 +84,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
         expire = datetime.utcnow() + expires_delta
     else:
         expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    
+
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
@@ -87,7 +106,7 @@ async def get_current_user(
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    
+
     try:
         payload = jwt.decode(credentials.credentials, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         username: str = payload.get("sub")
@@ -95,11 +114,11 @@ async def get_current_user(
             raise credentials_exception
     except JWTError:
         raise credentials_exception
-    
+
     user = db.query(User).filter(User.username == username).first()
     if user is None:
         raise credentials_exception
-    
+
     return user
 
 async def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:
@@ -111,15 +130,15 @@ async def get_current_active_user(current_user: User = Depends(get_current_user)
 def check_rate_limit(db: Session, identifier: str, max_attempts: int = 5, window_minutes: int = 15) -> bool:
     """レート制限をチェック"""
     time_window = datetime.utcnow() - timedelta(minutes=window_minutes)
-    
+
     attempts = db.query(LoginAttempt).filter(
         and_(
             LoginAttempt.identifier == identifier,
             LoginAttempt.attempted_at > time_window,
-            LoginAttempt.success == False
+            not LoginAttempt.success
         )
     ).count()
-    
+
     return attempts < max_attempts
 
 def log_login_attempt(db: Session, identifier: str, success: bool, user_id: str = None, ip_address: str = None):
@@ -146,7 +165,7 @@ async def login_for_access_token(
 ):
     """OAuth2トークン取得エンドポイント"""
     client_ip = request.client.host if request else "unknown"
-    
+
     # レート制限チェック
     if not check_rate_limit(db, form_data.username):
         log_login_attempt(db, form_data.username, False, ip_address=client_ip)
@@ -154,7 +173,7 @@ async def login_for_access_token(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="Too many login attempts. Please try again later."
         )
-    
+
     # ユーザー認証
     user = db.query(User).filter(User.username == form_data.username).first()
     if not user or not verify_password(form_data.password, user.hashed_password):
@@ -164,13 +183,13 @@ async def login_for_access_token(
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User account is disabled"
         )
-    
+
     # MFA必須チェック
     if user.mfa_enabled:
         # MFAトークンが必要
@@ -180,21 +199,21 @@ async def login_for_access_token(
                 detail="MFA code required",
                 headers={"X-MFA-Required": "true"}
             )
-        
+
         if not verify_mfa_token(db, user.id, form_data.client_id):
             log_login_attempt(db, form_data.username, False, user_id=user.id, ip_address=client_ip)
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid MFA code"
             )
-    
+
     # トークン生成
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
     )
     refresh_token = create_refresh_token(user.id)
-    
+
     # セッション作成
     session = UserSession(
         user_id=user.id,
@@ -206,12 +225,12 @@ async def login_for_access_token(
         expires_at=datetime.utcnow() + access_token_expires
     )
     db.add(session)
-    
+
     # ログイン成功を記録
     log_login_attempt(db, form_data.username, True, user_id=user.id, ip_address=client_ip)
-    
+
     db.commit()
-    
+
     return TokenResponse(
         access_token=access_token,
         refresh_token=refresh_token,
@@ -230,27 +249,27 @@ async def refresh_access_token(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate refresh token"
     )
-    
+
     try:
         payload = jwt.decode(refresh_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         user_id: str = payload.get("sub")
         token_type: str = payload.get("type")
-        
+
         if user_id is None or token_type != "refresh":
             raise credentials_exception
     except JWTError:
         raise credentials_exception
-    
+
     user = db.query(User).filter(User.id == user_id).first()
     if user is None or not user.is_active:
         raise credentials_exception
-    
+
     # 新しいアクセストークンを生成
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
     )
-    
+
     return TokenResponse(
         access_token=access_token,
         refresh_token=refresh_token,
@@ -267,7 +286,7 @@ async def revoke_token(
     """トークンを無効化"""
     # アクセストークンのハッシュを計算
     token_hash = hashlib.sha256(token.encode()).hexdigest()
-    
+
     # セッションを無効化
     session = db.query(UserSession).filter(
         and_(
@@ -275,11 +294,11 @@ async def revoke_token(
             UserSession.access_token_hash == token_hash
         )
     ).first()
-    
+
     if session:
         session.revoked_at = datetime.utcnow()
         db.commit()
-    
+
     return {"message": "Token revoked successfully"}
 
 # =============================================================================
@@ -296,16 +315,16 @@ def generate_qr_code(user_email: str, secret: str) -> str:
         user_email,
         issuer_name=settings.APP_NAME
     )
-    
+
     qr = qrcode.QRCode(version=1, box_size=10, border=5)
     qr.add_data(totp_uri)
     qr.make(fit=True)
-    
+
     img = qr.make_image(fill_color="black", back_color="white")
     buffer = BytesIO()
     img.save(buffer, format='PNG')
     buffer.seek(0)
-    
+
     return base64.b64encode(buffer.getvalue()).decode()
 
 def verify_mfa_token(db: Session, user_id: str, token: str) -> bool:
@@ -313,13 +332,13 @@ def verify_mfa_token(db: Session, user_id: str, token: str) -> bool:
     device = db.query(MFADevice).filter(
         and_(
             MFADevice.user_id == user_id,
-            MFADevice.is_active == True
+            MFADevice.is_active
         )
     ).first()
-    
+
     if not device:
         return False
-    
+
     totp = pyotp.TOTP(device.secret)
     return totp.verify(token, valid_window=2)
 
@@ -334,7 +353,7 @@ async def setup_mfa(
     db.query(MFADevice).filter(MFADevice.user_id == current_user.id).update(
         {"is_active": False}
     )
-    
+
     # 新しいMFAデバイスを作成
     secret = generate_mfa_secret()
     device = MFADevice(
@@ -345,13 +364,13 @@ async def setup_mfa(
         is_active=False,  # 検証後にアクティブ化
         created_at=datetime.utcnow()
     )
-    
+
     db.add(device)
     db.commit()
-    
+
     # QRコード生成
     qr_code = generate_qr_code(current_user.email, secret)
-    
+
     return MFASetupResponse(
         secret=secret,
         qr_code=qr_code,
@@ -368,23 +387,23 @@ async def verify_mfa_setup(
     device = db.query(MFADevice).filter(
         and_(
             MFADevice.user_id == current_user.id,
-            MFADevice.is_active == False
+            not MFADevice.is_active
         )
     ).first()
-    
+
     if not device:
         raise HTTPException(status_code=404, detail="MFA setup not found")
-    
+
     totp = pyotp.TOTP(device.secret)
     if not totp.verify(request.token):
         raise HTTPException(status_code=400, detail="Invalid MFA token")
-    
+
     # MFAデバイスをアクティブ化
     device.is_active = True
     current_user.mfa_enabled = True
-    
+
     db.commit()
-    
+
     return {"message": "MFA successfully enabled"}
 
 @router.delete("/mfa/disable")
@@ -396,15 +415,15 @@ async def disable_mfa(
     """MFAを無効化"""
     if not verify_password(password, current_user.hashed_password):
         raise HTTPException(status_code=400, detail="Invalid password")
-    
+
     # MFAデバイスを無効化
     db.query(MFADevice).filter(MFADevice.user_id == current_user.id).update(
         {"is_active": False}
     )
-    
+
     current_user.mfa_enabled = False
     db.commit()
-    
+
     return {"message": "MFA disabled successfully"}
 
 def generate_backup_codes(db: Session, user_id: str) -> List[str]:
@@ -413,7 +432,7 @@ def generate_backup_codes(db: Session, user_id: str) -> List[str]:
     for _ in range(10):
         code = secrets.token_hex(4).upper()
         codes.append(code)
-    
+
     # データベースに保存（実装省略）
     return codes
 
@@ -432,10 +451,10 @@ async def create_api_key(
     key_id = secrets.token_urlsafe(16)
     key_secret = secrets.token_urlsafe(32)
     api_key = f"itdo_{key_id}_{key_secret}"
-    
+
     # APIキーをハッシュ化して保存
     key_hash = hashlib.sha256(api_key.encode()).hexdigest()
-    
+
     db_api_key = APIKey(
         user_id=current_user.id,
         key_id=key_id,
@@ -447,10 +466,10 @@ async def create_api_key(
         created_at=datetime.utcnow(),
         is_active=True
     )
-    
+
     db.add(db_api_key)
     db.commit()
-    
+
     return APIKeyResponse(
         id=db_api_key.id,
         key_id=key_id,
@@ -471,14 +490,14 @@ async def list_api_keys(
     api_keys = db.query(APIKey).filter(
         and_(
             APIKey.user_id == current_user.id,
-            APIKey.is_active == True,
+            APIKey.is_active,
             or_(
                 APIKey.expires_at.is_(None),
                 APIKey.expires_at > datetime.utcnow()
             )
         )
     ).all()
-    
+
     return APIKeyListResponse(
         api_keys=[
             {
@@ -508,14 +527,14 @@ async def revoke_api_key(
             APIKey.key_id == key_id
         )
     ).first()
-    
+
     if not api_key:
         raise HTTPException(status_code=404, detail="API key not found")
-    
+
     api_key.is_active = False
     api_key.revoked_at = datetime.utcnow()
     db.commit()
-    
+
     return {"message": "API key revoked successfully"}
 
 async def get_user_from_api_key(
@@ -525,27 +544,27 @@ async def get_user_from_api_key(
     """APIキーからユーザーを取得"""
     if not api_key.startswith("itdo_"):
         return None
-    
+
     key_hash = hashlib.sha256(api_key.encode()).hexdigest()
-    
+
     db_api_key = db.query(APIKey).filter(
         and_(
             APIKey.key_hash == key_hash,
-            APIKey.is_active == True,
+            APIKey.is_active,
             or_(
                 APIKey.expires_at.is_(None),
                 APIKey.expires_at > datetime.utcnow()
             )
         )
     ).first()
-    
+
     if not db_api_key:
         return None
-    
+
     # 最終使用日時を更新
     db_api_key.last_used_at = datetime.utcnow()
     db.commit()
-    
+
     return db.query(User).filter(User.id == db_api_key.user_id).first()
 
 # =============================================================================
@@ -565,7 +584,7 @@ async def list_user_sessions(
             UserSession.expires_at > datetime.utcnow()
         )
     ).order_by(UserSession.created_at.desc()).all()
-    
+
     return SessionListResponse(
         sessions=[
             SessionInfo(
@@ -593,13 +612,13 @@ async def revoke_session(
             UserSession.session_id == session_id
         )
     ).first()
-    
+
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
-    
+
     session.revoked_at = datetime.utcnow()
     db.commit()
-    
+
     return {"message": "Session revoked successfully"}
 
 @router.delete("/sessions")
@@ -614,9 +633,9 @@ async def revoke_all_sessions(
             UserSession.revoked_at.is_(None)
         )
     ).update({"revoked_at": datetime.utcnow()})
-    
+
     db.commit()
-    
+
     return {"message": "All sessions revoked successfully"}
 
 # =============================================================================
@@ -632,17 +651,17 @@ async def change_password(
     """パスワード変更"""
     if not verify_password(request.current_password, current_user.hashed_password):
         raise HTTPException(status_code=400, detail="Invalid current password")
-    
+
     # パスワード履歴チェック
     if is_password_recently_used(db, current_user.id, request.new_password):
         raise HTTPException(
-            status_code=400, 
+            status_code=400,
             detail="New password was recently used. Please choose a different password."
         )
-    
+
     # 新しいパスワードをハッシュ化
     new_hashed_password = get_password_hash(request.new_password)
-    
+
     # パスワード履歴に追加
     password_history = PasswordHistory(
         user_id=current_user.id,
@@ -650,21 +669,21 @@ async def change_password(
         created_at=datetime.utcnow()
     )
     db.add(password_history)
-    
+
     # パスワード更新
     current_user.hashed_password = new_hashed_password
     current_user.password_changed_at = datetime.utcnow()
-    
+
     # 古いパスワード履歴を削除（最新10個まで保持）
     old_passwords = db.query(PasswordHistory).filter(
         PasswordHistory.user_id == current_user.id
     ).order_by(PasswordHistory.created_at.desc()).offset(10).all()
-    
+
     for old_password in old_passwords:
         db.delete(old_password)
-    
+
     db.commit()
-    
+
     return {"message": "Password changed successfully"}
 
 @router.post("/reset-password")
@@ -674,23 +693,23 @@ async def request_password_reset(
 ):
     """パスワードリセット要求"""
     user = db.query(User).filter(User.email == request.email).first()
-    
+
     if not user:
         # セキュリティのため、ユーザーが存在しなくても成功レスポンスを返す
         return {"message": "If the email exists, a reset link has been sent"}
-    
+
     # リセットトークン生成
     reset_token = secrets.token_urlsafe(32)
     reset_token_hash = hashlib.sha256(reset_token.encode()).hexdigest()
-    
+
     user.reset_token_hash = reset_token_hash
     user.reset_token_expires = datetime.utcnow() + timedelta(hours=1)
-    
+
     db.commit()
-    
+
     # メール送信（実装省略）
     send_password_reset_email(user.email, reset_token)
-    
+
     return {"message": "If the email exists, a reset link has been sent"}
 
 def is_password_recently_used(db: Session, user_id: str, password: str) -> bool:
@@ -698,11 +717,11 @@ def is_password_recently_used(db: Session, user_id: str, password: str) -> bool:
     recent_passwords = db.query(PasswordHistory).filter(
         PasswordHistory.user_id == user_id
     ).order_by(PasswordHistory.created_at.desc()).limit(5).all()
-    
+
     for history in recent_passwords:
         if verify_password(password, history.password_hash):
             return True
-    
+
     return False
 
 def send_password_reset_email(email: str, reset_token: str):
@@ -722,7 +741,7 @@ async def check_user_permission(
 ):
     """ユーザー権限をチェック"""
     has_permission = user_has_permission(db, current_user.id, request.permission, request.resource)
-    
+
     return {
         "user_id": current_user.id,
         "permission": request.permission,
@@ -739,17 +758,17 @@ async def assign_user_role(
     """ユーザーにロールを割り当て（管理者のみ）"""
     if not user_has_permission(db, current_user.id, "manage_users", "users"):
         raise HTTPException(status_code=403, detail="Insufficient permissions")
-    
+
     user = db.query(User).filter(User.id == request.user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
+
     role = db.query(UserRole).filter(UserRole.name == request.role_name).first()
     if not role:
         raise HTTPException(status_code=404, detail="Role not found")
-    
+
     # ロール割り当て（実装省略）
-    
+
     return {"message": f"Role {request.role_name} assigned to user {request.user_id}"}
 
 def user_has_permission(db: Session, user_id: str, permission: str, resource: str = None) -> bool:
@@ -773,19 +792,19 @@ async def oauth2_authorize(
     """OAuth2認可エンドポイント"""
     if response_type != "code":
         raise HTTPException(status_code=400, detail="Unsupported response type")
-    
+
     # クライアント検証（省略）
-    
+
     # 認可コード生成
     auth_code = secrets.token_urlsafe(32)
-    
+
     # 認可コードを一時保存（省略）
-    
+
     # リダイレクト
     redirect_url = f"{redirect_uri}?code={auth_code}"
     if state:
         redirect_url += f"&state={state}"
-    
+
     return {"redirect_url": redirect_url}
 
 @router.post("/oauth2/token")
@@ -796,16 +815,16 @@ async def oauth2_token_exchange(
     """OAuth2トークン交換エンドポイント"""
     if request.grant_type != "authorization_code":
         raise HTTPException(status_code=400, detail="Unsupported grant type")
-    
+
     # 認可コード検証（省略）
-    
+
     # ユーザー取得（省略）
     user_id = "example_user_id"
-    
+
     # トークン生成
     access_token = create_access_token(data={"sub": user_id})
     refresh_token = create_refresh_token(user_id)
-    
+
     return TokenResponse(
         access_token=access_token,
         refresh_token=refresh_token,

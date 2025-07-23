@@ -16,7 +16,7 @@ def client():
 
 class TestAuthenticationSecurity:
     """Security tests for authentication"""
-    
+
     def test_unauthenticated_access_blocked(self, client):
         """Test that unauthenticated access is properly blocked"""
         protected_endpoints = [
@@ -24,12 +24,12 @@ class TestAuthenticationSecurity:
             "/api/v1/admin",
             "/api/v1/protected"
         ]
-        
+
         for endpoint in protected_endpoints:
             response = client.get(endpoint)
             # Should return 401 (Unauthorized) or redirect to login
             assert response.status_code in [401, 403, 302, 404]  # 404 is ok if endpoint doesn't exist
-    
+
     def test_invalid_token_rejected(self, client):
         """Test that invalid tokens are rejected"""
         invalid_tokens = [
@@ -39,22 +39,22 @@ class TestAuthenticationSecurity:
             "",
             "malformed.jwt.token"
         ]
-        
+
         for token in invalid_tokens:
             headers = {"Authorization": token}
             response = client.get("/api/v1/users/me", headers=headers)
             assert response.status_code in [401, 403, 422]
-    
+
     def test_expired_token_rejected(self, client):
         """Test that expired tokens are rejected"""
         # Use a known expired token (in real implementation)
         expired_token = "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0IiwiZXhwIjoxfQ.invalid"
-        
+
         headers = {"Authorization": expired_token}
         response = client.get("/api/v1/users/me", headers=headers)
-        
+
         assert response.status_code in [401, 403]
-    
+
     def test_brute_force_protection(self, client):
         """Test brute force attack protection"""
         # Attempt multiple failed logins
@@ -65,7 +65,7 @@ class TestAuthenticationSecurity:
             })
             # Should eventually rate limit or return consistent error
             assert response.status_code in [401, 422, 429, 404]
-    
+
     def test_password_requirements(self, client):
         """Test password strength requirements"""
         weak_passwords = [
@@ -75,7 +75,7 @@ class TestAuthenticationSecurity:
             "12345678",
             "aaaaaaaa"
         ]
-        
+
         for weak_password in weak_passwords:
             response = client.post("/api/v1/auth/register", json={
                 "username": "testuser",

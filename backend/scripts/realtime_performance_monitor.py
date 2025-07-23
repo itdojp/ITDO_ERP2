@@ -202,7 +202,7 @@ class RealTimePerformanceMonitor:
         cursor = conn.cursor()
 
         cursor.execute('''
-            INSERT INTO system_metrics 
+            INSERT INTO system_metrics
             (cpu_percent, memory_percent, disk_usage_percent, network_io_mb, active_connections, process_count)
             VALUES (?, ?, ?, ?, ?, ?)
         ''', (
@@ -259,7 +259,7 @@ class RealTimePerformanceMonitor:
         cursor = conn.cursor()
 
         cursor.execute('''
-            INSERT INTO performance_alerts 
+            INSERT INTO performance_alerts
             (alert_type, severity, message, metric_value, threshold_value)
             VALUES (?, ?, ?, ?, ?)
         ''', (
@@ -421,7 +421,7 @@ class RealTimePerformanceMonitor:
         while self.monitoring_active:
             try:
                 # Check if FastAPI application is responsive
-                health_status = await self.check_application_health()
+                await self.check_application_health()
 
                 # Monitor API response times (simulated)
                 api_metrics = await self.collect_api_metrics()
@@ -494,7 +494,7 @@ class RealTimePerformanceMonitor:
         cursor = conn.cursor()
 
         cursor.execute('''
-            INSERT INTO api_metrics 
+            INSERT INTO api_metrics
             (endpoint, method, response_time_ms, status_code, request_size_bytes, response_size_bytes, user_id)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         ''', (
@@ -583,7 +583,7 @@ class RealTimePerformanceMonitor:
         cursor = conn.cursor()
 
         cursor.execute('''
-            INSERT INTO database_metrics 
+            INSERT INTO database_metrics
             (query_type, execution_time_ms, rows_affected, table_name, connection_pool_size, active_connections)
             VALUES (?, ?, ?, ?, ?, ?)
         ''', (
@@ -653,8 +653,8 @@ class RealTimePerformanceMonitor:
 
         # Get system metrics from last hour
         cursor.execute('''
-            SELECT cpu_percent, memory_percent, timestamp 
-            FROM system_metrics 
+            SELECT cpu_percent, memory_percent, timestamp
+            FROM system_metrics
             WHERE timestamp > datetime('now', '-1 hour')
             ORDER BY timestamp
         ''')
@@ -663,8 +663,8 @@ class RealTimePerformanceMonitor:
 
         # Get API metrics from last hour
         cursor.execute('''
-            SELECT AVG(response_time_ms), COUNT(*), timestamp 
-            FROM api_metrics 
+            SELECT AVG(response_time_ms), COUNT(*), timestamp
+            FROM api_metrics
             WHERE timestamp > datetime('now', '-1 hour')
             GROUP BY datetime(timestamp)
             ORDER BY timestamp
@@ -735,7 +735,7 @@ class RealTimePerformanceMonitor:
 
                 cursor.execute('''
                     SELECT alert_type, COUNT(*) as count
-                    FROM performance_alerts 
+                    FROM performance_alerts
                     WHERE resolved = 0 AND severity = 'critical'
                     AND timestamp > datetime('now', '-10 minutes')
                     GROUP BY alert_type
@@ -772,8 +772,8 @@ class RealTimePerformanceMonitor:
             conn = sqlite3.connect(self.performance_db)
             cursor = conn.cursor()
             cursor.execute('''
-                UPDATE performance_alerts 
-                SET resolved = 1 
+                UPDATE performance_alerts
+                SET resolved = 1
                 WHERE alert_type = ? AND resolved = 0
             ''', (alert_type,))
             conn.commit()
@@ -859,7 +859,7 @@ class RealTimePerformanceMonitor:
         cursor = conn.cursor()
 
         cursor.execute('''
-            INSERT INTO optimization_actions 
+            INSERT INTO optimization_actions
             (action_type, description, success, impact_description)
             VALUES (?, ?, ?, ?)
         ''', (
@@ -881,13 +881,13 @@ class RealTimePerformanceMonitor:
 
         # System metrics summary
         cursor.execute('''
-            SELECT 
+            SELECT
                 AVG(cpu_percent) as avg_cpu,
                 MAX(cpu_percent) as max_cpu,
                 AVG(memory_percent) as avg_memory,
                 MAX(memory_percent) as max_memory,
                 COUNT(*) as metric_count
-            FROM system_metrics 
+            FROM system_metrics
             WHERE timestamp > datetime('now', '-1 hour')
         ''')
 
@@ -895,12 +895,12 @@ class RealTimePerformanceMonitor:
 
         # API metrics summary
         cursor.execute('''
-            SELECT 
+            SELECT
                 AVG(response_time_ms) as avg_response_time,
                 MAX(response_time_ms) as max_response_time,
                 COUNT(*) as request_count,
                 COUNT(CASE WHEN status_code >= 400 THEN 1 END) as error_count
-            FROM api_metrics 
+            FROM api_metrics
             WHERE timestamp > datetime('now', '-1 hour')
         ''')
 
@@ -908,11 +908,11 @@ class RealTimePerformanceMonitor:
 
         # Alert summary
         cursor.execute('''
-            SELECT 
+            SELECT
                 alert_type,
                 severity,
                 COUNT(*) as count
-            FROM performance_alerts 
+            FROM performance_alerts
             WHERE timestamp > datetime('now', '-1 hour')
             GROUP BY alert_type, severity
         ''')
@@ -921,11 +921,11 @@ class RealTimePerformanceMonitor:
 
         # Optimization actions summary
         cursor.execute('''
-            SELECT 
+            SELECT
                 action_type,
                 COUNT(*) as count,
                 SUM(CASE WHEN success THEN 1 ELSE 0 END) as successful
-            FROM optimization_actions 
+            FROM optimization_actions
             WHERE timestamp > datetime('now', '-1 hour')
             GROUP BY action_type
         ''')

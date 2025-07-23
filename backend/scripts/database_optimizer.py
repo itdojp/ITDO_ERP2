@@ -236,7 +236,7 @@ from datetime import datetime
 def upgrade():
     """Add performance optimization indexes."""
     print(f"🔧 Adding performance indexes at {{datetime.utcnow()}}")
-    
+
 '''
 
         for index in self.results["indexes"]:
@@ -255,7 +255,7 @@ def upgrade():
 def downgrade():
     """Remove optimization indexes."""
     print(f"🔧 Removing performance indexes at {datetime.utcnow()}")
-    
+
 '''
 
         for index in self.results["indexes"]:
@@ -289,7 +289,7 @@ def downgrade():
 
         report_content = f"""# Database Performance Optimization Report
 
-**Generated:** {self.results['timestamp']}  
+**Generated:** {self.results['timestamp']}
 **CC02 Version:** v37.0 Phase 4
 
 ## Executive Summary
