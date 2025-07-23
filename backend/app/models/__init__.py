@@ -76,6 +76,21 @@ from app.models.crm_extended import (
     OpportunityExtended,
     SupportTicket,
 )
+
+# CC02 v31.0 Phase 2 - Document Management Models
+from app.models.document_extended import (
+    DocumentActivity,
+    DocumentAnalytics,
+    DocumentApproval,
+    DocumentComment,
+    DocumentExtended,
+    DocumentFolder,
+    DocumentFolderPermission,
+    DocumentShare,
+    DocumentSignature,
+    DocumentTemplate,
+    DocumentWorkflow,
+)
 from app.models.organization import Organization
 from app.models.password_history import PasswordHistory
 from app.models.permission import Permission
@@ -202,4 +217,16 @@ __all__ = [
     "LeadExtended",
     "OpportunityExtended",
     "SupportTicket",
+    # CC02 v31.0 Phase 2 - Document Management Models
+    "DocumentActivity",
+    "DocumentAnalytics",
+    "DocumentApproval",
+    "DocumentComment",
+    "DocumentExtended",
+    "DocumentFolder",
+    "DocumentFolderPermission",
+    "DocumentShare",
+    "DocumentSignature",
+    "DocumentTemplate",
+    "DocumentWorkflow",
 ]

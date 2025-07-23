@@ -13,6 +13,7 @@ from app.api.v1 import (
     customer_activities,
     customers,
     departments,
+    document_v31,  # CC02 v31.0 Phase 2 - Document Management API
     expense_categories,
     expenses,
     finance_v31,  # CC02 v31.0 Phase 2 - Finance Management API
@@ -124,6 +125,9 @@ api_router.include_router(project_v31.router, prefix="/project", tags=["project-
 
 # CC02 v31.0 Phase 2 - CRM Management API
 api_router.include_router(crm_v31.router, prefix="/crm", tags=["crm-v31"])
+
+# CC02 v31.0 Phase 2 - Document Management API
+api_router.include_router(document_v31.router, prefix="/documents", tags=["document-v31"])
 
 
 @api_router.get("/ping")
