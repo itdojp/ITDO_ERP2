@@ -142,8 +142,22 @@ class ExpenseCategoryTree(BaseModel):
         from_attributes = True
 
 
+<<<<<<< HEAD
 # Alias for backward compatibility
 ExpenseCategoryTreeResponse = ExpenseCategoryTree
+=======
+class ExpenseCategoryTreeResponse(BaseModel):
+    """Schema for expense category tree response."""
+
+    tree: List[ExpenseCategoryTree] = Field(
+        default_factory=list, description="Category tree structure"
+    )
+    total_categories: int = Field(..., description="Total number of categories")
+    max_depth: int = Field(..., description="Maximum tree depth")
+
+    class Config:
+        from_attributes = True
+>>>>>>> main
 
 
 class ExpenseCategoryListResponse(BaseModel):

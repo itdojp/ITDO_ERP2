@@ -330,7 +330,11 @@ def get_product_statistics(db: Session, organization_id: Optional[int] = None) -
         query = query.filter(Product.organization_id == organization_id)
 
     total_products = query.count()
+<<<<<<< HEAD
     active_products = query.filter(Product.is_active).count()
+=======
+    active_products = query.filter(Product.is_active == True).count()
+>>>>>>> main
 
     # Products by status
     status_counts = {}

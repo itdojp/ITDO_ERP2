@@ -46,6 +46,10 @@ from app.api.v1 import (
     users_simple,  # v19.0 practical users
     workflows,
 )
+from app.api.v1.endpoints.monitoring.performance import router as performance_router
+
+# New CC02 v35.0 API modules
+from app.api.v1.endpoints.security.audit import router as security_audit_router
 from app.core.database import get_db
 
 api_router = APIRouter()
@@ -114,6 +118,7 @@ api_router.include_router(
 )
 api_router.include_router(reports.router, prefix="/reports", tags=["analytics"])
 
+<<<<<<< HEAD
 # CC02 v31.0 Phase 2 - Finance Management API
 api_router.include_router(finance_v31.router, prefix="/finance", tags=["finance-v31"])
 
@@ -153,6 +158,11 @@ api_router.include_router(workflow_v31.router, prefix="/workflow", tags=["workfl
 from app.api.v1 import audit_v31
 
 api_router.include_router(audit_v31.router, prefix="/audit", tags=["audit-v31"])
+=======
+# CC02 v35.0 - Security and Monitoring APIs
+api_router.include_router(security_audit_router, prefix="/security/audit", tags=["security"])
+api_router.include_router(performance_router, prefix="/monitoring/performance", tags=["monitoring"])
+>>>>>>> main
 
 
 @api_router.get("/ping")
