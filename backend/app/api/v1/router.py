@@ -9,7 +9,7 @@ from app.api.v1 import (
     auth,
     budgets,
     cross_tenant_permissions,
-    crm_v31,  # CC02 v31.0 Phase 2 - CRM Management API
+    # crm_v31,  # CC02 v31.0 Phase 2 - CRM Management API - Temporarily disabled
     customer_activities,
     customers,
     departments,
@@ -123,11 +123,19 @@ api_router.include_router(hr_v31.router, prefix="/hr", tags=["hr-v31"])
 # CC02 v31.0 Phase 2 - Project Management API
 api_router.include_router(project_v31.router, prefix="/project", tags=["project-v31"])
 
-# CC02 v31.0 Phase 2 - CRM Management API
-api_router.include_router(crm_v31.router, prefix="/crm", tags=["crm-v31"])
+# CC02 v31.0 Phase 2 - CRM Management API - Temporarily disabled
+# api_router.include_router(crm_v31.router, prefix="/crm", tags=["crm-v31"])
 
 # CC02 v31.0 Phase 2 - Document Management API
 api_router.include_router(document_v31.router, prefix="/documents", tags=["document-v31"])
+
+# CC02 v31.0 Phase 2 - Notification System API
+from app.api.v1 import notification_v31
+api_router.include_router(notification_v31.router, prefix="/notifications", tags=["notification-v31"])
+
+# CC02 v31.0 Phase 2 - Analytics API
+from app.api.v1 import analytics_v31
+api_router.include_router(analytics_v31.router, prefix="/analytics", tags=["analytics-v31"])
 
 
 @api_router.get("/ping")

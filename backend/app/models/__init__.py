@@ -91,6 +91,34 @@ from app.models.document_extended import (
     DocumentTemplate,
     DocumentWorkflow,
 )
+
+# CC02 v31.0 Phase 2 - Notification System Models
+from app.models.notification_extended import (
+    NotificationExtended,
+    NotificationTemplate,
+    NotificationDelivery,
+    NotificationPreference,
+    NotificationSubscription,
+    NotificationInteraction,
+    NotificationEvent,
+    NotificationRule,
+    NotificationQueue,
+    NotificationAnalytics,
+)
+
+# CC02 v31.0 Phase 2 - Analytics System Models
+from app.models.analytics_extended import (
+    AnalyticsDataSource,
+    AnalyticsMetric,
+    AnalyticsDataPoint,
+    AnalyticsDashboard,
+    AnalyticsReport,
+    AnalyticsReportExecution,
+    AnalyticsAlert,
+    AnalyticsPrediction,
+    AnalyticsInsight,
+    AnalyticsAuditLog,
+)
 from app.models.organization import Organization
 from app.models.password_history import PasswordHistory
 from app.models.permission import Permission
@@ -229,4 +257,26 @@ __all__ = [
     "DocumentSignature",
     "DocumentTemplate",
     "DocumentWorkflow",
+    # CC02 v31.0 Phase 2 - Notification System Models
+    "NotificationExtended",
+    "NotificationTemplate",
+    "NotificationDelivery",
+    "NotificationPreference",
+    "NotificationSubscription",
+    "NotificationInteraction",
+    "NotificationEvent",
+    "NotificationRule",
+    "NotificationQueue",
+    "NotificationAnalytics",
+    # CC02 v31.0 Phase 2 - Analytics System Models
+    "AnalyticsDataSource",
+    "AnalyticsMetric",
+    "AnalyticsDataPoint",
+    "AnalyticsDashboard",
+    "AnalyticsReport",
+    "AnalyticsReportExecution",
+    "AnalyticsAlert",
+    "AnalyticsPrediction",
+    "AnalyticsInsight",
+    "AnalyticsAuditLog",
 ]
