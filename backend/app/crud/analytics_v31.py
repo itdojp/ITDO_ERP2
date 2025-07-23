@@ -15,36 +15,30 @@ Comprehensive CRUD operations for analytics system including:
 """
 
 import uuid
-from datetime import datetime, date, timedelta
+from datetime import datetime, timedelta
 from decimal import Decimal
-from typing import Any, Dict, List, Optional, Tuple
-from sqlalchemy import and_, desc, func, or_, text
-from sqlalchemy.orm import Session, joinedload
-import json
-import statistics
+from typing import Any, Dict, List, Optional
+
 import numpy as np
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-import pandas as pd
+from sqlalchemy import desc, text
+from sqlalchemy.orm import Session
 
 from app.models.analytics_extended import (
-    AnalyticsDataSource,
-    AnalyticsMetric,
-    AnalyticsDataPoint,
+    AggregationType,
+    AlertPriority,
+    AnalyticsAlert,
+    AnalyticsAuditLog,
     AnalyticsDashboard,
+    AnalyticsDataPoint,
+    AnalyticsDataSource,
+    AnalyticsInsight,
+    AnalyticsMetric,
+    AnalyticsPrediction,
     AnalyticsReport,
     AnalyticsReportExecution,
-    AnalyticsAlert,
-    AnalyticsPrediction,
-    AnalyticsInsight,
-    AnalyticsAuditLog,
     AnalyticsType,
-    MetricType,
-    AggregationType,
     PeriodType,
-    DashboardType,
     ReportStatus,
-    AlertPriority,
 )
 
 
@@ -56,12 +50,12 @@ class AnalyticsService:
     # =============================================================================
 
     async def create_data_source(
-        self, 
-        db: Session, 
+        self,
+        db: Session,
         data_source_data: dict
     ) -> AnalyticsDataSource:
         """Create a new analytics data source with connection configuration."""
-        
+
         data_source = AnalyticsDataSource(
             organization_id=data_source_data["organization_id"],
             name=data_source_data["name"],
@@ -85,106 +79,106 @@ class AnalyticsService:
             custom_fields=data_source_data.get("custom_fields", {}),
             created_by=data_source_data["created_by"]
         )
-        
+
         db.add(data_source)
         db.commit()
         db.refresh(data_source)
-        
+
         await self._log_analytics_action(
             db, "create_data_source", "data_source", data_source.id,
             data_source_data["created_by"], {"name": data_source.name}
         )
-        
+
         return data_source
 
     async def test_data_source_connection(
-        self, 
-        db: Session, 
+        self,
+        db: Session,
         data_source_id: str
     ) -> Dict[str, Any]:
         """Test data source connection and return health status."""
-        
+
         data_source = db.query(AnalyticsDataSource).filter(
             AnalyticsDataSource.id == data_source_id
         ).first()
-        
+
         if not data_source:
             return {"status": "error", "message": "Data source not found"}
-        
+
         try:
             # Simulate connection test based on source type
             connection_result = await self._test_connection_by_type(data_source)
-            
+
             # Update health status
             data_source.health_status = "healthy" if connection_result["success"] else "unhealthy"
             data_source.last_error = None if connection_result["success"] else connection_result.get("error")
-            
+
             db.commit()
-            
+
             return {
                 "status": "success" if connection_result["success"] else "error",
                 "connection_time_ms": connection_result.get("connection_time_ms", 0),
                 "message": connection_result.get("message", ""),
                 "details": connection_result.get("details", {})
             }
-            
+
         except Exception as e:
             data_source.health_status = "unhealthy"
             data_source.last_error = str(e)
             data_source.error_count += 1
             db.commit()
-            
+
             return {"status": "error", "message": str(e)}
 
     async def sync_data_source(
-        self, 
-        db: Session, 
+        self,
+        db: Session,
         data_source_id: str
     ) -> Dict[str, Any]:
         """Sync data from data source and update metrics."""
-        
+
         data_source = db.query(AnalyticsDataSource).filter(
             AnalyticsDataSource.id == data_source_id
         ).first()
-        
+
         if not data_source:
             return {"status": "error", "message": "Data source not found"}
-        
+
         sync_start = datetime.utcnow()
-        
+
         try:
             # Perform data sync based on source type
             sync_result = await self._sync_data_by_type(db, data_source)
-            
+
             # Update sync status
             data_source.last_sync_at = sync_start
             data_source.next_sync_at = await self._calculate_next_sync(data_source)
             data_source.records_processed += sync_result.get("records_processed", 0)
-            
+
             processing_time = (datetime.utcnow() - sync_start).total_seconds()
             data_source.processing_time_avg = (
                 (data_source.processing_time_avg or 0 + processing_time) / 2
             )
-            
+
             db.commit()
-            
+
             return {
                 "status": "success",
                 "records_processed": sync_result.get("records_processed", 0),
                 "processing_time_seconds": processing_time,
                 "metrics_updated": sync_result.get("metrics_updated", 0)
             }
-            
+
         except Exception as e:
             data_source.last_error = str(e)
             data_source.error_count += 1
             db.commit()
-            
+
             return {"status": "error", "message": str(e)}
 
     async def _test_connection_by_type(self, data_source: AnalyticsDataSource) -> Dict[str, Any]:
         """Test connection based on data source type."""
-        
+
         if data_source.source_type == "database":
             return await self._test_database_connection(data_source)
         elif data_source.source_type == "api":
@@ -195,16 +189,16 @@ class AnalyticsService:
             return {"success": True, "message": "Mock connection test successful"}
 
     async def _sync_data_by_type(
-        self, 
-        db: Session, 
+        self,
+        db: Session,
         data_source: AnalyticsDataSource
     ) -> Dict[str, Any]:
         """Sync data based on data source type."""
-        
+
         # Mock data sync - in real implementation, this would connect to actual data sources
         records_processed = np.random.randint(100, 1000)
         metrics_updated = np.random.randint(5, 20)
-        
+
         return {
             "records_processed": records_processed,
             "metrics_updated": metrics_updated
@@ -215,12 +209,12 @@ class AnalyticsService:
     # =============================================================================
 
     async def create_metric(
-        self, 
-        db: Session, 
+        self,
+        db: Session,
         metric_data: dict
     ) -> AnalyticsMetric:
         """Create a new analytics metric with calculation configuration."""
-        
+
         metric = AnalyticsMetric(
             organization_id=metric_data["organization_id"],
             data_source_id=metric_data.get("data_source_id"),
@@ -260,49 +254,49 @@ class AnalyticsService:
             analytics_metadata=metric_data.get("metadata", {}),
             created_by=metric_data["created_by"]
         )
-        
+
         db.add(metric)
         db.commit()
         db.refresh(metric)
-        
+
         # Schedule first calculation
         await self._schedule_metric_calculation(db, metric.id)
-        
+
         await self._log_analytics_action(
             db, "create_metric", "metric", metric.id,
             metric_data["created_by"], {"name": metric.name, "type": metric.metric_type.value}
         )
-        
+
         return metric
 
     async def calculate_metric_value(
-        self, 
-        db: Session, 
+        self,
+        db: Session,
         metric_id: str,
         period_start: Optional[datetime] = None,
         period_end: Optional[datetime] = None
     ) -> Dict[str, Any]:
         """Calculate metric value for specified period."""
-        
+
         metric = db.query(AnalyticsMetric).filter(
             AnalyticsMetric.id == metric_id
         ).first()
-        
+
         if not metric:
             return {"status": "error", "message": "Metric not found"}
-        
+
         try:
             # Default period to last 24 hours if not specified
             if not period_end:
                 period_end = datetime.utcnow()
             if not period_start:
                 period_start = period_end - timedelta(days=1)
-            
+
             # Execute calculation based on formula
             calculation_result = await self._execute_metric_calculation(
                 db, metric, period_start, period_end
             )
-            
+
             # Store data point
             data_point = AnalyticsDataPoint(
                 organization_id=metric.organization_id,
@@ -326,20 +320,20 @@ class AnalyticsService:
                 source_query=calculation_result.get("source_query"),
                 calculation_metadata=calculation_result.get("metadata", {})
             )
-            
+
             db.add(data_point)
-            
+
             # Update metric current value and trend
             await self._update_metric_trend(db, metric, calculation_result["value"])
-            
+
             metric.last_calculated_at = datetime.utcnow()
             metric.next_calculation_at = await self._calculate_next_calculation(metric)
-            
+
             db.commit()
-            
+
             # Check for alerts
             await self._check_metric_alerts(db, metric, calculation_result["value"])
-            
+
             return {
                 "status": "success",
                 "metric_id": metric_id,
@@ -349,7 +343,7 @@ class AnalyticsService:
                 "quality_score": float(calculation_result.get("quality_score", 1.0)),
                 "calculation_metadata": calculation_result.get("metadata", {})
             }
-            
+
         except Exception as e:
             await self._log_analytics_action(
                 db, "calculate_metric_error", "metric", metric_id,
@@ -365,12 +359,12 @@ class AnalyticsService:
         period_end: datetime
     ) -> Dict[str, Any]:
         """Execute metric calculation based on formula and configuration."""
-        
+
         # Mock calculation - in real implementation, this would execute actual SQL queries
         # or call external APIs based on the data source and formula
-        
+
         base_value = np.random.uniform(100, 1000)
-        
+
         if metric.aggregation_type == AggregationType.SUM:
             value = base_value * np.random.uniform(1, 10)
         elif metric.aggregation_type == AggregationType.COUNT:
@@ -383,10 +377,10 @@ class AnalyticsService:
             value = base_value * 2
         else:
             value = base_value
-        
+
         # Apply multiplier
         value = value * float(metric.multiplier or 1)
-        
+
         return {
             "value": Decimal(str(round(value, metric.decimal_places or 2))),
             "raw_value": Decimal(str(round(base_value, 2))),
@@ -413,12 +407,12 @@ class AnalyticsService:
         period_count: int = 30
     ) -> List[Dict[str, Any]]:
         """Get metric trend data for specified periods."""
-        
+
         data_points = db.query(AnalyticsDataPoint).filter(
             AnalyticsDataPoint.metric_id == metric_id,
             AnalyticsDataPoint.period_type == period_type
         ).order_by(desc(AnalyticsDataPoint.timestamp)).limit(period_count).all()
-        
+
         trends = []
         for point in reversed(data_points):
             trends.append({
@@ -430,7 +424,7 @@ class AnalyticsService:
                 "quality_score": float(point.quality_score) if point.quality_score else None,
                 "is_anomaly": point.is_anomaly
             })
-        
+
         return trends
 
     # =============================================================================
@@ -438,15 +432,15 @@ class AnalyticsService:
     # =============================================================================
 
     async def create_dashboard(
-        self, 
-        db: Session, 
+        self,
+        db: Session,
         dashboard_data: dict
     ) -> AnalyticsDashboard:
         """Create a new analytics dashboard with widget configuration."""
-        
+
         # Generate unique slug
         slug = dashboard_data.get("slug") or self._generate_dashboard_slug(dashboard_data["name"])
-        
+
         dashboard = AnalyticsDashboard(
             organization_id=dashboard_data["organization_id"],
             name=dashboard_data["name"],
@@ -478,20 +472,20 @@ class AnalyticsService:
             analytics_metadata=dashboard_data.get("metadata", {}),
             created_by=dashboard_data["created_by"]
         )
-        
+
         # Generate share token if shared
         if dashboard.is_shared:
             dashboard.share_token = str(uuid.uuid4())
-        
+
         db.add(dashboard)
         db.commit()
         db.refresh(dashboard)
-        
+
         await self._log_analytics_action(
             db, "create_dashboard", "dashboard", dashboard.id,
             dashboard_data["created_by"], {"name": dashboard.name, "type": dashboard.dashboard_type.value}
         )
-        
+
         return dashboard
 
     async def get_dashboard_data(
@@ -503,19 +497,19 @@ class AnalyticsService:
         filters: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """Get dashboard data with all widget information."""
-        
+
         dashboard = db.query(AnalyticsDashboard).filter(
             AnalyticsDashboard.id == dashboard_id
         ).first()
-        
+
         if not dashboard:
             return {"status": "error", "message": "Dashboard not found"}
-        
+
         # Update view count
         dashboard.view_count += 1
         dashboard.last_viewed_at = datetime.utcnow()
         db.commit()
-        
+
         # Get widget data
         widget_data = {}
         for widget in dashboard.widgets:
@@ -524,7 +518,7 @@ class AnalyticsService:
                 widget_data[widget_id] = await self._get_widget_data(
                     db, widget, period_start, period_end, filters
                 )
-        
+
         return {
             "status": "success",
             "dashboard": {
@@ -554,9 +548,9 @@ class AnalyticsService:
         filters: Optional[Dict[str, Any]]
     ) -> Dict[str, Any]:
         """Get data for individual dashboard widget."""
-        
+
         widget_type = widget.get("type", "metric")
-        
+
         if widget_type == "metric":
             return await self._get_metric_widget_data(db, widget, period_start, period_end, filters)
         elif widget_type == "chart":
@@ -577,23 +571,23 @@ class AnalyticsService:
         filters: Optional[Dict[str, Any]]
     ) -> Dict[str, Any]:
         """Get data for metric widget."""
-        
+
         metric_id = widget.get("metric_id")
         if not metric_id:
             return {"type": "metric", "data": {}, "status": "missing_metric_id"}
-        
+
         metric = db.query(AnalyticsMetric).filter(
             AnalyticsMetric.id == metric_id
         ).first()
-        
+
         if not metric:
             return {"type": "metric", "data": {}, "status": "metric_not_found"}
-        
+
         # Get latest value
         latest_point = db.query(AnalyticsDataPoint).filter(
             AnalyticsDataPoint.metric_id == metric_id
         ).order_by(desc(AnalyticsDataPoint.timestamp)).first()
-        
+
         return {
             "type": "metric",
             "data": {
@@ -619,12 +613,12 @@ class AnalyticsService:
     # =============================================================================
 
     async def create_report(
-        self, 
-        db: Session, 
+        self,
+        db: Session,
         report_data: dict
     ) -> AnalyticsReport:
         """Create a new analytics report with scheduling configuration."""
-        
+
         report = AnalyticsReport(
             organization_id=report_data["organization_id"],
             name=report_data["name"],
@@ -654,38 +648,38 @@ class AnalyticsService:
             analytics_metadata=report_data.get("metadata", {}),
             created_by=report_data["created_by"]
         )
-        
+
         # Calculate next run if scheduled
         if report.is_scheduled and report.schedule_cron:
             report.next_run_at = await self._calculate_next_report_run(report.schedule_cron)
-        
+
         db.add(report)
         db.commit()
         db.refresh(report)
-        
+
         await self._log_analytics_action(
             db, "create_report", "report", report.id,
             report_data["created_by"], {"name": report.name, "type": report.report_type}
         )
-        
+
         return report
 
     async def generate_report(
-        self, 
-        db: Session, 
+        self,
+        db: Session,
         report_id: str,
         execution_type: str = "manual",
         triggered_by: Optional[str] = None
     ) -> Dict[str, Any]:
         """Generate report and create execution record."""
-        
+
         report = db.query(AnalyticsReport).filter(
             AnalyticsReport.id == report_id
         ).first()
-        
+
         if not report:
             return {"status": "error", "message": "Report not found"}
-        
+
         # Create execution record
         execution = AnalyticsReportExecution(
             organization_id=report.organization_id,
@@ -698,14 +692,14 @@ class AnalyticsService:
             filters=report.filters,
             output_format=report.format
         )
-        
+
         db.add(execution)
         db.commit()
-        
+
         try:
             # Generate report
             generation_result = await self._generate_report_content(db, report, execution)
-            
+
             # Update execution with results
             execution.status = ReportStatus.COMPLETED
             execution.completed_at = datetime.utcnow()
@@ -715,7 +709,7 @@ class AnalyticsService:
             execution.records_processed = generation_result.get("records_processed")
             execution.metrics_calculated = generation_result.get("metrics_calculated")
             execution.charts_generated = generation_result.get("charts_generated")
-            
+
             # Update report statistics
             report.generation_count += 1
             report.last_run_at = execution.completed_at
@@ -725,13 +719,13 @@ class AnalyticsService:
             )
             report.last_output_path = execution.output_path
             report.last_output_size = execution.output_size_bytes
-            
+
             db.commit()
-            
+
             # Send notifications if configured
             if report.recipients:
                 await self._send_report_notifications(db, report, execution)
-            
+
             return {
                 "status": "success",
                 "execution_id": execution.id,
@@ -739,16 +733,16 @@ class AnalyticsService:
                 "generation_time_ms": execution.duration_ms,
                 "records_processed": execution.records_processed
             }
-            
+
         except Exception as e:
             execution.status = ReportStatus.FAILED
             execution.completed_at = datetime.utcnow()
             execution.error_message = str(e)
-            
+
             report.last_error = str(e)
-            
+
             db.commit()
-            
+
             return {"status": "error", "message": str(e), "execution_id": execution.id}
 
     # =============================================================================
@@ -756,12 +750,12 @@ class AnalyticsService:
     # =============================================================================
 
     async def create_prediction_model(
-        self, 
-        db: Session, 
+        self,
+        db: Session,
         prediction_data: dict
     ) -> AnalyticsPrediction:
         """Create and train a predictive analytics model."""
-        
+
         prediction = AnalyticsPrediction(
             organization_id=prediction_data["organization_id"],
             metric_id=prediction_data.get("metric_id"),
@@ -779,41 +773,41 @@ class AnalyticsService:
             model_metadata=prediction_data.get("metadata", {}),
             created_by=prediction_data["created_by"]
         )
-        
+
         db.add(prediction)
         db.commit()
         db.refresh(prediction)
-        
+
         # Train initial model
         await self._train_prediction_model(db, prediction.id)
-        
+
         await self._log_analytics_action(
             db, "create_prediction", "prediction", prediction.id,
             prediction_data["created_by"], {"name": prediction.name, "type": prediction.prediction_type}
         )
-        
+
         return prediction
 
     async def _train_prediction_model(
-        self, 
-        db: Session, 
+        self,
+        db: Session,
         prediction_id: str
     ) -> Dict[str, Any]:
         """Train prediction model with historical data."""
-        
+
         prediction = db.query(AnalyticsPrediction).filter(
             AnalyticsPrediction.id == prediction_id
         ).first()
-        
+
         if not prediction:
             return {"status": "error", "message": "Prediction model not found"}
-        
+
         try:
             training_start = datetime.utcnow()
-            
+
             # Get training data (mock implementation)
             training_data = await self._get_prediction_training_data(db, prediction)
-            
+
             # Train model based on type
             if prediction.model_type == "linear_regression":
                 model_result = await self._train_linear_regression(training_data, prediction)
@@ -821,7 +815,7 @@ class AnalyticsService:
                 model_result = await self._train_arima(training_data, prediction)
             else:
                 model_result = await self._train_default_model(training_data, prediction)
-            
+
             # Update prediction with results
             prediction.last_trained_at = training_start
             prediction.training_duration = int((datetime.utcnow() - training_start).total_seconds())
@@ -831,16 +825,16 @@ class AnalyticsService:
             prediction.r2_score = model_result.get("r2_score")
             prediction.model_version = f"v{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
             prediction.training_data_points = model_result.get("data_points", 0)
-            
+
             # Generate and cache predictions
             predictions = await self._generate_predictions(model_result["model"], prediction)
             prediction.cached_predictions = predictions
             prediction.cache_valid_until = datetime.utcnow() + timedelta(
                 days=7 if prediction.update_frequency == "weekly" else 1
             )
-            
+
             db.commit()
-            
+
             return {
                 "status": "success",
                 "accuracy_score": float(prediction.accuracy_score) if prediction.accuracy_score else None,
@@ -848,11 +842,11 @@ class AnalyticsService:
                 "data_points": model_result.get("data_points", 0),
                 "predictions_generated": len(predictions)
             }
-            
+
         except Exception as e:
             prediction.last_error = str(e)
             db.commit()
-            
+
             return {"status": "error", "message": str(e)}
 
     async def get_predictions(
@@ -862,30 +856,30 @@ class AnalyticsService:
         forecast_days: Optional[int] = None
     ) -> Dict[str, Any]:
         """Get predictions from trained model."""
-        
+
         prediction = db.query(AnalyticsPrediction).filter(
             AnalyticsPrediction.id == prediction_id
         ).first()
-        
+
         if not prediction:
             return {"status": "error", "message": "Prediction model not found"}
-        
+
         # Check if cached predictions are valid
-        if (prediction.cached_predictions and 
-            prediction.cache_valid_until and 
+        if (prediction.cached_predictions and
+            prediction.cache_valid_until and
             prediction.cache_valid_until > datetime.utcnow()):
-            
+
             predictions = prediction.cached_predictions
         else:
             # Regenerate predictions
             await self._train_prediction_model(db, prediction_id)
             db.refresh(prediction)
             predictions = prediction.cached_predictions or []
-        
+
         # Filter by forecast days if specified
         if forecast_days:
             predictions = predictions[:forecast_days]
-        
+
         return {
             "status": "success",
             "prediction_id": prediction_id,
@@ -901,12 +895,12 @@ class AnalyticsService:
     # =============================================================================
 
     async def create_alert(
-        self, 
-        db: Session, 
+        self,
+        db: Session,
         alert_data: dict
     ) -> AnalyticsAlert:
         """Create a new analytics alert with threshold configuration."""
-        
+
         alert = AnalyticsAlert(
             organization_id=alert_data["organization_id"],
             metric_id=alert_data["metric_id"],
@@ -929,46 +923,46 @@ class AnalyticsService:
             alert_metadata=alert_data.get("metadata", {}),
             created_by=alert_data["created_by"]
         )
-        
+
         db.add(alert)
         db.commit()
         db.refresh(alert)
-        
+
         await self._log_analytics_action(
             db, "create_alert", "alert", alert.id,
             alert_data["created_by"], {"name": alert.name, "metric_id": alert.metric_id}
         )
-        
+
         return alert
 
     async def _check_metric_alerts(
-        self, 
-        db: Session, 
-        metric: AnalyticsMetric, 
+        self,
+        db: Session,
+        metric: AnalyticsMetric,
         current_value: Decimal
     ) -> List[Dict[str, Any]]:
         """Check if metric value triggers any alerts."""
-        
+
         alerts = db.query(AnalyticsAlert).filter(
             AnalyticsAlert.metric_id == metric.id,
-            AnalyticsAlert.is_active == True,
-            AnalyticsAlert.is_suppressed == False
+            AnalyticsAlert.is_active,
+            not AnalyticsAlert.is_suppressed
         ).all()
-        
+
         triggered_alerts = []
-        
+
         for alert in alerts:
             is_triggered = await self._evaluate_alert_condition(alert, current_value, metric)
-            
+
             if is_triggered:
                 # Update alert status
                 alert.is_triggered = True
                 alert.trigger_count += 1
                 alert.last_triggered_at = datetime.utcnow()
-                
+
                 # Send notifications
                 await self._send_alert_notifications(db, alert, metric, current_value)
-                
+
                 triggered_alerts.append({
                     "alert_id": alert.id,
                     "name": alert.name,
@@ -976,11 +970,11 @@ class AnalyticsService:
                     "current_value": float(current_value),
                     "triggered_at": alert.last_triggered_at.isoformat()
                 })
-            
+
             alert.last_evaluated_at = datetime.utcnow()
-        
+
         db.commit()
-        
+
         return triggered_alerts
 
     # =============================================================================
@@ -988,36 +982,36 @@ class AnalyticsService:
     # =============================================================================
 
     async def generate_insights(
-        self, 
-        db: Session, 
+        self,
+        db: Session,
         organization_id: str,
         analytics_types: Optional[List[AnalyticsType]] = None,
         period_days: int = 30
     ) -> List[Dict[str, Any]]:
         """Generate AI-powered analytics insights."""
-        
+
         insights = []
-        
+
         # Get metrics for analysis
         query = db.query(AnalyticsMetric).filter(
             AnalyticsMetric.organization_id == organization_id,
-            AnalyticsMetric.is_active == True
+            AnalyticsMetric.is_active
         )
-        
+
         if analytics_types:
             query = query.filter(AnalyticsMetric.analytics_type.in_(analytics_types))
-        
+
         metrics = query.all()
-        
+
         for metric in metrics:
             # Generate insights for each metric
             metric_insights = await self._generate_metric_insights(db, metric, period_days)
             insights.extend(metric_insights)
-        
+
         # Generate cross-metric insights
         cross_insights = await self._generate_cross_metric_insights(db, metrics, period_days)
         insights.extend(cross_insights)
-        
+
         # Store insights in database
         for insight_data in insights:
             insight = AnalyticsInsight(
@@ -1043,11 +1037,11 @@ class AnalyticsService:
                 tags=insight_data.get("tags", []),
                 insight_metadata=insight_data.get("metadata", {})
             )
-            
+
             db.add(insight)
-        
+
         db.commit()
-        
+
         return insights
 
     # =============================================================================
@@ -1064,7 +1058,7 @@ class AnalyticsService:
         context_data: Optional[Dict[str, Any]] = None
     ):
         """Log analytics action for audit trail."""
-        
+
         audit_log = AnalyticsAuditLog(
             organization_id=context_data.get("organization_id") if context_data else None,
             action_type=action_type,
@@ -1074,7 +1068,7 @@ class AnalyticsService:
             context_data=context_data or {},
             impact_level="medium"
         )
-        
+
         db.add(audit_log)
         db.commit()
 
@@ -1088,7 +1082,7 @@ class AnalyticsService:
     async def _calculate_next_sync(self, data_source: AnalyticsDataSource) -> datetime:
         """Calculate next sync time based on frequency."""
         now = datetime.utcnow()
-        
+
         if data_source.sync_frequency == "realtime":
             return now
         elif data_source.sync_frequency == "hourly":
@@ -1102,23 +1096,23 @@ class AnalyticsService:
 
     async def get_system_health(self, db: Session) -> Dict[str, Any]:
         """Get analytics system health status."""
-        
+
         try:
             # Test database connectivity
             db.execute(text("SELECT 1"))
-            
+
             # Get system statistics
             total_metrics = db.query(AnalyticsMetric).count()
             active_data_sources = db.query(AnalyticsDataSource).filter(
-                AnalyticsDataSource.is_active == True
+                AnalyticsDataSource.is_active
             ).count()
             total_dashboards = db.query(AnalyticsDashboard).filter(
-                AnalyticsDashboard.is_active == True
+                AnalyticsDashboard.is_active
             ).count()
             recent_data_points = db.query(AnalyticsDataPoint).filter(
                 AnalyticsDataPoint.created_at >= datetime.utcnow() - timedelta(hours=24)
             ).count()
-            
+
             return {
                 "status": "healthy",
                 "database_connection": "OK",
@@ -1132,7 +1126,7 @@ class AnalyticsService:
                 "version": "31.0",
                 "timestamp": datetime.utcnow().isoformat()
             }
-            
+
         except Exception as e:
             return {
                 "status": "unhealthy",

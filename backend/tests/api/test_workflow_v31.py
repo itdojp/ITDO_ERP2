@@ -15,31 +15,23 @@ Comprehensive test suite for workflow management including:
 Tests 8 main endpoint groups with 60+ individual endpoints
 """
 
-import pytest
-from datetime import datetime, date, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
-from unittest.mock import Mock, AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
+import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
 
-from app.api.v1.workflow_v31 import router
 from app.main import app
 from app.models.workflow_extended import (
+    TaskPriority,
+    TaskStatus,
     WorkflowDefinition,
     WorkflowInstance,
-    WorkflowTask,
-    WorkflowComment,
-    WorkflowAttachment,
-    WorkflowTemplate,
-    WorkflowActivity,
-    WorkflowAnalytics,
-    WorkflowType,
-    WorkflowStatus,
     WorkflowInstanceStatus,
-    TaskStatus,
-    TaskPriority,
-    ActionType,
+    WorkflowStatus,
+    WorkflowTask,
+    WorkflowType,
 )
 
 
@@ -544,7 +536,7 @@ class TestTaskManagement:
 
 
 # =============================================================================
-# Comments Management Tests  
+# Comments Management Tests
 # =============================================================================
 
 class TestCommentsManagement:
@@ -774,7 +766,7 @@ class TestAnalyticsReporting:
 
         period_start = date.today() - timedelta(days=30)
         period_end = date.today()
-        
+
         response = client.get(f"/analytics/performance?organization_id=org-123&period_start={period_start}&period_end={period_end}")
         assert response.status_code == 200
         data = response.json()
@@ -811,7 +803,7 @@ class TestAnalyticsReporting:
 
         period_start = date.today() - timedelta(days=30)
         period_end = date.today()
-        
+
         response = client.get(f"/analytics/sla-compliance?organization_id=org-123&period_start={period_start}&period_end={period_end}")
         assert response.status_code == 200
         data = response.json()
@@ -1049,14 +1041,14 @@ class TestWorkflowIntegration:
     def test_complete_workflow_lifecycle(self, mock_get_service, client, sample_workflow_definition, sample_workflow_instance, sample_workflow_task):
         """Test complete workflow lifecycle."""
         mock_service = Mock()
-        
+
         # Mock sequential operations
         mock_service.create_workflow_definition = AsyncMock(return_value=sample_workflow_definition)
         mock_service.start_workflow_instance = AsyncMock(return_value=sample_workflow_instance)
         mock_service.get_workflow_task = AsyncMock(return_value=sample_workflow_task)
         mock_service.complete_task = AsyncMock(return_value=True)
         mock_service.get_workflow_instance = AsyncMock(return_value=sample_workflow_instance)
-        
+
         mock_get_service.return_value = mock_service
 
         # 1. Create workflow definition
@@ -1067,7 +1059,7 @@ class TestWorkflowIntegration:
             "definition_schema": {"steps": [{"id": "step1", "name": "Review"}]},
             "created_by": "user-123"
         }
-        
+
         response = client.post("/definitions", json=definition_data)
         assert response.status_code == 200
 
@@ -1077,14 +1069,14 @@ class TestWorkflowIntegration:
             "title": "Test Instance",
             "initiated_by": "user-123"
         }
-        
+
         response = client.post("/instances", json=instance_data)
         assert response.status_code == 200
 
         # 3. Get and complete task
         response = client.get("/tasks/task-123")
         assert response.status_code == 200
-        
+
         response = client.post("/tasks/task-123/complete?result=completed&completed_by=user-123")
         assert response.status_code == 200
 
@@ -1096,7 +1088,7 @@ class TestWorkflowIntegration:
     def test_workflow_with_comments_and_attachments(self, mock_get_service, client):
         """Test workflow with comments and attachments."""
         mock_service = Mock()
-        
+
         # Mock comment creation
         mock_comment = Mock()
         mock_comment.__dict__ = {
@@ -1105,7 +1097,7 @@ class TestWorkflowIntegration:
             "author_id": "user-123"
         }
         mock_service.create_comment = AsyncMock(return_value=mock_comment)
-        
+
         # Mock attachment upload
         mock_attachment = Mock()
         mock_attachment.__dict__ = {
@@ -1114,7 +1106,7 @@ class TestWorkflowIntegration:
             "uploaded_by": "user-123"
         }
         mock_service.upload_attachment = AsyncMock(return_value=mock_attachment)
-        
+
         mock_get_service.return_value = mock_service
 
         # Add comment
@@ -1123,7 +1115,7 @@ class TestWorkflowIntegration:
             "comment_text": "Progress update",
             "author_id": "user-123"
         }
-        
+
         response = client.post("/tasks/task-123/comments", json=comment_data)
         assert response.status_code == 200
 
@@ -1135,7 +1127,7 @@ class TestWorkflowIntegration:
             "file_size": 2048,
             "uploaded_by": "user-123"
         }
-        
+
         response = client.post("/tasks/task-123/attachments", json=attachment_data)
         assert response.status_code == 200
 

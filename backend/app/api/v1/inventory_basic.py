@@ -3,25 +3,33 @@ Basic inventory management API endpoints for ERP v17.0
 Comprehensive inventory tracking, warehouse management, and stock operations
 """
 
-from typing import List, Optional
-from datetime import datetime, date
+from datetime import date, datetime
 from decimal import Decimal
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from typing import List, Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
+from app.core.auth import get_current_user
 from app.core.database import get_db
 from app.core.exceptions import BusinessLogicError
-from app.models.inventory import MovementType, InventoryStatus
-from app.schemas.inventory_basic import (
-    WarehouseCreate, WarehouseUpdate, WarehouseResponse,
-    InventoryItemCreate, InventoryItemUpdate, InventoryItemResponse,
-    StockMovementCreate, StockMovementResponse,
-    StockAdjustmentCreate, StockReservationCreate, StockTransferCreate,
-    InventoryStatistics, LowStockAlert, ExpiryAlert
-)
 from app.crud import inventory_basic as crud
-from app.core.auth import get_current_user
-
+from app.models.inventory import InventoryStatus, MovementType
+from app.schemas.inventory_basic import (
+    ExpiryAlert,
+    InventoryItemCreate,
+    InventoryItemResponse,
+    InventoryItemUpdate,
+    InventoryStatistics,
+    LowStockAlert,
+    StockAdjustmentCreate,
+    StockMovementCreate,
+    StockMovementResponse,
+    StockReservationCreate,
+    WarehouseCreate,
+    WarehouseResponse,
+    WarehouseUpdate,
+)
 
 router = APIRouter(prefix="/inventory-basic", tags=["inventory-basic"])
 
@@ -60,7 +68,7 @@ async def get_warehouses(
         organization_id=organization_id,
         is_active=is_active
     )
-    
+
     return [crud.convert_warehouse_to_response(warehouse) for warehouse in warehouses]
 
 
@@ -74,7 +82,7 @@ async def get_warehouse(
     warehouse = crud.get_warehouse_by_id(db, warehouse_id)
     if not warehouse:
         raise HTTPException(status_code=404, detail="Warehouse not found")
-    
+
     return crud.convert_warehouse_to_response(warehouse)
 
 
@@ -90,7 +98,7 @@ async def update_warehouse(
         warehouse = crud.update_warehouse(db, warehouse_id, warehouse_data, current_user.id)
         if not warehouse:
             raise HTTPException(status_code=404, detail="Warehouse not found")
-        
+
         return crud.convert_warehouse_to_response(warehouse)
     except BusinessLogicError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -130,7 +138,7 @@ async def get_inventory_items(
             inventory_status = InventoryStatus(status)
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid status value")
-    
+
     items, total = crud.get_inventory_items(
         db=db,
         skip=skip,
@@ -141,7 +149,7 @@ async def get_inventory_items(
         status=inventory_status,
         low_stock_only=low_stock_only
     )
-    
+
     return [crud.convert_inventory_item_to_response(item) for item in items]
 
 
@@ -155,7 +163,7 @@ async def get_inventory_item(
     item = crud.get_inventory_item_by_id(db, item_id)
     if not item:
         raise HTTPException(status_code=404, detail="Inventory item not found")
-    
+
     return crud.convert_inventory_item_to_response(item)
 
 
@@ -170,7 +178,7 @@ async def update_inventory_item(
     item = crud.update_inventory_item(db, item_id, item_data, current_user.id)
     if not item:
         raise HTTPException(status_code=404, detail="Inventory item not found")
-    
+
     return crud.convert_inventory_item_to_response(item)
 
 
@@ -209,7 +217,7 @@ async def get_stock_movements(
             movement_type_enum = MovementType(movement_type)
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid movement type")
-    
+
     movements, total = crud.get_stock_movements(
         db=db,
         skip=skip,
@@ -221,7 +229,7 @@ async def get_stock_movements(
         from_date=from_date,
         to_date=to_date
     )
-    
+
     return [crud.convert_stock_movement_to_response(movement) for movement in movements]
 
 
@@ -254,13 +262,13 @@ async def reserve_stock(
         quantity=reservation_data.quantity,
         reserved_by=current_user.id
     )
-    
+
     if not success:
         raise HTTPException(
-            status_code=400, 
+            status_code=400,
             detail="Insufficient stock available for reservation"
         )
-    
+
     return {"message": "Stock reserved successfully", "success": True}
 
 
@@ -278,10 +286,10 @@ async def release_reservation(
         quantity=quantity,
         released_by=current_user.id
     )
-    
+
     if not success:
         raise HTTPException(status_code=404, detail="Inventory item not found")
-    
+
     return {"message": "Reservation released successfully", "success": True}
 
 
@@ -299,7 +307,7 @@ async def get_inventory_statistics(
         organization_id=organization_id,
         warehouse_id=warehouse_id
     )
-    
+
     return InventoryStatistics(**stats)
 
 
@@ -319,14 +327,14 @@ async def get_low_stock_alerts(
         organization_id=organization_id,
         low_stock_only=True
     )
-    
+
     alerts = []
     for item in items:
         # Get product and warehouse info
         from app.models.product import Product
         product = db.query(Product).filter(Product.id == item.product_id).first()
         warehouse = crud.get_warehouse_by_id(db, item.warehouse_id)
-        
+
         if product and warehouse:
             alerts.append(LowStockAlert(
                 product_id=item.product_id,
@@ -339,7 +347,7 @@ async def get_low_stock_alerts(
                 reorder_point=item.reorder_point,
                 needs_reorder=item.needs_reorder
             ))
-    
+
     return alerts
 
 
@@ -359,7 +367,7 @@ async def get_expiry_alerts(
         warehouse_id=warehouse_id,
         organization_id=organization_id
     )
-    
+
     alerts = []
     for item in items:
         if item.is_near_expiry(days_ahead) and item.expiry_date:
@@ -367,7 +375,7 @@ async def get_expiry_alerts(
             from app.models.product import Product
             product = db.query(Product).filter(Product.id == item.product_id).first()
             warehouse = crud.get_warehouse_by_id(db, item.warehouse_id)
-            
+
             if product and warehouse:
                 alerts.append(ExpiryAlert(
                     product_id=item.product_id,
@@ -381,7 +389,7 @@ async def get_expiry_alerts(
                     lot_number=item.lot_number,
                     batch_number=item.batch_number
                 ))
-    
+
     return alerts
 
 
@@ -402,23 +410,23 @@ async def get_inventory_valuation(
         warehouse_id=warehouse_id,
         organization_id=organization_id
     )
-    
+
     total_value = Decimal(0)
     item_count = 0
     valuation_items = []
-    
+
     for item in items:
         if item.total_cost and item.quantity_on_hand > 0:
             # Get product info
             from app.models.product import Product
             product = db.query(Product).filter(Product.id == item.product_id).first()
             warehouse = crud.get_warehouse_by_id(db, item.warehouse_id)
-            
+
             if product and warehouse:
                 item_value = item.total_cost
                 total_value += item_value
                 item_count += 1
-                
+
                 valuation_items.append({
                     "product_id": item.product_id,
                     "product_code": product.code,
@@ -429,7 +437,7 @@ async def get_inventory_valuation(
                     "average_cost": float(item.average_cost) if item.average_cost else None,
                     "total_value": float(item_value)
                 })
-    
+
     return {
         "as_of_date": as_of_date or date.today(),
         "total_items": item_count,
@@ -449,12 +457,12 @@ async def get_inventory_context(
     item = crud.get_inventory_item_by_id(db, item_id)
     if not item:
         raise HTTPException(status_code=404, detail="Inventory item not found")
-    
+
     # Get related entities
     from app.models.product import Product
     product = db.query(Product).filter(Product.id == item.product_id).first()
     warehouse = crud.get_warehouse_by_id(db, item.warehouse_id)
-    
+
     return {
         "inventory_item_id": item.id,
         "product": product.get_erp_context() if product else None,

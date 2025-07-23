@@ -3,7 +3,7 @@ HR Management API - CC02 v31.0 Phase 2
 
 Complete HR management system with 10 comprehensive endpoints:
 1. Employee Management
-2. Payroll Processing  
+2. Payroll Processing
 3. Leave Management
 4. Performance Reviews
 5. Training Management
@@ -14,8 +14,7 @@ Complete HR management system with 10 comprehensive endpoints:
 10. HR Analytics
 """
 
-from datetime import date, datetime
-from decimal import Decimal
+from datetime import date
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -96,12 +95,10 @@ from app.schemas.hr_v31 import (
     PerformanceReviewCycleRequest,
     PerformanceReviewResponse,
     PerformanceReviewUpdate,
-    PerformanceTrends,
     PositionCreate,
     PositionResponse,
     PositionUpdate,
     TerminateEmployeeRequest,
-    TrainingHistory,
     TrainingRecordCreate,
     TrainingRecordResponse,
     TrainingRecordUpdate,
@@ -134,7 +131,7 @@ async def list_employees(
             filters["employment_type"] = employment_type
         if employee_status:
             filters["employee_status"] = employee_status
-            
+
         employees = get_employees(db, filters=filters, skip=skip, limit=limit)
         return employees
     except Exception as e:
@@ -257,7 +254,7 @@ async def list_payroll_records(
             filters["pay_period_end"] = pay_period_end
         if is_processed is not None:
             filters["is_processed"] = is_processed
-            
+
         records = get_payroll_records(db, filters=filters, skip=skip, limit=limit)
         return records
     except Exception as e:
@@ -377,7 +374,7 @@ async def list_leave_requests(
             filters["start_date"] = start_date
         if end_date:
             filters["end_date"] = end_date
-            
+
         requests = get_leave_requests(db, filters=filters, skip=skip, limit=limit)
         return requests
     except Exception as e:
@@ -500,7 +497,7 @@ async def list_performance_reviews(
             filters["review_type"] = review_type
         if status:
             filters["status"] = status
-            
+
         reviews = get_performance_reviews(db, filters=filters, skip=skip, limit=limit)
         return reviews
     except Exception as e:
@@ -620,7 +617,7 @@ async def list_training_records(
             filters["training_category"] = training_category
         if status:
             filters["status"] = status
-            
+
         records = get_training_records(db, filters=filters, skip=skip, limit=limit)
         return records
     except Exception as e:
@@ -740,7 +737,7 @@ async def list_employee_benefits(
             filters["benefit_type"] = benefit_type
         if is_active is not None:
             filters["is_active"] = is_active
-            
+
         # This would call a CRUD function to get benefits
         benefits = []  # Placeholder - would call get_employee_benefits(db, filters, skip, limit)
         return benefits
@@ -835,7 +832,7 @@ async def list_job_postings(
             filters["status"] = status
         if internal_only is not None:
             filters["internal_only"] = internal_only
-            
+
         postings = get_job_postings(db, filters=filters, skip=skip, limit=limit)
         return postings
     except Exception as e:
@@ -929,7 +926,7 @@ async def list_onboarding_records(
             filters["status"] = status
         if hr_coordinator_id:
             filters["hr_coordinator_id"] = hr_coordinator_id
-            
+
         records = get_onboarding_records(db, filters=filters, skip=skip, limit=limit)
         return records
     except Exception as e:
@@ -1023,7 +1020,7 @@ async def list_positions(
             filters["employment_type"] = employment_type
         if is_active is not None:
             filters["is_active"] = is_active
-            
+
         positions = get_positions(db, filters=filters, skip=skip, limit=limit)
         return positions
     except Exception as e:
@@ -1129,7 +1126,7 @@ async def get_hr_dashboard_data(
     try:
         if not as_of_date:
             as_of_date = date.today()
-            
+
         metrics = get_hr_dashboard_metrics(db, organization_id, as_of_date)
         return metrics
     except Exception as e:
@@ -1177,7 +1174,7 @@ async def get_employee_leave_balance(
     try:
         if not as_of_date:
             as_of_date = date.today()
-            
+
         # This would be implemented in CRUD layer
         balance = LeaveBalanceSummary(
             employee_id=employee_id,

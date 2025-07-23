@@ -14,7 +14,6 @@ Comprehensive analytics API with:
 - Compliance Analytics & Risk Management
 """
 
-from datetime import datetime, date
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -23,66 +22,58 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.crud.analytics_v31 import analytics_service
 from app.schemas.analytics_v31 import (
-    # Data Source schemas
-    AnalyticsDataSourceCreateRequest,
-    AnalyticsDataSourceUpdateRequest,
-    AnalyticsDataSourceResponse,
-    DataSourceListResponse,
-    DataSourceConnectionTestRequest,
-    DataSourceSyncRequest,
-    
-    # Metric schemas
-    AnalyticsMetricCreateRequest,
-    AnalyticsMetricUpdateRequest,
-    AnalyticsMetricResponse,
-    MetricListResponse,
-    MetricCalculationRequest,
-    MetricComparisonRequest,
-    
+    AlertEvaluationRequest,
+    AlertListResponse,
+    # Alert schemas
+    AnalyticsAlertCreateRequest,
+    AnalyticsAlertResponse,
+    AnalyticsAlertUpdateRequest,
+    # Dashboard schemas
+    AnalyticsDashboardCreateRequest,
+    AnalyticsDashboardResponse,
+    AnalyticsDashboardUpdateRequest,
     # Data Point schemas
     AnalyticsDataPointCreateRequest,
     AnalyticsDataPointResponse,
-    DataPointListResponse,
-    DataPointQueryRequest,
-    
-    # Dashboard schemas
-    AnalyticsDashboardCreateRequest,
-    AnalyticsDashboardUpdateRequest,
-    AnalyticsDashboardResponse,
-    DashboardListResponse,
-    DashboardExportRequest,
-    
-    # Report schemas
-    AnalyticsReportCreateRequest,
-    AnalyticsReportUpdateRequest,
-    AnalyticsReportResponse,
-    ReportListResponse,
-    ReportGenerationRequest,
-    ReportExecutionResponse,
-    
-    # Alert schemas
-    AnalyticsAlertCreateRequest,
-    AnalyticsAlertUpdateRequest,
-    AnalyticsAlertResponse,
-    AlertListResponse,
-    AlertEvaluationRequest,
-    
-    # Prediction schemas
-    AnalyticsPredictionCreateRequest,
-    AnalyticsPredictionUpdateRequest,
-    AnalyticsPredictionResponse,
-    PredictionListResponse,
-    PredictionTrainingRequest,
-    
+    # Data Source schemas
+    AnalyticsDataSourceCreateRequest,
+    AnalyticsDataSourceResponse,
+    AnalyticsDataSourceUpdateRequest,
+    AnalyticsHealthResponse,
     # Insight schemas
     AnalyticsInsightResponse,
-    InsightListResponse,
-    InsightGenerationRequest,
-    
+    # Metric schemas
+    AnalyticsMetricCreateRequest,
+    AnalyticsMetricResponse,
+    AnalyticsMetricUpdateRequest,
+    # Prediction schemas
+    AnalyticsPredictionCreateRequest,
+    AnalyticsPredictionResponse,
+    AnalyticsPredictionUpdateRequest,
     # Analytics schemas
     AnalyticsQueryRequest,
     AnalyticsQueryResponse,
-    AnalyticsHealthResponse,
+    # Report schemas
+    AnalyticsReportCreateRequest,
+    AnalyticsReportResponse,
+    AnalyticsReportUpdateRequest,
+    DashboardExportRequest,
+    DashboardListResponse,
+    DataPointListResponse,
+    DataPointQueryRequest,
+    DataSourceConnectionTestRequest,
+    DataSourceListResponse,
+    DataSourceSyncRequest,
+    InsightGenerationRequest,
+    InsightListResponse,
+    MetricCalculationRequest,
+    MetricComparisonRequest,
+    MetricListResponse,
+    PredictionListResponse,
+    PredictionTrainingRequest,
+    ReportExecutionResponse,
+    ReportGenerationRequest,
+    ReportListResponse,
 )
 
 router = APIRouter()

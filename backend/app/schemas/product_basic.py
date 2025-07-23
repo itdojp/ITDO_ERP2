@@ -4,8 +4,9 @@ Simplified product management schemas
 """
 
 from datetime import datetime
-from typing import Optional
 from decimal import Decimal
+from typing import Optional
+
 from pydantic import BaseModel, Field, field_validator
 
 from app.models.product import ProductStatus, ProductType
@@ -43,7 +44,7 @@ class ProductCategoryResponse(ProductCategoryBase):
     id: int = Field(..., description="Category ID")
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: Optional[datetime] = Field(None, description="Last update timestamp")
-    
+
     class Config:
         from_attributes = True
 
@@ -58,63 +59,63 @@ class ProductBase(BaseModel):
     barcode: Optional[str] = Field(None, max_length=100, description="Barcode")
     product_type: str = Field(ProductType.PRODUCT.value, description="Product type")
     status: str = Field(ProductStatus.ACTIVE.value, description="Product status")
-    
+
     # Organization and category
     category_id: Optional[int] = Field(None, description="Category ID")
     organization_id: int = Field(..., description="Organization ID")
-    
+
     # Pricing
     standard_price: Decimal = Field(0, ge=0, description="Standard price")
     cost_price: Optional[Decimal] = Field(None, ge=0, description="Cost price")
     selling_price: Optional[Decimal] = Field(None, ge=0, description="Selling price")
     minimum_price: Optional[Decimal] = Field(None, ge=0, description="Minimum price")
-    
+
     # Physical properties
     unit: str = Field("個", max_length=20, description="Unit of measure")
     weight: Optional[Decimal] = Field(None, ge=0, description="Weight in kg")
-    
+
     # Stock management
     is_stock_managed: bool = Field(True, description="Is stock managed")
     minimum_stock_level: Optional[Decimal] = Field(None, ge=0, description="Minimum stock level")
     reorder_point: Optional[Decimal] = Field(None, ge=0, description="Reorder point")
-    
+
     # Tax
     tax_rate: Decimal = Field(Decimal('0.1000'), ge=0, le=1, description="Tax rate")
     tax_included: bool = Field(False, description="Tax included in price")
-    
+
     # Status flags
     is_active: bool = Field(True, description="Active status")
     is_sellable: bool = Field(True, description="Can be sold")
     is_purchasable: bool = Field(True, description="Can be purchased")
-    
+
     # Additional info
     manufacturer: Optional[str] = Field(None, max_length=200, description="Manufacturer")
     brand: Optional[str] = Field(None, max_length=200, description="Brand")
     model_number: Optional[str] = Field(None, max_length=100, description="Model number")
     warranty_period: Optional[int] = Field(None, ge=0, description="Warranty period in months")
-    
+
     # Media
     image_url: Optional[str] = Field(None, max_length=500, description="Image URL")
     thumbnail_url: Optional[str] = Field(None, max_length=500, description="Thumbnail URL")
-    
+
     # Notes
     notes: Optional[str] = Field(None, description="Public notes")
     internal_notes: Optional[str] = Field(None, description="Internal notes")
-    
+
     @field_validator('product_type')
     @classmethod
     def validate_product_type(cls, v):
         if v not in [t.value for t in ProductType]:
             raise ValueError('Invalid product type')
         return v
-    
+
     @field_validator('status')
     @classmethod
     def validate_status(cls, v):
         if v not in [s.value for s in ProductStatus]:
             raise ValueError('Invalid product status')
         return v
-    
+
     @field_validator('code')
     @classmethod
     def validate_code(cls, v):
@@ -160,14 +161,14 @@ class ProductUpdate(BaseModel):
     thumbnail_url: Optional[str] = Field(None, max_length=500)
     notes: Optional[str] = None
     internal_notes: Optional[str] = None
-    
+
     @field_validator('product_type')
     @classmethod
     def validate_product_type(cls, v):
         if v and v not in [t.value for t in ProductType]:
             raise ValueError('Invalid product type')
         return v
-    
+
     @field_validator('status')
     @classmethod
     def validate_status(cls, v):
@@ -184,7 +185,7 @@ class ProductResponse(ProductBase):
     is_available: bool = Field(..., description="Available for sale")
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: Optional[datetime] = Field(None, description="Last update timestamp")
-    
+
     class Config:
         from_attributes = True
 
@@ -198,7 +199,7 @@ class ProductBasic(BaseModel):
     sku: Optional[str] = Field(None, description="SKU")
     standard_price: Decimal = Field(..., description="Standard price")
     is_active: bool = Field(..., description="Active status")
-    
+
     class Config:
         from_attributes = True
 

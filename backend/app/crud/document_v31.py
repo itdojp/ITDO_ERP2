@@ -18,29 +18,28 @@ import hashlib
 import mimetypes
 import os
 import uuid
-from datetime import datetime, date, timedelta
-from decimal import Decimal
-from typing import Any, Dict, List, Optional, Tuple
+from datetime import date, datetime, timedelta
+from typing import Any, Dict, List, Optional
+
 from sqlalchemy import and_, desc, func, or_
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.document_extended import (
+    AccessLevel,
+    ApprovalStatus,
+    DocumentActivity,
+    DocumentAnalytics,
+    DocumentApproval,
+    DocumentComment,
     DocumentExtended,
     DocumentFolder,
     DocumentShare,
-    DocumentComment,
-    DocumentApproval,
     DocumentSignature,
-    DocumentWorkflow,
-    DocumentActivity,
-    DocumentTemplate,
-    DocumentFolderPermission,
-    DocumentAnalytics,
     DocumentStatus,
+    DocumentTemplate,
     DocumentType,
-    AccessLevel,
+    DocumentWorkflow,
     ShareType,
-    ApprovalStatus,
     SignatureStatus,
 )
 
@@ -53,26 +52,26 @@ class DocumentService:
     # =============================================================================
 
     async def create_document(
-        self, 
-        db: Session, 
+        self,
+        db: Session,
         document_data: dict,
         file_content: bytes = None
     ) -> DocumentExtended:
         """Create a new document with comprehensive metadata and file handling."""
-        
+
         # Generate unique document number
         document_number = f"DOC-{uuid.uuid4().hex[:8].upper()}"
-        
+
         # File processing
         file_hash = None
         file_size = 0
         mime_type = None
-        
+
         if file_content:
             file_hash = hashlib.sha256(file_content).hexdigest()
             file_size = len(file_content)
             mime_type, _ = mimetypes.guess_type(document_data.get("filename", ""))
-        
+
         # Create document record
         document = DocumentExtended(
             document_number=document_number,
@@ -102,17 +101,17 @@ class DocumentService:
             requires_approval=document_data.get("requires_approval", False),
             requires_signature=document_data.get("requires_signature", False)
         )
-        
+
         db.add(document)
         db.commit()
         db.refresh(document)
-        
+
         # Log activity
         await self._log_document_activity(
-            db, document.id, "create", "Document created", 
+            db, document.id, "create", "Document created",
             document_data["created_by_id"], {"file_size": file_size}
         )
-        
+
         return document
 
     async def get_document_by_id(self, db: Session, document_id: str) -> Optional[DocumentExtended]:
@@ -124,13 +123,13 @@ class DocumentService:
             joinedload(DocumentExtended.shares),
             joinedload(DocumentExtended.comments)
         ).filter(DocumentExtended.id == document_id).first()
-        
+
         if document:
             # Update view count and last viewed timestamp
             document.view_count += 1
             document.last_viewed_at = datetime.utcnow()
             db.commit()
-        
+
         return document
 
     async def get_documents(
@@ -150,27 +149,27 @@ class DocumentService:
         limit: int = 100
     ) -> List[DocumentExtended]:
         """Get documents with comprehensive filtering options."""
-        
+
         query = db.query(DocumentExtended).filter(
             DocumentExtended.organization_id == organization_id,
             DocumentExtended.status != DocumentStatus.DELETED
         )
-        
+
         if folder_id:
             query = query.filter(DocumentExtended.folder_id == folder_id)
-        
+
         if document_type:
             query = query.filter(DocumentExtended.document_type == document_type)
-        
+
         if status:
             query = query.filter(DocumentExtended.status == status)
-        
+
         if owner_id:
             query = query.filter(DocumentExtended.owner_id == owner_id)
-        
+
         if category:
             query = query.filter(DocumentExtended.category == category)
-        
+
         if search_text:
             search_filter = or_(
                 DocumentExtended.title.ilike(f"%{search_text}%"),
@@ -179,59 +178,59 @@ class DocumentService:
                 DocumentExtended.extracted_text.ilike(f"%{search_text}%")
             )
             query = query.filter(search_filter)
-        
+
         if tags:
             for tag in tags:
                 query = query.filter(DocumentExtended.tags.contains([tag]))
-        
+
         if created_after:
             query = query.filter(DocumentExtended.created_at >= created_after)
-        
+
         if created_before:
             query = query.filter(DocumentExtended.created_at <= created_before)
-        
+
         return query.order_by(desc(DocumentExtended.updated_at)).offset(skip).limit(limit).all()
 
     async def update_document(
-        self, 
-        db: Session, 
-        document_id: str, 
+        self,
+        db: Session,
+        document_id: str,
         update_data: dict,
         user_id: str
     ) -> Optional[DocumentExtended]:
         """Update document with change tracking and versioning."""
-        
+
         document = db.query(DocumentExtended).filter(DocumentExtended.id == document_id).first()
         if not document:
             return None
-        
+
         # Store old values for audit trail
         old_values = {}
         new_values = {}
-        
+
         # Update allowed fields
         updatable_fields = [
-            "title", "description", "category", "subcategory", "tags", 
-            "metadata", "custom_properties", "is_confidential", 
+            "title", "description", "category", "subcategory", "tags",
+            "metadata", "custom_properties", "is_confidential",
             "security_classification", "status"
         ]
-        
+
         for field in updatable_fields:
             if field in update_data:
                 old_values[field] = getattr(document, field)
                 setattr(document, field, update_data[field])
                 new_values[field] = update_data[field]
-        
+
         document.last_modified_at = datetime.utcnow()
         db.commit()
         db.refresh(document)
-        
+
         # Log activity
         await self._log_document_activity(
             db, document_id, "update", "Document updated", user_id,
             {"old_values": old_values, "new_values": new_values}
         )
-        
+
         return document
 
     async def create_document_version(
@@ -243,26 +242,26 @@ class DocumentService:
         user_id: str = None
     ) -> DocumentExtended:
         """Create a new version of an existing document."""
-        
+
         original_doc = await self.get_document_by_id(db, original_document_id)
         if not original_doc:
             raise ValueError("Original document not found")
-        
+
         # Mark original as not latest
         original_doc.is_latest_version = False
-        
+
         # Calculate new version number
         version_parts = original_doc.version.split(".")
         major, minor = int(version_parts[0]), int(version_parts[1])
-        
+
         if new_version_data.get("major_update", False):
             major += 1
             minor = 0
         else:
             minor += 1
-        
+
         new_version = f"{major}.{minor}"
-        
+
         # Create new version
         version_data = {
             **new_version_data,
@@ -279,36 +278,36 @@ class DocumentService:
             "category": original_doc.category,
             "subcategory": original_doc.subcategory,
         }
-        
+
         new_document = await self.create_document(db, version_data, file_content)
-        
+
         # Log versioning activity
         await self._log_document_activity(
-            db, original_document_id, "version", f"New version {new_version} created", 
+            db, original_document_id, "version", f"New version {new_version} created",
             user_id, {"new_version_id": new_document.id, "version": new_version}
         )
-        
+
         db.commit()
         return new_document
 
     async def delete_document(self, db: Session, document_id: str, user_id: str) -> bool:
         """Soft delete document (mark as deleted)."""
-        
+
         document = db.query(DocumentExtended).filter(DocumentExtended.id == document_id).first()
         if not document:
             return False
-        
+
         document.status = DocumentStatus.DELETED
         document.is_archived = True
         document.archived_at = datetime.utcnow()
-        
+
         db.commit()
-        
+
         # Log activity
         await self._log_document_activity(
             db, document_id, "delete", "Document deleted", user_id
         )
-        
+
         return True
 
     # =============================================================================
@@ -317,11 +316,11 @@ class DocumentService:
 
     async def create_folder(self, db: Session, folder_data: dict) -> DocumentFolder:
         """Create a new document folder with hierarchy support."""
-        
+
         # Calculate full path and level
         full_path = folder_data["name"]
         level = 0
-        
+
         if folder_data.get("parent_folder_id"):
             parent = db.query(DocumentFolder).filter(
                 DocumentFolder.id == folder_data["parent_folder_id"]
@@ -329,7 +328,7 @@ class DocumentService:
             if parent:
                 full_path = f"{parent.full_path}/{folder_data['name']}"
                 level = parent.level + 1
-        
+
         folder = DocumentFolder(
             name=folder_data["name"],
             description=folder_data.get("description"),
@@ -346,15 +345,15 @@ class DocumentService:
             tags=folder_data.get("tags", []),
             custom_properties=folder_data.get("custom_properties", {})
         )
-        
+
         db.add(folder)
         db.commit()
         db.refresh(folder)
-        
+
         # Update parent folder subfolder count
         if folder.parent_folder_id:
             await self._update_folder_statistics(db, folder.parent_folder_id)
-        
+
         return folder
 
     async def get_folder_contents(
@@ -365,23 +364,23 @@ class DocumentService:
         include_documents: bool = True
     ) -> Dict[str, List]:
         """Get folder contents including subfolders and documents."""
-        
+
         result = {"subfolders": [], "documents": []}
-        
+
         if include_subfolders:
             subfolders = db.query(DocumentFolder).filter(
                 DocumentFolder.parent_folder_id == folder_id,
-                DocumentFolder.is_archived == False
+                not DocumentFolder.is_archived
             ).order_by(DocumentFolder.name).all()
             result["subfolders"] = subfolders
-        
+
         if include_documents:
             documents = db.query(DocumentExtended).filter(
                 DocumentExtended.folder_id == folder_id,
                 DocumentExtended.status != DocumentStatus.DELETED
             ).order_by(DocumentExtended.title).all()
             result["documents"] = documents
-        
+
         return result
 
     async def move_document(
@@ -392,28 +391,28 @@ class DocumentService:
         user_id: str
     ) -> DocumentExtended:
         """Move document to a different folder."""
-        
+
         document = await self.get_document_by_id(db, document_id)
         if not document:
             raise ValueError("Document not found")
-        
+
         old_folder_id = document.folder_id
         document.folder_id = new_folder_id
-        
+
         db.commit()
-        
+
         # Update folder statistics
         if old_folder_id:
             await self._update_folder_statistics(db, old_folder_id)
         if new_folder_id:
             await self._update_folder_statistics(db, new_folder_id)
-        
+
         # Log activity
         await self._log_document_activity(
             db, document_id, "move", "Document moved", user_id,
             {"old_folder_id": old_folder_id, "new_folder_id": new_folder_id}
         )
-        
+
         return document
 
     # =============================================================================
@@ -428,12 +427,12 @@ class DocumentService:
         shared_by_id: str
     ) -> DocumentShare:
         """Create a document share with specified permissions."""
-        
+
         # Generate share token for public/link shares
         share_token = None
         if share_data.get("share_type") in [ShareType.PUBLIC, ShareType.LINK]:
             share_token = f"share_{uuid.uuid4().hex[:16]}"
-        
+
         share = DocumentShare(
             document_id=document_id,
             organization_id=share_data["organization_id"],
@@ -455,22 +454,22 @@ class DocumentService:
             notify_on_access=share_data.get("notify_on_access", False),
             shared_by_id=shared_by_id
         )
-        
+
         db.add(share)
         db.commit()
         db.refresh(share)
-        
+
         # Update document share count
         document = await self.get_document_by_id(db, document_id)
         document.share_count += 1
         db.commit()
-        
+
         # Log activity
         await self._log_document_activity(
             db, document_id, "share", "Document shared", shared_by_id,
             {"share_type": share_data["share_type"], "access_level": share_data.get("access_level")}
         )
-        
+
         return share
 
     async def get_document_shares(
@@ -480,13 +479,13 @@ class DocumentService:
         include_expired: bool = False
     ) -> List[DocumentShare]:
         """Get all shares for a document."""
-        
+
         query = db.query(DocumentShare).filter(
             DocumentShare.document_id == document_id,
-            DocumentShare.is_active == True,
-            DocumentShare.is_revoked == False
+            DocumentShare.is_active,
+            not DocumentShare.is_revoked
         )
-        
+
         if not include_expired:
             now = datetime.utcnow()
             query = query.filter(
@@ -495,7 +494,7 @@ class DocumentService:
                     DocumentShare.expires_at > now
                 )
             )
-        
+
         return query.all()
 
     async def revoke_document_share(
@@ -505,23 +504,23 @@ class DocumentService:
         revoked_by_id: str
     ) -> bool:
         """Revoke a document share."""
-        
+
         share = db.query(DocumentShare).filter(DocumentShare.id == share_id).first()
         if not share:
             return False
-        
+
         share.is_revoked = True
         share.revoked_at = datetime.utcnow()
         share.revoked_by_id = revoked_by_id
-        
+
         db.commit()
-        
+
         # Log activity
         await self._log_document_activity(
             db, share.document_id, "unshare", "Document share revoked", revoked_by_id,
             {"share_id": share_id}
         )
-        
+
         return True
 
     # =============================================================================
@@ -535,7 +534,7 @@ class DocumentService:
         author_id: str
     ) -> DocumentComment:
         """Create a comment on a document."""
-        
+
         comment = DocumentComment(
             document_id=comment_data["document_id"],
             organization_id=comment_data["organization_id"],
@@ -555,22 +554,22 @@ class DocumentService:
             attachments=comment_data.get("attachments", []),
             author_id=author_id
         )
-        
+
         db.add(comment)
         db.commit()
         db.refresh(comment)
-        
+
         # Update document comment count
         document = await self.get_document_by_id(db, comment_data["document_id"])
         document.comment_count += 1
         db.commit()
-        
+
         # Log activity
         await self._log_document_activity(
             db, comment_data["document_id"], "comment", "Comment added", author_id,
             {"comment_id": comment.id, "comment_type": comment_data.get("comment_type")}
         )
-        
+
         return comment
 
     async def resolve_comment(
@@ -580,23 +579,23 @@ class DocumentService:
         resolved_by_id: str
     ) -> Optional[DocumentComment]:
         """Mark a comment as resolved."""
-        
+
         comment = db.query(DocumentComment).filter(DocumentComment.id == comment_id).first()
         if not comment:
             return None
-        
+
         comment.is_resolved = True
         comment.resolved_at = datetime.utcnow()
         comment.resolved_by_id = resolved_by_id
-        
+
         db.commit()
-        
+
         # Log activity
         await self._log_document_activity(
             db, comment.document_id, "comment_resolve", "Comment resolved", resolved_by_id,
             {"comment_id": comment_id}
         )
-        
+
         return comment
 
     # =============================================================================
@@ -610,7 +609,7 @@ class DocumentService:
         created_by_id: str
     ) -> DocumentWorkflow:
         """Create a document approval workflow."""
-        
+
         workflow = DocumentWorkflow(
             name=workflow_data["name"],
             description=workflow_data.get("description"),
@@ -629,11 +628,11 @@ class DocumentService:
             tags=workflow_data.get("tags", []),
             created_by_id=created_by_id
         )
-        
+
         db.add(workflow)
         db.commit()
         db.refresh(workflow)
-        
+
         return workflow
 
     async def submit_document_for_approval(
@@ -645,22 +644,22 @@ class DocumentService:
         requested_by_id: str
     ) -> List[DocumentApproval]:
         """Submit document for approval workflow."""
-        
+
         document = await self.get_document_by_id(db, document_id)
         if not document:
             raise ValueError("Document not found")
-        
+
         workflow = db.query(DocumentWorkflow).filter(DocumentWorkflow.id == workflow_id).first()
         if not workflow:
             raise ValueError("Workflow not found")
-        
+
         # Update document status
         document.status = DocumentStatus.PENDING_REVIEW
         document.requires_approval = True
         document.approval_workflow_id = workflow_id
-        
+
         approvals = []
-        
+
         for i, approver_data in enumerate(approvers):
             approval = DocumentApproval(
                 document_id=document_id,
@@ -675,23 +674,23 @@ class DocumentService:
                 approval_criteria=approver_data.get("approval_criteria", {}),
                 requested_by_id=requested_by_id
             )
-            
+
             db.add(approval)
             approvals.append(approval)
-        
+
         # Set current approver to first step
         if approvals:
             document.current_approver_id = approvals[0].approver_id
             document.approval_deadline = approvals[0].deadline
-        
+
         db.commit()
-        
+
         # Log activity
         await self._log_document_activity(
-            db, document_id, "approval_request", "Document submitted for approval", 
+            db, document_id, "approval_request", "Document submitted for approval",
             requested_by_id, {"workflow_id": workflow_id, "approver_count": len(approvers)}
         )
-        
+
         return approvals
 
     async def process_approval_decision(
@@ -703,18 +702,18 @@ class DocumentService:
         conditions: Optional[str] = None
     ) -> DocumentApproval:
         """Process an approval decision."""
-        
+
         approval = db.query(DocumentApproval).filter(DocumentApproval.id == approval_id).first()
         if not approval:
             raise ValueError("Approval not found")
-        
+
         approval.status = decision
         approval.decision_date = datetime.utcnow()
         approval.comments = comments
         approval.conditions = conditions
-        
+
         document = await self.get_document_by_id(db, approval.document_id)
-        
+
         if decision == ApprovalStatus.APPROVED:
             # Check if this was the final approval step
             remaining_approvals = db.query(DocumentApproval).filter(
@@ -722,7 +721,7 @@ class DocumentService:
                 DocumentApproval.status == ApprovalStatus.PENDING,
                 DocumentApproval.step_number > approval.step_number
             ).all()
-            
+
             if not remaining_approvals:
                 # All approvals complete
                 document.status = DocumentStatus.APPROVED
@@ -733,31 +732,31 @@ class DocumentService:
                 next_approval = min(remaining_approvals, key=lambda x: x.step_number)
                 document.current_approver_id = next_approval.approver_id
                 document.approval_deadline = next_approval.deadline
-        
+
         elif decision == ApprovalStatus.REJECTED:
             # Approval rejected - stop workflow
             document.status = DocumentStatus.DRAFT
             document.current_approver_id = None
             document.approval_deadline = None
-            
+
             # Mark all pending approvals as withdrawn
             pending_approvals = db.query(DocumentApproval).filter(
                 DocumentApproval.document_id == approval.document_id,
                 DocumentApproval.status == ApprovalStatus.PENDING
             ).all()
-            
+
             for pending in pending_approvals:
                 if pending.id != approval_id:
                     pending.status = ApprovalStatus.WITHDRAWN
-        
+
         db.commit()
-        
+
         # Log activity
         await self._log_document_activity(
-            db, approval.document_id, "approval_decision", f"Approval {decision.value}", 
+            db, approval.document_id, "approval_decision", f"Approval {decision.value}",
             approval.approver_id, {"approval_id": approval_id, "decision": decision.value}
         )
-        
+
         return approval
 
     # =============================================================================
@@ -772,16 +771,16 @@ class DocumentService:
         requested_by_id: str
     ) -> List[DocumentSignature]:
         """Request digital signatures for a document."""
-        
+
         document = await self.get_document_by_id(db, document_id)
         if not document:
             raise ValueError("Document not found")
-        
+
         document.requires_signature = True
         document.signature_status = SignatureStatus.PENDING
-        
+
         signatures = []
-        
+
         for signer_data in signers:
             signature = DocumentSignature(
                 document_id=document_id,
@@ -799,18 +798,18 @@ class DocumentService:
                 signing_deadline=signer_data.get("signing_deadline"),
                 requested_by_id=requested_by_id
             )
-            
+
             db.add(signature)
             signatures.append(signature)
-        
+
         db.commit()
-        
+
         # Log activity
         await self._log_document_activity(
-            db, document_id, "signature_request", "Signature requested", 
+            db, document_id, "signature_request", "Signature requested",
             requested_by_id, {"signer_count": len(signers)}
         )
-        
+
         return signatures
 
     async def process_document_signature(
@@ -821,14 +820,14 @@ class DocumentService:
         signer_metadata: Dict[str, Any]
     ) -> DocumentSignature:
         """Process a document signature."""
-        
+
         signature = db.query(DocumentSignature).filter(DocumentSignature.id == signature_id).first()
         if not signature:
             raise ValueError("Signature request not found")
-        
+
         # Generate signature hash
         signature_hash = hashlib.sha256(signature_data).hexdigest()
-        
+
         signature.signature_data = signature_data
         signature.signature_hash = signature_hash
         signature.status = SignatureStatus.SIGNED
@@ -840,7 +839,7 @@ class DocumentService:
         signature.consent_timestamp = datetime.utcnow()
         signature.is_verified = True
         signature.verification_method = signer_metadata.get("verification_method", "email")
-        
+
         # Update audit trail
         audit_entry = {
             "timestamp": datetime.utcnow().isoformat(),
@@ -849,30 +848,30 @@ class DocumentService:
             "ip_address": signature.ip_address,
             "user_agent": signature.user_agent
         }
-        
+
         if signature.audit_trail:
             signature.audit_trail.append(audit_entry)
         else:
             signature.audit_trail = [audit_entry]
-        
+
         # Check if all signatures are complete
         document = await self.get_document_by_id(db, signature.document_id)
         pending_signatures = db.query(DocumentSignature).filter(
             DocumentSignature.document_id == signature.document_id,
             DocumentSignature.status == SignatureStatus.PENDING
         ).count()
-        
+
         if pending_signatures == 0:
             document.signature_status = SignatureStatus.SIGNED
-        
+
         db.commit()
-        
+
         # Log activity
         await self._log_document_activity(
-            db, signature.document_id, "signature", "Document signed", 
+            db, signature.document_id, "signature", "Document signed",
             signature.signer_id, {"signature_id": signature_id}
         )
-        
+
         return signature
 
     # =============================================================================
@@ -886,7 +885,7 @@ class DocumentService:
         created_by_id: str
     ) -> DocumentTemplate:
         """Create a document template."""
-        
+
         template = DocumentTemplate(
             name=template_data["name"],
             description=template_data.get("description"),
@@ -909,11 +908,11 @@ class DocumentService:
             tags=template_data.get("tags", []),
             created_by_id=created_by_id
         )
-        
+
         db.add(template)
         db.commit()
         db.refresh(template)
-        
+
         return template
 
     async def generate_document_from_template(
@@ -924,23 +923,23 @@ class DocumentService:
         generated_by_id: str
     ) -> DocumentExtended:
         """Generate a document from a template with field substitution."""
-        
+
         template = db.query(DocumentTemplate).filter(DocumentTemplate.id == template_id).first()
         if not template:
             raise ValueError("Template not found")
-        
+
         # Process template content with field values
         processed_content = template.template_content
         for field, value in field_values.items():
             placeholder = f"{{{{{field}}}}}"
             processed_content = processed_content.replace(placeholder, str(value))
-        
+
         # Generate filename
         filename = template.default_filename or f"Document_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         for field, value in field_values.items():
             placeholder = f"{{{{{field}}}}}"
             filename = filename.replace(placeholder, str(value))
-        
+
         # Create document
         document_data = {
             "title": filename,
@@ -958,14 +957,14 @@ class DocumentService:
                 "field_values": field_values
             }
         }
-        
+
         document = await self.create_document(db, document_data, processed_content.encode())
-        
+
         # Update template usage statistics
         template.usage_count += 1
         template.last_used_at = datetime.utcnow()
         db.commit()
-        
+
         return document
 
     # =============================================================================
@@ -982,17 +981,17 @@ class DocumentService:
         limit: int = 50
     ) -> List[DocumentExtended]:
         """Advanced document search with full-text search and filtering."""
-        
+
         query = db.query(DocumentExtended).filter(
             DocumentExtended.organization_id == organization_id,
             DocumentExtended.status != DocumentStatus.DELETED
         )
-        
+
         # Full-text search
         if search_query:
             search_terms = search_query.split()
             search_conditions = []
-            
+
             for term in search_terms:
                 term_condition = or_(
                     DocumentExtended.title.ilike(f"%{term}%"),
@@ -1002,38 +1001,38 @@ class DocumentService:
                     DocumentExtended.ocr_text.ilike(f"%{term}%")
                 )
                 search_conditions.append(term_condition)
-            
+
             # All terms must match (AND operation)
             query = query.filter(and_(*search_conditions))
-        
+
         # Apply filters
         if filters:
             if filters.get("document_type"):
                 query = query.filter(DocumentExtended.document_type == filters["document_type"])
-            
+
             if filters.get("category"):
                 query = query.filter(DocumentExtended.category == filters["category"])
-            
+
             if filters.get("owner_id"):
                 query = query.filter(DocumentExtended.owner_id == filters["owner_id"])
-            
+
             if filters.get("created_after"):
                 query = query.filter(DocumentExtended.created_at >= filters["created_after"])
-            
+
             if filters.get("created_before"):
                 query = query.filter(DocumentExtended.created_at <= filters["created_before"])
-            
+
             if filters.get("tags"):
                 for tag in filters["tags"]:
                     query = query.filter(DocumentExtended.tags.contains([tag]))
-        
+
         # Order by relevance (view count, last modified, etc.)
         query = query.order_by(
             desc(DocumentExtended.view_count),
             desc(DocumentExtended.last_modified_at),
             desc(DocumentExtended.created_at)
         )
-        
+
         return query.offset(skip).limit(limit).all()
 
     async def get_document_analytics(
@@ -1044,33 +1043,33 @@ class DocumentService:
         period_end: date
     ) -> DocumentAnalytics:
         """Generate comprehensive document analytics for a period."""
-        
+
         # Document metrics
         total_docs = db.query(DocumentExtended).filter(
             DocumentExtended.organization_id == organization_id,
             DocumentExtended.status != DocumentStatus.DELETED
         ).count()
-        
+
         new_docs = db.query(DocumentExtended).filter(
             DocumentExtended.organization_id == organization_id,
             DocumentExtended.created_at >= period_start,
             DocumentExtended.created_at <= period_end
         ).count()
-        
+
         updated_docs = db.query(DocumentExtended).filter(
             DocumentExtended.organization_id == organization_id,
             DocumentExtended.last_modified_at >= period_start,
             DocumentExtended.last_modified_at <= period_end,
             DocumentExtended.created_at < period_start
         ).count()
-        
+
         deleted_docs = db.query(DocumentExtended).filter(
             DocumentExtended.organization_id == organization_id,
             DocumentExtended.status == DocumentStatus.DELETED,
             DocumentExtended.archived_at >= period_start,
             DocumentExtended.archived_at <= period_end
         ).count()
-        
+
         # Storage metrics
         storage_stats = db.query(
             func.sum(DocumentExtended.file_size_bytes).label("total_storage"),
@@ -1080,63 +1079,63 @@ class DocumentService:
             DocumentExtended.organization_id == organization_id,
             DocumentExtended.status != DocumentStatus.DELETED
         ).first()
-        
+
         # Activity metrics
         activities = db.query(DocumentActivity).filter(
             DocumentActivity.organization_id == organization_id,
             DocumentActivity.timestamp >= period_start,
             DocumentActivity.timestamp <= period_end
         )
-        
+
         total_views = activities.filter(DocumentActivity.activity_type == "view").count()
         total_downloads = activities.filter(DocumentActivity.activity_type == "download").count()
         total_shares = activities.filter(DocumentActivity.activity_type == "share").count()
-        
+
         unique_viewers = activities.filter(DocumentActivity.activity_type == "view").distinct(
             DocumentActivity.user_id
         ).count()
-        
+
         # Collaboration metrics
         comments = db.query(DocumentComment).filter(
             DocumentComment.organization_id == organization_id,
             DocumentComment.created_at >= period_start,
             DocumentComment.created_at <= period_end
         ).count()
-        
+
         active_collaborators = db.query(DocumentComment).filter(
             DocumentComment.organization_id == organization_id,
             DocumentComment.created_at >= period_start,
             DocumentComment.created_at <= period_end
         ).distinct(DocumentComment.author_id).count()
-        
+
         # Workflow metrics
         approvals_requested = db.query(DocumentApproval).filter(
             DocumentApproval.organization_id == organization_id,
             DocumentApproval.created_at >= period_start,
             DocumentApproval.created_at <= period_end
         ).count()
-        
+
         approvals_completed = db.query(DocumentApproval).filter(
             DocumentApproval.organization_id == organization_id,
             DocumentApproval.decision_date >= period_start,
             DocumentApproval.decision_date <= period_end,
             DocumentApproval.status.in_([ApprovalStatus.APPROVED, ApprovalStatus.REJECTED])
         ).count()
-        
+
         # Signature metrics
         signatures_requested = db.query(DocumentSignature).filter(
             DocumentSignature.organization_id == organization_id,
             DocumentSignature.created_at >= period_start,
             DocumentSignature.created_at <= period_end
         ).count()
-        
+
         signatures_completed = db.query(DocumentSignature).filter(
             DocumentSignature.organization_id == organization_id,
             DocumentSignature.signed_at >= period_start,
             DocumentSignature.signed_at <= period_end,
             DocumentSignature.status == SignatureStatus.SIGNED
         ).count()
-        
+
         # Create analytics record
         analytics = DocumentAnalytics(
             organization_id=organization_id,
@@ -1161,11 +1160,11 @@ class DocumentService:
             signatures_completed=signatures_completed,
             calculated_date=datetime.utcnow()
         )
-        
+
         db.add(analytics)
         db.commit()
         db.refresh(analytics)
-        
+
         return analytics
 
     # =============================================================================
@@ -1182,7 +1181,7 @@ class DocumentService:
         details: Optional[Dict[str, Any]] = None
     ) -> DocumentActivity:
         """Log document activity for audit trail."""
-        
+
         activity = DocumentActivity(
             document_id=document_id,
             organization_id=db.query(DocumentExtended.organization_id).filter(
@@ -1195,19 +1194,19 @@ class DocumentService:
             details=details or {},
             success=True
         )
-        
+
         db.add(activity)
         db.commit()
-        
+
         return activity
 
     async def _update_folder_statistics(self, db: Session, folder_id: str):
         """Update folder statistics (document count, size, etc.)."""
-        
+
         folder = db.query(DocumentFolder).filter(DocumentFolder.id == folder_id).first()
         if not folder:
             return
-        
+
         # Count documents in folder
         doc_stats = db.query(
             func.count(DocumentExtended.id).label("doc_count"),
@@ -1216,32 +1215,32 @@ class DocumentService:
             DocumentExtended.folder_id == folder_id,
             DocumentExtended.status != DocumentStatus.DELETED
         ).first()
-        
+
         # Count subfolders
         subfolder_count = db.query(DocumentFolder).filter(
             DocumentFolder.parent_folder_id == folder_id,
-            DocumentFolder.is_archived == False
+            not DocumentFolder.is_archived
         ).count()
-        
+
         folder.document_count = doc_stats.doc_count or 0
         folder.total_size_bytes = doc_stats.total_size or 0
         folder.subfolder_count = subfolder_count
         folder.current_usage_bytes = doc_stats.total_size or 0
-        
+
         db.commit()
 
     async def get_system_health(self, db: Session) -> Dict[str, Any]:
         """Get document management system health status."""
-        
+
         try:
             # Test database connectivity
             db.execute("SELECT 1")
-            
+
             # Get basic statistics
             total_documents = db.query(DocumentExtended).count()
             total_storage = db.query(func.sum(DocumentExtended.file_size_bytes)).scalar() or 0
             total_folders = db.query(DocumentFolder).count()
-            
+
             return {
                 "status": "healthy",
                 "database_connection": "OK",
@@ -1254,7 +1253,7 @@ class DocumentService:
                 "version": "31.0",
                 "timestamp": datetime.utcnow().isoformat()
             }
-            
+
         except Exception as e:
             return {
                 "status": "unhealthy",

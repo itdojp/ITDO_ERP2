@@ -3,7 +3,7 @@ Test Suite for Document Management API v31.0
 
 Comprehensive test coverage for all 10 document management endpoints:
 1. Document Storage & Management
-2. Folder & Category Organization  
+2. Folder & Category Organization
 3. Document Sharing & Permissions
 4. Workflow & Approval Processes
 5. Document Templates & Generation
@@ -14,31 +14,27 @@ Comprehensive test coverage for all 10 document management endpoints:
 10. Bulk Operations & Management
 """
 
-import pytest
-from datetime import datetime, date, timedelta
-from decimal import Decimal
-from unittest.mock import AsyncMock, patch, MagicMock
-from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
 import base64
-import io
+from datetime import datetime, timedelta
+from unittest.mock import patch
+
+import pytest
+from fastapi.testclient import TestClient
 
 from app.main import app
 from app.models.document_extended import (
+    AccessLevel,
+    ApprovalStatus,
+    DocumentApproval,
+    DocumentComment,
     DocumentExtended,
     DocumentFolder,
     DocumentShare,
-    DocumentComment,
-    DocumentApproval,
     DocumentSignature,
-    DocumentWorkflow,
-    DocumentTemplate,
-    DocumentActivity,
     DocumentStatus,
-    DocumentType,
-    AccessLevel,
+    DocumentTemplate,
+    DocumentWorkflow,
     ShareType,
-    ApprovalStatus,
     SignatureStatus,
 )
 
@@ -166,11 +162,11 @@ class TestDocumentManagement:
         mock_document.title = sample_document_data["title"]
         mock_document.status = DocumentStatus.DRAFT
         mock_document.created_at = datetime.utcnow()
-        
+
         mock_create.return_value = mock_document
-        
+
         response = client.post("/api/v1/documents", json=sample_document_data)
-        
+
         assert response.status_code == 201
         data = response.json()
         assert data["title"] == sample_document_data["title"]
@@ -184,7 +180,7 @@ class TestDocumentManagement:
             # Missing required fields
             "document_type": "invalid_type"
         }
-        
+
         response = client.post("/api/v1/documents", json=invalid_data)
         assert response.status_code == 422
 
@@ -196,7 +192,7 @@ class TestDocumentManagement:
             DocumentExtended(id="doc-2", title="Document 2")
         ]
         mock_get_documents.return_value = mock_documents
-        
+
         response = client.get(
             "/api/v1/documents",
             params={
@@ -208,7 +204,7 @@ class TestDocumentManagement:
                 "limit": 50
             }
         )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 2
@@ -222,9 +218,9 @@ class TestDocumentManagement:
         mock_document.title = "Test Document"
         mock_document.view_count = 5
         mock_get_document.return_value = mock_document
-        
+
         response = client.get("/api/v1/documents/doc-123")
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["id"] == "doc-123"
@@ -237,18 +233,18 @@ class TestDocumentManagement:
         mock_document.id = "doc-123"
         mock_document.title = "Updated Document"
         mock_update.return_value = mock_document
-        
+
         update_data = {
             "title": "Updated Document",
             "description": "Updated description",
             "tags": ["updated", "contract"]
         }
-        
+
         response = client.put(
-            "/api/v1/documents/doc-123?user_id=user-123", 
+            "/api/v1/documents/doc-123?user_id=user-123",
             json=update_data
         )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["title"] == "Updated Document"
@@ -262,18 +258,18 @@ class TestDocumentManagement:
         mock_document.version = "2.0"
         mock_document.parent_document_id = "doc-123"
         mock_create_version.return_value = mock_document
-        
+
         version_data = {
             "filename": "test_v2.pdf",
             "description": "Version 2 with updates",
             "major_update": True
         }
-        
+
         response = client.post(
             "/api/v1/documents/doc-123/versions?user_id=user-123",
             json=version_data
         )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["version"] == "2.0"
@@ -286,14 +282,14 @@ class TestDocumentManagement:
         mock_document.id = "doc-123"
         mock_document.folder_id = "folder-789"
         mock_move.return_value = mock_document
-        
+
         move_data = {"new_folder_id": "folder-789"}
-        
+
         response = client.post(
             "/api/v1/documents/doc-123/move?user_id=user-123",
             json=move_data
         )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["folder_id"] == "folder-789"
@@ -302,9 +298,9 @@ class TestDocumentManagement:
     def test_delete_document(self, mock_delete):
         """Test document deletion."""
         mock_delete.return_value = True
-        
+
         response = client.delete("/api/v1/documents/doc-123?user_id=user-123")
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["message"] == "Document deleted successfully"
@@ -321,11 +317,11 @@ class TestFolderManagement:
         mock_folder.name = sample_folder_data["name"]
         mock_folder.full_path = sample_folder_data["name"]
         mock_folder.level = 0
-        
+
         mock_create.return_value = mock_folder
-        
+
         response = client.post("/api/v1/folders", json=sample_folder_data)
-        
+
         assert response.status_code == 201
         data = response.json()
         assert data["name"] == sample_folder_data["name"]
@@ -345,9 +341,9 @@ class TestFolderManagement:
             ]
         }
         mock_get_contents.return_value = mock_contents
-        
+
         response = client.get("/api/v1/folders/folder-123/contents")
-        
+
         assert response.status_code == 200
         data = response.json()
         assert len(data["subfolders"]) == 2
@@ -366,14 +362,14 @@ class TestDocumentSharing:
         mock_share.share_type = ShareType.USER
         mock_share.access_level = AccessLevel.VIEW
         mock_share.is_active = True
-        
+
         mock_create_share.return_value = mock_share
-        
+
         response = client.post(
             "/api/v1/documents/doc-123/shares?shared_by_id=user-123",
             json=sample_share_data
         )
-        
+
         assert response.status_code == 201
         data = response.json()
         assert data["document_id"] == "doc-123"
@@ -387,9 +383,9 @@ class TestDocumentSharing:
             DocumentShare(id="share-2", access_level=AccessLevel.EDIT)
         ]
         mock_get_shares.return_value = mock_shares
-        
+
         response = client.get("/api/v1/documents/doc-123/shares")
-        
+
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 2
@@ -398,9 +394,9 @@ class TestDocumentSharing:
     def test_revoke_document_share(self, mock_revoke):
         """Test document share revocation."""
         mock_revoke.return_value = True
-        
+
         response = client.delete("/api/v1/shares/share-123?revoked_by_id=user-123")
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["message"] == "Document share revoked successfully"
@@ -416,11 +412,11 @@ class TestWorkflowManagement:
         mock_workflow.id = "workflow-123"
         mock_workflow.name = sample_workflow_data["name"]
         mock_workflow.is_active = True
-        
+
         mock_create_workflow.return_value = mock_workflow
-        
+
         response = client.post("/api/v1/workflows", json=sample_workflow_data)
-        
+
         assert response.status_code == 201
         data = response.json()
         assert data["name"] == sample_workflow_data["name"]
@@ -433,7 +429,7 @@ class TestWorkflowManagement:
             DocumentApproval(id="approval-2", step_number=2)
         ]
         mock_submit.return_value = mock_approvals
-        
+
         approval_data = {
             "workflow_id": "workflow-123",
             "approvers": [
@@ -441,12 +437,12 @@ class TestWorkflowManagement:
                 {"approver_id": "user-789", "step_name": "Financial Review"}
             ]
         }
-        
+
         response = client.post(
             "/api/v1/documents/doc-123/submit-approval?requested_by_id=user-123",
             json=approval_data
         )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 2
@@ -458,20 +454,20 @@ class TestWorkflowManagement:
         mock_approval.id = "approval-123"
         mock_approval.status = ApprovalStatus.APPROVED
         mock_approval.decision_date = datetime.utcnow()
-        
+
         mock_process.return_value = mock_approval
-        
+
         decision_data = {
             "decision": "approved",
             "comments": "Looks good to proceed",
             "conditions": "Ensure final review by legal"
         }
-        
+
         response = client.post(
             "/api/v1/approvals/approval-123/decision",
             json=decision_data
         )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "approved"
@@ -487,11 +483,11 @@ class TestTemplateManagement:
         mock_template.id = "template-123"
         mock_template.name = sample_template_data["name"]
         mock_template.is_active = True
-        
+
         mock_create_template.return_value = mock_template
-        
+
         response = client.post("/api/v1/templates", json=sample_template_data)
-        
+
         assert response.status_code == 201
         data = response.json()
         assert data["name"] == sample_template_data["name"]
@@ -502,9 +498,9 @@ class TestTemplateManagement:
         mock_document = DocumentExtended()
         mock_document.id = "doc-456"
         mock_document.filename = "generated_contract.pdf"
-        
+
         mock_generate.return_value = mock_document
-        
+
         generation_data = {
             "template_id": "template-123",
             "field_values": {
@@ -512,12 +508,12 @@ class TestTemplateManagement:
                 "party_name": "ABC Corporation"
             }
         }
-        
+
         response = client.post(
             "/api/v1/templates/template-123/generate?generated_by_id=user-123",
             json=generation_data
         )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["document_id"] == "doc-456"
@@ -535,19 +531,19 @@ class TestDocumentSearch:
             DocumentExtended(id="doc-2", title="Agreement XYZ")
         ]
         mock_search.return_value = mock_documents
-        
+
         search_data = {
             "query": "contract agreement",
             "document_type": "pdf",
             "category": "contracts",
             "tags": ["important"]
         }
-        
+
         response = client.post(
             "/api/v1/documents/search?organization_id=org-123",
             json=search_data
         )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert len(data["documents"]) == 2
@@ -564,7 +560,7 @@ class TestDocumentSearch:
                 "limit": 5
             }
         )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert len(data) <= 5
@@ -582,14 +578,14 @@ class TestCollaboration:
         mock_comment.content = sample_comment_data["content"]
         mock_comment.author_id = "user-123"
         mock_comment.is_resolved = False
-        
+
         mock_create_comment.return_value = mock_comment
-        
+
         response = client.post(
             "/api/v1/documents/doc-123/comments?author_id=user-123",
             json=sample_comment_data
         )
-        
+
         assert response.status_code == 201
         data = response.json()
         assert data["content"] == sample_comment_data["content"]
@@ -601,13 +597,13 @@ class TestCollaboration:
         mock_comment.id = "comment-123"
         mock_comment.is_resolved = True
         mock_comment.resolved_at = datetime.utcnow()
-        
+
         mock_resolve.return_value = mock_comment
-        
+
         response = client.post(
             "/api/v1/comments/comment-123/resolve?resolved_by_id=user-123"
         )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["is_resolved"] is True
@@ -620,7 +616,7 @@ class TestDocumentAnalytics:
     def test_get_analytics(self, mock_get_analytics):
         """Test document analytics generation."""
         from app.models.document_extended import DocumentAnalytics
-        
+
         mock_analytics = DocumentAnalytics()
         mock_analytics.organization_id = "org-123"
         mock_analytics.total_documents = 150
@@ -628,18 +624,18 @@ class TestDocumentAnalytics:
         mock_analytics.total_views = 500
         mock_analytics.total_downloads = 100
         mock_analytics.calculated_date = datetime.utcnow()
-        
+
         mock_get_analytics.return_value = mock_analytics
-        
+
         analytics_data = {
             "organization_id": "org-123",
             "period_start": "2024-01-01",
             "period_end": "2024-01-31",
             "period_type": "monthly"
         }
-        
+
         response = client.post("/api/v1/analytics", json=analytics_data)
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["storage_metrics"]["total_documents"] == 150
@@ -657,7 +653,7 @@ class TestDigitalSignatures:
             DocumentSignature(id="sig-2", signer_email="signer2@test.com")
         ]
         mock_request_signature.return_value = mock_signatures
-        
+
         signature_data = {
             "organization_id": "org-123",
             "signer_name": "John Doe",
@@ -666,12 +662,12 @@ class TestDigitalSignatures:
             "position_x": "100.0",
             "position_y": "200.0"
         }
-        
+
         response = client.post(
             "/api/v1/documents/doc-123/signatures/request?requested_by_id=user-123",
             json=signature_data
         )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert len(data) >= 1
@@ -683,24 +679,24 @@ class TestDigitalSignatures:
         mock_signature.id = "sig-123"
         mock_signature.status = SignatureStatus.SIGNED
         mock_signature.signed_at = datetime.utcnow()
-        
+
         mock_process_signature.return_value = mock_signature
-        
+
         # Create a simple signature image (1x1 pixel PNG)
         signature_bytes = base64.b64encode(b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xdb\x00\x00\x00\x00IEND\xaeB`\x82').decode()
-        
+
         signature_data = {
             "signature_data": signature_bytes,
             "consent_given": True,
             "ip_address": "192.168.1.100",
             "user_agent": "Mozilla/5.0 Test Browser"
         }
-        
+
         response = client.post(
             "/api/v1/signatures/sig-123/sign",
             json=signature_data
         )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "signed"
@@ -716,15 +712,15 @@ class TestBulkOperations:
             "operation": "move",
             "parameters": {"target_folder_id": "folder-456"}
         }
-        
+
         with patch('app.crud.document_v31.DocumentService.move_document') as mock_move:
             mock_move.return_value = DocumentExtended(id="doc-1")
-            
+
             response = client.post(
                 "/api/v1/documents/bulk-operation?user_id=user-123",
                 json=operation_data
             )
-            
+
             assert response.status_code == 200
             data = response.json()
             assert data["operation"] == "move"
@@ -737,12 +733,12 @@ class TestBulkOperations:
             "tags_to_add": ["urgent", "reviewed"],
             "tags_to_remove": ["draft"]
         }
-        
+
         response = client.post(
             "/api/v1/documents/bulk-tag?user_id=user-123",
             json=tag_data
         )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["operation"] == "bulk_tag"
@@ -758,12 +754,12 @@ class TestBulkOperations:
                 "access_level": "view"
             }
         }
-        
+
         response = client.post(
             "/api/v1/documents/bulk-share?shared_by_id=user-123",
             json=share_data
         )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["operation"] == "bulk_share"
@@ -776,12 +772,12 @@ class TestBulkOperations:
             "include_metadata": True,
             "include_versions": False
         }
-        
+
         response = client.post(
             "/api/v1/export?user_id=user-123",
             json=export_data
         )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert "export_id" in data
@@ -795,12 +791,12 @@ class TestBulkOperations:
             "target_folder_id": "folder-123",
             "preserve_structure": True
         }
-        
+
         response = client.post(
             "/api/v1/import?user_id=user-123",
             json=import_data
         )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert "import_id" in data
@@ -826,9 +822,9 @@ class TestSystemHealth:
             "timestamp": datetime.utcnow().isoformat()
         }
         mock_get_health.return_value = mock_health
-        
+
         response = client.get("/api/v1/health")
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "healthy"
@@ -838,9 +834,9 @@ class TestSystemHealth:
     def test_system_health_failure(self, mock_get_health):
         """Test system health check failure handling."""
         mock_get_health.side_effect = Exception("Database connection failed")
-        
+
         response = client.get("/api/v1/health")
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "unhealthy"
@@ -855,19 +851,19 @@ class TestDocumentIntegrationScenarios:
     def test_complete_document_lifecycle(self, mock_service):
         """Test complete document lifecycle from creation to deletion."""
         mock_service_instance = mock_service.return_value
-        
+
         # Setup mocks for the entire lifecycle
         mock_document = DocumentExtended(id="doc-123", title="Test Document")
         mock_folder = DocumentFolder(id="folder-456", name="Test Folder")
         mock_share = DocumentShare(id="share-789", document_id="doc-123")
         mock_comment = DocumentComment(id="comment-012", document_id="doc-123")
-        
+
         mock_service_instance.create_folder.return_value = mock_folder
         mock_service_instance.create_document.return_value = mock_document
         mock_service_instance.create_document_share.return_value = mock_share
         mock_service_instance.create_document_comment.return_value = mock_comment
         mock_service_instance.delete_document.return_value = True
-        
+
         # Execute the lifecycle
         # 1. Create folder
         folder_data = {
@@ -876,10 +872,10 @@ class TestDocumentIntegrationScenarios:
             "owner_id": "user-123",
             "created_by_id": "user-123"
         }
-        
+
         folder_response = client.post("/api/v1/folders", json=folder_data)
         assert folder_response.status_code == 201
-        
+
         # 2. Create document
         document_data = {
             "organization_id": "org-123",
@@ -890,10 +886,10 @@ class TestDocumentIntegrationScenarios:
             "created_by_id": "user-123",
             "folder_id": "folder-456"
         }
-        
+
         document_response = client.post("/api/v1/documents", json=document_data)
         assert document_response.status_code == 201
-        
+
         # 3. Share document
         share_data = {
             "organization_id": "org-123",
@@ -901,25 +897,25 @@ class TestDocumentIntegrationScenarios:
             "shared_with_user_id": "user-456",
             "access_level": "view"
         }
-        
+
         share_response = client.post(
             "/api/v1/documents/doc-123/shares?shared_by_id=user-123",
             json=share_data
         )
         assert share_response.status_code == 201
-        
+
         # 4. Add comment
         comment_data = {
             "organization_id": "org-123",
             "content": "Please review this document"
         }
-        
+
         comment_response = client.post(
             "/api/v1/documents/doc-123/comments?author_id=user-123",
             json=comment_data
         )
         assert comment_response.status_code == 201
-        
+
         # 5. Delete document
         delete_response = client.delete("/api/v1/documents/doc-123?user_id=user-123")
         assert delete_response.status_code == 200
@@ -928,18 +924,18 @@ class TestDocumentIntegrationScenarios:
     def test_approval_workflow_process(self, mock_service):
         """Test complete approval workflow process."""
         mock_service_instance = mock_service.return_value
-        
+
         # Mock workflow and approval entities
         mock_workflow = DocumentWorkflow(id="workflow-123", name="Test Workflow")
         mock_approvals = [
             DocumentApproval(id="approval-1", step_number=1, status=ApprovalStatus.PENDING),
             DocumentApproval(id="approval-2", step_number=2, status=ApprovalStatus.PENDING)
         ]
-        
+
         mock_service_instance.create_approval_workflow.return_value = mock_workflow
         mock_service_instance.submit_document_for_approval.return_value = mock_approvals
         mock_service_instance.process_approval_decision.return_value = mock_approvals[0]
-        
+
         # Create workflow
         workflow_data = {
             "organization_id": "org-123",
@@ -950,10 +946,10 @@ class TestDocumentIntegrationScenarios:
                 {"step": 2, "name": "Executive Approval"}
             ]
         }
-        
+
         workflow_response = client.post("/api/v1/workflows", json=workflow_data)
         assert workflow_response.status_code == 201
-        
+
         # Submit document for approval
         approval_data = {
             "workflow_id": "workflow-123",
@@ -962,19 +958,19 @@ class TestDocumentIntegrationScenarios:
                 {"approver_id": "user-789", "step_name": "Executive Approval"}
             ]
         }
-        
+
         submission_response = client.post(
             "/api/v1/documents/doc-123/submit-approval?requested_by_id=user-123",
             json=approval_data
         )
         assert submission_response.status_code == 200
-        
+
         # Process approval decision
         decision_data = {
             "decision": "approved",
             "comments": "Approved with minor revisions"
         }
-        
+
         decision_response = client.post(
             "/api/v1/approvals/approval-1/decision",
             json=decision_data

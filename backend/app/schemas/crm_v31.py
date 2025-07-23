@@ -14,7 +14,7 @@ Pydantic schemas for CRM (Customer Relationship Management) API including:
 - Sales Process Automation
 """
 
-from datetime import datetime, date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
@@ -32,14 +32,13 @@ from app.models.crm_extended import (
     SupportTicketStatus,
 )
 
-
 # =============================================================================
 # Customer Schemas
 # =============================================================================
 
 class CustomerBase(BaseModel):
     """Base schema for Customer."""
-    
+
     organization_id: str
     customer_code: Optional[str] = None
     company_name: str
@@ -87,7 +86,7 @@ class CustomerCreate(CustomerBase):
 
 class CustomerUpdate(BaseModel):
     """Schema for updating Customer."""
-    
+
     company_name: Optional[str] = None
     legal_name: Optional[str] = None
     doing_business_as: Optional[str] = None
@@ -127,7 +126,7 @@ class CustomerUpdate(BaseModel):
 
 class CustomerResponse(CustomerBase):
     """Schema for Customer response."""
-    
+
     id: str
     acquisition_date: Optional[date] = None
     first_purchase_date: Optional[date] = None
@@ -158,7 +157,7 @@ class CustomerResponse(CustomerBase):
 
 class ContactBase(BaseModel):
     """Base schema for Contact."""
-    
+
     customer_id: str
     organization_id: str
     first_name: str
@@ -211,7 +210,7 @@ class ContactCreate(ContactBase):
 
 class ContactUpdate(BaseModel):
     """Schema for updating Contact."""
-    
+
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     middle_name: Optional[str] = None
@@ -246,7 +245,7 @@ class ContactUpdate(BaseModel):
 
 class ContactResponse(ContactBase):
     """Schema for Contact response."""
-    
+
     id: str
     last_contact_date: Optional[date] = None
     last_contact_method: Optional[str] = None
@@ -269,7 +268,7 @@ class ContactResponse(ContactBase):
 
 class LeadBase(BaseModel):
     """Base schema for Lead."""
-    
+
     organization_id: str
     lead_number: Optional[str] = None
     first_name: Optional[str] = None
@@ -316,7 +315,7 @@ class LeadCreate(LeadBase):
 
 class LeadUpdate(BaseModel):
     """Schema for updating Lead."""
-    
+
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     company_name: Optional[str] = None
@@ -349,7 +348,7 @@ class LeadUpdate(BaseModel):
 
 class LeadResponse(LeadBase):
     """Schema for Lead response."""
-    
+
     id: str
     status: LeadStatus
     lead_score: int
@@ -381,7 +380,7 @@ class LeadResponse(LeadBase):
 
 class OpportunityBase(BaseModel):
     """Base schema for Opportunity."""
-    
+
     customer_id: str
     organization_id: str
     lead_id: Optional[str] = None
@@ -434,7 +433,7 @@ class OpportunityCreate(OpportunityBase):
 
 class OpportunityUpdate(BaseModel):
     """Schema for updating Opportunity."""
-    
+
     name: Optional[str] = None
     description: Optional[str] = None
     amount: Optional[Decimal] = Field(None, ge=0)
@@ -477,7 +476,7 @@ class OpportunityUpdate(BaseModel):
 
 class OpportunityResponse(OpportunityBase):
     """Schema for Opportunity response."""
-    
+
     id: str
     actual_close_date: Optional[date] = None
     expected_margin: Optional[Decimal] = None
@@ -507,7 +506,7 @@ class OpportunityResponse(OpportunityBase):
 
 class ActivityBase(BaseModel):
     """Base schema for CRM Activity."""
-    
+
     organization_id: str
     customer_id: Optional[str] = None
     contact_id: Optional[str] = None
@@ -546,7 +545,7 @@ class ActivityCreate(ActivityBase):
 
 class ActivityUpdate(BaseModel):
     """Schema for updating Activity."""
-    
+
     subject: Optional[str] = None
     description: Optional[str] = None
     activity_date: Optional[datetime] = None
@@ -568,7 +567,7 @@ class ActivityUpdate(BaseModel):
 
 class ActivityResponse(ActivityBase):
     """Schema for Activity response."""
-    
+
     id: str
     is_completed: bool
     completion_date: Optional[datetime] = None
@@ -594,7 +593,7 @@ class ActivityResponse(ActivityBase):
 
 class CampaignBase(BaseModel):
     """Base schema for Campaign."""
-    
+
     organization_id: str
     campaign_code: Optional[str] = None
     name: str
@@ -634,7 +633,7 @@ class CampaignCreate(CampaignBase):
 
 class CampaignUpdate(BaseModel):
     """Schema for updating Campaign."""
-    
+
     name: Optional[str] = None
     description: Optional[str] = None
     status: Optional[CampaignStatus] = None
@@ -663,7 +662,7 @@ class CampaignUpdate(BaseModel):
 
 class CampaignResponse(CampaignBase):
     """Schema for Campaign response."""
-    
+
     id: str
     status: CampaignStatus
     actual_start_date: Optional[date] = None
@@ -696,7 +695,7 @@ class CampaignResponse(CampaignBase):
 
 class SupportTicketBase(BaseModel):
     """Base schema for Support Ticket."""
-    
+
     customer_id: str
     contact_id: Optional[str] = None
     organization_id: str
@@ -729,7 +728,7 @@ class SupportTicketCreate(SupportTicketBase):
 
 class SupportTicketUpdate(BaseModel):
     """Schema for updating Support Ticket."""
-    
+
     subject: Optional[str] = None
     description: Optional[str] = None
     category: Optional[str] = None
@@ -754,7 +753,7 @@ class SupportTicketUpdate(BaseModel):
 
 class SupportTicketResponse(SupportTicketBase):
     """Schema for Support Ticket response."""
-    
+
     id: str
     status: SupportTicketStatus
     created_date: datetime
@@ -786,7 +785,7 @@ class SupportTicketResponse(SupportTicketBase):
 
 class CRMDashboardMetrics(BaseModel):
     """Schema for CRM dashboard metrics."""
-    
+
     organization_id: str
     period_start: date
     period_end: date
@@ -805,7 +804,7 @@ class CRMDashboardMetrics(BaseModel):
 
 class CustomerHealthScore(BaseModel):
     """Schema for customer health score."""
-    
+
     customer_id: str
     overall_health_score: float
     health_status: str
@@ -815,7 +814,7 @@ class CustomerHealthScore(BaseModel):
 
 class LeadConversionAnalysis(BaseModel):
     """Schema for lead conversion analysis."""
-    
+
     lead_id: str
     customer_id: str
     contact_id: str
@@ -824,7 +823,7 @@ class LeadConversionAnalysis(BaseModel):
 
 class SalesForecast(BaseModel):
     """Schema for sales forecast data."""
-    
+
     organization_id: str
     forecast_period: str
     total_pipeline_value: float
@@ -841,14 +840,14 @@ class SalesForecast(BaseModel):
 
 class ConvertLeadRequest(BaseModel):
     """Schema for converting lead to customer."""
-    
+
     lead_id: str
     customer_data: Optional[Dict[str, Any]] = None
 
 
 class AssignLeadRequest(BaseModel):
     """Schema for assigning lead to sales rep."""
-    
+
     lead_id: str
     assigned_to_id: str
     notes: Optional[str] = None
@@ -856,7 +855,7 @@ class AssignLeadRequest(BaseModel):
 
 class EscalateTicketRequest(BaseModel):
     """Schema for escalating support ticket."""
-    
+
     ticket_id: str
     escalated_to_id: str
     escalation_reason: str
@@ -864,7 +863,7 @@ class EscalateTicketRequest(BaseModel):
 
 class UpdateOpportunityStageRequest(BaseModel):
     """Schema for updating opportunity stage."""
-    
+
     opportunity_id: str
     stage: OpportunityStage
     probability: Optional[Decimal] = Field(None, ge=0, le=100)
@@ -873,7 +872,7 @@ class UpdateOpportunityStageRequest(BaseModel):
 
 class BulkEmailCampaignRequest(BaseModel):
     """Schema for bulk email campaign."""
-    
+
     campaign_id: str
     recipient_list: List[str]
     email_template_id: str
@@ -886,7 +885,7 @@ class BulkEmailCampaignRequest(BaseModel):
 
 class CustomerFilterRequest(BaseModel):
     """Schema for customer filtering."""
-    
+
     organization_id: Optional[str] = None
     account_manager_id: Optional[str] = None
     customer_tier: Optional[str] = None
@@ -899,7 +898,7 @@ class CustomerFilterRequest(BaseModel):
 
 class LeadFilterRequest(BaseModel):
     """Schema for lead filtering."""
-    
+
     organization_id: Optional[str] = None
     status: Optional[LeadStatus] = None
     lead_source: Optional[LeadSource] = None
@@ -912,7 +911,7 @@ class LeadFilterRequest(BaseModel):
 
 class OpportunityFilterRequest(BaseModel):
     """Schema for opportunity filtering."""
-    
+
     organization_id: Optional[str] = None
     customer_id: Optional[str] = None
     stage: Optional[OpportunityStage] = None
@@ -926,7 +925,7 @@ class OpportunityFilterRequest(BaseModel):
 
 class ActivityFilterRequest(BaseModel):
     """Schema for activity filtering."""
-    
+
     customer_id: Optional[str] = None
     contact_id: Optional[str] = None
     lead_id: Optional[str] = None

@@ -48,7 +48,6 @@ from app.schemas.finance_v31 import (
     FinancialReportCreate,
     FinancialReportUpdate,
     JournalEntryCreate,
-    JournalEntryLineCreate,
     JournalEntryUpdate,
     TaxConfigurationCreate,
     TaxConfigurationUpdate,
@@ -71,31 +70,31 @@ class AccountCRUD(CRUDBase[Account, AccountCreate, AccountUpdate]):
             obj_in.account_code = self._generate_account_code(
                 obj_in.account_type, obj_in.organization_id
             )
-        
+
         # Set account level and path for hierarchy
         account_level = 0
         account_path = obj_in.account_code
-        
+
         if obj_in.parent_account_id:
             parent = self.get(obj_in.parent_account_id)
             if parent:
                 account_level = parent.account_level + 1
                 account_path = f"{parent.account_path}/{obj_in.account_code}"
-        
+
         db_obj = Account(
             **obj_in.dict(),
             account_level=account_level,
             account_path=account_path,
             created_by=created_by,
         )
-        
+
         self.db.add(db_obj)
         self.db.commit()
         self.db.refresh(db_obj)
-        
+
         # Log audit trail
         self._log_audit_event("create", "finance_accounts", db_obj.id, None, db_obj, created_by)
-        
+
         return db_obj
 
     def get_by_code(self, account_code: str, organization_id: str) -> Optional[Account]:
@@ -121,10 +120,10 @@ class AccountCRUD(CRUDBase[Account, AccountCreate, AccountUpdate]):
                 Account.organization_id == organization_id,
             )
         )
-        
+
         if active_only:
-            query = query.filter(Account.is_active == True)
-        
+            query = query.filter(Account.is_active)
+
         return query.order_by(Account.account_code).all()
 
     def get_account_hierarchy(self, organization_id: str) -> List[Account]:
@@ -141,7 +140,7 @@ class AccountCRUD(CRUDBase[Account, AccountCreate, AccountUpdate]):
         account = self.get(account_id)
         if not account:
             return None
-        
+
         # Apply balance based on normal balance and transaction type
         if account.normal_balance == TransactionType.DEBIT:
             if transaction_type == TransactionType.DEBIT:
@@ -153,7 +152,7 @@ class AccountCRUD(CRUDBase[Account, AccountCreate, AccountUpdate]):
                 account.current_balance += amount
             else:
                 account.current_balance -= amount
-        
+
         self.db.commit()
         return account
 
@@ -166,9 +165,9 @@ class AccountCRUD(CRUDBase[Account, AccountCreate, AccountUpdate]):
             AccountType.REVENUE: "4",
             AccountType.EXPENSE: "5",
         }
-        
+
         prefix = prefixes[account_type]
-        
+
         # Get highest existing code for this type
         highest = (
             self.db.query(Account.account_code)
@@ -181,17 +180,17 @@ class AccountCRUD(CRUDBase[Account, AccountCreate, AccountUpdate]):
             .order_by(desc(Account.account_code))
             .first()
         )
-        
+
         if highest:
             try:
                 next_num = int(highest[0][1:]) + 1
                 return f"{prefix}{next_num:04d}"
             except ValueError:
                 pass
-        
+
         return f"{prefix}0001"
 
-    def _log_audit_event(self, event_type: str, table_name: str, record_id: str, 
+    def _log_audit_event(self, event_type: str, table_name: str, record_id: str,
                         old_values: Any, new_values: Any, user_id: str):
         """Log audit event for compliance."""
         audit_log = FinanceAuditLog(
@@ -219,25 +218,25 @@ class JournalEntryCRUD(CRUDBase[JournalEntry, JournalEntryCreate, JournalEntryUp
         """Create journal entry with lines and validation."""
         # Generate entry number
         entry_number = self._generate_entry_number(obj_in.organization_id)
-        
+
         # Validate debits equal credits
         total_debits = sum(line.debit_amount or 0 for line in obj_in.lines)
         total_credits = sum(line.credit_amount or 0 for line in obj_in.lines)
-        
+
         if total_debits != total_credits:
             raise ValueError("Debits must equal credits")
-        
+
         # Create journal entry header
         journal_data = obj_in.dict(exclude={"lines"})
         journal_data["entry_number"] = entry_number
         journal_data["total_debit"] = total_debits
         journal_data["total_credit"] = total_credits
         journal_data["created_by"] = created_by
-        
+
         db_obj = JournalEntry(**journal_data)
         self.db.add(db_obj)
         self.db.flush()  # Get ID for lines
-        
+
         # Create journal entry lines
         for i, line_data in enumerate(obj_in.lines, 1):
             line = JournalEntryLine(
@@ -246,10 +245,10 @@ class JournalEntryCRUD(CRUDBase[JournalEntry, JournalEntryCreate, JournalEntryUp
                 **line_data.dict()
             )
             self.db.add(line)
-        
+
         self.db.commit()
         self.db.refresh(db_obj)
-        
+
         return db_obj
 
     def post_journal_entry(self, journal_entry_id: str, posted_by: str) -> JournalEntry:
@@ -257,7 +256,7 @@ class JournalEntryCRUD(CRUDBase[JournalEntry, JournalEntryCreate, JournalEntryUp
         entry = self.get(journal_entry_id)
         if not entry or entry.is_posted:
             raise ValueError("Entry not found or already posted")
-        
+
         # Update account balances
         account_crud = AccountCRUD(self.db)
         for line in entry.lines:
@@ -265,12 +264,12 @@ class JournalEntryCRUD(CRUDBase[JournalEntry, JournalEntryCreate, JournalEntryUp
                 account_crud.update_balance(line.account_id, line.debit_amount, TransactionType.DEBIT)
             if line.credit_amount > 0:
                 account_crud.update_balance(line.account_id, line.credit_amount, TransactionType.CREDIT)
-        
+
         # Mark as posted
         entry.is_posted = True
         entry.posting_date = datetime.utcnow()
         entry.updated_by = posted_by
-        
+
         self.db.commit()
         return entry
 
@@ -281,7 +280,7 @@ class JournalEntryCRUD(CRUDBase[JournalEntry, JournalEntryCreate, JournalEntryUp
         original_entry = self.get(journal_entry_id)
         if not original_entry or not original_entry.is_posted:
             raise ValueError("Original entry not found or not posted")
-        
+
         # Create reversing entry
         reversal_data = {
             "organization_id": original_entry.organization_id,
@@ -296,13 +295,13 @@ class JournalEntryCRUD(CRUDBase[JournalEntry, JournalEntryCreate, JournalEntryUp
             "source_module": "finance_reversal",
             "created_by": reversed_by,
         }
-        
+
         reversal_entry = JournalEntry(**reversal_data)
         reversal_entry.entry_number = self._generate_entry_number(original_entry.organization_id)
-        
+
         self.db.add(reversal_entry)
         self.db.flush()
-        
+
         # Create reversing lines (swap debit/credit)
         for line in original_entry.lines:
             reversal_line = JournalEntryLine(
@@ -317,17 +316,17 @@ class JournalEntryCRUD(CRUDBase[JournalEntry, JournalEntryCreate, JournalEntryUp
                 project_id=line.project_id,
             )
             self.db.add(reversal_line)
-        
+
         # Link entries and mark original as reversed
         original_entry.is_reversed = True
         original_entry.reversal_entry_id = reversal_entry.id
-        
+
         self.db.commit()
         self.db.refresh(reversal_entry)
-        
+
         # Auto-post the reversal
         self.post_journal_entry(reversal_entry.id, reversed_by)
-        
+
         return reversal_entry
 
     def get_entries_by_account(
@@ -340,12 +339,12 @@ class JournalEntryCRUD(CRUDBase[JournalEntry, JournalEntryCreate, JournalEntryUp
             .join(JournalEntry)
             .filter(JournalEntryLine.account_id == account_id)
         )
-        
+
         if start_date:
             query = query.filter(JournalEntry.transaction_date >= start_date)
         if end_date:
             query = query.filter(JournalEntry.transaction_date <= end_date)
-        
+
         return query.order_by(JournalEntry.transaction_date).all()
 
     def get_trial_balance(
@@ -366,7 +365,7 @@ class JournalEntryCRUD(CRUDBase[JournalEntry, JournalEntryCreate, JournalEntryUp
             .outerjoin(JournalEntryLine)
             .outerjoin(JournalEntry)
             .filter(Account.organization_id == organization_id)
-            .filter(Account.is_active == True)
+            .filter(Account.is_active)
             .filter(
                 or_(
                     JournalEntry.transaction_date.is_(None),
@@ -376,25 +375,25 @@ class JournalEntryCRUD(CRUDBase[JournalEntry, JournalEntryCreate, JournalEntryUp
             .filter(
                 or_(
                     JournalEntry.is_posted.is_(None),
-                    JournalEntry.is_posted == True,
+                    JournalEntry.is_posted,
                 )
             )
             .group_by(Account.id)
             .order_by(Account.account_code)
         )
-        
+
         results = []
         for row in query.all():
             # Calculate ending balance
             debits = row.total_debits or 0
             credits = row.total_credits or 0
-            
+
             # Determine balance based on account normal balance
             if row.account_type in [AccountType.ASSET, AccountType.EXPENSE]:
                 balance = debits - credits
             else:
                 balance = credits - debits
-            
+
             results.append({
                 "account_id": row.id,
                 "account_code": row.account_code,
@@ -405,7 +404,7 @@ class JournalEntryCRUD(CRUDBase[JournalEntry, JournalEntryCreate, JournalEntryUp
                 "total_debits": float(debits),
                 "total_credits": float(credits),
             })
-        
+
         return results
 
     def _generate_entry_number(self, organization_id: str) -> str:
@@ -413,7 +412,7 @@ class JournalEntryCRUD(CRUDBase[JournalEntry, JournalEntryCreate, JournalEntryUp
         # Get current year and month
         now = datetime.utcnow()
         prefix = f"JE{now.year:04d}{now.month:02d}"
-        
+
         # Get highest entry number for this period
         highest = (
             self.db.query(JournalEntry.entry_number)
@@ -426,14 +425,14 @@ class JournalEntryCRUD(CRUDBase[JournalEntry, JournalEntryCreate, JournalEntryUp
             .order_by(desc(JournalEntry.entry_number))
             .first()
         )
-        
+
         if highest:
             try:
                 next_num = int(highest[0][-4:]) + 1
                 return f"{prefix}{next_num:04d}"
             except ValueError:
                 pass
-        
+
         return f"{prefix}0001"
 
 
@@ -450,14 +449,14 @@ class BudgetCRUD(CRUDBase[Budget, BudgetCreate, BudgetUpdate]):
         """Create budget with budget lines."""
         # Calculate totals from lines
         total_revenue = sum(
-            line.annual_budget for line in budget_lines 
+            line.annual_budget for line in budget_lines
             if self._is_revenue_account(line.account_id)
         )
         total_expense = sum(
-            line.annual_budget for line in budget_lines 
+            line.annual_budget for line in budget_lines
             if not self._is_revenue_account(line.account_id)
         )
-        
+
         # Create budget header
         budget_data = obj_in.dict(exclude={"budget_lines"})
         budget_data.update({
@@ -466,11 +465,11 @@ class BudgetCRUD(CRUDBase[Budget, BudgetCreate, BudgetUpdate]):
             "net_budget": total_revenue - total_expense,
             "created_by": created_by,
         })
-        
+
         db_obj = Budget(**budget_data)
         self.db.add(db_obj)
         self.db.flush()
-        
+
         # Create budget lines
         for i, line_data in enumerate(budget_lines, 1):
             budget_line = BudgetLine(
@@ -479,10 +478,10 @@ class BudgetCRUD(CRUDBase[Budget, BudgetCreate, BudgetUpdate]):
                 **line_data.dict()
             )
             self.db.add(budget_line)
-        
+
         self.db.commit()
         self.db.refresh(db_obj)
-        
+
         return db_obj
 
     def approve_budget(self, budget_id: str, approved_by: str, notes: str = "") -> Budget:
@@ -490,12 +489,12 @@ class BudgetCRUD(CRUDBase[Budget, BudgetCreate, BudgetUpdate]):
         budget = self.get(budget_id)
         if not budget or budget.status != BudgetStatus.DRAFT:
             raise ValueError("Budget not found or not in draft status")
-        
+
         budget.status = BudgetStatus.ACTIVE
         budget.approved_date = datetime.utcnow()
         budget.approved_by = approved_by
         budget.approval_notes = notes
-        
+
         self.db.commit()
         return budget
 
@@ -506,10 +505,10 @@ class BudgetCRUD(CRUDBase[Budget, BudgetCreate, BudgetUpdate]):
         budget = self.get(budget_id)
         if not budget:
             raise ValueError("Budget not found")
-        
+
         # Calculate actuals by account
         end_date = as_of_date or datetime.utcnow()
-        
+
         actuals_query = (
             self.db.query(
                 JournalEntryLine.account_id,
@@ -521,14 +520,14 @@ class BudgetCRUD(CRUDBase[Budget, BudgetCreate, BudgetUpdate]):
                     JournalEntry.organization_id == budget.organization_id,
                     JournalEntry.transaction_date >= budget.budget_start_date,
                     JournalEntry.transaction_date <= end_date,
-                    JournalEntry.is_posted == True,
+                    JournalEntry.is_posted,
                 )
             )
             .group_by(JournalEntryLine.account_id)
         )
-        
+
         actuals = {row.account_id: row.actual_amount for row in actuals_query.all()}
-        
+
         # Calculate variances for each budget line
         variances = []
         for line in budget.budget_lines:
@@ -537,7 +536,7 @@ class BudgetCRUD(CRUDBase[Budget, BudgetCreate, BudgetUpdate]):
             variance_percentage = (
                 (variance_amount / line.annual_budget * 100) if line.annual_budget else 0
             )
-            
+
             variances.append({
                 "account_id": line.account_id,
                 "account_code": line.account.account_code if line.account else "",
@@ -548,7 +547,7 @@ class BudgetCRUD(CRUDBase[Budget, BudgetCreate, BudgetUpdate]):
                 "variance_percentage": float(variance_percentage),
                 "status": self._get_variance_status(variance_percentage),
             })
-        
+
         return {
             "budget_id": budget_id,
             "budget_name": budget.budget_name,
@@ -589,24 +588,24 @@ class CostCenterCRUD(CRUDBase[CostCenter, CostCenterCreate, CostCenterUpdate]):
         # Generate code if not provided
         if not obj_in.cost_center_code:
             obj_in.cost_center_code = self._generate_cost_center_code(obj_in.organization_id)
-        
+
         # Set level based on parent
         cost_center_level = 0
         if obj_in.parent_cost_center_id:
             parent = self.get(obj_in.parent_cost_center_id)
             if parent:
                 cost_center_level = parent.cost_center_level + 1
-        
+
         db_obj = CostCenter(
             **obj_in.dict(),
             cost_center_level=cost_center_level,
             created_by=created_by,
         )
-        
+
         self.db.add(db_obj)
         self.db.commit()
         self.db.refresh(db_obj)
-        
+
         return db_obj
 
     def get_cost_center_performance(
@@ -616,7 +615,7 @@ class CostCenterCRUD(CRUDBase[CostCenter, CostCenterCreate, CostCenterUpdate]):
         cost_center = self.get(cost_center_id)
         if not cost_center:
             raise ValueError("Cost center not found")
-        
+
         # Get actual costs for the period
         actual_costs = (
             self.db.query(
@@ -628,18 +627,18 @@ class CostCenterCRUD(CRUDBase[CostCenter, CostCenterCreate, CostCenterUpdate]):
                     JournalEntryLine.cost_center_id == cost_center_id,
                     JournalEntry.transaction_date >= start_date,
                     JournalEntry.transaction_date <= end_date,
-                    JournalEntry.is_posted == True,
+                    JournalEntry.is_posted,
                 )
             )
             .scalar() or 0
         )
-        
+
         # Calculate variance
         budget_variance = actual_costs - cost_center.budget_amount
         budget_variance_pct = (
             (budget_variance / cost_center.budget_amount * 100) if cost_center.budget_amount else 0
         )
-        
+
         return {
             "cost_center_id": cost_center_id,
             "cost_center_code": cost_center.cost_center_code,
@@ -663,14 +662,14 @@ class CostCenterCRUD(CRUDBase[CostCenter, CostCenterCreate, CostCenterUpdate]):
             .order_by(desc(CostCenter.cost_center_code))
             .first()
         )
-        
+
         if highest and highest[0].startswith("CC"):
             try:
                 next_num = int(highest[0][2:]) + 1
                 return f"CC{next_num:04d}"
             except ValueError:
                 pass
-        
+
         return "CC0001"
 
 
@@ -686,27 +685,27 @@ class FinancialPeriodCRUD(CRUDBase[FinancialPeriod, FinancialPeriodCreate, Finan
         period = self.get(period_id)
         if not period or period.status == FinancialPeriodStatus.CLOSED:
             raise ValueError("Period not found or already closed")
-        
+
         # Verify all journal entries are posted
         unposted_entries = (
             self.db.query(JournalEntry)
             .filter(
                 and_(
                     JournalEntry.period_id == period_id,
-                    JournalEntry.is_posted == False,
+                    not JournalEntry.is_posted,
                 )
             )
             .count()
         )
-        
+
         if unposted_entries > 0:
             raise ValueError(f"Cannot close period with {unposted_entries} unposted entries")
-        
+
         period.status = FinancialPeriodStatus.CLOSED
         period.closed_date = datetime.utcnow()
         period.closed_by = closed_by
         period.allow_transactions = False
-        
+
         self.db.commit()
         return period
 
@@ -726,21 +725,21 @@ class FinancialReportCRUD(CRUDBase[FinancialReport, FinancialReportCreate, Finan
         assets = self._get_account_balances(
             organization_id, AccountType.ASSET, as_of_date
         )
-        
+
         # Get liabilities
         liabilities = self._get_account_balances(
             organization_id, AccountType.LIABILITY, as_of_date
         )
-        
+
         # Get equity
         equity = self._get_account_balances(
             organization_id, AccountType.EQUITY, as_of_date
         )
-        
+
         total_assets = sum(account["balance"] for account in assets)
         total_liabilities = sum(account["balance"] for account in liabilities)
         total_equity = sum(account["balance"] for account in equity)
-        
+
         return {
             "report_type": "balance_sheet",
             "organization_id": organization_id,
@@ -769,16 +768,16 @@ class FinancialReportCRUD(CRUDBase[FinancialReport, FinancialReportCreate, Finan
         revenue = self._get_account_balances(
             organization_id, AccountType.REVENUE, end_date, start_date
         )
-        
+
         # Get expenses
         expenses = self._get_account_balances(
             organization_id, AccountType.EXPENSE, end_date, start_date
         )
-        
+
         total_revenue = sum(account["balance"] for account in revenue)
         total_expenses = sum(account["balance"] for account in expenses)
         net_income = total_revenue - total_expenses
-        
+
         return {
             "report_type": "income_statement",
             "organization_id": organization_id,
@@ -798,7 +797,7 @@ class FinancialReportCRUD(CRUDBase[FinancialReport, FinancialReportCreate, Finan
         }
 
     def _get_account_balances(
-        self, organization_id: str, account_type: AccountType, 
+        self, organization_id: str, account_type: AccountType,
         as_of_date: datetime, from_date: Optional[datetime] = None
     ) -> List[Dict[str, Any]]:
         """Get account balances for specific account type."""
@@ -816,7 +815,7 @@ class FinancialReportCRUD(CRUDBase[FinancialReport, FinancialReportCreate, Finan
                 and_(
                     Account.organization_id == organization_id,
                     Account.account_type == account_type,
-                    Account.is_active == True,
+                    Account.is_active,
                 )
             )
             .filter(
@@ -826,7 +825,7 @@ class FinancialReportCRUD(CRUDBase[FinancialReport, FinancialReportCreate, Finan
                 )
             )
         )
-        
+
         if from_date:
             query = query.filter(
                 or_(
@@ -834,25 +833,25 @@ class FinancialReportCRUD(CRUDBase[FinancialReport, FinancialReportCreate, Finan
                     JournalEntry.transaction_date >= from_date,
                 )
             )
-        
+
         query = query.filter(
             or_(
                 JournalEntry.is_posted.is_(None),
-                JournalEntry.is_posted == True,
+                JournalEntry.is_posted,
             )
         ).group_by(Account.id).order_by(Account.account_code)
-        
+
         results = []
         for row in query.all():
             debits = row.total_debits or 0
             credits = row.total_credits or 0
-            
+
             # Calculate balance based on account type
             if account_type in [AccountType.ASSET, AccountType.EXPENSE]:
                 balance = debits - credits
             else:
                 balance = credits - debits
-            
+
             results.append({
                 "account_id": row.id,
                 "account_code": row.account_code,
@@ -861,7 +860,7 @@ class FinancialReportCRUD(CRUDBase[FinancialReport, FinancialReportCreate, Finan
                 "debit_total": float(debits),
                 "credit_total": float(credits),
             })
-        
+
         return results
 
 
@@ -877,13 +876,13 @@ class TaxConfigurationCRUD(CRUDBase[TaxConfiguration, TaxConfigurationCreate, Ta
     ) -> List[TaxConfiguration]:
         """Get active tax rates for given date."""
         query_date = effective_date or datetime.utcnow()
-        
+
         return (
             self.db.query(TaxConfiguration)
             .filter(
                 and_(
                     TaxConfiguration.organization_id == organization_id,
-                    TaxConfiguration.is_active == True,
+                    TaxConfiguration.is_active,
                     TaxConfiguration.effective_date <= query_date,
                     or_(
                         TaxConfiguration.expiration_date.is_(None),
@@ -906,25 +905,25 @@ class TaxConfigurationCRUD(CRUDBase[TaxConfiguration, TaxConfigurationCreate, Ta
                 and_(
                     TaxConfiguration.organization_id == organization_id,
                     TaxConfiguration.tax_code == tax_code,
-                    TaxConfiguration.is_active == True,
+                    TaxConfiguration.is_active,
                 )
             )
             .first()
         )
-        
+
         if not tax_config:
             raise ValueError(f"Tax configuration not found for code: {tax_code}")
-        
+
         # Calculate tax amount
         tax_amount = base_amount * (tax_config.tax_rate / 100)
-        
+
         # Apply minimum/maximum limits
         if tax_config.minimum_amount and tax_amount < tax_config.minimum_amount:
             tax_amount = tax_config.minimum_amount
-        
+
         if tax_config.maximum_amount and tax_amount > tax_config.maximum_amount:
             tax_amount = tax_config.maximum_amount
-        
+
         return {
             "tax_code": tax_code,
             "tax_name": tax_config.tax_name,

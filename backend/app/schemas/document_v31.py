@@ -14,21 +14,20 @@ Pydantic schemas for document management including:
 - Integration & API Management
 """
 
-from datetime import datetime, date
+from datetime import date, datetime
 from decimal import Decimal
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field
 
 from app.models.document_extended import (
+    AccessLevel,
+    ApprovalStatus,
     DocumentStatus,
     DocumentType,
-    AccessLevel,
     ShareType,
-    ApprovalStatus,
     SignatureStatus,
 )
-
 
 # =============================================================================
 # Document Schemas
@@ -36,7 +35,7 @@ from app.models.document_extended import (
 
 class DocumentBase(BaseModel):
     """Base schema for Document."""
-    
+
     organization_id: str
     title: str
     description: Optional[str] = None
@@ -56,7 +55,7 @@ class DocumentBase(BaseModel):
 
 class DocumentCreate(DocumentBase):
     """Schema for creating Document."""
-    
+
     owner_id: str
     created_by_id: str
     original_filename: Optional[str] = None
@@ -69,7 +68,7 @@ class DocumentCreate(DocumentBase):
 
 class DocumentUpdate(BaseModel):
     """Schema for updating Document."""
-    
+
     title: Optional[str] = None
     description: Optional[str] = None
     category: Optional[str] = None
@@ -84,7 +83,7 @@ class DocumentUpdate(BaseModel):
 
 class DocumentResponse(DocumentBase):
     """Schema for Document response."""
-    
+
     id: str
     document_number: str
     file_extension: Optional[str] = None
@@ -129,7 +128,7 @@ class DocumentResponse(DocumentBase):
 
 class DocumentVersionCreate(BaseModel):
     """Schema for creating document version."""
-    
+
     filename: str
     description: Optional[str] = None
     major_update: bool = False
@@ -138,7 +137,7 @@ class DocumentVersionCreate(BaseModel):
 
 class DocumentMoveRequest(BaseModel):
     """Schema for moving document to different folder."""
-    
+
     new_folder_id: Optional[str] = None
 
 
@@ -148,7 +147,7 @@ class DocumentMoveRequest(BaseModel):
 
 class FolderBase(BaseModel):
     """Base schema for Folder."""
-    
+
     organization_id: str
     name: str
     description: Optional[str] = None
@@ -163,7 +162,7 @@ class FolderBase(BaseModel):
 
 class FolderCreate(FolderBase):
     """Schema for creating Folder."""
-    
+
     owner_id: str
     created_by_id: str
     inherit_permissions: bool = True
@@ -171,7 +170,7 @@ class FolderCreate(FolderBase):
 
 class FolderUpdate(BaseModel):
     """Schema for updating Folder."""
-    
+
     name: Optional[str] = None
     description: Optional[str] = None
     default_access_level: Optional[AccessLevel] = None
@@ -185,7 +184,7 @@ class FolderUpdate(BaseModel):
 
 class FolderResponse(FolderBase):
     """Schema for Folder response."""
-    
+
     id: str
     full_path: str
     level: int
@@ -209,7 +208,7 @@ class FolderResponse(FolderBase):
 
 class FolderContentsResponse(BaseModel):
     """Schema for folder contents response."""
-    
+
     subfolders: List[FolderResponse]
     documents: List[DocumentResponse]
 
@@ -220,7 +219,7 @@ class FolderContentsResponse(BaseModel):
 
 class ShareBase(BaseModel):
     """Base schema for Document Share."""
-    
+
     document_id: str
     organization_id: str
     share_type: ShareType
@@ -242,14 +241,14 @@ class ShareBase(BaseModel):
 
 class ShareCreate(ShareBase):
     """Schema for creating Document Share."""
-    
+
     password_protected: bool = False
     password: Optional[str] = None
 
 
 class ShareUpdate(BaseModel):
     """Schema for updating Document Share."""
-    
+
     access_level: Optional[AccessLevel] = None
     can_download: Optional[bool] = None
     can_print: Optional[bool] = None
@@ -263,7 +262,7 @@ class ShareUpdate(BaseModel):
 
 class ShareResponse(ShareBase):
     """Schema for Document Share response."""
-    
+
     id: str
     is_public_link: bool
     share_token: Optional[str] = None
@@ -285,7 +284,7 @@ class ShareResponse(ShareBase):
 
 class ShareAccessRequest(BaseModel):
     """Schema for accessing shared document."""
-    
+
     share_token: str
     password: Optional[str] = None
 
@@ -296,7 +295,7 @@ class ShareAccessRequest(BaseModel):
 
 class CommentBase(BaseModel):
     """Base schema for Document Comment."""
-    
+
     document_id: str
     organization_id: str
     content: str
@@ -322,7 +321,7 @@ class CommentCreate(CommentBase):
 
 class CommentUpdate(BaseModel):
     """Schema for updating Document Comment."""
-    
+
     content: Optional[str] = None
     is_resolved: Optional[bool] = None
     attachments: Optional[List[Dict[str, str]]] = None
@@ -330,7 +329,7 @@ class CommentUpdate(BaseModel):
 
 class CommentResponse(CommentBase):
     """Schema for Document Comment response."""
-    
+
     id: str
     author_id: str
     is_resolved: bool
@@ -349,7 +348,7 @@ class CommentResponse(CommentBase):
 
 class WorkflowBase(BaseModel):
     """Base schema for Document Workflow."""
-    
+
     organization_id: str
     name: str
     description: Optional[str] = None
@@ -372,7 +371,7 @@ class WorkflowBase(BaseModel):
 
 class WorkflowCreate(WorkflowBase):
     """Schema for creating Document Workflow."""
-    
+
     created_by_id: str
     is_template: bool = False
     auto_assign: bool = False
@@ -381,7 +380,7 @@ class WorkflowCreate(WorkflowBase):
 
 class WorkflowUpdate(BaseModel):
     """Schema for updating Document Workflow."""
-    
+
     name: Optional[str] = None
     description: Optional[str] = None
     steps: Optional[List[Dict[str, Any]]] = None
@@ -396,7 +395,7 @@ class WorkflowUpdate(BaseModel):
 
 class WorkflowResponse(WorkflowBase):
     """Schema for Document Workflow response."""
-    
+
     id: str
     created_by_id: str
     is_active: bool
@@ -415,7 +414,7 @@ class WorkflowResponse(WorkflowBase):
 
 class ApprovalBase(BaseModel):
     """Base schema for Document Approval."""
-    
+
     document_id: str
     organization_id: str
     workflow_id: Optional[str] = None
@@ -431,13 +430,13 @@ class ApprovalBase(BaseModel):
 
 class ApprovalCreate(ApprovalBase):
     """Schema for creating Document Approval."""
-    
+
     requested_by_id: str
 
 
 class ApprovalDecisionRequest(BaseModel):
     """Schema for approval decision."""
-    
+
     decision: ApprovalStatus
     comments: Optional[str] = None
     conditions: Optional[str] = None
@@ -446,7 +445,7 @@ class ApprovalDecisionRequest(BaseModel):
 
 class ApprovalResponse(ApprovalBase):
     """Schema for Document Approval response."""
-    
+
     id: str
     requested_by_id: str
     status: ApprovalStatus
@@ -469,7 +468,7 @@ class ApprovalResponse(ApprovalBase):
 
 class ApprovalSubmissionRequest(BaseModel):
     """Schema for submitting document for approval."""
-    
+
     workflow_id: str
     approvers: List[Dict[str, Any]]
     deadline_override: Optional[datetime] = None
@@ -482,7 +481,7 @@ class ApprovalSubmissionRequest(BaseModel):
 
 class SignatureBase(BaseModel):
     """Base schema for Document Signature."""
-    
+
     document_id: str
     organization_id: str
     signer_name: str
@@ -499,14 +498,14 @@ class SignatureBase(BaseModel):
 
 class SignatureRequestCreate(SignatureBase):
     """Schema for creating Signature Request."""
-    
+
     requested_by_id: str
     signer_id: Optional[str] = None
 
 
 class SignatureProcessRequest(BaseModel):
     """Schema for processing signature."""
-    
+
     signature_data: str  # Base64 encoded signature image
     consent_given: bool = True
     ip_address: Optional[str] = None
@@ -517,7 +516,7 @@ class SignatureProcessRequest(BaseModel):
 
 class SignatureResponse(SignatureBase):
     """Schema for Document Signature response."""
-    
+
     id: str
     requested_by_id: str
     signer_id: Optional[str] = None
@@ -549,7 +548,7 @@ class SignatureResponse(SignatureBase):
 
 class BulkSignatureRequest(BaseModel):
     """Schema for bulk signature request."""
-    
+
     document_ids: List[str]
     signers: List[Dict[str, Any]]
     signing_deadline: Optional[datetime] = None
@@ -562,7 +561,7 @@ class BulkSignatureRequest(BaseModel):
 
 class TemplateBase(BaseModel):
     """Base schema for Document Template."""
-    
+
     organization_id: str
     name: str
     description: Optional[str] = None
@@ -586,14 +585,14 @@ class TemplateBase(BaseModel):
 
 class TemplateCreate(TemplateBase):
     """Schema for creating Document Template."""
-    
+
     owner_id: str
     created_by_id: str
 
 
 class TemplateUpdate(BaseModel):
     """Schema for updating Document Template."""
-    
+
     name: Optional[str] = None
     description: Optional[str] = None
     category: Optional[str] = None
@@ -609,7 +608,7 @@ class TemplateUpdate(BaseModel):
 
 class TemplateResponse(TemplateBase):
     """Schema for Document Template response."""
-    
+
     id: str
     owner_id: str
     created_by_id: str
@@ -626,7 +625,7 @@ class TemplateResponse(TemplateBase):
 
 class TemplateGenerationRequest(BaseModel):
     """Schema for generating document from template."""
-    
+
     template_id: str
     field_values: Dict[str, Any]
     output_filename: Optional[str] = None
@@ -636,7 +635,7 @@ class TemplateGenerationRequest(BaseModel):
 
 class TemplateGenerationResponse(BaseModel):
     """Schema for template generation response."""
-    
+
     document_id: str
     filename: str
     generation_success: bool
@@ -650,7 +649,7 @@ class TemplateGenerationResponse(BaseModel):
 
 class DocumentSearchRequest(BaseModel):
     """Schema for document search request."""
-    
+
     query: str
     document_type: Optional[DocumentType] = None
     category: Optional[str] = None
@@ -672,7 +671,7 @@ class DocumentSearchRequest(BaseModel):
 
 class DocumentFilterRequest(BaseModel):
     """Schema for document filtering request."""
-    
+
     organization_id: Optional[str] = None
     folder_id: Optional[str] = None
     document_type: Optional[DocumentType] = None
@@ -687,7 +686,7 @@ class DocumentFilterRequest(BaseModel):
 
 class AdvancedSearchResponse(BaseModel):
     """Schema for advanced search response."""
-    
+
     documents: List[DocumentResponse]
     total_count: int
     search_time_ms: int
@@ -701,7 +700,7 @@ class AdvancedSearchResponse(BaseModel):
 
 class DocumentAnalyticsRequest(BaseModel):
     """Schema for document analytics request."""
-    
+
     organization_id: str
     period_start: date
     period_end: date
@@ -711,7 +710,7 @@ class DocumentAnalyticsRequest(BaseModel):
 
 class DocumentUsageStats(BaseModel):
     """Schema for document usage statistics."""
-    
+
     document_id: str
     title: str
     view_count: int
@@ -724,7 +723,7 @@ class DocumentUsageStats(BaseModel):
 
 class CollaborationMetrics(BaseModel):
     """Schema for collaboration metrics."""
-    
+
     total_comments: int
     active_collaborators: int
     collaboration_sessions: int
@@ -734,7 +733,7 @@ class CollaborationMetrics(BaseModel):
 
 class WorkflowMetrics(BaseModel):
     """Schema for workflow metrics."""
-    
+
     approvals_requested: int
     approvals_completed: int
     average_approval_time_hours: Optional[Decimal] = None
@@ -747,7 +746,7 @@ class WorkflowMetrics(BaseModel):
 
 class StorageMetrics(BaseModel):
     """Schema for storage metrics."""
-    
+
     total_documents: int
     total_storage_bytes: int
     storage_growth_bytes: int
@@ -759,7 +758,7 @@ class StorageMetrics(BaseModel):
 
 class DocumentAnalyticsResponse(BaseModel):
     """Schema for comprehensive document analytics."""
-    
+
     organization_id: str
     period_start: date
     period_end: date
@@ -780,7 +779,7 @@ class DocumentAnalyticsResponse(BaseModel):
 
 class FolderPermissionBase(BaseModel):
     """Base schema for Folder Permission."""
-    
+
     folder_id: str
     organization_id: str
     user_id: Optional[str] = None
@@ -801,13 +800,13 @@ class FolderPermissionBase(BaseModel):
 
 class FolderPermissionCreate(FolderPermissionBase):
     """Schema for creating Folder Permission."""
-    
+
     granted_by_id: str
 
 
 class FolderPermissionUpdate(BaseModel):
     """Schema for updating Folder Permission."""
-    
+
     access_level: Optional[AccessLevel] = None
     can_create: Optional[bool] = None
     can_delete: Optional[bool] = None
@@ -821,7 +820,7 @@ class FolderPermissionUpdate(BaseModel):
 
 class FolderPermissionResponse(FolderPermissionBase):
     """Schema for Folder Permission response."""
-    
+
     id: str
     granted_by_id: str
     is_active: bool
@@ -838,7 +837,7 @@ class FolderPermissionResponse(FolderPermissionBase):
 
 class ActivityBase(BaseModel):
     """Base schema for Document Activity."""
-    
+
     document_id: str
     organization_id: str
     activity_type: str
@@ -859,7 +858,7 @@ class ActivityBase(BaseModel):
 
 class ActivityResponse(ActivityBase):
     """Schema for Document Activity response."""
-    
+
     id: str
     timestamp: datetime
 
@@ -869,7 +868,7 @@ class ActivityResponse(ActivityBase):
 
 class ActivityFilterRequest(BaseModel):
     """Schema for activity filtering."""
-    
+
     document_id: Optional[str] = None
     organization_id: Optional[str] = None
     user_id: Optional[str] = None
@@ -885,7 +884,7 @@ class ActivityFilterRequest(BaseModel):
 
 class BulkDocumentOperation(BaseModel):
     """Schema for bulk document operations."""
-    
+
     document_ids: List[str]
     operation: str  # move, copy, delete, archive, tag, share
     parameters: Dict[str, Any] = {}
@@ -893,7 +892,7 @@ class BulkDocumentOperation(BaseModel):
 
 class BulkOperationResponse(BaseModel):
     """Schema for bulk operation response."""
-    
+
     operation: str
     total_requested: int
     successful_count: int
@@ -906,7 +905,7 @@ class BulkOperationResponse(BaseModel):
 
 class BulkTagOperation(BaseModel):
     """Schema for bulk tag operations."""
-    
+
     document_ids: List[str]
     tags_to_add: List[str] = []
     tags_to_remove: List[str] = []
@@ -914,14 +913,14 @@ class BulkTagOperation(BaseModel):
 
 class BulkMoveOperation(BaseModel):
     """Schema for bulk move operations."""
-    
+
     document_ids: List[str]
     target_folder_id: Optional[str] = None
 
 
 class BulkShareOperation(BaseModel):
     """Schema for bulk share operations."""
-    
+
     document_ids: List[str]
     share_settings: Dict[str, Any]
 
@@ -932,7 +931,7 @@ class BulkShareOperation(BaseModel):
 
 class SystemHealthResponse(BaseModel):
     """Schema for system health response."""
-    
+
     status: str
     database_connection: str
     services_available: bool
@@ -944,7 +943,7 @@ class SystemHealthResponse(BaseModel):
 
 class IntegrationSettings(BaseModel):
     """Schema for integration settings."""
-    
+
     provider: str
     configuration: Dict[str, Any]
     is_enabled: bool = True
@@ -954,7 +953,7 @@ class IntegrationSettings(BaseModel):
 
 class ExportRequest(BaseModel):
     """Schema for document export request."""
-    
+
     document_ids: Optional[List[str]] = None
     folder_id: Optional[str] = None
     export_format: str = "zip"
@@ -965,7 +964,7 @@ class ExportRequest(BaseModel):
 
 class ImportRequest(BaseModel):
     """Schema for document import request."""
-    
+
     source_type: str  # file_upload, url, external_system
     source_location: str
     target_folder_id: Optional[str] = None
@@ -976,7 +975,7 @@ class ImportRequest(BaseModel):
 
 class SyncStatus(BaseModel):
     """Schema for synchronization status."""
-    
+
     sync_id: str
     status: str
     progress_percentage: float
@@ -994,7 +993,7 @@ class SyncStatus(BaseModel):
 
 class FileUploadMetadata(BaseModel):
     """Schema for file upload metadata."""
-    
+
     filename: str
     content_type: str
     file_size: int
@@ -1003,7 +1002,7 @@ class FileUploadMetadata(BaseModel):
 
 class DocumentAccessCheck(BaseModel):
     """Schema for document access check."""
-    
+
     user_id: str
     document_id: str
     requested_access: AccessLevel
@@ -1011,7 +1010,7 @@ class DocumentAccessCheck(BaseModel):
 
 class AccessCheckResponse(BaseModel):
     """Schema for access check response."""
-    
+
     has_access: bool
     granted_level: Optional[AccessLevel] = None
     restrictions: List[str] = []
@@ -1020,7 +1019,7 @@ class AccessCheckResponse(BaseModel):
 
 class QuotaUsage(BaseModel):
     """Schema for quota usage information."""
-    
+
     organization_id: str
     user_id: Optional[str] = None
     current_usage_bytes: int

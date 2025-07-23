@@ -24,14 +24,13 @@ from app.models.finance_extended import (
     TransactionType,
 )
 
-
 # =============================================================================
 # Account Schemas
 # =============================================================================
 
 class AccountBase(BaseModel):
     """Base schema for Account."""
-    
+
     organization_id: str
     account_code: Optional[str] = None
     account_name: str
@@ -60,7 +59,7 @@ class AccountCreate(AccountBase):
 
 class AccountUpdate(BaseModel):
     """Schema for updating Account."""
-    
+
     account_name: Optional[str] = None
     is_active: Optional[bool] = None
     allow_transactions: Optional[bool] = None
@@ -78,7 +77,7 @@ class AccountUpdate(BaseModel):
 
 class AccountResponse(AccountBase):
     """Schema for Account response."""
-    
+
     id: str
     account_level: int
     account_path: str
@@ -98,7 +97,7 @@ class AccountResponse(AccountBase):
 
 class JournalEntryLineBase(BaseModel):
     """Base schema for Journal Entry Line."""
-    
+
     account_id: str
     description: Optional[str] = None
     debit_amount: Decimal = Field(default=0, ge=0)
@@ -129,7 +128,7 @@ class JournalEntryLineCreate(JournalEntryLineBase):
 
 class JournalEntryLineResponse(JournalEntryLineBase):
     """Schema for Journal Entry Line response."""
-    
+
     id: str
     journal_entry_id: str
     line_number: int
@@ -141,7 +140,7 @@ class JournalEntryLineResponse(JournalEntryLineBase):
 
 class JournalEntryBase(BaseModel):
     """Base schema for Journal Entry."""
-    
+
     organization_id: str
     reference_number: Optional[str] = None
     source_document: Optional[str] = None
@@ -160,7 +159,7 @@ class JournalEntryBase(BaseModel):
 
 class JournalEntryCreate(JournalEntryBase):
     """Schema for creating Journal Entry."""
-    
+
     lines: List[JournalEntryLineCreate] = Field(min_items=2)
 
     @validator("lines")
@@ -168,16 +167,16 @@ class JournalEntryCreate(JournalEntryBase):
         """Validate that debits equal credits."""
         total_debits = sum(line.debit_amount for line in v)
         total_credits = sum(line.credit_amount for line in v)
-        
+
         if abs(total_debits - total_credits) > 0.01:
             raise ValueError("Debits must equal credits")
-        
+
         return v
 
 
 class JournalEntryUpdate(BaseModel):
     """Schema for updating Journal Entry."""
-    
+
     reference_number: Optional[str] = None
     source_document: Optional[str] = None
     description: Optional[str] = None
@@ -188,7 +187,7 @@ class JournalEntryUpdate(BaseModel):
 
 class JournalEntryResponse(JournalEntryBase):
     """Schema for Journal Entry response."""
-    
+
     id: str
     entry_number: str
     total_debit: Decimal
@@ -216,7 +215,7 @@ class JournalEntryResponse(JournalEntryBase):
 
 class BudgetLineBase(BaseModel):
     """Base schema for Budget Line."""
-    
+
     account_id: str
     line_description: Optional[str] = None
     annual_budget: Decimal = Field(default=0)
@@ -250,7 +249,7 @@ class BudgetLineCreate(BudgetLineBase):
 
 class BudgetLineResponse(BudgetLineBase):
     """Schema for Budget Line response."""
-    
+
     id: str
     budget_id: str
     line_number: int
@@ -269,7 +268,7 @@ class BudgetLineResponse(BudgetLineBase):
 
 class BudgetBase(BaseModel):
     """Base schema for Budget."""
-    
+
     organization_id: str
     period_id: str
     budget_name: str
@@ -292,7 +291,7 @@ class BudgetCreate(BudgetBase):
 
 class BudgetUpdate(BaseModel):
     """Schema for updating Budget."""
-    
+
     budget_name: Optional[str] = None
     allow_overspend: Optional[bool] = None
     warning_threshold: Optional[Decimal] = Field(None, ge=0, le=100)
@@ -304,7 +303,7 @@ class BudgetUpdate(BaseModel):
 
 class BudgetResponse(BudgetBase):
     """Schema for Budget response."""
-    
+
     id: str
     status: BudgetStatus
     version: int
@@ -338,7 +337,7 @@ class BudgetResponse(BudgetBase):
 
 class CostCenterBase(BaseModel):
     """Base schema for Cost Center."""
-    
+
     organization_id: str
     cost_center_code: Optional[str] = None
     cost_center_name: str
@@ -368,7 +367,7 @@ class CostCenterCreate(CostCenterBase):
 
 class CostCenterUpdate(BaseModel):
     """Schema for updating Cost Center."""
-    
+
     cost_center_name: Optional[str] = None
     cost_center_type: Optional[str] = None
     manager_id: Optional[str] = None
@@ -388,7 +387,7 @@ class CostCenterUpdate(BaseModel):
 
 class CostCenterResponse(CostCenterBase):
     """Schema for Cost Center response."""
-    
+
     id: str
     cost_center_level: int
     actual_amount: Decimal
@@ -408,7 +407,7 @@ class CostCenterResponse(CostCenterBase):
 
 class FinancialPeriodBase(BaseModel):
     """Base schema for Financial Period."""
-    
+
     organization_id: str
     period_name: str
     period_code: str
@@ -426,14 +425,14 @@ class FinancialPeriodCreate(FinancialPeriodBase):
 
 class FinancialPeriodUpdate(BaseModel):
     """Schema for updating Financial Period."""
-    
+
     period_name: Optional[str] = None
     allow_transactions: Optional[bool] = None
 
 
 class FinancialPeriodResponse(FinancialPeriodBase):
     """Schema for Financial Period response."""
-    
+
     id: str
     status: FinancialPeriodStatus
     allow_transactions: bool
@@ -455,7 +454,7 @@ class FinancialPeriodResponse(FinancialPeriodBase):
 
 class FinancialReportBase(BaseModel):
     """Base schema for Financial Report."""
-    
+
     organization_id: str
     report_name: str
     report_code: str
@@ -481,7 +480,7 @@ class FinancialReportCreate(FinancialReportBase):
 
 class FinancialReportUpdate(BaseModel):
     """Schema for updating Financial Report."""
-    
+
     report_name: Optional[str] = None
     template_data: Optional[Dict[str, Any]] = None
     format_options: Optional[Dict[str, Any]] = None
@@ -499,7 +498,7 @@ class FinancialReportUpdate(BaseModel):
 
 class FinancialReportResponse(FinancialReportBase):
     """Schema for Financial Report response."""
-    
+
     id: str
     is_active: bool
     next_generation_date: Optional[datetime] = None
@@ -520,7 +519,7 @@ class FinancialReportResponse(FinancialReportBase):
 
 class TaxConfigurationBase(BaseModel):
     """Base schema for Tax Configuration."""
-    
+
     organization_id: str
     tax_name: str
     tax_code: str
@@ -550,7 +549,7 @@ class TaxConfigurationCreate(TaxConfigurationBase):
 
 class TaxConfigurationUpdate(BaseModel):
     """Schema for updating Tax Configuration."""
-    
+
     tax_name: Optional[str] = None
     tax_rate: Optional[Decimal] = Field(None, ge=0, le=100)
     minimum_amount: Optional[Decimal] = Field(None, ge=0)
@@ -572,7 +571,7 @@ class TaxConfigurationUpdate(BaseModel):
 
 class TaxConfigurationResponse(TaxConfigurationBase):
     """Schema for Tax Configuration response."""
-    
+
     id: str
     is_active: bool
     created_at: datetime
@@ -589,7 +588,7 @@ class TaxConfigurationResponse(TaxConfigurationBase):
 
 class TrialBalanceLine(BaseModel):
     """Schema for trial balance line item."""
-    
+
     account_id: str
     account_code: str
     account_name: str
@@ -602,7 +601,7 @@ class TrialBalanceLine(BaseModel):
 
 class TrialBalanceResponse(BaseModel):
     """Schema for trial balance report."""
-    
+
     organization_id: str
     as_of_date: datetime
     accounts: List[TrialBalanceLine]
@@ -613,7 +612,7 @@ class TrialBalanceResponse(BaseModel):
 
 class BudgetVarianceAnalysisLine(BaseModel):
     """Schema for budget variance analysis line."""
-    
+
     account_id: str
     account_code: str
     account_name: str
@@ -626,7 +625,7 @@ class BudgetVarianceAnalysisLine(BaseModel):
 
 class BudgetVarianceAnalysisResponse(BaseModel):
     """Schema for budget variance analysis."""
-    
+
     budget_id: str
     budget_name: str
     analysis_date: datetime
@@ -638,7 +637,7 @@ class BudgetVarianceAnalysisResponse(BaseModel):
 
 class CostCenterPerformanceResponse(BaseModel):
     """Schema for cost center performance metrics."""
-    
+
     cost_center_id: str
     cost_center_code: str
     cost_center_name: str
@@ -655,7 +654,7 @@ class CostCenterPerformanceResponse(BaseModel):
 
 class BalanceSheetAccount(BaseModel):
     """Schema for balance sheet account line."""
-    
+
     account_id: str
     account_code: str
     account_name: str
@@ -666,14 +665,14 @@ class BalanceSheetAccount(BaseModel):
 
 class BalanceSheetSection(BaseModel):
     """Schema for balance sheet section."""
-    
+
     accounts: List[BalanceSheetAccount]
     total: Decimal
 
 
 class BalanceSheetResponse(BaseModel):
     """Schema for balance sheet report."""
-    
+
     report_type: str = "balance_sheet"
     organization_id: str
     as_of_date: datetime
@@ -686,7 +685,7 @@ class BalanceSheetResponse(BaseModel):
 
 class IncomeStatementResponse(BaseModel):
     """Schema for income statement report."""
-    
+
     report_type: str = "income_statement"
     organization_id: str
     start_date: datetime
@@ -700,7 +699,7 @@ class IncomeStatementResponse(BaseModel):
 
 class TaxCalculationResponse(BaseModel):
     """Schema for tax calculation result."""
-    
+
     tax_code: str
     tax_name: str
     tax_rate: Decimal
@@ -716,33 +715,33 @@ class TaxCalculationResponse(BaseModel):
 
 class PostJournalEntryRequest(BaseModel):
     """Schema for posting journal entry."""
-    
+
     journal_entry_id: str
 
 
 class ReverseJournalEntryRequest(BaseModel):
     """Schema for reversing journal entry."""
-    
+
     journal_entry_id: str
     reason: str
 
 
 class ApproveBudgetRequest(BaseModel):
     """Schema for approving budget."""
-    
+
     budget_id: str
     approval_notes: Optional[str] = None
 
 
 class ClosePeriodRequest(BaseModel):
     """Schema for closing financial period."""
-    
+
     period_id: str
 
 
 class TaxCalculationRequest(BaseModel):
     """Schema for tax calculation."""
-    
+
     tax_code: str
     base_amount: Decimal
     effective_date: Optional[datetime] = None

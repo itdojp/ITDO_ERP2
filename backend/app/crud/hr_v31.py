@@ -14,7 +14,7 @@ Comprehensive CRUD operations for human resources management including:
 - HR Analytics
 """
 
-from datetime import datetime, date, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
@@ -27,40 +27,26 @@ from app.models.hr_extended import (
     EmployeeStatus,
     EmploymentType,
     HRAnalytics,
-    JobPosting,
     LeaveRequest,
     LeaveStatus,
     LeaveType,
-    OnboardingRecord,
-    PayFrequency,
     PayrollRecord,
-    PerformanceReview,
     PerformanceRating,
-    Position,
-    RecruitmentStatus,
+    PerformanceReview,
     TrainingRecord,
     TrainingStatus,
-    EmployeeBenefit,
 )
 from app.schemas.hr_v31 import (
     EmployeeCreate,
     EmployeeUpdate,
-    JobPostingCreate,
-    JobPostingUpdate,
     LeaveRequestCreate,
     LeaveRequestUpdate,
-    OnboardingRecordCreate,
-    OnboardingRecordUpdate,
     PayrollRecordCreate,
     PayrollRecordUpdate,
     PerformanceReviewCreate,
     PerformanceReviewUpdate,
-    PositionCreate,
-    PositionUpdate,
     TrainingRecordCreate,
     TrainingRecordUpdate,
-    EmployeeBenefitCreate,
-    EmployeeBenefitUpdate,
 )
 
 
@@ -78,7 +64,7 @@ class EmployeeCRUD(CRUDBase[Employee, EmployeeCreate, EmployeeUpdate]):
         # Generate employee number if not provided
         if not obj_in.employee_number:
             obj_in.employee_number = self._generate_employee_number(obj_in.organization_id)
-        
+
         # Set initial status based on hire date and employment type
         today = date.today()
         if obj_in.hire_date > today:
@@ -87,17 +73,17 @@ class EmployeeCRUD(CRUDBase[Employee, EmployeeCreate, EmployeeUpdate]):
             initial_status = EmployeeStatus.PROBATION
         else:
             initial_status = EmployeeStatus.ACTIVE
-        
+
         db_obj = Employee(
             **obj_in.dict(),
             employee_status=initial_status,
             created_by=created_by,
         )
-        
+
         self.db.add(db_obj)
         self.db.commit()
         self.db.refresh(db_obj)
-        
+
         return db_obj
 
     def get_by_employee_number(
@@ -125,16 +111,16 @@ class EmployeeCRUD(CRUDBase[Employee, EmployeeCreate, EmployeeUpdate]):
             .filter(Employee.employee_status == EmployeeStatus.ACTIVE)
             .all()
         )
-        
+
         if not include_indirect:
             return direct_reports
-        
+
         # Get indirect reports recursively
         all_reports = direct_reports.copy()
         for employee in direct_reports:
             indirect_reports = self.get_employees_by_manager(employee.id, True)
             all_reports.extend(indirect_reports)
-        
+
         return all_reports
 
     def get_employees_by_department(
@@ -142,10 +128,10 @@ class EmployeeCRUD(CRUDBase[Employee, EmployeeCreate, EmployeeUpdate]):
     ) -> List[Employee]:
         """Get employees in specific department."""
         query = self.db.query(Employee).filter(Employee.department_id == department_id)
-        
+
         if active_only:
             query = query.filter(Employee.employee_status == EmployeeStatus.ACTIVE)
-        
+
         return query.all()
 
     def get_employee_org_chart(self, organization_id: str) -> List[Dict[str, Any]]:
@@ -156,7 +142,7 @@ class EmployeeCRUD(CRUDBase[Employee, EmployeeCreate, EmployeeUpdate]):
             .filter(Employee.employee_status == EmployeeStatus.ACTIVE)
             .all()
         )
-        
+
         org_chart = []
         for emp in employees:
             org_chart.append({
@@ -167,29 +153,29 @@ class EmployeeCRUD(CRUDBase[Employee, EmployeeCreate, EmployeeUpdate]):
                 "department_id": emp.department_id,
                 "employee_number": emp.employee_number,
             })
-        
+
         return org_chart
 
     def terminate_employee(
-        self, employee_id: str, termination_date: date, 
+        self, employee_id: str, termination_date: date,
         termination_reason: str, terminated_by: str
     ) -> Employee:
         """Terminate employee and update status."""
         employee = self.get(employee_id)
         if not employee:
             raise ValueError("Employee not found")
-        
+
         employee.employee_status = EmployeeStatus.TERMINATED
         employee.termination_date = termination_date
         employee.termination_reason = termination_reason
         employee.is_active = False
         employee.updated_by = terminated_by
-        
+
         # Update any direct reports to remove manager
         direct_reports = self.get_employees_by_manager(employee_id)
         for report in direct_reports:
             report.manager_id = employee.manager_id  # Move to terminated employee's manager
-        
+
         self.db.commit()
         return employee
 
@@ -198,12 +184,12 @@ class EmployeeCRUD(CRUDBase[Employee, EmployeeCreate, EmployeeUpdate]):
         employee = self.get(employee_id)
         if not employee:
             raise ValueError("Employee not found")
-        
+
         today = date.today()
         tenure_days = (today - employee.hire_date).days
         tenure_years = tenure_days / 365.25
         tenure_months = tenure_days / 30.44
-        
+
         # Calculate service milestones
         milestones = []
         if tenure_years >= 1:
@@ -212,7 +198,7 @@ class EmployeeCRUD(CRUDBase[Employee, EmployeeCreate, EmployeeUpdate]):
             milestones.append("5+ years")
         if tenure_years >= 10:
             milestones.append("10+ years veteran")
-        
+
         return {
             "employee_id": employee_id,
             "hire_date": employee.hire_date,
@@ -234,14 +220,14 @@ class EmployeeCRUD(CRUDBase[Employee, EmployeeCreate, EmployeeUpdate]):
             .order_by(desc(Employee.employee_number))
             .first()
         )
-        
+
         if highest:
             try:
                 next_num = int(highest[0][3:]) + 1
                 return f"EMP{next_num:06d}"
             except ValueError:
                 pass
-        
+
         return "EMP000001"
 
 
@@ -260,10 +246,10 @@ class PayrollCRUD(CRUDBase[PayrollRecord, PayrollRecordCreate, PayrollRecordUpda
         employee = self.db.query(Employee).filter(Employee.id == employee_id).first()
         if not employee:
             raise ValueError("Employee not found")
-        
+
         # Calculate pay date (typically end of pay period + processing days)
         pay_date = pay_period_end + timedelta(days=3)
-        
+
         # Use provided hours or default based on employment type
         if regular_hours is None:
             days_in_period = (pay_period_end - pay_period_start).days + 1
@@ -271,36 +257,36 @@ class PayrollCRUD(CRUDBase[PayrollRecord, PayrollRecordCreate, PayrollRecordUpda
                 regular_hours = Decimal(str(days_in_period * 8))  # 8 hours per day
             else:
                 regular_hours = Decimal("0")
-        
+
         if overtime_hours is None:
             overtime_hours = Decimal("0")
-        
+
         # Calculate rates
         regular_rate = employee.hourly_rate or (employee.base_salary / 2080 if employee.base_salary else Decimal("0"))
         overtime_rate = regular_rate * Decimal("1.5")
-        
+
         # Calculate gross pay
         regular_pay = regular_hours * regular_rate
         overtime_pay = overtime_hours * overtime_rate
         gross_pay = regular_pay + overtime_pay
-        
+
         # Calculate taxable income (gross pay - pre-tax deductions)
         health_insurance = gross_pay * Decimal("0.08")  # Example: 8% for health insurance
         retirement_contribution = gross_pay * Decimal("0.05")  # Example: 5% 401k contribution
         taxable_income = gross_pay - health_insurance - retirement_contribution
-        
+
         # Calculate tax withholdings (simplified calculation)
         federal_tax = taxable_income * Decimal("0.22")  # Example: 22% federal rate
         social_security = taxable_income * Decimal("0.062")  # 6.2% social security
         medicare_tax = taxable_income * Decimal("0.0145")  # 1.45% medicare
         total_taxes = federal_tax + social_security + medicare_tax
-        
+
         # Calculate net pay
         net_pay = gross_pay - health_insurance - retirement_contribution - total_taxes
-        
+
         # Get year-to-date totals
         ytd_totals = self._calculate_ytd_totals(employee_id, pay_period_end.year)
-        
+
         payroll_record = PayrollRecord(
             employee_id=employee_id,
             organization_id=employee.organization_id,
@@ -325,15 +311,15 @@ class PayrollCRUD(CRUDBase[PayrollRecord, PayrollRecordCreate, PayrollRecordUpda
             ytd_tax_withheld=ytd_totals["tax_withheld"] + total_taxes,
             ytd_net_pay=ytd_totals["net_pay"] + net_pay,
         )
-        
+
         self.db.add(payroll_record)
         self.db.commit()
         self.db.refresh(payroll_record)
-        
+
         return payroll_record
 
     def process_payroll_batch(
-        self, organization_id: str, pay_period_start: date, 
+        self, organization_id: str, pay_period_start: date,
         pay_period_end: date, processed_by: str
     ) -> List[PayrollRecord]:
         """Process payroll for all active employees in organization."""
@@ -343,7 +329,7 @@ class PayrollCRUD(CRUDBase[PayrollRecord, PayrollRecordCreate, PayrollRecordUpda
             .filter(Employee.employee_status == EmployeeStatus.ACTIVE)
             .all()
         )
-        
+
         payroll_records = []
         for employee in active_employees:
             try:
@@ -358,7 +344,7 @@ class PayrollCRUD(CRUDBase[PayrollRecord, PayrollRecordCreate, PayrollRecordUpda
                 # Log error but continue processing other employees
                 print(f"Error processing payroll for employee {employee.employee_number}: {str(e)}")
                 continue
-        
+
         self.db.commit()
         return payroll_records
 
@@ -371,21 +357,21 @@ class PayrollCRUD(CRUDBase[PayrollRecord, PayrollRecordCreate, PayrollRecordUpda
             .filter(PayrollRecord.organization_id == organization_id)
             .filter(func.extract('year', PayrollRecord.pay_period_end) == year)
         )
-        
+
         if month:
             query = query.filter(func.extract('month', PayrollRecord.pay_period_end) == month)
-        
+
         records = query.all()
-        
+
         total_gross_pay = sum(record.gross_pay for record in records)
         total_net_pay = sum(record.net_pay for record in records)
         total_taxes = sum(
-            (record.federal_income_tax or 0) + 
-            (record.social_security_tax or 0) + 
+            (record.federal_income_tax or 0) +
+            (record.social_security_tax or 0) +
             (record.medicare_tax or 0)
             for record in records
         )
-        
+
         return {
             "organization_id": organization_id,
             "period": f"{year}-{month:02d}" if month else str(year),
@@ -406,13 +392,13 @@ class PayrollCRUD(CRUDBase[PayrollRecord, PayrollRecordCreate, PayrollRecordUpda
             .filter(func.extract('year', PayrollRecord.pay_period_end) == year)
             .all()
         )
-        
+
         return {
             "gross_pay": sum(record.gross_pay for record in ytd_records),
             "net_pay": sum(record.net_pay for record in ytd_records),
             "tax_withheld": sum(
-                (record.federal_income_tax or 0) + 
-                (record.social_security_tax or 0) + 
+                (record.federal_income_tax or 0) +
+                (record.social_security_tax or 0) +
                 (record.medicare_tax or 0)
                 for record in ytd_records
             ),
@@ -432,18 +418,18 @@ class LeaveCRUD(CRUDBase[LeaveRequest, LeaveRequestCreate, LeaveRequestUpdate]):
         """Create leave request with automatic calculations."""
         # Calculate total days
         total_days = (obj_in.end_date - obj_in.start_date).days + 1
-        
+
         # Get employee's current leave balance
         employee = self.db.query(Employee).filter(Employee.id == obj_in.employee_id).first()
         if not employee:
             raise ValueError("Employee not found")
-        
+
         current_balance = self._get_leave_balance(obj_in.employee_id, obj_in.leave_type)
-        
+
         # Check if employee has sufficient balance (for paid leave types)
         if obj_in.leave_type in [LeaveType.ANNUAL, LeaveType.SICK] and current_balance < total_days:
             raise ValueError(f"Insufficient leave balance. Current balance: {current_balance} days")
-        
+
         db_obj = LeaveRequest(
             **obj_in.dict(),
             total_days=total_days,
@@ -451,11 +437,11 @@ class LeaveCRUD(CRUDBase[LeaveRequest, LeaveRequestCreate, LeaveRequestUpdate]):
             balance_after=current_balance - total_days if obj_in.leave_type in [LeaveType.ANNUAL, LeaveType.SICK] else current_balance,
             requested_date=datetime.utcnow(),
         )
-        
+
         self.db.add(db_obj)
         self.db.commit()
         self.db.refresh(db_obj)
-        
+
         return db_obj
 
     def approve_leave_request(
@@ -465,15 +451,15 @@ class LeaveCRUD(CRUDBase[LeaveRequest, LeaveRequestCreate, LeaveRequestUpdate]):
         leave_request = self.get(leave_request_id)
         if not leave_request:
             raise ValueError("Leave request not found")
-        
+
         if leave_request.status != LeaveStatus.PENDING:
             raise ValueError("Leave request is not in pending status")
-        
+
         leave_request.status = LeaveStatus.APPROVED
         leave_request.approved_by = approved_by
         leave_request.approved_date = datetime.utcnow()
         leave_request.approval_notes = notes
-        
+
         self.db.commit()
         return leave_request
 
@@ -494,7 +480,7 @@ class LeaveCRUD(CRUDBase[LeaveRequest, LeaveRequestCreate, LeaveRequestUpdate]):
             .order_by(LeaveRequest.start_date)
             .all()
         )
-        
+
         calendar_events = []
         for leave in leave_requests:
             calendar_events.append({
@@ -507,7 +493,7 @@ class LeaveCRUD(CRUDBase[LeaveRequest, LeaveRequestCreate, LeaveRequestUpdate]):
                 "is_paid": leave.is_paid,
                 "status": leave.status.value,
             })
-        
+
         return calendar_events
 
     def get_leave_balance_summary(
@@ -517,23 +503,23 @@ class LeaveCRUD(CRUDBase[LeaveRequest, LeaveRequestCreate, LeaveRequestUpdate]):
         employee = self.db.query(Employee).filter(Employee.id == employee_id).first()
         if not employee:
             raise ValueError("Employee not found")
-        
+
         current_year = date.today().year
         balances = {}
-        
+
         # Calculate balances for each leave type
         for leave_type in LeaveType:
             current_balance = self._get_leave_balance(employee_id, leave_type)
             accrued_this_year = self._calculate_accrued_leave(employee, leave_type, current_year)
             used_this_year = self._get_leave_used(employee_id, leave_type, current_year)
-            
+
             balances[leave_type.value] = {
                 "current_balance": current_balance,
                 "accrued_this_year": accrued_this_year,
                 "used_this_year": used_this_year,
                 "accrual_rate": self._get_accrual_rate(employee, leave_type),
             }
-        
+
         return {
             "employee_id": employee_id,
             "as_of_date": date.today(),
@@ -546,10 +532,10 @@ class LeaveCRUD(CRUDBase[LeaveRequest, LeaveRequestCreate, LeaveRequestUpdate]):
         employee = self.db.query(Employee).filter(Employee.id == employee_id).first()
         if not employee:
             return Decimal("0")
-        
+
         # Calculate tenure-based accrual
         tenure_years = (date.today() - employee.hire_date).days / 365.25
-        
+
         if leave_type == LeaveType.ANNUAL:
             # Example: 20 days per year for employees with 1+ years
             annual_accrual = Decimal("20") if tenure_years >= 1 else Decimal("10")
@@ -559,10 +545,10 @@ class LeaveCRUD(CRUDBase[LeaveRequest, LeaveRequestCreate, LeaveRequestUpdate]):
         else:
             # Other leave types don't accrue
             return Decimal("0")
-        
+
         # Calculate used leave this year
         used_this_year = self._get_leave_used(employee_id, leave_type, date.today().year)
-        
+
         return annual_accrual - used_this_year
 
     def _get_leave_used(self, employee_id: str, leave_type: LeaveType, year: int) -> Decimal:
@@ -575,7 +561,7 @@ class LeaveCRUD(CRUDBase[LeaveRequest, LeaveRequestCreate, LeaveRequestUpdate]):
             .filter(func.extract('year', LeaveRequest.start_date) == year)
             .scalar()
         )
-        
+
         return Decimal(str(used_leave)) if used_leave else Decimal("0")
 
     def _calculate_accrued_leave(
@@ -619,7 +605,7 @@ class PerformanceCRUD(CRUDBase[PerformanceReview, PerformanceReviewCreate, Perfo
             .filter(Employee.hire_date <= review_period_start)  # Must be hired before review period
             .all()
         )
-        
+
         reviews = []
         for employee in eligible_employees:
             # Skip if employee already has a review for this period
@@ -630,13 +616,13 @@ class PerformanceCRUD(CRUDBase[PerformanceReview, PerformanceReviewCreate, Perfo
                 .filter(PerformanceReview.review_period_end == review_period_end)
                 .first()
             )
-            
+
             if existing_review:
                 continue
-            
+
             # Assign reviewer (typically the manager)
             reviewer_id = employee.manager_id or created_by
-            
+
             review = PerformanceReview(
                 employee_id=employee.id,
                 organization_id=organization_id,
@@ -645,14 +631,14 @@ class PerformanceCRUD(CRUDBase[PerformanceReview, PerformanceReviewCreate, Perfo
                 reviewer_id=reviewer_id,
                 review_type="annual",
             )
-            
+
             self.db.add(review)
             reviews.append(review)
-        
+
         self.db.commit()
         for review in reviews:
             self.db.refresh(review)
-        
+
         return reviews
 
     def calculate_overall_score(self, review_id: str) -> PerformanceReview:
@@ -660,7 +646,7 @@ class PerformanceCRUD(CRUDBase[PerformanceReview, PerformanceReviewCreate, Perfo
         review = self.get(review_id)
         if not review:
             raise ValueError("Performance review not found")
-        
+
         # Define weights for different performance areas
         weights = {
             "job_knowledge": 0.20,
@@ -670,7 +656,7 @@ class PerformanceCRUD(CRUDBase[PerformanceReview, PerformanceReviewCreate, Perfo
             "teamwork": 0.10,
             "leadership": 0.10,
         }
-        
+
         # Convert ratings to numeric scores (1-5 scale)
         rating_to_score = {
             PerformanceRating.OUTSTANDING: 5.0,
@@ -679,44 +665,44 @@ class PerformanceCRUD(CRUDBase[PerformanceReview, PerformanceReviewCreate, Perfo
             PerformanceRating.NEEDS_IMPROVEMENT: 2.0,
             PerformanceRating.UNSATISFACTORY: 1.0,
         }
-        
+
         weighted_scores = []
-        
+
         if review.job_knowledge_rating:
             score = rating_to_score[review.job_knowledge_rating]
             weighted_scores.append(score * weights["job_knowledge"])
             review.job_knowledge_score = Decimal(str(score))
-        
+
         if review.quality_of_work_rating:
             score = rating_to_score[review.quality_of_work_rating]
             weighted_scores.append(score * weights["quality_of_work"])
             review.quality_of_work_score = Decimal(str(score))
-        
+
         if review.productivity_rating:
             score = rating_to_score[review.productivity_rating]
             weighted_scores.append(score * weights["productivity"])
             review.productivity_score = Decimal(str(score))
-        
+
         if review.communication_rating:
             score = rating_to_score[review.communication_rating]
             weighted_scores.append(score * weights["communication"])
             review.communication_score = Decimal(str(score))
-        
+
         if review.teamwork_rating:
             score = rating_to_score[review.teamwork_rating]
             weighted_scores.append(score * weights["teamwork"])
             review.teamwork_score = Decimal(str(score))
-        
+
         if review.leadership_rating:
             score = rating_to_score[review.leadership_rating]
             weighted_scores.append(score * weights["leadership"])
             review.leadership_score = Decimal(str(score))
-        
+
         # Calculate overall score
         if weighted_scores:
             overall_score = sum(weighted_scores)
             review.overall_score = Decimal(str(round(overall_score, 2)))
-            
+
             # Determine overall rating based on score
             if overall_score >= 4.5:
                 review.overall_rating = PerformanceRating.OUTSTANDING
@@ -728,7 +714,7 @@ class PerformanceCRUD(CRUDBase[PerformanceReview, PerformanceReviewCreate, Perfo
                 review.overall_rating = PerformanceRating.NEEDS_IMPROVEMENT
             else:
                 review.overall_rating = PerformanceRating.UNSATISFACTORY
-        
+
         self.db.commit()
         return review
 
@@ -737,7 +723,7 @@ class PerformanceCRUD(CRUDBase[PerformanceReview, PerformanceReviewCreate, Perfo
     ) -> Dict[str, Any]:
         """Get performance trends for employee over specified years."""
         cutoff_date = date.today() - timedelta(days=years * 365)
-        
+
         reviews = (
             self.db.query(PerformanceReview)
             .filter(PerformanceReview.employee_id == employee_id)
@@ -746,7 +732,7 @@ class PerformanceCRUD(CRUDBase[PerformanceReview, PerformanceReviewCreate, Perfo
             .order_by(PerformanceReview.review_period_end)
             .all()
         )
-        
+
         trend_data = []
         for review in reviews:
             trend_data.append({
@@ -757,7 +743,7 @@ class PerformanceCRUD(CRUDBase[PerformanceReview, PerformanceReviewCreate, Perfo
                 "salary_increase_recommended": review.salary_increase_recommended,
                 "promotion_readiness": review.promotion_readiness,
             })
-        
+
         # Calculate trend direction
         trend_direction = "stable"
         if len(trend_data) >= 2:
@@ -767,7 +753,7 @@ class PerformanceCRUD(CRUDBase[PerformanceReview, PerformanceReviewCreate, Perfo
                     trend_direction = "improving"
                 elif recent_scores[1] < recent_scores[0]:
                     trend_direction = "declining"
-        
+
         return {
             "employee_id": employee_id,
             "trend_period_years": years,
@@ -792,22 +778,22 @@ class TrainingCRUD(CRUDBase[TrainingRecord, TrainingRecordCreate, TrainingRecord
         employee = self.db.query(Employee).filter(Employee.id == employee_id).first()
         if not employee:
             raise ValueError("Employee not found")
-        
+
         # Check for scheduling conflicts
         conflicts = self._check_training_conflicts(employee_id, training_data.start_date, training_data.end_date)
         if conflicts:
             raise ValueError(f"Training conflicts with existing training: {conflicts}")
-        
+
         training_record = TrainingRecord(
             employee_id=employee_id,
             organization_id=employee.organization_id,
             **training_data.dict()
         )
-        
+
         self.db.add(training_record)
         self.db.commit()
         self.db.refresh(training_record)
-        
+
         return training_record
 
     def complete_training(
@@ -817,26 +803,26 @@ class TrainingCRUD(CRUDBase[TrainingRecord, TrainingRecordCreate, TrainingRecord
         training = self.get(training_id)
         if not training:
             raise ValueError("Training record not found")
-        
+
         training.status = TrainingStatus.COMPLETED
         training.completion_date = datetime.utcnow()
         training.completion_percentage = Decimal("100")
-        
+
         if "assessment_score" in completion_data:
             training.assessment_score = Decimal(str(completion_data["assessment_score"]))
-            
+
             # Check if certification was earned
             if training.passing_score and training.assessment_score >= training.passing_score:
                 training.certification_earned = True
                 training.certificate_number = completion_data.get("certificate_number")
                 training.certification_expiry_date = completion_data.get("certification_expiry_date")
-        
+
         # Record feedback
         training.employee_satisfaction_rating = completion_data.get("satisfaction_rating")
         training.knowledge_gained_rating = completion_data.get("knowledge_rating")
         training.applicability_rating = completion_data.get("applicability_rating")
         training.employee_feedback = completion_data.get("employee_feedback")
-        
+
         self.db.commit()
         return training
 
@@ -850,21 +836,21 @@ class TrainingCRUD(CRUDBase[TrainingRecord, TrainingRecordCreate, TrainingRecord
             .order_by(desc(TrainingRecord.start_date))
             .all()
         )
-        
+
         completed_trainings = [t for t in training_records if t.status == TrainingStatus.COMPLETED]
         active_certifications = [
-            t for t in completed_trainings 
+            t for t in completed_trainings
             if t.certification_earned and (
-                not t.certification_expiry_date or 
+                not t.certification_expiry_date or
                 t.certification_expiry_date > date.today()
             )
         ]
-        
+
         total_hours = sum(
-            t.duration_hours for t in completed_trainings 
+            t.duration_hours for t in completed_trainings
             if t.duration_hours
         )
-        
+
         training_by_category = {}
         for training in training_records:
             category = training.training_category or "Other"
@@ -878,7 +864,7 @@ class TrainingCRUD(CRUDBase[TrainingRecord, TrainingRecordCreate, TrainingRecord
                 "duration_hours": float(training.duration_hours) if training.duration_hours else 0,
                 "certification_earned": training.certification_earned,
             })
-        
+
         result = {
             "employee_id": employee_id,
             "total_trainings": len(training_records),
@@ -887,7 +873,7 @@ class TrainingCRUD(CRUDBase[TrainingRecord, TrainingRecordCreate, TrainingRecord
             "active_certifications": len(active_certifications),
             "training_by_category": training_by_category,
         }
-        
+
         if include_certifications:
             result["certifications"] = [
                 {
@@ -898,7 +884,7 @@ class TrainingCRUD(CRUDBase[TrainingRecord, TrainingRecordCreate, TrainingRecord
                 }
                 for cert in active_certifications
             ]
-        
+
         return result
 
     def get_training_compliance_report(
@@ -912,26 +898,26 @@ class TrainingCRUD(CRUDBase[TrainingRecord, TrainingRecordCreate, TrainingRecord
             .filter(Employee.employee_status == EmployeeStatus.ACTIVE)
             .all()
         )
-        
+
         # Get training records
         query = (
             self.db.query(TrainingRecord)
             .filter(TrainingRecord.organization_id == organization_id)
         )
-        
+
         if training_category:
             query = query.filter(TrainingRecord.training_category == training_category)
-        
+
         training_records = query.all()
-        
+
         # Calculate compliance metrics
         total_employees = len(employees)
         employees_with_training = len(set(t.employee_id for t in training_records))
         completed_trainings = len([t for t in training_records if t.status == TrainingStatus.COMPLETED])
-        
+
         compliance_rate = (employees_with_training / total_employees * 100) if total_employees > 0 else 0
         completion_rate = (completed_trainings / len(training_records) * 100) if training_records else 0
-        
+
         return {
             "organization_id": organization_id,
             "training_category": training_category,
@@ -962,7 +948,7 @@ class TrainingCRUD(CRUDBase[TrainingRecord, TrainingRecordCreate, TrainingRecord
             )
             .all()
         )
-        
+
         return [f"{c.training_title} ({c.start_date} - {c.end_date})" for c in conflicts]
 
 
@@ -978,7 +964,7 @@ class HRAnalyticsCRUD(CRUDBase[HRAnalytics, None, None]):
         calculated_by: str
     ) -> HRAnalytics:
         """Calculate comprehensive HR metrics for specified period."""
-        
+
         # Get employee counts
         total_employees = (
             self.db.query(Employee)
@@ -992,7 +978,7 @@ class HRAnalyticsCRUD(CRUDBase[HRAnalytics, None, None]):
             )
             .count()
         )
-        
+
         active_employees = (
             self.db.query(Employee)
             .filter(Employee.organization_id == organization_id)
@@ -1000,7 +986,7 @@ class HRAnalyticsCRUD(CRUDBase[HRAnalytics, None, None]):
             .filter(Employee.hire_date <= period_end)
             .count()
         )
-        
+
         # Calculate hiring metrics
         new_hires = (
             self.db.query(Employee)
@@ -1009,7 +995,7 @@ class HRAnalyticsCRUD(CRUDBase[HRAnalytics, None, None]):
             .filter(Employee.hire_date <= period_end)
             .count()
         )
-        
+
         # Calculate turnover metrics
         terminations = (
             self.db.query(Employee)
@@ -1018,7 +1004,7 @@ class HRAnalyticsCRUD(CRUDBase[HRAnalytics, None, None]):
             .filter(Employee.termination_date <= period_end)
             .count()
         )
-        
+
         voluntary_terminations = (
             self.db.query(Employee)
             .filter(Employee.organization_id == organization_id)
@@ -1027,12 +1013,12 @@ class HRAnalyticsCRUD(CRUDBase[HRAnalytics, None, None]):
             .filter(Employee.termination_reason.like('%voluntary%'))
             .count()
         )
-        
+
         # Calculate rates
         turnover_rate = (terminations / active_employees * 100) if active_employees > 0 else 0
         voluntary_turnover_rate = (voluntary_terminations / active_employees * 100) if active_employees > 0 else 0
         retention_rate = 100 - turnover_rate
-        
+
         # Get performance metrics
         performance_reviews = (
             self.db.query(PerformanceReview)
@@ -1041,10 +1027,10 @@ class HRAnalyticsCRUD(CRUDBase[HRAnalytics, None, None]):
             .filter(PerformanceReview.review_period_end <= period_end)
             .all()
         )
-        
+
         completed_reviews = [r for r in performance_reviews if r.status == "completed"]
         review_completion_rate = (len(completed_reviews) / len(performance_reviews) * 100) if performance_reviews else 0
-        
+
         # Get training metrics
         training_records = (
             self.db.query(TrainingRecord)
@@ -1053,10 +1039,10 @@ class HRAnalyticsCRUD(CRUDBase[HRAnalytics, None, None]):
             .filter(TrainingRecord.start_date <= period_end)
             .all()
         )
-        
+
         completed_trainings = [t for t in training_records if t.status == TrainingStatus.COMPLETED]
         training_completion_rate = (len(completed_trainings) / len(training_records) * 100) if training_records else 0
-        
+
         # Get payroll metrics
         payroll_records = (
             self.db.query(PayrollRecord)
@@ -1065,10 +1051,10 @@ class HRAnalyticsCRUD(CRUDBase[HRAnalytics, None, None]):
             .filter(PayrollRecord.pay_period_end <= period_end)
             .all()
         )
-        
+
         total_payroll_cost = sum(record.gross_pay for record in payroll_records)
         average_salary = total_payroll_cost / len(payroll_records) if payroll_records else 0
-        
+
         analytics = HRAnalytics(
             organization_id=organization_id,
             period_start=period_start,
@@ -1088,11 +1074,11 @@ class HRAnalyticsCRUD(CRUDBase[HRAnalytics, None, None]):
             calculated_date=datetime.utcnow(),
             calculated_by=calculated_by,
         )
-        
+
         self.db.add(analytics)
         self.db.commit()
         self.db.refresh(analytics)
-        
+
         return analytics
 
     def get_hr_dashboard_metrics(
@@ -1101,7 +1087,7 @@ class HRAnalyticsCRUD(CRUDBase[HRAnalytics, None, None]):
         """Get key HR metrics for dashboard display."""
         if not as_of_date:
             as_of_date = date.today()
-        
+
         # Get latest analytics record
         latest_analytics = (
             self.db.query(HRAnalytics)
@@ -1110,10 +1096,10 @@ class HRAnalyticsCRUD(CRUDBase[HRAnalytics, None, None]):
             .order_by(desc(HRAnalytics.period_end))
             .first()
         )
-        
+
         if not latest_analytics:
             return {"message": "No HR analytics data available"}
-        
+
         # Get current employee counts
         current_active = (
             self.db.query(Employee)
@@ -1121,7 +1107,7 @@ class HRAnalyticsCRUD(CRUDBase[HRAnalytics, None, None]):
             .filter(Employee.employee_status == EmployeeStatus.ACTIVE)
             .count()
         )
-        
+
         # Get pending leave requests
         pending_leave = (
             self.db.query(LeaveRequest)
@@ -1129,7 +1115,7 @@ class HRAnalyticsCRUD(CRUDBase[HRAnalytics, None, None]):
             .filter(LeaveRequest.status == LeaveStatus.PENDING)
             .count()
         )
-        
+
         # Get upcoming performance reviews
         upcoming_reviews = (
             self.db.query(PerformanceReview)
@@ -1137,7 +1123,7 @@ class HRAnalyticsCRUD(CRUDBase[HRAnalytics, None, None]):
             .filter(PerformanceReview.status == "draft")
             .count()
         )
-        
+
         return {
             "organization_id": organization_id,
             "as_of_date": as_of_date,

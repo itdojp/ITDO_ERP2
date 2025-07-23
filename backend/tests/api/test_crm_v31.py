@@ -3,7 +3,7 @@ Test Suite for CRM API v31.0 - Customer Relationship Management API
 
 Comprehensive test coverage for all 10 CRM endpoints:
 1. Customer Management
-2. Contact Management  
+2. Contact Management
 3. Lead Management
 4. Opportunity Management
 5. Activity Tracking
@@ -14,41 +14,28 @@ Comprehensive test coverage for all 10 CRM endpoints:
 10. Sales Pipeline Management
 """
 
-import pytest
-from datetime import datetime, date, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
+
+import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
 
 from app.main import app
 from app.models.crm_extended import (
-    CustomerExtended,
-    ContactExtended,
-    LeadExtended,
-    OpportunityExtended,
-    CRMActivity,
-    CampaignExtended,
-    SupportTicket,
-    LeadStatus,
-    LeadSource,
-    OpportunityStage,
-    ContactType,
     ActivityType,
-    CampaignType,
+    CampaignExtended,
     CampaignStatus,
-    SupportTicketStatus,
+    ContactExtended,
+    CRMActivity,
+    CustomerExtended,
+    LeadExtended,
+    LeadStatus,
+    OpportunityExtended,
+    OpportunityStage,
+    SupportTicket,
     SupportTicketPriority,
-)
-from app.schemas.crm_v31 import (
-    CustomerCreate,
-    CustomerUpdate,
-    ContactCreate,
-    LeadCreate,
-    OpportunityCreate,
-    ActivityCreate,
-    CampaignCreate,
-    SupportTicketCreate,
+    SupportTicketStatus,
 )
 
 client = TestClient(app)
@@ -195,11 +182,11 @@ class TestCustomerManagement:
         mock_customer.company_name = sample_customer_data["company_name"]
         mock_customer.is_active = True
         mock_customer.created_at = datetime.now()
-        
+
         mock_create.return_value = mock_customer
-        
+
         response = client.post("/api/v1/customers", json=sample_customer_data)
-        
+
         assert response.status_code == 201
         data = response.json()
         assert data["company_name"] == sample_customer_data["company_name"]
@@ -213,7 +200,7 @@ class TestCustomerManagement:
             # Missing required company_name
             "main_email": "invalid-email"  # Invalid email format
         }
-        
+
         response = client.post("/api/v1/customers", json=invalid_data)
         assert response.status_code == 422
 
@@ -225,7 +212,7 @@ class TestCustomerManagement:
             CustomerExtended(id="customer-2", company_name="Company 2")
         ]
         mock_get_customers.return_value = mock_customers
-        
+
         response = client.get(
             "/api/v1/customers",
             params={
@@ -236,7 +223,7 @@ class TestCustomerManagement:
                 "limit": 50
             }
         )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 2
@@ -249,9 +236,9 @@ class TestCustomerManagement:
         mock_customer.id = "customer-123"
         mock_customer.company_name = "Test Company"
         mock_get_customer.return_value = mock_customer
-        
+
         response = client.get("/api/v1/customers/customer-123")
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["id"] == "customer-123"
@@ -261,9 +248,9 @@ class TestCustomerManagement:
     def test_get_customer_not_found(self, mock_get_customer):
         """Test customer retrieval when customer doesn't exist."""
         mock_get_customer.return_value = None
-        
+
         response = client.get("/api/v1/customers/nonexistent")
-        
+
         assert response.status_code == 404
         assert "Customer not found" in response.json()["detail"]
 
@@ -274,14 +261,14 @@ class TestCustomerManagement:
         mock_customer.id = "customer-123"
         mock_customer.company_name = "Updated Company"
         mock_update.return_value = mock_customer
-        
+
         update_data = {
             "company_name": "Updated Company",
             "customer_tier": "platinum"
         }
-        
+
         response = client.put("/api/v1/customers/customer-123", json=update_data)
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["company_name"] == "Updated Company"
@@ -302,9 +289,9 @@ class TestCustomerManagement:
             "recommendations": ["Increase engagement frequency", "Monitor revenue trends"]
         }
         mock_calculate_health.return_value = mock_health
-        
+
         response = client.get("/api/v1/customers/customer-123/health-score")
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["overall_health_score"] == 85.5
@@ -323,11 +310,11 @@ class TestContactManagement:
         mock_contact.first_name = sample_contact_data["first_name"]
         mock_contact.last_name = sample_contact_data["last_name"]
         mock_contact.is_active = True
-        
+
         mock_create.return_value = mock_contact
-        
+
         response = client.post("/api/v1/contacts", json=sample_contact_data)
-        
+
         assert response.status_code == 201
         data = response.json()
         assert data["first_name"] == sample_contact_data["first_name"]
@@ -341,7 +328,7 @@ class TestContactManagement:
             ContactExtended(id="contact-2", first_name="Hanako")
         ]
         mock_get_contacts.return_value = mock_contacts
-        
+
         response = client.get(
             "/api/v1/contacts",
             params={
@@ -350,7 +337,7 @@ class TestContactManagement:
                 "contact_type": "primary"
             }
         )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 2
@@ -368,11 +355,11 @@ class TestLeadManagement:
         mock_lead.email = sample_lead_data["email"]
         mock_lead.lead_score = 45
         mock_lead.status = LeadStatus.NEW
-        
+
         mock_create.return_value = mock_lead
-        
+
         response = client.post("/api/v1/leads", json=sample_lead_data)
-        
+
         assert response.status_code == 201
         data = response.json()
         assert data["email"] == sample_lead_data["email"]
@@ -386,7 +373,7 @@ class TestLeadManagement:
             LeadExtended(id="lead-2", email="lead2@test.com")
         ]
         mock_get_leads.return_value = mock_leads
-        
+
         response = client.get(
             "/api/v1/leads",
             params={
@@ -397,7 +384,7 @@ class TestLeadManagement:
                 "is_qualified": False
             }
         )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 2
@@ -412,14 +399,14 @@ class TestLeadManagement:
             "conversion_date": datetime.now().isoformat()
         }
         mock_convert.return_value = mock_conversion
-        
+
         conversion_data = {
             "lead_id": "lead-123",
             "customer_data": {"company_tier": "gold"}
         }
-        
+
         response = client.post("/api/v1/leads/lead-123/convert", json=conversion_data)
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["customer_id"] == "customer-456"
@@ -431,15 +418,15 @@ class TestLeadManagement:
         mock_lead.id = "lead-123"
         mock_lead.assigned_to_id = "user-456"
         mock_assign.return_value = mock_lead
-        
+
         assignment_data = {
             "lead_id": "lead-123",
             "assigned_to_id": "user-456",
             "notes": "High priority prospect"
         }
-        
+
         response = client.post("/api/v1/leads/lead-123/assign", json=assignment_data)
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["assigned_to_id"] == "user-456"
@@ -457,11 +444,11 @@ class TestOpportunityManagement:
         mock_opportunity.name = sample_opportunity_data["name"]
         mock_opportunity.amount = Decimal(sample_opportunity_data["amount"])
         mock_opportunity.stage = OpportunityStage.QUALIFICATION
-        
+
         mock_create.return_value = mock_opportunity
-        
+
         response = client.post("/api/v1/opportunities", json=sample_opportunity_data)
-        
+
         assert response.status_code == 201
         data = response.json()
         assert data["name"] == sample_opportunity_data["name"]
@@ -475,7 +462,7 @@ class TestOpportunityManagement:
             OpportunityExtended(id="opp-2", name="Opportunity 2")
         ]
         mock_get_opportunities.return_value = mock_opportunities
-        
+
         response = client.get(
             "/api/v1/opportunities",
             params={
@@ -485,7 +472,7 @@ class TestOpportunityManagement:
                 "min_amount": "100000"
             }
         )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 2
@@ -498,16 +485,16 @@ class TestOpportunityManagement:
         mock_opportunity.stage = OpportunityStage.PROPOSAL
         mock_opportunity.probability = Decimal("60.00")
         mock_update_stage.return_value = mock_opportunity
-        
+
         stage_update = {
             "opportunity_id": "opportunity-123",
             "stage": "proposal",
             "probability": "60.00",
             "notes": "Proposal submitted to customer"
         }
-        
+
         response = client.post("/api/v1/opportunities/opportunity-123/update-stage", json=stage_update)
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["stage"] == "proposal"
@@ -529,7 +516,7 @@ class TestOpportunityManagement:
             }
         }
         mock_generate_forecast.return_value = mock_forecast
-        
+
         response = client.get(
             "/api/v1/sales-forecast",
             params={
@@ -537,7 +524,7 @@ class TestOpportunityManagement:
                 "forecast_period": "monthly"
             }
         )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["total_pipeline_value"] == 10000000.0
@@ -555,11 +542,11 @@ class TestActivityTracking:
         mock_activity.subject = sample_activity_data["subject"]
         mock_activity.activity_type = ActivityType.CALL
         mock_activity.is_completed = False
-        
+
         mock_create.return_value = mock_activity
-        
+
         response = client.post("/api/v1/activities", json=sample_activity_data)
-        
+
         assert response.status_code == 201
         data = response.json()
         assert data["subject"] == sample_activity_data["subject"]
@@ -572,7 +559,7 @@ class TestActivityTracking:
             CRMActivity(id="activity-2", subject="Email 1")
         ]
         mock_get_activities.return_value = mock_activities
-        
+
         response = client.get(
             "/api/v1/activities",
             params={
@@ -583,7 +570,7 @@ class TestActivityTracking:
                 "date_to": "2024-12-31"
             }
         )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 2
@@ -600,11 +587,11 @@ class TestCampaignManagement:
         mock_campaign.campaign_code = "CAMP-12345678"
         mock_campaign.name = sample_campaign_data["name"]
         mock_campaign.status = CampaignStatus.PLANNING
-        
+
         mock_create.return_value = mock_campaign
-        
+
         response = client.post("/api/v1/campaigns", json=sample_campaign_data)
-        
+
         assert response.status_code == 201
         data = response.json()
         assert data["name"] == sample_campaign_data["name"]
@@ -621,15 +608,15 @@ class TestCampaignManagement:
             "status": "completed"
         }
         mock_send_campaign.return_value = mock_result
-        
+
         email_request = {
             "campaign_id": "campaign-123",
             "recipient_list": ["contact-1", "contact-2", "contact-3"],
             "email_template_id": "template-456"
         }
-        
+
         response = client.post("/api/v1/campaigns/campaign-123/send-email", json=email_request)
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["emails_sent"] == 250
@@ -648,11 +635,11 @@ class TestSupportTicketManagement:
         mock_ticket.subject = sample_support_ticket_data["subject"]
         mock_ticket.status = SupportTicketStatus.OPEN
         mock_ticket.priority = SupportTicketPriority.HIGH
-        
+
         mock_create.return_value = mock_ticket
-        
+
         response = client.post("/api/v1/support-tickets", json=sample_support_ticket_data)
-        
+
         assert response.status_code == 201
         data = response.json()
         assert data["subject"] == sample_support_ticket_data["subject"]
@@ -666,15 +653,15 @@ class TestSupportTicketManagement:
         mock_ticket.is_escalated = True
         mock_ticket.escalated_to_id = "manager-456"
         mock_escalate.return_value = mock_ticket
-        
+
         escalation_request = {
             "ticket_id": "ticket-123",
             "escalated_to_id": "manager-456",
             "escalation_reason": "Customer escalation requested"
         }
-        
+
         response = client.post("/api/v1/support-tickets/ticket-123/escalate", json=escalation_request)
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["is_escalated"] is True
@@ -704,7 +691,7 @@ class TestCRMAnalytics:
             "metrics_date": datetime.now().isoformat()
         }
         mock_get_metrics.return_value = mock_metrics
-        
+
         response = client.get(
             "/api/v1/analytics/dashboard",
             params={
@@ -713,7 +700,7 @@ class TestCRMAnalytics:
                 "period_end": "2024-01-31"
             }
         )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["leads_created"] == 125
@@ -736,7 +723,7 @@ class TestCRMAnalytics:
             }
         }
         mock_get_analytics.return_value = mock_analytics
-        
+
         response = client.get(
             "/api/v1/analytics/pipeline",
             params={
@@ -744,7 +731,7 @@ class TestCRMAnalytics:
                 "sales_rep_id": "user-456"
             }
         )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["average_deal_size"] == 350000.0
@@ -774,7 +761,7 @@ class TestPipelineManagement:
             }
         }
         mock_get_overview.return_value = mock_overview
-        
+
         response = client.get(
             "/api/v1/pipeline/overview",
             params={
@@ -782,7 +769,7 @@ class TestPipelineManagement:
                 "time_period": "current_quarter"
             }
         )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["total_pipeline_value"] == 10000000.0
@@ -799,15 +786,15 @@ class TestPipelineManagement:
             "updated_opportunities": ["opp-1", "opp-2", "opp-3", "opp-4", "opp-5"]
         }
         mock_bulk_update.return_value = mock_result
-        
+
         updates = [
             {"opportunity_id": "opp-1", "stage": "proposal", "probability": 60.0},
             {"opportunity_id": "opp-2", "stage": "negotiation", "probability": 75.0},
             {"opportunity_id": "opp-3", "probability": 85.0}
         ]
-        
+
         response = client.post("/api/v1/pipeline/bulk-update", json=updates)
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["updated_count"] == 5
@@ -841,7 +828,7 @@ class TestLeadConversion:
             }
         }
         mock_get_analytics.return_value = mock_analytics
-        
+
         response = client.get(
             "/api/v1/analytics/lead-conversion",
             params={
@@ -850,7 +837,7 @@ class TestLeadConversion:
                 "period_end": "2024-03-31"
             }
         )
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["conversion_funnel"]["leads_generated"] == 500
@@ -876,9 +863,9 @@ class TestLeadConversion:
             ]
         }
         mock_calculate_probability.return_value = mock_probability
-        
+
         response = client.get("/api/v1/leads/lead-123/conversion-probability")
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["conversion_probability"] == 73.5
@@ -904,9 +891,9 @@ class TestSystemHealth:
             "timestamp": datetime.now().isoformat()
         }
         mock_get_health.return_value = mock_health
-        
+
         response = client.get("/api/v1/health")
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "healthy"
@@ -916,9 +903,9 @@ class TestSystemHealth:
     def test_crm_health_check_failure(self, mock_get_health):
         """Test CRM health check failure handling."""
         mock_get_health.side_effect = Exception("Database connection failed")
-        
+
         response = client.get("/api/v1/health")
-        
+
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "unhealthy"
@@ -934,15 +921,15 @@ class TestCRMIntegrationScenarios:
         """Test complete journey from lead creation to customer conversion."""
         # Setup mocks for the entire journey
         mock_service_instance = mock_service.return_value
-        
+
         # 1. Create lead
         mock_lead = LeadExtended(id="lead-123", email="prospect@test.com")
         mock_service_instance.create_lead.return_value = mock_lead
-        
+
         # 2. Assign lead
         mock_lead.assigned_to_id = "sales-rep-456"
         mock_service_instance.assign_lead.return_value = mock_lead
-        
+
         # 3. Convert lead
         mock_conversion = {
             "lead_id": "lead-123",
@@ -950,11 +937,11 @@ class TestCRMIntegrationScenarios:
             "contact_id": "contact-012"
         }
         mock_service_instance.convert_lead_to_customer.return_value = mock_conversion
-        
+
         # 4. Create opportunity
         mock_opportunity = OpportunityExtended(id="opp-345", customer_id="customer-789")
         mock_service_instance.create_opportunity.return_value = mock_opportunity
-        
+
         # Execute the journey
         # Step 1: Create lead
         lead_data = {
@@ -964,20 +951,20 @@ class TestCRMIntegrationScenarios:
             "last_name": "Prospect",
             "lead_source": "website"
         }
-        
+
         lead_response = client.post("/api/v1/leads", json=lead_data)
         assert lead_response.status_code == 201
-        
+
         # Step 2: Assign lead
         assignment_data = {"assigned_to_id": "sales-rep-456"}
         assign_response = client.post("/api/v1/leads/lead-123/assign", json=assignment_data)
         assert assign_response.status_code == 200
-        
+
         # Step 3: Convert lead
         conversion_data = {"lead_id": "lead-123"}
         convert_response = client.post("/api/v1/leads/lead-123/convert", json=conversion_data)
         assert convert_response.status_code == 200
-        
+
         # Step 4: Create opportunity
         opp_data = {
             "customer_id": "customer-789",
@@ -987,7 +974,7 @@ class TestCRMIntegrationScenarios:
             "expected_close_date": (date.today() + timedelta(days=30)).isoformat(),
             "sales_rep_id": "sales-rep-456"
         }
-        
+
         opp_response = client.post("/api/v1/opportunities", json=opp_data)
         assert opp_response.status_code == 201
 
@@ -995,31 +982,31 @@ class TestCRMIntegrationScenarios:
     def test_customer_lifecycle_management(self, mock_service):
         """Test comprehensive customer lifecycle management."""
         mock_service_instance = mock_service.return_value
-        
+
         # Mock customer and related entities
         mock_customer = CustomerExtended(id="customer-123")
         mock_contact = ContactExtended(id="contact-456")
         mock_activity = CRMActivity(id="activity-789")
         mock_ticket = SupportTicket(id="ticket-012")
-        
+
         mock_service_instance.create_customer.return_value = mock_customer
         mock_service_instance.create_contact.return_value = mock_contact
         mock_service_instance.create_activity.return_value = mock_activity
         mock_service_instance.create_support_ticket.return_value = mock_ticket
-        
+
         # Customer lifecycle workflow
         customer_data = {
             "organization_id": "org-123",
             "company_name": "Test Customer Corp"
         }
-        
+
         contact_data = {
             "customer_id": "customer-123",
             "organization_id": "org-123",
             "first_name": "John",
             "last_name": "Doe"
         }
-        
+
         activity_data = {
             "organization_id": "org-123",
             "customer_id": "customer-123",
@@ -1028,24 +1015,24 @@ class TestCRMIntegrationScenarios:
             "activity_date": datetime.now().isoformat(),
             "owner_id": "user-123"
         }
-        
+
         ticket_data = {
             "customer_id": "customer-123",
             "organization_id": "org-123",
             "subject": "Setup assistance",
             "description": "Customer needs help with initial setup"
         }
-        
+
         # Execute workflow
         customer_resp = client.post("/api/v1/customers", json=customer_data)
         assert customer_resp.status_code == 201
-        
+
         contact_resp = client.post("/api/v1/contacts", json=contact_data)
         assert contact_resp.status_code == 201
-        
+
         activity_resp = client.post("/api/v1/activities", json=activity_data)
         assert activity_resp.status_code == 201
-        
+
         ticket_resp = client.post("/api/v1/support-tickets", json=ticket_data)
         assert ticket_resp.status_code == 201
 

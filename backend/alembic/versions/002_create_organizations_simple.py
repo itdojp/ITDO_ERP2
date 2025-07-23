@@ -4,8 +4,9 @@ Revision ID: 002_simple
 Revises: 001_simple
 Create Date: 2025-01-22
 """
-from alembic import op
 import sqlalchemy as sa
+
+from alembic import op
 
 revision = '002_simple'
 down_revision = '001_simple'

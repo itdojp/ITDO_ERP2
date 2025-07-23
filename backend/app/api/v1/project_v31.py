@@ -4,7 +4,7 @@ Project Management API - CC02 v31.0 Phase 2
 Complete project management system with 10 comprehensive endpoints:
 1. Project Management
 2. Task Management
-3. Resource Management  
+3. Resource Management
 4. Time Tracking
 5. Risk Management
 6. Milestone Management
@@ -47,7 +47,6 @@ from app.crud.project_v31 import (
     update_risk_status,
     update_task,
 )
-from app.models.project_extended import RiskStatus
 from app.schemas.project_v31 import (
     ApproveTimeEntryRequest,
     BulkTaskUpdateRequest,
@@ -56,9 +55,6 @@ from app.schemas.project_v31 import (
     ProjectCloneRequest,
     ProjectCreate,
     ProjectDashboardMetrics,
-    ProjectDeliverableCreate,
-    ProjectDeliverableResponse,
-    ProjectDeliverableUpdate,
     ProjectHealthScore,
     ProjectIssueCreate,
     ProjectIssueResponse,
@@ -78,9 +74,7 @@ from app.schemas.project_v31 import (
     ProjectRiskUpdate,
     ProjectTemplateCreate,
     ProjectTemplateResponse,
-    ProjectTemplateUpdate,
     ProjectUpdate,
-    TaskCommentResponse,
     TaskCreate,
     TaskDependencyCreate,
     TaskDependencyResponse,
@@ -131,7 +125,7 @@ async def list_projects(
             filters["start_date_from"] = start_date_from
         if end_date_to:
             filters["end_date_to"] = end_date_to
-            
+
         projects = get_projects(db, filters=filters, skip=skip, limit=limit)
         return projects
     except Exception as e:
@@ -257,7 +251,7 @@ async def list_tasks(
             filters["due_date_from"] = due_date_from
         if due_date_to:
             filters["due_date_to"] = due_date_to
-            
+
         tasks = get_tasks(db, filters=filters, skip=skip, limit=limit)
         return tasks
     except Exception as e:
@@ -337,7 +331,7 @@ async def create_task_dependency_relationship(
         # Ensure task_id matches the path parameter
         if dependency_data.task_id != task_id:
             dependency_data.task_id = task_id
-            
+
         dependency = create_task_dependency(db, dependency_data)
         return dependency
     except ValueError as e:
@@ -360,7 +354,7 @@ async def bulk_update_tasks(
     try:
         updated_count = 0
         errors = []
-        
+
         for task_id in bulk_data.task_ids:
             try:
                 # Create update object from bulk updates
@@ -373,7 +367,7 @@ async def bulk_update_tasks(
                     errors.append(f"Task {task_id} not found")
             except Exception as e:
                 errors.append(f"Task {task_id}: {str(e)}")
-        
+
         return {
             "updated_count": updated_count,
             "total_requested": len(bulk_data.task_ids),
@@ -416,7 +410,7 @@ async def create_resource_allocation(
         # Ensure project_id matches
         if resource_data.project_id != project_id:
             resource_data.project_id = project_id
-            
+
         resource = create_project_resource(db, resource_data)
         return resource
     except ValueError as e:
@@ -490,7 +484,7 @@ async def list_time_entries(
             filters["is_billable"] = is_billable
         if is_approved is not None:
             filters["is_approved"] = is_approved
-            
+
         entries = get_time_entries(db, filters=filters, skip=skip, limit=limit)
         return entries
     except Exception as e:
@@ -527,9 +521,8 @@ async def update_time_entry_details(
 ) -> TimeEntryResponse:
     """Update time entry."""
     try:
-        from app.crud.project_v31 import get_time_entries
         from app.models.project_extended import TimeEntry
-        
+
         # Get existing entry
         entry = db.query(TimeEntry).filter(TimeEntry.id == entry_id).first()
         if not entry:
@@ -537,21 +530,21 @@ async def update_time_entry_details(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Time entry not found"
             )
-        
+
         # Update fields
         update_data = time_data.model_dump(exclude_unset=True)
         for field, value in update_data.items():
             setattr(entry, field, value)
-        
+
         # Recalculate billing amount if billable
         if entry.is_billable and entry.billing_rate:
             entry.billing_amount = entry.hours * entry.billing_rate
-        
+
         entry.updated_at = datetime.utcnow()
-        
+
         db.commit()
         db.refresh(entry)
-        
+
         return entry
     except Exception as e:
         raise HTTPException(
@@ -611,7 +604,7 @@ async def create_project_risk_assessment(
         # Ensure project_id matches
         if risk_data.project_id != project_id:
             risk_data.project_id = project_id
-            
+
         risk = create_project_risk(db, risk_data)
         return risk
     except ValueError as e:
@@ -634,7 +627,7 @@ async def update_project_risk_details(
     """Update project risk."""
     try:
         from app.models.project_extended import ProjectRisk
-        
+
         # Get existing risk
         risk = db.query(ProjectRisk).filter(ProjectRisk.id == risk_id).first()
         if not risk:
@@ -642,21 +635,21 @@ async def update_project_risk_details(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Risk not found"
             )
-        
+
         # Update fields
         update_data = risk_data.model_dump(exclude_unset=True)
         for field, value in update_data.items():
             setattr(risk, field, value)
-        
+
         # Recalculate risk score if probability or impact changed
         if risk.probability and risk.impact:
             risk.risk_score = risk.probability * risk.impact * 100
-        
+
         risk.updated_at = datetime.utcnow()
-        
+
         db.commit()
         db.refresh(risk)
-        
+
         return risk
     except Exception as e:
         raise HTTPException(
@@ -697,11 +690,11 @@ async def list_project_milestones(
     """List milestones for project."""
     try:
         from app.models.project_extended import ProjectMilestoneExtended
-        
+
         milestones = db.query(ProjectMilestoneExtended).filter(
             ProjectMilestoneExtended.project_id == project_id
         ).all()
-        
+
         return milestones
     except Exception as e:
         raise HTTPException(
@@ -718,18 +711,18 @@ async def create_project_milestone(
     """Create project milestone."""
     try:
         from app.models.project_extended import ProjectMilestoneExtended
-        
+
         # Ensure project_id matches
         if milestone_data.project_id != project_id:
             milestone_data.project_id = project_id
-        
+
         milestone = ProjectMilestoneExtended(**milestone_data.model_dump())
         milestone.created_by = "system"  # Should come from auth context
-        
+
         db.add(milestone)
         db.commit()
         db.refresh(milestone)
-        
+
         return milestone
     except Exception as e:
         raise HTTPException(
@@ -746,26 +739,26 @@ async def update_project_milestone_details(
     """Update project milestone."""
     try:
         from app.models.project_extended import ProjectMilestoneExtended
-        
+
         milestone = db.query(ProjectMilestoneExtended).filter(
             ProjectMilestoneExtended.id == milestone_id
         ).first()
-        
+
         if not milestone:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Milestone not found"
             )
-        
+
         update_data = milestone_data.model_dump(exclude_unset=True)
         for field, value in update_data.items():
             setattr(milestone, field, value)
-        
+
         milestone.updated_at = datetime.utcnow()
-        
+
         db.commit()
         db.refresh(milestone)
-        
+
         return milestone
     except Exception as e:
         raise HTTPException(
@@ -791,9 +784,9 @@ async def list_project_issues(
     """List issues for project."""
     try:
         from app.models.project_extended import ProjectIssue
-        
+
         query = db.query(ProjectIssue).filter(ProjectIssue.project_id == project_id)
-        
+
         if status:
             query = query.filter(ProjectIssue.status == status)
         if assigned_to_id:
@@ -802,7 +795,7 @@ async def list_project_issues(
             query = query.filter(ProjectIssue.priority == priority)
         if issue_type:
             query = query.filter(ProjectIssue.issue_type == issue_type)
-        
+
         issues = query.offset(skip).limit(limit).all()
         return issues
     except Exception as e:
@@ -819,8 +812,8 @@ async def create_project_issue(
 ) -> ProjectIssueResponse:
     """Create project issue."""
     try:
-        from app.models.project_extended import ProjectIssue, ProjectExtended
-        
+        from app.models.project_extended import ProjectExtended, ProjectIssue
+
         # Validate project exists
         project = db.query(ProjectExtended).filter(ProjectExtended.id == project_id).first()
         if not project:
@@ -828,22 +821,22 @@ async def create_project_issue(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Project not found"
             )
-        
+
         # Ensure project_id matches
         if issue_data.project_id != project_id:
             issue_data.project_id = project_id
-        
+
         # Generate issue number if not provided
         if not issue_data.issue_number:
             count = db.query(ProjectIssue).filter(ProjectIssue.project_id == project_id).count()
             issue_data.issue_number = f"{project.project_code}-I-{count + 1:04d}"
-        
+
         issue = ProjectIssue(**issue_data.model_dump())
-        
+
         db.add(issue)
         db.commit()
         db.refresh(issue)
-        
+
         return issue
     except Exception as e:
         raise HTTPException(
@@ -860,23 +853,23 @@ async def update_project_issue_details(
     """Update project issue."""
     try:
         from app.models.project_extended import ProjectIssue
-        
+
         issue = db.query(ProjectIssue).filter(ProjectIssue.id == issue_id).first()
         if not issue:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Issue not found"
             )
-        
+
         update_data = issue_data.model_dump(exclude_unset=True)
         for field, value in update_data.items():
             setattr(issue, field, value)
-        
+
         issue.updated_at = datetime.utcnow()
-        
+
         db.commit()
         db.refresh(issue)
-        
+
         return issue
     except Exception as e:
         raise HTTPException(
@@ -933,23 +926,23 @@ async def update_portfolio_details(
     """Update portfolio."""
     try:
         from app.models.project_extended import ProjectPortfolio
-        
+
         portfolio = db.query(ProjectPortfolio).filter(ProjectPortfolio.id == portfolio_id).first()
         if not portfolio:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Portfolio not found"
             )
-        
+
         update_data = portfolio_data.model_dump(exclude_unset=True)
         for field, value in update_data.items():
             setattr(portfolio, field, value)
-        
+
         portfolio.updated_at = datetime.utcnow()
-        
+
         db.commit()
         db.refresh(portfolio)
-        
+
         return portfolio
     except Exception as e:
         raise HTTPException(
@@ -974,18 +967,18 @@ async def list_project_templates(
     """List project templates."""
     try:
         from app.models.project_extended import ProjectTemplate
-        
+
         query = db.query(ProjectTemplate).filter(
             ProjectTemplate.organization_id == organization_id
         )
-        
+
         if category:
             query = query.filter(ProjectTemplate.category == category)
         if is_public is not None:
             query = query.filter(ProjectTemplate.is_public == is_public)
         if active_only:
-            query = query.filter(ProjectTemplate.is_active == True)
-        
+            query = query.filter(ProjectTemplate.is_active)
+
         templates = query.offset(skip).limit(limit).all()
         return templates
     except Exception as e:
@@ -1002,14 +995,14 @@ async def create_project_template(
     """Create project template."""
     try:
         from app.models.project_extended import ProjectTemplate
-        
+
         template = ProjectTemplate(**template_data.model_dump())
         template.created_by = "system"  # Should come from auth context
-        
+
         db.add(template)
         db.commit()
         db.refresh(template)
-        
+
         return template
     except Exception as e:
         raise HTTPException(
@@ -1026,7 +1019,7 @@ async def create_project_from_template(
     """Create project from template."""
     try:
         from app.models.project_extended import ProjectTemplate
-        
+
         # Get template
         template = db.query(ProjectTemplate).filter(ProjectTemplate.id == template_id).first()
         if not template:
@@ -1034,7 +1027,7 @@ async def create_project_from_template(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Template not found"
             )
-        
+
         # Create project from template data
         project_create = ProjectCreate(
             organization_id=project_request.organization_id,
@@ -1044,13 +1037,13 @@ async def create_project_from_template(
             total_budget=project_request.total_budget,
             **template.template_data
         )
-        
+
         project = create_project(db, project_create)
-        
+
         # Increment template usage count
         template.usage_count += 1
         db.commit()
-        
+
         return project
     except Exception as e:
         raise HTTPException(
@@ -1132,7 +1125,7 @@ async def clone_project(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Source project not found"
             )
-        
+
         # Create new project with cloned data
         project_data = {
             "organization_id": source_project.organization_id,
@@ -1143,19 +1136,19 @@ async def clone_project(
             "sprint_duration": source_project.sprint_duration,
             "is_billable": source_project.is_billable,
         }
-        
+
         if clone_request.include_timeline and source_project.planned_start_date:
             from datetime import timedelta
             duration = (source_project.planned_end_date - source_project.planned_start_date).days
             project_data["planned_start_date"] = date.today()
             project_data["planned_end_date"] = date.today() + timedelta(days=duration)
-        
+
         project_create = ProjectCreate(**project_data)
         new_project = create_project(db, project_create)
-        
+
         # TODO: Clone tasks, resources if requested
         # This would involve creating new task records with updated project_id
-        
+
         return new_project
     except Exception as e:
         raise HTTPException(

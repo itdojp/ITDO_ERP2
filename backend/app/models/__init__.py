@@ -8,62 +8,35 @@ from app.models.analytics import (
     ReportExecution,
     ReportWidget,
 )
+
+# CC02 v31.0 Phase 2 - Analytics System Models
+from app.models.analytics_extended import (
+    AnalyticsAlert,
+    AnalyticsAuditLog,
+    AnalyticsDashboard,
+    AnalyticsDataPoint,
+    AnalyticsDataSource,
+    AnalyticsInsight,
+    AnalyticsMetric,
+    AnalyticsPrediction,
+    AnalyticsReport,
+    AnalyticsReportExecution,
+)
 from app.models.audit import AuditLog
+
+# CC02 v31.0 Phase 2 - Audit Log System Models
+from app.models.audit_extended import (
+    AuditAlert,
+    AuditCompliance,
+    AuditConfiguration,
+    AuditDataRetention,
+    AuditLogEntry,
+    AuditMetrics,
+    AuditReport,
+    AuditRule,
+    AuditSession,
+)
 from app.models.budget import Budget, BudgetItem
-from app.models.cross_tenant_permissions import (
-    CrossTenantAuditLog,
-    CrossTenantPermissionRule,
-)
-from app.models.customer import Customer, CustomerActivity, CustomerContact, Opportunity
-from app.models.department import Department
-
-# Phase 4-7 Models
-from app.models.expense import Expense, ExpenseApprovalFlow
-from app.models.expense_category import ExpenseCategory
-
-# CC02 v31.0 Phase 2 - Finance Management Models
-from app.models.finance_extended import (
-    Account,
-    Budget as FinanceBudget,
-    BudgetLine,
-    CostCenter,
-    FinanceAuditLog,
-    FinancialPeriod,
-    FinancialReport,
-    JournalEntry,
-    JournalEntryLine,
-    TaxConfiguration,
-)
-
-# CC02 v31.0 Phase 2 - HR Management Models
-from app.models.hr_extended import (
-    Employee,
-    EmployeeBenefit,
-    HRAnalytics,
-    JobPosting,
-    LeaveRequest,
-    OnboardingRecord,
-    PayrollRecord,
-    PerformanceReview,
-    Position,
-    TrainingRecord,
-)
-
-# CC02 v31.0 Phase 2 - Project Management Models
-from app.models.project_extended import (
-    ProjectDeliverable,
-    ProjectExtended,
-    ProjectIssue,
-    ProjectMilestoneExtended,
-    ProjectPortfolio,
-    ProjectResource,
-    ProjectRisk,
-    ProjectTemplate,
-    TaskComment,
-    TaskDependencyExtended,
-    TaskExtended,
-    TimeEntry,
-)
 
 # CC02 v31.0 Phase 2 - CRM Management Models
 from app.models.crm_extended import (
@@ -76,6 +49,12 @@ from app.models.crm_extended import (
     OpportunityExtended,
     SupportTicket,
 )
+from app.models.cross_tenant_permissions import (
+    CrossTenantAuditLog,
+    CrossTenantPermissionRule,
+)
+from app.models.customer import Customer, CustomerActivity, CustomerContact, Opportunity
+from app.models.department import Department
 
 # CC02 v31.0 Phase 2 - Document Management Models
 from app.models.document_extended import (
@@ -92,72 +71,65 @@ from app.models.document_extended import (
     DocumentWorkflow,
 )
 
-# CC02 v31.0 Phase 2 - Notification System Models
-from app.models.notification_extended import (
-    NotificationExtended,
-    NotificationTemplate,
-    NotificationDelivery,
-    NotificationPreference,
-    NotificationSubscription,
-    NotificationInteraction,
-    NotificationEvent,
-    NotificationRule,
-    NotificationQueue,
-    NotificationAnalytics,
+# Phase 4-7 Models
+from app.models.expense import Expense, ExpenseApprovalFlow
+from app.models.expense_category import ExpenseCategory
+
+# CC02 v31.0 Phase 2 - Finance Management Models
+from app.models.finance_extended import (
+    Account,
+    BudgetLine,
+    CostCenter,
+    FinanceAuditLog,
+    FinancialPeriod,
+    FinancialReport,
+    JournalEntry,
+    JournalEntryLine,
+    TaxConfiguration,
+)
+from app.models.finance_extended import (
+    Budget as FinanceBudget,
 )
 
-# CC02 v31.0 Phase 2 - Analytics System Models
-from app.models.analytics_extended import (
-    AnalyticsDataSource,
-    AnalyticsMetric,
-    AnalyticsDataPoint,
-    AnalyticsDashboard,
-    AnalyticsReport,
-    AnalyticsReportExecution,
-    AnalyticsAlert,
-    AnalyticsPrediction,
-    AnalyticsInsight,
-    AnalyticsAuditLog,
+# CC02 v31.0 Phase 2 - HR Management Models
+from app.models.hr_extended import (
+    Employee,
+    EmployeeBenefit,
+    HRAnalytics,
+    JobPosting,
+    LeaveRequest,
+    OnboardingRecord,
+    PayrollRecord,
+    PerformanceReview,
+    Position,
+    TrainingRecord,
 )
 
 # CC02 v31.0 Phase 2 - Integration System Models
 from app.models.integration_extended import (
-    ExternalSystem,
-    IntegrationConnector,
     DataMapping,
     DataTransformation,
+    ExternalSystem,
+    IntegrationAuditLog,
+    IntegrationConnector,
     IntegrationExecution,
+    IntegrationMessage,
     WebhookEndpoint,
     WebhookRequest,
-    IntegrationMessage,
-    IntegrationAuditLog,
 )
 
-# CC02 v31.0 Phase 2 - Workflow System Models
-from app.models.workflow_extended import (
-    WorkflowDefinition,
-    WorkflowStep,
-    WorkflowInstance,
-    WorkflowTask,
-    WorkflowActivity,
-    WorkflowComment,
-    WorkflowAttachment,
-    WorkflowTemplate,
-    WorkflowAnalytics,
-    WorkflowAuditLog,
-)
-
-# CC02 v31.0 Phase 2 - Audit Log System Models
-from app.models.audit_extended import (
-    AuditLogEntry,
-    AuditRule,
-    AuditAlert,
-    AuditReport,
-    AuditSession,
-    AuditDataRetention,
-    AuditCompliance,
-    AuditConfiguration,
-    AuditMetrics,
+# CC02 v31.0 Phase 2 - Notification System Models
+from app.models.notification_extended import (
+    NotificationAnalytics,
+    NotificationDelivery,
+    NotificationEvent,
+    NotificationExtended,
+    NotificationInteraction,
+    NotificationPreference,
+    NotificationQueue,
+    NotificationRule,
+    NotificationSubscription,
+    NotificationTemplate,
 )
 from app.models.organization import Organization
 from app.models.password_history import PasswordHistory
@@ -169,6 +141,22 @@ from app.models.permission_inheritance import (
     RoleInheritanceRule,
 )
 from app.models.project import Project
+
+# CC02 v31.0 Phase 2 - Project Management Models
+from app.models.project_extended import (
+    ProjectDeliverable,
+    ProjectExtended,
+    ProjectIssue,
+    ProjectMilestoneExtended,
+    ProjectPortfolio,
+    ProjectResource,
+    ProjectRisk,
+    ProjectTemplate,
+    TaskComment,
+    TaskDependencyExtended,
+    TaskExtended,
+    TimeEntry,
+)
 from app.models.project_member import ProjectMember
 from app.models.project_milestone import ProjectMilestone
 from app.models.role import Role, RolePermission, UserRole
@@ -189,6 +177,20 @@ from app.models.workflow import (
     WorkflowInstance,
     WorkflowNode,
     WorkflowTask,
+)
+
+# CC02 v31.0 Phase 2 - Workflow System Models
+from app.models.workflow_extended import (
+    WorkflowActivity,
+    WorkflowAnalytics,
+    WorkflowAttachment,
+    WorkflowAuditLog,
+    WorkflowComment,
+    WorkflowDefinition,
+    WorkflowInstance,
+    WorkflowStep,
+    WorkflowTask,
+    WorkflowTemplate,
 )
 
 __all__ = [
@@ -247,7 +249,7 @@ __all__ = [
     "BudgetLine",
     "CostCenter",
     "FinanceAuditLog",
-    "FinancialPeriod", 
+    "FinancialPeriod",
     "FinancialReport",
     "JournalEntry",
     "JournalEntryLine",

@@ -3,7 +3,7 @@ Workflow System API - CC02 v31.0 Phase 2
 
 Comprehensive RESTful API for workflow management including:
 - Business Process Automation & Orchestration
-- Approval Workflows & State Management  
+- Approval Workflows & State Management
 - Dynamic Workflow Configuration
 - Parallel & Sequential Processing
 - Conditional Logic & Decision Trees
@@ -16,7 +16,7 @@ Comprehensive RESTful API for workflow management including:
 Provides 10 main endpoint groups with 60+ individual endpoints
 """
 
-from datetime import datetime, date
+from datetime import date, datetime
 from typing import Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -25,46 +25,40 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.crud.workflow_v31 import WorkflowService
 from app.schemas.workflow_v31 import (
-    # Definition schemas
-    WorkflowDefinitionCreateRequest,
-    WorkflowDefinitionUpdateRequest,
-    WorkflowDefinitionResponse,
-    WorkflowDefinitionListResponse,
-    WorkflowStepResponse,
-    
-    # Instance schemas
-    WorkflowInstanceStartRequest,
-    WorkflowInstanceResponse,
-    WorkflowInstanceListResponse,
-    
-    # Task schemas
-    WorkflowTaskResponse,
-    WorkflowTaskListResponse,
     TaskActionRequest,
     TaskAssignmentRequest,
     TaskDelegationRequest,
     TaskEscalationRequest,
-    
-    # Comment and attachment schemas
-    WorkflowCommentCreateRequest,
-    WorkflowCommentResponse,
-    WorkflowCommentListResponse,
-    WorkflowAttachmentCreateRequest,
-    WorkflowAttachmentResponse,
-    WorkflowAttachmentListResponse,
-    
+    WorkflowActivityListResponse,
+    # Activity schemas
+    WorkflowActivityResponse,
     # Analytics schemas
     WorkflowAnalyticsRequest,
     WorkflowAnalyticsResponse,
+    WorkflowAttachmentCreateRequest,
+    WorkflowAttachmentListResponse,
+    WorkflowAttachmentResponse,
+    # Comment and attachment schemas
+    WorkflowCommentCreateRequest,
+    WorkflowCommentListResponse,
+    WorkflowCommentResponse,
     WorkflowDashboardResponse,
-    
+    # Definition schemas
+    WorkflowDefinitionCreateRequest,
+    WorkflowDefinitionListResponse,
+    WorkflowDefinitionResponse,
+    WorkflowDefinitionUpdateRequest,
+    WorkflowInstanceListResponse,
+    WorkflowInstanceResponse,
+    # Instance schemas
+    WorkflowInstanceStartRequest,
+    WorkflowStepResponse,
+    WorkflowTaskListResponse,
+    # Task schemas
+    WorkflowTaskResponse,
+    WorkflowTemplateListResponse,
     # Template schemas
     WorkflowTemplateResponse,
-    WorkflowTemplateListResponse,
-    
-    # Activity schemas
-    WorkflowActivityResponse,
-    WorkflowActivityListResponse,
 )
 
 router = APIRouter()
@@ -114,13 +108,13 @@ async def list_workflow_definitions(
         }
         # Remove None values
         filters = {k: v for k, v in filters.items() if v is not None}
-        
+
         definitions, total = await service.list_workflow_definitions(
             filters=filters,
             page=page,
             per_page=per_page
         )
-        
+
         return WorkflowDefinitionListResponse(
             definitions=[WorkflowDefinitionResponse(**d.__dict__) for d in definitions],
             total_count=total,
@@ -167,7 +161,7 @@ async def update_workflow_definition(
     """Update workflow definition."""
     try:
         definition = await service.update_workflow_definition(
-            definition_id, 
+            definition_id,
             update_data.dict(exclude_unset=True)
         )
         if not definition:
@@ -353,13 +347,13 @@ async def list_workflow_instances(
         }
         # Remove None values
         filters = {k: v for k, v in filters.items() if v is not None}
-        
+
         instances, total = await service.list_workflow_instances(
             filters=filters,
             page=page,
             per_page=per_page
         )
-        
+
         return WorkflowInstanceListResponse(
             instances=[WorkflowInstanceResponse(**i.__dict__) for i in instances],
             total_count=total,
@@ -595,13 +589,13 @@ async def list_workflow_tasks(
         }
         # Remove None values
         filters = {k: v for k, v in filters.items() if v is not None}
-        
+
         tasks, total = await service.list_workflow_tasks(
             filters=filters,
             page=page,
             per_page=per_page
         )
-        
+
         return WorkflowTaskListResponse(
             tasks=[WorkflowTaskResponse(**t.__dict__) for t in tasks],
             total_count=total,
@@ -828,13 +822,13 @@ async def get_my_tasks(
         }
         # Remove None values
         filters = {k: v for k, v in filters.items() if v is not None}
-        
+
         tasks, total = await service.list_workflow_tasks(
             filters=filters,
             page=page,
             per_page=per_page
         )
-        
+
         return WorkflowTaskListResponse(
             tasks=[WorkflowTaskResponse(**t.__dict__) for t in tasks],
             total_count=total,
@@ -884,13 +878,13 @@ async def list_task_comments(
             "task_id": task_id,
             "include_internal": include_internal,
         }
-        
+
         comments, total = await service.list_task_comments(
             filters=filters,
             page=page,
             per_page=per_page
         )
-        
+
         return WorkflowCommentListResponse(
             comments=[WorkflowCommentResponse(**c.__dict__) for c in comments],
             total_count=total,
@@ -1002,7 +996,7 @@ async def get_comment_thread(
     """Get comment thread (parent and all replies)."""
     try:
         comments, total = await service.get_comment_thread(comment_id)
-        
+
         return WorkflowCommentListResponse(
             comments=[WorkflowCommentResponse(**c.__dict__) for c in comments],
             total_count=total,
@@ -1062,13 +1056,13 @@ async def search_comments(
         }
         # Remove None values
         filters = {k: v for k, v in filters.items() if v is not None}
-        
+
         comments, total = await service.search_comments(
             filters=filters,
             page=page,
             per_page=per_page
         )
-        
+
         return WorkflowCommentListResponse(
             comments=[WorkflowCommentResponse(**c.__dict__) for c in comments],
             total_count=total,
@@ -1092,7 +1086,7 @@ async def get_recent_comments(
     """Get recent comments across all tasks."""
     try:
         comments, total = await service.get_recent_comments(organization_id, limit)
-        
+
         return WorkflowCommentListResponse(
             comments=[WorkflowCommentResponse(**c.__dict__) for c in comments],
             total_count=total,
@@ -1144,13 +1138,13 @@ async def list_task_attachments(
         }
         # Remove None values
         filters = {k: v for k, v in filters.items() if v is not None}
-        
+
         attachments, total = await service.list_task_attachments(
             filters=filters,
             page=page,
             per_page=per_page
         )
-        
+
         return WorkflowAttachmentListResponse(
             attachments=[WorkflowAttachmentResponse(**a.__dict__) for a in attachments],
             total_count=total,
@@ -1267,7 +1261,7 @@ async def get_attachment_versions(
     """Get all versions of an attachment."""
     try:
         versions, total = await service.get_attachment_versions(attachment_id)
-        
+
         return WorkflowAttachmentListResponse(
             attachments=[WorkflowAttachmentResponse(**v.__dict__) for v in versions],
             total_count=total,
@@ -1328,13 +1322,13 @@ async def search_attachments(
         }
         # Remove None values
         filters = {k: v for k, v in filters.items() if v is not None}
-        
+
         attachments, total = await service.search_attachments(
             filters=filters,
             page=page,
             per_page=per_page
         )
-        
+
         return WorkflowAttachmentListResponse(
             attachments=[WorkflowAttachmentResponse(**a.__dict__) for a in attachments],
             total_count=total,
@@ -1591,13 +1585,13 @@ async def list_workflow_templates(
         }
         # Remove None values
         filters = {k: v for k, v in filters.items() if v is not None}
-        
+
         templates, total = await service.list_workflow_templates(
             filters=filters,
             page=page,
             per_page=per_page
         )
-        
+
         return WorkflowTemplateListResponse(
             templates=[WorkflowTemplateResponse(**t.__dict__) for t in templates],
             total_count=total,
@@ -1674,7 +1668,7 @@ async def get_popular_templates(
     """Get popular workflow templates."""
     try:
         templates, total = await service.get_popular_templates(organization_id, limit)
-        
+
         return WorkflowTemplateListResponse(
             templates=[WorkflowTemplateResponse(**t.__dict__) for t in templates],
             total_count=total,
@@ -1726,13 +1720,13 @@ async def get_instance_activities(
         }
         # Remove None values
         filters = {k: v for k, v in filters.items() if v is not None}
-        
+
         activities, total = await service.get_instance_activities(
             filters=filters,
             page=page,
             per_page=per_page
         )
-        
+
         return WorkflowActivityListResponse(
             activities=[WorkflowActivityResponse(**a.__dict__) for a in activities],
             total_count=total,
@@ -1763,13 +1757,13 @@ async def get_task_activities(
         }
         # Remove None values
         filters = {k: v for k, v in filters.items() if v is not None}
-        
+
         activities, total = await service.get_task_activities(
             filters=filters,
             page=page,
             per_page=per_page
         )
-        
+
         return WorkflowActivityListResponse(
             activities=[WorkflowActivityResponse(**a.__dict__) for a in activities],
             total_count=total,
@@ -1808,7 +1802,7 @@ async def get_audit_trail(
         }
         # Remove None values
         filters = {k: v for k, v in filters.items() if v is not None}
-        
+
         audit_trail = await service.get_audit_trail(
             filters=filters,
             page=page,

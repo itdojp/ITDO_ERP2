@@ -3,7 +3,7 @@ Document Management API v31.0 - Comprehensive Document Management System
 
 10 core endpoints for complete document lifecycle management:
 1. Document Storage & Management
-2. Folder & Category Organization  
+2. Folder & Category Organization
 3. Document Sharing & Permissions
 4. Workflow & Approval Processes
 5. Document Templates & Generation
@@ -14,81 +14,62 @@ Document Management API v31.0 - Comprehensive Document Management System
 10. Bulk Operations & Management
 """
 
-from datetime import datetime, date
+import base64
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
-import base64
 
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, status
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.crud.document_v31 import DocumentService
 from app.schemas.document_v31 import (
-    # Document schemas
-    DocumentCreate,
-    DocumentResponse,
-    DocumentUpdate,
-    DocumentVersionCreate,
-    DocumentMoveRequest,
-    DocumentFilterRequest,
-    
-    # Folder schemas
-    FolderCreate,
-    FolderResponse,
-    FolderUpdate,
-    FolderContentsResponse,
-    
-    # Sharing schemas
-    ShareCreate,
-    ShareResponse,
-    ShareUpdate,
-    ShareAccessRequest,
-    
-    # Comment schemas
-    CommentCreate,
-    CommentResponse,
-    CommentUpdate,
-    
-    # Workflow schemas
-    WorkflowCreate,
-    WorkflowResponse,
-    WorkflowUpdate,
-    ApprovalSubmissionRequest,
+    AdvancedSearchResponse,
     ApprovalDecisionRequest,
     ApprovalResponse,
-    
-    # Signature schemas
-    SignatureRequestCreate,
-    SignatureResponse,
-    SignatureProcessRequest,
-    BulkSignatureRequest,
-    
-    # Template schemas
-    TemplateCreate,
-    TemplateResponse,
-    TemplateUpdate,
-    TemplateGenerationRequest,
-    TemplateGenerationResponse,
-    
-    # Search and analytics schemas
-    DocumentSearchRequest,
-    AdvancedSearchResponse,
-    DocumentAnalyticsRequest,
-    DocumentAnalyticsResponse,
-    
+    ApprovalSubmissionRequest,
     # Bulk operations schemas
     BulkDocumentOperation,
     BulkOperationResponse,
-    BulkTagOperation,
-    BulkMoveOperation,
     BulkShareOperation,
-    
+    BulkSignatureRequest,
+    BulkTagOperation,
+    # Comment schemas
+    CommentCreate,
+    CommentResponse,
+    DocumentAnalyticsRequest,
+    DocumentAnalyticsResponse,
+    # Document schemas
+    DocumentCreate,
+    DocumentMoveRequest,
+    DocumentResponse,
+    # Search and analytics schemas
+    DocumentSearchRequest,
+    DocumentUpdate,
+    DocumentVersionCreate,
+    ExportRequest,
+    FolderContentsResponse,
+    FolderCreate,
+    FolderResponse,
+    ImportRequest,
+    ShareAccessRequest,
+    # Sharing schemas
+    ShareCreate,
+    ShareResponse,
+    SignatureProcessRequest,
+    # Signature schemas
+    SignatureRequestCreate,
+    SignatureResponse,
     # System schemas
     SystemHealthResponse,
-    ExportRequest,
-    ImportRequest,
+    # Template schemas
+    TemplateCreate,
+    TemplateGenerationRequest,
+    TemplateGenerationResponse,
+    TemplateResponse,
+    WorkflowCreate,
+    WorkflowResponse,
 )
 
 router = APIRouter()
@@ -107,7 +88,7 @@ async def create_document(
 ) -> DocumentResponse:
     """
     Create a new document with file upload and comprehensive metadata.
-    
+
     Features:
     - File upload with multiple format support
     - Automatic file type detection and validation
@@ -123,12 +104,12 @@ async def create_document(
             file_content = await file.read()
             document.filename = file.filename
             document.original_filename = file.filename
-        
+
         # Generate unique document number
         document_data = document.dict()
         created_document = await document_service.create_document(db, document_data, file_content)
         return created_document
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -154,7 +135,7 @@ async def list_documents(
 ) -> List[DocumentResponse]:
     """
     List documents with comprehensive filtering and search capabilities.
-    
+
     Features:
     - Multi-criteria filtering (type, status, owner, category)
     - Full-text search across title, description, and content
@@ -164,10 +145,10 @@ async def list_documents(
     - Access control enforcement
     """
     tag_list = tags.split(",") if tags else None
-    
+
     documents = await document_service.get_documents(
-        db, organization_id, folder_id, document_type, status, 
-        owner_id, category, search_text, tag_list, 
+        db, organization_id, folder_id, document_type, status,
+        owner_id, category, search_text, tag_list,
         created_after, created_before, skip, limit
     )
     return documents
@@ -180,7 +161,7 @@ async def get_document(
 ) -> DocumentResponse:
     """
     Get document details by ID with comprehensive metadata.
-    
+
     Features:
     - Complete document metadata
     - Version information
@@ -206,7 +187,7 @@ async def update_document(
 ) -> DocumentResponse:
     """
     Update document metadata with change tracking and version control.
-    
+
     Features:
     - Partial update support
     - Change tracking and audit trail
@@ -235,7 +216,7 @@ async def create_document_version(
 ) -> DocumentResponse:
     """
     Create a new version of an existing document.
-    
+
     Features:
     - Automatic version numbering (major.minor)
     - File replacement with new content
@@ -248,12 +229,12 @@ async def create_document_version(
         if file:
             file_content = await file.read()
             version_data.filename = file.filename
-        
+
         new_version = await document_service.create_document_version(
             db, document_id, version_data.dict(), file_content, user_id
         )
         return new_version
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -270,7 +251,7 @@ async def move_document(
 ) -> DocumentResponse:
     """
     Move document to a different folder with permission validation.
-    
+
     Features:
     - Folder hierarchy validation
     - Permission checking
@@ -283,7 +264,7 @@ async def move_document(
             db, document_id, move_request.new_folder_id, user_id
         )
         return moved_document
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -299,7 +280,7 @@ async def delete_document(
 ) -> Dict[str, str]:
     """
     Soft delete document with retention policy compliance.
-    
+
     Features:
     - Soft deletion (status change)
     - Retention policy enforcement
@@ -327,7 +308,7 @@ async def create_folder(
 ) -> FolderResponse:
     """
     Create a new folder with hierarchical organization support.
-    
+
     Features:
     - Hierarchical folder structure
     - Automatic path calculation
@@ -338,7 +319,7 @@ async def create_folder(
     try:
         created_folder = await document_service.create_folder(db, folder.dict())
         return created_folder
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -355,7 +336,7 @@ async def get_folder_contents(
 ) -> FolderContentsResponse:
     """
     Get folder contents including subfolders and documents.
-    
+
     Features:
     - Hierarchical content listing
     - Selective content inclusion
@@ -394,7 +375,7 @@ async def create_document_share(
 ) -> ShareResponse:
     """
     Create a document share with granular permission control.
-    
+
     Features:
     - Multiple share types (user, group, public, link)
     - Granular permission levels
@@ -410,7 +391,7 @@ async def create_document_share(
             db, document_id, share_data, shared_by_id
         )
         return created_share
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -426,7 +407,7 @@ async def get_document_shares(
 ) -> List[ShareResponse]:
     """
     Get all shares for a document with filtering options.
-    
+
     Features:
     - Active/expired share filtering
     - Share type categorization
@@ -446,7 +427,7 @@ async def revoke_document_share(
 ) -> Dict[str, str]:
     """
     Revoke a document share with immediate effect.
-    
+
     Features:
     - Immediate access revocation
     - Notification to affected users
@@ -470,7 +451,7 @@ async def access_shared_document(
 ) -> Dict[str, Any]:
     """
     Access shared document using share token with validation.
-    
+
     Features:
     - Share token validation
     - Password verification
@@ -493,7 +474,7 @@ async def create_approval_workflow(
 ) -> WorkflowResponse:
     """
     Create a document approval workflow template.
-    
+
     Features:
     - Multi-step approval process
     - Parallel and sequential routing
@@ -507,7 +488,7 @@ async def create_approval_workflow(
             db, workflow.dict(), workflow.created_by_id
         )
         return created_workflow
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -524,7 +505,7 @@ async def submit_document_for_approval(
 ) -> List[ApprovalResponse]:
     """
     Submit document for approval workflow processing.
-    
+
     Features:
     - Workflow template application
     - Approver assignment and notification
@@ -535,11 +516,11 @@ async def submit_document_for_approval(
     """
     try:
         approvals = await document_service.submit_document_for_approval(
-            db, document_id, approval_request.workflow_id, 
+            db, document_id, approval_request.workflow_id,
             approval_request.approvers, requested_by_id
         )
         return approvals
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -555,7 +536,7 @@ async def process_approval_decision(
 ) -> ApprovalResponse:
     """
     Process approval decision with workflow progression.
-    
+
     Features:
     - Decision validation and recording
     - Workflow step progression
@@ -566,11 +547,11 @@ async def process_approval_decision(
     """
     try:
         processed_approval = await document_service.process_approval_decision(
-            db, approval_id, decision_request.decision, 
+            db, approval_id, decision_request.decision,
             decision_request.comments, decision_request.conditions
         )
         return processed_approval
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -602,7 +583,7 @@ async def create_document_template(
 ) -> TemplateResponse:
     """
     Create a document template for automated document generation.
-    
+
     Features:
     - Rich template content with placeholders
     - Field validation and auto-fill rules
@@ -616,7 +597,7 @@ async def create_document_template(
             db, template.dict(), template.created_by_id
         )
         return created_template
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -633,7 +614,7 @@ async def generate_document_from_template(
 ) -> TemplateGenerationResponse:
     """
     Generate a document from template with field substitution.
-    
+
     Features:
     - Dynamic field substitution
     - Validation rule enforcement
@@ -646,7 +627,7 @@ async def generate_document_from_template(
         generated_document = await document_service.generate_document_from_template(
             db, template_id, generation_request.field_values, generated_by_id
         )
-        
+
         return TemplateGenerationResponse(
             document_id=generated_document.id,
             filename=generated_document.filename,
@@ -654,7 +635,7 @@ async def generate_document_from_template(
             validation_errors=[],
             field_values_used=generation_request.field_values
         )
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -691,7 +672,7 @@ async def search_documents(
 ) -> AdvancedSearchResponse:
     """
     Advanced document search with full-text indexing and faceted search.
-    
+
     Features:
     - Full-text search across content and metadata
     - Faceted search with multiple filters
@@ -702,7 +683,7 @@ async def search_documents(
     """
     try:
         start_time = datetime.now()
-        
+
         # Convert search request to filters
         filters = {
             "document_type": search_request.document_type,
@@ -712,14 +693,14 @@ async def search_documents(
             "created_after": search_request.created_after,
             "created_before": search_request.created_before
         }
-        
+
         documents = await document_service.search_documents(
             db, organization_id, search_request.query, filters, skip, limit
         )
-        
+
         end_time = datetime.now()
         search_time_ms = int((end_time - start_time).total_seconds() * 1000)
-        
+
         return AdvancedSearchResponse(
             documents=documents,
             total_count=len(documents),
@@ -727,7 +708,7 @@ async def search_documents(
             facets={},
             suggestions=[]
         )
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -744,7 +725,7 @@ async def get_search_suggestions(
 ) -> List[str]:
     """
     Get search suggestions and autocomplete for document search.
-    
+
     Features:
     - Real-time search suggestions
     - Popular search terms
@@ -769,7 +750,7 @@ async def create_document_comment(
 ) -> CommentResponse:
     """
     Add a comment to a document with collaboration features.
-    
+
     Features:
     - Rich text comments with annotations
     - Position-based commenting (page/coordinates)
@@ -785,7 +766,7 @@ async def create_document_comment(
             db, comment_data, author_id
         )
         return created_comment
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -815,7 +796,7 @@ async def resolve_comment(
 ) -> CommentResponse:
     """
     Mark a comment as resolved with resolution tracking.
-    
+
     Features:
     - Resolution status management
     - Resolution timestamp tracking
@@ -843,7 +824,7 @@ async def get_document_analytics(
 ) -> DocumentAnalyticsResponse:
     """
     Generate comprehensive document analytics and insights.
-    
+
     Features:
     - Storage and usage analytics
     - Collaboration metrics
@@ -857,7 +838,7 @@ async def get_document_analytics(
             db, analytics_request.organization_id,
             analytics_request.period_start, analytics_request.period_end
         )
-        
+
         # Transform to response format
         return DocumentAnalyticsResponse(
             organization_id=analytics.organization_id,
@@ -901,7 +882,7 @@ async def get_document_analytics(
             system_performance={},
             calculated_date=analytics.calculated_date
         )
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -935,7 +916,7 @@ async def request_document_signatures(
 ) -> List[SignatureResponse]:
     """
     Request digital signatures for a document.
-    
+
     Features:
     - Multiple signer support
     - Signature positioning and formatting
@@ -959,12 +940,12 @@ async def request_document_signatures(
             "height": signature_request.height,
             "signing_deadline": signature_request.signing_deadline
         }]
-        
+
         signatures = await document_service.request_document_signature(
             db, document_id, signers, requested_by_id
         )
         return signatures
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -980,7 +961,7 @@ async def process_document_signature(
 ) -> SignatureResponse:
     """
     Process a digital signature with verification and validation.
-    
+
     Features:
     - Signature data processing and validation
     - Certificate verification
@@ -992,7 +973,7 @@ async def process_document_signature(
     try:
         # Decode base64 signature data
         signature_bytes = base64.b64decode(signature_data.signature_data)
-        
+
         # Prepare signer metadata
         signer_metadata = {
             "ip_address": signature_data.ip_address,
@@ -1000,12 +981,12 @@ async def process_document_signature(
             "geolocation": signature_data.geolocation,
             "verification_method": signature_data.verification_method
         }
-        
+
         processed_signature = await document_service.process_document_signature(
             db, signature_id, signature_bytes, signer_metadata
         )
         return processed_signature
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -1032,7 +1013,7 @@ async def request_bulk_signatures(
 ) -> Dict[str, Any]:
     """
     Request signatures for multiple documents in bulk.
-    
+
     Features:
     - Multi-document signature requests
     - Consistent signer configuration
@@ -1043,7 +1024,7 @@ async def request_bulk_signatures(
     try:
         results = []
         errors = []
-        
+
         for document_id in bulk_request.document_ids:
             try:
                 signatures = await document_service.request_document_signature(
@@ -1060,7 +1041,7 @@ async def request_bulk_signatures(
                     "error": str(e),
                     "success": False
                 })
-        
+
         return {
             "total_documents": len(bulk_request.document_ids),
             "successful": len(results),
@@ -1068,7 +1049,7 @@ async def request_bulk_signatures(
             "results": results,
             "errors": errors
         }
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -1088,7 +1069,7 @@ async def perform_bulk_document_operation(
 ) -> BulkOperationResponse:
     """
     Perform bulk operations on multiple documents.
-    
+
     Features:
     - Multi-document operations (move, copy, delete, tag)
     - Batch processing optimization
@@ -1101,7 +1082,7 @@ async def perform_bulk_document_operation(
         start_time = datetime.now()
         successful = []
         failed = []
-        
+
         for document_id in operation.document_ids:
             try:
                 if operation.operation == "move":
@@ -1111,15 +1092,15 @@ async def perform_bulk_document_operation(
                 elif operation.operation == "delete":
                     await document_service.delete_document(db, document_id, user_id)
                 # Add other operations as needed
-                
+
                 successful.append(document_id)
-                
+
             except Exception as e:
                 failed.append({"document_id": document_id, "error": str(e)})
-        
+
         end_time = datetime.now()
         execution_time_ms = int((end_time - start_time).total_seconds() * 1000)
-        
+
         return BulkOperationResponse(
             operation=operation.operation,
             total_requested=len(operation.document_ids),
@@ -1130,7 +1111,7 @@ async def perform_bulk_document_operation(
             failed_documents=failed,
             execution_time_ms=execution_time_ms
         )
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -1146,7 +1127,7 @@ async def bulk_tag_documents(
 ) -> BulkOperationResponse:
     """
     Bulk tag/untag multiple documents.
-    
+
     Features:
     - Add/remove tags in bulk
     - Tag validation and normalization
@@ -1175,7 +1156,7 @@ async def bulk_share_documents(
 ) -> BulkOperationResponse:
     """
     Share multiple documents with consistent settings.
-    
+
     Features:
     - Consistent share settings across documents
     - Batch permission application
@@ -1204,7 +1185,7 @@ async def export_documents(
 ) -> Dict[str, Any]:
     """
     Export documents and metadata in various formats.
-    
+
     Features:
     - Multiple export formats (ZIP, PDF, etc.)
     - Metadata inclusion options
@@ -1214,7 +1195,7 @@ async def export_documents(
     """
     try:
         export_id = str(uuid4())
-        
+
         # Implementation would handle export processing
         return {
             "export_id": export_id,
@@ -1222,7 +1203,7 @@ async def export_documents(
             "estimated_completion": datetime.now().isoformat(),
             "download_url": f"/api/v1/exports/{export_id}/download"
         }
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -1238,7 +1219,7 @@ async def import_documents(
 ) -> Dict[str, Any]:
     """
     Import documents from various sources with metadata processing.
-    
+
     Features:
     - Multiple import sources (file upload, URL, external systems)
     - Metadata extraction and mapping
@@ -1248,7 +1229,7 @@ async def import_documents(
     """
     try:
         import_id = str(uuid4())
-        
+
         # Implementation would handle import processing
         return {
             "import_id": import_id,
@@ -1256,7 +1237,7 @@ async def import_documents(
             "progress_percentage": 0,
             "estimated_completion": datetime.now().isoformat()
         }
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -1274,7 +1255,7 @@ async def document_system_health(
 ) -> SystemHealthResponse:
     """
     Document management system health check and status.
-    
+
     Features:
     - Database connectivity testing
     - Service availability checking
@@ -1284,7 +1265,7 @@ async def document_system_health(
     """
     try:
         health_status = await document_service.get_system_health(db)
-        
+
         return SystemHealthResponse(
             status=health_status["status"],
             database_connection=health_status["database_connection"],
@@ -1294,8 +1275,8 @@ async def document_system_health(
             version=health_status["version"],
             timestamp=health_status["timestamp"]
         )
-        
-    except Exception as e:
+
+    except Exception:
         return SystemHealthResponse(
             status="unhealthy",
             database_connection="ERROR",

@@ -1,5 +1,7 @@
-from pydantic import BaseModel
 from typing import Optional
+
+from pydantic import BaseModel
+
 
 class ProductCreate(BaseModel):
     """Product creation schema - v19.0 practical"""

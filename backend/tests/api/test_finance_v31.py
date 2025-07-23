@@ -14,8 +14,7 @@ Comprehensive test suite for financial management API covering:
 - Financial Analytics
 """
 
-from datetime import datetime, timedelta
-from decimal import Decimal
+from datetime import datetime
 from unittest.mock import Mock, patch
 
 import pytest
@@ -80,7 +79,7 @@ class TestAccountManagement:
         assert data["account_name"] == sample_account_data["account_name"]
         assert data["account_type"] == sample_account_data["account_type"]
         assert data["account_code"] == "1001"
-        
+
         # Verify CRUD methods called
         mock_crud.get_by_code.assert_not_called()  # No code provided
         mock_crud.create_account.assert_called_once()
@@ -244,7 +243,7 @@ class TestJournalEntryProcessing:
 
     @patch("app.api.v1.finance_v31.JournalEntryCRUD")
     @patch("app.api.v1.finance_v31.get_current_user")
-    def test_create_journal_entry_success(self, mock_user, mock_crud_class, 
+    def test_create_journal_entry_success(self, mock_user, mock_crud_class,
                                         sample_journal_entry_data, sample_journal_entry_response):
         """Test successful journal entry creation."""
         # Setup mocks
@@ -323,7 +322,7 @@ class TestJournalEntryProcessing:
         # Setup mocks
         mock_user.return_value = {"sub": "user-123"}
         mock_crud = mock_crud_class.return_value
-        
+
         # Create reversal entry
         reversal_entry = Mock(**sample_journal_entry_response)
         reversal_entry.id = "je-124"
@@ -382,7 +381,7 @@ class TestBudgetManagement:
 
     @patch("app.api.v1.finance_v31.BudgetCRUD")
     @patch("app.api.v1.finance_v31.get_current_user")
-    def test_create_budget_success(self, mock_user, mock_crud_class, 
+    def test_create_budget_success(self, mock_user, mock_crud_class,
                                  sample_budget_data, sample_budget_response):
         """Test successful budget creation."""
         # Setup mocks
@@ -432,7 +431,7 @@ class TestBudgetManagement:
         # Setup mocks
         mock_user.return_value = {"sub": "user-123"}
         mock_crud = mock_crud_class.return_value
-        
+
         variance_analysis = {
             "budget_id": "budget-123",
             "budget_name": "Annual Operating Budget 2024",
@@ -525,7 +524,7 @@ class TestCostCenterOperations:
         # Setup mocks
         mock_user.return_value = {"sub": "user-123"}
         mock_crud = mock_crud_class.return_value
-        
+
         performance_data = {
             "cost_center_id": "cc-123",
             "cost_center_code": "CC0001",
@@ -565,7 +564,7 @@ class TestFinancialReporting:
         # Setup mocks
         mock_user.return_value = {"sub": "user-123"}
         mock_crud = mock_crud_class.return_value
-        
+
         balance_sheet_data = {
             "report_type": "balance_sheet",
             "organization_id": "org-123",
@@ -635,7 +634,7 @@ class TestFinancialReporting:
         # Setup mocks
         mock_user.return_value = {"sub": "user-123"}
         mock_crud = mock_crud_class.return_value
-        
+
         income_statement_data = {
             "report_type": "income_statement",
             "organization_id": "org-123",
@@ -745,7 +744,7 @@ class TestTaxConfiguration:
         # Setup mocks
         mock_user.return_value = {"sub": "user-123"}
         mock_crud = mock_crud_class.return_value
-        
+
         calculation_result = {
             "tax_code": "JPY_VAT",
             "tax_name": "消費税",
@@ -784,7 +783,7 @@ class TestTrialBalance:
         # Setup mocks
         mock_user.return_value = {"sub": "user-123"}
         mock_crud = mock_crud_class.return_value
-        
+
         trial_balance_data = [
             {
                 "account_id": "acc-1",
@@ -836,7 +835,7 @@ class TestFinancialAnalytics:
         """Test successful financial dashboard generation."""
         # Setup mocks
         mock_user.return_value = {"sub": "user-123"}
-        
+
         # Mock balance sheet
         balance_sheet = {
             "assets": {"total": 100000.00},
@@ -845,7 +844,7 @@ class TestFinancialAnalytics:
             "balanced": True,
         }
         mock_report_crud.return_value.generate_balance_sheet.return_value = balance_sheet
-        
+
         # Mock income statement
         income_statement = {
             "revenue": {"total": 80000.00},
@@ -854,7 +853,7 @@ class TestFinancialAnalytics:
             "margin_percentage": 37.5,
         }
         mock_report_crud.return_value.generate_income_statement.return_value = income_statement
-        
+
         # Mock trial balance
         trial_balance = [
             {"debit_balance": 60000.00, "credit_balance": 0.00},
@@ -876,12 +875,12 @@ class TestFinancialAnalytics:
         assert "income_statement_summary" in data
         assert "trial_balance_summary" in data
         assert "key_metrics" in data
-        
+
         # Check balance sheet summary
         bs_summary = data["balance_sheet_summary"]
         assert bs_summary["total_assets"] == 100000.00
         assert bs_summary["is_balanced"] is True
-        
+
         # Check income statement summary
         is_summary = data["income_statement_summary"]
         assert is_summary["net_income"] == 30000.00
@@ -898,7 +897,7 @@ class TestFinanceIntegration:
         """Test complete transaction workflow from account creation to posting."""
         # Setup user
         mock_user.return_value = {"sub": "user-123"}
-        
+
         # Test data
         account_data = {
             "organization_id": "org-123",
@@ -906,7 +905,7 @@ class TestFinanceIntegration:
             "account_type": "asset",
             "normal_balance": "debit",
         }
-        
+
         entry_data = {
             "organization_id": "org-123",
             "transaction_date": "2024-01-15T10:00:00Z",

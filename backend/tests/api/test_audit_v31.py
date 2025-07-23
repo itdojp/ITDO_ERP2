@@ -16,25 +16,21 @@ Comprehensive test suite for audit log management including:
 Tests 8 main endpoint groups with 80+ individual endpoints
 """
 
-import pytest
-from datetime import datetime, date, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
-from unittest.mock import Mock, AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
+import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
 
-from app.api.v1.audit_v31 import router
 from app.main import app
 from app.models.audit_extended import (
-    AuditLogEntry,
-    AuditRule,
     AuditAlert,
-    AuditReport,
-    AuditSession,
-    AuditCompliance,
-    AuditMetrics,
     AuditEventType,
+    AuditLogEntry,
+    AuditReport,
+    AuditRule,
+    AuditSession,
     AuditSeverity,
     AuditStatus,
     ComplianceFramework,
@@ -800,7 +796,7 @@ class TestComplianceManagement:
         data = response.json()
         assert "frameworks" in data
         assert len(data["frameworks"]) > 0
-        
+
         # Check that SOX framework is included
         sox_framework = next((f for f in data["frameworks"] if f["code"] == "sox"), None)
         assert sox_framework is not None
@@ -1030,12 +1026,12 @@ class TestAuditIntegration:
     def test_complete_audit_workflow(self, mock_get_service, client, sample_audit_log_entry, sample_audit_alert):
         """Test complete audit workflow from entry to alert."""
         mock_service = Mock()
-        
+
         # Mock sequential operations
         mock_service.create_audit_log_entry = AsyncMock(return_value=sample_audit_log_entry)
         mock_service.list_audit_alerts = AsyncMock(return_value=([sample_audit_alert], 1))
         mock_service.resolve_alert = AsyncMock(return_value=sample_audit_alert)
-        
+
         mock_get_service.return_value = mock_service
 
         # 1. Create audit log entry
@@ -1046,7 +1042,7 @@ class TestAuditIntegration:
             "event_name": "Failed Login Attempt",
             "severity": "high"
         }
-        
+
         response = client.post("/logs", json=entry_data)
         assert response.status_code == 200
 
@@ -1061,7 +1057,7 @@ class TestAuditIntegration:
             "resolved_by": "admin-123",
             "resolution_notes": "Investigated and resolved"
         }
-        
+
         response = client.post("/alerts/alert-123/resolve", json=resolution_data)
         assert response.status_code == 200
 
@@ -1069,7 +1065,7 @@ class TestAuditIntegration:
     def test_compliance_assessment_workflow(self, mock_get_service, client):
         """Test compliance assessment workflow."""
         mock_service = Mock()
-        
+
         # Mock assessment creation
         mock_assessment = Mock()
         mock_assessment.__dict__ = {
@@ -1079,7 +1075,7 @@ class TestAuditIntegration:
             "created_at": datetime.now()
         }
         mock_service.create_compliance_assessment = AsyncMock(return_value=mock_assessment)
-        
+
         # Mock dashboard data
         mock_service.get_compliance_dashboard = AsyncMock(return_value={
             "overall_compliance_rate": 95.0,
@@ -1089,7 +1085,7 @@ class TestAuditIntegration:
             "overdue_assessments": 0,
             "last_updated": datetime.now().isoformat()
         })
-        
+
         mock_get_service.return_value = mock_service
 
         # Create assessment
@@ -1102,7 +1098,7 @@ class TestAuditIntegration:
             "assessment_period_end": str(date.today()),
             "compliance_status": "compliant"
         }
-        
+
         response = client.post("/compliance/assessments", json=assessment_data)
         assert response.status_code == 200
 

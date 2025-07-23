@@ -14,30 +14,28 @@ Comprehensive test coverage for all 10 notification system endpoints:
 10. System Health & Status
 """
 
-import pytest
-from datetime import datetime, date, timedelta
+from datetime import datetime
 from decimal import Decimal
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
-import json
 
 from app.main import app
 from app.models.notification_extended import (
-    NotificationExtended,
-    NotificationTemplate,
-    NotificationDelivery,
-    NotificationPreference,
-    NotificationSubscription,
-    NotificationEvent,
-    NotificationAnalytics,
-    NotificationInteraction,
-    NotificationType,
-    NotificationChannel,
-    NotificationStatus,
-    NotificationPriority,
-    SubscriptionStatus,
     DeliveryStatus,
+    NotificationAnalytics,
+    NotificationChannel,
+    NotificationDelivery,
+    NotificationEvent,
+    NotificationExtended,
+    NotificationInteraction,
+    NotificationPreference,
+    NotificationStatus,
+    NotificationSubscription,
+    NotificationTemplate,
+    NotificationType,
+    SubscriptionStatus,
 )
 
 client = TestClient(app)
@@ -178,14 +176,14 @@ class TestNotificationManagement:
         """Test notification listing with comprehensive filters."""
         mock_notifications = [
             NotificationExtended(
-                id="notif-1", 
-                title="Notification 1", 
+                id="notif-1",
+                title="Notification 1",
                 notification_type=NotificationType.INFO,
                 status=NotificationStatus.SENT,
                 primary_channel=NotificationChannel.IN_APP
             ),
             NotificationExtended(
-                id="notif-2", 
+                id="notif-2",
                 title="Notification 2",
                 notification_type=NotificationType.ALERT,
                 status=NotificationStatus.PENDING,
@@ -253,7 +251,7 @@ class TestNotificationManagement:
             "tags": ["updated", "test"]
         }
 
-        with patch.object(mock_notification, '__setattr__') as mock_setattr:
+        with patch.object(mock_notification, '__setattr__'):
             response = client.put(
                 "/api/v1/notifications/notif-123?user_id=user-123",
                 json=update_data
@@ -334,17 +332,17 @@ class TestTemplateManagement:
         with patch('app.api.v1.notification_v31.db.query') as mock_query:
             mock_templates = [
                 NotificationTemplate(
-                    id="template-1", 
+                    id="template-1",
                     name="Template 1",
                     notification_type=NotificationType.INFO
                 ),
                 NotificationTemplate(
-                    id="template-2", 
+                    id="template-2",
                     name="Template 2",
                     notification_type=NotificationType.ALERT
                 )
             ]
-            
+
             # Mock the query chain
             mock_query_obj = MagicMock()
             mock_query_obj.filter.return_value = mock_query_obj
@@ -420,7 +418,7 @@ class TestDeliveryManagement:
                     status=DeliveryStatus.SENT
                 )
             ]
-            
+
             mock_query_obj = MagicMock()
             mock_query_obj.filter.return_value = mock_query_obj
             mock_query_obj.all.return_value = mock_deliveries
@@ -611,7 +609,7 @@ class TestEventProcessing:
                     is_processed=False
                 )
             ]
-            
+
             mock_query_obj = MagicMock()
             mock_query_obj.filter.return_value = mock_query_obj
             mock_query_obj.order_by.return_value = mock_query_obj
@@ -745,7 +743,7 @@ class TestInteractionTracking:
                     timestamp=datetime.utcnow()
                 )
             ]
-            
+
             mock_query_obj = MagicMock()
             mock_query_obj.filter.return_value = mock_query_obj
             mock_query_obj.order_by.return_value = mock_query_obj
@@ -885,39 +883,39 @@ class TestWebSocketConnection:
     def test_websocket_connection_handling(self):
         """Test WebSocket connection management."""
         from app.api.v1.notification_v31 import NotificationConnectionManager
-        
+
         manager = NotificationConnectionManager()
-        
+
         # Mock WebSocket
         mock_websocket = MagicMock()
         mock_websocket.accept = AsyncMock()
         mock_websocket.send_text = AsyncMock()
-        
+
         # Test connection
         user_id = "user-123"
-        
+
         # Since connect is async, we need to test it properly
         import asyncio
-        
+
         async def test_connection():
             await manager.connect(mock_websocket, user_id)
             assert user_id in manager.active_connections
             assert mock_websocket in manager.active_connections[user_id]
-            
+
             # Test sending notification
             notification_data = {
                 "id": "notif-123",
                 "title": "Test",
                 "message": "Test message"
             }
-            
+
             await manager.send_notification(user_id, notification_data)
             mock_websocket.send_text.assert_called_once()
-            
+
             # Test disconnection
             manager.disconnect(mock_websocket, user_id)
             assert user_id not in manager.active_connections
-        
+
         # Run the async test
         asyncio.run(test_connection())
 
@@ -930,24 +928,24 @@ class TestNotificationIntegrationScenarios:
     def test_complete_notification_lifecycle(self, mock_service):
         """Test complete notification lifecycle from creation to interaction."""
         mock_service_instance = mock_service.return_value
-        
+
         # Setup mocks for the entire lifecycle
         mock_notification = NotificationExtended(
-            id="notif-123", 
+            id="notif-123",
             title="Integration Test",
             notification_type=NotificationType.INFO,
             status=NotificationStatus.PENDING,
             primary_channel=NotificationChannel.IN_APP,
             recipient_user_id="user-123"
         )
-        mock_template = NotificationTemplate(id="template-123", name="Test Template")
+        NotificationTemplate(id="template-123", name="Test Template")
         mock_preferences = NotificationPreference(id="pref-123", email_enabled=True)
-        
+
         mock_service_instance.create_notification.return_value = mock_notification
         mock_service_instance.get_notification_by_id.return_value = mock_notification
         mock_service_instance.mark_notification_as_read.return_value = mock_notification
         mock_service_instance.get_user_notification_preferences.return_value = mock_preferences
-        
+
         # Execute the lifecycle
         # 1. Create notification
         notification_data = {
@@ -957,18 +955,18 @@ class TestNotificationIntegrationScenarios:
             "notification_type": "info",
             "recipient_user_id": "user-123"
         }
-        
+
         create_response = client.post("/api/v1/notifications", json=notification_data)
         assert create_response.status_code == 201
-        
+
         # 2. Get notification
         get_response = client.get("/api/v1/notifications/notif-123")
         assert get_response.status_code == 200
-        
+
         # 3. Mark as read
         read_response = client.post("/api/v1/notifications/notif-123/read?user_id=user-123")
         assert read_response.status_code == 200
-        
+
         # 4. Check preferences
         pref_response = client.get(
             "/api/v1/preferences?user_id=user-123&organization_id=org-123"
@@ -979,10 +977,10 @@ class TestNotificationIntegrationScenarios:
     def test_template_generation_workflow(self, mock_service):
         """Test complete template-based notification generation workflow."""
         mock_service_instance = mock_service.return_value
-        
+
         # Mock template and generated notification
         mock_template = NotificationTemplate(
-            id="template-123", 
+            id="template-123",
             name="Welcome Template",
             notification_type=NotificationType.INFO
         )
@@ -995,10 +993,10 @@ class TestNotificationIntegrationScenarios:
             primary_channel=NotificationChannel.EMAIL,
             recipient_user_id="user-123"
         )
-        
+
         mock_service_instance.create_notification_template.return_value = mock_template
         mock_service_instance.generate_notification_from_template.return_value = mock_notification
-        
+
         # Create template
         template_data = {
             "organization_id": "org-123",
@@ -1009,17 +1007,17 @@ class TestNotificationIntegrationScenarios:
             "owner_id": "user-123",
             "created_by": "user-123"
         }
-        
+
         template_response = client.post("/api/v1/templates", json=template_data)
         assert template_response.status_code == 201
-        
+
         # Generate notification from template
         generation_data = {
             "template_id": "template-123",
             "field_values": {"user_name": "John"},
             "recipient_user_id": "user-123"
         }
-        
+
         generate_response = client.post(
             "/api/v1/templates/template-123/generate?generated_by_id=user-123",
             json=generation_data

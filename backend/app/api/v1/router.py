@@ -131,22 +131,27 @@ api_router.include_router(document_v31.router, prefix="/documents", tags=["docum
 
 # CC02 v31.0 Phase 2 - Notification System API
 from app.api.v1 import notification_v31
+
 api_router.include_router(notification_v31.router, prefix="/notifications", tags=["notification-v31"])
 
 # CC02 v31.0 Phase 2 - Analytics API
 from app.api.v1 import analytics_v31
+
 api_router.include_router(analytics_v31.router, prefix="/analytics", tags=["analytics-v31"])
 
 # CC02 v31.0 Phase 2 - Integration API
 from app.api.v1 import integration_v31
+
 api_router.include_router(integration_v31.router, prefix="/integration", tags=["integration-v31"])
 
 # CC02 v31.0 Phase 2 - Workflow API
 from app.api.v1 import workflow_v31
+
 api_router.include_router(workflow_v31.router, prefix="/workflow", tags=["workflow-v31"])
 
 # CC02 v31.0 Phase 2 - Audit Log API
 from app.api.v1 import audit_v31
+
 api_router.include_router(audit_v31.router, prefix="/audit", tags=["audit-v31"])
 
 

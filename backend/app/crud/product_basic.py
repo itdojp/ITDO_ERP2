@@ -3,27 +3,26 @@ Basic product CRUD operations for ERP v17.0
 Simplified product management focusing on essential ERP functionality
 """
 
-from typing import List, Optional, Dict, Any
-from decimal import Decimal
-from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_, desc
+from typing import Any, Dict, List, Optional
 
+from sqlalchemy import and_, desc, or_
+from sqlalchemy.orm import Session
+
+from app.core.exceptions import BusinessLogicError
 from app.models.product import Product, ProductCategory, ProductStatus, ProductType
 from app.schemas.product_basic import (
-    ProductCreate, 
-    ProductUpdate, 
-    ProductResponse,
     ProductCategoryCreate,
-    ProductCategoryUpdate,
-    ProductCategoryResponse
+    ProductCategoryResponse,
+    ProductCreate,
+    ProductResponse,
+    ProductUpdate,
 )
-from app.core.exceptions import BusinessLogicError
 
 
 # Product CRUD operations
 def create_product(
-    db: Session, 
-    product_data: ProductCreate, 
+    db: Session,
+    product_data: ProductCreate,
     created_by: int
 ) -> Product:
     """Create a new product with validation."""
@@ -34,26 +33,26 @@ def create_product(
             Product.organization_id == product_data.organization_id
         )
     ).first()
-    
+
     if existing_product:
         raise BusinessLogicError("Product with this code already exists in the organization")
-    
+
     # Check SKU uniqueness if provided
     if product_data.sku:
         existing_sku = db.query(Product).filter(Product.sku == product_data.sku).first()
         if existing_sku:
             raise BusinessLogicError("Product with this SKU already exists")
-    
+
     # Create product
     product_dict = product_data.dict()
     product_dict['created_by'] = created_by
-    
+
     product = Product(**product_dict)
-    
+
     db.add(product)
     db.commit()
     db.refresh(product)
-    
+
     return product
 
 
@@ -103,7 +102,7 @@ def get_products(
 ) -> tuple[List[Product], int]:
     """Get products with filtering and pagination."""
     query = db.query(Product).filter(Product.deleted_at.is_(None))
-    
+
     # Search filter
     if search:
         search_term = f"%{search}%"
@@ -116,36 +115,36 @@ def get_products(
                 Product.description.ilike(search_term)
             )
         )
-    
+
     # Filters
     if organization_id:
         query = query.filter(Product.organization_id == organization_id)
-    
+
     if category_id:
         query = query.filter(Product.category_id == category_id)
-    
+
     if status:
         query = query.filter(Product.status == status.value)
-    
+
     if product_type:
         query = query.filter(Product.product_type == product_type.value)
-    
+
     if is_active is not None:
         query = query.filter(Product.is_active == is_active)
-    
+
     # Sorting
     sort_column = getattr(Product, sort_by, Product.name)
     if sort_order.lower() == "desc":
         query = query.order_by(desc(sort_column))
     else:
         query = query.order_by(sort_column)
-    
+
     # Count for pagination
     total = query.count()
-    
+
     # Apply pagination
     products = query.offset(skip).limit(limit).all()
-    
+
     return products, total
 
 
@@ -159,7 +158,7 @@ def update_product(
     product = get_product_by_id(db, product_id)
     if not product:
         return None
-    
+
     # Check for code conflicts if updating code
     if product_data.code and product_data.code != product.code:
         existing_product = db.query(Product).filter(
@@ -172,7 +171,7 @@ def update_product(
         ).first()
         if existing_product:
             raise BusinessLogicError("Product with this code already exists")
-    
+
     # Check for SKU conflicts if updating SKU
     if product_data.sku and product_data.sku != product.sku:
         existing_sku = db.query(Product).filter(
@@ -184,19 +183,19 @@ def update_product(
         ).first()
         if existing_sku:
             raise BusinessLogicError("Product with this SKU already exists")
-    
+
     # Update fields
     update_dict = product_data.dict(exclude_unset=True)
     for key, value in update_dict.items():
         if hasattr(product, key):
             setattr(product, key, value)
-    
+
     product.updated_by = updated_by
-    
+
     db.add(product)
     db.commit()
     db.refresh(product)
-    
+
     return product
 
 
@@ -209,20 +208,20 @@ def deactivate_product(
     product = get_product_by_id(db, product_id)
     if not product:
         return None
-    
+
     product.is_active = False
     product.status = ProductStatus.INACTIVE.value
     product.updated_by = deactivated_by
-    
+
     db.add(product)
     db.commit()
     db.refresh(product)
-    
+
     return product
 
 
 def get_products_by_category(
-    db: Session, 
+    db: Session,
     category_id: int,
     include_subcategories: bool = False
 ) -> List[Product]:
@@ -232,19 +231,19 @@ def get_products_by_category(
         category = get_category_by_id(db, category_id)
         if not category:
             return []
-        
+
         category_ids = [category_id]
         # This would need recursive implementation for deep hierarchies
         subcategories = db.query(ProductCategory).filter(
             ProductCategory.parent_id == category_id
         ).all()
         category_ids.extend([cat.id for cat in subcategories])
-        
+
         return db.query(Product).filter(
             and_(
                 Product.category_id.in_(category_ids),
                 Product.deleted_at.is_(None),
-                Product.is_active == True
+                Product.is_active
             )
         ).all()
     else:
@@ -252,15 +251,15 @@ def get_products_by_category(
             and_(
                 Product.category_id == category_id,
                 Product.deleted_at.is_(None),
-                Product.is_active == True
+                Product.is_active
             )
         ).all()
 
 
 # Product Category CRUD operations
 def create_category(
-    db: Session, 
-    category_data: ProductCategoryCreate, 
+    db: Session,
+    category_data: ProductCategoryCreate,
     created_by: int
 ) -> ProductCategory:
     """Create a new product category."""
@@ -272,20 +271,20 @@ def create_category(
             ProductCategory.deleted_at.is_(None)
         )
     ).first()
-    
+
     if existing_category:
         raise BusinessLogicError("Category with this code already exists in the organization")
-    
+
     # Create category
     category_dict = category_data.dict()
     category_dict['created_by'] = created_by
-    
+
     category = ProductCategory(**category_dict)
-    
+
     db.add(category)
     db.commit()
     db.refresh(category)
-    
+
     return category
 
 
@@ -307,44 +306,44 @@ def get_categories(
 ) -> List[ProductCategory]:
     """Get product categories."""
     query = db.query(ProductCategory).filter(ProductCategory.deleted_at.is_(None))
-    
+
     if organization_id:
         query = query.filter(ProductCategory.organization_id == organization_id)
-    
+
     if parent_id is not None:
         if parent_id == 0:  # Root categories
             query = query.filter(ProductCategory.parent_id.is_(None))
         else:
             query = query.filter(ProductCategory.parent_id == parent_id)
-    
+
     if is_active is not None:
         query = query.filter(ProductCategory.is_active == is_active)
-    
+
     return query.order_by(ProductCategory.sort_order, ProductCategory.name).all()
 
 
 def get_product_statistics(db: Session, organization_id: Optional[int] = None) -> Dict[str, Any]:
     """Get basic product statistics."""
     query = db.query(Product).filter(Product.deleted_at.is_(None))
-    
+
     if organization_id:
         query = query.filter(Product.organization_id == organization_id)
-    
+
     total_products = query.count()
-    active_products = query.filter(Product.is_active == True).count()
-    
+    active_products = query.filter(Product.is_active).count()
+
     # Products by status
     status_counts = {}
     for status in ProductStatus:
         count = query.filter(Product.status == status.value).count()
         status_counts[status.value] = count
-    
+
     # Products by type
     type_counts = {}
     for ptype in ProductType:
         count = query.filter(Product.product_type == ptype.value).count()
         type_counts[ptype.value] = count
-    
+
     return {
         "total_products": total_products,
         "active_products": active_products,

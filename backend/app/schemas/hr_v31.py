@@ -14,7 +14,7 @@ Pydantic schemas for human resources management API including:
 - HR Analytics
 """
 
-from datetime import datetime, date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
@@ -31,14 +31,13 @@ from app.models.hr_extended import (
     TrainingStatus,
 )
 
-
 # =============================================================================
 # Employee Schemas
 # =============================================================================
 
 class EmployeeBase(BaseModel):
     """Base schema for Employee."""
-    
+
     organization_id: str
     user_id: str
     employee_number: Optional[str] = None
@@ -96,7 +95,7 @@ class EmployeeCreate(EmployeeBase):
 
 class EmployeeUpdate(BaseModel):
     """Schema for updating Employee."""
-    
+
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     middle_name: Optional[str] = None
@@ -125,7 +124,7 @@ class EmployeeUpdate(BaseModel):
 
 class EmployeeResponse(EmployeeBase):
     """Schema for Employee response."""
-    
+
     id: str
     employee_status: EmployeeStatus
     termination_date: Optional[date] = None
@@ -148,7 +147,7 @@ class EmployeeResponse(EmployeeBase):
 
 class PositionBase(BaseModel):
     """Base schema for Position."""
-    
+
     organization_id: str
     position_code: str
     position_title: str
@@ -181,7 +180,7 @@ class PositionCreate(PositionBase):
 
 class PositionUpdate(BaseModel):
     """Schema for updating Position."""
-    
+
     position_title: Optional[str] = None
     position_level: Optional[str] = None
     job_summary: Optional[str] = None
@@ -200,7 +199,7 @@ class PositionUpdate(BaseModel):
 
 class PositionResponse(PositionBase):
     """Schema for Position response."""
-    
+
     id: str
     current_headcount: int
     is_active: bool
@@ -218,7 +217,7 @@ class PositionResponse(PositionBase):
 
 class PayrollRecordBase(BaseModel):
     """Base schema for Payroll Record."""
-    
+
     employee_id: str
     organization_id: str
     pay_period_start: date
@@ -265,7 +264,7 @@ class PayrollRecordCreate(PayrollRecordBase):
 
 class PayrollRecordUpdate(BaseModel):
     """Schema for updating Payroll Record."""
-    
+
     bonus: Optional[Decimal] = Field(None, ge=0)
     commission: Optional[Decimal] = Field(None, ge=0)
     allowances: Optional[Decimal] = Field(None, ge=0)
@@ -280,7 +279,7 @@ class PayrollRecordUpdate(BaseModel):
 
 class PayrollRecordResponse(PayrollRecordBase):
     """Schema for Payroll Record response."""
-    
+
     id: str
     ytd_gross_pay: Optional[Decimal] = None
     ytd_tax_withheld: Optional[Decimal] = None
@@ -302,7 +301,7 @@ class PayrollRecordResponse(PayrollRecordBase):
 
 class LeaveRequestBase(BaseModel):
     """Base schema for Leave Request."""
-    
+
     employee_id: str
     organization_id: str
     leave_type: LeaveType
@@ -332,7 +331,7 @@ class LeaveRequestCreate(LeaveRequestBase):
 
 class LeaveRequestUpdate(BaseModel):
     """Schema for updating Leave Request."""
-    
+
     return_date: Optional[date] = None
     reason: Optional[str] = None
     emergency_contact: Optional[str] = None
@@ -346,7 +345,7 @@ class LeaveRequestUpdate(BaseModel):
 
 class LeaveRequestResponse(LeaveRequestBase):
     """Schema for Leave Request response."""
-    
+
     id: str
     total_days: Decimal
     status: LeaveStatus
@@ -375,7 +374,7 @@ class LeaveRequestResponse(LeaveRequestBase):
 
 class PerformanceReviewBase(BaseModel):
     """Base schema for Performance Review."""
-    
+
     employee_id: str
     organization_id: str
     review_period_start: date
@@ -419,7 +418,7 @@ class PerformanceReviewCreate(PerformanceReviewBase):
 
 class PerformanceReviewUpdate(BaseModel):
     """Schema for updating Performance Review."""
-    
+
     overall_rating: Optional[PerformanceRating] = None
     job_knowledge_rating: Optional[PerformanceRating] = None
     job_knowledge_comments: Optional[str] = None
@@ -449,7 +448,7 @@ class PerformanceReviewUpdate(BaseModel):
 
 class PerformanceReviewResponse(PerformanceReviewBase):
     """Schema for Performance Review response."""
-    
+
     id: str
     overall_score: Optional[Decimal] = None
     job_knowledge_score: Optional[Decimal] = None
@@ -477,7 +476,7 @@ class PerformanceReviewResponse(PerformanceReviewBase):
 
 class TrainingRecordBase(BaseModel):
     """Base schema for Training Record."""
-    
+
     employee_id: str
     organization_id: str
     training_title: str
@@ -511,7 +510,7 @@ class TrainingRecordCreate(TrainingRecordBase):
 
 class TrainingRecordUpdate(BaseModel):
     """Schema for updating Training Record."""
-    
+
     scheduled_date: Optional[datetime] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
@@ -536,7 +535,7 @@ class TrainingRecordUpdate(BaseModel):
 
 class TrainingRecordResponse(TrainingRecordBase):
     """Schema for Training Record response."""
-    
+
     id: str
     status: TrainingStatus
     completion_date: Optional[datetime] = None
@@ -564,7 +563,7 @@ class TrainingRecordResponse(TrainingRecordBase):
 
 class EmployeeBenefitBase(BaseModel):
     """Base schema for Employee Benefit."""
-    
+
     employee_id: str
     organization_id: str
     benefit_type: str
@@ -600,7 +599,7 @@ class EmployeeBenefitCreate(EmployeeBenefitBase):
 
 class EmployeeBenefitUpdate(BaseModel):
     """Schema for updating Employee Benefit."""
-    
+
     coverage_level: Optional[str] = None
     dependents_covered: Optional[List[Dict[str, str]]] = None
     termination_date: Optional[date] = None
@@ -619,7 +618,7 @@ class EmployeeBenefitUpdate(BaseModel):
 
 class EmployeeBenefitResponse(EmployeeBenefitBase):
     """Schema for Employee Benefit response."""
-    
+
     id: str
     is_active: bool
     created_at: datetime
@@ -635,7 +634,7 @@ class EmployeeBenefitResponse(EmployeeBenefitBase):
 
 class JobPostingBase(BaseModel):
     """Base schema for Job Posting."""
-    
+
     organization_id: str
     position_id: str
     posting_title: str
@@ -667,7 +666,7 @@ class JobPostingCreate(JobPostingBase):
 
 class JobPostingUpdate(BaseModel):
     """Schema for updating Job Posting."""
-    
+
     posting_title: Optional[str] = None
     posting_description: Optional[str] = None
     closing_date: Optional[date] = None
@@ -688,7 +687,7 @@ class JobPostingUpdate(BaseModel):
 
 class JobPostingResponse(JobPostingBase):
     """Schema for Job Posting response."""
-    
+
     id: str
     status: RecruitmentStatus
     filled_date: Optional[date] = None
@@ -711,7 +710,7 @@ class JobPostingResponse(JobPostingBase):
 
 class OnboardingRecordBase(BaseModel):
     """Base schema for Onboarding Record."""
-    
+
     employee_id: str
     organization_id: str
     onboarding_template_id: Optional[str] = None
@@ -735,7 +734,7 @@ class OnboardingRecordCreate(OnboardingRecordBase):
 
 class OnboardingRecordUpdate(BaseModel):
     """Schema for updating Onboarding Record."""
-    
+
     actual_start_date: Optional[date] = None
     actual_completion_date: Optional[date] = None
     assigned_buddy_id: Optional[str] = None
@@ -764,7 +763,7 @@ class OnboardingRecordUpdate(BaseModel):
 
 class OnboardingRecordResponse(OnboardingRecordBase):
     """Schema for Onboarding Record response."""
-    
+
     id: str
     actual_start_date: Optional[date] = None
     actual_completion_date: Optional[date] = None
@@ -798,7 +797,7 @@ class OnboardingRecordResponse(OnboardingRecordBase):
 
 class HRAnalyticsResponse(BaseModel):
     """Schema for HR Analytics response."""
-    
+
     id: str
     organization_id: str
     period_start: date
@@ -861,7 +860,7 @@ class HRAnalyticsResponse(BaseModel):
 
 class EmployeeTenureAnalysis(BaseModel):
     """Schema for employee tenure analysis."""
-    
+
     employee_id: str
     hire_date: date
     tenure_days: int
@@ -874,7 +873,7 @@ class EmployeeTenureAnalysis(BaseModel):
 
 class LeaveBalanceSummary(BaseModel):
     """Schema for leave balance summary."""
-    
+
     employee_id: str
     as_of_date: date
     leave_balances: Dict[str, Dict[str, Any]]
@@ -882,7 +881,7 @@ class LeaveBalanceSummary(BaseModel):
 
 class PerformanceTrends(BaseModel):
     """Schema for performance trends analysis."""
-    
+
     employee_id: str
     trend_period_years: int
     total_reviews: int
@@ -893,7 +892,7 @@ class PerformanceTrends(BaseModel):
 
 class TrainingHistory(BaseModel):
     """Schema for employee training history."""
-    
+
     employee_id: str
     total_trainings: int
     completed_trainings: int
@@ -905,7 +904,7 @@ class TrainingHistory(BaseModel):
 
 class PayrollSummary(BaseModel):
     """Schema for payroll summary report."""
-    
+
     organization_id: str
     period: str
     total_employees_paid: int
@@ -919,7 +918,7 @@ class PayrollSummary(BaseModel):
 
 class OrgChartNode(BaseModel):
     """Schema for organizational chart node."""
-    
+
     id: str
     name: str
     title: str
@@ -930,7 +929,7 @@ class OrgChartNode(BaseModel):
 
 class HRDashboardMetrics(BaseModel):
     """Schema for HR dashboard metrics."""
-    
+
     organization_id: str
     as_of_date: date
     current_active_employees: int
@@ -951,7 +950,7 @@ class HRDashboardMetrics(BaseModel):
 
 class TerminateEmployeeRequest(BaseModel):
     """Schema for employee termination."""
-    
+
     employee_id: str
     termination_date: date
     termination_reason: str
@@ -959,14 +958,14 @@ class TerminateEmployeeRequest(BaseModel):
 
 class ApproveLeaveRequest(BaseModel):
     """Schema for approving leave request."""
-    
+
     leave_request_id: str
     approval_notes: Optional[str] = None
 
 
 class PayrollCalculationRequest(BaseModel):
     """Schema for payroll calculation."""
-    
+
     employee_id: str
     pay_period_start: date
     pay_period_end: date
@@ -976,7 +975,7 @@ class PayrollCalculationRequest(BaseModel):
 
 class CompleteTrainingRequest(BaseModel):
     """Schema for completing training."""
-    
+
     training_id: str
     assessment_score: Optional[Decimal] = None
     certificate_number: Optional[str] = None
@@ -989,7 +988,7 @@ class CompleteTrainingRequest(BaseModel):
 
 class PerformanceReviewCycleRequest(BaseModel):
     """Schema for creating performance review cycle."""
-    
+
     organization_id: str
     review_period_start: date
     review_period_end: date

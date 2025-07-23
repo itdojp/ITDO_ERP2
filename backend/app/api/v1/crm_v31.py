@@ -3,7 +3,7 @@ CRM API v31.0 - Customer Relationship Management API
 
 Comprehensive CRM system with 10 core endpoints:
 1. Customer Management
-2. Contact Management  
+2. Contact Management
 3. Lead Management
 4. Opportunity Management
 5. Activity Tracking
@@ -14,67 +14,58 @@ Comprehensive CRM system with 10 core endpoints:
 10. Sales Pipeline Management
 """
 
-from datetime import datetime, date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.crud import crm_v31
 from app.schemas.crm_v31 import (
-    # Customer schemas
-    CustomerCreate,
-    CustomerResponse, 
-    CustomerUpdate,
-    CustomerFilterRequest,
-    CustomerHealthScore,
-    
-    # Contact schemas
-    ContactCreate,
-    ContactResponse,
-    ContactUpdate,
-    
-    # Lead schemas
-    LeadCreate,
-    LeadResponse,
-    LeadUpdate,
-    LeadFilterRequest,
-    LeadConversionAnalysis,
-    ConvertLeadRequest,
-    AssignLeadRequest,
-    
-    # Opportunity schemas
-    OpportunityCreate,
-    OpportunityResponse,
-    OpportunityUpdate,
-    OpportunityFilterRequest,
-    UpdateOpportunityStageRequest,
-    SalesForecast,
-    
     # Activity schemas
     ActivityCreate,
+    ActivityFilterRequest,
     ActivityResponse,
     ActivityUpdate,
-    ActivityFilterRequest,
-    
+    AssignLeadRequest,
+    BulkEmailCampaignRequest,
     # Campaign schemas
     CampaignCreate,
     CampaignResponse,
     CampaignUpdate,
-    BulkEmailCampaignRequest,
-    
+    # Contact schemas
+    ContactCreate,
+    ContactResponse,
+    ContactUpdate,
+    ConvertLeadRequest,
+    # Analytics schemas
+    CRMDashboardMetrics,
+    # Customer schemas
+    CustomerCreate,
+    CustomerFilterRequest,
+    CustomerHealthScore,
+    CustomerResponse,
+    CustomerUpdate,
+    EscalateTicketRequest,
+    LeadConversionAnalysis,
+    # Lead schemas
+    LeadCreate,
+    LeadFilterRequest,
+    LeadResponse,
+    LeadUpdate,
+    # Opportunity schemas
+    OpportunityCreate,
+    OpportunityFilterRequest,
+    OpportunityResponse,
+    OpportunityUpdate,
+    SalesForecast,
     # Support ticket schemas
     SupportTicketCreate,
     SupportTicketResponse,
     SupportTicketUpdate,
-    EscalateTicketRequest,
-    
-    # Analytics schemas
-    CRMDashboardMetrics,
+    UpdateOpportunityStageRequest,
 )
 
 router = APIRouter()
@@ -92,7 +83,7 @@ async def create_customer(
 ) -> CustomerResponse:
     """
     Create a new customer in the CRM system.
-    
+
     Features:
     - Comprehensive customer profile creation
     - Automatic customer code generation
@@ -104,10 +95,10 @@ async def create_customer(
         # Generate unique customer code if not provided
         if not customer.customer_code:
             customer.customer_code = f"CUST-{uuid4().hex[:8].upper()}"
-            
+
         created_customer = await crm_service.create_customer(db, customer)
         return created_customer
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -130,7 +121,7 @@ async def list_customers(
 ) -> List[CustomerResponse]:
     """
     List customers with advanced filtering and search capabilities.
-    
+
     Features:
     - Multi-criteria filtering
     - Full-text search across customer data
@@ -147,7 +138,7 @@ async def list_customers(
         is_prospect=is_prospect,
         search_text=search_text
     )
-    
+
     customers = await crm_service.get_customers(db, filter_request, skip, limit)
     return customers
 
@@ -175,7 +166,7 @@ async def update_customer(
 ) -> CustomerResponse:
     """
     Update customer information with comprehensive profile management.
-    
+
     Features:
     - Partial updates support
     - Customer lifecycle tracking
@@ -198,7 +189,7 @@ async def get_customer_health_score(
 ) -> CustomerHealthScore:
     """
     Calculate and return comprehensive customer health score.
-    
+
     Features:
     - Multi-factor health analysis
     - Engagement scoring
@@ -226,7 +217,7 @@ async def create_contact(
 ) -> ContactResponse:
     """
     Create a new contact for a customer.
-    
+
     Features:
     - Comprehensive contact profile
     - Relationship hierarchy management
@@ -237,7 +228,7 @@ async def create_contact(
     try:
         created_contact = await crm_service.create_contact(db, contact)
         return created_contact
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -258,7 +249,7 @@ async def list_contacts(
 ) -> List[ContactResponse]:
     """List contacts with filtering by customer, type, and decision-making authority."""
     contacts = await crm_service.get_contacts(
-        db, customer_id, organization_id, contact_type, 
+        db, customer_id, organization_id, contact_type,
         is_decision_maker, is_active, skip, limit
     )
     return contacts
@@ -306,7 +297,7 @@ async def create_lead(
 ) -> LeadResponse:
     """
     Create a new lead in the CRM system.
-    
+
     Features:
     - Automatic lead scoring
     - Source tracking and attribution
@@ -318,10 +309,10 @@ async def create_lead(
         # Generate unique lead number if not provided
         if not lead.lead_number:
             lead.lead_number = f"LEAD-{uuid4().hex[:8].upper()}"
-            
+
         created_lead = await crm_service.create_lead(db, lead)
         return created_lead
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -345,7 +336,7 @@ async def list_leads(
 ) -> List[LeadResponse]:
     """
     List leads with comprehensive filtering and search capabilities.
-    
+
     Features:
     - Multi-criteria filtering
     - Lead score filtering
@@ -363,7 +354,7 @@ async def list_leads(
         campaign_id=campaign_id,
         search_text=search_text
     )
-    
+
     leads = await crm_service.get_leads(db, filter_request, skip, limit)
     return leads
 
@@ -391,7 +382,7 @@ async def update_lead(
 ) -> LeadResponse:
     """
     Update lead information with automatic scoring recalculation.
-    
+
     Features:
     - Dynamic lead scoring updates
     - Qualification status tracking
@@ -415,7 +406,7 @@ async def convert_lead(
 ) -> LeadConversionAnalysis:
     """
     Convert lead to customer and opportunity.
-    
+
     Features:
     - Automatic customer creation
     - Opportunity generation
@@ -428,7 +419,7 @@ async def convert_lead(
             db, lead_id, conversion_request.customer_data
         )
         return conversion_result
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -448,7 +439,7 @@ async def assign_lead(
             db, lead_id, assignment_request.assigned_to_id, assignment_request.notes
         )
         return assigned_lead
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -467,7 +458,7 @@ async def create_opportunity(
 ) -> OpportunityResponse:
     """
     Create a new sales opportunity.
-    
+
     Features:
     - Pipeline stage management
     - Revenue forecasting
@@ -479,10 +470,10 @@ async def create_opportunity(
         # Generate unique opportunity number if not provided
         if not opportunity.opportunity_number:
             opportunity.opportunity_number = f"OPP-{uuid4().hex[:8].upper()}"
-            
+
         created_opportunity = await crm_service.create_opportunity(db, opportunity)
         return created_opportunity
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -507,7 +498,7 @@ async def list_opportunities(
 ) -> List[OpportunityResponse]:
     """
     List opportunities with comprehensive filtering for pipeline management.
-    
+
     Features:
     - Stage-based filtering
     - Amount range filtering
@@ -526,7 +517,7 @@ async def list_opportunities(
         expected_close_date_from=expected_close_date_from,
         expected_close_date_to=expected_close_date_to
     )
-    
+
     opportunities = await crm_service.get_opportunities(db, filter_request, skip, limit)
     return opportunities
 
@@ -554,7 +545,7 @@ async def update_opportunity(
 ) -> OpportunityResponse:
     """
     Update opportunity with automatic pipeline management.
-    
+
     Features:
     - Stage progression tracking
     - Probability adjustments
@@ -579,7 +570,7 @@ async def update_opportunity_stage(
 ) -> OpportunityResponse:
     """
     Update opportunity stage with automatic pipeline management.
-    
+
     Features:
     - Stage progression validation
     - Automatic probability updates
@@ -592,7 +583,7 @@ async def update_opportunity_stage(
             db, opportunity_id, stage_update.stage, stage_update.probability, stage_update.notes
         )
         return updated_opportunity
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -608,7 +599,7 @@ async def get_sales_forecast(
 ) -> SalesForecast:
     """
     Generate sales forecast based on pipeline analysis.
-    
+
     Features:
     - Pipeline value analysis
     - Weighted forecasting
@@ -631,7 +622,7 @@ async def create_activity(
 ) -> ActivityResponse:
     """
     Create a new CRM activity for tracking customer interactions.
-    
+
     Features:
     - Multi-entity relationship tracking
     - Communication channel tracking
@@ -642,7 +633,7 @@ async def create_activity(
     try:
         created_activity = await crm_service.create_activity(db, activity)
         return created_activity
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -667,7 +658,7 @@ async def list_activities(
 ) -> List[ActivityResponse]:
     """
     List activities with comprehensive filtering for activity management.
-    
+
     Features:
     - Multi-entity filtering
     - Activity type filtering
@@ -686,7 +677,7 @@ async def list_activities(
         date_from=date_from,
         date_to=date_to
     )
-    
+
     activities = await crm_service.get_activities(db, filter_request, skip, limit)
     return activities
 
@@ -714,7 +705,7 @@ async def update_activity(
 ) -> ActivityResponse:
     """
     Update activity with outcome tracking and follow-up management.
-    
+
     Features:
     - Completion tracking
     - Outcome recording
@@ -742,7 +733,7 @@ async def create_campaign(
 ) -> CampaignResponse:
     """
     Create a new marketing campaign.
-    
+
     Features:
     - Multi-channel campaign setup
     - Target audience configuration
@@ -754,10 +745,10 @@ async def create_campaign(
         # Generate unique campaign code if not provided
         if not campaign.campaign_code:
             campaign.campaign_code = f"CAMP-{uuid4().hex[:8].upper()}"
-            
+
         created_campaign = await crm_service.create_campaign(db, campaign)
         return created_campaign
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -805,7 +796,7 @@ async def update_campaign(
 ) -> CampaignResponse:
     """
     Update campaign with performance tracking and ROI calculation.
-    
+
     Features:
     - Real-time performance updates
     - ROI calculation
@@ -830,7 +821,7 @@ async def send_bulk_email_campaign(
 ) -> Dict[str, Any]:
     """
     Execute bulk email campaign with tracking.
-    
+
     Features:
     - Bulk email sending
     - Recipient list management
@@ -840,11 +831,11 @@ async def send_bulk_email_campaign(
     """
     try:
         result = await crm_service.send_bulk_email_campaign(
-            db, campaign_id, email_request.recipient_list, 
+            db, campaign_id, email_request.recipient_list,
             email_request.email_template_id, email_request.send_date
         )
         return result
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -863,7 +854,7 @@ async def create_support_ticket(
 ) -> SupportTicketResponse:
     """
     Create a new customer support ticket.
-    
+
     Features:
     - Automatic ticket numbering
     - Priority assessment
@@ -875,10 +866,10 @@ async def create_support_ticket(
         # Generate unique ticket number if not provided
         if not ticket.ticket_number:
             ticket.ticket_number = f"TICK-{uuid4().hex[:8].upper()}"
-            
+
         created_ticket = await crm_service.create_support_ticket(db, ticket)
         return created_ticket
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -901,7 +892,7 @@ async def list_support_tickets(
 ) -> List[SupportTicketResponse]:
     """List support tickets with comprehensive filtering for support management."""
     tickets = await crm_service.get_support_tickets(
-        db, customer_id, assigned_to_id, status, priority, 
+        db, customer_id, assigned_to_id, status, priority,
         category, is_escalated, sla_breached, skip, limit
     )
     return tickets
@@ -930,7 +921,7 @@ async def update_support_ticket(
 ) -> SupportTicketResponse:
     """
     Update support ticket with SLA tracking and resolution management.
-    
+
     Features:
     - Status progression tracking
     - Resolution time calculation
@@ -955,7 +946,7 @@ async def escalate_support_ticket(
 ) -> SupportTicketResponse:
     """
     Escalate support ticket to higher level support.
-    
+
     Features:
     - Escalation workflow
     - Assignment transfer
@@ -968,7 +959,7 @@ async def escalate_support_ticket(
             db, ticket_id, escalation_request.escalated_to_id, escalation_request.escalation_reason
         )
         return escalated_ticket
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -989,7 +980,7 @@ async def get_crm_dashboard_metrics(
 ) -> CRMDashboardMetrics:
     """
     Get comprehensive CRM dashboard metrics for specified period.
-    
+
     Features:
     - Lead conversion metrics
     - Opportunity win rates
@@ -1014,7 +1005,7 @@ async def get_pipeline_analytics(
 ) -> Dict[str, Any]:
     """
     Get detailed sales pipeline analytics and insights.
-    
+
     Features:
     - Pipeline value by stage
     - Velocity analysis
@@ -1039,7 +1030,7 @@ async def get_sales_performance_analytics(
 ) -> Dict[str, Any]:
     """
     Get sales performance analytics for teams or individuals.
-    
+
     Features:
     - Quota attainment
     - Activity metrics
@@ -1063,7 +1054,7 @@ async def get_customer_insights(
 ) -> Dict[str, Any]:
     """
     Get comprehensive customer insights and behavior analysis.
-    
+
     Features:
     - Customer lifetime value analysis
     - Churn prediction
@@ -1093,7 +1084,7 @@ async def get_lead_conversion_analytics(
 ) -> Dict[str, Any]:
     """
     Get detailed lead conversion analytics and funnel analysis.
-    
+
     Features:
     - Conversion funnel analysis
     - Source performance comparison
@@ -1115,7 +1106,7 @@ async def get_lead_conversion_probability(
 ) -> Dict[str, Any]:
     """
     Calculate lead conversion probability using machine learning models.
-    
+
     Features:
     - AI-powered conversion prediction
     - Factor analysis
@@ -1145,7 +1136,7 @@ async def get_pipeline_overview(
 ) -> Dict[str, Any]:
     """
     Get comprehensive sales pipeline overview and management dashboard.
-    
+
     Features:
     - Pipeline value by stage
     - Deal progression tracking
@@ -1169,7 +1160,7 @@ async def get_pipeline_velocity_analysis(
 ) -> Dict[str, Any]:
     """
     Get pipeline velocity analysis for sales process optimization.
-    
+
     Features:
     - Average time in each stage
     - Velocity trends over time
@@ -1192,7 +1183,7 @@ async def get_forecast_accuracy_analysis(
 ) -> Dict[str, Any]:
     """
     Analyze forecast accuracy and prediction reliability.
-    
+
     Features:
     - Historical forecast vs. actual comparison
     - Accuracy by time period
@@ -1214,7 +1205,7 @@ async def bulk_update_pipeline(
 ) -> Dict[str, Any]:
     """
     Perform bulk updates on multiple opportunities in the pipeline.
-    
+
     Features:
     - Bulk stage updates
     - Bulk probability adjustments
@@ -1226,7 +1217,7 @@ async def bulk_update_pipeline(
     try:
         result = await crm_service.bulk_update_opportunities(db, updates)
         return result
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -1244,7 +1235,7 @@ async def crm_health_check(
 ) -> Dict[str, Any]:
     """
     CRM system health check and status information.
-    
+
     Features:
     - Database connectivity
     - Service availability
@@ -1255,7 +1246,7 @@ async def crm_health_check(
     try:
         health_status = await crm_service.get_system_health(db)
         return health_status
-        
+
     except Exception as e:
         return {
             "status": "unhealthy",

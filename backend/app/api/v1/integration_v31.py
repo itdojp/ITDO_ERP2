@@ -14,7 +14,7 @@ Comprehensive integration API with:
 - Integration Analytics & Performance Tracking
 """
 
-from datetime import datetime, date
+from datetime import date
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -23,53 +23,45 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.crud.integration_v31 import integration_service
 from app.schemas.integration_v31 import (
-    # External System schemas
-    ExternalSystemCreateRequest,
-    ExternalSystemUpdateRequest,
-    ExternalSystemResponse,
-    ExternalSystemListResponse,
-    SystemConnectionTestRequest,
-    
-    # Connector schemas
-    IntegrationConnectorCreateRequest,
-    IntegrationConnectorResponse,
-    ConnectorListResponse,
+    # Bulk operations
+    BulkConnectorExecutionRequest,
+    BulkExecutionResponse,
     ConnectorExecutionRequest,
-    
+    ConnectorListResponse,
     # Data Mapping schemas
     DataMappingCreateRequest,
     DataMappingResponse,
-    MappingListResponse,
-    
     # Transformation schemas
     DataTransformationCreateRequest,
     DataTransformationResponse,
-    TransformationListResponse,
-    TransformationExecutionRequest,
-    
+    ExecutionListResponse,
+    # External System schemas
+    ExternalSystemCreateRequest,
+    ExternalSystemListResponse,
+    ExternalSystemResponse,
+    ExternalSystemUpdateRequest,
+    IntegrationAnalyticsRequest,
+    IntegrationAnalyticsResponse,
+    # Connector schemas
+    IntegrationConnectorCreateRequest,
+    IntegrationConnectorResponse,
     # Execution schemas
     IntegrationExecutionResponse,
-    ExecutionListResponse,
-    
+    # Analytics schemas
+    IntegrationHealthResponse,
+    # Message Queue schemas
+    IntegrationMessageCreateRequest,
+    IntegrationMessageResponse,
+    MappingListResponse,
+    MessageListResponse,
+    SystemConnectionTestRequest,
+    TransformationExecutionRequest,
+    TransformationListResponse,
     # Webhook schemas
     WebhookEndpointCreateRequest,
     WebhookEndpointResponse,
     WebhookListResponse,
     WebhookRequestProcessing,
-    
-    # Message Queue schemas
-    IntegrationMessageCreateRequest,
-    IntegrationMessageResponse,
-    MessageListResponse,
-    
-    # Analytics schemas
-    IntegrationHealthResponse,
-    IntegrationAnalyticsRequest,
-    IntegrationAnalyticsResponse,
-    
-    # Bulk operations
-    BulkConnectorExecutionRequest,
-    BulkExecutionResponse,
 )
 
 router = APIRouter()
@@ -923,7 +915,7 @@ async def get_integration_logs(
     action_type: Optional[str] = Query(None, description="Filter by action type"),
     start_date: Optional[date] = Query(None, description="Filter by start date"),
     end_date: Optional[date] = Query(None, description="Filter by end date"),
-    page: int = Query(1, ge=1, description="Page number"),  
+    page: int = Query(1, ge=1, description="Page number"),
     per_page: int = Query(50, ge=1, le=500, description="Items per page"),
     db: Session = Depends(get_db)
 ):

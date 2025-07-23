@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 class Organization(SoftDeletableModel):
     """Organization model representing a company or business entity.
-    
+
     v17.0: Enhanced for ERP basic functionality with improved hierarchy
     support, business metrics, and multi-tenant capabilities.
     """
@@ -251,7 +251,7 @@ class Organization(SoftDeletableModel):
             path.insert(0, current.parent)
             current = current.parent
         return path
-    
+
     def get_erp_context(self) -> dict:
         """Get ERP-specific organization context - v17.0."""
         return {
@@ -274,21 +274,21 @@ class Organization(SoftDeletableModel):
             },
             "address": self.full_address
         }
-    
+
     def get_display_name(self) -> str:
         """Get display name for ERP UI."""
         if self.name_en:
             return f"{self.name} ({self.name_en})"
         return self.name
-    
+
     def can_be_deleted(self) -> tuple[bool, str]:
         """Check if organization can be safely deleted."""
         if self.subsidiaries:
             return False, "Cannot delete organization with subsidiaries"
-        
+
         if hasattr(self, 'departments') and self.departments.count() > 0:
             return False, "Cannot delete organization with departments"
-        
+
         # Would need to check for ERP data like orders, products, etc.
         # For now, basic validation
         return True, "OK"

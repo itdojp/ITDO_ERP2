@@ -14,28 +14,24 @@ Comprehensive tests for HR management system with 10 endpoints:
 10. HR Analytics
 """
 
-import json
-from datetime import date, datetime
+from datetime import date
 from decimal import Decimal
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
 
 from app.main import app
 from app.models.hr_extended import (
     Employee,
     EmployeeBenefit,
     EmployeeStatus,
-    EmploymentType,
     HRAnalytics,
     JobPosting,
     LeaveRequest,
     LeaveStatus,
     LeaveType,
     OnboardingRecord,
-    PayFrequency,
     PayrollRecord,
     PerformanceRating,
     PerformanceReview,
@@ -44,7 +40,6 @@ from app.models.hr_extended import (
     TrainingRecord,
     TrainingStatus,
 )
-from tests.conftest import TestingSessionLocal, engine
 
 client = TestClient(app)
 
@@ -168,14 +163,14 @@ def sample_onboarding_data():
 
 class TestEmployeeManagement:
     """Test Employee Management endpoint."""
-    
+
     def test_list_employees_success(self):
         """Test successful employee listing."""
         with patch('app.crud.hr_v31.get_employees') as mock_get:
             mock_get.return_value = []
-            
+
             response = client.get("/api/v1/hr/employees")
-            
+
             assert response.status_code == 200
             assert response.json() == []
             mock_get.assert_called_once()
@@ -184,9 +179,9 @@ class TestEmployeeManagement:
         """Test employee listing with filters."""
         with patch('app.crud.hr_v31.get_employees') as mock_get:
             mock_get.return_value = []
-            
+
             response = client.get("/api/v1/hr/employees?organization_id=org_123&department_id=dept_123")
-            
+
             assert response.status_code == 200
             mock_get.assert_called_once_with(
                 mock.ANY,
@@ -200,9 +195,9 @@ class TestEmployeeManagement:
         with patch('app.crud.hr_v31.create_employee') as mock_create:
             mock_employee = Employee(id="emp_123", **sample_employee_data)
             mock_create.return_value = mock_employee
-            
+
             response = client.post("/api/v1/hr/employees", json=sample_employee_data)
-            
+
             assert response.status_code == 200
             assert "emp_123" in str(response.json())
             mock_create.assert_called_once()
@@ -210,9 +205,9 @@ class TestEmployeeManagement:
     def test_create_employee_validation_error(self):
         """Test employee creation with validation error."""
         invalid_data = {"first_name": "John"}  # Missing required fields
-        
+
         response = client.post("/api/v1/hr/employees", json=invalid_data)
-        
+
         assert response.status_code == 422  # Validation error
 
     def test_get_employee_success(self):
@@ -220,9 +215,9 @@ class TestEmployeeManagement:
         with patch('app.crud.hr_v31.get_employee') as mock_get:
             mock_employee = Employee(id="emp_123", first_name="John", last_name="Doe")
             mock_get.return_value = mock_employee
-            
+
             response = client.get("/api/v1/hr/employees/emp_123")
-            
+
             assert response.status_code == 200
             mock_get.assert_called_once_with(mock.ANY, "emp_123")
 
@@ -230,9 +225,9 @@ class TestEmployeeManagement:
         """Test employee retrieval when not found."""
         with patch('app.crud.hr_v31.get_employee') as mock_get:
             mock_get.return_value = None
-            
+
             response = client.get("/api/v1/hr/employees/nonexistent")
-            
+
             assert response.status_code == 404
             assert "Employee not found" in response.json()["detail"]
 
@@ -241,10 +236,10 @@ class TestEmployeeManagement:
         with patch('app.crud.hr_v31.update_employee') as mock_update:
             mock_employee = Employee(id="emp_123", **sample_employee_data)
             mock_update.return_value = mock_employee
-            
+
             update_data = {"job_title": "Senior Software Engineer"}
             response = client.put("/api/v1/hr/employees/emp_123", json=update_data)
-            
+
             assert response.status_code == 200
             mock_update.assert_called_once()
 
@@ -253,14 +248,14 @@ class TestEmployeeManagement:
         with patch('app.crud.hr_v31.terminate_employee') as mock_terminate:
             mock_employee = Employee(id="emp_123", employee_status=EmployeeStatus.TERMINATED)
             mock_terminate.return_value = mock_employee
-            
+
             termination_data = {
                 "employee_id": "emp_123",
                 "termination_date": "2024-01-31",
                 "termination_reason": "Resignation"
             }
             response = client.post("/api/v1/hr/employees/emp_123/terminate", json=termination_data)
-            
+
             assert response.status_code == 200
             mock_terminate.assert_called_once()
 
@@ -270,14 +265,14 @@ class TestEmployeeManagement:
 
 class TestPayrollProcessing:
     """Test Payroll Processing endpoint."""
-    
+
     def test_list_payroll_records_success(self):
         """Test successful payroll records listing."""
         with patch('app.crud.hr_v31.get_payroll_records') as mock_get:
             mock_get.return_value = []
-            
+
             response = client.get("/api/v1/hr/payroll")
-            
+
             assert response.status_code == 200
             assert response.json() == []
             mock_get.assert_called_once()
@@ -287,9 +282,9 @@ class TestPayrollProcessing:
         with patch('app.crud.hr_v31.create_payroll_record') as mock_create:
             mock_record = PayrollRecord(id="pay_123", **sample_payroll_data)
             mock_create.return_value = mock_record
-            
+
             response = client.post("/api/v1/hr/payroll", json=sample_payroll_data)
-            
+
             assert response.status_code == 200
             mock_create.assert_called_once()
 
@@ -298,7 +293,7 @@ class TestPayrollProcessing:
         with patch('app.crud.hr_v31.calculate_payroll') as mock_calculate:
             mock_record = PayrollRecord(id="pay_123", gross_pay=Decimal("4000.00"))
             mock_calculate.return_value = mock_record
-            
+
             calculation_data = {
                 "employee_id": "emp_123",
                 "pay_period_start": "2024-01-01",
@@ -306,7 +301,7 @@ class TestPayrollProcessing:
                 "regular_hours": 160
             }
             response = client.post("/api/v1/hr/payroll/calculate", json=calculation_data)
-            
+
             assert response.status_code == 200
             mock_calculate.assert_called_once()
 
@@ -315,9 +310,9 @@ class TestPayrollProcessing:
         with patch('app.crud.hr_v31.get_payroll_record') as mock_get:
             mock_record = PayrollRecord(id="pay_123", gross_pay=Decimal("4000.00"))
             mock_get.return_value = mock_record
-            
+
             response = client.get("/api/v1/hr/payroll/pay_123")
-            
+
             assert response.status_code == 200
             mock_get.assert_called_once_with(mock.ANY, "pay_123")
 
@@ -326,10 +321,10 @@ class TestPayrollProcessing:
         with patch('app.crud.hr_v31.update_payroll_record') as mock_update:
             mock_record = PayrollRecord(id="pay_123", **sample_payroll_data)
             mock_update.return_value = mock_record
-            
+
             update_data = {"bonus": 500.00}
             response = client.put("/api/v1/hr/payroll/pay_123", json=update_data)
-            
+
             assert response.status_code == 200
             mock_update.assert_called_once()
 
@@ -339,14 +334,14 @@ class TestPayrollProcessing:
 
 class TestLeaveManagement:
     """Test Leave Management endpoint."""
-    
+
     def test_list_leave_requests_success(self):
         """Test successful leave requests listing."""
         with patch('app.crud.hr_v31.get_leave_requests') as mock_get:
             mock_get.return_value = []
-            
+
             response = client.get("/api/v1/hr/leave-requests")
-            
+
             assert response.status_code == 200
             assert response.json() == []
             mock_get.assert_called_once()
@@ -356,9 +351,9 @@ class TestLeaveManagement:
         with patch('app.crud.hr_v31.create_leave_request') as mock_create:
             mock_request = LeaveRequest(id="leave_123", **sample_leave_request_data)
             mock_create.return_value = mock_request
-            
+
             response = client.post("/api/v1/hr/leave-requests", json=sample_leave_request_data)
-            
+
             assert response.status_code == 200
             mock_create.assert_called_once()
 
@@ -367,9 +362,9 @@ class TestLeaveManagement:
         with patch('app.crud.hr_v31.get_leave_request') as mock_get:
             mock_request = LeaveRequest(id="leave_123", leave_type=LeaveType.ANNUAL)
             mock_get.return_value = mock_request
-            
+
             response = client.get("/api/v1/hr/leave-requests/leave_123")
-            
+
             assert response.status_code == 200
             mock_get.assert_called_once_with(mock.ANY, "leave_123")
 
@@ -378,10 +373,10 @@ class TestLeaveManagement:
         with patch('app.crud.hr_v31.update_leave_request') as mock_update:
             mock_request = LeaveRequest(id="leave_123", status=LeaveStatus.APPROVED)
             mock_update.return_value = mock_request
-            
+
             update_data = {"return_date": "2024-03-06"}
             response = client.put("/api/v1/hr/leave-requests/leave_123", json=update_data)
-            
+
             assert response.status_code == 200
             mock_update.assert_called_once()
 
@@ -390,13 +385,13 @@ class TestLeaveManagement:
         with patch('app.crud.hr_v31.approve_leave_request') as mock_approve:
             mock_request = LeaveRequest(id="leave_123", status=LeaveStatus.APPROVED)
             mock_approve.return_value = mock_request
-            
+
             approval_data = {
                 "leave_request_id": "leave_123",
                 "approval_notes": "Approved by manager"
             }
             response = client.post("/api/v1/hr/leave-requests/leave_123/approve", json=approval_data)
-            
+
             assert response.status_code == 200
             mock_approve.assert_called_once()
 
@@ -406,14 +401,14 @@ class TestLeaveManagement:
 
 class TestPerformanceReviews:
     """Test Performance Reviews endpoint."""
-    
+
     def test_list_performance_reviews_success(self):
         """Test successful performance reviews listing."""
         with patch('app.crud.hr_v31.get_performance_reviews') as mock_get:
             mock_get.return_value = []
-            
+
             response = client.get("/api/v1/hr/performance-reviews")
-            
+
             assert response.status_code == 200
             assert response.json() == []
             mock_get.assert_called_once()
@@ -423,9 +418,9 @@ class TestPerformanceReviews:
         with patch('app.crud.hr_v31.create_performance_review') as mock_create:
             mock_review = PerformanceReview(id="review_123", **sample_performance_review_data)
             mock_create.return_value = mock_review
-            
+
             response = client.post("/api/v1/hr/performance-reviews", json=sample_performance_review_data)
-            
+
             assert response.status_code == 200
             mock_create.assert_called_once()
 
@@ -436,9 +431,9 @@ class TestPerformanceReviews:
             "review_period_start": "2024-01-01",
             "review_period_end": "2024-12-31"
         }
-        
+
         response = client.post("/api/v1/hr/performance-reviews/cycle", json=cycle_data)
-        
+
         assert response.status_code == 200
         assert "Performance review cycle created" in response.json()["message"]
 
@@ -447,9 +442,9 @@ class TestPerformanceReviews:
         with patch('app.crud.hr_v31.get_performance_review') as mock_get:
             mock_review = PerformanceReview(id="review_123", overall_rating=PerformanceRating.MEETS_EXPECTATIONS)
             mock_get.return_value = mock_review
-            
+
             response = client.get("/api/v1/hr/performance-reviews/review_123")
-            
+
             assert response.status_code == 200
             mock_get.assert_called_once_with(mock.ANY, "review_123")
 
@@ -458,10 +453,10 @@ class TestPerformanceReviews:
         with patch('app.crud.hr_v31.update_performance_review') as mock_update:
             mock_review = PerformanceReview(id="review_123", status="completed")
             mock_update.return_value = mock_review
-            
+
             update_data = {"overall_rating": "exceeds_expectations"}
             response = client.put("/api/v1/hr/performance-reviews/review_123", json=update_data)
-            
+
             assert response.status_code == 200
             mock_update.assert_called_once()
 
@@ -471,14 +466,14 @@ class TestPerformanceReviews:
 
 class TestTrainingManagement:
     """Test Training Management endpoint."""
-    
+
     def test_list_training_records_success(self):
         """Test successful training records listing."""
         with patch('app.crud.hr_v31.get_training_records') as mock_get:
             mock_get.return_value = []
-            
+
             response = client.get("/api/v1/hr/training")
-            
+
             assert response.status_code == 200
             assert response.json() == []
             mock_get.assert_called_once()
@@ -488,9 +483,9 @@ class TestTrainingManagement:
         with patch('app.crud.hr_v31.create_training_record') as mock_create:
             mock_record = TrainingRecord(id="training_123", **sample_training_data)
             mock_create.return_value = mock_record
-            
+
             response = client.post("/api/v1/hr/training", json=sample_training_data)
-            
+
             assert response.status_code == 200
             mock_create.assert_called_once()
 
@@ -499,9 +494,9 @@ class TestTrainingManagement:
         with patch('app.crud.hr_v31.get_training_record') as mock_get:
             mock_record = TrainingRecord(id="training_123", status=TrainingStatus.COMPLETED)
             mock_get.return_value = mock_record
-            
+
             response = client.get("/api/v1/hr/training/training_123")
-            
+
             assert response.status_code == 200
             mock_get.assert_called_once_with(mock.ANY, "training_123")
 
@@ -510,10 +505,10 @@ class TestTrainingManagement:
         with patch('app.crud.hr_v31.update_training_record') as mock_update:
             mock_record = TrainingRecord(id="training_123", status=TrainingStatus.IN_PROGRESS)
             mock_update.return_value = mock_record
-            
+
             update_data = {"completion_percentage": 50}
             response = client.put("/api/v1/hr/training/training_123", json=update_data)
-            
+
             assert response.status_code == 200
             mock_update.assert_called_once()
 
@@ -522,14 +517,14 @@ class TestTrainingManagement:
         with patch('app.crud.hr_v31.complete_employee_training') as mock_complete:
             mock_record = TrainingRecord(id="training_123", status=TrainingStatus.COMPLETED)
             mock_complete.return_value = mock_record
-            
+
             completion_data = {
                 "training_id": "training_123",
                 "assessment_score": 85,
                 "satisfaction_rating": 4
             }
             response = client.post("/api/v1/hr/training/training_123/complete", json=completion_data)
-            
+
             assert response.status_code == 200
             mock_complete.assert_called_once()
 
@@ -539,11 +534,11 @@ class TestTrainingManagement:
 
 class TestBenefitsAdministration:
     """Test Benefits Administration endpoint."""
-    
+
     def test_list_employee_benefits_success(self):
         """Test successful employee benefits listing."""
         response = client.get("/api/v1/hr/benefits")
-        
+
         assert response.status_code == 200
         assert response.json() == []
 
@@ -552,9 +547,9 @@ class TestBenefitsAdministration:
         with patch('app.crud.hr_v31.create_employee_benefit') as mock_create:
             mock_benefit = EmployeeBenefit(id="benefit_123", **sample_benefit_data)
             mock_create.return_value = mock_benefit
-            
+
             response = client.post("/api/v1/hr/benefits", json=sample_benefit_data)
-            
+
             assert response.status_code == 200
             mock_create.assert_called_once()
 
@@ -563,9 +558,9 @@ class TestBenefitsAdministration:
         with patch('app.crud.hr_v31.get_employee_benefit') as mock_get:
             mock_benefit = EmployeeBenefit(id="benefit_123", benefit_type="health")
             mock_get.return_value = mock_benefit
-            
+
             response = client.get("/api/v1/hr/benefits/benefit_123")
-            
+
             assert response.status_code == 200
             mock_get.assert_called_once_with(mock.ANY, "benefit_123")
 
@@ -574,10 +569,10 @@ class TestBenefitsAdministration:
         with patch('app.crud.hr_v31.update_employee_benefit') as mock_update:
             mock_benefit = EmployeeBenefit(id="benefit_123", is_active=False)
             mock_update.return_value = mock_benefit
-            
+
             update_data = {"is_active": False}
             response = client.put("/api/v1/hr/benefits/benefit_123", json=update_data)
-            
+
             assert response.status_code == 200
             mock_update.assert_called_once()
 
@@ -587,14 +582,14 @@ class TestBenefitsAdministration:
 
 class TestRecruitment:
     """Test Recruitment endpoint."""
-    
+
     def test_list_job_postings_success(self):
         """Test successful job postings listing."""
         with patch('app.crud.hr_v31.get_job_postings') as mock_get:
             mock_get.return_value = []
-            
+
             response = client.get("/api/v1/hr/job-postings")
-            
+
             assert response.status_code == 200
             assert response.json() == []
             mock_get.assert_called_once()
@@ -604,9 +599,9 @@ class TestRecruitment:
         with patch('app.crud.hr_v31.create_job_posting') as mock_create:
             mock_posting = JobPosting(id="posting_123", **sample_job_posting_data)
             mock_create.return_value = mock_posting
-            
+
             response = client.post("/api/v1/hr/job-postings", json=sample_job_posting_data)
-            
+
             assert response.status_code == 200
             mock_create.assert_called_once()
 
@@ -615,9 +610,9 @@ class TestRecruitment:
         with patch('app.crud.hr_v31.get_job_posting') as mock_get:
             mock_posting = JobPosting(id="posting_123", status=RecruitmentStatus.OPEN)
             mock_get.return_value = mock_posting
-            
+
             response = client.get("/api/v1/hr/job-postings/posting_123")
-            
+
             assert response.status_code == 200
             mock_get.assert_called_once_with(mock.ANY, "posting_123")
 
@@ -626,10 +621,10 @@ class TestRecruitment:
         with patch('app.crud.hr_v31.update_job_posting') as mock_update:
             mock_posting = JobPosting(id="posting_123", status=RecruitmentStatus.FILLED)
             mock_update.return_value = mock_posting
-            
+
             update_data = {"status": "filled"}
             response = client.put("/api/v1/hr/job-postings/posting_123", json=update_data)
-            
+
             assert response.status_code == 200
             mock_update.assert_called_once()
 
@@ -639,14 +634,14 @@ class TestRecruitment:
 
 class TestOnboarding:
     """Test Onboarding endpoint."""
-    
+
     def test_list_onboarding_records_success(self):
         """Test successful onboarding records listing."""
         with patch('app.crud.hr_v31.get_onboarding_records') as mock_get:
             mock_get.return_value = []
-            
+
             response = client.get("/api/v1/hr/onboarding")
-            
+
             assert response.status_code == 200
             assert response.json() == []
             mock_get.assert_called_once()
@@ -656,9 +651,9 @@ class TestOnboarding:
         with patch('app.crud.hr_v31.create_onboarding_record') as mock_create:
             mock_record = OnboardingRecord(id="onboarding_123", **sample_onboarding_data)
             mock_create.return_value = mock_record
-            
+
             response = client.post("/api/v1/hr/onboarding", json=sample_onboarding_data)
-            
+
             assert response.status_code == 200
             mock_create.assert_called_once()
 
@@ -667,9 +662,9 @@ class TestOnboarding:
         with patch('app.crud.hr_v31.get_onboarding_record') as mock_get:
             mock_record = OnboardingRecord(id="onboarding_123", status="in_progress")
             mock_get.return_value = mock_record
-            
+
             response = client.get("/api/v1/hr/onboarding/onboarding_123")
-            
+
             assert response.status_code == 200
             mock_get.assert_called_once_with(mock.ANY, "onboarding_123")
 
@@ -678,10 +673,10 @@ class TestOnboarding:
         with patch('app.crud.hr_v31.update_onboarding_record') as mock_update:
             mock_record = OnboardingRecord(id="onboarding_123", status="completed")
             mock_update.return_value = mock_record
-            
+
             update_data = {"status": "completed"}
             response = client.put("/api/v1/hr/onboarding/onboarding_123", json=update_data)
-            
+
             assert response.status_code == 200
             mock_update.assert_called_once()
 
@@ -691,14 +686,14 @@ class TestOnboarding:
 
 class TestPositionManagement:
     """Test Position Management endpoint."""
-    
+
     def test_list_positions_success(self):
         """Test successful positions listing."""
         with patch('app.crud.hr_v31.get_positions') as mock_get:
             mock_get.return_value = []
-            
+
             response = client.get("/api/v1/hr/positions")
-            
+
             assert response.status_code == 200
             assert response.json() == []
             mock_get.assert_called_once()
@@ -708,9 +703,9 @@ class TestPositionManagement:
         with patch('app.crud.hr_v31.create_position') as mock_create:
             mock_position = Position(id="pos_123", **sample_position_data)
             mock_create.return_value = mock_position
-            
+
             response = client.post("/api/v1/hr/positions", json=sample_position_data)
-            
+
             assert response.status_code == 200
             mock_create.assert_called_once()
 
@@ -719,9 +714,9 @@ class TestPositionManagement:
         with patch('app.crud.hr_v31.get_position') as mock_get:
             mock_position = Position(id="pos_123", is_active=True)
             mock_get.return_value = mock_position
-            
+
             response = client.get("/api/v1/hr/positions/pos_123")
-            
+
             assert response.status_code == 200
             mock_get.assert_called_once_with(mock.ANY, "pos_123")
 
@@ -730,10 +725,10 @@ class TestPositionManagement:
         with patch('app.crud.hr_v31.update_position') as mock_update:
             mock_position = Position(id="pos_123", is_active=False)
             mock_update.return_value = mock_position
-            
+
             update_data = {"is_active": False}
             response = client.put("/api/v1/hr/positions/pos_123", json=update_data)
-            
+
             assert response.status_code == 200
             mock_update.assert_called_once()
 
@@ -743,7 +738,7 @@ class TestPositionManagement:
 
 class TestHRAnalytics:
     """Test HR Analytics endpoint."""
-    
+
     def test_get_hr_analytics_success(self):
         """Test successful HR analytics retrieval."""
         with patch('app.crud.hr_v31.get_hr_analytics') as mock_get:
@@ -754,9 +749,9 @@ class TestHRAnalytics:
                 period_end=date(2024, 1, 31)
             )
             mock_get.return_value = mock_analytics
-            
+
             response = client.get("/api/v1/hr/analytics?organization_id=org_123&period_start=2024-01-01&period_end=2024-01-31")
-            
+
             assert response.status_code == 200
             mock_get.assert_called_once()
 
@@ -764,9 +759,9 @@ class TestHRAnalytics:
         """Test HR analytics retrieval when not found."""
         with patch('app.crud.hr_v31.get_hr_analytics') as mock_get:
             mock_get.return_value = None
-            
+
             response = client.get("/api/v1/hr/analytics?organization_id=org_123&period_start=2024-01-01&period_end=2024-01-31")
-            
+
             assert response.status_code == 404
             assert "Analytics data not found" in response.json()["detail"]
 
@@ -788,9 +783,9 @@ class TestHRAnalytics:
                 upcoming_performance_reviews=12
             )
             mock_get.return_value = mock_metrics
-            
+
             response = client.get("/api/v1/hr/dashboard?organization_id=org_123")
-            
+
             assert response.status_code == 200
             assert response.json()["current_active_employees"] == 100
             mock_get.assert_called_once()
@@ -798,14 +793,14 @@ class TestHRAnalytics:
     def test_get_employee_tenure_analysis_success(self):
         """Test successful employee tenure analysis."""
         response = client.get("/api/v1/hr/employees/emp_123/tenure")
-        
+
         assert response.status_code == 200
         assert response.json()["employee_id"] == "emp_123"
 
     def test_get_employee_leave_balance_success(self):
         """Test successful employee leave balance retrieval."""
         response = client.get("/api/v1/hr/employees/emp_123/leave-balance")
-        
+
         assert response.status_code == 200
         assert response.json()["employee_id"] == "emp_123"
         assert "leave_balances" in response.json()
@@ -813,7 +808,7 @@ class TestHRAnalytics:
     def test_get_payroll_summary_success(self):
         """Test successful payroll summary retrieval."""
         response = client.get("/api/v1/hr/payroll/summary?organization_id=org_123&period=2024-01")
-        
+
         assert response.status_code == 200
         assert response.json()["organization_id"] == "org_123"
         assert response.json()["period"] == "2024-01"
@@ -824,7 +819,7 @@ class TestHRAnalytics:
 
 class TestHRIntegration:
     """Test HR system integration scenarios."""
-    
+
     def test_employee_lifecycle_integration(self):
         """Test complete employee lifecycle integration."""
         # This would test creating employee, onboarding, payroll, performance reviews, etc.
@@ -847,30 +842,30 @@ class TestHRIntegration:
 
 class TestHRErrorHandling:
     """Test HR API error handling."""
-    
+
     def test_database_error_handling(self):
         """Test database error handling."""
         with patch('app.crud.hr_v31.get_employees') as mock_get:
             mock_get.side_effect = Exception("Database connection error")
-            
+
             response = client.get("/api/v1/hr/employees")
-            
+
             assert response.status_code == 500
             assert "Error retrieving employees" in response.json()["detail"]
 
     def test_validation_error_handling(self):
         """Test validation error handling."""
         invalid_data = {"employee_id": ""}  # Invalid empty ID
-        
+
         response = client.post("/api/v1/hr/payroll", json=invalid_data)
-        
+
         assert response.status_code == 422  # Validation error
 
     def test_business_logic_error_handling(self):
         """Test business logic error handling."""
         with patch('app.crud.hr_v31.create_employee') as mock_create:
             mock_create.side_effect = ValueError("Employee number already exists")
-            
+
             sample_data = {
                 "organization_id": "org_123",
                 "user_id": "user_123",
@@ -881,9 +876,9 @@ class TestHRErrorHandling:
                 "hire_date": "2024-01-01",
                 "job_title": "Software Engineer"
             }
-            
+
             response = client.post("/api/v1/hr/employees", json=sample_data)
-            
+
             assert response.status_code == 400
             assert "Employee number already exists" in response.json()["detail"]
 
@@ -893,7 +888,7 @@ class TestHRErrorHandling:
 
 class TestHRPerformance:
     """Test HR API performance scenarios."""
-    
+
     def test_large_employee_list_performance(self):
         """Test performance with large employee lists."""
         # This would test pagination, filtering with large datasets

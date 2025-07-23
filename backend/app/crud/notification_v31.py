@@ -15,29 +15,29 @@ Comprehensive CRUD operations for notification system including:
 """
 
 import uuid
-from datetime import datetime, date, timedelta
-from decimal import Decimal
-from typing import Any, Dict, List, Optional, Tuple
-from sqlalchemy import and_, desc, func, or_
+from datetime import date, datetime, timedelta
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy import desc, func
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.notification_extended import (
-    NotificationExtended,
-    NotificationTemplate,
-    NotificationDelivery,
-    NotificationPreference,
-    NotificationSubscription,
-    NotificationInteraction,
-    NotificationEvent,
-    NotificationRule,
-    NotificationQueue,
-    NotificationAnalytics,
-    NotificationType,
-    NotificationChannel,
-    NotificationStatus,
-    NotificationPriority,
-    SubscriptionStatus,
     DeliveryStatus,
+    NotificationAnalytics,
+    NotificationChannel,
+    NotificationDelivery,
+    NotificationEvent,
+    NotificationExtended,
+    NotificationInteraction,
+    NotificationPreference,
+    NotificationPriority,
+    NotificationQueue,
+    NotificationRule,
+    NotificationStatus,
+    NotificationSubscription,
+    NotificationTemplate,
+    NotificationType,
+    SubscriptionStatus,
 )
 
 
@@ -49,23 +49,23 @@ class NotificationService:
     # =============================================================================
 
     async def create_notification(
-        self, 
-        db: Session, 
+        self,
+        db: Session,
         notification_data: dict
     ) -> NotificationExtended:
         """Create a new notification with comprehensive content and targeting."""
-        
+
         # Generate unique notification number
         notification_number = f"NOTIF-{uuid.uuid4().hex[:8].upper()}"
-        
+
         # Process rich content if provided
         if "rich_content" not in notification_data:
             notification_data["rich_content"] = {}
-        
+
         # Set default channels if not provided
         if "channels" not in notification_data:
             notification_data["channels"] = ["in_app"]
-        
+
         # Create notification record
         notification = NotificationExtended(
             notification_number=notification_number,
@@ -111,17 +111,17 @@ class NotificationService:
             custom_fields=notification_data.get("custom_fields", {}),
             created_by=notification_data.get("created_by")
         )
-        
+
         db.add(notification)
         db.commit()
         db.refresh(notification)
-        
+
         # Queue for delivery if scheduled or immediate
         if notification.send_at and notification.send_at <= datetime.utcnow():
             await self._queue_notification(db, notification.id)
         elif not notification.send_at:
             await self._queue_notification(db, notification.id)
-        
+
         return notification
 
     async def get_notification_by_id(self, db: Session, notification_id: str) -> Optional[NotificationExtended]:
@@ -150,93 +150,93 @@ class NotificationService:
         limit: int = 100
     ) -> List[NotificationExtended]:
         """Get notifications with comprehensive filtering options."""
-        
+
         query = db.query(NotificationExtended).filter(
             NotificationExtended.organization_id == organization_id
         )
-        
+
         if recipient_user_id:
             query = query.filter(NotificationExtended.recipient_user_id == recipient_user_id)
-        
+
         if notification_type:
             query = query.filter(NotificationExtended.notification_type == notification_type)
-        
+
         if status:
             query = query.filter(NotificationExtended.status == status)
-        
+
         if priority:
             query = query.filter(NotificationExtended.priority == priority)
-        
+
         if channel:
             query = query.filter(NotificationExtended.channels.contains([channel.value]))
-        
+
         if category:
             query = query.filter(NotificationExtended.category == category)
-        
+
         if is_read is not None:
             query = query.filter(NotificationExtended.is_read == is_read)
-        
+
         if created_after:
             query = query.filter(NotificationExtended.created_at >= created_after)
-        
+
         if created_before:
             query = query.filter(NotificationExtended.created_at <= created_before)
-        
+
         return query.order_by(desc(NotificationExtended.created_at)).offset(skip).limit(limit).all()
 
     async def mark_notification_as_read(
-        self, 
-        db: Session, 
-        notification_id: str, 
+        self,
+        db: Session,
+        notification_id: str,
         user_id: str
     ) -> Optional[NotificationExtended]:
         """Mark notification as read and track interaction."""
-        
+
         notification = db.query(NotificationExtended).filter(
             NotificationExtended.id == notification_id
         ).first()
-        
+
         if not notification:
             return None
-        
+
         notification.is_read = True
         notification.read_at = datetime.utcnow()
         notification.view_count += 1
-        
+
         # Log interaction
         await self._log_notification_interaction(
-            db, notification_id, user_id, "read", 
+            db, notification_id, user_id, "read",
             {"channel": "in_app", "timestamp": datetime.utcnow().isoformat()}
         )
-        
+
         db.commit()
         db.refresh(notification)
-        
+
         return notification
 
     async def archive_notification(
-        self, 
-        db: Session, 
-        notification_id: str, 
+        self,
+        db: Session,
+        notification_id: str,
         user_id: str
     ) -> Optional[NotificationExtended]:
         """Archive notification for user."""
-        
+
         notification = db.query(NotificationExtended).filter(
             NotificationExtended.id == notification_id
         ).first()
-        
+
         if not notification:
             return None
-        
+
         notification.is_archived = True
         notification.archived_at = datetime.utcnow()
-        
+
         # Log interaction
         await self._log_notification_interaction(
             db, notification_id, user_id, "archive"
         )
-        
+
         db.commit()
         return notification
 
@@ -245,12 +245,12 @@ class NotificationService:
     # =============================================================================
 
     async def create_notification_template(
-        self, 
-        db: Session, 
+        self,
+        db: Session,
         template_data: dict
     ) -> NotificationTemplate:
         """Create a new notification template."""
-        
+
         template = NotificationTemplate(
             name=template_data["name"],
             code=template_data["code"],
@@ -280,11 +280,11 @@ class NotificationService:
             metadata=template_data.get("metadata", {}),
             created_by=template_data["created_by"]
         )
-        
+
         db.add(template)
         db.commit()
         db.refresh(template)
-        
+
         return template
 
     async def generate_notification_from_template(
@@ -295,14 +295,14 @@ class NotificationService:
         notification_data: dict
     ) -> NotificationExtended:
         """Generate notification from template with variable substitution."""
-        
+
         template = db.query(NotificationTemplate).filter(
             NotificationTemplate.id == template_id
         ).first()
-        
+
         if not template:
             raise ValueError("Template not found")
-        
+
         # Process template variables
         processed_title = self._process_template_variables(
             template.title_template or template.name, variables
@@ -315,7 +315,7 @@ class NotificationService:
             processed_html = self._process_template_variables(
                 template.html_template, variables
             )
-        
+
         # Create notification with processed content
         notification_data.update({
             "title": processed_title,
@@ -327,26 +327,26 @@ class NotificationService:
             "template_id": template_id,
             "template_variables": variables
         })
-        
+
         notification = await self.create_notification(db, notification_data)
-        
+
         # Update template usage statistics
         template.usage_count += 1
         template.last_used_at = datetime.utcnow()
         db.commit()
-        
+
         return notification
 
     def _process_template_variables(self, template_text: str, variables: Dict[str, Any]) -> str:
         """Process template variables in text."""
         if not template_text:
             return ""
-        
+
         result = template_text
         for key, value in variables.items():
             placeholder = f"{{{{{key}}}}}"
             result = result.replace(placeholder, str(value))
-        
+
         return result
 
     # =============================================================================
@@ -362,11 +362,11 @@ class NotificationService:
         delivery_data: Optional[dict] = None
     ) -> NotificationDelivery:
         """Create delivery record for notification channel."""
-        
+
         notification = await self.get_notification_by_id(db, notification_id)
         if not notification:
             raise ValueError("Notification not found")
-        
+
         delivery = NotificationDelivery(
             notification_id=notification_id,
             organization_id=notification.organization_id,
@@ -381,11 +381,11 @@ class NotificationService:
             provider=delivery_data.get("provider") if delivery_data else None,
             metadata=delivery_data.get("metadata", {}) if delivery_data else {}
         )
-        
+
         db.add(delivery)
         db.commit()
         db.refresh(delivery)
-        
+
         return delivery
 
     async def update_delivery_status(
@@ -396,17 +396,17 @@ class NotificationService:
         provider_data: Optional[dict] = None
     ) -> Optional[NotificationDelivery]:
         """Update delivery status with provider response."""
-        
+
         delivery = db.query(NotificationDelivery).filter(
             NotificationDelivery.id == delivery_id
         ).first()
-        
+
         if not delivery:
             return None
-        
+
         delivery.status = status
         delivery.updated_at = datetime.utcnow()
-        
+
         if status == DeliveryStatus.SENT:
             delivery.sent_at = datetime.utcnow()
         elif status == DeliveryStatus.DELIVERED:
@@ -414,7 +414,7 @@ class NotificationService:
         elif status == DeliveryStatus.FAILED:
             delivery.failed_at = datetime.utcnow()
             delivery.retry_count += 1
-        
+
         if provider_data:
             delivery.provider_message_id = provider_data.get("message_id")
             delivery.delivery_response = provider_data.get("response")
@@ -422,7 +422,7 @@ class NotificationService:
             delivery.error_message = provider_data.get("error_message")
             delivery.tracking_id = provider_data.get("tracking_id")
             delivery.delivery_cost = provider_data.get("cost")
-        
+
         db.commit()
         return delivery
 
@@ -431,22 +431,22 @@ class NotificationService:
     # =============================================================================
 
     async def get_user_notification_preferences(
-        self, 
-        db: Session, 
-        user_id: str, 
+        self,
+        db: Session,
+        user_id: str,
         organization_id: str
     ) -> Optional[NotificationPreference]:
         """Get user notification preferences."""
-        
+
         preferences = db.query(NotificationPreference).filter(
             NotificationPreference.user_id == user_id,
             NotificationPreference.organization_id == organization_id
         ).first()
-        
+
         # Create default preferences if none exist
         if not preferences:
             preferences = await self._create_default_preferences(db, user_id, organization_id)
-        
+
         return preferences
 
     async def update_user_notification_preferences(
@@ -457,28 +457,28 @@ class NotificationService:
         preferences_data: dict
     ) -> NotificationPreference:
         """Update user notification preferences."""
-        
+
         preferences = await self.get_user_notification_preferences(db, user_id, organization_id)
-        
+
         # Update preference fields
         for field, value in preferences_data.items():
             if hasattr(preferences, field):
                 setattr(preferences, field, value)
-        
+
         preferences.updated_at = datetime.utcnow()
         db.commit()
         db.refresh(preferences)
-        
+
         return preferences
 
     async def _create_default_preferences(
-        self, 
-        db: Session, 
-        user_id: str, 
+        self,
+        db: Session,
+        user_id: str,
         organization_id: str
     ) -> NotificationPreference:
         """Create default notification preferences for user."""
-        
+
         preferences = NotificationPreference(
             user_id=user_id,
             organization_id=organization_id,
@@ -503,11 +503,11 @@ class NotificationService:
             content_format="html",
             grouping_enabled=True
         )
-        
+
         db.add(preferences)
         db.commit()
         db.refresh(preferences)
-        
+
         return preferences
 
     # =============================================================================
@@ -520,7 +520,7 @@ class NotificationService:
         subscription_data: dict
     ) -> NotificationSubscription:
         """Create notification subscription for user."""
-        
+
         subscription = NotificationSubscription(
             user_id=subscription_data["user_id"],
             organization_id=subscription_data["organization_id"],
@@ -543,11 +543,11 @@ class NotificationService:
             expires_at=subscription_data.get("expires_at"),
             metadata=subscription_data.get("metadata", {})
         )
-        
+
         db.add(subscription)
         db.commit()
         db.refresh(subscription)
-        
+
         return subscription
 
     async def get_user_subscriptions(
@@ -558,15 +558,15 @@ class NotificationService:
         status: Optional[SubscriptionStatus] = None
     ) -> List[NotificationSubscription]:
         """Get user notification subscriptions."""
-        
+
         query = db.query(NotificationSubscription).filter(
             NotificationSubscription.user_id == user_id,
             NotificationSubscription.organization_id == organization_id
         )
-        
+
         if status:
             query = query.filter(NotificationSubscription.status == status)
-        
+
         return query.order_by(NotificationSubscription.created_at).all()
 
     async def unsubscribe_user(
@@ -576,18 +576,18 @@ class NotificationService:
         user_id: str
     ) -> bool:
         """Unsubscribe user from notification topic."""
-        
+
         subscription = db.query(NotificationSubscription).filter(
             NotificationSubscription.id == subscription_id,
             NotificationSubscription.user_id == user_id
         ).first()
-        
+
         if not subscription:
             return False
-        
+
         subscription.status = SubscriptionStatus.INACTIVE
         subscription.updated_at = datetime.utcnow()
-        
+
         db.commit()
         return True
 
@@ -601,7 +601,7 @@ class NotificationService:
         event_data: dict
     ) -> List[NotificationExtended]:
         """Process notification event and trigger rules."""
-        
+
         # Create event record
         event = NotificationEvent(
             organization_id=event_data["organization_id"],
@@ -616,56 +616,56 @@ class NotificationService:
             correlation_id=event_data.get("correlation_id"),
             event_timestamp=event_data.get("event_timestamp", datetime.utcnow())
         )
-        
+
         db.add(event)
         db.commit()
-        
+
         # Find matching notification rules
         matching_rules = await self._find_matching_rules(db, event)
-        
+
         # Generate notifications from rules
         generated_notifications = []
         for rule in matching_rules:
             notifications = await self._generate_notifications_from_rule(db, rule, event)
             generated_notifications.extend(notifications)
-        
+
         # Mark event as processed
         event.is_processed = True
         event.processed_at = datetime.utcnow()
         db.commit()
-        
+
         return generated_notifications
 
     async def _find_matching_rules(
-        self, 
-        db: Session, 
+        self,
+        db: Session,
         event: NotificationEvent
     ) -> List[NotificationRule]:
         """Find notification rules that match the event."""
-        
+
         rules = db.query(NotificationRule).filter(
             NotificationRule.organization_id == event.organization_id,
-            NotificationRule.is_active == True
+            NotificationRule.is_active
         ).all()
-        
+
         matching_rules = []
         for rule in rules:
             if self._rule_matches_event(rule, event):
                 matching_rules.append(rule)
-        
+
         return matching_rules
 
     def _rule_matches_event(self, rule: NotificationRule, event: NotificationEvent) -> bool:
         """Check if rule matches event criteria."""
-        
+
         # Check trigger events
         if rule.trigger_events and event.event_name not in rule.trigger_events:
             return False
-        
+
         # Check entity type filter
         if rule.filters.get("entity_type") and event.entity_type != rule.filters["entity_type"]:
             return False
-        
+
         # Add more sophisticated matching logic here
         return True
 
@@ -676,12 +676,12 @@ class NotificationService:
         event: NotificationEvent
     ) -> List[NotificationExtended]:
         """Generate notifications based on rule configuration."""
-        
+
         notifications = []
-        
+
         # Determine recipients based on rule
         recipients = await self._determine_rule_recipients(db, rule, event)
-        
+
         for recipient in recipients:
             # Create notification data
             notification_data = {
@@ -701,60 +701,60 @@ class NotificationService:
                 "source_entity_id": event.entity_id,
                 "context_data": event.event_data
             }
-            
+
             # Apply delay if configured
             if rule.delay_seconds:
                 notification_data["send_at"] = datetime.utcnow() + timedelta(seconds=rule.delay_seconds)
-            
+
             notification = await self.create_notification(db, notification_data)
             notifications.append(notification)
-        
+
         # Update rule execution statistics
         rule.execution_count += 1
         rule.last_executed_at = datetime.utcnow()
         if notifications:
             rule.success_count += len(notifications)
-        
+
         db.commit()
-        
+
         return notifications
 
     async def _determine_rule_recipients(
-        self, 
-        db: Session, 
-        rule: NotificationRule, 
+        self,
+        db: Session,
+        rule: NotificationRule,
         event: NotificationEvent
     ) -> List[Dict[str, Any]]:
         """Determine recipients for rule-based notification."""
-        
+
         recipients = []
-        
+
         # Add target users
         for user_id in rule.target_users:
             recipients.append({"user_id": user_id})
-        
+
         # Add users from target groups and roles
         # Implementation would query users by group/role membership
-        
+
         return recipients
 
     def _build_template_variables(
-        self, 
-        rule: NotificationRule, 
+        self,
+        rule: NotificationRule,
         event: NotificationEvent
     ) -> Dict[str, Any]:
         """Build template variables from rule and event data."""
-        
+
         variables = {}
-        
+
         # Add event data
         variables.update(event.event_data)
-        
+
         # Add rule-specific mappings
         for key, mapping in rule.variable_mappings.items():
             if mapping in event.event_data:
                 variables[key] = event.event_data[mapping]
-        
+
         # Add standard variables
         variables.update({
             "event_name": event.event_name,
@@ -762,7 +762,7 @@ class NotificationService:
             "event_timestamp": event.event_timestamp.isoformat(),
             "organization_id": event.organization_id
         })
-        
+
         return variables
 
     # =============================================================================
@@ -777,28 +777,28 @@ class NotificationService:
         period_end: date
     ) -> NotificationAnalytics:
         """Generate comprehensive notification analytics."""
-        
+
         # Basic notification metrics
         total_notifications = db.query(NotificationExtended).filter(
             NotificationExtended.organization_id == organization_id,
             NotificationExtended.created_at >= period_start,
             NotificationExtended.created_at <= period_end
         ).count()
-        
+
         notifications_sent = db.query(NotificationExtended).filter(
             NotificationExtended.organization_id == organization_id,
             NotificationExtended.status == NotificationStatus.SENT,
             NotificationExtended.sent_at >= period_start,
             NotificationExtended.sent_at <= period_end
         ).count()
-        
+
         notifications_read = db.query(NotificationExtended).filter(
             NotificationExtended.organization_id == organization_id,
-            NotificationExtended.is_read == True,
+            NotificationExtended.is_read,
             NotificationExtended.read_at >= period_start,
             NotificationExtended.read_at <= period_end
         ).count()
-        
+
         # Channel-specific metrics
         email_deliveries = db.query(NotificationDelivery).filter(
             NotificationDelivery.organization_id == organization_id,
@@ -806,7 +806,7 @@ class NotificationService:
             NotificationDelivery.created_at >= period_start,
             NotificationDelivery.created_at <= period_end
         )
-        
+
         email_sent = email_deliveries.count()
         email_delivered = email_deliveries.filter(
             NotificationDelivery.status == DeliveryStatus.DELIVERED
@@ -817,26 +817,26 @@ class NotificationService:
         email_clicked = email_deliveries.filter(
             NotificationDelivery.clicked_at.isnot(None)
         ).count()
-        
+
         # Calculate rates
         delivery_rate = (notifications_sent / total_notifications * 100) if total_notifications > 0 else 0
         read_rate = (notifications_read / notifications_sent * 100) if notifications_sent > 0 else 0
-        email_open_rate = (email_opened / email_delivered * 100) if email_delivered > 0 else 0
+        (email_opened / email_delivered * 100) if email_delivered > 0 else 0
         email_click_rate = (email_clicked / email_opened * 100) if email_opened > 0 else 0
-        
+
         # Engagement metrics
         total_views = db.query(func.sum(NotificationExtended.view_count)).filter(
             NotificationExtended.organization_id == organization_id,
             NotificationExtended.created_at >= period_start,
             NotificationExtended.created_at <= period_end
         ).scalar() or 0
-        
+
         total_clicks = db.query(func.sum(NotificationExtended.click_count)).filter(
             NotificationExtended.organization_id == organization_id,
             NotificationExtended.created_at >= period_start,
             NotificationExtended.created_at <= period_end
         ).scalar() or 0
-        
+
         # Create analytics record
         analytics = NotificationAnalytics(
             organization_id=organization_id,
@@ -857,11 +857,11 @@ class NotificationService:
             click_rate=email_click_rate,
             calculated_date=datetime.utcnow()
         )
-        
+
         db.add(analytics)
         db.commit()
         db.refresh(analytics)
-        
+
         return analytics
 
     # =============================================================================
@@ -870,11 +870,11 @@ class NotificationService:
 
     async def _queue_notification(self, db: Session, notification_id: str, priority: int = 100):
         """Queue notification for processing."""
-        
+
         notification = await self.get_notification_by_id(db, notification_id)
         if not notification:
             return
-        
+
         queue_item = NotificationQueue(
             notification_id=notification_id,
             organization_id=notification.organization_id,
@@ -882,74 +882,74 @@ class NotificationService:
             scheduled_at=notification.send_at or datetime.utcnow(),
             process_after=notification.send_at or datetime.utcnow()
         )
-        
+
         db.add(queue_item)
         db.commit()
 
     async def process_notification_queue(
-        self, 
-        db: Session, 
-        queue_name: str = "default", 
+        self,
+        db: Session,
+        queue_name: str = "default",
         batch_size: int = 100
     ) -> List[NotificationExtended]:
         """Process queued notifications for delivery."""
-        
+
         # Get pending queue items
         queue_items = db.query(NotificationQueue).filter(
             NotificationQueue.queue_name == queue_name,
             NotificationQueue.status == "pending",
             NotificationQueue.process_after <= datetime.utcnow()
         ).order_by(NotificationQueue.priority.desc(), NotificationQueue.created_at).limit(batch_size).all()
-        
+
         processed_notifications = []
-        
+
         for item in queue_items:
             try:
                 # Mark as processing
                 item.status = "processing"
                 db.commit()
-                
+
                 # Process notification
                 notification = await self.get_notification_by_id(db, item.notification_id)
                 if notification:
                     await self._deliver_notification(db, notification)
                     processed_notifications.append(notification)
-                
+
                 # Mark as completed
                 item.status = "completed"
                 item.processed_at = datetime.utcnow()
-                
+
             except Exception as e:
                 # Mark as failed
                 item.status = "failed"
                 item.error_message = str(e)
                 item.attempts += 1
-                
+
                 # Retry if not exceeded max attempts
                 if item.attempts < item.max_attempts:
                     item.status = "pending"
                     item.process_after = datetime.utcnow() + timedelta(minutes=5 * item.attempts)
-            
+
             db.commit()
-        
+
         return processed_notifications
 
     async def _deliver_notification(self, db: Session, notification: NotificationExtended):
         """Deliver notification through configured channels."""
-        
+
         for channel_name in notification.channels:
             channel = NotificationChannel(channel_name)
-            
+
             # Determine recipient address for channel
             recipient_address = self._get_recipient_address_for_channel(notification, channel)
             if not recipient_address:
                 continue
-            
+
             # Create delivery record
             delivery = await self.create_delivery_record(
                 db, notification.id, channel, recipient_address
             )
-            
+
             # Process delivery based on channel
             try:
                 if channel == NotificationChannel.EMAIL:
@@ -960,27 +960,27 @@ class NotificationService:
                     await self._deliver_push(db, delivery)
                 elif channel == NotificationChannel.IN_APP:
                     await self._deliver_in_app(db, delivery)
-                
+
                 await self.update_delivery_status(db, delivery.id, DeliveryStatus.SENT)
-                
+
             except Exception as e:
                 await self.update_delivery_status(
                     db, delivery.id, DeliveryStatus.FAILED,
                     {"error_message": str(e)}
                 )
-        
+
         # Update notification status
         notification.status = NotificationStatus.SENT
         notification.sent_at = datetime.utcnow()
         db.commit()
 
     def _get_recipient_address_for_channel(
-        self, 
-        notification: NotificationExtended, 
+        self,
+        notification: NotificationExtended,
         channel: NotificationChannel
     ) -> Optional[str]:
         """Get recipient address for specific channel."""
-        
+
         if channel == NotificationChannel.EMAIL:
             return notification.recipient_email
         elif channel == NotificationChannel.SMS:
@@ -989,7 +989,7 @@ class NotificationService:
             return notification.recipient_user_id
         elif channel == NotificationChannel.PUSH:
             return notification.recipient_user_id
-        
+
         return None
 
     async def _deliver_email(self, db: Session, delivery: NotificationDelivery):
@@ -1025,11 +1025,11 @@ class NotificationService:
         interaction_data: Optional[Dict[str, Any]] = None
     ):
         """Log notification interaction for analytics."""
-        
+
         notification = await self.get_notification_by_id(db, notification_id)
         if not notification:
             return
-        
+
         interaction = NotificationInteraction(
             notification_id=notification_id,
             organization_id=notification.organization_id,
@@ -1038,23 +1038,23 @@ class NotificationService:
             interaction_data=interaction_data or {},
             channel=NotificationChannel.IN_APP  # Default to in-app
         )
-        
+
         db.add(interaction)
         db.commit()
 
     async def get_system_health(self, db: Session) -> Dict[str, Any]:
         """Get notification system health status."""
-        
+
         try:
             # Test database connectivity
             db.execute("SELECT 1")
-            
+
             # Get basic statistics
             total_notifications = db.query(NotificationExtended).count()
             pending_queue = db.query(NotificationQueue).filter(
                 NotificationQueue.status == "pending"
             ).count()
-            
+
             return {
                 "status": "healthy",
                 "database_connection": "OK",
@@ -1066,7 +1066,7 @@ class NotificationService:
                 "version": "31.0",
                 "timestamp": datetime.utcnow().isoformat()
             }
-            
+
         except Exception as e:
             return {
                 "status": "unhealthy",

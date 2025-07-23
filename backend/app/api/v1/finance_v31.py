@@ -39,30 +39,24 @@ from app.schemas.finance_v31 import (
     BalanceSheetResponse,
     BudgetCreate,
     BudgetResponse,
-    BudgetUpdate,
     BudgetVarianceAnalysisResponse,
     ClosePeriodRequest,
     CostCenterCreate,
     CostCenterPerformanceResponse,
     CostCenterResponse,
-    CostCenterUpdate,
     FinancialPeriodCreate,
     FinancialPeriodResponse,
-    FinancialPeriodUpdate,
     FinancialReportCreate,
     FinancialReportResponse,
-    FinancialReportUpdate,
     IncomeStatementResponse,
     JournalEntryCreate,
     JournalEntryResponse,
-    JournalEntryUpdate,
     PostJournalEntryRequest,
     ReverseJournalEntryRequest,
     TaxCalculationRequest,
     TaxCalculationResponse,
     TaxConfigurationCreate,
     TaxConfigurationResponse,
-    TaxConfigurationUpdate,
     TrialBalanceResponse,
 )
 
@@ -82,16 +76,16 @@ def create_account(
     """Create new account in chart of accounts."""
     try:
         account_crud = AccountCRUD(db)
-        
+
         # Check for duplicate account code
         if account_data.account_code:
             existing = account_crud.get_by_code(account_data.account_code, account_data.organization_id)
             if existing:
                 raise ValidationError(f"Account code {account_data.account_code} already exists")
-        
+
         account = account_crud.create_account(account_data, current_user["sub"])
         return AccountResponse.from_orm(account)
-        
+
     except ValidationError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except BusinessRuleError as e:
@@ -110,12 +104,12 @@ def get_account(
     try:
         account_crud = AccountCRUD(db)
         account = account_crud.get(account_id)
-        
+
         if not account:
             raise NotFoundError("Account not found")
-        
+
         return AccountResponse.from_orm(account)
-        
+
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:
@@ -135,19 +129,19 @@ def list_accounts(
     """List accounts with filtering options."""
     try:
         account_crud = AccountCRUD(db)
-        
+
         if account_type:
             accounts = account_crud.get_by_type(account_type, organization_id, active_only)
         else:
             accounts = account_crud.get_account_hierarchy(organization_id)
             if active_only:
                 accounts = [acc for acc in accounts if acc.is_active]
-        
+
         # Apply pagination
         accounts = accounts[skip:skip + limit]
-        
+
         return [AccountResponse.from_orm(account) for account in accounts]
-        
+
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
@@ -163,15 +157,15 @@ def update_account(
     try:
         account_crud = AccountCRUD(db)
         account = account_crud.update(account_id, account_data)
-        
+
         if not account:
             raise NotFoundError("Account not found")
-        
+
         account.updated_by = current_user["sub"]
         db.commit()
-        
+
         return AccountResponse.from_orm(account)
-        
+
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except ValidationError as e:
@@ -194,9 +188,9 @@ def create_journal_entry(
     try:
         journal_crud = JournalEntryCRUD(db)
         entry = journal_crud.create_journal_entry(entry_data, current_user["sub"])
-        
+
         return JournalEntryResponse.from_orm(entry)
-        
+
     except ValidationError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except BusinessRuleError as e:
@@ -215,12 +209,12 @@ def get_journal_entry(
     try:
         journal_crud = JournalEntryCRUD(db)
         entry = journal_crud.get(entry_id)
-        
+
         if not entry:
             raise NotFoundError("Journal entry not found")
-        
+
         return JournalEntryResponse.from_orm(entry)
-        
+
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:
@@ -237,9 +231,9 @@ def post_journal_entry(
     try:
         journal_crud = JournalEntryCRUD(db)
         entry = journal_crud.post_journal_entry(post_request.journal_entry_id, current_user["sub"])
-        
+
         return JournalEntryResponse.from_orm(entry)
-        
+
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except BusinessRuleError as e:
@@ -262,9 +256,9 @@ def reverse_journal_entry(
             reverse_request.reason,
             current_user["sub"]
         )
-        
+
         return JournalEntryResponse.from_orm(reversal_entry)
-        
+
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except BusinessRuleError as e:
@@ -286,16 +280,16 @@ def create_budget(
     """Create new budget with budget lines."""
     try:
         budget_crud = BudgetCRUD(db)
-        
+
         # For this example, we'll create a budget without lines initially
         # In production, you might want to accept budget lines in the request
         budget = budget_crud.create(budget_data)
         budget.created_by = current_user["sub"]
         db.commit()
         db.refresh(budget)
-        
+
         return BudgetResponse.from_orm(budget)
-        
+
     except ValidationError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except BusinessRuleError as e:
@@ -314,12 +308,12 @@ def get_budget(
     try:
         budget_crud = BudgetCRUD(db)
         budget = budget_crud.get(budget_id)
-        
+
         if not budget:
             raise NotFoundError("Budget not found")
-        
+
         return BudgetResponse.from_orm(budget)
-        
+
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:
@@ -340,9 +334,9 @@ def approve_budget(
             current_user["sub"],
             approve_request.approval_notes or ""
         )
-        
+
         return BudgetResponse.from_orm(budget)
-        
+
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except BusinessRuleError as e:
@@ -365,9 +359,9 @@ def create_cost_center(
     try:
         cost_center_crud = CostCenterCRUD(db)
         cost_center = cost_center_crud.create_cost_center(cost_center_data, current_user["sub"])
-        
+
         return CostCenterResponse.from_orm(cost_center)
-        
+
     except ValidationError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except BusinessRuleError as e:
@@ -390,9 +384,9 @@ def get_cost_center_performance(
         performance = cost_center_crud.get_cost_center_performance(
             cost_center_id, start_date, end_date
         )
-        
+
         return CostCenterPerformanceResponse(**performance)
-        
+
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:
@@ -416,9 +410,9 @@ def create_financial_period(
         period.created_by = current_user["sub"]
         db.commit()
         db.refresh(period)
-        
+
         return FinancialPeriodResponse.from_orm(period)
-        
+
     except ValidationError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except BusinessRuleError as e:
@@ -437,9 +431,9 @@ def close_financial_period(
     try:
         period_crud = FinancialPeriodCRUD(db)
         period = period_crud.close_period(close_request.period_id, current_user["sub"])
-        
+
         return FinancialPeriodResponse.from_orm(period)
-        
+
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except BusinessRuleError as e:
@@ -465,9 +459,9 @@ def create_financial_report(
         report.created_by = current_user["sub"]
         db.commit()
         db.refresh(report)
-        
+
         return FinancialReportResponse.from_orm(report)
-        
+
     except ValidationError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except BusinessRuleError as e:
@@ -487,9 +481,9 @@ def generate_balance_sheet(
     try:
         report_crud = FinancialReportCRUD(db)
         balance_sheet = report_crud.generate_balance_sheet(organization_id, as_of_date)
-        
+
         return BalanceSheetResponse(**balance_sheet)
-        
+
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
@@ -506,9 +500,9 @@ def generate_income_statement(
     try:
         report_crud = FinancialReportCRUD(db)
         income_statement = report_crud.generate_income_statement(organization_id, start_date, end_date)
-        
+
         return IncomeStatementResponse(**income_statement)
-        
+
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
@@ -530,9 +524,9 @@ def create_tax_configuration(
         tax_config.created_by = current_user["sub"]
         db.commit()
         db.refresh(tax_config)
-        
+
         return TaxConfigurationResponse.from_orm(tax_config)
-        
+
     except ValidationError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except BusinessRuleError as e:
@@ -557,9 +551,9 @@ def calculate_tax(
             calculation_request.base_amount,
             calculation_request.effective_date
         )
-        
+
         return TaxCalculationResponse(**calculation)
-        
+
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except ValidationError as e:
@@ -583,10 +577,10 @@ def get_trial_balance(
     try:
         journal_crud = JournalEntryCRUD(db)
         trial_balance_data = journal_crud.get_trial_balance(organization_id, as_of_date)
-        
+
         total_debits = sum(line["debit_balance"] for line in trial_balance_data)
         total_credits = sum(line["credit_balance"] for line in trial_balance_data)
-        
+
         return TrialBalanceResponse(
             organization_id=organization_id,
             as_of_date=as_of_date,
@@ -595,7 +589,7 @@ def get_trial_balance(
             total_credits=total_credits,
             is_balanced=abs(total_debits - total_credits) < 0.01
         )
-        
+
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
@@ -615,9 +609,9 @@ def get_budget_variance_analysis(
     try:
         budget_crud = BudgetCRUD(db)
         analysis = budget_crud.get_budget_variance_analysis(budget_id, as_of_date)
-        
+
         return BudgetVarianceAnalysisResponse(**analysis)
-        
+
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:
@@ -641,8 +635,8 @@ def get_financial_dashboard(
         # Initialize CRUD objects
         journal_crud = JournalEntryCRUD(db)
         report_crud = FinancialReportCRUD(db)
-        budget_crud = BudgetCRUD(db)
-        
+        BudgetCRUD(db)
+
         # Generate key financial metrics
         dashboard_data = {
             "organization_id": organization_id,
@@ -650,7 +644,7 @@ def get_financial_dashboard(
             "period_end": period_end,
             "generated_at": datetime.utcnow(),
         }
-        
+
         # Balance sheet as of period end
         try:
             balance_sheet = report_crud.generate_balance_sheet(organization_id, period_end)
@@ -662,7 +656,7 @@ def get_financial_dashboard(
             }
         except Exception:
             dashboard_data["balance_sheet_summary"] = None
-        
+
         # Income statement for period
         try:
             income_statement = report_crud.generate_income_statement(
@@ -676,7 +670,7 @@ def get_financial_dashboard(
             }
         except Exception:
             dashboard_data["income_statement_summary"] = None
-        
+
         # Trial balance as of period end
         try:
             trial_balance = journal_crud.get_trial_balance(organization_id, period_end)
@@ -691,7 +685,7 @@ def get_financial_dashboard(
             }
         except Exception:
             dashboard_data["trial_balance_summary"] = None
-        
+
         # Key performance indicators
         dashboard_data["key_metrics"] = {
             "current_ratio": None,  # Would calculate from balance sheet
@@ -701,7 +695,7 @@ def get_financial_dashboard(
             "return_on_assets": None,  # Would calculate from both statements
             "return_on_equity": None,  # Would calculate from both statements
         }
-        
+
         # Recent activity summary
         dashboard_data["recent_activity"] = {
             "journal_entries_count": None,  # Would query recent entries
@@ -709,8 +703,8 @@ def get_financial_dashboard(
             "budget_alerts_count": None,  # Would query budget variances
             "period_status": None,  # Would check current period status
         }
-        
+
         return dashboard_data
-        
+
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

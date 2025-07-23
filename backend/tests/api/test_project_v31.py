@@ -14,14 +14,12 @@ Comprehensive tests for project management system with 10 endpoints:
 10. Project Analytics
 """
 
-import json
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
 
 from app.main import app
 from app.models.project_extended import (
@@ -30,16 +28,11 @@ from app.models.project_extended import (
     ProjectResource,
     ProjectRisk,
     ProjectStatus,
-    ResourceRole,
-    RiskLevel,
     RiskStatus,
     TaskExtended,
-    TaskPriority,
     TaskStatus,
     TimeEntry,
-    TimeEntryType,
 )
-from tests.conftest import TestingSessionLocal, engine
 
 client = TestClient(app)
 
@@ -176,14 +169,14 @@ def sample_template_data():
 
 class TestProjectManagement:
     """Test Project Management endpoint."""
-    
+
     def test_list_projects_success(self):
         """Test successful project listing."""
         with patch('app.crud.project_v31.get_projects') as mock_get:
             mock_get.return_value = []
-            
+
             response = client.get("/api/v1/project/projects")
-            
+
             assert response.status_code == 200
             assert response.json() == []
             mock_get.assert_called_once()
@@ -192,11 +185,11 @@ class TestProjectManagement:
         """Test project listing with filters."""
         with patch('app.crud.project_v31.get_projects') as mock_get:
             mock_get.return_value = []
-            
+
             response = client.get(
                 "/api/v1/project/projects?organization_id=org_123&status=active&priority=high"
             )
-            
+
             assert response.status_code == 200
             mock_get.assert_called_once()
 
@@ -205,9 +198,9 @@ class TestProjectManagement:
         with patch('app.crud.project_v31.create_project') as mock_create:
             mock_project = ProjectExtended(id="proj_123", **sample_project_data)
             mock_create.return_value = mock_project
-            
+
             response = client.post("/api/v1/project/projects", json=sample_project_data)
-            
+
             assert response.status_code == 200
             assert "proj_123" in str(response.json())
             mock_create.assert_called_once()
@@ -215,9 +208,9 @@ class TestProjectManagement:
     def test_create_project_validation_error(self):
         """Test project creation with validation error."""
         invalid_data = {"name": "Test"}  # Missing required fields
-        
+
         response = client.post("/api/v1/project/projects", json=invalid_data)
-        
+
         assert response.status_code == 422  # Validation error
 
     def test_get_project_success(self):
@@ -229,9 +222,9 @@ class TestProjectManagement:
                 status=ProjectStatus.ACTIVE
             )
             mock_get.return_value = mock_project
-            
+
             response = client.get("/api/v1/project/projects/proj_123")
-            
+
             assert response.status_code == 200
             mock_get.assert_called_once_with(mock.ANY, "proj_123")
 
@@ -239,9 +232,9 @@ class TestProjectManagement:
         """Test project retrieval when not found."""
         with patch('app.crud.project_v31.get_project') as mock_get:
             mock_get.return_value = None
-            
+
             response = client.get("/api/v1/project/projects/nonexistent")
-            
+
             assert response.status_code == 404
             assert "Project not found" in response.json()["detail"]
 
@@ -250,10 +243,10 @@ class TestProjectManagement:
         with patch('app.crud.project_v31.update_project') as mock_update:
             mock_project = ProjectExtended(id="proj_123", **sample_project_data)
             mock_update.return_value = mock_project
-            
+
             update_data = {"name": "Updated Project Name"}
             response = client.put("/api/v1/project/projects/proj_123", json=update_data)
-            
+
             assert response.status_code == 200
             mock_update.assert_called_once()
 
@@ -261,9 +254,9 @@ class TestProjectManagement:
         """Test successful project deletion."""
         with patch('app.crud.project_v31.delete_project') as mock_delete:
             mock_delete.return_value = True
-            
+
             response = client.delete("/api/v1/project/projects/proj_123")
-            
+
             assert response.status_code == 200
             assert "archived" in response.json()["message"]
             mock_delete.assert_called_once_with(mock.ANY, "proj_123")
@@ -274,14 +267,14 @@ class TestProjectManagement:
 
 class TestTaskManagement:
     """Test Task Management endpoint."""
-    
+
     def test_list_tasks_success(self):
         """Test successful task listing."""
         with patch('app.crud.project_v31.get_tasks') as mock_get:
             mock_get.return_value = []
-            
+
             response = client.get("/api/v1/project/tasks")
-            
+
             assert response.status_code == 200
             assert response.json() == []
             mock_get.assert_called_once()
@@ -291,9 +284,9 @@ class TestTaskManagement:
         with patch('app.crud.project_v31.create_task') as mock_create:
             mock_task = TaskExtended(id="task_123", **sample_task_data)
             mock_create.return_value = mock_task
-            
+
             response = client.post("/api/v1/project/tasks", json=sample_task_data)
-            
+
             assert response.status_code == 200
             mock_create.assert_called_once()
 
@@ -306,9 +299,9 @@ class TestTaskManagement:
                 status=TaskStatus.IN_PROGRESS
             )
             mock_get.return_value = mock_task
-            
+
             response = client.get("/api/v1/project/tasks/task_123")
-            
+
             assert response.status_code == 200
             mock_get.assert_called_once_with(mock.ANY, "task_123")
 
@@ -321,10 +314,10 @@ class TestTaskManagement:
                 status=TaskStatus.COMPLETED
             )
             mock_update.return_value = mock_task
-            
+
             update_data = {"status": "completed", "progress_percentage": 100}
             response = client.put("/api/v1/project/tasks/task_123", json=update_data)
-            
+
             assert response.status_code == 200
             mock_update.assert_called_once()
 
@@ -338,7 +331,7 @@ class TestTaskManagement:
                 dependent_task_id="task_456"
             )
             mock_create.return_value = mock_dependency
-            
+
             dependency_data = {
                 "task_id": "task_123",
                 "dependent_task_id": "task_456",
@@ -348,7 +341,7 @@ class TestTaskManagement:
                 "/api/v1/project/tasks/task_123/dependencies",
                 json=dependency_data
             )
-            
+
             assert response.status_code == 200
             mock_create.assert_called_once()
 
@@ -356,13 +349,13 @@ class TestTaskManagement:
         """Test successful bulk task update."""
         with patch('app.crud.project_v31.update_task') as mock_update:
             mock_update.return_value = TaskExtended(id="task_123", status=TaskStatus.COMPLETED)
-            
+
             bulk_data = {
                 "task_ids": ["task_123", "task_456"],
                 "updates": {"priority": "high"}
             }
             response = client.put("/api/v1/project/tasks/bulk-update", json=bulk_data)
-            
+
             assert response.status_code == 200
             result = response.json()
             assert result["updated_count"] >= 0
@@ -374,14 +367,14 @@ class TestTaskManagement:
 
 class TestResourceManagement:
     """Test Resource Management endpoint."""
-    
+
     def test_list_project_resources_success(self):
         """Test successful project resources listing."""
         with patch('app.crud.project_v31.get_project_resources') as mock_get:
             mock_get.return_value = []
-            
+
             response = client.get("/api/v1/project/projects/proj_123/resources")
-            
+
             assert response.status_code == 200
             assert response.json() == []
             mock_get.assert_called_once_with(mock.ANY, "proj_123", True)
@@ -391,12 +384,12 @@ class TestResourceManagement:
         with patch('app.crud.project_v31.create_project_resource') as mock_create:
             mock_resource = ProjectResource(id="res_123", **sample_resource_data)
             mock_create.return_value = mock_resource
-            
+
             response = client.post(
                 "/api/v1/project/projects/proj_123/resources",
                 json=sample_resource_data
             )
-            
+
             assert response.status_code == 200
             mock_create.assert_called_once()
 
@@ -408,10 +401,10 @@ class TestResourceManagement:
                 allocation_percentage=Decimal("90")
             )
             mock_update.return_value = mock_resource
-            
+
             update_data = {"allocation_percentage": 90}
             response = client.put("/api/v1/project/resources/res_123", json=update_data)
-            
+
             assert response.status_code == 200
             mock_update.assert_called_once()
 
@@ -421,14 +414,14 @@ class TestResourceManagement:
 
 class TestTimeTracking:
     """Test Time Tracking endpoint."""
-    
+
     def test_list_time_entries_success(self):
         """Test successful time entries listing."""
         with patch('app.crud.project_v31.get_time_entries') as mock_get:
             mock_get.return_value = []
-            
+
             response = client.get("/api/v1/project/time-entries")
-            
+
             assert response.status_code == 200
             assert response.json() == []
             mock_get.assert_called_once()
@@ -438,9 +431,9 @@ class TestTimeTracking:
         with patch('app.crud.project_v31.create_time_entry') as mock_create:
             mock_entry = TimeEntry(id="entry_123", **sample_time_entry_data)
             mock_create.return_value = mock_entry
-            
+
             response = client.post("/api/v1/project/time-entries", json=sample_time_entry_data)
-            
+
             assert response.status_code == 200
             mock_create.assert_called_once()
 
@@ -453,15 +446,15 @@ class TestTimeTracking:
             is_billable=True,
             billing_rate=Decimal("50.00")
         )
-        
+
         with patch('app.core.database.get_db') as mock_get_db:
             mock_db = MagicMock()
             mock_get_db.return_value = mock_db
             mock_db.query.return_value.filter.return_value.first.return_value = mock_entry
-            
+
             update_data = {"hours": 6.5, "description": "Updated work description"}
             response = client.put("/api/v1/project/time-entries/entry_123", json=update_data)
-            
+
             assert response.status_code == 200
 
     def test_approve_time_entry_success(self):
@@ -469,13 +462,13 @@ class TestTimeTracking:
         with patch('app.crud.project_v31.approve_time_entry') as mock_approve:
             mock_entry = TimeEntry(id="entry_123", is_approved=True)
             mock_approve.return_value = mock_entry
-            
+
             approval_data = {"entry_id": "entry_123", "approver_id": "user_456"}
             response = client.post(
                 "/api/v1/project/time-entries/entry_123/approve",
                 json=approval_data
             )
-            
+
             assert response.status_code == 200
             mock_approve.assert_called_once()
 
@@ -485,14 +478,14 @@ class TestTimeTracking:
 
 class TestRiskManagement:
     """Test Risk Management endpoint."""
-    
+
     def test_list_project_risks_success(self):
         """Test successful project risks listing."""
         with patch('app.crud.project_v31.get_project_risks') as mock_get:
             mock_get.return_value = []
-            
+
             response = client.get("/api/v1/project/projects/proj_123/risks")
-            
+
             assert response.status_code == 200
             assert response.json() == []
             mock_get.assert_called_once_with(mock.ANY, "proj_123", True)
@@ -502,12 +495,12 @@ class TestRiskManagement:
         with patch('app.crud.project_v31.create_project_risk') as mock_create:
             mock_risk = ProjectRisk(id="risk_123", **sample_risk_data)
             mock_create.return_value = mock_risk
-            
+
             response = client.post(
                 "/api/v1/project/projects/proj_123/risks",
                 json=sample_risk_data
             )
-            
+
             assert response.status_code == 200
             mock_create.assert_called_once()
 
@@ -519,15 +512,15 @@ class TestRiskManagement:
             probability=Decimal("0.4"),
             impact=Decimal("0.8")
         )
-        
+
         with patch('app.core.database.get_db') as mock_get_db:
             mock_db = MagicMock()
             mock_get_db.return_value = mock_db
             mock_db.query.return_value.filter.return_value.first.return_value = mock_risk
-            
+
             update_data = {"probability": 0.4, "impact": 0.8}
             response = client.put("/api/v1/project/risks/risk_123", json=update_data)
-            
+
             assert response.status_code == 200
 
     def test_update_risk_status_success(self):
@@ -535,13 +528,13 @@ class TestRiskManagement:
         with patch('app.crud.project_v31.update_risk_status') as mock_update:
             mock_risk = ProjectRisk(id="risk_123", status=RiskStatus.MITIGATED)
             mock_update.return_value = mock_risk
-            
+
             status_data = {"risk_id": "risk_123", "status": "mitigated"}
             response = client.post(
                 "/api/v1/project/risks/risk_123/status",
                 json=status_data
             )
-            
+
             assert response.status_code == 200
             mock_update.assert_called_once()
 
@@ -551,16 +544,16 @@ class TestRiskManagement:
 
 class TestMilestoneManagement:
     """Test Milestone Management endpoint."""
-    
+
     def test_list_project_milestones_success(self):
         """Test successful project milestones listing."""
         with patch('app.core.database.get_db') as mock_get_db:
             mock_db = MagicMock()
             mock_get_db.return_value = mock_db
             mock_db.query.return_value.filter.return_value.all.return_value = []
-            
+
             response = client.get("/api/v1/project/projects/proj_123/milestones")
-            
+
             assert response.status_code == 200
             assert response.json() == []
 
@@ -569,31 +562,31 @@ class TestMilestoneManagement:
         with patch('app.core.database.get_db') as mock_get_db:
             mock_db = MagicMock()
             mock_get_db.return_value = mock_db
-            
+
             response = client.post(
                 "/api/v1/project/projects/proj_123/milestones",
                 json=sample_milestone_data
             )
-            
+
             assert response.status_code == 200
 
     def test_update_project_milestone_success(self):
         """Test successful project milestone update."""
         from app.models.project_extended import ProjectMilestoneExtended
-        
+
         mock_milestone = ProjectMilestoneExtended(
             id="milestone_123",
             name="Updated Milestone"
         )
-        
+
         with patch('app.core.database.get_db') as mock_get_db:
             mock_db = MagicMock()
             mock_get_db.return_value = mock_db
             mock_db.query.return_value.filter.return_value.first.return_value = mock_milestone
-            
+
             update_data = {"name": "Updated Milestone", "completion_percentage": 75}
             response = client.put("/api/v1/project/milestones/milestone_123", json=update_data)
-            
+
             assert response.status_code == 200
 
 # =============================================================================
@@ -602,54 +595,54 @@ class TestMilestoneManagement:
 
 class TestIssueManagement:
     """Test Issue Management endpoint."""
-    
+
     def test_list_project_issues_success(self):
         """Test successful project issues listing."""
         with patch('app.core.database.get_db') as mock_get_db:
             mock_db = MagicMock()
             mock_get_db.return_value = mock_db
             mock_db.query.return_value.filter.return_value.offset.return_value.limit.return_value.all.return_value = []
-            
+
             response = client.get("/api/v1/project/projects/proj_123/issues")
-            
+
             assert response.status_code == 200
             assert response.json() == []
 
     def test_create_project_issue_success(self, sample_issue_data):
         """Test successful project issue creation."""
         mock_project = ProjectExtended(id="proj_123", project_code="TEST-001")
-        
+
         with patch('app.core.database.get_db') as mock_get_db:
             mock_db = MagicMock()
             mock_get_db.return_value = mock_db
             mock_db.query.return_value.filter.return_value.first.return_value = mock_project
             mock_db.query.return_value.filter.return_value.count.return_value = 0
-            
+
             response = client.post(
                 "/api/v1/project/projects/proj_123/issues",
                 json=sample_issue_data
             )
-            
+
             assert response.status_code == 200
 
     def test_update_project_issue_success(self):
         """Test successful project issue update."""
         from app.models.project_extended import ProjectIssue
-        
+
         mock_issue = ProjectIssue(
             id="issue_123",
             title="Updated Issue",
             status="resolved"
         )
-        
+
         with patch('app.core.database.get_db') as mock_get_db:
             mock_db = MagicMock()
             mock_get_db.return_value = mock_db
             mock_db.query.return_value.filter.return_value.first.return_value = mock_issue
-            
+
             update_data = {"status": "resolved", "resolution": "fixed"}
             response = client.put("/api/v1/project/issues/issue_123", json=update_data)
-            
+
             assert response.status_code == 200
 
 # =============================================================================
@@ -658,14 +651,14 @@ class TestIssueManagement:
 
 class TestPortfolioManagement:
     """Test Portfolio Management endpoint."""
-    
+
     def test_list_portfolios_success(self):
         """Test successful portfolios listing."""
         with patch('app.crud.project_v31.get_portfolios') as mock_get:
             mock_get.return_value = []
-            
+
             response = client.get("/api/v1/project/portfolios?organization_id=org_123")
-            
+
             assert response.status_code == 200
             assert response.json() == []
             mock_get.assert_called_once()
@@ -675,9 +668,9 @@ class TestPortfolioManagement:
         with patch('app.crud.project_v31.create_portfolio') as mock_create:
             mock_portfolio = ProjectPortfolio(id="portfolio_123", **sample_portfolio_data)
             mock_create.return_value = mock_portfolio
-            
+
             response = client.post("/api/v1/project/portfolios", json=sample_portfolio_data)
-            
+
             assert response.status_code == 200
             mock_create.assert_called_once()
 
@@ -687,15 +680,15 @@ class TestPortfolioManagement:
             id="portfolio_123",
             name="Updated Portfolio"
         )
-        
+
         with patch('app.core.database.get_db') as mock_get_db:
             mock_db = MagicMock()
             mock_get_db.return_value = mock_db
             mock_db.query.return_value.filter.return_value.first.return_value = mock_portfolio
-            
+
             update_data = {"name": "Updated Portfolio", "total_budget": 750000}
             response = client.put("/api/v1/project/portfolios/portfolio_123", json=update_data)
-            
+
             assert response.status_code == 200
 
 # =============================================================================
@@ -704,16 +697,16 @@ class TestPortfolioManagement:
 
 class TestTemplateManagement:
     """Test Template Management endpoint."""
-    
+
     def test_list_project_templates_success(self):
         """Test successful project templates listing."""
         with patch('app.core.database.get_db') as mock_get_db:
             mock_db = MagicMock()
             mock_get_db.return_value = mock_db
             mock_db.query.return_value.filter.return_value.offset.return_value.limit.return_value.all.return_value = []
-            
+
             response = client.get("/api/v1/project/templates?organization_id=org_123")
-            
+
             assert response.status_code == 200
             assert response.json() == []
 
@@ -722,42 +715,42 @@ class TestTemplateManagement:
         with patch('app.core.database.get_db') as mock_get_db:
             mock_db = MagicMock()
             mock_get_db.return_value = mock_db
-            
+
             response = client.post("/api/v1/project/templates", json=sample_template_data)
-            
+
             assert response.status_code == 200
 
     def test_create_project_from_template_success(self):
         """Test successful project creation from template."""
         from app.models.project_extended import ProjectTemplate
-        
+
         mock_template = ProjectTemplate(
             id="template_123",
             template_data={"methodology": "agile", "sprint_duration": 14},
             usage_count=0
         )
-        
+
         with patch('app.core.database.get_db') as mock_get_db, \
              patch('app.crud.project_v31.create_project') as mock_create_project:
-            
+
             mock_db = MagicMock()
             mock_get_db.return_value = mock_db
             mock_db.query.return_value.filter.return_value.first.return_value = mock_template
-            
+
             mock_project = ProjectExtended(id="proj_123", name="New Project")
             mock_create_project.return_value = mock_project
-            
+
             request_data = {
                 "template_id": "template_123",
                 "project_name": "New Project from Template",
                 "organization_id": "org_123"
             }
-            
+
             response = client.post(
                 "/api/v1/project/templates/template_123/create-project",
                 json=request_data
             )
-            
+
             assert response.status_code == 200
 
 # =============================================================================
@@ -766,7 +759,7 @@ class TestTemplateManagement:
 
 class TestProjectAnalytics:
     """Test Project Analytics endpoint."""
-    
+
     def test_get_project_dashboard_success(self):
         """Test successful project dashboard retrieval."""
         with patch('app.crud.project_v31.get_project_dashboard_metrics') as mock_get:
@@ -790,9 +783,9 @@ class TestProjectAnalytics:
                 "quality_score": 4.2
             }
             mock_get.return_value = mock_metrics
-            
+
             response = client.get("/api/v1/project/projects/proj_123/dashboard")
-            
+
             assert response.status_code == 200
             assert response.json()["project_id"] == "proj_123"
             assert response.json()["progress_percentage"] == 75.0
@@ -812,9 +805,9 @@ class TestProjectAnalytics:
                 "recommendations": ["Project appears healthy"]
             }
             mock_calc.return_value = mock_health
-            
+
             response = client.get("/api/v1/project/projects/proj_123/health")
-            
+
             assert response.status_code == 200
             assert response.json()["overall_health_score"] == 82.5
             assert response.json()["health_status"] == "healthy"
@@ -834,9 +827,9 @@ class TestProjectAnalytics:
                 "summary_date": datetime.utcnow()
             }
             mock_get.return_value = mock_summary
-            
+
             response = client.get("/api/v1/project/organizations/org_123/project-summary")
-            
+
             assert response.status_code == 200
             assert response.json()["organization_id"] == "org_123"
             assert response.json()["total_active_projects"] == 15
@@ -853,26 +846,26 @@ class TestProjectAnalytics:
             planned_start_date=date(2024, 1, 1),
             planned_end_date=date(2024, 6, 30)
         )
-        
+
         with patch('app.crud.project_v31.get_project') as mock_get_project, \
              patch('app.crud.project_v31.create_project') as mock_create_project:
-            
+
             mock_get_project.return_value = mock_source_project
             mock_new_project = ProjectExtended(
                 id="proj_456",
                 name="Cloned Project"
             )
             mock_create_project.return_value = mock_new_project
-            
+
             clone_data = {
                 "source_project_id": "proj_123",
                 "new_project_name": "Cloned Project",
                 "include_tasks": True,
                 "include_timeline": True
             }
-            
+
             response = client.post("/api/v1/project/projects/proj_123/clone", json=clone_data)
-            
+
             assert response.status_code == 200
             mock_get_project.assert_called_once()
             mock_create_project.assert_called_once()
@@ -883,7 +876,7 @@ class TestProjectAnalytics:
 
 class TestProjectIntegration:
     """Test project management system integration scenarios."""
-    
+
     def test_complete_project_lifecycle_integration(self):
         """Test complete project lifecycle integration."""
         # This would test creating project, adding tasks, allocating resources,
@@ -906,38 +899,38 @@ class TestProjectIntegration:
 
 class TestProjectErrorHandling:
     """Test project management API error handling."""
-    
+
     def test_database_error_handling(self):
         """Test database error handling."""
         with patch('app.crud.project_v31.get_projects') as mock_get:
             mock_get.side_effect = Exception("Database connection error")
-            
+
             response = client.get("/api/v1/project/projects")
-            
+
             assert response.status_code == 500
             assert "Error retrieving projects" in response.json()["detail"]
 
     def test_validation_error_handling(self):
         """Test validation error handling."""
         invalid_data = {"name": ""}  # Invalid empty name
-        
+
         response = client.post("/api/v1/project/projects", json=invalid_data)
-        
+
         assert response.status_code == 422  # Validation error
 
     def test_business_logic_error_handling(self):
         """Test business logic error handling."""
         with patch('app.crud.project_v31.create_project') as mock_create:
             mock_create.side_effect = ValueError("Project manager not found")
-            
+
             sample_data = {
                 "organization_id": "org_123",
                 "name": "Test Project",
                 "project_manager_id": "nonexistent_user"
             }
-            
+
             response = client.post("/api/v1/project/projects", json=sample_data)
-            
+
             assert response.status_code == 400
             assert "Project manager not found" in response.json()["detail"]
 
@@ -947,7 +940,7 @@ class TestProjectErrorHandling:
 
 class TestProjectPerformance:
     """Test project management API performance scenarios."""
-    
+
     def test_large_project_list_performance(self):
         """Test performance with large project lists."""
         # This would test pagination, filtering with large datasets

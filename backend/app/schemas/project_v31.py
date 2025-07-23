@@ -14,7 +14,7 @@ Pydantic schemas for project management API including:
 - Template Management
 """
 
-from datetime import datetime, date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
@@ -22,14 +22,13 @@ from pydantic import BaseModel, Field, validator
 
 from app.models.project_extended import (
     ProjectStatus,
-    TaskStatus,
-    TaskPriority,
     ResourceRole,
     RiskLevel,
     RiskStatus,
+    TaskPriority,
+    TaskStatus,
     TimeEntryType,
 )
-
 
 # =============================================================================
 # Project Schemas
@@ -37,7 +36,7 @@ from app.models.project_extended import (
 
 class ProjectBase(BaseModel):
     """Base schema for Project."""
-    
+
     organization_id: str
     project_code: Optional[str] = None
     name: str
@@ -68,7 +67,7 @@ class ProjectCreate(ProjectBase):
 
 class ProjectUpdate(BaseModel):
     """Schema for updating Project."""
-    
+
     name: Optional[str] = None
     description: Optional[str] = None
     project_type: Optional[str] = None
@@ -97,7 +96,7 @@ class ProjectUpdate(BaseModel):
 
 class ProjectResponse(ProjectBase):
     """Schema for Project response."""
-    
+
     id: str
     status: ProjectStatus
     actual_start_date: Optional[date] = None
@@ -128,7 +127,7 @@ class ProjectResponse(ProjectBase):
 
 class TaskBase(BaseModel):
     """Base schema for Task."""
-    
+
     project_id: str
     parent_task_id: Optional[str] = None
     task_number: Optional[str] = None
@@ -159,7 +158,7 @@ class TaskCreate(TaskBase):
 
 class TaskUpdate(BaseModel):
     """Schema for updating Task."""
-    
+
     title: Optional[str] = None
     description: Optional[str] = None
     priority: Optional[TaskPriority] = None
@@ -184,7 +183,7 @@ class TaskUpdate(BaseModel):
 
 class TaskResponse(TaskBase):
     """Schema for Task response."""
-    
+
     id: str
     status: TaskStatus
     completion_date: Optional[date] = None
@@ -210,7 +209,7 @@ class TaskResponse(TaskBase):
 
 class TaskDependencyBase(BaseModel):
     """Base schema for Task Dependency."""
-    
+
     task_id: str
     dependent_task_id: str
     dependency_type: str = "finish_to_start"
@@ -225,7 +224,7 @@ class TaskDependencyCreate(TaskDependencyBase):
 
 class TaskDependencyResponse(TaskDependencyBase):
     """Schema for Task Dependency response."""
-    
+
     id: str
     created_at: datetime
     created_by: str
@@ -240,7 +239,7 @@ class TaskDependencyResponse(TaskDependencyBase):
 
 class ProjectResourceBase(BaseModel):
     """Base schema for Project Resource."""
-    
+
     project_id: str
     user_id: str
     role: ResourceRole
@@ -261,7 +260,7 @@ class ProjectResourceCreate(ProjectResourceBase):
 
 class ProjectResourceUpdate(BaseModel):
     """Schema for updating Project Resource."""
-    
+
     role: Optional[ResourceRole] = None
     allocation_percentage: Optional[Decimal] = Field(None, ge=0, le=100)
     hourly_rate: Optional[Decimal] = Field(None, ge=0)
@@ -276,7 +275,7 @@ class ProjectResourceUpdate(BaseModel):
 
 class ProjectResourceResponse(ProjectResourceBase):
     """Schema for Project Resource response."""
-    
+
     id: str
     actual_hours: Decimal
     is_active: bool
@@ -294,7 +293,7 @@ class ProjectResourceResponse(ProjectResourceBase):
 
 class TimeEntryBase(BaseModel):
     """Base schema for Time Entry."""
-    
+
     project_id: str
     task_id: Optional[str] = None
     user_id: str
@@ -322,7 +321,7 @@ class TimeEntryCreate(TimeEntryBase):
 
 class TimeEntryUpdate(BaseModel):
     """Schema for updating Time Entry."""
-    
+
     date: Optional[date] = None
     start_time: Optional[datetime] = None
     end_time: Optional[datetime] = None
@@ -335,7 +334,7 @@ class TimeEntryUpdate(BaseModel):
 
 class TimeEntryResponse(TimeEntryBase):
     """Schema for Time Entry response."""
-    
+
     id: str
     billing_amount: Optional[Decimal] = None
     is_approved: bool
@@ -355,7 +354,7 @@ class TimeEntryResponse(TimeEntryBase):
 
 class ProjectRiskBase(BaseModel):
     """Base schema for Project Risk."""
-    
+
     project_id: str
     title: str
     description: Optional[str] = None
@@ -377,7 +376,7 @@ class ProjectRiskCreate(ProjectRiskBase):
 
 class ProjectRiskUpdate(BaseModel):
     """Schema for updating Project Risk."""
-    
+
     title: Optional[str] = None
     description: Optional[str] = None
     category: Optional[str] = None
@@ -396,7 +395,7 @@ class ProjectRiskUpdate(BaseModel):
 
 class ProjectRiskResponse(ProjectRiskBase):
     """Schema for Project Risk response."""
-    
+
     id: str
     risk_score: Optional[Decimal] = None
     risk_level: RiskLevel
@@ -418,7 +417,7 @@ class ProjectRiskResponse(ProjectRiskBase):
 
 class ProjectMilestoneBase(BaseModel):
     """Base schema for Project Milestone."""
-    
+
     project_id: str
     name: str
     description: Optional[str] = None
@@ -437,7 +436,7 @@ class ProjectMilestoneCreate(ProjectMilestoneBase):
 
 class ProjectMilestoneUpdate(BaseModel):
     """Schema for updating Project Milestone."""
-    
+
     name: Optional[str] = None
     description: Optional[str] = None
     milestone_type: Optional[str] = None
@@ -452,7 +451,7 @@ class ProjectMilestoneUpdate(BaseModel):
 
 class ProjectMilestoneResponse(ProjectMilestoneBase):
     """Schema for Project Milestone response."""
-    
+
     id: str
     actual_date: Optional[date] = None
     is_completed: bool
@@ -473,7 +472,7 @@ class ProjectMilestoneResponse(ProjectMilestoneBase):
 
 class ProjectDeliverableBase(BaseModel):
     """Base schema for Project Deliverable."""
-    
+
     project_id: str
     milestone_id: Optional[str] = None
     name: str
@@ -495,7 +494,7 @@ class ProjectDeliverableCreate(ProjectDeliverableBase):
 
 class ProjectDeliverableUpdate(BaseModel):
     """Schema for updating Project Deliverable."""
-    
+
     name: Optional[str] = None
     description: Optional[str] = None
     deliverable_type: Optional[str] = None
@@ -513,7 +512,7 @@ class ProjectDeliverableUpdate(BaseModel):
 
 class ProjectDeliverableResponse(ProjectDeliverableBase):
     """Schema for Project Deliverable response."""
-    
+
     id: str
     status: str
     completion_percentage: Decimal
@@ -534,7 +533,7 @@ class ProjectDeliverableResponse(ProjectDeliverableBase):
 
 class ProjectIssueBase(BaseModel):
     """Base schema for Project Issue."""
-    
+
     project_id: str
     task_id: Optional[str] = None
     issue_number: Optional[str] = None
@@ -559,7 +558,7 @@ class ProjectIssueCreate(ProjectIssueBase):
 
 class ProjectIssueUpdate(BaseModel):
     """Schema for updating Project Issue."""
-    
+
     title: Optional[str] = None
     description: Optional[str] = None
     issue_type: Optional[str] = None
@@ -577,7 +576,7 @@ class ProjectIssueUpdate(BaseModel):
 
 class ProjectIssueResponse(ProjectIssueBase):
     """Schema for Project Issue response."""
-    
+
     id: str
     status: str
     resolution: Optional[str] = None
@@ -598,7 +597,7 @@ class ProjectIssueResponse(ProjectIssueBase):
 
 class ProjectPortfolioBase(BaseModel):
     """Base schema for Project Portfolio."""
-    
+
     organization_id: str
     name: str
     description: Optional[str] = None
@@ -616,7 +615,7 @@ class ProjectPortfolioCreate(ProjectPortfolioBase):
 
 class ProjectPortfolioUpdate(BaseModel):
     """Schema for updating Project Portfolio."""
-    
+
     name: Optional[str] = None
     description: Optional[str] = None
     portfolio_manager_id: Optional[str] = None
@@ -629,7 +628,7 @@ class ProjectPortfolioUpdate(BaseModel):
 
 class ProjectPortfolioResponse(ProjectPortfolioBase):
     """Schema for Project Portfolio response."""
-    
+
     id: str
     allocated_budget: Decimal
     is_active: bool
@@ -647,7 +646,7 @@ class ProjectPortfolioResponse(ProjectPortfolioBase):
 
 class ProjectTemplateBase(BaseModel):
     """Base schema for Project Template."""
-    
+
     organization_id: str
     name: str
     description: Optional[str] = None
@@ -666,7 +665,7 @@ class ProjectTemplateCreate(ProjectTemplateBase):
 
 class ProjectTemplateUpdate(BaseModel):
     """Schema for updating Project Template."""
-    
+
     name: Optional[str] = None
     description: Optional[str] = None
     category: Optional[str] = None
@@ -680,7 +679,7 @@ class ProjectTemplateUpdate(BaseModel):
 
 class ProjectTemplateResponse(ProjectTemplateBase):
     """Schema for Project Template response."""
-    
+
     id: str
     usage_count: int
     is_active: bool
@@ -698,7 +697,7 @@ class ProjectTemplateResponse(ProjectTemplateBase):
 
 class ProjectDashboardMetrics(BaseModel):
     """Schema for project dashboard metrics."""
-    
+
     project_id: str
     project_name: str
     status: str
@@ -720,7 +719,7 @@ class ProjectDashboardMetrics(BaseModel):
 
 class OrganizationProjectSummary(BaseModel):
     """Schema for organization project summary."""
-    
+
     organization_id: str
     total_active_projects: int
     project_status_distribution: Dict[str, int]
@@ -733,7 +732,7 @@ class OrganizationProjectSummary(BaseModel):
 
 class ProjectHealthScore(BaseModel):
     """Schema for project health score."""
-    
+
     project_id: str
     overall_health_score: float
     health_status: str
@@ -743,7 +742,7 @@ class ProjectHealthScore(BaseModel):
 
 class TaskComment(BaseModel):
     """Schema for task comments."""
-    
+
     task_id: str
     user_id: str
     comment: str
@@ -753,7 +752,7 @@ class TaskComment(BaseModel):
 
 class TaskCommentResponse(TaskComment):
     """Schema for task comment response."""
-    
+
     id: str
     created_at: datetime
     updated_at: Optional[datetime] = None
@@ -768,14 +767,14 @@ class TaskCommentResponse(TaskComment):
 
 class ApproveTimeEntryRequest(BaseModel):
     """Schema for approving time entry."""
-    
+
     entry_id: str
     approver_id: str
 
 
 class UpdateRiskStatusRequest(BaseModel):
     """Schema for updating risk status."""
-    
+
     risk_id: str
     status: RiskStatus
     notes: Optional[str] = None
@@ -783,7 +782,7 @@ class UpdateRiskStatusRequest(BaseModel):
 
 class CreateProjectFromTemplateRequest(BaseModel):
     """Schema for creating project from template."""
-    
+
     template_id: str
     project_name: str
     organization_id: str
@@ -794,14 +793,14 @@ class CreateProjectFromTemplateRequest(BaseModel):
 
 class BulkTaskUpdateRequest(BaseModel):
     """Schema for bulk task updates."""
-    
+
     task_ids: List[str]
     updates: Dict[str, Any]
 
 
 class ProjectCloneRequest(BaseModel):
     """Schema for cloning project."""
-    
+
     source_project_id: str
     new_project_name: str
     include_tasks: bool = True
@@ -815,7 +814,7 @@ class ProjectCloneRequest(BaseModel):
 
 class ProjectFilterRequest(BaseModel):
     """Schema for project filtering."""
-    
+
     organization_id: Optional[str] = None
     status: Optional[ProjectStatus] = None
     project_manager_id: Optional[str] = None
@@ -829,7 +828,7 @@ class ProjectFilterRequest(BaseModel):
 
 class TaskFilterRequest(BaseModel):
     """Schema for task filtering."""
-    
+
     project_id: Optional[str] = None
     assigned_to_id: Optional[str] = None
     status: Optional[TaskStatus] = None
@@ -843,7 +842,7 @@ class TaskFilterRequest(BaseModel):
 
 class TimeEntryFilterRequest(BaseModel):
     """Schema for time entry filtering."""
-    
+
     project_id: Optional[str] = None
     user_id: Optional[str] = None
     task_id: Optional[str] = None

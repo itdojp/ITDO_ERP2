@@ -16,29 +16,26 @@ Comprehensive CRUD operations for audit log management including:
 Provides complete audit trail operations for enterprise compliance and security
 """
 
-from datetime import datetime, date, timedelta
-from decimal import Decimal
-from typing import Dict, List, Optional, Tuple, Any
-import json
 import hashlib
+from datetime import date, datetime, timedelta
+from decimal import Decimal
+from typing import Any, Dict, List, Optional, Tuple
 
-from sqlalchemy import and_, or_, desc, asc, func, text
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import and_, asc, desc, or_
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
 from app.models.audit_extended import (
-    AuditLogEntry,
-    AuditRule,
     AuditAlert,
-    AuditReport,
-    AuditSession,
-    AuditDataRetention,
     AuditCompliance,
-    AuditConfiguration,
-    AuditMetrics,
+    AuditDataRetention,
     AuditEventType,
+    AuditLogEntry,
+    AuditMetrics,
+    AuditReport,
+    AuditRule,
+    AuditSession,
     AuditSeverity,
-    AuditStatus,
     ComplianceFramework,
 )
 
@@ -237,7 +234,7 @@ class AuditService:
             entry.status = status
             entry.acknowledged_by = acknowledged_by
             entry.acknowledged_at = datetime.now()
-            
+
             if notes:
                 entry.resolution_notes = notes
 
@@ -307,7 +304,7 @@ class AuditService:
 
             # Simulate rule evaluation
             result = self._evaluate_rule_conditions(rule.conditions, test_data)
-            
+
             return {
                 "success": True,
                 "triggered": result["triggered"],
@@ -411,7 +408,7 @@ class AuditService:
             report = AuditReport(**report_data)
             report.generation_status = "generating"
             report.started_at = datetime.now()
-            
+
             self.db.add(report)
             self.db.commit()
             self.db.refresh(report)
@@ -571,7 +568,7 @@ class AuditService:
                 framework_assessments = compliance_query.filter(
                     AuditCompliance.framework == framework
                 ).count()
-                
+
                 framework_compliant = compliance_query.filter(
                     and_(
                         AuditCompliance.framework == framework,
@@ -735,7 +732,7 @@ class AuditService:
                 and_(
                     AuditSession.organization_id == organization_id,
                     AuditSession.risk_score >= 70,
-                    AuditSession.is_active == True
+                    AuditSession.is_active
                 )
             ).count()
 
@@ -903,7 +900,7 @@ class AuditService:
             rules = self.db.query(AuditRule).filter(
                 and_(
                     AuditRule.organization_id == entry.organization_id,
-                    AuditRule.is_active == True
+                    AuditRule.is_active
                 )
             ).all()
 
@@ -1012,7 +1009,7 @@ class AuditService:
 
             # Calculate base score
             base_score = 100
-            
+
             # Deduct points for violations
             if violations > 0:
                 base_score -= min(50, violations * 10)

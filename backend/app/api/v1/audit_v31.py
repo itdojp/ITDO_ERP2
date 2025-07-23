@@ -16,7 +16,7 @@ Comprehensive RESTful API for audit log management including:
 Provides 10 main endpoint groups with 60+ individual endpoints
 """
 
-from datetime import datetime, date, timedelta
+from datetime import date, datetime, timedelta
 from typing import Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -25,45 +25,39 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.crud.audit_v31 import AuditService
 from app.schemas.audit_v31 import (
+    AlertResolutionRequest,
+    # Audit Alert schemas
+    AuditAlertCreateRequest,
+    AuditAlertListResponse,
+    AuditAlertResponse,
+    # Export schemas
+    AuditExportRequest,
+    AuditExportResponse,
+    AuditLogBulkCreateRequest,
     # Audit Log Entry schemas
     AuditLogEntryCreateRequest,
     AuditLogEntryResponse,
-    AuditLogSearchRequest,
     AuditLogListResponse,
-    AuditLogBulkCreateRequest,
-    
-    # Audit Rule schemas
-    AuditRuleCreateRequest,
-    AuditRuleResponse,
-    AuditRuleTestRequest,
-    AuditRuleListResponse,
-    
-    # Audit Alert schemas
-    AuditAlertCreateRequest,
-    AuditAlertResponse,
-    AlertResolutionRequest,
-    AuditAlertListResponse,
-    
+    AuditLogSearchRequest,
+    AuditMetricsResponse,
     # Audit Report schemas
     AuditReportCreateRequest,
-    AuditReportResponse,
     AuditReportListResponse,
-    
+    AuditReportResponse,
+    # Audit Rule schemas
+    AuditRuleCreateRequest,
+    AuditRuleListResponse,
+    AuditRuleResponse,
+    AuditRuleTestRequest,
     # Session schemas
     AuditSessionCreateRequest,
     AuditSessionResponse,
-    
     # Compliance schemas
     ComplianceAssessmentCreateRequest,
     ComplianceAssessmentResponse,
     ComplianceDashboardResponse,
-    SecurityDashboardResponse,
-    AuditMetricsResponse,
-    
-    # Export schemas
-    AuditExportRequest,
-    AuditExportResponse,
     RetentionPolicyExecutionResponse,
+    SecurityDashboardResponse,
 )
 
 router = APIRouter()
@@ -121,7 +115,7 @@ async def search_audit_logs(
             page=search_request.page,
             per_page=search_request.per_page
         )
-        
+
         return AuditLogListResponse(
             entries=[AuditLogEntryResponse(**entry.__dict__) for entry in entries],
             total_count=total,
@@ -202,13 +196,13 @@ async def get_recent_audit_logs(
         }
         # Remove None values
         filters = {k: v for k, v in filters.items() if v is not None}
-        
+
         entries, total = await service.search_audit_logs(
             filters=filters,
             page=1,
             per_page=limit
         )
-        
+
         return AuditLogListResponse(
             entries=[AuditLogEntryResponse(**entry.__dict__) for entry in entries],
             total_count=total,
@@ -243,13 +237,13 @@ async def get_user_audit_logs(
         }
         # Remove None values
         filters = {k: v for k, v in filters.items() if v is not None}
-        
+
         entries, total = await service.search_audit_logs(
             filters=filters,
             page=page,
             per_page=per_page
         )
-        
+
         return AuditLogListResponse(
             entries=[AuditLogEntryResponse(**entry.__dict__) for entry in entries],
             total_count=total,
@@ -286,13 +280,13 @@ async def get_resource_audit_logs(
         }
         # Remove None values
         filters = {k: v for k, v in filters.items() if v is not None}
-        
+
         entries, total = await service.search_audit_logs(
             filters=filters,
             page=page,
             per_page=per_page
         )
-        
+
         return AuditLogListResponse(
             entries=[AuditLogEntryResponse(**entry.__dict__) for entry in entries],
             total_count=total,
@@ -319,13 +313,13 @@ async def get_correlated_audit_logs(
             "organization_id": organization_id,
             "correlation_id": correlation_id,
         }
-        
+
         entries, total = await service.search_audit_logs(
             filters=filters,
             page=1,
             per_page=1000  # Get all correlated entries
         )
-        
+
         return AuditLogListResponse(
             entries=[AuditLogEntryResponse(**entry.__dict__) for entry in entries],
             total_count=total,
@@ -350,16 +344,16 @@ async def get_audit_log_statistics(
     try:
         end_date = datetime.now()
         start_date = end_date - timedelta(days=period_days)
-        
+
         # Get basic statistics
         filters = {
             "organization_id": organization_id,
             "start_date": start_date,
             "end_date": end_date,
         }
-        
+
         entries, total = await service.search_audit_logs(filters=filters, page=1, per_page=1)
-        
+
         # Get additional statistics (simplified for this example)
         return {
             "total_events": total,
@@ -413,13 +407,13 @@ async def list_audit_rules(
         }
         # Remove None values
         filters = {k: v for k, v in filters.items() if v is not None}
-        
+
         rules, total = await service.list_audit_rules(
             filters=filters,
             page=page,
             per_page=per_page
         )
-        
+
         return AuditRuleListResponse(
             rules=[AuditRuleResponse(**rule.__dict__) for rule in rules],
             total_count=total,
@@ -624,13 +618,13 @@ async def list_audit_alerts(
         }
         # Remove None values
         filters = {k: v for k, v in filters.items() if v is not None}
-        
+
         alerts, total = await service.list_audit_alerts(
             filters=filters,
             page=page,
             per_page=per_page
         )
-        
+
         return AuditAlertListResponse(
             alerts=[AuditAlertResponse(**alert.__dict__) for alert in alerts],
             total_count=total,
@@ -766,13 +760,13 @@ async def get_active_alerts(
             "organization_id": organization_id,
             "status": "open",
         }
-        
+
         alerts, total = await service.list_audit_alerts(
             filters=filters,
             page=1,
             per_page=limit
         )
-        
+
         return AuditAlertListResponse(
             alerts=[AuditAlertResponse(**alert.__dict__) for alert in alerts],
             total_count=total,
@@ -805,13 +799,13 @@ async def get_my_alerts(
         }
         # Remove None values
         filters = {k: v for k, v in filters.items() if v is not None}
-        
+
         alerts, total = await service.list_audit_alerts(
             filters=filters,
             page=page,
             per_page=per_page
         )
-        
+
         return AuditAlertListResponse(
             alerts=[AuditAlertResponse(**alert.__dict__) for alert in alerts],
             total_count=total,
@@ -836,13 +830,13 @@ async def get_alerts_summary(
     try:
         # Get basic alert statistics
         filters = {"organization_id": organization_id}
-        
+
         # Active alerts
         active_filters = {**filters, "status": "open"}
         active_alerts, active_count = await service.list_audit_alerts(
             filters=active_filters, page=1, per_page=1
         )
-        
+
         return {
             "active_alerts": active_count,
             "period_days": period_days,
@@ -896,13 +890,13 @@ async def list_audit_reports(
         }
         # Remove None values
         filters = {k: v for k, v in filters.items() if v is not None}
-        
+
         reports, total = await service.list_audit_reports(
             filters=filters,
             page=page,
             per_page=per_page
         )
-        
+
         return AuditReportListResponse(
             reports=[AuditReportResponse(**report.__dict__) for report in reports],
             total_count=total,
@@ -1049,7 +1043,7 @@ async def get_report_templates(
                 "description": "Data access and modification tracking report"
             }
         ]
-        
+
         return {"templates": templates}
     except Exception as e:
         raise HTTPException(
@@ -1364,7 +1358,7 @@ async def get_compliance_frameworks(
             {"code": "iso27001", "name": "ISO 27001", "description": "Information security management"},
             {"code": "soc2", "name": "SOC 2", "description": "Service organization controls"},
         ]
-        
+
         return {"frameworks": frameworks}
     except Exception as e:
         raise HTTPException(

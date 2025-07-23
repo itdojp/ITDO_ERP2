@@ -18,26 +18,21 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import and_, func, or_
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.crm_extended import (
     CampaignExtended,
-    CampaignStatus,
     ContactExtended,
-    ContactType,
     CRMActivity,
-    CRMAnalytics,
     CustomerExtended,
     LeadExtended,
-    LeadSource,
     LeadStatus,
     OpportunityExtended,
     OpportunityStage,
     SupportTicket,
     SupportTicketStatus,
 )
-
 
 # =============================================================================
 # Customer Management CRUD
@@ -52,27 +47,27 @@ def create_customer(db: Session, customer_data: Any) -> CustomerExtended:
             CustomerExtended.organization_id == org_id
         ).count()
         customer_data.customer_code = f"CUST-{org_id[:3].upper()}-{count + 1:05d}"
-    
+
     # Validate account manager exists if specified
     if hasattr(customer_data, 'account_manager_id') and customer_data.account_manager_id:
         from app.models.user import User
         manager = db.query(User).filter(User.id == customer_data.account_manager_id).first()
         if not manager:
             raise ValueError("Account manager not found")
-    
+
     customer = CustomerExtended(**customer_data.model_dump())
     customer.created_by = getattr(customer_data, 'created_by', 'system')
     customer.acquisition_date = customer.acquisition_date or date.today()
-    
+
     # Initialize customer metrics
     customer.total_orders = 0
     customer.total_revenue = Decimal('0')
     customer.lifetime_value = Decimal('0')
-    
+
     db.add(customer)
     db.commit()
     db.refresh(customer)
-    
+
     return customer
 
 
@@ -95,7 +90,7 @@ def get_customers(
 ) -> List[CustomerExtended]:
     """Get customers with filtering and pagination."""
     query = db.query(CustomerExtended)
-    
+
     if filters:
         if "organization_id" in filters:
             query = query.filter(CustomerExtended.organization_id == filters["organization_id"])
@@ -120,7 +115,7 @@ def get_customers(
                     CustomerExtended.customer_code.ilike(search)
                 )
             )
-    
+
     return query.options(
         joinedload(CustomerExtended.account_manager),
         joinedload(CustomerExtended.contacts)
@@ -132,25 +127,25 @@ def update_customer(db: Session, customer_id: str, customer_data: Any) -> Option
     customer = db.query(CustomerExtended).filter(CustomerExtended.id == customer_id).first()
     if not customer:
         return None
-    
+
     update_data = customer_data.model_dump(exclude_unset=True)
-    
+
     # Validate account manager if being updated
     if "account_manager_id" in update_data and update_data["account_manager_id"]:
         from app.models.user import User
         manager = db.query(User).filter(User.id == update_data["account_manager_id"]).first()
         if not manager:
             raise ValueError("Account manager not found")
-    
+
     for field, value in update_data.items():
         setattr(customer, field, value)
-    
+
     customer.updated_at = datetime.utcnow()
     customer.updated_by = getattr(customer_data, 'updated_by', 'system')
-    
+
     db.commit()
     db.refresh(customer)
-    
+
     return customer
 
 
@@ -159,68 +154,68 @@ def calculate_customer_health_score(db: Session, customer_id: str) -> Dict[str, 
     customer = db.query(CustomerExtended).filter(CustomerExtended.id == customer_id).first()
     if not customer:
         raise ValueError("Customer not found")
-    
+
     health_factors = {}
-    
+
     # Revenue health (30% weight) - based on revenue trend
     recent_revenue = get_customer_revenue_last_n_months(db, customer_id, 3)
     previous_revenue = get_customer_revenue_months_ago(db, customer_id, 3, 6)
-    
+
     if previous_revenue > 0:
         revenue_growth = ((recent_revenue - previous_revenue) / previous_revenue) * 100
         revenue_health = min(max(50 + revenue_growth, 0), 100)
     else:
         revenue_health = 75 if recent_revenue > 0 else 25
-    
+
     health_factors["revenue"] = {"score": revenue_health, "weight": 0.3}
-    
+
     # Engagement health (25% weight) - based on recent activities
     last_activity = db.query(func.max(CRMActivity.activity_date)).filter(
         CRMActivity.customer_id == customer_id,
         CRMActivity.activity_date >= datetime.utcnow() - timedelta(days=90)
     ).scalar()
-    
+
     if last_activity:
         days_since = (datetime.utcnow().date() - last_activity.date()).days
         engagement_health = max(100 - (days_since * 2), 0)
     else:
         engagement_health = 0
-    
+
     health_factors["engagement"] = {"score": engagement_health, "weight": 0.25}
-    
+
     # Support health (20% weight) - based on support tickets
     open_tickets = db.query(SupportTicket).filter(
         SupportTicket.customer_id == customer_id,
         SupportTicket.status.in_([SupportTicketStatus.OPEN, SupportTicketStatus.IN_PROGRESS])
     ).count()
-    
+
     recent_tickets = db.query(SupportTicket).filter(
         SupportTicket.customer_id == customer_id,
         SupportTicket.created_date >= datetime.utcnow() - timedelta(days=30)
     ).count()
-    
+
     support_health = max(100 - (open_tickets * 15) - (recent_tickets * 5), 0)
     health_factors["support"] = {"score": support_health, "weight": 0.2}
-    
+
     # Payment health (15% weight) - based on payment behavior
     # This would require payment/invoice data - placeholder for now
     payment_health = customer.health_score * 20 if customer.health_score else 75
     health_factors["payment"] = {"score": payment_health, "weight": 0.15}
-    
+
     # Product usage health (10% weight) - placeholder
     usage_health = 75  # Would be calculated based on product usage data
     health_factors["usage"] = {"score": usage_health, "weight": 0.1}
-    
+
     # Calculate overall health score
     overall_score = sum(
-        factor["score"] * factor["weight"] 
+        factor["score"] * factor["weight"]
         for factor in health_factors.values()
     )
-    
+
     # Update customer health score
     customer.health_score = Decimal(overall_score / 20)  # Convert to 0-5 scale
     db.commit()
-    
+
     # Determine health status
     if overall_score >= 80:
         health_status = "healthy"
@@ -230,7 +225,7 @@ def calculate_customer_health_score(db: Session, customer_id: str) -> Dict[str, 
         health_status = "unhealthy"
     else:
         health_status = "critical"
-    
+
     return {
         "customer_id": customer_id,
         "overall_health_score": round(overall_score, 2),
@@ -255,7 +250,7 @@ def get_customer_revenue_months_ago(db: Session, customer_id: str, start_months:
 def generate_customer_health_recommendations(health_factors: Dict[str, Any]) -> List[str]:
     """Generate recommendations based on health factors."""
     recommendations = []
-    
+
     for factor_name, factor_data in health_factors.items():
         if factor_data["score"] < 60:
             if factor_name == "revenue":
@@ -268,10 +263,10 @@ def generate_customer_health_recommendations(health_factors: Dict[str, Any]) -> 
                 recommendations.append("Review payment terms and credit limits")
             elif factor_name == "usage":
                 recommendations.append("Provide additional training or onboarding")
-    
+
     if not recommendations:
         recommendations.append("Customer appears healthy - maintain regular contact")
-    
+
     return recommendations
 
 
@@ -287,22 +282,22 @@ def create_contact(db: Session, contact_data: Any) -> ContactExtended:
     ).first()
     if not customer:
         raise ValueError("Customer not found")
-    
+
     contact = ContactExtended(**contact_data.model_dump())
     contact.created_by = getattr(contact_data, 'created_by', 'system')
-    
+
     # Set as primary contact if it's the first contact for this customer
     existing_contacts = db.query(ContactExtended).filter(
         ContactExtended.customer_id == contact_data.customer_id
     ).count()
-    
+
     if existing_contacts == 0:
         contact.is_primary = True
-    
+
     db.add(contact)
     db.commit()
     db.refresh(contact)
-    
+
     return contact
 
 
@@ -322,7 +317,7 @@ def get_contacts(
 ) -> List[ContactExtended]:
     """Get contacts with filtering and pagination."""
     query = db.query(ContactExtended)
-    
+
     if filters:
         if "customer_id" in filters:
             query = query.filter(ContactExtended.customer_id == filters["customer_id"])
@@ -346,7 +341,7 @@ def get_contacts(
                     ContactExtended.job_title.ilike(search)
                 )
             )
-    
+
     return query.options(
         joinedload(ContactExtended.customer)
     ).offset(skip).limit(limit).all()
@@ -357,17 +352,17 @@ def update_contact(db: Session, contact_id: str, contact_data: Any) -> Optional[
     contact = db.query(ContactExtended).filter(ContactExtended.id == contact_id).first()
     if not contact:
         return None
-    
+
     update_data = contact_data.model_dump(exclude_unset=True)
-    
+
     for field, value in update_data.items():
         setattr(contact, field, value)
-    
+
     contact.updated_at = datetime.utcnow()
-    
+
     db.commit()
     db.refresh(contact)
-    
+
     return contact
 
 
@@ -384,24 +379,24 @@ def create_lead(db: Session, lead_data: Any) -> LeadExtended:
             LeadExtended.organization_id == org_id
         ).count()
         lead_data.lead_number = f"LEAD-{org_id[:3].upper()}-{count + 1:05d}"
-    
+
     lead = LeadExtended(**lead_data.model_dump())
     lead.created_by = getattr(lead_data, 'created_by', 'system')
-    
+
     # Calculate initial lead score
     lead.lead_score = calculate_lead_score(lead)
-    
+
     db.add(lead)
     db.commit()
     db.refresh(lead)
-    
+
     return lead
 
 
 def calculate_lead_score(lead: LeadExtended) -> int:
     """Calculate lead score based on various factors."""
     score = 0
-    
+
     # Company size scoring
     if lead.company_size:
         size_scores = {
@@ -412,25 +407,25 @@ def calculate_lead_score(lead: LeadExtended) -> int:
             "enterprise": 100
         }
         score += size_scores.get(lead.company_size, 0)
-    
+
     # Industry scoring (some industries might be more valuable)
     if lead.industry:
         # Placeholder - would be customized based on business
         score += 30
-    
+
     # Budget range scoring
     if lead.budget_range:
         # Would parse budget range and score accordingly
         score += 25
-    
+
     # Decision maker bonus
     if lead.decision_maker:
         score += 30
-    
+
     # Need identified bonus
     if lead.need_identified:
         score += 25
-    
+
     return min(score, 100)  # Cap at 100
 
 
@@ -451,7 +446,7 @@ def get_leads(
 ) -> List[LeadExtended]:
     """Get leads with filtering and pagination."""
     query = db.query(LeadExtended)
-    
+
     if filters:
         if "organization_id" in filters:
             query = query.filter(LeadExtended.organization_id == filters["organization_id"])
@@ -477,7 +472,7 @@ def get_leads(
                     LeadExtended.email.ilike(search)
                 )
             )
-    
+
     return query.options(
         joinedload(LeadExtended.assigned_to),
         joinedload(LeadExtended.campaign)
@@ -489,29 +484,29 @@ def update_lead(db: Session, lead_id: str, lead_data: Any) -> Optional[LeadExten
     lead = db.query(LeadExtended).filter(LeadExtended.id == lead_id).first()
     if not lead:
         return None
-    
+
     update_data = lead_data.model_dump(exclude_unset=True)
-    
+
     for field, value in update_data.items():
         setattr(lead, field, value)
-    
+
     # Recalculate lead score
     lead.lead_score = calculate_lead_score(lead)
-    
+
     # Auto-qualify lead if score is high enough
     if lead.lead_score >= 70 and not lead.is_qualified:
         lead.is_qualified = True
         lead.is_sales_qualified = True
-    
+
     # Update status based on qualification
     if lead.is_qualified and lead.status == LeadStatus.NEW:
         lead.status = LeadStatus.QUALIFIED
-    
+
     lead.updated_at = datetime.utcnow()
-    
+
     db.commit()
     db.refresh(lead)
-    
+
     return lead
 
 
@@ -524,10 +519,10 @@ def convert_lead_to_customer(
     lead = db.query(LeadExtended).filter(LeadExtended.id == lead_id).first()
     if not lead:
         raise ValueError("Lead not found")
-    
+
     if not lead.is_qualified:
         raise ValueError("Lead must be qualified before conversion")
-    
+
     # Create customer from lead data
     customer_create_data = {
         "organization_id": lead.organization_id,
@@ -548,16 +543,16 @@ def convert_lead_to_customer(
         "acquisition_date": date.today(),
         "created_by": "system"
     }
-    
+
     # Override with any provided customer data
     if customer_data:
         customer_create_data.update(customer_data)
-    
+
     # Create customer
     from app.schemas.crm_v31 import CustomerCreate
     customer_schema = CustomerCreate(**customer_create_data)
     customer = create_customer(db, customer_schema)
-    
+
     # Create primary contact from lead
     contact_create_data = {
         "customer_id": customer.id,
@@ -572,18 +567,18 @@ def convert_lead_to_customer(
         "is_decision_maker": lead.decision_maker,
         "created_by": "system"
     }
-    
+
     from app.schemas.crm_v31 import ContactCreate
     contact_schema = ContactCreate(**contact_create_data)
     contact = create_contact(db, contact_schema)
-    
+
     # Update lead status
     lead.status = LeadStatus.CONVERTED
     lead.customer_id = customer.id
     lead.conversion_date = datetime.utcnow()
-    
+
     db.commit()
-    
+
     return {
         "lead_id": lead_id,
         "customer_id": customer.id,
@@ -604,7 +599,7 @@ def create_opportunity(db: Session, opportunity_data: Any) -> OpportunityExtende
     ).first()
     if not customer:
         raise ValueError("Customer not found")
-    
+
     # Generate unique opportunity number if not provided
     if not hasattr(opportunity_data, 'opportunity_number') or not opportunity_data.opportunity_number:
         org_id = opportunity_data.organization_id
@@ -612,18 +607,18 @@ def create_opportunity(db: Session, opportunity_data: Any) -> OpportunityExtende
             OpportunityExtended.organization_id == org_id
         ).count()
         opportunity_data.opportunity_number = f"OPP-{org_id[:3].upper()}-{count + 1:05d}"
-    
+
     opportunity = OpportunityExtended(**opportunity_data.model_dump())
     opportunity.created_by = getattr(opportunity_data, 'created_by', 'system')
-    
+
     # Calculate weighted amount
     if opportunity.amount and opportunity.probability:
         opportunity.weighted_amount = opportunity.amount * (opportunity.probability / 100)
-    
+
     db.add(opportunity)
     db.commit()
     db.refresh(opportunity)
-    
+
     return opportunity
 
 
@@ -644,7 +639,7 @@ def get_opportunities(
 ) -> List[OpportunityExtended]:
     """Get opportunities with filtering and pagination."""
     query = db.query(OpportunityExtended)
-    
+
     if filters:
         if "organization_id" in filters:
             query = query.filter(OpportunityExtended.organization_id == filters["organization_id"])
@@ -664,7 +659,7 @@ def get_opportunities(
             query = query.filter(OpportunityExtended.expected_close_date >= filters["expected_close_date_from"])
         if "expected_close_date_to" in filters:
             query = query.filter(OpportunityExtended.expected_close_date <= filters["expected_close_date_to"])
-    
+
     return query.options(
         joinedload(OpportunityExtended.customer),
         joinedload(OpportunityExtended.sales_rep)
@@ -676,26 +671,26 @@ def update_opportunity(db: Session, opportunity_id: str, opportunity_data: Any) 
     opportunity = db.query(OpportunityExtended).filter(OpportunityExtended.id == opportunity_id).first()
     if not opportunity:
         return None
-    
+
     update_data = opportunity_data.model_dump(exclude_unset=True)
-    
+
     for field, value in update_data.items():
         setattr(opportunity, field, value)
-    
+
     # Recalculate weighted amount
     if opportunity.amount and opportunity.probability:
         opportunity.weighted_amount = opportunity.amount * (opportunity.probability / 100)
-    
+
     # Set close date if won or lost
     if opportunity.stage in [OpportunityStage.CLOSED_WON, OpportunityStage.CLOSED_LOST]:
         if not opportunity.actual_close_date:
             opportunity.actual_close_date = date.today()
-    
+
     opportunity.updated_at = datetime.utcnow()
-    
+
     db.commit()
     db.refresh(opportunity)
-    
+
     return opportunity
 
 
@@ -706,16 +701,16 @@ def update_opportunity(db: Session, opportunity_id: str, opportunity_data: Any) 
 def create_activity(db: Session, activity_data: Any) -> CRMActivity:
     """Create a new CRM activity."""
     activity = CRMActivity(**activity_data.model_dump())
-    
+
     # Auto-complete if activity date is in the past
     if activity.activity_date < datetime.utcnow():
         activity.is_completed = True
         activity.completion_date = activity.activity_date
-    
+
     db.add(activity)
     db.commit()
     db.refresh(activity)
-    
+
     return activity
 
 
@@ -727,7 +722,7 @@ def get_activities(
 ) -> List[CRMActivity]:
     """Get activities with filtering."""
     query = db.query(CRMActivity)
-    
+
     if filters:
         if "customer_id" in filters:
             query = query.filter(CRMActivity.customer_id == filters["customer_id"])
@@ -747,7 +742,7 @@ def get_activities(
             query = query.filter(CRMActivity.activity_date >= filters["date_from"])
         if "date_to" in filters:
             query = query.filter(CRMActivity.activity_date <= filters["date_to"])
-    
+
     return query.options(
         joinedload(CRMActivity.customer),
         joinedload(CRMActivity.contact),
@@ -760,17 +755,17 @@ def update_activity(db: Session, activity_id: str, activity_data: Any) -> Option
     activity = db.query(CRMActivity).filter(CRMActivity.id == activity_id).first()
     if not activity:
         return None
-    
+
     update_data = activity_data.model_dump(exclude_unset=True)
-    
+
     for field, value in update_data.items():
         setattr(activity, field, value)
-    
+
     activity.updated_at = datetime.utcnow()
-    
+
     db.commit()
     db.refresh(activity)
-    
+
     return activity
 
 
@@ -787,14 +782,14 @@ def create_campaign(db: Session, campaign_data: Any) -> CampaignExtended:
             CampaignExtended.organization_id == org_id
         ).count()
         campaign_data.campaign_code = f"CAMP-{org_id[:3].upper()}-{count + 1:04d}"
-    
+
     campaign = CampaignExtended(**campaign_data.model_dump())
     campaign.created_by = getattr(campaign_data, 'created_by', 'system')
-    
+
     db.add(campaign)
     db.commit()
     db.refresh(campaign)
-    
+
     return campaign
 
 
@@ -813,7 +808,7 @@ def get_campaigns(
 ) -> List[CampaignExtended]:
     """Get campaigns with filtering."""
     query = db.query(CampaignExtended)
-    
+
     if filters:
         if "organization_id" in filters:
             query = query.filter(CampaignExtended.organization_id == filters["organization_id"])
@@ -823,7 +818,7 @@ def get_campaigns(
             query = query.filter(CampaignExtended.status == filters["status"])
         if "is_active" in filters:
             query = query.filter(CampaignExtended.is_active == filters["is_active"])
-    
+
     return query.offset(skip).limit(limit).all()
 
 
@@ -832,28 +827,28 @@ def update_campaign(db: Session, campaign_id: str, campaign_data: Any) -> Option
     campaign = db.query(CampaignExtended).filter(CampaignExtended.id == campaign_id).first()
     if not campaign:
         return None
-    
+
     update_data = campaign_data.model_dump(exclude_unset=True)
-    
+
     for field, value in update_data.items():
         setattr(campaign, field, value)
-    
+
     # Calculate ROI if we have cost and revenue data
     if campaign.actual_cost and campaign.revenue_generated:
         if campaign.actual_cost > 0:
             campaign.roi_percentage = ((campaign.revenue_generated - campaign.actual_cost) / campaign.actual_cost) * 100
             campaign.roas = campaign.revenue_generated / campaign.actual_cost
-    
+
     # Calculate cost per lead
     if campaign.actual_cost and campaign.leads_generated:
         if campaign.leads_generated > 0:
             campaign.cost_per_lead = campaign.actual_cost / campaign.leads_generated
-    
+
     campaign.updated_at = datetime.utcnow()
-    
+
     db.commit()
     db.refresh(campaign)
-    
+
     return campaign
 
 
@@ -869,7 +864,7 @@ def create_support_ticket(db: Session, ticket_data: Any) -> SupportTicket:
     ).first()
     if not customer:
         raise ValueError("Customer not found")
-    
+
     # Generate unique ticket number if not provided
     if not hasattr(ticket_data, 'ticket_number') or not ticket_data.ticket_number:
         org_id = ticket_data.organization_id
@@ -877,10 +872,10 @@ def create_support_ticket(db: Session, ticket_data: Any) -> SupportTicket:
             SupportTicket.organization_id == org_id
         ).count()
         ticket_data.ticket_number = f"TICK-{org_id[:3].upper()}-{count + 1:05d}"
-    
+
     ticket = SupportTicket(**ticket_data.model_dump())
     ticket.created_date = ticket.created_date or datetime.utcnow()
-    
+
     # Set SLA due date based on priority
     if ticket.priority:
         sla_hours = {
@@ -892,11 +887,11 @@ def create_support_ticket(db: Session, ticket_data: Any) -> SupportTicket:
         }
         hours = sla_hours.get(ticket.priority.value, 24)
         ticket.sla_due_date = ticket.created_date + timedelta(hours=hours)
-    
+
     db.add(ticket)
     db.commit()
     db.refresh(ticket)
-    
+
     return ticket
 
 
@@ -917,7 +912,7 @@ def get_support_tickets(
 ) -> List[SupportTicket]:
     """Get support tickets with filtering."""
     query = db.query(SupportTicket)
-    
+
     if filters:
         if "customer_id" in filters:
             query = query.filter(SupportTicket.customer_id == filters["customer_id"])
@@ -929,7 +924,7 @@ def get_support_tickets(
             query = query.filter(SupportTicket.assigned_to_id == filters["assigned_to_id"])
         if "is_escalated" in filters:
             query = query.filter(SupportTicket.is_escalated == filters["is_escalated"])
-    
+
     return query.options(
         joinedload(SupportTicket.customer),
         joinedload(SupportTicket.assigned_to)
@@ -941,9 +936,9 @@ def update_support_ticket(db: Session, ticket_id: str, ticket_data: Any) -> Opti
     ticket = db.query(SupportTicket).filter(SupportTicket.id == ticket_id).first()
     if not ticket:
         return None
-    
+
     update_data = ticket_data.model_dump(exclude_unset=True)
-    
+
     # Track first response time
     if "status" in update_data and not ticket.first_response_date:
         if update_data["status"] != "open":
@@ -952,10 +947,10 @@ def update_support_ticket(db: Session, ticket_id: str, ticket_data: Any) -> Opti
                 ticket.response_time_minutes = int(
                     (ticket.first_response_date - ticket.created_date).total_seconds() / 60
                 )
-    
+
     for field, value in update_data.items():
         setattr(ticket, field, value)
-    
+
     # Set resolution date if ticket is resolved
     if ticket.status == SupportTicketStatus.RESOLVED and not ticket.resolved_date:
         ticket.resolved_date = datetime.utcnow()
@@ -963,17 +958,17 @@ def update_support_ticket(db: Session, ticket_id: str, ticket_data: Any) -> Opti
             ticket.resolution_time_minutes = int(
                 (ticket.resolved_date - ticket.created_date).total_seconds() / 60
             )
-    
+
     # Check for SLA breach
     if ticket.sla_due_date and datetime.utcnow() > ticket.sla_due_date:
         if ticket.status not in [SupportTicketStatus.RESOLVED, SupportTicketStatus.CLOSED]:
             ticket.sla_breached = True
-    
+
     ticket.updated_at = datetime.utcnow()
-    
+
     db.commit()
     db.refresh(ticket)
-    
+
     return ticket
 
 
@@ -989,28 +984,28 @@ def get_crm_dashboard_metrics(db: Session, organization_id: str, date_from: date
         func.date(LeadExtended.created_at) >= date_from,
         func.date(LeadExtended.created_at) <= date_to
     ).count()
-    
+
     leads_converted = db.query(LeadExtended).filter(
         LeadExtended.organization_id == organization_id,
         LeadExtended.status == LeadStatus.CONVERTED,
         func.date(LeadExtended.conversion_date) >= date_from,
         func.date(LeadExtended.conversion_date) <= date_to
     ).count()
-    
+
     # Opportunity metrics
     opportunities_created = db.query(OpportunityExtended).filter(
         OpportunityExtended.organization_id == organization_id,
         func.date(OpportunityExtended.created_at) >= date_from,
         func.date(OpportunityExtended.created_at) <= date_to
     ).count()
-    
+
     opportunities_won = db.query(OpportunityExtended).filter(
         OpportunityExtended.organization_id == organization_id,
         OpportunityExtended.stage == OpportunityStage.CLOSED_WON,
         OpportunityExtended.actual_close_date >= date_from,
         OpportunityExtended.actual_close_date <= date_to
     ).count()
-    
+
     # Revenue metrics
     total_revenue = db.query(func.sum(OpportunityExtended.amount)).filter(
         OpportunityExtended.organization_id == organization_id,
@@ -1018,28 +1013,28 @@ def get_crm_dashboard_metrics(db: Session, organization_id: str, date_from: date
         OpportunityExtended.actual_close_date >= date_from,
         OpportunityExtended.actual_close_date <= date_to
     ).scalar() or 0
-    
+
     # Pipeline value
     pipeline_value = db.query(func.sum(OpportunityExtended.amount)).filter(
         OpportunityExtended.organization_id == organization_id,
-        OpportunityExtended.is_active == True,
+        OpportunityExtended.is_active,
         OpportunityExtended.stage.notin_([OpportunityStage.CLOSED_WON, OpportunityStage.CLOSED_LOST])
     ).scalar() or 0
-    
+
     # Customer metrics
     new_customers = db.query(CustomerExtended).filter(
         CustomerExtended.organization_id == organization_id,
         CustomerExtended.acquisition_date >= date_from,
         CustomerExtended.acquisition_date <= date_to
     ).count()
-    
+
     # Activity metrics
     total_activities = db.query(CRMActivity).filter(
         CRMActivity.organization_id == organization_id,
         func.date(CRMActivity.activity_date) >= date_from,
         func.date(CRMActivity.activity_date) <= date_to
     ).count()
-    
+
     return {
         "organization_id": organization_id,
         "period_start": date_from,

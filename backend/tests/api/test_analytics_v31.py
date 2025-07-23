@@ -14,34 +14,26 @@ Comprehensive test suite for analytics API including:
 - Compliance Analytics & Risk Management
 """
 
-import json
-import pytest
-from datetime import datetime, date, timedelta
+from datetime import datetime
 from decimal import Decimal
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.main import app
 from app.models.analytics_extended import (
-    AnalyticsDataSource,
-    AnalyticsMetric,
-    AnalyticsDataPoint,
+    AnalyticsAlert,
     AnalyticsDashboard,
+    AnalyticsDataPoint,
+    AnalyticsDataSource,
+    AnalyticsInsight,
+    AnalyticsMetric,
+    AnalyticsPrediction,
     AnalyticsReport,
     AnalyticsReportExecution,
-    AnalyticsAlert,
-    AnalyticsPrediction,
-    AnalyticsInsight,
-    AnalyticsAuditLog,
-    AnalyticsType,
-    MetricType,
-    AggregationType,
-    PeriodType,
-    DashboardType,
     ReportStatus,
-    AlertPriority,
 )
 
 client = TestClient(app)
@@ -206,7 +198,7 @@ def sample_prediction_data():
 
 class TestDataSourceAPI:
     """Test cases for analytics data source API endpoints."""
-    
+
     @patch('app.crud.analytics_v31.analytics_service.create_data_source')
     def test_create_data_source_success(self, mock_create, sample_data_source_data):
         """Test successful data source creation."""
@@ -215,24 +207,24 @@ class TestDataSourceAPI:
         mock_data_source.id = "ds-123"
         mock_data_source.created_at = datetime.now()
         mock_create.return_value = mock_data_source
-        
+
         response = client.post("/api/v1/analytics_v31/data-sources", json=sample_data_source_data)
-        
+
         assert response.status_code == 201
         assert response.json()["id"] == "ds-123"
         assert response.json()["name"] == "Sales Database"
         mock_create.assert_called_once()
-    
+
     @patch('app.crud.analytics_v31.analytics_service.create_data_source')
     def test_create_data_source_validation_error(self, mock_create, sample_data_source_data):
         """Test data source creation with validation error."""
         mock_create.side_effect = ValueError("Invalid connection string")
-        
+
         response = client.post("/api/v1/analytics_v31/data-sources", json=sample_data_source_data)
-        
+
         assert response.status_code == 400
         assert "Invalid connection string" in response.json()["detail"]
-    
+
     @patch('app.crud.analytics_v31.analytics_service.list_data_sources')
     def test_list_data_sources_success(self, mock_list):
         """Test successful data source listing."""
@@ -243,36 +235,36 @@ class TestDataSourceAPI:
             "per_page": 50,
             "has_more": False
         }
-        
+
         response = client.get("/api/v1/analytics_v31/data-sources?organization_id=test-org-123")
-        
+
         assert response.status_code == 200
         assert response.json()["total_count"] == 0
         mock_list.assert_called_once()
-    
+
     @patch('app.crud.analytics_v31.analytics_service.get_data_source')
     def test_get_data_source_success(self, mock_get, sample_data_source_data):
         """Test successful data source retrieval."""
         mock_data_source = AnalyticsDataSource(**sample_data_source_data)
         mock_data_source.id = "ds-123"
         mock_get.return_value = mock_data_source
-        
+
         response = client.get("/api/v1/analytics_v31/data-sources/ds-123")
-        
+
         assert response.status_code == 200
         assert response.json()["id"] == "ds-123"
         mock_get.assert_called_once_with(mock_get.call_args[0][0], "ds-123")
-    
+
     @patch('app.crud.analytics_v31.analytics_service.get_data_source')
     def test_get_data_source_not_found(self, mock_get):
         """Test data source retrieval when not found."""
         mock_get.return_value = None
-        
+
         response = client.get("/api/v1/analytics_v31/data-sources/nonexistent")
-        
+
         assert response.status_code == 404
         assert response.json()["detail"] == "Data source not found"
-    
+
     @patch('app.crud.analytics_v31.analytics_service.test_data_source_connection')
     def test_test_data_source_connection_success(self, mock_test):
         """Test successful data source connection testing."""
@@ -281,14 +273,14 @@ class TestDataSourceAPI:
             "connection_time_ms": 150,
             "schema_info": {"tables": ["sales", "customers"]}
         }
-        
+
         test_request = {"test_query": "SELECT 1", "timeout_seconds": 30}
         response = client.post("/api/v1/analytics_v31/data-sources/ds-123/test-connection", json=test_request)
-        
+
         assert response.status_code == 200
         assert response.json()["status"] == "success"
         mock_test.assert_called_once()
-    
+
     @patch('app.crud.analytics_v31.analytics_service.sync_data_source')
     def test_sync_data_source_success(self, mock_sync):
         """Test successful data source synchronization."""
@@ -298,10 +290,10 @@ class TestDataSourceAPI:
             "duration_ms": 5000,
             "errors": []
         }
-        
+
         sync_request = {"full_sync": False, "batch_size": 1000}
         response = client.post("/api/v1/analytics_v31/data-sources/ds-123/sync", json=sync_request)
-        
+
         assert response.status_code == 200
         assert response.json()["status"] == "completed"
         assert response.json()["records_processed"] == 1000
@@ -314,7 +306,7 @@ class TestDataSourceAPI:
 
 class TestMetricsAPI:
     """Test cases for analytics metrics API endpoints."""
-    
+
     @patch('app.crud.analytics_v31.analytics_service.create_metric')
     def test_create_metric_success(self, mock_create, sample_metric_data):
         """Test successful metric creation."""
@@ -322,14 +314,14 @@ class TestMetricsAPI:
         mock_metric.id = "metric-123"
         mock_metric.created_at = datetime.now()
         mock_create.return_value = mock_metric
-        
+
         response = client.post("/api/v1/analytics_v31/metrics", json=sample_metric_data)
-        
+
         assert response.status_code == 201
         assert response.json()["id"] == "metric-123"
         assert response.json()["name"] == "Monthly Revenue"
         mock_create.assert_called_once()
-    
+
     @patch('app.crud.analytics_v31.analytics_service.list_metrics')
     def test_list_metrics_with_filters(self, mock_list):
         """Test metric listing with filters."""
@@ -340,17 +332,17 @@ class TestMetricsAPI:
             "per_page": 50,
             "has_more": False
         }
-        
+
         response = client.get(
             "/api/v1/analytics_v31/metrics"
             "?organization_id=test-org-123"
             "&analytics_type=financial"
             "&is_active=true"
         )
-        
+
         assert response.status_code == 200
         mock_list.assert_called_once()
-    
+
     @patch('app.crud.analytics_v31.analytics_service.calculate_metric')
     def test_calculate_metric_success(self, mock_calculate):
         """Test successful metric calculation."""
@@ -362,18 +354,18 @@ class TestMetricsAPI:
             "period_end": "2024-01-31",
             "data_points": 31
         }
-        
+
         calc_request = {
             "period_start": "2024-01-01",
             "period_end": "2024-01-31",
             "force_recalculate": True
         }
         response = client.post("/api/v1/analytics_v31/metrics/metric-123/calculate", json=calc_request)
-        
+
         assert response.status_code == 200
         assert response.json()["value"] == 85000.50
         mock_calculate.assert_called_once()
-    
+
     @patch('app.crud.analytics_v31.analytics_service.compare_metrics')
     def test_compare_metrics_success(self, mock_compare):
         """Test successful metric comparison."""
@@ -387,7 +379,7 @@ class TestMetricsAPI:
             ],
             "trends": {"metric-123": {"direction": "up", "percentage": 13.33}}
         }
-        
+
         compare_request = {
             "metric_ids": ["metric-123", "metric-456"],
             "periods": [
@@ -397,7 +389,7 @@ class TestMetricsAPI:
             "comparison_type": "period_over_period"
         }
         response = client.post("/api/v1/analytics_v31/metrics/compare", json=compare_request)
-        
+
         assert response.status_code == 200
         assert "comparison_id" in response.json()
         mock_compare.assert_called_once()
@@ -409,7 +401,7 @@ class TestMetricsAPI:
 
 class TestDashboardAPI:
     """Test cases for analytics dashboard API endpoints."""
-    
+
     @patch('app.crud.analytics_v31.analytics_service.create_dashboard')
     def test_create_dashboard_success(self, mock_create, sample_dashboard_data):
         """Test successful dashboard creation."""
@@ -417,14 +409,14 @@ class TestDashboardAPI:
         mock_dashboard.id = "dashboard-123"
         mock_dashboard.created_at = datetime.now()
         mock_create.return_value = mock_dashboard
-        
+
         response = client.post("/api/v1/analytics_v31/dashboards", json=sample_dashboard_data)
-        
+
         assert response.status_code == 201
         assert response.json()["id"] == "dashboard-123"
         assert response.json()["name"] == "Executive Dashboard"
         mock_create.assert_called_once()
-    
+
     @patch('app.crud.analytics_v31.analytics_service.export_dashboard')
     def test_export_dashboard_success(self, mock_export):
         """Test successful dashboard export."""
@@ -435,14 +427,14 @@ class TestDashboardAPI:
             "file_size": 2048576,
             "generated_at": datetime.now().isoformat()
         }
-        
+
         export_request = {
             "format": "pdf",
             "include_data": True,
             "date_range": {"start": "2024-01-01", "end": "2024-01-31"}
         }
         response = client.post("/api/v1/analytics_v31/dashboards/dashboard-123/export", json=export_request)
-        
+
         assert response.status_code == 200
         assert response.json()["format"] == "pdf"
         mock_export.assert_called_once()
@@ -454,7 +446,7 @@ class TestDashboardAPI:
 
 class TestReportAPI:
     """Test cases for analytics report API endpoints."""
-    
+
     @patch('app.crud.analytics_v31.analytics_service.create_report')
     def test_create_report_success(self, mock_create, sample_report_data):
         """Test successful report creation."""
@@ -462,14 +454,14 @@ class TestReportAPI:
         mock_report.id = "report-123"
         mock_report.created_at = datetime.now()
         mock_create.return_value = mock_report
-        
+
         response = client.post("/api/v1/analytics_v31/reports", json=sample_report_data)
-        
+
         assert response.status_code == 201
         assert response.json()["id"] == "report-123"
         assert response.json()["name"] == "Monthly Financial Report"
         mock_create.assert_called_once()
-    
+
     @patch('app.crud.analytics_v31.analytics_service.generate_report')
     def test_generate_report_success(self, mock_generate):
         """Test successful report generation."""
@@ -484,26 +476,26 @@ class TestReportAPI:
             duration_ms=5000
         )
         mock_generate.return_value = mock_execution
-        
+
         gen_request = {
             "parameters": {"period": "monthly"},
             "output_format": "pdf",
             "priority": "high"
         }
         response = client.post("/api/v1/analytics_v31/reports/report-123/generate", json=gen_request)
-        
+
         assert response.status_code == 200
         assert response.json()["id"] == "exec-123"
         assert response.json()["status"] == "completed"
         mock_generate.assert_called_once()
-    
+
     @patch('app.crud.analytics_v31.analytics_service.list_report_executions')
     def test_list_report_executions_success(self, mock_list):
         """Test successful report execution listing."""
         mock_list.return_value = []
-        
+
         response = client.get("/api/v1/analytics_v31/reports/report-123/executions")
-        
+
         assert response.status_code == 200
         assert isinstance(response.json(), list)
         mock_list.assert_called_once()
@@ -515,7 +507,7 @@ class TestReportAPI:
 
 class TestAlertAPI:
     """Test cases for analytics alert API endpoints."""
-    
+
     @patch('app.crud.analytics_v31.analytics_service.create_alert')
     def test_create_alert_success(self, mock_create, sample_alert_data):
         """Test successful alert creation."""
@@ -523,14 +515,14 @@ class TestAlertAPI:
         mock_alert.id = "alert-123"
         mock_alert.created_at = datetime.now()
         mock_create.return_value = mock_alert
-        
+
         response = client.post("/api/v1/analytics_v31/alerts", json=sample_alert_data)
-        
+
         assert response.status_code == 201
         assert response.json()["id"] == "alert-123"
         assert response.json()["name"] == "Revenue Alert"
         mock_create.assert_called_once()
-    
+
     @patch('app.crud.analytics_v31.analytics_service.evaluate_alert')
     def test_evaluate_alert_success(self, mock_evaluate):
         """Test successful alert evaluation."""
@@ -542,13 +534,13 @@ class TestAlertAPI:
             "triggered": True,
             "evaluated_at": datetime.now().isoformat()
         }
-        
+
         eval_request = {
             "force_evaluation": True,
             "test_mode": False
         }
         response = client.post("/api/v1/analytics_v31/alerts/alert-123/evaluate", json=eval_request)
-        
+
         assert response.status_code == 200
         assert response.json()["triggered"] is True
         mock_evaluate.assert_called_once()
@@ -560,7 +552,7 @@ class TestAlertAPI:
 
 class TestPredictionAPI:
     """Test cases for analytics prediction API endpoints."""
-    
+
     @patch('app.crud.analytics_v31.analytics_service.create_prediction')
     def test_create_prediction_success(self, mock_create, sample_prediction_data):
         """Test successful prediction creation."""
@@ -568,14 +560,14 @@ class TestPredictionAPI:
         mock_prediction.id = "pred-123"
         mock_prediction.created_at = datetime.now()
         mock_create.return_value = mock_prediction
-        
+
         response = client.post("/api/v1/analytics_v31/predictions", json=sample_prediction_data)
-        
+
         assert response.status_code == 201
         assert response.json()["id"] == "pred-123"
         assert response.json()["name"] == "Revenue Forecast"
         mock_create.assert_called_once()
-    
+
     @patch('app.crud.analytics_v31.analytics_service.train_prediction_model')
     def test_train_prediction_model_success(self, mock_train):
         """Test successful prediction model training."""
@@ -589,7 +581,7 @@ class TestPredictionAPI:
             "training_duration_seconds": 180,
             "data_points_used": 1000
         }
-        
+
         train_request = {
             "training_period_start": "2023-01-01",
             "training_period_end": "2024-01-31",
@@ -597,11 +589,11 @@ class TestPredictionAPI:
             "hyperparameters": {"learning_rate": 0.01}
         }
         response = client.post("/api/v1/analytics_v31/predictions/pred-123/train", json=train_request)
-        
+
         assert response.status_code == 200
         assert response.json()["accuracy_score"] == 0.92
         mock_train.assert_called_once()
-    
+
     @patch('app.crud.analytics_v31.analytics_service.get_prediction_forecast')
     def test_get_prediction_forecast_success(self, mock_forecast):
         """Test successful prediction forecast retrieval."""
@@ -614,9 +606,9 @@ class TestPredictionAPI:
             "model_accuracy": 0.92,
             "generated_at": datetime.now().isoformat()
         }
-        
+
         response = client.get("/api/v1/analytics_v31/predictions/pred-123/forecast?days_ahead=30")
-        
+
         assert response.status_code == 200
         assert len(response.json()["forecast_data"]) == 2
         mock_forecast.assert_called_once()
@@ -628,7 +620,7 @@ class TestPredictionAPI:
 
 class TestInsightAPI:
     """Test cases for analytics insight API endpoints."""
-    
+
     @patch('app.crud.analytics_v31.analytics_service.list_insights')
     def test_list_insights_success(self, mock_list):
         """Test successful insight listing."""
@@ -639,13 +631,13 @@ class TestInsightAPI:
             "per_page": 50,
             "has_more": False
         }
-        
+
         response = client.get("/api/v1/analytics_v31/insights?organization_id=test-org-123")
-        
+
         assert response.status_code == 200
         assert response.json()["total_count"] == 0
         mock_list.assert_called_once()
-    
+
     @patch('app.crud.analytics_v31.analytics_service.generate_insights')
     def test_generate_insights_success(self, mock_generate):
         """Test successful insight generation."""
@@ -663,7 +655,7 @@ class TestInsightAPI:
             )
         ]
         mock_generate.return_value = mock_insights
-        
+
         gen_request = {
             "organization_id": "test-org-123",
             "analysis_period": {"start": "2024-01-01", "end": "2024-01-31"},
@@ -671,12 +663,12 @@ class TestInsightAPI:
             "insight_types": ["trend_analysis", "anomaly_detection"]
         }
         response = client.post("/api/v1/analytics_v31/insights/generate", json=gen_request)
-        
+
         assert response.status_code == 200
         assert len(response.json()) == 1
         assert response.json()[0]["title"] == "Revenue Trend Analysis"
         mock_generate.assert_called_once()
-    
+
     @patch('app.crud.analytics_v31.analytics_service.acknowledge_insight')
     def test_acknowledge_insight_success(self, mock_acknowledge):
         """Test successful insight acknowledgment."""
@@ -686,9 +678,9 @@ class TestInsightAPI:
             "acknowledged_at": datetime.now().isoformat(),
             "status": "acknowledged"
         }
-        
+
         response = client.put("/api/v1/analytics_v31/insights/insight-123/acknowledge?user_id=user-123")
-        
+
         assert response.status_code == 200
         assert response.json()["status"] == "acknowledged"
         mock_acknowledge.assert_called_once()
@@ -700,7 +692,7 @@ class TestInsightAPI:
 
 class TestAdvancedAnalytics:
     """Test cases for advanced analytics features."""
-    
+
     @patch('app.crud.analytics_v31.analytics_service.execute_analytics_query')
     def test_execute_analytics_query_success(self, mock_execute):
         """Test successful advanced analytics query execution."""
@@ -714,7 +706,7 @@ class TestAdvancedAnalytics:
             "rows_returned": 2,
             "executed_at": datetime.now().isoformat()
         }
-        
+
         query_request = {
             "organization_id": "test-org-123",
             "query_type": "aggregation",
@@ -725,11 +717,11 @@ class TestAdvancedAnalytics:
             "aggregations": {"revenue": "sum", "customer_count": "distinct"}
         }
         response = client.post("/api/v1/analytics_v31/query", json=query_request)
-        
+
         assert response.status_code == 200
         assert len(response.json()["results"]) == 2
         mock_execute.assert_called_once()
-    
+
     @patch('app.crud.analytics_v31.analytics_service.get_analytics_health')
     def test_get_analytics_health_success(self, mock_health):
         """Test successful analytics health check."""
@@ -747,9 +739,9 @@ class TestAdvancedAnalytics:
             "version": "v31.0",
             "checked_at": datetime.now().isoformat()
         }
-        
+
         response = client.get("/api/v1/analytics_v31/health")
-        
+
         assert response.status_code == 200
         assert response.json()["status"] == "healthy"
         assert response.json()["version"] == "v31.0"
@@ -762,7 +754,7 @@ class TestAdvancedAnalytics:
 
 class TestDataPointAPI:
     """Test cases for analytics data point API endpoints."""
-    
+
     @patch('app.crud.analytics_v31.analytics_service.create_data_point')
     def test_create_data_point_success(self, mock_create):
         """Test successful data point creation."""
@@ -776,17 +768,17 @@ class TestDataPointAPI:
             "count": 1,
             "dimensions": {"department": "sales", "region": "north"}
         }
-        
+
         mock_data_point = AnalyticsDataPoint(**sample_data)
         mock_data_point.id = "dp-123"
         mock_create.return_value = mock_data_point
-        
+
         response = client.post("/api/v1/analytics_v31/data-points", json=sample_data)
-        
+
         assert response.status_code == 201
         assert response.json()["id"] == "dp-123"
         mock_create.assert_called_once()
-    
+
     @patch('app.crud.analytics_v31.analytics_service.query_data_points')
     def test_query_data_points_success(self, mock_query):
         """Test successful data point querying."""
@@ -796,7 +788,7 @@ class TestDataPointAPI:
             "aggregations": {"sum": 0, "avg": 0, "count": 0},
             "query_time_ms": 45
         }
-        
+
         query_request = {
             "organization_id": "test-org-123",
             "metric_ids": ["metric-123"],
@@ -806,7 +798,7 @@ class TestDataPointAPI:
             "aggregations": ["sum", "avg", "count"]
         }
         response = client.post("/api/v1/analytics_v31/data-points/query", json=query_request)
-        
+
         assert response.status_code == 200
         assert "aggregations" in response.json()
         mock_query.assert_called_once()
@@ -818,35 +810,35 @@ class TestDataPointAPI:
 
 class TestErrorHandling:
     """Test cases for error handling scenarios."""
-    
+
     @patch('app.crud.analytics_v31.analytics_service.create_data_source')
     def test_internal_server_error(self, mock_create, sample_data_source_data):
         """Test handling of internal server errors."""
         mock_create.side_effect = Exception("Database connection failed")
-        
+
         response = client.post("/api/v1/analytics_v31/data-sources", json=sample_data_source_data)
-        
+
         assert response.status_code == 500
         assert "Failed to create data source" in response.json()["detail"]
-    
+
     def test_invalid_request_data(self):
         """Test handling of invalid request data."""
         invalid_data = {
             "organization_id": "",  # Empty organization_id
             "name": "",  # Empty name
         }
-        
+
         response = client.post("/api/v1/analytics_v31/data-sources", json=invalid_data)
-        
+
         assert response.status_code == 422  # Validation error
-    
+
     @patch('app.crud.analytics_v31.analytics_service.delete_data_source')
     def test_delete_nonexistent_resource(self, mock_delete):
         """Test deletion of non-existent resource."""
         mock_delete.return_value = False
-        
+
         response = client.delete("/api/v1/analytics_v31/data-sources/nonexistent")
-        
+
         assert response.status_code == 404
         assert response.json()["detail"] == "Data source not found"
 
@@ -857,7 +849,7 @@ class TestErrorHandling:
 
 class TestIntegration:
     """Integration test cases for analytics API workflows."""
-    
+
     @patch('app.crud.analytics_v31.analytics_service')
     def test_complete_analytics_workflow(self, mock_service, sample_data_source_data, sample_metric_data):
         """Test complete analytics workflow from data source to insights."""
@@ -865,28 +857,28 @@ class TestIntegration:
         mock_data_source = AnalyticsDataSource(**sample_data_source_data)
         mock_data_source.id = "ds-123"
         mock_service.create_data_source.return_value = mock_data_source
-        
+
         # Mock metric creation
         sample_metric_data["data_source_id"] = "ds-123"
         mock_metric = AnalyticsMetric(**sample_metric_data)
         mock_metric.id = "metric-123"
         mock_service.create_metric.return_value = mock_metric
-        
+
         # Mock calculation
         mock_service.calculate_metric.return_value = {
             "metric_id": "metric-123",
             "value": 85000.50,
             "calculated_at": datetime.now().isoformat()
         }
-        
+
         # Step 1: Create data source
         ds_response = client.post("/api/v1/analytics_v31/data-sources", json=sample_data_source_data)
         assert ds_response.status_code == 201
-        
+
         # Step 2: Create metric
         metric_response = client.post("/api/v1/analytics_v31/metrics", json=sample_metric_data)
         assert metric_response.status_code == 201
-        
+
         # Step 3: Calculate metric
         calc_request = {
             "period_start": "2024-01-01",
