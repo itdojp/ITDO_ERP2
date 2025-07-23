@@ -130,7 +130,10 @@ api_router.include_router(
 )
 api_router.include_router(reports.router, prefix="/reports", tags=["analytics"])
 
-<<<<<<< HEAD
+# CC02 v35.0 - Security and Monitoring APIs
+api_router.include_router(security_audit_router, prefix="/security/audit", tags=["security"])
+api_router.include_router(performance_router, prefix="/monitoring/performance", tags=["monitoring"])
+
 # CC02 v31.0 Phase 2 - Finance Management API
 api_router.include_router(finance_v31.router, prefix="/finance", tags=["finance-v31"])
 
@@ -139,9 +142,6 @@ api_router.include_router(hr_v31.router, prefix="/hr", tags=["hr-v31"])
 
 # CC02 v31.0 Phase 2 - Project Management API
 api_router.include_router(project_v31.router, prefix="/project", tags=["project-v31"])
-
-# CC02 v31.0 Phase 2 - CRM Management API - Temporarily disabled
-# api_router.include_router(crm_v31.router, prefix="/crm", tags=["crm-v31"])
 
 # CC02 v31.0 Phase 2 - Document Management API
 api_router.include_router(document_v31.router, prefix="/documents", tags=["document-v31"])
@@ -170,11 +170,6 @@ api_router.include_router(workflow_v31.router, prefix="/workflow", tags=["workfl
 from app.api.v1 import audit_v31
 
 api_router.include_router(audit_v31.router, prefix="/audit", tags=["audit-v31"])
-=======
-# CC02 v35.0 - Security and Monitoring APIs
-api_router.include_router(security_audit_router, prefix="/security/audit", tags=["security"])
-api_router.include_router(performance_router, prefix="/monitoring/performance", tags=["monitoring"])
->>>>>>> main
 
 
 @api_router.get("/ping")

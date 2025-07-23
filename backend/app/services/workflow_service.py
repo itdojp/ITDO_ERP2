@@ -27,7 +27,7 @@ from app.schemas.workflow import (
 class WorkflowService:
     """Service for workflow management operations."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     async def create_workflow(self, workflow_data: WorkflowCreate) -> Dict[str, Any]:
