@@ -142,6 +142,19 @@ class ExpenseCategoryTree(BaseModel):
         from_attributes = True
 
 
+class ExpenseCategoryTreeResponse(BaseModel):
+    """Schema for expense category tree response."""
+
+    tree: List[ExpenseCategoryTree] = Field(
+        default_factory=list, description="Category tree structure"
+    )
+    total_categories: int = Field(..., description="Total number of categories")
+    max_depth: int = Field(..., description="Maximum tree depth")
+
+    class Config:
+        from_attributes = True
+
+
 class ExpenseCategoryListResponse(BaseModel):
     """Schema for expense category list responses."""
 
@@ -176,6 +189,18 @@ class ExpenseCategoryMove(BaseModel):
         None, description="New parent category ID (None for root)"
     )
     new_sort_order: Optional[int] = Field(None, description="New sort order")
+
+
+class ExpenseCategoryBulkCreate(BaseModel):
+    """Schema for bulk creating expense categories."""
+
+    categories: List[ExpenseCategoryCreate] = Field(..., description="Categories to create")
+
+    @validator("categories")
+    def validate_categories(cls, v):
+        if not v:
+            raise ValueError("At least one category must be provided")
+        return v
 
 
 class ExpenseCategoryBulkUpdate(BaseModel):
