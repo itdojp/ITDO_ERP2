@@ -137,6 +137,10 @@ api_router.include_router(notification_v31.router, prefix="/notifications", tags
 from app.api.v1 import analytics_v31
 api_router.include_router(analytics_v31.router, prefix="/analytics", tags=["analytics-v31"])
 
+# CC02 v31.0 Phase 2 - Integration API
+from app.api.v1 import integration_v31
+api_router.include_router(integration_v31.router, prefix="/integration", tags=["integration-v31"])
+
 
 @api_router.get("/ping")
 async def ping() -> dict[str, str]:

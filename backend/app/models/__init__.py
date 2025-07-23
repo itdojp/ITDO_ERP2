@@ -119,6 +119,19 @@ from app.models.analytics_extended import (
     AnalyticsInsight,
     AnalyticsAuditLog,
 )
+
+# CC02 v31.0 Phase 2 - Integration System Models
+from app.models.integration_extended import (
+    ExternalSystem,
+    IntegrationConnector,
+    DataMapping,
+    DataTransformation,
+    IntegrationExecution,
+    WebhookEndpoint,
+    WebhookRequest,
+    IntegrationMessage,
+    IntegrationAuditLog,
+)
 from app.models.organization import Organization
 from app.models.password_history import PasswordHistory
 from app.models.permission import Permission
@@ -279,4 +292,14 @@ __all__ = [
     "AnalyticsPrediction",
     "AnalyticsInsight",
     "AnalyticsAuditLog",
+    # CC02 v31.0 Phase 2 - Integration System Models
+    "ExternalSystem",
+    "IntegrationConnector",
+    "DataMapping",
+    "DataTransformation",
+    "IntegrationExecution",
+    "WebhookEndpoint",
+    "WebhookRequest",
+    "IntegrationMessage",
+    "IntegrationAuditLog",
 ]
