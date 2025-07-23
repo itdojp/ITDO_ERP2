@@ -64,6 +64,18 @@ from app.models.project_extended import (
     TaskExtended,
     TimeEntry,
 )
+
+# CC02 v31.0 Phase 2 - CRM Management Models
+from app.models.crm_extended import (
+    CampaignExtended,
+    ContactExtended,
+    CRMActivity,
+    CRMAnalytics,
+    CustomerExtended,
+    LeadExtended,
+    OpportunityExtended,
+    SupportTicket,
+)
 from app.models.organization import Organization
 from app.models.password_history import PasswordHistory
 from app.models.permission import Permission
@@ -181,4 +193,13 @@ __all__ = [
     "TaskDependencyExtended",
     "TaskExtended",
     "TimeEntry",
+    # CC02 v31.0 Phase 2 - CRM Management Models
+    "CampaignExtended",
+    "ContactExtended",
+    "CRMActivity",
+    "CRMAnalytics",
+    "CustomerExtended",
+    "LeadExtended",
+    "OpportunityExtended",
+    "SupportTicket",
 ]

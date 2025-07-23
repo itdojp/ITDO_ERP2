@@ -9,6 +9,7 @@ from app.api.v1 import (
     auth,
     budgets,
     cross_tenant_permissions,
+    crm_v31,  # CC02 v31.0 Phase 2 - CRM Management API
     customer_activities,
     customers,
     departments,
@@ -120,6 +121,9 @@ api_router.include_router(hr_v31.router, prefix="/hr", tags=["hr-v31"])
 
 # CC02 v31.0 Phase 2 - Project Management API
 api_router.include_router(project_v31.router, prefix="/project", tags=["project-v31"])
+
+# CC02 v31.0 Phase 2 - CRM Management API
+api_router.include_router(crm_v31.router, prefix="/crm", tags=["crm-v31"])
 
 
 @api_router.get("/ping")
