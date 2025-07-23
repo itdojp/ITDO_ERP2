@@ -1,17 +1,16 @@
 """Unit tests for performance monitoring API endpoints."""
-import pytest
-from unittest.mock import Mock, AsyncMock, patch
 from datetime import datetime, timedelta
-from fastapi import HTTPException
-from fastapi.testclient import TestClient
+from unittest.mock import Mock, patch
 
+import pytest
+
+from app.models.user import User
 from app.schemas.monitoring.performance import (
     PerformanceMetric,
     PerformanceSummary,
-    SystemHealth,
     ResourceUsage,
+    SystemHealth,
 )
-from app.models.user import User
 
 
 @pytest.fixture
@@ -70,13 +69,13 @@ def sample_resource_usage():
 async def test_log_performance_metric_success(mock_current_user, sample_performance_metric):
     """Test successful performance metric logging."""
     from app.api.v1.endpoints.monitoring.performance import log_performance_metric
-    
+
     # Act
     result = await log_performance_metric(
         metric=sample_performance_metric,
         current_user=mock_current_user,
     )
-    
+
     # Assert
     assert result is not None
     assert "message" in result
@@ -87,7 +86,7 @@ async def test_log_performance_metric_success(mock_current_user, sample_performa
 async def test_get_performance_metrics_success(mock_current_user):
     """Test successful retrieval of performance metrics."""
     from app.api.v1.endpoints.monitoring.performance import get_performance_metrics
-    
+
     # Act
     result = await get_performance_metrics(
         endpoint=None,
@@ -97,7 +96,7 @@ async def test_get_performance_metrics_success(mock_current_user):
         limit=100,
         current_user=mock_current_user,
     )
-    
+
     # Assert
     assert isinstance(result, list)
 
@@ -106,13 +105,13 @@ async def test_get_performance_metrics_success(mock_current_user):
 async def test_get_performance_summary_success(mock_current_user):
     """Test successful retrieval of performance summary."""
     from app.api.v1.endpoints.monitoring.performance import get_performance_summary
-    
+
     # Act
     result = await get_performance_summary(
         hours=24,
         current_user=mock_current_user,
     )
-    
+
     # Assert
     assert isinstance(result, PerformanceSummary)
     assert hasattr(result, 'total_requests')
@@ -127,17 +126,17 @@ async def test_get_system_health_success(mock_current_user, sample_system_health
          patch('psutil.virtual_memory') as mock_memory, \
          patch('psutil.disk_usage') as mock_disk, \
          patch('psutil.boot_time', return_value=datetime.utcnow().timestamp() - 86400):
-        
+
         mock_memory.return_value.percent = 45.2
         mock_disk.return_value.percent = 30.1
-        
+
         from app.api.v1.endpoints.monitoring.performance import get_system_health
-        
+
         # Act
         result = await get_system_health(
             current_user=mock_current_user,
         )
-        
+
         # Assert
         assert isinstance(result, SystemHealth)
         assert result.status in ["healthy", "warning", "critical"]
@@ -154,19 +153,19 @@ async def test_get_resource_usage_success(mock_current_user):
          patch('psutil.net_io_counters') as mock_net, \
          patch('psutil.getloadavg', return_value=[1.2, 1.5, 1.8]), \
          patch('len', return_value=125):
-        
+
         mock_memory.return_value.percent = 55.8
         mock_disk.return_value.percent = 40.3
         mock_net.return_value.bytes_sent = 1024000
         mock_net.return_value.bytes_recv = 2048000
-        
+
         from app.api.v1.endpoints.monitoring.performance import get_resource_usage
-        
+
         # Act
         result = await get_resource_usage(
             current_user=mock_current_user,
         )
-        
+
         # Assert
         assert isinstance(result, ResourceUsage)
         assert result.cpu_percent >= 0
@@ -178,12 +177,12 @@ async def test_get_resource_usage_success(mock_current_user):
 async def test_collect_resource_metrics_success(mock_current_user):
     """Test successful resource metrics collection."""
     from app.api.v1.endpoints.monitoring.performance import collect_resource_metrics
-    
+
     # Act
     result = await collect_resource_metrics(
         current_user=mock_current_user,
     )
-    
+
     # Assert
     assert result is not None
     assert "message" in result
@@ -194,10 +193,10 @@ async def test_collect_resource_metrics_success(mock_current_user):
 async def test_performance_metric_filtering(mock_current_user):
     """Test performance metrics with filtering parameters."""
     from app.api.v1.endpoints.monitoring.performance import get_performance_metrics
-    
+
     start_time = datetime.utcnow() - timedelta(hours=1)
     end_time = datetime.utcnow()
-    
+
     # Act
     result = await get_performance_metrics(
         endpoint="/api/v1/users",
@@ -207,7 +206,7 @@ async def test_performance_metric_filtering(mock_current_user):
         limit=50,
         current_user=mock_current_user,
     )
-    
+
     # Assert
     assert isinstance(result, list)
     # Verify filtering logic is applied (metrics should be empty for new test)
@@ -218,14 +217,14 @@ async def test_performance_metric_filtering(mock_current_user):
 async def test_performance_summary_calculation(mock_current_user):
     """Test performance summary calculation with different time ranges."""
     from app.api.v1.endpoints.monitoring.performance import get_performance_summary
-    
+
     # Test different time ranges
     for hours in [1, 6, 24, 168]:  # 1h, 6h, 24h, 1week
         result = await get_performance_summary(
             hours=hours,
             current_user=mock_current_user,
         )
-        
+
         assert isinstance(result, PerformanceSummary)
         assert result.total_requests >= 0
         assert result.avg_response_time >= 0
@@ -239,16 +238,16 @@ async def test_system_health_status_determination():
          patch('psutil.virtual_memory') as mock_memory, \
          patch('psutil.disk_usage') as mock_disk, \
          patch('psutil.boot_time', return_value=datetime.utcnow().timestamp() - 86400):
-        
+
         mock_memory.return_value.percent = 90.0
         mock_disk.return_value.percent = 85.0
-        
+
         from app.api.v1.endpoints.monitoring.performance import get_system_health
-        
+
         result = await get_system_health(
             current_user=mock_current_user(),
         )
-        
+
         # With high CPU, memory, and disk usage, status should be warning or critical
         assert result.status in ["warning", "critical"]
         assert result.cpu_usage == 95.0
@@ -259,11 +258,12 @@ async def test_system_health_status_determination():
 @pytest.mark.asyncio
 async def test_performance_percentile_calculations(mock_current_user):
     """Test performance percentile calculations in summary."""
-    from app.api.v1.endpoints.monitoring.performance import get_performance_summary
-    
     # Add some test metrics first
-    from app.api.v1.endpoints.monitoring.performance import log_performance_metric
-    
+    from app.api.v1.endpoints.monitoring.performance import (
+        get_performance_summary,
+        log_performance_metric,
+    )
+
     test_metrics = [
         PerformanceMetric(
             endpoint="/test",
@@ -290,16 +290,16 @@ async def test_performance_percentile_calculations(mock_current_user):
             user_id="test-user",
         ),
     ]
-    
+
     for metric in test_metrics:
         await log_performance_metric(metric, mock_current_user)
-    
+
     # Get summary
     result = await get_performance_summary(
         hours=1,
         current_user=mock_current_user,
     )
-    
+
     assert isinstance(result, PerformanceSummary)
     assert hasattr(result, 'p50_response_time')
     assert hasattr(result, 'p95_response_time')
@@ -312,13 +312,13 @@ async def test_resource_usage_network_metrics():
     with patch('psutil.net_io_counters') as mock_net:
         mock_net.return_value.bytes_sent = 5000000
         mock_net.return_value.bytes_recv = 10000000
-        
+
         from app.api.v1.endpoints.monitoring.performance import get_resource_usage
-        
+
         result = await get_resource_usage(
             current_user=mock_current_user(),
         )
-        
+
         assert result.network_io["bytes_sent"] == 5000000
         assert result.network_io["bytes_recv"] == 10000000
 
@@ -335,7 +335,7 @@ async def test_performance_metric_validation():
         timestamp=datetime.utcnow(),
         user_id="user-123",
     )
-    
+
     assert valid_metric.endpoint == "/api/v1/test"
     assert valid_metric.method == "POST"
     assert valid_metric.response_time == 250.75
@@ -346,7 +346,7 @@ async def test_performance_metric_validation():
 async def test_memory_leak_detection_in_metrics(mock_current_user):
     """Test that metrics don't cause memory leaks."""
     from app.api.v1.endpoints.monitoring.performance import log_performance_metric
-    
+
     # Log many metrics to test memory usage
     for i in range(100):
         metric = PerformanceMetric(
@@ -358,10 +358,10 @@ async def test_memory_leak_detection_in_metrics(mock_current_user):
             user_id=f"user-{i}",
         )
         await log_performance_metric(metric, mock_current_user)
-    
+
     # Verify that metrics are stored but with reasonable limits
     from app.api.v1.endpoints.monitoring.performance import get_performance_metrics
-    
+
     result = await get_performance_metrics(
         endpoint=None,
         method=None,
@@ -370,7 +370,7 @@ async def test_memory_leak_detection_in_metrics(mock_current_user):
         limit=1000,  # High limit to see all metrics
         current_user=mock_current_user,
     )
-    
+
     # Should have some metrics but not cause memory issues
     assert isinstance(result, list)
     assert len(result) <= 1000  # Respects limit

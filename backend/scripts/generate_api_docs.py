@@ -4,19 +4,21 @@ CC02 v37.0 Phase 3: API Documentation Generator
 自動的にOpenAPI/Swagger定義を生成し、API仕様書を改善
 """
 
-import json
-import yaml
-from pathlib import Path
-from typing import Dict, Any
 import asyncio
+import json
+from pathlib import Path
+from typing import Any, Dict
+
+import yaml
 from fastapi.openapi.utils import get_openapi
+
 from app.main import app
 
 
 async def generate_api_documentation():
     """Generate comprehensive API documentation."""
     print("🔧 CC02 v37.0 Phase 3: Generating API Documentation...")
-    
+
     # Generate OpenAPI schema
     openapi_schema = get_openapi(
         title="ITDO ERP System API v2",
@@ -64,19 +66,19 @@ async def generate_api_documentation():
             {"url": "https://api.itdo-erp.com", "description": "Production server"}
         ]
     )
-    
+
     # Add additional metadata
     openapi_schema["info"]["contact"] = {
         "name": "ITDO ERP Support",
         "email": "support@itdo-erp.com",
         "url": "https://docs.itdo-erp.com"
     }
-    
+
     openapi_schema["info"]["license"] = {
         "name": "MIT",
         "url": "https://opensource.org/licenses/MIT"
     }
-    
+
     # Add security schemes
     openapi_schema["components"]["securitySchemes"] = {
         "BearerAuth": {
@@ -99,13 +101,13 @@ async def generate_api_documentation():
             }
         }
     }
-    
+
     # Add global security requirement
     openapi_schema["security"] = [
         {"BearerAuth": []},
         {"OAuth2": ["read", "write"]}
     ]
-    
+
     # Add tags with descriptions
     openapi_schema["tags"] = [
         {"name": "health", "description": "System health and status endpoints"},
@@ -121,43 +123,43 @@ async def generate_api_documentation():
         {"name": "monitoring", "description": "Performance monitoring and metrics"},
         {"name": "analytics", "description": "Business analytics and reporting"}
     ]
-    
+
     # Save OpenAPI spec in multiple formats
     docs_dir = Path("docs/api")
     docs_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # JSON format
     with open(docs_dir / "openapi.json", "w", encoding="utf-8") as f:
         json.dump(openapi_schema, f, indent=2, ensure_ascii=False)
-    
+
     # YAML format
     with open(docs_dir / "openapi.yaml", "w", encoding="utf-8") as f:
         yaml.dump(openapi_schema, f, default_flow_style=False, allow_unicode=True)
-    
-    print(f"✅ OpenAPI documentation generated:")
+
+    print("✅ OpenAPI documentation generated:")
     print(f"   - JSON: {docs_dir / 'openapi.json'}")
     print(f"   - YAML: {docs_dir / 'openapi.yaml'}")
-    
+
     # Generate API reference documentation
     await generate_api_reference(openapi_schema, docs_dir)
-    
+
     return openapi_schema
 
 
 async def generate_api_reference(schema: Dict[str, Any], docs_dir: Path):
     """Generate human-readable API reference documentation."""
     print("📚 Generating API Reference Documentation...")
-    
+
     reference_md = []
     reference_md.append("# ITDO ERP API Reference\n")
     reference_md.append("Generated automatically from OpenAPI specification.\n")
     reference_md.append(f"**Version:** {schema['info']['version']}\n")
     reference_md.append(f"**Description:** {schema['info']['description']}\n")
-    
+
     # Group endpoints by tags
     paths = schema.get("paths", {})
     endpoints_by_tag = {}
-    
+
     for path, methods in paths.items():
         for method, details in methods.items():
             if method.lower() in ["get", "post", "put", "delete", "patch"]:
@@ -170,32 +172,32 @@ async def generate_api_reference(schema: Dict[str, Any], docs_dir: Path):
                         "method": method.upper(),
                         "details": details
                     })
-    
+
     # Generate documentation for each tag
     for tag, endpoints in sorted(endpoints_by_tag.items()):
         tag_info = next((t for t in schema.get("tags", []) if t["name"] == tag), {"description": ""})
-        
+
         reference_md.append(f"\n## {tag.title()}\n")
         if tag_info.get("description"):
             reference_md.append(f"{tag_info['description']}\n")
-        
+
         for endpoint in sorted(endpoints, key=lambda x: (x["path"], x["method"])):
             reference_md.append(f"\n### {endpoint['method']} {endpoint['path']}\n")
-            
+
             details = endpoint["details"]
             if details.get("summary"):
                 reference_md.append(f"**Summary:** {details['summary']}\n")
-            
+
             if details.get("description"):
                 reference_md.append(f"**Description:** {details['description']}\n")
-            
+
             # Parameters
             if details.get("parameters"):
                 reference_md.append("**Parameters:**\n")
                 for param in details["parameters"]:
                     required = " (required)" if param.get("required") else " (optional)"
                     reference_md.append(f"- `{param['name']}` ({param['in']}){required}: {param.get('description', 'No description')}\n")
-            
+
             # Request body
             if details.get("requestBody"):
                 reference_md.append("**Request Body:**\n")
@@ -205,21 +207,21 @@ async def generate_api_reference(schema: Dict[str, Any], docs_dir: Path):
                     if schema_info.get("schema", {}).get("$ref"):
                         schema_name = schema_info["schema"]["$ref"].split("/")[-1]
                         reference_md.append(f"- Schema: `{schema_name}`\n")
-            
+
             # Responses
             if details.get("responses"):
                 reference_md.append("**Responses:**\n")
                 for status_code, response in details["responses"].items():
                     description = response.get("description", "No description")
                     reference_md.append(f"- `{status_code}`: {description}\n")
-    
+
     # Save reference documentation
     reference_file = docs_dir / "api-reference.md"
     with open(reference_file, "w", encoding="utf-8") as f:
         f.write("".join(reference_md))
-    
+
     print(f"✅ API Reference documentation generated: {reference_file}")
-    
+
     # Generate API examples
     await generate_api_examples(schema, docs_dir)
 
@@ -227,10 +229,10 @@ async def generate_api_reference(schema: Dict[str, Any], docs_dir: Path):
 async def generate_api_examples(schema: Dict[str, Any], docs_dir: Path):
     """Generate API usage examples."""
     print("💡 Generating API Usage Examples...")
-    
+
     examples_dir = docs_dir / "examples"
     examples_dir.mkdir(exist_ok=True)
-    
+
     # Common examples
     examples = {
         "authentication.md": """# Authentication Examples
@@ -265,7 +267,7 @@ Response:
 }
 ```
 """,
-        
+
         "user_management.md": """# User Management Examples
 
 ## Create User
@@ -301,7 +303,7 @@ curl -X PUT "http://localhost:8000/api/v1/users/123" \\
   }'
 ```
 """,
-        
+
         "error_handling.md": """# Error Handling Examples
 
 ## Standard Error Response Format
@@ -351,7 +353,7 @@ When rate limits are exceeded:
 ```
 """
     }
-    
+
     # Write example files
     for filename, content in examples.items():
         example_file = examples_dir / filename
@@ -363,41 +365,41 @@ When rate limits are exceeded:
 async def validate_api_documentation():
     """Validate generated API documentation."""
     print("🔍 Validating API Documentation...")
-    
+
     docs_dir = Path("docs/api")
-    
+
     # Check if files exist
     required_files = [
         "openapi.json",
-        "openapi.yaml", 
+        "openapi.yaml",
         "api-reference.md",
         "examples/authentication.md",
         "examples/user_management.md",
         "examples/error_handling.md"
     ]
-    
+
     for file_path in required_files:
         full_path = docs_dir / file_path
         if not full_path.exists():
             print(f"❌ Missing: {full_path}")
             return False
         print(f"✅ Found: {full_path}")
-    
+
     # Validate OpenAPI schema
     try:
         with open(docs_dir / "openapi.json", "r") as f:
             schema = json.load(f)
-        
+
         required_schema_fields = ["openapi", "info", "paths"]
         for field in required_schema_fields:
             if field not in schema:
                 print(f"❌ Missing OpenAPI field: {field}")
                 return False
-        
-        print(f"✅ OpenAPI schema validation passed")
+
+        print("✅ OpenAPI schema validation passed")
         print(f"   - Endpoints: {len(schema.get('paths', {}))}")
         print(f"   - Components: {len(schema.get('components', {}).get('schemas', {}))}")
-        
+
         return True
     except Exception as e:
         print(f"❌ OpenAPI schema validation failed: {e}")
@@ -408,14 +410,14 @@ async def main():
     """Main function for API documentation generation."""
     print("🚀 Starting CC02 v37.0 Phase 3: API Quality Improvement")
     print("=" * 60)
-    
+
     try:
         # Generate documentation
         schema = await generate_api_documentation()
-        
+
         # Validate documentation
         is_valid = await validate_api_documentation()
-        
+
         if is_valid:
             print("\n🎉 API Documentation Generation Complete!")
             print("=" * 60)
@@ -432,7 +434,7 @@ async def main():
         else:
             print("\n❌ Documentation validation failed!")
             return False
-            
+
     except Exception as e:
         print(f"\n❌ Error generating API documentation: {e}")
         return False
