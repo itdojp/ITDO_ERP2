@@ -3,13 +3,14 @@ Basic user CRUD operations for ERP v17.0
 Simplified CRUD focusing on essential ERP functionality
 """
 
-from typing import List, Optional, Dict, Any
-from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_, desc
+from typing import Any, Dict, List, Optional
 
-from app.models.user import User
-from app.schemas.user import UserCreate, UserUpdate, UserERPResponse
+from sqlalchemy import and_, desc, or_
+from sqlalchemy.orm import Session
+
 from app.core.exceptions import BusinessLogicError
+from app.models.user import User
+from app.schemas.user import UserCreate, UserERPResponse, UserUpdate
 
 
 def create_user(db: Session, user_data: UserCreate, created_by: Optional[int] = None) -> User:
@@ -18,7 +19,7 @@ def create_user(db: Session, user_data: UserCreate, created_by: Optional[int] = 
     existing_user = db.query(User).filter(User.email == user_data.email).first()
     if existing_user:
         raise BusinessLogicError("User with this email already exists")
-    
+
     # Create user using model method
     user = User.create(
         db=db,
@@ -28,16 +29,16 @@ def create_user(db: Session, user_data: UserCreate, created_by: Optional[int] = 
         phone=user_data.phone,
         is_active=user_data.is_active
     )
-    
+
     # Set created_by if provided
     if created_by:
         user.created_by = created_by
         db.add(user)
         db.flush()
-    
+
     db.commit()
     db.refresh(user)
-    
+
     return user
 
 
@@ -73,7 +74,7 @@ def get_users(
 ) -> tuple[List[User], int]:
     """Get users with filtering and pagination."""
     query = db.query(User).filter(User.deleted_at.is_(None))
-    
+
     # Search filter
     if search:
         search_term = f"%{search}%"
@@ -83,30 +84,30 @@ def get_users(
                 User.email.ilike(search_term)
             )
         )
-    
+
     # Organization filter (if user has organization relationship)
     if organization_id:
         # This would need actual organization relationship
         # For now, filter by users who have an organization_id
         query = query.filter(User.organization_id == organization_id)
-    
+
     # Active status filter
     if is_active is not None:
         query = query.filter(User.is_active == is_active)
-    
+
     # Sorting
     sort_column = getattr(User, sort_by, User.full_name)
     if sort_order.lower() == "desc":
         query = query.order_by(desc(sort_column))
     else:
         query = query.order_by(sort_column)
-    
+
     # Count for pagination
     total = query.count()
-    
+
     # Apply pagination
     users = query.offset(skip).limit(limit).all()
-    
+
     return users, total
 
 
@@ -120,16 +121,16 @@ def update_user(
     user = get_user_by_id(db, user_id)
     if not user:
         return None
-    
+
     # Update fields
     update_dict = user_data.dict(exclude_unset=True)
     if updated_by:
         update_dict['updated_by'] = updated_by
-    
+
     user.update(db, **update_dict)
     db.commit()
     db.refresh(user)
-    
+
     return user
 
 
@@ -142,15 +143,15 @@ def deactivate_user(
     user = get_user_by_id(db, user_id)
     if not user:
         return None
-    
+
     user.is_active = False
     if deactivated_by:
         user.updated_by = deactivated_by
-    
+
     db.add(user)
     db.commit()
     db.refresh(user)
-    
+
     return user
 
 
@@ -162,10 +163,10 @@ def get_active_users_count(db: Session, organization_id: Optional[int] = None) -
             User.is_active == True
         )
     )
-    
+
     if organization_id:
         query = query.filter(User.organization_id == organization_id)
-    
+
     return query.count()
 
 
@@ -178,7 +179,7 @@ def get_user_statistics(db: Session) -> Dict[str, Any]:
             User.is_active == True
         )
     ).count()
-    
+
     return {
         "total_users": total_users,
         "active_users": active_users,

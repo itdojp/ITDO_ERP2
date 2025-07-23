@@ -3,12 +3,13 @@ Basic inventory schemas for ERP v17.0
 Comprehensive inventory management schemas
 """
 
-from datetime import datetime, date
-from typing import Optional
+from datetime import date, datetime
 from decimal import Decimal
+from typing import Optional
+
 from pydantic import BaseModel, Field, field_validator
 
-from app.models.inventory import MovementType, InventoryStatus
+from app.models.inventory import InventoryStatus, MovementType
 
 
 class WarehouseBase(BaseModel):
@@ -17,23 +18,23 @@ class WarehouseBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=200, description="Warehouse name")
     description: Optional[str] = Field(None, description="Warehouse description")
     organization_id: int = Field(..., description="Organization ID")
-    
+
     # Location details
     address: Optional[str] = Field(None, max_length=500, description="Street address")
     postal_code: Optional[str] = Field(None, max_length=10, description="Postal code")
     city: Optional[str] = Field(None, max_length=100, description="City")
     prefecture: Optional[str] = Field(None, max_length=50, description="Prefecture")
-    
+
     # Contact information
     phone: Optional[str] = Field(None, max_length=20, description="Phone number")
     email: Optional[str] = Field(None, max_length=255, description="Email address")
     manager_name: Optional[str] = Field(None, max_length=100, description="Manager name")
-    
+
     # Specifications
     total_area: Optional[Decimal] = Field(None, ge=0, description="Total area in m²")
     storage_capacity: Optional[Decimal] = Field(None, ge=0, description="Storage capacity")
     temperature_controlled: bool = Field(False, description="Temperature controlled facility")
-    
+
     # Status
     is_default: bool = Field(False, description="Default warehouse")
     is_active: bool = Field(True, description="Active status")
@@ -75,7 +76,7 @@ class WarehouseResponse(WarehouseBase):
     full_address: str = Field(..., description="Full formatted address")
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: Optional[datetime] = Field(None, description="Last update timestamp")
-    
+
     class Config:
         from_attributes = True
 
@@ -85,30 +86,30 @@ class InventoryItemBase(BaseModel):
     product_id: int = Field(..., description="Product ID")
     warehouse_id: int = Field(..., description="Warehouse ID")
     organization_id: int = Field(..., description="Organization ID")
-    
+
     # Quantities
     quantity_on_hand: Decimal = Field(0, ge=0, description="Quantity on hand")
     quantity_reserved: Decimal = Field(0, ge=0, description="Quantity reserved")
     quantity_in_transit: Decimal = Field(0, ge=0, description="Quantity in transit")
-    
+
     # Cost information
     cost_per_unit: Optional[Decimal] = Field(None, ge=0, description="Cost per unit")
     average_cost: Optional[Decimal] = Field(None, ge=0, description="Average cost")
-    
+
     # Location within warehouse
     location_code: Optional[str] = Field(None, max_length=50, description="Location code")
     zone: Optional[str] = Field(None, max_length=50, description="Zone")
-    
+
     # Stock levels
     minimum_level: Optional[Decimal] = Field(None, ge=0, description="Minimum stock level")
     reorder_point: Optional[Decimal] = Field(None, ge=0, description="Reorder point")
-    
+
     # Status
     status: str = Field(InventoryStatus.AVAILABLE.value, description="Inventory status")
-    
+
     # Dates for tracking
     expiry_date: Optional[date] = Field(None, description="Expiry date")
-    
+
     # Batch tracking
     lot_number: Optional[str] = Field(None, max_length=100, description="Lot number")
     batch_number: Optional[str] = Field(None, max_length=100, description="Batch number")
@@ -159,7 +160,7 @@ class InventoryItemResponse(InventoryItemBase):
     days_until_expiry: Optional[int] = Field(None, description="Days until expiry")
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: Optional[datetime] = Field(None, description="Last update timestamp")
-    
+
     class Config:
         from_attributes = True
 
@@ -170,23 +171,23 @@ class StockMovementBase(BaseModel):
     product_id: int = Field(..., description="Product ID")
     warehouse_id: int = Field(..., description="Warehouse ID")
     organization_id: int = Field(..., description="Organization ID")
-    
+
     # Movement details
     movement_type: str = Field(..., description="Movement type")
     quantity: Decimal = Field(..., description="Movement quantity")
-    
+
     # Cost information
     unit_cost: Optional[Decimal] = Field(None, ge=0, description="Unit cost")
-    
+
     # Reference information
     reference_type: Optional[str] = Field(None, max_length=50, description="Reference type")
     reference_number: Optional[str] = Field(None, max_length=100, description="Reference number")
     reference_id: Optional[int] = Field(None, description="Reference ID")
-    
+
     # Movement details
     reason: Optional[str] = Field(None, max_length=200, description="Movement reason")
     notes: Optional[str] = Field(None, description="Additional notes")
-    
+
     # Location details
     from_location: Optional[str] = Field(None, max_length=100, description="From location")
     to_location: Optional[str] = Field(None, max_length=100, description="To location")
@@ -217,7 +218,7 @@ class StockMovementResponse(StockMovementBase):
     is_posted: bool = Field(..., description="Is posted")
     is_reversed: bool = Field(..., description="Is reversed")
     created_at: datetime = Field(..., description="Creation timestamp")
-    
+
     class Config:
         from_attributes = True
 
@@ -309,6 +310,6 @@ class InventoryItemBasic(BaseModel):
     quantity_on_hand: Decimal = Field(..., description="Quantity on hand")
     quantity_available: Decimal = Field(..., description="Available quantity")
     status: str = Field(..., description="Inventory status")
-    
+
     class Config:
         from_attributes = True

@@ -3,30 +3,38 @@ Basic inventory CRUD operations for ERP v17.0
 Comprehensive inventory management with warehouses, stock tracking, and transactions
 """
 
-from typing import List, Optional, Dict, Any
+from datetime import UTC, datetime
 from decimal import Decimal
-from datetime import datetime, UTC
-from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_, desc, func
+from typing import Any, Dict, List, Optional
 
-from app.models.inventory import (
-    Warehouse, InventoryItem, StockMovement, 
-    MovementType, InventoryStatus
-)
-from app.models.product import Product
-from app.schemas.inventory_basic import (
-    WarehouseCreate, WarehouseUpdate, WarehouseResponse,
-    InventoryItemCreate, InventoryItemUpdate, InventoryItemResponse,
-    StockMovementCreate, StockMovementResponse,
-    StockAdjustmentCreate
-)
+from sqlalchemy import and_, desc, func, or_
+from sqlalchemy.orm import Session
+
 from app.core.exceptions import BusinessLogicError
+from app.models.inventory import (
+    InventoryItem,
+    InventoryStatus,
+    MovementType,
+    StockMovement,
+    Warehouse,
+)
+from app.schemas.inventory_basic import (
+    InventoryItemCreate,
+    InventoryItemResponse,
+    InventoryItemUpdate,
+    StockAdjustmentCreate,
+    StockMovementCreate,
+    StockMovementResponse,
+    WarehouseCreate,
+    WarehouseResponse,
+    WarehouseUpdate,
+)
 
 
 # Warehouse CRUD operations
 def create_warehouse(
-    db: Session, 
-    warehouse_data: WarehouseCreate, 
+    db: Session,
+    warehouse_data: WarehouseCreate,
     created_by: int
 ) -> Warehouse:
     """Create a new warehouse with validation."""
@@ -38,20 +46,20 @@ def create_warehouse(
             Warehouse.deleted_at.is_(None)
         )
     ).first()
-    
+
     if existing_warehouse:
         raise BusinessLogicError("Warehouse with this code already exists in the organization")
-    
+
     # Create warehouse
     warehouse_dict = warehouse_data.dict()
     warehouse_dict['created_by'] = created_by
-    
+
     warehouse = Warehouse(**warehouse_dict)
-    
+
     db.add(warehouse)
     db.commit()
     db.refresh(warehouse)
-    
+
     return warehouse
 
 
@@ -75,7 +83,7 @@ def get_warehouses(
 ) -> tuple[List[Warehouse], int]:
     """Get warehouses with filtering and pagination."""
     query = db.query(Warehouse).filter(Warehouse.deleted_at.is_(None))
-    
+
     # Search filter
     if search:
         search_term = f"%{search}%"
@@ -87,23 +95,23 @@ def get_warehouses(
                 Warehouse.city.ilike(search_term)
             )
         )
-    
+
     # Filters
     if organization_id:
         query = query.filter(Warehouse.organization_id == organization_id)
-    
+
     if is_active is not None:
         query = query.filter(Warehouse.is_active == is_active)
-    
+
     # Ordering
     query = query.order_by(Warehouse.name)
-    
+
     # Count for pagination
     total = query.count()
-    
+
     # Apply pagination
     warehouses = query.offset(skip).limit(limit).all()
-    
+
     return warehouses, total
 
 
@@ -117,7 +125,7 @@ def update_warehouse(
     warehouse = get_warehouse_by_id(db, warehouse_id)
     if not warehouse:
         return None
-    
+
     # Check for code conflicts if updating code
     if warehouse_data.code and warehouse_data.code != warehouse.code:
         existing_warehouse = db.query(Warehouse).filter(
@@ -130,19 +138,19 @@ def update_warehouse(
         ).first()
         if existing_warehouse:
             raise BusinessLogicError("Warehouse with this code already exists")
-    
+
     # Update fields
     update_dict = warehouse_data.dict(exclude_unset=True)
     for key, value in update_dict.items():
         if hasattr(warehouse, key):
             setattr(warehouse, key, value)
-    
+
     warehouse.updated_by = updated_by
-    
+
     db.add(warehouse)
     db.commit()
     db.refresh(warehouse)
-    
+
     return warehouse
 
 
@@ -161,26 +169,26 @@ def create_inventory_item(
             InventoryItem.deleted_at.is_(None)
         )
     ).first()
-    
+
     if existing_item:
         raise BusinessLogicError("Inventory item already exists for this product in this warehouse")
-    
+
     # Create inventory item
     item_dict = item_data.dict()
     item_dict['created_by'] = created_by
-    
+
     # Calculate available quantity
     item_dict['quantity_available'] = max(
-        Decimal(0), 
+        Decimal(0),
         item_dict.get('quantity_on_hand', 0) - item_dict.get('quantity_reserved', 0)
     )
-    
+
     inventory_item = InventoryItem(**item_dict)
-    
+
     db.add(inventory_item)
     db.commit()
     db.refresh(inventory_item)
-    
+
     return inventory_item
 
 
@@ -206,20 +214,20 @@ def get_inventory_items(
 ) -> tuple[List[InventoryItem], int]:
     """Get inventory items with filtering and pagination."""
     query = db.query(InventoryItem).filter(InventoryItem.deleted_at.is_(None))
-    
+
     # Filters
     if warehouse_id:
         query = query.filter(InventoryItem.warehouse_id == warehouse_id)
-    
+
     if product_id:
         query = query.filter(InventoryItem.product_id == product_id)
-    
+
     if organization_id:
         query = query.filter(InventoryItem.organization_id == organization_id)
-    
+
     if status:
         query = query.filter(InventoryItem.status == status.value)
-    
+
     if low_stock_only:
         query = query.filter(
             and_(
@@ -227,16 +235,16 @@ def get_inventory_items(
                 InventoryItem.quantity_available <= InventoryItem.minimum_level
             )
         )
-    
+
     # Ordering
     query = query.order_by(desc(InventoryItem.updated_at))
-    
+
     # Count for pagination
     total = query.count()
-    
+
     # Apply pagination
     items = query.offset(skip).limit(limit).all()
-    
+
     return items, total
 
 
@@ -250,22 +258,22 @@ def update_inventory_item(
     item = get_inventory_item_by_id(db, item_id)
     if not item:
         return None
-    
+
     # Update fields
     update_dict = item_data.dict(exclude_unset=True)
     for key, value in update_dict.items():
         if hasattr(item, key):
             setattr(item, key, value)
-    
+
     # Recalculate available quantity
     item.calculate_available_quantity()
-    
+
     item.updated_by = updated_by
-    
+
     db.add(item)
     db.commit()
     db.refresh(item)
-    
+
     return item
 
 
@@ -278,19 +286,19 @@ def create_stock_movement(
     """Create stock movement transaction."""
     # Generate transaction number
     transaction_number = generate_transaction_number(db, movement_data.movement_type)
-    
+
     # Get inventory item
     inventory_item = get_inventory_item_by_id(db, movement_data.inventory_item_id)
     if not inventory_item:
         raise BusinessLogicError("Inventory item not found")
-    
+
     # Create movement
     movement_dict = movement_data.dict()
     movement_dict['transaction_number'] = transaction_number
     movement_dict['performed_by'] = performed_by
     movement_dict['created_by'] = performed_by
     movement_dict['quantity_before'] = inventory_item.quantity_on_hand
-    
+
     # Calculate quantity after based on movement type
     if movement_data.movement_type in [MovementType.IN.value, MovementType.RETURN.value]:
         new_quantity = inventory_item.quantity_on_hand + movement_data.quantity
@@ -298,33 +306,33 @@ def create_stock_movement(
         new_quantity = inventory_item.quantity_on_hand - movement_data.quantity
     else:  # ADJUSTMENT, TRANSFER
         new_quantity = inventory_item.quantity_on_hand + movement_data.quantity
-    
+
     movement_dict['quantity_after'] = new_quantity
-    
+
     # Create movement record
     movement = StockMovement(**movement_dict)
-    
+
     # Update inventory item quantities
     inventory_item.quantity_on_hand = new_quantity
-    
+
     # Update cost if provided
     if movement_data.unit_cost and movement_data.movement_type == MovementType.IN.value:
         inventory_item.update_average_cost(movement_data.unit_cost, movement_data.quantity)
-    
+
     # Update dates
     if movement_data.movement_type == MovementType.IN.value:
         inventory_item.last_received_date = datetime.now(UTC)
     elif movement_data.movement_type == MovementType.OUT.value:
         inventory_item.last_issued_date = datetime.now(UTC)
-    
+
     # Recalculate available quantity
     inventory_item.calculate_available_quantity()
-    
+
     db.add(movement)
     db.add(inventory_item)
     db.commit()
     db.refresh(movement)
-    
+
     return movement
 
 
@@ -341,35 +349,35 @@ def get_stock_movements(
 ) -> tuple[List[StockMovement], int]:
     """Get stock movements with filtering and pagination."""
     query = db.query(StockMovement).filter(StockMovement.deleted_at.is_(None))
-    
+
     # Filters
     if warehouse_id:
         query = query.filter(StockMovement.warehouse_id == warehouse_id)
-    
+
     if product_id:
         query = query.filter(StockMovement.product_id == product_id)
-    
+
     if organization_id:
         query = query.filter(StockMovement.organization_id == organization_id)
-    
+
     if movement_type:
         query = query.filter(StockMovement.movement_type == movement_type.value)
-    
+
     if from_date:
         query = query.filter(StockMovement.movement_date >= from_date)
-    
+
     if to_date:
         query = query.filter(StockMovement.movement_date <= to_date)
-    
+
     # Ordering - newest first
     query = query.order_by(desc(StockMovement.movement_date))
-    
+
     # Count for pagination
     total = query.count()
-    
+
     # Apply pagination
     movements = query.offset(skip).limit(limit).all()
-    
+
     return movements, total
 
 
@@ -382,10 +390,10 @@ def create_stock_adjustment(
     inventory_item = get_inventory_item_by_id(db, adjustment_data.inventory_item_id)
     if not inventory_item:
         raise BusinessLogicError("Inventory item not found")
-    
+
     # Calculate adjustment quantity
     adjustment_quantity = adjustment_data.new_quantity - inventory_item.quantity_on_hand
-    
+
     movement_data = StockMovementCreate(
         inventory_item_id=adjustment_data.inventory_item_id,
         product_id=inventory_item.product_id,
@@ -397,7 +405,7 @@ def create_stock_adjustment(
         reason=adjustment_data.reason,
         notes=adjustment_data.notes
     )
-    
+
     return create_stock_movement(db, movement_data, performed_by)
 
 
@@ -411,13 +419,13 @@ def reserve_stock(
     inventory_item = get_inventory_item_by_id(db, inventory_item_id)
     if not inventory_item:
         return False
-    
+
     if inventory_item.reserve_stock(quantity):
         inventory_item.updated_by = reserved_by
         db.add(inventory_item)
         db.commit()
         return True
-    
+
     return False
 
 
@@ -431,34 +439,34 @@ def release_reservation(
     inventory_item = get_inventory_item_by_id(db, inventory_item_id)
     if not inventory_item:
         return False
-    
+
     inventory_item.release_reservation(quantity)
     inventory_item.updated_by = released_by
-    
+
     db.add(inventory_item)
     db.commit()
-    
+
     return True
 
 
 def get_inventory_statistics(
-    db: Session, 
+    db: Session,
     organization_id: Optional[int] = None,
     warehouse_id: Optional[int] = None
 ) -> Dict[str, Any]:
     """Get comprehensive inventory statistics."""
     query = db.query(InventoryItem).filter(InventoryItem.deleted_at.is_(None))
-    
+
     if organization_id:
         query = query.filter(InventoryItem.organization_id == organization_id)
-    
+
     if warehouse_id:
         query = query.filter(InventoryItem.warehouse_id == warehouse_id)
-    
+
     # Basic counts
     total_items = query.count()
     active_items = query.filter(InventoryItem.status == InventoryStatus.AVAILABLE.value).count()
-    
+
     # Stock value calculations
     total_value = db.query(func.sum(InventoryItem.total_cost)).filter(
         and_(
@@ -468,7 +476,7 @@ def get_inventory_statistics(
             InventoryItem.warehouse_id == warehouse_id if warehouse_id else True
         )
     ).scalar() or Decimal(0)
-    
+
     # Low stock items
     low_stock_items = query.filter(
         and_(
@@ -476,13 +484,13 @@ def get_inventory_statistics(
             InventoryItem.quantity_available <= InventoryItem.minimum_level
         )
     ).count()
-    
+
     # Items by status
     status_counts = {}
     for status in InventoryStatus:
         count = query.filter(InventoryItem.status == status.value).count()
         status_counts[status.value] = count
-    
+
     return {
         "total_items": total_items,
         "active_items": active_items,
@@ -508,12 +516,12 @@ def generate_transaction_number(db: Session, movement_type: str) -> str:
         MovementType.RETURN.value: "RET",
         MovementType.SCRAP.value: "SCR"
     }.get(movement_type, "TXN")
-    
+
     # Get next sequence number
     last_movement = db.query(StockMovement).filter(
         StockMovement.transaction_number.like(f"{prefix}-%")
     ).order_by(desc(StockMovement.id)).first()
-    
+
     if last_movement and last_movement.transaction_number:
         try:
             last_number = int(last_movement.transaction_number.split('-')[1])
@@ -522,7 +530,7 @@ def generate_transaction_number(db: Session, movement_type: str) -> str:
             next_number = 1
     else:
         next_number = 1
-    
+
     return f"{prefix}-{next_number:06d}"
 
 

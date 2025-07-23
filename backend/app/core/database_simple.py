@@ -1,5 +1,6 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
+
 from app.core.config import settings
 
 # type: ignore[attr-defined] - practical v19.0 approach
