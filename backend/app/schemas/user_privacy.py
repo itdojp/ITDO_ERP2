@@ -62,7 +62,6 @@ class PrivacySettingsCreate(PrivacySettingsBase):
     """Schema for creating privacy settings."""
 
 
-
 class PrivacySettingsUpdate(BaseModel):
     """Schema for updating privacy settings."""
 

@@ -18,7 +18,6 @@ class Base(DeclarativeBase):
     """Base class for all models."""
 
 
-
 # Type variable for model types
 ModelType = TypeVar("ModelType", bound="BaseModel")
 

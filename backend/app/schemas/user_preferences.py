@@ -75,7 +75,6 @@ class UserPreferencesCreate(UserPreferencesBase):
     """Schema for creating user preferences."""
 
 
-
 class UserPreferencesUpdate(BaseModel):
     """Schema for updating user preferences."""
 
