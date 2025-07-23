@@ -141,6 +141,14 @@ api_router.include_router(analytics_v31.router, prefix="/analytics", tags=["anal
 from app.api.v1 import integration_v31
 api_router.include_router(integration_v31.router, prefix="/integration", tags=["integration-v31"])
 
+# CC02 v31.0 Phase 2 - Workflow API
+from app.api.v1 import workflow_v31
+api_router.include_router(workflow_v31.router, prefix="/workflow", tags=["workflow-v31"])
+
+# CC02 v31.0 Phase 2 - Audit Log API
+from app.api.v1 import audit_v31
+api_router.include_router(audit_v31.router, prefix="/audit", tags=["audit-v31"])
+
 
 @api_router.get("/ping")
 async def ping() -> dict[str, str]:

@@ -132,6 +132,33 @@ from app.models.integration_extended import (
     IntegrationMessage,
     IntegrationAuditLog,
 )
+
+# CC02 v31.0 Phase 2 - Workflow System Models
+from app.models.workflow_extended import (
+    WorkflowDefinition,
+    WorkflowStep,
+    WorkflowInstance,
+    WorkflowTask,
+    WorkflowActivity,
+    WorkflowComment,
+    WorkflowAttachment,
+    WorkflowTemplate,
+    WorkflowAnalytics,
+    WorkflowAuditLog,
+)
+
+# CC02 v31.0 Phase 2 - Audit Log System Models
+from app.models.audit_extended import (
+    AuditLogEntry,
+    AuditRule,
+    AuditAlert,
+    AuditReport,
+    AuditSession,
+    AuditDataRetention,
+    AuditCompliance,
+    AuditConfiguration,
+    AuditMetrics,
+)
 from app.models.organization import Organization
 from app.models.password_history import PasswordHistory
 from app.models.permission import Permission
@@ -302,4 +329,25 @@ __all__ = [
     "WebhookRequest",
     "IntegrationMessage",
     "IntegrationAuditLog",
+    # CC02 v31.0 Phase 2 - Workflow System Models
+    "WorkflowDefinition",
+    "WorkflowStep",
+    "WorkflowInstance",
+    "WorkflowTask",
+    "WorkflowActivity",
+    "WorkflowComment",
+    "WorkflowAttachment",
+    "WorkflowTemplate",
+    "WorkflowAnalytics",
+    "WorkflowAuditLog",
+    # CC02 v31.0 Phase 2 - Audit Log System Models
+    "AuditLogEntry",
+    "AuditRule",
+    "AuditAlert",
+    "AuditReport",
+    "AuditSession",
+    "AuditDataRetention",
+    "AuditCompliance",
+    "AuditConfiguration",
+    "AuditMetrics",
 ]

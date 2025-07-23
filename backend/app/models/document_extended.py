@@ -37,7 +37,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
-from app.core.database import Base
+from app.models.base import Base
 
 if TYPE_CHECKING:
     from app.models.organization import Organization
@@ -168,7 +168,7 @@ class DocumentExtended(Base):
     content_preview = Column(Text)  # First few lines for preview
     extracted_text = Column(Text)  # For search indexing
     ocr_text = Column(Text)  # OCR extracted text for images/PDFs
-    metadata = Column(JSON, default={})
+    doc_metadata = Column(JSON, default={})
     custom_properties = Column(JSON, default={})
     
     # Ownership and permissions

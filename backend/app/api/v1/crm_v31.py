@@ -24,7 +24,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.crud.crm_v31 import CRMService
+from app.crud import crm_v31
 from app.schemas.crm_v31 import (
     # Customer schemas
     CustomerCreate,
