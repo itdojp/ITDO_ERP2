@@ -469,7 +469,7 @@ class AICodeOptimizer:
 
         # High cohesion = few operations, consistent variable usage
         operation_diversity = len(operations)
-        variable_diversity = len(variables_used)
+        len(variables_used)
         function_length = len(node.body)
 
         # Normalize and calculate cohesion (lower diversity = higher cohesion for small functions)
@@ -511,7 +511,7 @@ class AICodeOptimizer:
         # Calculate coupling metrics
         coupling_scores = []
         for module, imports in import_graph.items():
-            external_imports = [imp for imp in imports if not imp.startswith("app.")]
+            [imp for imp in imports if not imp.startswith("app.")]
             internal_imports = [imp for imp in imports if imp.startswith("app.")]
 
             coupling_score = len(internal_imports) / max(1, len(imports))

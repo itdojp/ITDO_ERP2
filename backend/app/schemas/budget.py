@@ -25,7 +25,6 @@ class ExpenseCategoryBase(BaseModel):
 class ExpenseCategoryCreate(ExpenseCategoryBase):
     """Schema for creating expense categories."""
 
-    pass
 
 
 class ExpenseCategoryUpdate(BaseModel):
@@ -69,7 +68,6 @@ class BudgetItemBase(BaseModel):
 class BudgetItemCreate(BudgetItemBase):
     """Schema for creating budget items."""
 
-    pass
 
 
 class BudgetItemUpdate(BaseModel):

@@ -74,7 +74,6 @@ class UserPreferencesBase(BaseModel):
 class UserPreferencesCreate(UserPreferencesBase):
     """Schema for creating user preferences."""
 
-    pass
 
 
 class UserPreferencesUpdate(BaseModel):

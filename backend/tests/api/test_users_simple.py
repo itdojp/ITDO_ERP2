@@ -11,7 +11,7 @@ async def test_create_user_simple():
         user_data = {
             "email": "test@example.com",
             "username": "testuser",
-            "full_name": "Test User"
+            "full_name": "Test User",
         }
         response = await ac.post("/api/v1/simple/users", json=user_data)
 

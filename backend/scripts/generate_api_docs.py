@@ -25,9 +25,9 @@ async def generate_api_documentation():
         version="2.0.0",
         description="""
         # ITDO ERP System API v2.0
-        
+
         A comprehensive Enterprise Resource Planning system with modern architecture.
-        
+
         ## Features
         - User and Organization Management
         - Project and Task Management
@@ -36,18 +36,18 @@ async def generate_api_documentation():
         - Customer Relationship Management (CRM)
         - Workflow and Application Management
         - Security Audit and Performance Monitoring
-        
+
         ## Authentication
         This API uses OAuth2 with Bearer tokens. Include your token in the Authorization header:
         ```
         Authorization: Bearer <your-token>
         ```
-        
+
         ## Rate Limiting
         API calls are rate-limited to prevent abuse. Current limits:
         - 1000 requests per hour for authenticated users
         - 100 requests per hour for unauthenticated endpoints
-        
+
         ## Error Responses
         All error responses follow RFC 7807 Problem Details format:
         ```json
@@ -330,7 +330,7 @@ All API errors follow RFC 7807 Problem Details format:
 
 - `200 OK` - Request successful
 - `201 Created` - Resource created successfully
-- `400 Bad Request` - Invalid request data  
+- `400 Bad Request` - Invalid request data
 - `401 Unauthorized` - Authentication required
 - `403 Forbidden` - Insufficient permissions
 - `404 Not Found` - Resource not found
@@ -413,7 +413,7 @@ async def main():
 
     try:
         # Generate documentation
-        schema = await generate_api_documentation()
+        await generate_api_documentation()
 
         # Validate documentation
         is_valid = await validate_api_documentation()

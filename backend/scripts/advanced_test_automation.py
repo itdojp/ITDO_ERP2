@@ -292,32 +292,32 @@ from {model_info["file"].replace("/", ".").replace(".py", "")} import {class_inf
 
 class Test{class_info["name"]}:
     """Comprehensive tests for {class_info["name"]} model."""
-    
+
     def test_model_creation(self, db_session):
         """Test basic model creation."""
         instance = {class_info["name"]}()
         db_session.add(instance)
         db_session.commit()
-        
+
         assert instance.id is not None
         assert isinstance(instance.created_at, datetime)
-    
+
     def test_model_validation(self):
         """Test model validation rules."""
         # Test required fields
         with pytest.raises((ValueError, IntegrityError)):
             instance = {class_info["name"]}()
             # Add validation tests based on model structure
-    
+
     def test_model_relationships(self, db_session):
         """Test model relationships."""
         # Generate relationship tests based on model analysis
         pass
-    
+
     def test_model_serialization(self):
         """Test model serialization to dict."""
         instance = {class_info["name"]}()
-        
+
         # Test that model can be converted to dict
         if hasattr(instance, '__dict__'):
             data = instance.__dict__
@@ -330,10 +330,10 @@ class Test{class_info["name"]}:
     def test_{validator}(self):
         """Test {validator} validation method."""
         instance = {class_info["name"]}()
-        
+
         # Test valid cases
         # TODO: Add specific test cases for {validator}
-        
+
         # Test invalid cases
         # TODO: Add specific invalid test cases for {validator}
         pass
@@ -375,12 +375,12 @@ from datetime import datetime, timedelta
 
 class Test{service_name.title().replace("_", "")}Service:
     """Comprehensive tests for {service_name} service."""
-    
+
     def setup_method(self):
         """Setup test environment."""
         self.mock_db = Mock()
         # self.service = ServiceClass(self.mock_db)
-    
+
 '''
 
         # Generate tests for each function
@@ -390,19 +390,19 @@ class Test{service_name.title().replace("_", "")}Service:
         """Test {func["name"]} successful execution."""
         # Setup mocks
         {self.generate_mock_setup(func)}
-        
+
         # Execute function
         # result = self.service.{func["name"]}({self.generate_test_args(func)})
-        
+
         # Assertions
         # assert result is not None
         pass
-    
+
     def test_{func["name"]}_error_handling(self):
         """Test {func["name"]} error handling."""
         # Setup error conditions
         # self.mock_db.side_effect = Exception("Database error")
-        
+
         # Test error handling
         # with pytest.raises(Exception):
         #     self.service.{func["name"]}({self.generate_test_args(func)})
@@ -417,20 +417,20 @@ class Test{service_name.title().replace("_", "")}Service:
         """Test {func["name"]} async successful execution."""
         # Setup async mocks
         {self.generate_async_mock_setup(func)}
-        
+
         # Execute async function
         # result = await self.service.{func["name"]}({self.generate_test_args(func)})
-        
+
         # Assertions
         # assert result is not None
         pass
-    
+
     @pytest.mark.asyncio
     async def test_{func["name"]}_async_error_handling(self):
         """Test {func["name"]} async error handling."""
         # Setup error conditions
         # self.mock_db.side_effect = Exception("Async database error")
-        
+
         # Test async error handling
         # with pytest.raises(Exception):
         #     await self.service.{func["name"]}({self.generate_test_args(func)})
@@ -446,12 +446,12 @@ class Test{service_name.title().replace("_", "")}Service:
         # Test transaction management
         # Test error rollback
         pass
-    
+
     def test_database_transaction_rollback(self):
         """Test database transaction rollback on errors."""
         # Setup error condition
         # self.mock_db.commit.side_effect = Exception("Commit failed")
-        
+
         # Verify rollback is called
         # self.mock_db.rollback.assert_called_once()
         pass
@@ -468,16 +468,16 @@ class Test{service_name.title().replace("_", "")}Service:
         mock_response.json.return_value = {"status": "success"}
         mock_response.status_code = 200
         mock_requests.return_value = mock_response
-        
+
         # Test external API integration
         pass
-    
+
     @patch('requests.get')
     def test_external_api_error_handling(self, mock_requests):
         """Test external API error handling."""
         # Setup error response
         mock_requests.side_effect = Exception("Network error")
-        
+
         # Test error handling
         pass
 '''
@@ -522,12 +522,12 @@ from app.main import app
 
 class Test{api_name.title().replace("_", "")}API:
     """Comprehensive tests for {api_name} API endpoints."""
-    
+
     def setup_method(self):
         """Setup test environment."""
         self.client = TestClient(app)
         self.headers = {{"Content-Type": "application/json"}}
-    
+
 '''
 
         # Generate tests for each endpoint
@@ -540,23 +540,23 @@ class Test{api_name.title().replace("_", "")}API:
         """Test {method.upper()} {path} successful response."""
         # Setup test data
         test_data = self.get_test_data_for_{method}()
-        
+
         # Make request
         response = self.client.{method}("{path}", json=test_data, headers=self.headers)
-        
+
         # Assertions
         assert response.status_code in [200, 201, 204]
         if response.content:
             data = response.json()
             assert isinstance(data, (dict, list))
-    
+
     def test_{method}_{path.replace("/", "_").replace("{", "").replace("}", "").replace("-", "_")}_validation_error(self):
         """Test {method.upper()} {path} validation error handling."""
         # Send invalid data
         invalid_data = {{"invalid": "data"}}
-        
+
         response = self.client.{method}("{path}", json=invalid_data, headers=self.headers)
-        
+
         # Should return validation error
         assert response.status_code == 422
 '''
@@ -568,7 +568,7 @@ class Test{api_name.title().replace("_", "")}API:
         """Test {method.upper()} {path} without authentication."""
         # Make request without auth
         response = self.client.{method}("{path}")
-        
+
         # Should return unauthorized
         assert response.status_code == 401
 '''
@@ -578,19 +578,19 @@ class Test{api_name.title().replace("_", "")}API:
     def get_test_data_for_get(self):
         """Get test data for GET requests."""
         return {}
-    
+
     def get_test_data_for_post(self):
         """Get test data for POST requests."""
         return {"test": "data"}
-    
+
     def get_test_data_for_put(self):
         """Get test data for PUT requests."""
         return {"test": "updated_data"}
-    
+
     def get_test_data_for_delete(self):
         """Get test data for DELETE requests."""
         return {}
-    
+
     def get_test_data_for_patch(self):
         """Get test data for PATCH requests."""
         return {"test": "patched_data"}
@@ -713,24 +713,24 @@ from app.main import app
 
 class TestPerformance:
     """Performance tests for API endpoints."""
-    
+
     def setup_method(self):
         """Setup test environment."""
         self.client = TestClient(app)
         self.max_response_time = 200  # 200ms
         self.concurrent_users = 10
-    
+
     def test_health_endpoint_performance(self):
         """Test health endpoint response time."""
         start_time = time.time()
         response = self.client.get("/health")
         end_time = time.time()
-        
+
         response_time = (end_time - start_time) * 1000
-        
+
         assert response.status_code == 200
         assert response_time < self.max_response_time
-    
+
     def test_concurrent_health_requests(self):
         """Test health endpoint under concurrent load."""
         def make_request():
@@ -738,46 +738,46 @@ class TestPerformance:
             response = self.client.get("/health")
             end_time = time.time()
             return response.status_code, (end_time - start_time) * 1000
-        
+
         with ThreadPoolExecutor(max_workers=self.concurrent_users) as executor:
             futures = [executor.submit(make_request) for _ in range(self.concurrent_users)]
             results = [future.result() for future in futures]
-        
+
         # All requests should succeed
         status_codes = [result[0] for result in results]
         response_times = [result[1] for result in results]
-        
+
         assert all(code == 200 for code in status_codes)
         assert max(response_times) < self.max_response_time * 2  # Allow 2x time under load
         assert sum(response_times) / len(response_times) < self.max_response_time
-    
+
     def test_database_query_performance(self):
         """Test database query performance."""
         # Test critical database queries
         start_time = time.time()
         response = self.client.get("/api/v1/users?limit=100")
         end_time = time.time()
-        
+
         response_time = (end_time - start_time) * 1000
-        
+
         if response.status_code == 200:
             assert response_time < 500  # 500ms for database queries
-    
+
     def test_memory_usage_under_load(self):
         """Test memory usage doesn't grow excessively under load."""
         import psutil
         import os
-        
+
         process = psutil.Process(os.getpid())
         initial_memory = process.memory_info().rss
-        
+
         # Make many requests
         for _ in range(100):
             self.client.get("/health")
-        
+
         final_memory = process.memory_info().rss
         memory_growth = final_memory - initial_memory
-        
+
         # Memory growth should be reasonable (less than 50MB)
         assert memory_growth < 50 * 1024 * 1024
 '''
@@ -814,32 +814,32 @@ from app.models.base import BaseModel
 
 class TestIntegration:
     """Integration tests for complete workflows."""
-    
+
     def setup_method(self):
         """Setup test environment with test database."""
         # Create test database
         test_engine = create_engine("sqlite:///./test_integration.db")
         BaseModel.metadata.create_all(bind=test_engine)
-        
+
         TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
-        
+
         def override_get_db():
             try:
                 db = TestingSessionLocal()
                 yield db
             finally:
                 db.close()
-        
+
         app.dependency_overrides[get_db] = override_get_db
         self.client = TestClient(app)
-    
+
     def teardown_method(self):
         """Cleanup test environment."""
         # Clean up test database
         import os
         if os.path.exists("./test_integration.db"):
             os.remove("./test_integration.db")
-    
+
     def test_user_registration_workflow(self):
         """Test complete user registration workflow."""
         # Step 1: Register new user
@@ -848,44 +848,44 @@ class TestIntegration:
             "email": "test@example.com",
             "password": "testpassword123"
         }
-        
+
         response = self.client.post("/api/v1/users", json=user_data)
         assert response.status_code == 201
-        
+
         created_user = response.json()
         assert created_user["username"] == user_data["username"]
         assert created_user["email"] == user_data["email"]
-        
+
         # Step 2: Login with new user
         login_data = {
             "username": user_data["username"],
             "password": user_data["password"]
         }
-        
+
         login_response = self.client.post("/api/v1/auth/login", data=login_data)
         assert login_response.status_code == 200
-        
+
         token_data = login_response.json()
         assert "access_token" in token_data
-        
+
         # Step 3: Access protected endpoint
         headers = {"Authorization": f"Bearer {token_data['access_token']}"}
         profile_response = self.client.get("/api/v1/users/me", headers=headers)
         assert profile_response.status_code == 200
-        
+
         profile_data = profile_response.json()
         assert profile_data["username"] == user_data["username"]
-    
+
     def test_organization_management_workflow(self):
         """Test complete organization management workflow."""
         # This would test creating org, adding users, managing permissions, etc.
         pass
-    
+
     def test_financial_workflow(self):
         """Test complete financial management workflow."""
         # This would test budget creation, expense tracking, report generation
         pass
-    
+
     def test_audit_trail_workflow(self):
         """Test audit trail is properly maintained across operations."""
         # Test that all operations create proper audit logs
@@ -980,7 +980,7 @@ async def main():
         structure = await automation.analyze_code_structure()
 
         # Generate intelligent tests
-        generated_tests = await automation.generate_intelligent_tests(structure)
+        await automation.generate_intelligent_tests(structure)
 
         # Generate performance tests
         await automation.generate_performance_tests()

@@ -270,9 +270,9 @@ class Organization(SoftDeletableModel):
             "contact": {
                 "email": self.email,
                 "phone": self.phone,
-                "website": self.website
+                "website": self.website,
             },
-            "address": self.full_address
+            "address": self.full_address,
         }
 
     def get_display_name(self) -> str:

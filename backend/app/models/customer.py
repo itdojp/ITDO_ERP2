@@ -216,7 +216,6 @@ class Customer(SoftDeletableModel):
     def update_sales_summary(self) -> None:
         """Update sales summary from transaction data."""
         # This would be implemented when transaction models are available
-        pass
 
     def get_latest_activity(self) -> Optional["CustomerActivity"]:
         """Get the most recent activity."""

@@ -6,6 +6,7 @@ from app.core.database_simple import Base
 
 class Organization(Base):  # type: ignore[valid-type,misc]
     """Simple organization model - v19.0 practical approach"""
+
     __tablename__ = "organizations_simple"
 
     id = Column(String, primary_key=True)

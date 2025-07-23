@@ -10,6 +10,7 @@ from alembic import op
 revision = '001_simple'
 down_revision = None
 
+
 def upgrade():  # type: ignore[no-untyped-def]
     op.create_table('users_simple',
         sa.Column('id', sa.String(), nullable=False),
@@ -23,6 +24,7 @@ def upgrade():  # type: ignore[no-untyped-def]
         sa.UniqueConstraint('email'),
         sa.UniqueConstraint('username')
     )
+
 
 def downgrade():  # type: ignore[no-untyped-def]
     op.drop_table('users_simple')

@@ -13,7 +13,9 @@ from app.models.user import User
 from app.schemas.user import UserCreate, UserERPResponse, UserUpdate
 
 
-def create_user(db: Session, user_data: UserCreate, created_by: Optional[int] = None) -> User:
+def create_user(
+    db: Session, user_data: UserCreate, created_by: Optional[int] = None
+) -> User:
     """Create a new user with basic validation."""
     # Check if user exists
     existing_user = db.query(User).filter(User.email == user_data.email).first()
@@ -27,7 +29,7 @@ def create_user(db: Session, user_data: UserCreate, created_by: Optional[int] = 
         password=user_data.password,
         full_name=user_data.full_name,
         phone=user_data.phone,
-        is_active=user_data.is_active
+        is_active=user_data.is_active,
     )
 
     # Set created_by if provided
@@ -44,22 +46,20 @@ def create_user(db: Session, user_data: UserCreate, created_by: Optional[int] = 
 
 def get_user_by_id(db: Session, user_id: int) -> Optional[User]:
     """Get user by ID."""
-    return db.query(User).filter(
-        and_(
-            User.id == user_id,
-            User.deleted_at.is_(None)
-        )
-    ).first()
+    return (
+        db.query(User)
+        .filter(and_(User.id == user_id, User.deleted_at.is_(None)))
+        .first()
+    )
 
 
 def get_user_by_email(db: Session, email: str) -> Optional[User]:
     """Get user by email."""
-    return db.query(User).filter(
-        and_(
-            User.email == email,
-            User.deleted_at.is_(None)
-        )
-    ).first()
+    return (
+        db.query(User)
+        .filter(and_(User.email == email, User.deleted_at.is_(None)))
+        .first()
+    )
 
 
 def get_users(
@@ -70,7 +70,7 @@ def get_users(
     organization_id: Optional[int] = None,
     is_active: Optional[bool] = None,
     sort_by: str = "full_name",
-    sort_order: str = "asc"
+    sort_order: str = "asc",
 ) -> tuple[List[User], int]:
     """Get users with filtering and pagination."""
     query = db.query(User).filter(User.deleted_at.is_(None))
@@ -79,10 +79,7 @@ def get_users(
     if search:
         search_term = f"%{search}%"
         query = query.filter(
-            or_(
-                User.full_name.ilike(search_term),
-                User.email.ilike(search_term)
-            )
+            or_(User.full_name.ilike(search_term), User.email.ilike(search_term))
         )
 
     # Organization filter (if user has organization relationship)
@@ -112,10 +109,7 @@ def get_users(
 
 
 def update_user(
-    db: Session,
-    user_id: int,
-    user_data: UserUpdate,
-    updated_by: Optional[int] = None
+    db: Session, user_id: int, user_data: UserUpdate, updated_by: Optional[int] = None
 ) -> Optional[User]:
     """Update user information."""
     user = get_user_by_id(db, user_id)
@@ -135,9 +129,7 @@ def update_user(
 
 
 def deactivate_user(
-    db: Session,
-    user_id: int,
-    deactivated_by: Optional[int] = None
+    db: Session, user_id: int, deactivated_by: Optional[int] = None
 ) -> Optional[User]:
     """Deactivate user (soft delete)."""
     user = get_user_by_id(db, user_id)
@@ -184,7 +176,7 @@ def get_user_statistics(db: Session) -> Dict[str, Any]:
         "total_users": total_users,
         "active_users": active_users,
         "inactive_users": total_users - active_users,
-        "activation_rate": (active_users / total_users * 100) if total_users > 0 else 0
+        "activation_rate": (active_users / total_users * 100) if total_users > 0 else 0,
     }
 
 

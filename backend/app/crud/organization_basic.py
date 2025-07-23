@@ -49,22 +49,20 @@ def create_organization(
 
 def get_organization_by_id(db: Session, org_id: int) -> Optional[Organization]:
     """Get organization by ID."""
-    return db.query(Organization).filter(
-        and_(
-            Organization.id == org_id,
-            Organization.deleted_at.is_(None)
-        )
-    ).first()
+    return (
+        db.query(Organization)
+        .filter(and_(Organization.id == org_id, Organization.deleted_at.is_(None)))
+        .first()
+    )
 
 
 def get_organization_by_code(db: Session, code: str) -> Optional[Organization]:
     """Get organization by code."""
-    return db.query(Organization).filter(
-        and_(
-            Organization.code == code,
-            Organization.deleted_at.is_(None)
-        )
-    ).first()
+    return (
+        db.query(Organization)
+        .filter(and_(Organization.code == code, Organization.deleted_at.is_(None)))
+        .first()
+    )
 
 
 def get_organizations(
@@ -75,7 +73,7 @@ def get_organizations(
     parent_id: Optional[int] = None,
     is_active: Optional[bool] = None,
     sort_by: str = "name",
-    sort_order: str = "asc"
+    sort_order: str = "asc",
 ) -> tuple[List[Organization], int]:
     """Get organizations with filtering and pagination."""
     query = db.query(Organization).filter(Organization.deleted_at.is_(None))
@@ -87,7 +85,7 @@ def get_organizations(
             or_(
                 Organization.name.ilike(search_term),
                 Organization.code.ilike(search_term),
-                Organization.name_en.ilike(search_term)
+                Organization.name_en.ilike(search_term),
             )
         )
 
@@ -119,10 +117,7 @@ def get_organizations(
 
 
 def update_organization(
-    db: Session,
-    org_id: int,
-    org_data: OrganizationUpdate,
-    updated_by: int
+    db: Session, org_id: int, org_data: OrganizationUpdate, updated_by: int
 ) -> Optional[Organization]:
     """Update organization information."""
     organization = get_organization_by_id(db, org_id)
@@ -131,13 +126,17 @@ def update_organization(
 
     # Check for code conflicts if updating code
     if org_data.code and org_data.code != organization.code:
-        existing_org = db.query(Organization).filter(
-            and_(
-                Organization.code == org_data.code,
-                Organization.id != org_id,
-                Organization.deleted_at.is_(None)
+        existing_org = (
+            db.query(Organization)
+            .filter(
+                and_(
+                    Organization.code == org_data.code,
+                    Organization.id != org_id,
+                    Organization.deleted_at.is_(None),
+                )
             )
-        ).first()
+            .first()
+        )
         if existing_org:
             raise BusinessLogicError("Organization with this code already exists")
 
@@ -149,9 +148,7 @@ def update_organization(
 
 
 def deactivate_organization(
-    db: Session,
-    org_id: int,
-    deactivated_by: int
+    db: Session, org_id: int, deactivated_by: int
 ) -> Optional[Organization]:
     """Deactivate organization."""
     organization = get_organization_by_id(db, org_id)
@@ -190,14 +187,13 @@ def get_organization_hierarchy(db: Session, org_id: int) -> Optional[Dict[str, A
     return {
         "organization": organization,
         "hierarchy_path": [
-            {"id": org.id, "code": org.code, "name": org.name}
-            for org in hierarchy_path
+            {"id": org.id, "code": org.code, "name": org.name} for org in hierarchy_path
         ],
         "children": [
             {"id": child.id, "code": child.code, "name": child.name}
             for child in children
         ],
-        "level": len(hierarchy_path) - 1
+        "level": len(hierarchy_path) - 1,
     }
 
 
@@ -209,7 +205,9 @@ def get_root_organizations(db: Session) -> List[Organization]:
             Organization.deleted_at.is_(None),
             Organization.is_active
         )
-    ).order_by(Organization.name).all()
+        .order_by(Organization.name)
+        .all()
+    )
 
 
 def get_organization_statistics(db: Session) -> Dict[str, Any]:
@@ -244,7 +242,7 @@ def get_organization_statistics(db: Session) -> Dict[str, Any]:
         "active_organizations": active_orgs,
         "inactive_organizations": total_orgs - active_orgs,
         "root_organizations": root_orgs,
-        "subsidiary_organizations": subsidiary_orgs
+        "subsidiary_organizations": subsidiary_orgs,
     }
 
 

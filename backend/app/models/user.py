@@ -650,7 +650,9 @@ class User(SoftDeletableModel):
             "department_id": self.department_id,
             "is_active": self.is_active,
             "is_superuser": self.is_superuser,
-            "last_login": self.last_login_at.isoformat() if self.last_login_at else None
+            "last_login": self.last_login_at.isoformat()
+            if self.last_login_at
+            else None,
         }
 
     def __repr__(self) -> str:

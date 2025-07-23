@@ -6,6 +6,7 @@ from app.core.database_simple import Base
 
 class User(Base):  # type: ignore[valid-type,misc]
     """Simple user model - v19.0 practical approach"""
+
     __tablename__ = "users_simple"
 
     id = Column(String, primary_key=True)

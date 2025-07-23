@@ -261,7 +261,7 @@ class SmartDeploymentSystem:
         """Check test coverage percentage."""
         try:
             # Run coverage check
-            result = subprocess.run([
+            subprocess.run([
                 "uv", "run", "pytest", "--cov=app", "--cov-report=json", "--quiet"
             ], capture_output=True, text=True, timeout=120)
 

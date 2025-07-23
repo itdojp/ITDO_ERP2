@@ -27,10 +27,13 @@ def create_product(
 ) -> Product:
     """Create a new product with validation."""
     # Check if product code exists
-    existing_product = db.query(Product).filter(
-        and_(
-            Product.code == product_data.code,
-            Product.organization_id == product_data.organization_id
+    existing_product = (
+        db.query(Product)
+        .filter(
+            and_(
+                Product.code == product_data.code,
+                Product.organization_id == product_data.organization_id,
+            )
         )
     ).first()
 
@@ -58,33 +61,37 @@ def create_product(
 
 def get_product_by_id(db: Session, product_id: int) -> Optional[Product]:
     """Get product by ID."""
-    return db.query(Product).filter(
-        and_(
-            Product.id == product_id,
-            Product.deleted_at.is_(None)
-        )
-    ).first()
+    return (
+        db.query(Product)
+        .filter(and_(Product.id == product_id, Product.deleted_at.is_(None)))
+        .first()
+    )
 
 
-def get_product_by_code(db: Session, code: str, organization_id: int) -> Optional[Product]:
+def get_product_by_code(
+    db: Session, code: str, organization_id: int
+) -> Optional[Product]:
     """Get product by code within organization."""
-    return db.query(Product).filter(
-        and_(
-            Product.code == code,
-            Product.organization_id == organization_id,
-            Product.deleted_at.is_(None)
+    return (
+        db.query(Product)
+        .filter(
+            and_(
+                Product.code == code,
+                Product.organization_id == organization_id,
+                Product.deleted_at.is_(None),
+            )
         )
-    ).first()
+        .first()
+    )
 
 
 def get_product_by_sku(db: Session, sku: str) -> Optional[Product]:
     """Get product by SKU."""
-    return db.query(Product).filter(
-        and_(
-            Product.sku == sku,
-            Product.deleted_at.is_(None)
-        )
-    ).first()
+    return (
+        db.query(Product)
+        .filter(and_(Product.sku == sku, Product.deleted_at.is_(None)))
+        .first()
+    )
 
 
 def get_products(
@@ -98,7 +105,7 @@ def get_products(
     product_type: Optional[ProductType] = None,
     is_active: Optional[bool] = None,
     sort_by: str = "name",
-    sort_order: str = "asc"
+    sort_order: str = "asc",
 ) -> tuple[List[Product], int]:
     """Get products with filtering and pagination."""
     query = db.query(Product).filter(Product.deleted_at.is_(None))
@@ -112,7 +119,7 @@ def get_products(
                 Product.code.ilike(search_term),
                 Product.sku.ilike(search_term),
                 Product.barcode.ilike(search_term),
-                Product.description.ilike(search_term)
+                Product.description.ilike(search_term),
             )
         )
 
@@ -149,10 +156,7 @@ def get_products(
 
 
 def update_product(
-    db: Session,
-    product_id: int,
-    product_data: ProductUpdate,
-    updated_by: int
+    db: Session, product_id: int, product_data: ProductUpdate, updated_by: int
 ) -> Optional[Product]:
     """Update product information."""
     product = get_product_by_id(db, product_id)
@@ -161,26 +165,34 @@ def update_product(
 
     # Check for code conflicts if updating code
     if product_data.code and product_data.code != product.code:
-        existing_product = db.query(Product).filter(
-            and_(
-                Product.code == product_data.code,
-                Product.organization_id == product.organization_id,
-                Product.id != product_id,
-                Product.deleted_at.is_(None)
+        existing_product = (
+            db.query(Product)
+            .filter(
+                and_(
+                    Product.code == product_data.code,
+                    Product.organization_id == product.organization_id,
+                    Product.id != product_id,
+                    Product.deleted_at.is_(None),
+                )
             )
-        ).first()
+            .first()
+        )
         if existing_product:
             raise BusinessLogicError("Product with this code already exists")
 
     # Check for SKU conflicts if updating SKU
     if product_data.sku and product_data.sku != product.sku:
-        existing_sku = db.query(Product).filter(
-            and_(
-                Product.sku == product_data.sku,
-                Product.id != product_id,
-                Product.deleted_at.is_(None)
+        existing_sku = (
+            db.query(Product)
+            .filter(
+                and_(
+                    Product.sku == product_data.sku,
+                    Product.id != product_id,
+                    Product.deleted_at.is_(None),
+                )
             )
-        ).first()
+            .first()
+        )
         if existing_sku:
             raise BusinessLogicError("Product with this SKU already exists")
 
@@ -200,9 +212,7 @@ def update_product(
 
 
 def deactivate_product(
-    db: Session,
-    product_id: int,
-    deactivated_by: int
+    db: Session, product_id: int, deactivated_by: int
 ) -> Optional[Product]:
     """Deactivate product."""
     product = get_product_by_id(db, product_id)
@@ -234,9 +244,11 @@ def get_products_by_category(
 
         category_ids = [category_id]
         # This would need recursive implementation for deep hierarchies
-        subcategories = db.query(ProductCategory).filter(
-            ProductCategory.parent_id == category_id
-        ).all()
+        subcategories = (
+            db.query(ProductCategory)
+            .filter(ProductCategory.parent_id == category_id)
+            .all()
+        )
         category_ids.extend([cat.id for cat in subcategories])
 
         return db.query(Product).filter(
@@ -245,7 +257,8 @@ def get_products_by_category(
                 Product.deleted_at.is_(None),
                 Product.is_active
             )
-        ).all()
+            .all()
+        )
     else:
         return db.query(Product).filter(
             and_(
@@ -253,7 +266,8 @@ def get_products_by_category(
                 Product.deleted_at.is_(None),
                 Product.is_active
             )
-        ).all()
+            .all()
+        )
 
 
 # Product Category CRUD operations
@@ -264,11 +278,14 @@ def create_category(
 ) -> ProductCategory:
     """Create a new product category."""
     # Check if category code exists in organization
-    existing_category = db.query(ProductCategory).filter(
-        and_(
-            ProductCategory.code == category_data.code,
-            ProductCategory.organization_id == category_data.organization_id,
-            ProductCategory.deleted_at.is_(None)
+    existing_category = (
+        db.query(ProductCategory)
+        .filter(
+            and_(
+                ProductCategory.code == category_data.code,
+                ProductCategory.organization_id == category_data.organization_id,
+                ProductCategory.deleted_at.is_(None),
+            )
         )
     ).first()
 
@@ -290,19 +307,22 @@ def create_category(
 
 def get_category_by_id(db: Session, category_id: int) -> Optional[ProductCategory]:
     """Get category by ID."""
-    return db.query(ProductCategory).filter(
-        and_(
-            ProductCategory.id == category_id,
-            ProductCategory.deleted_at.is_(None)
+    return (
+        db.query(ProductCategory)
+        .filter(
+            and_(
+                ProductCategory.id == category_id, ProductCategory.deleted_at.is_(None)
+            )
         )
-    ).first()
+        .first()
+    )
 
 
 def get_categories(
     db: Session,
     organization_id: Optional[int] = None,
     parent_id: Optional[int] = None,
-    is_active: Optional[bool] = None
+    is_active: Optional[bool] = None,
 ) -> List[ProductCategory]:
     """Get product categories."""
     query = db.query(ProductCategory).filter(ProductCategory.deleted_at.is_(None))
@@ -322,7 +342,9 @@ def get_categories(
     return query.order_by(ProductCategory.sort_order, ProductCategory.name).all()
 
 
-def get_product_statistics(db: Session, organization_id: Optional[int] = None) -> Dict[str, Any]:
+def get_product_statistics(
+    db: Session, organization_id: Optional[int] = None
+) -> Dict[str, Any]:
     """Get basic product statistics."""
     query = db.query(Product).filter(Product.deleted_at.is_(None))
 
@@ -353,7 +375,7 @@ def get_product_statistics(db: Session, organization_id: Optional[int] = None) -
         "active_products": active_products,
         "inactive_products": total_products - active_products,
         "by_status": status_counts,
-        "by_type": type_counts
+        "by_type": type_counts,
     }
 
 
@@ -389,7 +411,7 @@ def convert_to_response(product: Product) -> ProductResponse:
         brand=product.brand,
         image_url=product.image_url,
         created_at=product.created_at,
-        updated_at=product.updated_at
+        updated_at=product.updated_at,
     )
 
 
