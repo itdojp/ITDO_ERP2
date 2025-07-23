@@ -26,7 +26,7 @@ class ExpenseBase(BaseModel):
     vendor_name: Optional[str] = Field(None, max_length=200, description="Vendor name")
 
     @validator("payment_method")
-    def validate_payment_method(cls, v):
+    def validate_payment_method(cls, v) -> dict:
         allowed_methods = ["cash", "credit_card", "bank_transfer", "check", "other"]
         if v not in allowed_methods:
             raise ValueError(
@@ -114,7 +114,7 @@ class ExpenseApprovalAction(BaseModel):
     comments: Optional[str] = Field(None, description="Approval comments")
 
     @validator("action")
-    def validate_action(cls, v):
+    def validate_action(cls, v) -> dict:
         allowed_actions = ["approve", "reject"]
         if v not in allowed_actions:
             raise ValueError(f"Action must be one of: {', '.join(allowed_actions)}")

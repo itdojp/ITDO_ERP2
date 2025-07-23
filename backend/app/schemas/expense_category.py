@@ -26,7 +26,7 @@ class ExpenseCategoryBase(BaseModel):
     parent_id: Optional[int] = Field(None, description="Parent category ID")
 
     @validator("category_type")
-    def validate_category_type(cls, v):
+    def validate_category_type(cls, v) -> dict:
         allowed_types = ["fixed", "variable", "capital"]
         if v not in allowed_types:
             raise ValueError(
@@ -35,7 +35,7 @@ class ExpenseCategoryBase(BaseModel):
         return v
 
     @validator("code")
-    def validate_code(cls, v):
+    def validate_code(cls, v) -> dict:
         # Code should be uppercase alphanumeric with underscores
         import re
 
@@ -79,7 +79,7 @@ class ExpenseCategoryUpdate(BaseModel):
     parent_id: Optional[int] = Field(None, description="Parent category ID")
 
     @validator("category_type")
-    def validate_category_type(cls, v):
+    def validate_category_type(cls, v) -> dict:
         if v is not None:
             allowed_types = ["fixed", "variable", "capital"]
             if v not in allowed_types:
@@ -89,7 +89,7 @@ class ExpenseCategoryUpdate(BaseModel):
         return v
 
     @validator("code")
-    def validate_code(cls, v):
+    def validate_code(cls, v) -> dict:
         if v is not None:
             import re
 
@@ -185,7 +185,7 @@ class ExpenseCategoryBulkUpdate(BaseModel):
     updates: ExpenseCategoryUpdate = Field(..., description="Updates to apply")
 
     @validator("category_ids")
-    def validate_category_ids(cls, v):
+    def validate_category_ids(cls, v) -> dict:
         if not v:
             raise ValueError("At least one category ID must be provided")
         return v
@@ -256,7 +256,7 @@ class ExpenseCategorySearch(BaseModel):
     )
 
     @validator("category_type")
-    def validate_category_type(cls, v):
+    def validate_category_type(cls, v) -> dict:
         if v is not None:
             allowed_types = ["fixed", "variable", "capital"]
             if v not in allowed_types:
@@ -277,7 +277,7 @@ class ExpenseCategoryImport(BaseModel):
     )
 
     @validator("categories")
-    def validate_categories(cls, v):
+    def validate_categories(cls, v) -> dict:
         if not v:
             raise ValueError("At least one category must be provided")
         return v
@@ -291,7 +291,7 @@ class ExpenseCategoryExport(BaseModel):
     include_hierarchy: bool = Field(True, description="Include hierarchy information")
 
     @validator("format")
-    def validate_format(cls, v):
+    def validate_format(cls, v) -> dict:
         allowed_formats = ["csv", "json", "xlsx"]
         if v not in allowed_formats:
             raise ValueError(f"Format must be one of: {', '.join(allowed_formats)}")

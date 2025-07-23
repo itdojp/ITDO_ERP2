@@ -1,7 +1,7 @@
 """Advanced authentication tests for improved coverage"""
-import pytest
-from unittest.mock import Mock, patch
+
 from datetime import datetime, timedelta
+
 
 class TestAdvancedAuthentication:
     """Test advanced authentication scenarios."""
@@ -11,11 +11,11 @@ class TestAdvancedAuthentication:
         # Test weak password
         weak_password = "123"
         assert self._validate_password_strength(weak_password) == "weak"
-        
-        # Test medium password  
+
+        # Test medium password
         medium_password = "password123"
         assert self._validate_password_strength(medium_password) == "medium"
-        
+
         # Test strong password
         strong_password = "MyStr0ng!Pass"
         assert self._validate_password_strength(strong_password) == "strong"
@@ -23,64 +23,68 @@ class TestAdvancedAuthentication:
     def test_session_timeout_logic(self):
         """Test session timeout calculation."""
         now = datetime.now()
-        
+
         # Active session
         active_session = {
             "created_at": now - timedelta(minutes=10),
-            "last_activity": now - timedelta(minutes=2)
+            "last_activity": now - timedelta(minutes=2),
         }
         assert not self._is_session_expired(active_session)
-        
+
         # Expired session
         expired_session = {
             "created_at": now - timedelta(hours=2),
-            "last_activity": now - timedelta(hours=1)
+            "last_activity": now - timedelta(hours=1),
         }
         assert self._is_session_expired(expired_session)
 
     def test_rate_limiting_login_attempts(self):
         """Test rate limiting for login attempts."""
         user_ip = "192.168.1.1"
-        
+
         # First 3 attempts should be allowed
         for i in range(3):
-            assert self._check_rate_limit(user_ip) == True
-            
+            assert self._check_rate_limit(user_ip)
+
         # 4th attempt should be blocked
-        assert self._check_rate_limit(user_ip) == False
+        assert not self._check_rate_limit(user_ip)
 
     def test_jwt_token_validation(self):
         """Test JWT token validation."""
         # Valid token
-        valid_token = self._generate_test_token({"user_id": 123, "exp": datetime.now() + timedelta(hours=1)})
-        assert self._validate_jwt_token(valid_token) == True
-        
+        valid_token = self._generate_test_token(
+            {"user_id": 123, "exp": datetime.now() + timedelta(hours=1)}
+        )
+        assert self._validate_jwt_token(valid_token)
+
         # Expired token
-        expired_token = self._generate_test_token({"user_id": 123, "exp": datetime.now() - timedelta(hours=1)})
-        assert self._validate_jwt_token(expired_token) == False
+        expired_token = self._generate_test_token(
+            {"user_id": 123, "exp": datetime.now() - timedelta(hours=1)}
+        )
+        assert not self._validate_jwt_token(expired_token)
 
     def test_mfa_code_generation(self):
         """Test MFA code generation and validation."""
         user_secret = "USER_SECRET_123"
-        
+
         # Generate MFA code
         mfa_code = self._generate_mfa_code(user_secret)
         assert len(mfa_code) == 6
         assert mfa_code.isdigit()
-        
+
         # Validate code
-        assert self._validate_mfa_code(user_secret, mfa_code) == True
-        assert self._validate_mfa_code(user_secret, "000000") == False
+        assert self._validate_mfa_code(user_secret, mfa_code)
+        assert not self._validate_mfa_code(user_secret, "000000")
 
     def test_account_lockout_logic(self):
         """Test account lockout after failed attempts."""
         user_id = 123
-        
+
         # First 4 failed attempts
         for i in range(4):
             self._record_failed_attempt(user_id)
             assert not self._is_account_locked(user_id)
-            
+
         # 5th attempt should lock account
         self._record_failed_attempt(user_id)
         assert self._is_account_locked(user_id)

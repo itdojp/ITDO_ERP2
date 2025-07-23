@@ -1,12 +1,14 @@
 """Tests for monitoring module"""
+
 import pytest
-from unittest.mock import Mock, patch
+
 from app.monitoring.metrics import (
-    track_request, 
-    track_test_result, 
+    track_ci_build,
+    track_request,
+    track_test_result,
     update_coverage,
-    track_ci_build
 )
+
 
 class TestMonitoringMetrics:
     """Test monitoring metrics functionality."""
@@ -47,6 +49,7 @@ class TestMonitoringMetrics:
     @pytest.mark.asyncio
     async def test_track_request_success(self):
         """Test request tracking for successful requests."""
+
         @track_request
         async def mock_endpoint(method="GET", endpoint="/test"):
             return {"status": "success"}
@@ -57,6 +60,7 @@ class TestMonitoringMetrics:
     @pytest.mark.asyncio
     async def test_track_request_failure(self):
         """Test request tracking for failed requests."""
+
         @track_request
         async def mock_endpoint_error(method="GET", endpoint="/test"):
             raise Exception("Test error")
@@ -68,15 +72,15 @@ class TestMonitoringMetrics:
         """Test that all metrics are properly initialized."""
         # Verify all required metrics exist
         from app.monitoring.metrics import (
-            http_requests_total,
-            http_request_duration,
             active_users,
-            db_connections,
-            test_failures,
             ci_build_duration,
-            code_coverage
+            code_coverage,
+            db_connections,
+            http_request_duration,
+            http_requests_total,
+            test_failures,
         )
-        
+
         # Check metrics are not None
         assert http_requests_total is not None
         assert http_request_duration is not None

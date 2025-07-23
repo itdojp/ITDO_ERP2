@@ -34,7 +34,7 @@ class ApplicationCreate(ApplicationBase):
     )
 
     @validator("priority")
-    def validate_priority(cls, v):
+    def validate_priority(cls, v) -> dict:
         """Validate priority value."""
         valid_priorities = ["LOW", "MEDIUM", "HIGH", "URGENT"]
         if v not in valid_priorities:
@@ -51,7 +51,7 @@ class ApplicationUpdate(BaseModel):
     form_data: Optional[Dict[str, Any]] = Field(None)
 
     @validator("priority")
-    def validate_priority(cls, v):
+    def validate_priority(cls, v) -> dict:
         """Validate priority value."""
         if v is not None:
             valid_priorities = ["LOW", "MEDIUM", "HIGH", "URGENT"]
@@ -123,7 +123,7 @@ class ApplicationSearchParams(BaseModel):
     end_date: Optional[datetime] = None
 
     @validator("priority")
-    def validate_priority(cls, v):
+    def validate_priority(cls, v) -> dict:
         """Validate priority value."""
         if v is not None:
             valid_priorities = ["LOW", "MEDIUM", "HIGH", "URGENT"]
@@ -132,7 +132,7 @@ class ApplicationSearchParams(BaseModel):
         return v
 
     @validator("end_date")
-    def validate_end_date(cls, v, values):
+    def validate_end_date(cls, v, values) -> dict:
         """Validate end_date is after start_date."""
         if (
             v is not None
@@ -189,7 +189,7 @@ class BulkApprovalRequest(BaseModel):
     comments: Optional[str] = Field(None, max_length=1000)
 
     @validator("application_ids")
-    def validate_application_ids(cls, v):
+    def validate_application_ids(cls, v) -> dict:
         """Validate application IDs are positive integers."""
         for app_id in v:
             if app_id <= 0:
@@ -206,7 +206,7 @@ class BulkRejectionRequest(BaseModel):
     )
 
     @validator("application_ids")
-    def validate_application_ids(cls, v):
+    def validate_application_ids(cls, v) -> dict:
         """Validate application IDs are positive integers."""
         for app_id in v:
             if app_id <= 0:
@@ -223,7 +223,7 @@ class BulkOperationResponse(BaseModel):
     success_rate: float
 
     @validator("success_rate", pre=True, always=True)
-    def calculate_success_rate(cls, v, values):
+    def calculate_success_rate(cls, v, values) -> dict:
         """Calculate success rate based on processed and total."""
         if "total_requested" in values and values["total_requested"] > 0:
             processed = values.get("processed_count", 0)
@@ -313,7 +313,7 @@ class ApplicationFormField(BaseModel):
     options: Optional[List[str]] = Field(None, description="Options for select fields")
 
     @validator("type")
-    def validate_field_type(cls, v):
+    def validate_field_type(cls, v) -> dict:
         """Validate field type."""
         valid_types = [
             "text",
@@ -378,7 +378,7 @@ class NotificationRequest(BaseModel):
     notification_type: str = Field(default="INFO")
 
     @validator("recipients")
-    def validate_recipients(cls, v):
+    def validate_recipients(cls, v) -> dict:
         """Validate recipient IDs are positive integers."""
         for recipient_id in v:
             if recipient_id <= 0:
@@ -386,7 +386,7 @@ class NotificationRequest(BaseModel):
         return v
 
     @validator("notification_type")
-    def validate_notification_type(cls, v):
+    def validate_notification_type(cls, v) -> dict:
         """Validate notification type."""
         valid_types = ["INFO", "WARNING", "SUCCESS", "ERROR"]
         if v not in valid_types:
@@ -403,7 +403,7 @@ class ClarificationRequest(BaseModel):
     priority: str = Field(default="MEDIUM", description="Urgency of clarification")
 
     @validator("priority")
-    def validate_priority(cls, v):
+    def validate_priority(cls, v) -> dict:
         """Validate priority value."""
         valid_priorities = ["LOW", "MEDIUM", "HIGH", "URGENT"]
         if v not in valid_priorities:
@@ -426,7 +426,7 @@ class ExportRequest(BaseModel):
     )
 
     @validator("format")
-    def validate_format(cls, v):
+    def validate_format(cls, v) -> dict:
         """Validate export format."""
         valid_formats = ["csv", "excel", "pdf"]
         if v not in valid_formats:
@@ -434,7 +434,7 @@ class ExportRequest(BaseModel):
         return v
 
     @validator("end_date")
-    def validate_end_date(cls, v, values):
+    def validate_end_date(cls, v, values) -> dict:
         """Validate end_date is after start_date."""
         if (
             v is not None

@@ -143,20 +143,20 @@ class BudgetBase(BaseModel):
     )
 
     @validator("end_date")
-    def validate_end_date(cls, v, values):
+    def validate_end_date(cls, v, values) -> dict:
         if "start_date" in values and v <= values["start_date"]:
             raise ValueError("End date must be after start date")
         return v
 
     @validator("budget_type")
-    def validate_budget_type(cls, v):
+    def validate_budget_type(cls, v) -> dict:
         allowed_types = ["project", "department", "annual", "quarterly", "monthly"]
         if v not in allowed_types:
             raise ValueError(f"Budget type must be one of: {', '.join(allowed_types)}")
         return v
 
     @validator("budget_period")
-    def validate_budget_period(cls, v):
+    def validate_budget_period(cls, v) -> dict:
         allowed_periods = ["annual", "quarterly", "monthly"]
         if v not in allowed_periods:
             raise ValueError(
@@ -200,7 +200,7 @@ class BudgetUpdate(BaseModel):
     department_id: Optional[int] = Field(None, description="Department ID")
 
     @validator("end_date")
-    def validate_end_date(cls, v, values):
+    def validate_end_date(cls, v, values) -> dict:
         if (
             v
             and "start_date" in values
@@ -260,7 +260,7 @@ class BudgetStatusUpdate(BaseModel):
     comments: Optional[str] = Field(None, description="Comments for the action")
 
     @validator("action")
-    def validate_action(cls, v):
+    def validate_action(cls, v) -> dict:
         allowed_actions = ["submit", "approve", "reject", "activate", "close"]
         if v not in allowed_actions:
             raise ValueError(f"Action must be one of: {', '.join(allowed_actions)}")
@@ -332,7 +332,7 @@ class BudgetAlertSettings(BaseModel):
     )
 
     @validator("notification_emails")
-    def validate_emails(cls, v):
+    def validate_emails(cls, v) -> dict:
         # Basic email validation
         import re
 
@@ -400,7 +400,7 @@ class BudgetApprovalRequest(BaseModel):
     )
 
     @validator("action")
-    def validate_action(cls, v):
+    def validate_action(cls, v) -> dict:
         valid_actions = ["approve", "reject", "request_changes"]
         if v not in valid_actions:
             raise ValueError(f"Action must be one of {valid_actions}")

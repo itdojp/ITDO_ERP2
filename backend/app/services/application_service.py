@@ -25,7 +25,7 @@ from app.schemas.application import (
 class ApplicationService:
     """Service layer for application management."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     async def create_application(
