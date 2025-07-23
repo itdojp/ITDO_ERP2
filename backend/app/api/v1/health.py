@@ -27,11 +27,13 @@ async def comprehensive_health_check(
     # Run all health checks
     health_results = await health_checker.run_checks()
 
-    # Return results
+    # Return results with enhanced metadata
     return {
         "status": "healthy" if health_results["healthy"] else "unhealthy",
         "timestamp": health_results["timestamp"],
-        "version": "2.0.0",
+        "version": "2.1.0",
+        "service": "ITDO ERP API",
+        "protocol": "v17.0",
         "checks": health_results["checks"],
         "overall_healthy": health_results["healthy"],
     }

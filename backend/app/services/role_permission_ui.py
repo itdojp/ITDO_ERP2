@@ -237,7 +237,6 @@ class RolePermissionUIService:
                 raise PermissionDenied("一括権限更新を行う権限がありません")
 
             # TODO: Implement proper permission check
-            pass
 
         results = []
         for role_id, permissions in role_permissions.items():

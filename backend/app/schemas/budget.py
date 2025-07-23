@@ -8,6 +8,8 @@ from pydantic import BaseModel, Field
 
 from app.schemas.base import BaseResponse
 
+from app.schemas.base import BaseResponse
+
 
 class ExpenseCategoryBase(BaseModel):
     """Base schema for expense categories."""
@@ -24,8 +26,6 @@ class ExpenseCategoryBase(BaseModel):
 
 class ExpenseCategoryCreate(ExpenseCategoryBase):
     """Schema for creating expense categories."""
-
-    pass
 
 
 class ExpenseCategoryUpdate(BaseModel):
@@ -68,8 +68,6 @@ class BudgetItemBase(BaseModel):
 
 class BudgetItemCreate(BudgetItemBase):
     """Schema for creating budget items."""
-
-    pass
 
 
 class BudgetItemUpdate(BaseModel):
@@ -143,20 +141,23 @@ class BudgetBase(BaseModel):
     )
 
     @field_validator("end_date")
-    def validate_end_date(cls, v, values) -> dict:
+    @classmethod
+    def validate_end_date(cls, v, values) -> date:
         if "start_date" in values and v <= values["start_date"]:
             raise ValueError("End date must be after start date")
         return v
 
     @field_validator("budget_type")
-    def validate_budget_type(cls, v) -> dict:
+    @classmethod
+    def validate_budget_type(cls, v) -> str:
         allowed_types = ["project", "department", "annual", "quarterly", "monthly"]
         if v not in allowed_types:
             raise ValueError(f"Budget type must be one of: {', '.join(allowed_types)}")
         return v
 
     @field_validator("budget_period")
-    def validate_budget_period(cls, v) -> dict:
+    @classmethod
+    def validate_budget_period(cls, v) -> str:
         allowed_periods = ["annual", "quarterly", "monthly"]
         if v not in allowed_periods:
             raise ValueError(
@@ -200,7 +201,8 @@ class BudgetUpdate(BaseModel):
     department_id: Optional[int] = Field(None, description="Department ID")
 
     @field_validator("end_date")
-    def validate_end_date(cls, v, values) -> dict:
+    @classmethod
+    def validate_end_date(cls, v, values) -> date:
         if (
             v
             and "start_date" in values
@@ -260,7 +262,8 @@ class BudgetStatusUpdate(BaseModel):
     comments: Optional[str] = Field(None, description="Comments for the action")
 
     @field_validator("action")
-    def validate_action(cls, v) -> dict:
+    @classmethod
+    def validate_action(cls, v) -> str:
         allowed_actions = ["submit", "approve", "reject", "activate", "close"]
         if v not in allowed_actions:
             raise ValueError(f"Action must be one of: {', '.join(allowed_actions)}")
@@ -332,7 +335,8 @@ class BudgetAlertSettings(BaseModel):
     )
 
     @field_validator("notification_emails")
-    def validate_emails(cls, v) -> dict:
+    @classmethod
+    def validate_emails(cls, v) -> List[str]:
         # Basic email validation
         import re
 
@@ -400,7 +404,8 @@ class BudgetApprovalRequest(BaseModel):
     )
 
     @field_validator("action")
-    def validate_action(cls, v) -> dict:
+    @classmethod
+    def validate_action(cls, v) -> str:
         valid_actions = ["approve", "reject", "request_changes"]
         if v not in valid_actions:
             raise ValueError(f"Action must be one of {valid_actions}")

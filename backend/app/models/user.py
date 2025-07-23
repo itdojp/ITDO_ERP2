@@ -28,7 +28,11 @@ __all__ = ["User", "PasswordHistory"]
 
 
 class User(SoftDeletableModel):
-    """User model with enhanced security and audit features."""
+    """User model with enhanced security and audit features.
+
+    v17.0: Enhanced for ERP basic functionality with improved organization
+    and department relationships, security tracking, and session management.
+    """
 
     __tablename__ = "users"
 
@@ -603,6 +607,53 @@ class User(SoftDeletableModel):
         online_threshold = now - timedelta(minutes=15)
 
         return self.last_login_at > online_threshold
+
+    @property
+    def organization_id(self) -> int | None:
+        """Get primary organization ID for the user."""
+        # Return the first active organization from user_organizations
+        if hasattr(self, "user_organizations") and self.user_organizations:
+            active_orgs = [
+                uo
+                for uo in self.user_organizations
+                if hasattr(uo, "is_active") and uo.is_active
+            ]
+            if active_orgs and hasattr(active_orgs[0], "organization_id"):
+                return int(active_orgs[0].organization_id)
+
+        # Fallback: if user has a department_id, get department's organization
+        if self.department_id:
+            # This would require a database query to get the actual department
+            # For now, return None as this requires additional context
+            pass
+
+        return None
+
+    def get_full_display_name(self) -> str:
+        """Get user's full display name for ERP systems."""
+        if self.full_name:
+            return self.full_name
+        return self.email
+
+    def is_erp_user(self) -> bool:
+        """Check if user has ERP access permissions."""
+        # Basic check - could be expanded with specific ERP permissions
+        return self.is_active and bool(self.organization_id)
+
+    def get_erp_context(self) -> dict[str, Any]:
+        """Get ERP-specific user context."""
+        return {
+            "user_id": self.id,
+            "full_name": self.full_name,
+            "email": self.email,
+            "organization_id": self.organization_id,
+            "department_id": self.department_id,
+            "is_active": self.is_active,
+            "is_superuser": self.is_superuser,
+            "last_login": self.last_login_at.isoformat()
+            if self.last_login_at
+            else None,
+        }
 
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email={self.email})>"

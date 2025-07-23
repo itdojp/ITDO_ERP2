@@ -30,9 +30,13 @@ if str(settings.DATABASE_URL).startswith("postgresql"):
 
 
 def get_db() -> Generator[Session]:
+    """Get a database session for dependency injection."""
     db = SessionLocal()
     try:
         yield db
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()
 
@@ -52,5 +56,40 @@ async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncSessionLocal() as session:
         try:
             yield session
+        except Exception:
+            await session.rollback()
+            raise
         finally:
             await session.close()
+
+
+def test_database_connection() -> bool:
+    """Test database connectivity for health checks."""
+    try:
+        with SessionLocal() as session:
+            from sqlalchemy import text
+
+            session.execute(text("SELECT 1"))
+            return True
+    except Exception:
+        return False
+
+
+def get_database_info() -> dict:
+    """Get basic database information for monitoring."""
+    try:
+        with SessionLocal() as session:
+            from sqlalchemy import text
+
+            result = session.execute(text("SELECT version()")).scalar()
+            return {
+                "status": "connected",
+                "version": result,
+                "url_scheme": str(settings.DATABASE_URL).split("://")[0],
+            }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e),
+            "url_scheme": str(settings.DATABASE_URL).split("://")[0],
+        }

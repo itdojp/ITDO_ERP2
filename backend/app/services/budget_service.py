@@ -88,7 +88,8 @@ class BudgetService:
         )
         if existing:
             raise ValueError(
-                f"Budget code '{budget_data.code}' already exists for fiscal year {budget_data.fiscal_year}"
+                f"Budget code '{budget_data.code}' already exists for "
+                f"fiscal year {budget_data.fiscal_year}"
             )
 
         budget = Budget(
@@ -431,3 +432,69 @@ class BudgetService:
             budget.total_amount = total_amount
             budget.updated_at = datetime.utcnow()
             await self.db.commit()
+
+    async def get_budget_vs_actual_analysis(
+        self, organization_id: int, fiscal_year: int
+    ) -> dict:
+        """Budget vs Actual comparison analysis for Phase 4."""
+        # Get all budgets for the fiscal year
+        budgets_query = select(Budget).where(
+            and_(
+                Budget.organization_id == organization_id,
+                Budget.fiscal_year == fiscal_year,
+                Budget.deleted_at.is_(None),
+            )
+        )
+        budgets_result = await self.db.execute(budgets_query)
+        budgets = budgets_result.scalars().all()
+
+        total_budgeted = 0.0
+        total_actual = 0.0
+        variance_analysis = []
+
+        for budget in budgets:
+            # Calculate actual spending (simulated for demo)
+            # In real implementation, this would query expense/transaction tables
+            budgeted_amount = float(budget.total_amount or 0)
+            actual_amount = budgeted_amount * 0.85  # Simulated 85% utilization
+
+            variance = budgeted_amount - actual_amount
+            variance_percentage = (
+                (variance / budgeted_amount * 100) if budgeted_amount > 0 else 0
+            )
+
+            variance_analysis.append(
+                {
+                    "budget_code": budget.code,
+                    "budget_name": budget.name,
+                    "budgeted_amount": budgeted_amount,
+                    "actual_amount": actual_amount,
+                    "variance": variance,
+                    "variance_percentage": variance_percentage,
+                    "status": "under_budget" if variance > 0 else "over_budget",
+                }
+            )
+
+            total_budgeted += budgeted_amount
+            total_actual += actual_amount
+
+        overall_variance = total_budgeted - total_actual
+        overall_variance_percentage = (
+            (overall_variance / total_budgeted * 100) if total_budgeted > 0 else 0
+        )
+
+        return {
+            "fiscal_year": fiscal_year,
+            "organization_id": organization_id,
+            "summary": {
+                "total_budgeted": total_budgeted,
+                "total_actual": total_actual,
+                "overall_variance": overall_variance,
+                "overall_variance_percentage": overall_variance_percentage,
+                "utilization_rate": (total_actual / total_budgeted * 100)
+                if total_budgeted > 0
+                else 0,
+            },
+            "budget_details": variance_analysis,
+            "analysis_date": datetime.utcnow().isoformat(),
+        }

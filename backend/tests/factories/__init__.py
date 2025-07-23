@@ -67,7 +67,6 @@ class BaseFactory(ABC):
     @abstractmethod
     def _get_default_attributes(cls) -> dict[str, Any]:
         """Get default attributes for creating instances."""
-        pass
 
     @classmethod
     def _get_update_attributes(cls) -> dict[str, Any]:
