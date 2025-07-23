@@ -25,7 +25,7 @@ class ExpenseBase(BaseModel):
     )
     vendor_name: Optional[str] = Field(None, max_length=200, description="Vendor name")
 
-    @validator("payment_method")
+    @field_validator("payment_method")
     def validate_payment_method(cls, v) -> dict:
         allowed_methods = ["cash", "credit_card", "bank_transfer", "check", "other"]
         if v not in allowed_methods:
@@ -113,7 +113,7 @@ class ExpenseApprovalAction(BaseModel):
     action: str = Field(..., description="Action: approve, reject")
     comments: Optional[str] = Field(None, description="Approval comments")
 
-    @validator("action")
+    @field_validator("action")
     def validate_action(cls, v) -> dict:
         allowed_actions = ["approve", "reject"]
         if v not in allowed_actions:

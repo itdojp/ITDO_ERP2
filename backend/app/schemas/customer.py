@@ -110,7 +110,7 @@ class CustomerBase(BaseModel):
     first_contact_date: Optional[date] = Field(None, description="First contact date")
     last_contact_date: Optional[date] = Field(None, description="Last contact date")
 
-    @validator("customer_type")
+    @field_validator("customer_type")
     def validate_customer_type(cls, v) -> dict:
         allowed_types = ["individual", "corporate", "government", "non_profit"]
         if v not in allowed_types:
@@ -119,14 +119,14 @@ class CustomerBase(BaseModel):
             )
         return v
 
-    @validator("status")
+    @field_validator("status")
     def validate_status(cls, v) -> dict:
         allowed_statuses = ["active", "inactive", "prospect", "former"]
         if v not in allowed_statuses:
             raise ValueError(f"Status must be one of: {', '.join(allowed_statuses)}")
         return v
 
-    @validator("scale")
+    @field_validator("scale")
     def validate_scale(cls, v) -> dict:
         if v is not None:
             allowed_scales = ["large", "medium", "small"]
@@ -134,7 +134,7 @@ class CustomerBase(BaseModel):
                 raise ValueError(f"Scale must be one of: {', '.join(allowed_scales)}")
         return v
 
-    @validator("priority")
+    @field_validator("priority")
     def validate_priority(cls, v) -> dict:
         allowed_priorities = ["high", "normal", "low"]
         if v not in allowed_priorities:
@@ -231,7 +231,7 @@ class OpportunityBase(BaseModel):
     assigned_to: Optional[int] = Field(None, description="Assigned sales rep ID")
     owner_id: int = Field(..., description="Opportunity owner ID")
 
-    @validator("stage")
+    @field_validator("stage")
     def validate_stage(cls, v) -> dict:
         allowed_stages = [
             "lead",
@@ -245,7 +245,7 @@ class OpportunityBase(BaseModel):
             raise ValueError(f"Stage must be one of: {', '.join(allowed_stages)}")
         return v
 
-    @validator("status")
+    @field_validator("status")
     def validate_status(cls, v) -> dict:
         allowed_statuses = ["open", "won", "lost", "canceled"]
         if v not in allowed_statuses:
@@ -311,7 +311,7 @@ class CustomerActivityBase(BaseModel):
     next_action_date: Optional[datetime] = Field(None, description="Next action date")
     opportunity_id: Optional[int] = Field(None, description="Related opportunity ID")
 
-    @validator("activity_type")
+    @field_validator("activity_type")
     def validate_activity_type(cls, v) -> dict:
         allowed_types = [
             "call",
@@ -328,7 +328,7 @@ class CustomerActivityBase(BaseModel):
             )
         return v
 
-    @validator("status")
+    @field_validator("status")
     def validate_status(cls, v) -> dict:
         allowed_statuses = ["planned", "completed", "canceled"]
         if v not in allowed_statuses:
