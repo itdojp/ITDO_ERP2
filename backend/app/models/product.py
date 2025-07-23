@@ -48,10 +48,21 @@ class ProductCategory(SoftDeletableModel):
     description: Mapped[str | None] = mapped_column(Text)
 
     # Hierarchy
+<<<<<<< HEAD
+    parent_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("product_categories.id")
+    )
+
+    # Organization
+    organization_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("organizations.id"), nullable=False
+    )
+=======
     parent_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("product_categories.id"))
 
     # Organization
     organization_id: Mapped[int] = mapped_column(Integer, ForeignKey("organizations.id"), nullable=False)
+>>>>>>> main
 
     # Status
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -106,8 +117,17 @@ class Product(SoftDeletableModel):
     status: Mapped[str] = mapped_column(String(20), default=ProductStatus.ACTIVE.value)
 
     # Categorization
+<<<<<<< HEAD
+    category_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("product_categories.id")
+    )
+    organization_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("organizations.id"), nullable=False
+    )
+=======
     category_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("product_categories.id"))
     organization_id: Mapped[int] = mapped_column(Integer, ForeignKey("organizations.id"), nullable=False)
+>>>>>>> main
 
     # Pricing
     standard_price: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0)
@@ -173,9 +193,15 @@ class Product(SoftDeletableModel):
     def is_available(self) -> bool:
         """Check if product is available for sale."""
         return (
+<<<<<<< HEAD
+            self.is_active
+            and self.is_sellable
+            and self.status == ProductStatus.ACTIVE.value
+=======
             self.is_active and
             self.is_sellable and
             self.status == ProductStatus.ACTIVE.value
+>>>>>>> main
         )
 
     @property

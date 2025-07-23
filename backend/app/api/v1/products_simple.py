@@ -168,5 +168,11 @@ def deactivate_product(product_id: str, db: Session = Depends(get_db)) -> Any:
 @router.get("/categories")
 def list_categories(db: Session = Depends(get_db)) -> Any:
     """List all unique categories - v19.0 practical approach"""
+<<<<<<< HEAD
+    categories = (
+        db.query(Product.category).distinct().filter(Product.category.isnot(None)).all()
+    )  # type: ignore[misc]
+=======
     categories = db.query(Product.category).distinct().filter(Product.category.isnot(None)).all()  # type: ignore[misc]
+>>>>>>> main
     return [cat[0] for cat in categories if cat[0]]  # type: ignore[return-value]

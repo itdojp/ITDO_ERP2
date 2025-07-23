@@ -265,8 +265,12 @@ async def reserve_stock(
 
     if not success:
         raise HTTPException(
+<<<<<<< HEAD
+            status_code=400, detail="Insufficient stock available for reservation"
+=======
             status_code=400,
             detail="Insufficient stock available for reservation"
+>>>>>>> main
         )
 
     return {"message": "Stock reserved successfully", "success": True}
@@ -332,6 +336,21 @@ async def get_low_stock_alerts(
         warehouse = crud.get_warehouse_by_id(db, item.warehouse_id)
 
         if product and warehouse:
+<<<<<<< HEAD
+            alerts.append(
+                LowStockAlert(
+                    product_id=item.product_id,
+                    product_code=product.code,
+                    product_name=product.name,
+                    warehouse_id=item.warehouse_id,
+                    warehouse_name=warehouse.name,
+                    current_quantity=item.quantity_available,
+                    minimum_level=item.minimum_level or Decimal(0),
+                    reorder_point=item.reorder_point,
+                    needs_reorder=item.needs_reorder,
+                )
+            )
+=======
             alerts.append(LowStockAlert(
                 product_id=item.product_id,
                 product_code=product.code,
@@ -343,6 +362,7 @@ async def get_low_stock_alerts(
                 reorder_point=item.reorder_point,
                 needs_reorder=item.needs_reorder
             ))
+>>>>>>> main
 
     return alerts
 
@@ -374,6 +394,22 @@ async def get_expiry_alerts(
             warehouse = crud.get_warehouse_by_id(db, item.warehouse_id)
 
             if product and warehouse:
+<<<<<<< HEAD
+                alerts.append(
+                    ExpiryAlert(
+                        product_id=item.product_id,
+                        product_code=product.code,
+                        product_name=product.name,
+                        warehouse_id=item.warehouse_id,
+                        warehouse_name=warehouse.name,
+                        quantity=item.quantity_on_hand,
+                        expiry_date=item.expiry_date,
+                        days_until_expiry=item.days_until_expiry or 0,
+                        lot_number=item.lot_number,
+                        batch_number=item.batch_number,
+                    )
+                )
+=======
                 alerts.append(ExpiryAlert(
                     product_id=item.product_id,
                     product_code=product.code,
@@ -386,6 +422,7 @@ async def get_expiry_alerts(
                     lot_number=item.lot_number,
                     batch_number=item.batch_number
                 ))
+>>>>>>> main
 
     return alerts
 
@@ -425,6 +462,22 @@ async def get_inventory_valuation(
                 total_value += item_value
                 item_count += 1
 
+<<<<<<< HEAD
+                valuation_items.append(
+                    {
+                        "product_id": item.product_id,
+                        "product_code": product.code,
+                        "product_name": product.name,
+                        "warehouse_id": item.warehouse_id,
+                        "warehouse_name": warehouse.name,
+                        "quantity_on_hand": float(item.quantity_on_hand),
+                        "average_cost": float(item.average_cost)
+                        if item.average_cost
+                        else None,
+                        "total_value": float(item_value),
+                    }
+                )
+=======
                 valuation_items.append({
                     "product_id": item.product_id,
                     "product_code": product.code,
@@ -435,6 +488,7 @@ async def get_inventory_valuation(
                     "average_cost": float(item.average_cost) if item.average_cost else None,
                     "total_value": float(item_value)
                 })
+>>>>>>> main
 
     return {
         "as_of_date": as_of_date or date.today(),
@@ -489,6 +543,11 @@ async def get_inventory_context(
             "batch_number": item.batch_number,
             "expiry_date": item.expiry_date.isoformat() if item.expiry_date else None,
             "is_expired": item.is_expired,
+<<<<<<< HEAD
+            "days_until_expiry": item.days_until_expiry,
+        },
+=======
             "days_until_expiry": item.days_until_expiry
         }
+>>>>>>> main
     }

@@ -29,12 +29,27 @@ class WarehouseBase(BaseModel):
     # Contact information
     phone: Optional[str] = Field(None, max_length=20, description="Phone number")
     email: Optional[str] = Field(None, max_length=255, description="Email address")
+<<<<<<< HEAD
+    manager_name: Optional[str] = Field(
+        None, max_length=100, description="Manager name"
+    )
+
+    # Specifications
+    total_area: Optional[Decimal] = Field(None, ge=0, description="Total area in m²")
+    storage_capacity: Optional[Decimal] = Field(
+        None, ge=0, description="Storage capacity"
+    )
+    temperature_controlled: bool = Field(
+        False, description="Temperature controlled facility"
+    )
+=======
     manager_name: Optional[str] = Field(None, max_length=100, description="Manager name")
 
     # Specifications
     total_area: Optional[Decimal] = Field(None, ge=0, description="Total area in m²")
     storage_capacity: Optional[Decimal] = Field(None, ge=0, description="Storage capacity")
     temperature_controlled: bool = Field(False, description="Temperature controlled facility")
+>>>>>>> main
 
     # Status
     is_default: bool = Field(False, description="Default warehouse")

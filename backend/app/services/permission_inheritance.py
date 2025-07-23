@@ -17,7 +17,6 @@ from app.models.role import Role, RolePermission
 from app.models.user import User
 from app.schemas.permission_inheritance import (
     InheritanceConflict,
-    PermissionInheritanceUpdate,
 )
 from app.schemas.permission_inheritance import (
     InheritanceConflictResolution as ConflictResolutionSchema,
@@ -27,6 +26,9 @@ from app.schemas.permission_inheritance import (
 )
 from app.schemas.permission_inheritance import (
     PermissionInheritanceRule as PermissionInheritanceRuleSchema,
+)
+from app.schemas.permission_inheritance import (
+    PermissionInheritanceUpdate,
 )
 
 

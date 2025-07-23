@@ -6,6 +6,9 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from sqlalchemy import (
     DateTime,
+)
+from sqlalchemy import Enum as SQLEnum
+from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
