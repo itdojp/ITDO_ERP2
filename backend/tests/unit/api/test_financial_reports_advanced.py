@@ -13,14 +13,15 @@ class TestFinancialReportsAPI:
         self.client = TestClient(app)
         self.headers = {"Content-Type": "application/json"}
 
-
     def test_get__budget_performance_fiscal_year_success(self):
         """Test GET /budget-performance/{fiscal_year} successful response."""
         # Setup test data
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/budget-performance/{fiscal_year}", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/budget-performance/{fiscal_year}", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -33,7 +34,9 @@ class TestFinancialReportsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/budget-performance/{fiscal_year}", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/budget-performance/{fiscal_year}", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -52,7 +55,9 @@ class TestFinancialReportsAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/expense-summary", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/expense-summary", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -65,7 +70,9 @@ class TestFinancialReportsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/expense-summary", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/expense-summary", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -84,7 +91,9 @@ class TestFinancialReportsAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/monthly/{year}/{month}", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/monthly/{year}/{month}", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -97,7 +106,9 @@ class TestFinancialReportsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/monthly/{year}/{month}", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/monthly/{year}/{month}", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -116,7 +127,9 @@ class TestFinancialReportsAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/yearly/{year}", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/yearly/{year}", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -129,7 +142,9 @@ class TestFinancialReportsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/yearly/{year}", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/yearly/{year}", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -148,7 +163,9 @@ class TestFinancialReportsAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/dashboard/current-year", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/dashboard/current-year", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -161,7 +178,9 @@ class TestFinancialReportsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/dashboard/current-year", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/dashboard/current-year", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -180,7 +199,11 @@ class TestFinancialReportsAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/analytics/variance-analysis/{fiscal_year}", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/analytics/variance-analysis/{fiscal_year}",
+            json=test_data,
+            headers=self.headers,
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -193,7 +216,11 @@ class TestFinancialReportsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/analytics/variance-analysis/{fiscal_year}", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/analytics/variance-analysis/{fiscal_year}",
+            json=invalid_data,
+            headers=self.headers,
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -212,7 +239,11 @@ class TestFinancialReportsAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/export/budget-performance/{fiscal_year}", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/export/budget-performance/{fiscal_year}",
+            json=test_data,
+            headers=self.headers,
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -225,7 +256,11 @@ class TestFinancialReportsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/export/budget-performance/{fiscal_year}", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/export/budget-performance/{fiscal_year}",
+            json=invalid_data,
+            headers=self.headers,
+        )
 
         # Should return validation error
         assert response.status_code == 422

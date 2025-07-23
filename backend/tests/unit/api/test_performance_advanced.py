@@ -13,7 +13,6 @@ class TestPerformanceAPI:
         self.client = TestClient(app)
         self.headers = {"Content-Type": "application/json"}
 
-
     def test_post__metrics_success(self):
         """Test POST /metrics successful response."""
         # Setup test data
@@ -129,7 +128,9 @@ class TestPerformanceAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/resources", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/resources", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -148,7 +149,9 @@ class TestPerformanceAPI:
         test_data = self.get_test_data_for_post()
 
         # Make request
-        response = self.client.post("/resources/collect", json=test_data, headers=self.headers)
+        response = self.client.post(
+            "/resources/collect", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -161,7 +164,9 @@ class TestPerformanceAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.post("/resources/collect", json=invalid_data, headers=self.headers)
+        response = self.client.post(
+            "/resources/collect", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422

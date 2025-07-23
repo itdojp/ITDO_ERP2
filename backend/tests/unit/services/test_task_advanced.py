@@ -1,4 +1,5 @@
 """Advanced tests for task service."""
+
 from unittest.mock import Mock
 
 # Import the service class
@@ -12,7 +13,6 @@ class TestTaskService:
         """Setup test environment."""
         self.mock_db = Mock()
         # self.service = ServiceClass(self.mock_db)
-
 
     def test__log_task_change_success(self):
         """Test _log_task_change successful execution."""

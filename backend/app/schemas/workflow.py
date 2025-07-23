@@ -211,10 +211,8 @@ class WorkflowInstanceCreate(WorkflowInstanceBase):
     """Schema for creating a workflow instance."""
 
 
-
 class WorkflowTaskCreate(WorkflowTaskBase):
     """Schema for creating a workflow task."""
-
 
 
 # Update schemas

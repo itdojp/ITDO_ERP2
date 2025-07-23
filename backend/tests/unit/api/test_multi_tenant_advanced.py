@@ -13,14 +13,17 @@ class TestMultiTenantAPI:
         self.client = TestClient(app)
         self.headers = {"Content-Type": "application/json"}
 
-
     def test_post__organizations_organization_id_users_success(self):
         """Test POST /organizations/{organization_id}/users successful response."""
         # Setup test data
         test_data = self.get_test_data_for_post()
 
         # Make request
-        response = self.client.post("/organizations/{organization_id}/users", json=test_data, headers=self.headers)
+        response = self.client.post(
+            "/organizations/{organization_id}/users",
+            json=test_data,
+            headers=self.headers,
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -33,7 +36,11 @@ class TestMultiTenantAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.post("/organizations/{organization_id}/users", json=invalid_data, headers=self.headers)
+        response = self.client.post(
+            "/organizations/{organization_id}/users",
+            json=invalid_data,
+            headers=self.headers,
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -52,7 +59,9 @@ class TestMultiTenantAPI:
         test_data = self.get_test_data_for_put()
 
         # Make request
-        response = self.client.put("/memberships/{membership_id}", json=test_data, headers=self.headers)
+        response = self.client.put(
+            "/memberships/{membership_id}", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -65,7 +74,9 @@ class TestMultiTenantAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.put("/memberships/{membership_id}", json=invalid_data, headers=self.headers)
+        response = self.client.put(
+            "/memberships/{membership_id}", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -84,7 +95,11 @@ class TestMultiTenantAPI:
         test_data = self.get_test_data_for_delete()
 
         # Make request
-        response = self.client.delete("/organizations/{organization_id}/users/{user_id}", json=test_data, headers=self.headers)
+        response = self.client.delete(
+            "/organizations/{organization_id}/users/{user_id}",
+            json=test_data,
+            headers=self.headers,
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -97,7 +112,11 @@ class TestMultiTenantAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.delete("/organizations/{organization_id}/users/{user_id}", json=invalid_data, headers=self.headers)
+        response = self.client.delete(
+            "/organizations/{organization_id}/users/{user_id}",
+            json=invalid_data,
+            headers=self.headers,
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -105,7 +124,9 @@ class TestMultiTenantAPI:
     def test_delete__organizations_organization_id_users_user_id_unauthorized(self):
         """Test DELETE /organizations/{organization_id}/users/{user_id} without authentication."""
         # Make request without auth
-        response = self.client.delete("/organizations/{organization_id}/users/{user_id}")
+        response = self.client.delete(
+            "/organizations/{organization_id}/users/{user_id}"
+        )
 
         # Should return unauthorized
         assert response.status_code == 401
@@ -116,7 +137,9 @@ class TestMultiTenantAPI:
         test_data = self.get_test_data_for_post()
 
         # Make request
-        response = self.client.post("/invitations/{invitation_id}/accept", json=test_data, headers=self.headers)
+        response = self.client.post(
+            "/invitations/{invitation_id}/accept", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -129,7 +152,11 @@ class TestMultiTenantAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.post("/invitations/{invitation_id}/accept", json=invalid_data, headers=self.headers)
+        response = self.client.post(
+            "/invitations/{invitation_id}/accept",
+            json=invalid_data,
+            headers=self.headers,
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -148,7 +175,9 @@ class TestMultiTenantAPI:
         test_data = self.get_test_data_for_post()
 
         # Make request
-        response = self.client.post("/invitations/{invitation_id}/decline", json=test_data, headers=self.headers)
+        response = self.client.post(
+            "/invitations/{invitation_id}/decline", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -161,7 +190,11 @@ class TestMultiTenantAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.post("/invitations/{invitation_id}/decline", json=invalid_data, headers=self.headers)
+        response = self.client.post(
+            "/invitations/{invitation_id}/decline",
+            json=invalid_data,
+            headers=self.headers,
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -180,7 +213,9 @@ class TestMultiTenantAPI:
         test_data = self.get_test_data_for_post()
 
         # Make request
-        response = self.client.post("/transfer-requests", json=test_data, headers=self.headers)
+        response = self.client.post(
+            "/transfer-requests", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -193,7 +228,9 @@ class TestMultiTenantAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.post("/transfer-requests", json=invalid_data, headers=self.headers)
+        response = self.client.post(
+            "/transfer-requests", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -212,7 +249,9 @@ class TestMultiTenantAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/users/{user_id}/organizations", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/users/{user_id}/organizations", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -225,7 +264,9 @@ class TestMultiTenantAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/users/{user_id}/organizations", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/users/{user_id}/organizations", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -244,7 +285,9 @@ class TestMultiTenantAPI:
         test_data = self.get_test_data_for_post()
 
         # Make request
-        response = self.client.post("/cleanup-expired-access", json=test_data, headers=self.headers)
+        response = self.client.post(
+            "/cleanup-expired-access", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -257,7 +300,9 @@ class TestMultiTenantAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.post("/cleanup-expired-access", json=invalid_data, headers=self.headers)
+        response = self.client.post(
+            "/cleanup-expired-access", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422

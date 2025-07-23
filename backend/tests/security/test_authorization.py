@@ -23,10 +23,7 @@ class TestAuthorizationSecurity:
         user_token = "Bearer user_token"
         admin_token = "Bearer admin_token"
 
-        admin_endpoints = [
-            "/api/v1/admin/users",
-            "/api/v1/admin/system"
-        ]
+        admin_endpoints = ["/api/v1/admin/users", "/api/v1/admin/system"]
 
         for endpoint in admin_endpoints:
             # User should be denied
@@ -35,7 +32,11 @@ class TestAuthorizationSecurity:
 
             # Admin should be allowed (or get proper response)
             response = client.get(endpoint, headers={"Authorization": admin_token})
-            assert response.status_code in [200, 401, 404]  # 401/404 if endpoint doesn't exist
+            assert response.status_code in [
+                200,
+                401,
+                404,
+            ]  # 401/404 if endpoint doesn't exist
 
     def test_resource_ownership(self, client):
         """Test resource ownership authorization"""
@@ -44,8 +45,9 @@ class TestAuthorizationSecurity:
         user2_id = "user2_id"
 
         # User 1 should not access User 2's private resources
-        response = client.get(f"/api/v1/users/{user2_id}/private",
-                            headers={"Authorization": user1_token})
+        response = client.get(
+            f"/api/v1/users/{user2_id}/private", headers={"Authorization": user1_token}
+        )
         assert response.status_code in [403, 401, 404]
 
     def test_privilege_escalation_prevention(self, client):
@@ -56,16 +58,18 @@ class TestAuthorizationSecurity:
         escalation_attempts = [
             ("PUT", "/api/v1/users/me/role", {"role": "admin"}),
             ("POST", "/api/v1/permissions", {"permission": "admin"}),
-            ("PUT", "/api/v1/system/config", {"setting": "value"})
+            ("PUT", "/api/v1/system/config", {"setting": "value"}),
         ]
 
         for method, endpoint, data in escalation_attempts:
             if method == "PUT":
-                response = client.put(endpoint, json=data,
-                                    headers={"Authorization": user_token})
+                response = client.put(
+                    endpoint, json=data, headers={"Authorization": user_token}
+                )
             elif method == "POST":
-                response = client.post(endpoint, json=data,
-                                     headers={"Authorization": user_token})
+                response = client.post(
+                    endpoint, json=data, headers={"Authorization": user_token}
+                )
 
             # Should be denied
             assert response.status_code in [403, 401, 404, 405]
@@ -76,6 +80,8 @@ class TestAuthorizationSecurity:
         tenant2_data_id = "tenant2_data_123"
 
         # Tenant 1 should not access Tenant 2's data
-        response = client.get(f"/api/v1/organizations/{tenant2_data_id}",
-                            headers={"Authorization": tenant1_token})
+        response = client.get(
+            f"/api/v1/organizations/{tenant2_data_id}",
+            headers={"Authorization": tenant1_token},
+        )
         assert response.status_code in [403, 401, 404]

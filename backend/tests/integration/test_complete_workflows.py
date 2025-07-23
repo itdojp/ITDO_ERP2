@@ -1,4 +1,5 @@
 """Integration tests for end-to-end workflows."""
+
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -17,7 +18,9 @@ class TestIntegration:
         test_engine = create_engine("sqlite:///./test_integration.db")
         BaseModel.metadata.create_all(bind=test_engine)
 
-        TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
+        TestingSessionLocal = sessionmaker(
+            autocommit=False, autoflush=False, bind=test_engine
+        )
 
         def override_get_db():
             try:
@@ -33,6 +36,7 @@ class TestIntegration:
         """Cleanup test environment."""
         # Clean up test database
         import os
+
         if os.path.exists("./test_integration.db"):
             os.remove("./test_integration.db")
 
@@ -42,7 +46,7 @@ class TestIntegration:
         user_data = {
             "username": "testuser",
             "email": "test@example.com",
-            "password": "testpassword123"
+            "password": "testpassword123",
         }
 
         response = self.client.post("/api/v1/users", json=user_data)
@@ -55,7 +59,7 @@ class TestIntegration:
         # Step 2: Login with new user
         login_data = {
             "username": user_data["username"],
-            "password": user_data["password"]
+            "password": user_data["password"],
         }
 
         login_response = self.client.post("/api/v1/auth/login", data=login_data)

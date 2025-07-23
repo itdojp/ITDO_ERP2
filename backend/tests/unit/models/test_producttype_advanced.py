@@ -1,4 +1,5 @@
 """Advanced tests for ProductType model."""
+
 from datetime import datetime
 
 import pytest
@@ -36,6 +37,6 @@ class TestProductType:
         instance = ProductType()
 
         # Test that model can be converted to dict
-        if hasattr(instance, '__dict__'):
+        if hasattr(instance, "__dict__"):
             data = instance.__dict__
             assert isinstance(data, dict)

@@ -1,4 +1,5 @@
 """Performance tests for critical API endpoints."""
+
 import time
 from concurrent.futures import ThreadPoolExecutor
 
@@ -29,6 +30,7 @@ class TestPerformance:
 
     def test_concurrent_health_requests(self):
         """Test health endpoint under concurrent load."""
+
         def make_request():
             start_time = time.time()
             response = self.client.get("/health")
@@ -36,7 +38,9 @@ class TestPerformance:
             return response.status_code, (end_time - start_time) * 1000
 
         with ThreadPoolExecutor(max_workers=self.concurrent_users) as executor:
-            futures = [executor.submit(make_request) for _ in range(self.concurrent_users)]
+            futures = [
+                executor.submit(make_request) for _ in range(self.concurrent_users)
+            ]
             results = [future.result() for future in futures]
 
         # All requests should succeed
@@ -44,7 +48,9 @@ class TestPerformance:
         response_times = [result[1] for result in results]
 
         assert all(code == 200 for code in status_codes)
-        assert max(response_times) < self.max_response_time * 2  # Allow 2x time under load
+        assert (
+            max(response_times) < self.max_response_time * 2
+        )  # Allow 2x time under load
         assert sum(response_times) / len(response_times) < self.max_response_time
 
     def test_database_query_performance(self):

@@ -1,4 +1,5 @@
 """Performance monitoring API endpoints."""
+
 from __future__ import annotations
 
 import time
@@ -29,7 +30,7 @@ resource_metrics: List[ResourceUsage] = []
 async def record_performance_metric(
     metric: PerformanceMetric,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_active_superuser)
+    current_user: User = Depends(deps.get_current_active_superuser),
 ) -> dict:
     """Record a performance metric (admin only)."""
     # Store metric
@@ -37,7 +38,9 @@ async def record_performance_metric(
 
     # Keep only last 24 hours of metrics
     cutoff_time = datetime.utcnow() - timedelta(hours=24)
-    performance_metrics[:] = [m for m in performance_metrics if m.timestamp > cutoff_time]
+    performance_metrics[:] = [
+        m for m in performance_metrics if m.timestamp > cutoff_time
+    ]
 
     return {"status": "recorded", "total_metrics": len(performance_metrics)}
 
@@ -46,7 +49,7 @@ async def record_performance_metric(
 async def get_performance_summary(
     hours: int = Query(1, ge=1, le=24),
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_active_user)
+    current_user: User = Depends(deps.get_current_active_user),
 ) -> List[PerformanceSummary]:
     """Get performance summary for all endpoints."""
     cutoff_time = datetime.utcnow() - timedelta(hours=hours)
@@ -62,7 +65,7 @@ async def get_performance_summary(
 
     summaries = []
     for key, metrics in endpoint_metrics.items():
-        method, endpoint = key.split(' ', 1)
+        method, endpoint = key.split(" ", 1)
 
         response_times = [m.response_time_ms for m in metrics]
         response_times.sort()
@@ -81,7 +84,9 @@ async def get_performance_summary(
                 return data[f] * (1 - c) + data[f + 1] * c
             return data[f]
 
-        time_range = (max(m.timestamp for m in metrics) - min(m.timestamp for m in metrics)).total_seconds()
+        time_range = (
+            max(m.timestamp for m in metrics) - min(m.timestamp for m in metrics)
+        ).total_seconds()
         rps = total / time_range if time_range > 0 else 0
 
         summary = PerformanceSummary(
@@ -99,8 +104,8 @@ async def get_performance_summary(
             requests_per_second=rps,
             time_period={
                 "start": min(m.timestamp for m in metrics),
-                "end": max(m.timestamp for m in metrics)
-            }
+                "end": max(m.timestamp for m in metrics),
+            },
         )
         summaries.append(summary)
 
@@ -108,14 +113,12 @@ async def get_performance_summary(
 
 
 @router.get("/health", response_model=SystemHealth)
-async def get_system_health(
-    db: AsyncSession = Depends(deps.get_db)
-) -> SystemHealth:
+async def get_system_health(db: AsyncSession = Depends(deps.get_db)) -> SystemHealth:
     """Get current system health status."""
     # CPU and memory usage
     cpu_percent = psutil.cpu_percent(interval=0.1)
     memory = psutil.virtual_memory()
-    disk = psutil.disk_usage('/')
+    disk = psutil.disk_usage("/")
 
     # Database pool status
     db_pool = db.bind.pool  # type: ignore
@@ -142,16 +145,16 @@ async def get_system_health(
         "database": {
             "status": "healthy" if db_pool_available > 0 else "unhealthy",
             "pool_size": db_pool_size,
-            "available_connections": db_pool_available
+            "available_connections": db_pool_available,
         },
         "redis": {
             "status": "healthy" if redis_connected else "unhealthy",
-            "connected": redis_connected
+            "connected": redis_connected,
         },
         "disk": {
             "status": "healthy" if disk.percent < 90 else "degraded",
-            "usage_percent": disk.percent
-        }
+            "usage_percent": disk.percent,
+        },
     }
 
     # Calculate uptime
@@ -168,7 +171,7 @@ async def get_system_health(
         database_pool_size=db_pool_size,
         database_pool_available=db_pool_available,
         redis_connected=redis_connected,
-        checks=checks
+        checks=checks,
     )
 
 
@@ -176,7 +179,7 @@ async def get_system_health(
 async def get_resource_usage(
     hours: int = Query(1, ge=1, le=24),
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_active_user)
+    current_user: User = Depends(deps.get_current_active_user),
 ) -> List[ResourceUsage]:
     """Get resource usage history."""
     cutoff_time = datetime.utcnow() - timedelta(hours=hours)
@@ -187,7 +190,7 @@ async def get_resource_usage(
 @router.post("/resources/collect")
 async def collect_resource_metrics(
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_active_superuser)
+    current_user: User = Depends(deps.get_current_active_superuser),
 ) -> dict:
     """Collect current resource metrics (admin only)."""
     # Collect metrics
@@ -204,9 +207,14 @@ async def collect_resource_metrics(
         disk_io_write_mb=disk_io.write_bytes / 1024 / 1024 if disk_io else 0,
         network_in_mb=net_io.bytes_recv / 1024 / 1024 if net_io else 0,
         network_out_mb=net_io.bytes_sent / 1024 / 1024 if net_io else 0,
-        active_requests=len([m for m in performance_metrics if
-                           (datetime.utcnow() - m.timestamp).total_seconds() < 60]),
-        queued_requests=0  # Would need actual queue monitoring
+        active_requests=len(
+            [
+                m
+                for m in performance_metrics
+                if (datetime.utcnow() - m.timestamp).total_seconds() < 60
+            ]
+        ),
+        queued_requests=0,  # Would need actual queue monitoring
     )
 
     resource_metrics.append(metric)

@@ -28,6 +28,7 @@ from app.models.finance_extended import (
 # Account Schemas
 # =============================================================================
 
+
 class AccountBase(BaseModel):
     """Base schema for Account."""
 
@@ -54,6 +55,7 @@ class AccountBase(BaseModel):
 
 class AccountCreate(AccountBase):
     """Schema for creating Account."""
+
     pass
 
 
@@ -95,6 +97,7 @@ class AccountResponse(AccountBase):
 # Journal Entry Schemas
 # =============================================================================
 
+
 class JournalEntryLineBase(BaseModel):
     """Base schema for Journal Entry Line."""
 
@@ -123,6 +126,7 @@ class JournalEntryLineBase(BaseModel):
 
 class JournalEntryLineCreate(JournalEntryLineBase):
     """Schema for creating Journal Entry Line."""
+
     pass
 
 
@@ -213,6 +217,7 @@ class JournalEntryResponse(JournalEntryBase):
 # Budget Schemas
 # =============================================================================
 
+
 class BudgetLineBase(BaseModel):
     """Base schema for Budget Line."""
 
@@ -244,6 +249,7 @@ class BudgetLineBase(BaseModel):
 
 class BudgetLineCreate(BudgetLineBase):
     """Schema for creating Budget Line."""
+
     pass
 
 
@@ -286,6 +292,7 @@ class BudgetBase(BaseModel):
 
 class BudgetCreate(BudgetBase):
     """Schema for creating Budget."""
+
     pass
 
 
@@ -335,6 +342,7 @@ class BudgetResponse(BudgetBase):
 # Cost Center Schemas
 # =============================================================================
 
+
 class CostCenterBase(BaseModel):
     """Base schema for Cost Center."""
 
@@ -362,6 +370,7 @@ class CostCenterBase(BaseModel):
 
 class CostCenterCreate(CostCenterBase):
     """Schema for creating Cost Center."""
+
     pass
 
 
@@ -405,6 +414,7 @@ class CostCenterResponse(CostCenterBase):
 # Financial Period Schemas
 # =============================================================================
 
+
 class FinancialPeriodBase(BaseModel):
     """Base schema for Financial Period."""
 
@@ -420,6 +430,7 @@ class FinancialPeriodBase(BaseModel):
 
 class FinancialPeriodCreate(FinancialPeriodBase):
     """Schema for creating Financial Period."""
+
     pass
 
 
@@ -452,6 +463,7 @@ class FinancialPeriodResponse(FinancialPeriodBase):
 # Financial Report Schemas
 # =============================================================================
 
+
 class FinancialReportBase(BaseModel):
     """Base schema for Financial Report."""
 
@@ -475,6 +487,7 @@ class FinancialReportBase(BaseModel):
 
 class FinancialReportCreate(FinancialReportBase):
     """Schema for creating Financial Report."""
+
     pass
 
 
@@ -517,6 +530,7 @@ class FinancialReportResponse(FinancialReportBase):
 # Tax Configuration Schemas
 # =============================================================================
 
+
 class TaxConfigurationBase(BaseModel):
     """Base schema for Tax Configuration."""
 
@@ -544,6 +558,7 @@ class TaxConfigurationBase(BaseModel):
 
 class TaxConfigurationCreate(TaxConfigurationBase):
     """Schema for creating Tax Configuration."""
+
     pass
 
 
@@ -585,6 +600,7 @@ class TaxConfigurationResponse(TaxConfigurationBase):
 # =============================================================================
 # Financial Analysis Schemas
 # =============================================================================
+
 
 class TrialBalanceLine(BaseModel):
     """Schema for trial balance line item."""
@@ -712,6 +728,7 @@ class TaxCalculationResponse(BaseModel):
 # =============================================================================
 # Request Schemas for Actions
 # =============================================================================
+
 
 class PostJournalEntryRequest(BaseModel):
     """Schema for posting journal entry."""

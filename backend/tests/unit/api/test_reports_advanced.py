@@ -13,7 +13,6 @@ class TestReportsAPI:
         self.client = TestClient(app)
         self.headers = {"Content-Type": "application/json"}
 
-
     def test_post___success(self):
         """Test POST / successful response."""
         # Setup test data
@@ -81,7 +80,9 @@ class TestReportsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/{report_id}", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/{report_id}", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -105,7 +106,9 @@ class TestReportsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.put("/{report_id}", json=invalid_data, headers=self.headers)
+        response = self.client.put(
+            "/{report_id}", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -116,7 +119,9 @@ class TestReportsAPI:
         test_data = self.get_test_data_for_delete()
 
         # Make request
-        response = self.client.delete("/{report_id}", json=test_data, headers=self.headers)
+        response = self.client.delete(
+            "/{report_id}", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -129,7 +134,9 @@ class TestReportsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.delete("/{report_id}", json=invalid_data, headers=self.headers)
+        response = self.client.delete(
+            "/{report_id}", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -140,7 +147,9 @@ class TestReportsAPI:
         test_data = self.get_test_data_for_post()
 
         # Make request
-        response = self.client.post("/{report_id}/execute", json=test_data, headers=self.headers)
+        response = self.client.post(
+            "/{report_id}/execute", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -153,7 +162,9 @@ class TestReportsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.post("/{report_id}/execute", json=invalid_data, headers=self.headers)
+        response = self.client.post(
+            "/{report_id}/execute", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -164,7 +175,9 @@ class TestReportsAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/{report_id}/executions", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/{report_id}/executions", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -177,7 +190,9 @@ class TestReportsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/{report_id}/executions", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/{report_id}/executions", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -188,7 +203,9 @@ class TestReportsAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/executions/{execution_id}", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/executions/{execution_id}", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -201,7 +218,9 @@ class TestReportsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/executions/{execution_id}", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/executions/{execution_id}", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -212,7 +231,9 @@ class TestReportsAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/executions/{execution_id}/data", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/executions/{execution_id}/data", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -225,7 +246,9 @@ class TestReportsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/executions/{execution_id}/data", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/executions/{execution_id}/data", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -236,7 +259,9 @@ class TestReportsAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/executions/{execution_id}/download", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/executions/{execution_id}/download", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -249,7 +274,11 @@ class TestReportsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/executions/{execution_id}/download", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/executions/{execution_id}/download",
+            json=invalid_data,
+            headers=self.headers,
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -273,7 +302,9 @@ class TestReportsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/templates/", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/templates/", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -297,7 +328,9 @@ class TestReportsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/categories/", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/categories/", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -308,7 +341,9 @@ class TestReportsAPI:
         test_data = self.get_test_data_for_post()
 
         # Make request
-        response = self.client.post("/{report_id}/schedule", json=test_data, headers=self.headers)
+        response = self.client.post(
+            "/{report_id}/schedule", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -321,7 +356,9 @@ class TestReportsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.post("/{report_id}/schedule", json=invalid_data, headers=self.headers)
+        response = self.client.post(
+            "/{report_id}/schedule", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -332,7 +369,9 @@ class TestReportsAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/{report_id}/schedules", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/{report_id}/schedules", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -345,7 +384,9 @@ class TestReportsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/{report_id}/schedules", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/{report_id}/schedules", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -356,7 +397,9 @@ class TestReportsAPI:
         test_data = self.get_test_data_for_delete()
 
         # Make request
-        response = self.client.delete("/schedules/{schedule_id}", json=test_data, headers=self.headers)
+        response = self.client.delete(
+            "/schedules/{schedule_id}", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -369,7 +412,9 @@ class TestReportsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.delete("/schedules/{schedule_id}", json=invalid_data, headers=self.headers)
+        response = self.client.delete(
+            "/schedules/{schedule_id}", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -380,7 +425,9 @@ class TestReportsAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/{report_id}/analytics", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/{report_id}/analytics", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -393,7 +440,9 @@ class TestReportsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/{report_id}/analytics", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/{report_id}/analytics", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -404,7 +453,9 @@ class TestReportsAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/system/performance", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/system/performance", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -417,7 +468,9 @@ class TestReportsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/system/performance", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/system/performance", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -428,7 +481,9 @@ class TestReportsAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/{report_id}/realtime", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/{report_id}/realtime", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -441,7 +496,9 @@ class TestReportsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/{report_id}/realtime", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/{report_id}/realtime", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -452,7 +509,9 @@ class TestReportsAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/{report_id}/charts", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/{report_id}/charts", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -465,7 +524,9 @@ class TestReportsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/{report_id}/charts", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/{report_id}/charts", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -476,7 +537,9 @@ class TestReportsAPI:
         test_data = self.get_test_data_for_post()
 
         # Make request
-        response = self.client.post("/{report_id}/charts", json=test_data, headers=self.headers)
+        response = self.client.post(
+            "/{report_id}/charts", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -489,7 +552,9 @@ class TestReportsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.post("/{report_id}/charts", json=invalid_data, headers=self.headers)
+        response = self.client.post(
+            "/{report_id}/charts", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422

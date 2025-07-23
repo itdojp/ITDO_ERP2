@@ -35,6 +35,7 @@ from app.models.hr_extended import (
 # Employee Schemas
 # =============================================================================
 
+
 class EmployeeBase(BaseModel):
     """Base schema for Employee."""
 
@@ -90,6 +91,7 @@ class EmployeeBase(BaseModel):
 
 class EmployeeCreate(EmployeeBase):
     """Schema for creating Employee."""
+
     pass
 
 
@@ -145,6 +147,7 @@ class EmployeeResponse(EmployeeBase):
 # Position Schemas
 # =============================================================================
 
+
 class PositionBase(BaseModel):
     """Base schema for Position."""
 
@@ -175,6 +178,7 @@ class PositionBase(BaseModel):
 
 class PositionCreate(PositionBase):
     """Schema for creating Position."""
+
     pass
 
 
@@ -214,6 +218,7 @@ class PositionResponse(PositionBase):
 # =============================================================================
 # Payroll Schemas
 # =============================================================================
+
 
 class PayrollRecordBase(BaseModel):
     """Base schema for Payroll Record."""
@@ -259,6 +264,7 @@ class PayrollRecordBase(BaseModel):
 
 class PayrollRecordCreate(PayrollRecordBase):
     """Schema for creating Payroll Record."""
+
     pass
 
 
@@ -299,6 +305,7 @@ class PayrollRecordResponse(PayrollRecordBase):
 # Leave Request Schemas
 # =============================================================================
 
+
 class LeaveRequestBase(BaseModel):
     """Base schema for Leave Request."""
 
@@ -326,6 +333,7 @@ class LeaveRequestBase(BaseModel):
 
 class LeaveRequestCreate(LeaveRequestBase):
     """Schema for creating Leave Request."""
+
     pass
 
 
@@ -372,6 +380,7 @@ class LeaveRequestResponse(LeaveRequestBase):
 # Performance Review Schemas
 # =============================================================================
 
+
 class PerformanceReviewBase(BaseModel):
     """Base schema for Performance Review."""
 
@@ -413,6 +422,7 @@ class PerformanceReviewBase(BaseModel):
 
 class PerformanceReviewCreate(PerformanceReviewBase):
     """Schema for creating Performance Review."""
+
     pass
 
 
@@ -474,6 +484,7 @@ class PerformanceReviewResponse(PerformanceReviewBase):
 # Training Record Schemas
 # =============================================================================
 
+
 class TrainingRecordBase(BaseModel):
     """Base schema for Training Record."""
 
@@ -505,6 +516,7 @@ class TrainingRecordBase(BaseModel):
 
 class TrainingRecordCreate(TrainingRecordBase):
     """Schema for creating Training Record."""
+
     pass
 
 
@@ -561,6 +573,7 @@ class TrainingRecordResponse(TrainingRecordBase):
 # Employee Benefit Schemas
 # =============================================================================
 
+
 class EmployeeBenefitBase(BaseModel):
     """Base schema for Employee Benefit."""
 
@@ -594,6 +607,7 @@ class EmployeeBenefitBase(BaseModel):
 
 class EmployeeBenefitCreate(EmployeeBenefitBase):
     """Schema for creating Employee Benefit."""
+
     pass
 
 
@@ -632,6 +646,7 @@ class EmployeeBenefitResponse(EmployeeBenefitBase):
 # Job Posting Schemas
 # =============================================================================
 
+
 class JobPostingBase(BaseModel):
     """Base schema for Job Posting."""
 
@@ -661,6 +676,7 @@ class JobPostingBase(BaseModel):
 
 class JobPostingCreate(JobPostingBase):
     """Schema for creating Job Posting."""
+
     pass
 
 
@@ -708,6 +724,7 @@ class JobPostingResponse(JobPostingBase):
 # Onboarding Record Schemas
 # =============================================================================
 
+
 class OnboardingRecordBase(BaseModel):
     """Base schema for Onboarding Record."""
 
@@ -729,6 +746,7 @@ class OnboardingRecordBase(BaseModel):
 
 class OnboardingRecordCreate(OnboardingRecordBase):
     """Schema for creating Onboarding Record."""
+
     pass
 
 
@@ -795,6 +813,7 @@ class OnboardingRecordResponse(OnboardingRecordBase):
 # HR Analytics Schemas
 # =============================================================================
 
+
 class HRAnalyticsResponse(BaseModel):
     """Schema for HR Analytics response."""
 
@@ -857,6 +876,7 @@ class HRAnalyticsResponse(BaseModel):
 # =============================================================================
 # Analysis and Report Schemas
 # =============================================================================
+
 
 class EmployeeTenureAnalysis(BaseModel):
     """Schema for employee tenure analysis."""
@@ -947,6 +967,7 @@ class HRDashboardMetrics(BaseModel):
 # =============================================================================
 # Request Schemas for Actions
 # =============================================================================
+
 
 class TerminateEmployeeRequest(BaseModel):
     """Schema for employee termination."""

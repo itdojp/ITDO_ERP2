@@ -13,7 +13,6 @@ class TestUserPreferencesAPI:
         self.client = TestClient(app)
         self.headers = {"Content-Type": "application/json"}
 
-
     def test_get__me_success(self):
         """Test GET /me successful response."""
         # Setup test data
@@ -129,7 +128,9 @@ class TestUserPreferencesAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/me/locale", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/me/locale", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -148,7 +149,9 @@ class TestUserPreferencesAPI:
         test_data = self.get_test_data_for_patch()
 
         # Make request
-        response = self.client.patch("/me/language", json=test_data, headers=self.headers)
+        response = self.client.patch(
+            "/me/language", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -161,7 +164,9 @@ class TestUserPreferencesAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.patch("/me/language", json=invalid_data, headers=self.headers)
+        response = self.client.patch(
+            "/me/language", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -180,7 +185,9 @@ class TestUserPreferencesAPI:
         test_data = self.get_test_data_for_patch()
 
         # Make request
-        response = self.client.patch("/me/timezone", json=test_data, headers=self.headers)
+        response = self.client.patch(
+            "/me/timezone", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -193,7 +200,9 @@ class TestUserPreferencesAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.patch("/me/timezone", json=invalid_data, headers=self.headers)
+        response = self.client.patch(
+            "/me/timezone", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -225,7 +234,9 @@ class TestUserPreferencesAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.patch("/me/theme", json=invalid_data, headers=self.headers)
+        response = self.client.patch(
+            "/me/theme", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -244,7 +255,9 @@ class TestUserPreferencesAPI:
         test_data = self.get_test_data_for_patch()
 
         # Make request
-        response = self.client.patch("/me/notifications/email/toggle", json=test_data, headers=self.headers)
+        response = self.client.patch(
+            "/me/notifications/email/toggle", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -257,7 +270,9 @@ class TestUserPreferencesAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.patch("/me/notifications/email/toggle", json=invalid_data, headers=self.headers)
+        response = self.client.patch(
+            "/me/notifications/email/toggle", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -276,7 +291,9 @@ class TestUserPreferencesAPI:
         test_data = self.get_test_data_for_patch()
 
         # Make request
-        response = self.client.patch("/me/notifications/push/toggle", json=test_data, headers=self.headers)
+        response = self.client.patch(
+            "/me/notifications/push/toggle", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -289,7 +306,9 @@ class TestUserPreferencesAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.patch("/me/notifications/push/toggle", json=invalid_data, headers=self.headers)
+        response = self.client.patch(
+            "/me/notifications/push/toggle", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422

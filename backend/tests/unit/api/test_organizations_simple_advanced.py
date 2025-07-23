@@ -13,14 +13,15 @@ class TestOrganizationsSimpleAPI:
         self.client = TestClient(app)
         self.headers = {"Content-Type": "application/json"}
 
-
     def test_post__organizations_success(self):
         """Test POST /organizations successful response."""
         # Setup test data
         test_data = self.get_test_data_for_post()
 
         # Make request
-        response = self.client.post("/organizations", json=test_data, headers=self.headers)
+        response = self.client.post(
+            "/organizations", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -33,7 +34,9 @@ class TestOrganizationsSimpleAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.post("/organizations", json=invalid_data, headers=self.headers)
+        response = self.client.post(
+            "/organizations", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -44,7 +47,9 @@ class TestOrganizationsSimpleAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/organizations", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/organizations", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -57,7 +62,9 @@ class TestOrganizationsSimpleAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/organizations", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/organizations", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -68,7 +75,9 @@ class TestOrganizationsSimpleAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/organizations/{org_id}", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/organizations/{org_id}", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -81,7 +90,9 @@ class TestOrganizationsSimpleAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/organizations/{org_id}", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/organizations/{org_id}", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -92,7 +103,9 @@ class TestOrganizationsSimpleAPI:
         test_data = self.get_test_data_for_put()
 
         # Make request
-        response = self.client.put("/organizations/{org_id}", json=test_data, headers=self.headers)
+        response = self.client.put(
+            "/organizations/{org_id}", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -105,7 +118,9 @@ class TestOrganizationsSimpleAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.put("/organizations/{org_id}", json=invalid_data, headers=self.headers)
+        response = self.client.put(
+            "/organizations/{org_id}", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -116,7 +131,9 @@ class TestOrganizationsSimpleAPI:
         test_data = self.get_test_data_for_delete()
 
         # Make request
-        response = self.client.delete("/organizations/{org_id}", json=test_data, headers=self.headers)
+        response = self.client.delete(
+            "/organizations/{org_id}", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -129,7 +146,9 @@ class TestOrganizationsSimpleAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.delete("/organizations/{org_id}", json=invalid_data, headers=self.headers)
+        response = self.client.delete(
+            "/organizations/{org_id}", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422

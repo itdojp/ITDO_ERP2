@@ -36,6 +36,7 @@ from app.models.crm_extended import (
 # Customer Schemas
 # =============================================================================
 
+
 class CustomerBase(BaseModel):
     """Base schema for Customer."""
 
@@ -81,6 +82,7 @@ class CustomerBase(BaseModel):
 
 class CustomerCreate(CustomerBase):
     """Schema for creating Customer."""
+
     pass
 
 
@@ -155,6 +157,7 @@ class CustomerResponse(CustomerBase):
 # Contact Schemas
 # =============================================================================
 
+
 class ContactBase(BaseModel):
     """Base schema for Contact."""
 
@@ -205,6 +208,7 @@ class ContactBase(BaseModel):
 
 class ContactCreate(ContactBase):
     """Schema for creating Contact."""
+
     pass
 
 
@@ -266,6 +270,7 @@ class ContactResponse(ContactBase):
 # Lead Schemas
 # =============================================================================
 
+
 class LeadBase(BaseModel):
     """Base schema for Lead."""
 
@@ -310,6 +315,7 @@ class LeadBase(BaseModel):
 
 class LeadCreate(LeadBase):
     """Schema for creating Lead."""
+
     pass
 
 
@@ -378,6 +384,7 @@ class LeadResponse(LeadBase):
 # Opportunity Schemas
 # =============================================================================
 
+
 class OpportunityBase(BaseModel):
     """Base schema for Opportunity."""
 
@@ -419,15 +426,16 @@ class OpportunityBase(BaseModel):
     tags: List[str] = []
     custom_fields: Dict[str, Any] = {}
 
-    @validator('expected_close_date')
+    @validator("expected_close_date")
     def validate_close_date(cls, v):
         if v < date.today():
-            raise ValueError('Expected close date cannot be in the past')
+            raise ValueError("Expected close date cannot be in the past")
         return v
 
 
 class OpportunityCreate(OpportunityBase):
     """Schema for creating Opportunity."""
+
     pass
 
 
@@ -504,6 +512,7 @@ class OpportunityResponse(OpportunityBase):
 # Activity Schemas
 # =============================================================================
 
+
 class ActivityBase(BaseModel):
     """Base schema for CRM Activity."""
 
@@ -540,6 +549,7 @@ class ActivityBase(BaseModel):
 
 class ActivityCreate(ActivityBase):
     """Schema for creating Activity."""
+
     pass
 
 
@@ -591,6 +601,7 @@ class ActivityResponse(ActivityBase):
 # Campaign Schemas
 # =============================================================================
 
+
 class CampaignBase(BaseModel):
     """Base schema for Campaign."""
 
@@ -619,15 +630,16 @@ class CampaignBase(BaseModel):
     notes: Optional[str] = None
     tags: List[str] = []
 
-    @validator('end_date')
+    @validator("end_date")
     def validate_end_date(cls, v, values):
-        if 'start_date' in values and v and v < values['start_date']:
-            raise ValueError('End date must be after start date')
+        if "start_date" in values and v and v < values["start_date"]:
+            raise ValueError("End date must be after start date")
         return v
 
 
 class CampaignCreate(CampaignBase):
     """Schema for creating Campaign."""
+
     pass
 
 
@@ -693,6 +705,7 @@ class CampaignResponse(CampaignBase):
 # Support Ticket Schemas
 # =============================================================================
 
+
 class SupportTicketBase(BaseModel):
     """Base schema for Support Ticket."""
 
@@ -723,6 +736,7 @@ class SupportTicketBase(BaseModel):
 
 class SupportTicketCreate(SupportTicketBase):
     """Schema for creating Support Ticket."""
+
     pass
 
 
@@ -783,6 +797,7 @@ class SupportTicketResponse(SupportTicketBase):
 # Analytics and Reporting Schemas
 # =============================================================================
 
+
 class CRMDashboardMetrics(BaseModel):
     """Schema for CRM dashboard metrics."""
 
@@ -838,6 +853,7 @@ class SalesForecast(BaseModel):
 # Action Request Schemas
 # =============================================================================
 
+
 class ConvertLeadRequest(BaseModel):
     """Schema for converting lead to customer."""
 
@@ -882,6 +898,7 @@ class BulkEmailCampaignRequest(BaseModel):
 # =============================================================================
 # Filter and Search Schemas
 # =============================================================================
+
 
 class CustomerFilterRequest(BaseModel):
     """Schema for customer filtering."""

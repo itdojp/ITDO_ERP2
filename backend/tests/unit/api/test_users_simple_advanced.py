@@ -13,7 +13,6 @@ class TestUsersSimpleAPI:
         self.client = TestClient(app)
         self.headers = {"Content-Type": "application/json"}
 
-
     def test_post__users_success(self):
         """Test POST /users successful response."""
         # Setup test data
@@ -68,7 +67,9 @@ class TestUsersSimpleAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/users/{user_id}", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/users/{user_id}", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -81,7 +82,9 @@ class TestUsersSimpleAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/users/{user_id}", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/users/{user_id}", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -92,7 +95,9 @@ class TestUsersSimpleAPI:
         test_data = self.get_test_data_for_put()
 
         # Make request
-        response = self.client.put("/users/{user_id}", json=test_data, headers=self.headers)
+        response = self.client.put(
+            "/users/{user_id}", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -105,7 +110,9 @@ class TestUsersSimpleAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.put("/users/{user_id}", json=invalid_data, headers=self.headers)
+        response = self.client.put(
+            "/users/{user_id}", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -116,7 +123,9 @@ class TestUsersSimpleAPI:
         test_data = self.get_test_data_for_delete()
 
         # Make request
-        response = self.client.delete("/users/{user_id}", json=test_data, headers=self.headers)
+        response = self.client.delete(
+            "/users/{user_id}", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -129,7 +138,9 @@ class TestUsersSimpleAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.delete("/users/{user_id}", json=invalid_data, headers=self.headers)
+        response = self.client.delete(
+            "/users/{user_id}", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422

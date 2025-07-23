@@ -130,7 +130,6 @@ class UserTransferRequestCreate(UserTransferRequestBase):
     """Schema for creating transfer request."""
 
 
-
 class UserTransferRequestUpdate(BaseModel):
     """Schema for updating transfer request."""
 

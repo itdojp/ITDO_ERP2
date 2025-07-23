@@ -13,7 +13,6 @@ class TestHealthSimpleAPI:
         self.client = TestClient(app)
         self.headers = {"Content-Type": "application/json"}
 
-
     def test_get__health_success(self):
         """Test GET /health successful response."""
         # Setup test data

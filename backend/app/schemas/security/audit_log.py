@@ -1,4 +1,5 @@
 """Security audit log schemas."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -11,6 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class SecurityEventType(str, Enum):
     """Types of security events."""
+
     LOGIN_ATTEMPT = "login_attempt"
     LOGIN_SUCCESS = "login_success"
     LOGIN_FAILURE = "login_failure"
@@ -26,6 +28,7 @@ class SecurityEventType(str, Enum):
 
 class SecuritySeverity(str, Enum):
     """Security event severity levels."""
+
     INFO = "INFO"
     WARNING = "WARNING"
     ERROR = "ERROR"
@@ -50,6 +53,7 @@ class SecurityAuditLogBase(BaseModel):
 
 class SecurityAuditLogCreate(SecurityAuditLogBase):
     """Schema for creating security audit log."""
+
     pass
 
 

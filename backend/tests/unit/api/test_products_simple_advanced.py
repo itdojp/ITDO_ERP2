@@ -13,7 +13,6 @@ class TestProductsSimpleAPI:
         self.client = TestClient(app)
         self.headers = {"Content-Type": "application/json"}
 
-
     def test_post__products_success(self):
         """Test POST /products successful response."""
         # Setup test data
@@ -33,7 +32,9 @@ class TestProductsSimpleAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.post("/products", json=invalid_data, headers=self.headers)
+        response = self.client.post(
+            "/products", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -68,7 +69,9 @@ class TestProductsSimpleAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/products/{product_id}", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/products/{product_id}", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -81,7 +84,9 @@ class TestProductsSimpleAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/products/{product_id}", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/products/{product_id}", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -92,7 +97,9 @@ class TestProductsSimpleAPI:
         test_data = self.get_test_data_for_put()
 
         # Make request
-        response = self.client.put("/products/{product_id}", json=test_data, headers=self.headers)
+        response = self.client.put(
+            "/products/{product_id}", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -105,7 +112,9 @@ class TestProductsSimpleAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.put("/products/{product_id}", json=invalid_data, headers=self.headers)
+        response = self.client.put(
+            "/products/{product_id}", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -116,7 +125,9 @@ class TestProductsSimpleAPI:
         test_data = self.get_test_data_for_post()
 
         # Make request
-        response = self.client.post("/products/{product_id}/adjust-stock", json=test_data, headers=self.headers)
+        response = self.client.post(
+            "/products/{product_id}/adjust-stock", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -129,7 +140,11 @@ class TestProductsSimpleAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.post("/products/{product_id}/adjust-stock", json=invalid_data, headers=self.headers)
+        response = self.client.post(
+            "/products/{product_id}/adjust-stock",
+            json=invalid_data,
+            headers=self.headers,
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -140,7 +155,9 @@ class TestProductsSimpleAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/products/{product_id}/stock", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/products/{product_id}/stock", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -153,7 +170,9 @@ class TestProductsSimpleAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/products/{product_id}/stock", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/products/{product_id}/stock", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -164,7 +183,9 @@ class TestProductsSimpleAPI:
         test_data = self.get_test_data_for_delete()
 
         # Make request
-        response = self.client.delete("/products/{product_id}", json=test_data, headers=self.headers)
+        response = self.client.delete(
+            "/products/{product_id}", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -177,7 +198,9 @@ class TestProductsSimpleAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.delete("/products/{product_id}", json=invalid_data, headers=self.headers)
+        response = self.client.delete(
+            "/products/{product_id}", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -201,7 +224,9 @@ class TestProductsSimpleAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/categories", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/categories", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422

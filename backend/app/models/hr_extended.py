@@ -454,7 +454,9 @@ class PerformanceReview(Base):
     # Review period
     review_period_start = Column(Date, nullable=False)
     review_period_end = Column(Date, nullable=False)
-    review_type = Column(String(50), default="annual")  # annual, mid_year, probation, project
+    review_type = Column(
+        String(50), default="annual"
+    )  # annual, mid_year, probation, project
 
     # Review participants
     reviewer_id = Column(String, ForeignKey("hr_employees.id"), nullable=False)
@@ -544,7 +546,9 @@ class TrainingRecord(Base):
 
     # Training information
     training_title = Column(String(200), nullable=False)
-    training_type = Column(String(50))  # mandatory, optional, certification, skill_development
+    training_type = Column(
+        String(50)
+    )  # mandatory, optional, certification, skill_development
     training_category = Column(String(100))  # safety, technical, leadership, compliance
     training_provider = Column(String(200))
     training_method = Column(String(50))  # classroom, online, on_the_job, conference
@@ -612,7 +616,9 @@ class EmployeeBenefit(Base):
     organization_id = Column(String, ForeignKey("organizations.id"), nullable=False)
 
     # Benefit information
-    benefit_type = Column(String(50), nullable=False)  # health, dental, vision, life, disability, retirement
+    benefit_type = Column(
+        String(50), nullable=False
+    )  # health, dental, vision, life, disability, retirement
     benefit_plan_name = Column(String(200), nullable=False)
     benefit_provider = Column(String(200))
 
@@ -778,7 +784,9 @@ class OnboardingRecord(Base):
     new_hire_feedback = Column(Text)
 
     # Status
-    status = Column(String(50), default="in_progress")  # not_started, in_progress, completed, delayed
+    status = Column(
+        String(50), default="in_progress"
+    )  # not_started, in_progress, completed, delayed
 
     # Metadata
     custom_checklist_items = Column(JSON, default=[])
@@ -807,7 +815,9 @@ class HRAnalytics(Base):
     # Reporting period
     period_start = Column(Date, nullable=False)
     period_end = Column(Date, nullable=False)
-    period_type = Column(String(20), default="monthly")  # weekly, monthly, quarterly, annual
+    period_type = Column(
+        String(20), default="monthly"
+    )  # weekly, monthly, quarterly, annual
 
     # Headcount metrics
     total_employees = Column(Integer, default=0)

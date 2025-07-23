@@ -21,7 +21,7 @@ class DatabaseOptimizer:
             "optimizations": [],
             "indexes": [],
             "queries": [],
-            "recommendations": []
+            "recommendations": [],
         }
 
     async def analyze_model_structures(self):
@@ -52,12 +52,14 @@ class DatabaseOptimizer:
 
         # Check for missing indexes on foreign keys
         if "ForeignKey(" in content and "index=True" not in content:
-            optimizations.append({
-                "type": "missing_foreign_key_index",
-                "file": filename,
-                "description": "Foreign key columns should have indexes for better JOIN performance",
-                "priority": "high"
-            })
+            optimizations.append(
+                {
+                    "type": "missing_foreign_key_index",
+                    "file": filename,
+                    "description": "Foreign key columns should have indexes for better JOIN performance",
+                    "priority": "high",
+                }
+            )
 
         # Check for large text fields without indexes where needed
         if "Text(" in content or "String(" in content:
@@ -65,35 +67,41 @@ class DatabaseOptimizer:
             for i, line in enumerate(lines):
                 if ("Text(" in line or "String(" in line) and "nullable=False" in line:
                     if "index=True" not in line and "unique=True" not in line:
-                        optimizations.append({
-                            "type": "missing_text_index",
-                            "file": filename,
-                            "line": i + 1,
-                            "description": "Non-nullable text fields that are frequently queried should be indexed",
-                            "priority": "medium"
-                        })
+                        optimizations.append(
+                            {
+                                "type": "missing_text_index",
+                                "file": filename,
+                                "line": i + 1,
+                                "description": "Non-nullable text fields that are frequently queried should be indexed",
+                                "priority": "medium",
+                            }
+                        )
 
         # Check for DateTime fields without indexes
         if "DateTime(" in content:
             lines = content.split("\n")
             for i, line in enumerate(lines):
                 if "DateTime(" in line and "index=True" not in line:
-                    optimizations.append({
-                        "type": "missing_datetime_index",
-                        "file": filename,
-                        "line": i + 1,
-                        "description": "DateTime fields used for filtering should be indexed",
-                        "priority": "medium"
-                    })
+                    optimizations.append(
+                        {
+                            "type": "missing_datetime_index",
+                            "file": filename,
+                            "line": i + 1,
+                            "description": "DateTime fields used for filtering should be indexed",
+                            "priority": "medium",
+                        }
+                    )
 
         # Check for missing composite indexes
         if content.count("ForeignKey(") >= 2:
-            optimizations.append({
-                "type": "potential_composite_index",
-                "file": filename,
-                "description": "Consider composite indexes for tables with multiple foreign keys",
-                "priority": "low"
-            })
+            optimizations.append(
+                {
+                    "type": "potential_composite_index",
+                    "file": filename,
+                    "description": "Consider composite indexes for tables with multiple foreign keys",
+                    "priority": "low",
+                }
+            )
 
         self.results["optimizations"].extend(optimizations)
 
@@ -107,43 +115,43 @@ class DatabaseOptimizer:
                 "columns": ["user_id", "created_at"],
                 "type": "composite",
                 "reason": "Frequently filtered by user and time range",
-                "sql": "CREATE INDEX idx_audit_logs_user_time ON audit_logs(user_id, created_at);"
+                "sql": "CREATE INDEX idx_audit_logs_user_time ON audit_logs(user_id, created_at);",
             },
             {
                 "table": "user_activity_logs",
                 "columns": ["user_id", "timestamp"],
                 "type": "composite",
                 "reason": "Common query pattern for user activity reports",
-                "sql": "CREATE INDEX idx_user_activity_user_time ON user_activity_logs(user_id, timestamp);"
+                "sql": "CREATE INDEX idx_user_activity_user_time ON user_activity_logs(user_id, timestamp);",
             },
             {
                 "table": "tasks",
                 "columns": ["status", "due_date"],
                 "type": "composite",
                 "reason": "Task management queries often filter by status and due date",
-                "sql": "CREATE INDEX idx_tasks_status_due ON tasks(status, due_date);"
+                "sql": "CREATE INDEX idx_tasks_status_due ON tasks(status, due_date);",
             },
             {
                 "table": "expenses",
                 "columns": ["category_id", "created_at"],
                 "type": "composite",
                 "reason": "Financial reports often group by category and time",
-                "sql": "CREATE INDEX idx_expenses_category_time ON expenses(category_id, created_at);"
+                "sql": "CREATE INDEX idx_expenses_category_time ON expenses(category_id, created_at);",
             },
             {
                 "table": "users",
                 "columns": ["email"],
                 "type": "unique",
                 "reason": "Email is used for authentication and should be unique",
-                "sql": "CREATE UNIQUE INDEX idx_users_email ON users(email);"
+                "sql": "CREATE UNIQUE INDEX idx_users_email ON users(email);",
             },
             {
                 "table": "organizations",
                 "columns": ["is_active", "created_at"],
                 "type": "composite",
                 "reason": "Active organization queries with temporal filtering",
-                "sql": "CREATE INDEX idx_organizations_active_time ON organizations(is_active, created_at);"
-            }
+                "sql": "CREATE INDEX idx_organizations_active_time ON organizations(is_active, created_at);",
+            },
         ]
 
         self.results["indexes"] = recommendations
@@ -178,12 +186,16 @@ class DatabaseOptimizer:
         # Common patterns we look for
         patterns = {
             "filter_by_user": ["filter(.*user_id", "filter_by(user_id"],
-            "filter_by_time": ["filter(.*created_at", "filter(.*timestamp", "filter_by(created_at"],
+            "filter_by_time": [
+                "filter(.*created_at",
+                "filter(.*timestamp",
+                "filter_by(created_at",
+            ],
             "join_operations": ["join(", "joinedload("],
             "order_by": ["order_by(", ".order_by"],
             "pagination": ["limit(", "offset(", ".limit", ".offset"],
             "count_queries": ["count()", ".count()"],
-            "group_by": ["group_by(", ".group_by"]
+            "group_by": ["group_by(", ".group_by"],
         }
 
         api_files = list(api_dir.glob("**/*.py"))
@@ -195,12 +207,16 @@ class DatabaseOptimizer:
                 for pattern_name, pattern_regex_list in patterns.items():
                     for pattern_regex in pattern_regex_list:
                         if pattern_regex in content:
-                            query_patterns.append({
-                                "file": str(api_file.relative_to(Path.cwd())),
-                                "pattern": pattern_name,
-                                "frequency": content.count(pattern_regex),
-                                "optimization_priority": self.get_pattern_priority(pattern_name)
-                            })
+                            query_patterns.append(
+                                {
+                                    "file": str(api_file.relative_to(Path.cwd())),
+                                    "pattern": pattern_name,
+                                    "frequency": content.count(pattern_regex),
+                                    "optimization_priority": self.get_pattern_priority(
+                                        pattern_name
+                                    ),
+                                }
+                            )
             except Exception as e:
                 print(f"⚠️ Error analyzing {api_file}: {e}")
 
@@ -245,7 +261,7 @@ def upgrade():
     # Estimated improvement: {index.get("estimated_improvement", "Unknown")}
     try:
         op.execute("""{index["sql"]}""")
-        print(f"✅ Added index: {index['table']}.{','.join(index['columns'])}")
+        print(f"✅ Added index: {index["table"]}.{",".join(index["columns"])}")
     except Exception as e:
         print(f"⚠️ Index creation failed (may already exist): {{e}}")
 '''
@@ -260,14 +276,14 @@ def downgrade():
 
         for index in self.results["indexes"]:
             index_name = f"idx_{index['table']}_{'_'.join(index['columns'])}"
-            migration_content += f'''
+            migration_content += f"""
     # Remove {index["reason"]}
     try:
         op.execute("DROP INDEX IF EXISTS {index_name};")
         print(f"✅ Removed index: {index_name}")
     except Exception as e:
         print(f"⚠️ Index removal failed: {{e}}")
-'''
+"""
 
         # Save migration script
         migrations_dir = Path("alembic/versions")
@@ -289,7 +305,7 @@ def downgrade():
 
         report_content = f"""# Database Performance Optimization Report
 
-**Generated:** {self.results['timestamp']}
+**Generated:** {self.results["timestamp"]}
 **CC02 Version:** v37.0 Phase 4
 
 ## Executive Summary
@@ -298,19 +314,29 @@ This report analyzes the ITDO ERP database structure and provides specific recom
 
 ### Key Findings
 
-- **Model Files Analyzed:** {len([opt for opt in self.results['optimizations'] if opt.get('file')])}
-- **Optimization Opportunities:** {len(self.results['optimizations'])}
-- **Recommended Indexes:** {len(self.results['indexes'])}
-- **Query Patterns Analyzed:** {len(self.results['queries'])}
+- **Model Files Analyzed:** {len([opt for opt in self.results["optimizations"] if opt.get("file")])}
+- **Optimization Opportunities:** {len(self.results["optimizations"])}
+- **Recommended Indexes:** {len(self.results["indexes"])}
+- **Query Patterns Analyzed:** {len(self.results["queries"])}
 
 ## Optimization Opportunities
 
 """
 
         # Group optimizations by priority
-        high_priority = [opt for opt in self.results['optimizations'] if opt.get('priority') == 'high']
-        medium_priority = [opt for opt in self.results['optimizations'] if opt.get('priority') == 'medium']
-        low_priority = [opt for opt in self.results['optimizations'] if opt.get('priority') == 'low']
+        high_priority = [
+            opt
+            for opt in self.results["optimizations"]
+            if opt.get("priority") == "high"
+        ]
+        medium_priority = [
+            opt
+            for opt in self.results["optimizations"]
+            if opt.get("priority") == "medium"
+        ]
+        low_priority = [
+            opt for opt in self.results["optimizations"] if opt.get("priority") == "low"
+        ]
 
         if high_priority:
             report_content += "### 🔴 High Priority Issues\n\n"
@@ -332,25 +358,35 @@ This report analyzes the ITDO ERP database structure and provides specific recom
 
         # Index recommendations
         report_content += "## Recommended Database Indexes\n\n"
-        for index in self.results['indexes']:
-            report_content += f"### {index['table']} - {', '.join(index['columns'])}\n\n"
+        for index in self.results["indexes"]:
+            report_content += (
+                f"### {index['table']} - {', '.join(index['columns'])}\n\n"
+            )
             report_content += f"**Type:** {index['type'].title()}\n"
             report_content += f"**Reason:** {index['reason']}\n"
             report_content += f"**Estimated Improvement:** {index.get('estimated_improvement', 'Unknown')}\n\n"
             report_content += f"```sql\n{index['sql']}\n```\n\n"
 
         # Query patterns
-        if self.results['queries']:
+        if self.results["queries"]:
             report_content += "## Query Pattern Analysis\n\n"
 
             # Group by priority
-            high_freq_patterns = [q for q in self.results['queries'] if q.get('optimization_priority') == 'high']
+            high_freq_patterns = [
+                q
+                for q in self.results["queries"]
+                if q.get("optimization_priority") == "high"
+            ]
 
             if high_freq_patterns:
                 report_content += "### High-Impact Query Patterns\n\n"
                 for pattern in high_freq_patterns:
-                    report_content += f"- **{pattern['pattern']}** in `{pattern['file']}`\n"
-                    report_content += f"  - Frequency: {pattern['frequency']} occurrences\n\n"
+                    report_content += (
+                        f"- **{pattern['pattern']}** in `{pattern['file']}`\n"
+                    )
+                    report_content += (
+                        f"  - Frequency: {pattern['frequency']} occurrences\n\n"
+                    )
 
         # Recommendations
         report_content += """## Implementation Recommendations

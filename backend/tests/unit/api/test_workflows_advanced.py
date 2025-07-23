@@ -13,7 +13,6 @@ class TestWorkflowsAPI:
         self.client = TestClient(app)
         self.headers = {"Content-Type": "application/json"}
 
-
     def test_post___success(self):
         """Test POST / successful response."""
         # Setup test data
@@ -68,7 +67,9 @@ class TestWorkflowsAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/{workflow_id}", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/{workflow_id}", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -81,7 +82,9 @@ class TestWorkflowsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/{workflow_id}", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/{workflow_id}", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -92,7 +95,9 @@ class TestWorkflowsAPI:
         test_data = self.get_test_data_for_put()
 
         # Make request
-        response = self.client.put("/{workflow_id}", json=test_data, headers=self.headers)
+        response = self.client.put(
+            "/{workflow_id}", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -105,7 +110,9 @@ class TestWorkflowsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.put("/{workflow_id}", json=invalid_data, headers=self.headers)
+        response = self.client.put(
+            "/{workflow_id}", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -116,7 +123,9 @@ class TestWorkflowsAPI:
         test_data = self.get_test_data_for_delete()
 
         # Make request
-        response = self.client.delete("/{workflow_id}", json=test_data, headers=self.headers)
+        response = self.client.delete(
+            "/{workflow_id}", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -129,7 +138,9 @@ class TestWorkflowsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.delete("/{workflow_id}", json=invalid_data, headers=self.headers)
+        response = self.client.delete(
+            "/{workflow_id}", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -140,7 +151,9 @@ class TestWorkflowsAPI:
         test_data = self.get_test_data_for_post()
 
         # Make request
-        response = self.client.post("/{workflow_id}/instances", json=test_data, headers=self.headers)
+        response = self.client.post(
+            "/{workflow_id}/instances", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -153,7 +166,9 @@ class TestWorkflowsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.post("/{workflow_id}/instances", json=invalid_data, headers=self.headers)
+        response = self.client.post(
+            "/{workflow_id}/instances", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -164,7 +179,9 @@ class TestWorkflowsAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/{workflow_id}/instances", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/{workflow_id}/instances", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -177,7 +194,9 @@ class TestWorkflowsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/{workflow_id}/instances", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/{workflow_id}/instances", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -188,7 +207,9 @@ class TestWorkflowsAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/instances/{instance_id}", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/instances/{instance_id}", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -201,7 +222,9 @@ class TestWorkflowsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/instances/{instance_id}", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/instances/{instance_id}", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -212,7 +235,9 @@ class TestWorkflowsAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/instances/{instance_id}/tasks", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/instances/{instance_id}/tasks", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -225,7 +250,9 @@ class TestWorkflowsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/instances/{instance_id}/tasks", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/instances/{instance_id}/tasks", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -236,7 +263,9 @@ class TestWorkflowsAPI:
         test_data = self.get_test_data_for_put()
 
         # Make request
-        response = self.client.put("/tasks/{task_id}", json=test_data, headers=self.headers)
+        response = self.client.put(
+            "/tasks/{task_id}", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -249,7 +278,9 @@ class TestWorkflowsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.put("/tasks/{task_id}", json=invalid_data, headers=self.headers)
+        response = self.client.put(
+            "/tasks/{task_id}", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -260,7 +291,9 @@ class TestWorkflowsAPI:
         test_data = self.get_test_data_for_post()
 
         # Make request
-        response = self.client.post("/tasks/{task_id}/complete", json=test_data, headers=self.headers)
+        response = self.client.post(
+            "/tasks/{task_id}/complete", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -273,7 +306,9 @@ class TestWorkflowsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.post("/tasks/{task_id}/complete", json=invalid_data, headers=self.headers)
+        response = self.client.post(
+            "/tasks/{task_id}/complete", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -284,7 +319,9 @@ class TestWorkflowsAPI:
         test_data = self.get_test_data_for_post()
 
         # Make request
-        response = self.client.post("/tasks/{task_id}/assign", json=test_data, headers=self.headers)
+        response = self.client.post(
+            "/tasks/{task_id}/assign", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -297,7 +334,9 @@ class TestWorkflowsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.post("/tasks/{task_id}/assign", json=invalid_data, headers=self.headers)
+        response = self.client.post(
+            "/tasks/{task_id}/assign", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -308,7 +347,9 @@ class TestWorkflowsAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/{workflow_id}/analytics", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/{workflow_id}/analytics", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -321,7 +362,9 @@ class TestWorkflowsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/{workflow_id}/analytics", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/{workflow_id}/analytics", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -332,7 +375,9 @@ class TestWorkflowsAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/instances/{instance_id}/progress", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/instances/{instance_id}/progress", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -345,7 +390,9 @@ class TestWorkflowsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/instances/{instance_id}/progress", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/instances/{instance_id}/progress", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422

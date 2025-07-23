@@ -13,7 +13,6 @@ class TestUserPrivacyAPI:
         self.client = TestClient(app)
         self.headers = {"Content-Type": "application/json"}
 
-
     def test_get__me_success(self):
         """Test GET /me successful response."""
         # Setup test data
@@ -84,7 +83,9 @@ class TestUserPrivacyAPI:
         test_data = self.get_test_data_for_post()
 
         # Make request
-        response = self.client.post("/me/set-all-private", json=test_data, headers=self.headers)
+        response = self.client.post(
+            "/me/set-all-private", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -97,7 +98,9 @@ class TestUserPrivacyAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.post("/me/set-all-private", json=invalid_data, headers=self.headers)
+        response = self.client.post(
+            "/me/set-all-private", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -116,7 +119,9 @@ class TestUserPrivacyAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/check/profile/{user_id}", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/check/profile/{user_id}", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -129,7 +134,9 @@ class TestUserPrivacyAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/check/profile/{user_id}", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/check/profile/{user_id}", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -148,7 +155,9 @@ class TestUserPrivacyAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/check/email/{user_id}", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/check/email/{user_id}", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -161,7 +170,9 @@ class TestUserPrivacyAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/check/email/{user_id}", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/check/email/{user_id}", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -180,7 +191,9 @@ class TestUserPrivacyAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/check/phone/{user_id}", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/check/phone/{user_id}", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -193,7 +206,9 @@ class TestUserPrivacyAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/check/phone/{user_id}", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/check/phone/{user_id}", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -212,7 +227,9 @@ class TestUserPrivacyAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/check/activity/{user_id}", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/check/activity/{user_id}", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -225,7 +242,9 @@ class TestUserPrivacyAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/check/activity/{user_id}", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/check/activity/{user_id}", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -244,7 +263,9 @@ class TestUserPrivacyAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/check/online-status/{user_id}", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/check/online-status/{user_id}", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -257,7 +278,9 @@ class TestUserPrivacyAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/check/online-status/{user_id}", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/check/online-status/{user_id}", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -276,7 +299,9 @@ class TestUserPrivacyAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/check/direct-message/{user_id}", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/check/direct-message/{user_id}", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -289,7 +314,9 @@ class TestUserPrivacyAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/check/direct-message/{user_id}", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/check/direct-message/{user_id}", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -308,7 +335,9 @@ class TestUserPrivacyAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/filter-user-data/{user_id}", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/filter-user-data/{user_id}", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -321,7 +350,9 @@ class TestUserPrivacyAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/filter-user-data/{user_id}", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/filter-user-data/{user_id}", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -340,7 +371,9 @@ class TestUserPrivacyAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/searchable/email", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/searchable/email", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -353,7 +386,9 @@ class TestUserPrivacyAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/searchable/email", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/searchable/email", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -372,7 +407,9 @@ class TestUserPrivacyAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/searchable/name", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/searchable/name", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -385,7 +422,9 @@ class TestUserPrivacyAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/searchable/name", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/searchable/name", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422

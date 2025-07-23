@@ -24,8 +24,8 @@ class ContinuousBackendImprovement:
         self.quality_targets = {
             "test_coverage": 95,
             "response_time": 200,  # ms
-            "error_rate": 0.1,     # %
-            "code_quality": 9.5    # /10
+            "error_rate": 0.1,  # %
+            "code_quality": 9.5,  # /10
         }
         self.priority_tasks = [
             "merge_pending_prs",
@@ -35,7 +35,7 @@ class ContinuousBackendImprovement:
             "implement_missing_apis",
             "update_documentation",
             "security_patches",
-            "performance_tuning"
+            "performance_tuning",
         ]
 
     async def start_continuous_improvement(self):
@@ -75,11 +75,9 @@ class ContinuousBackendImprovement:
                     await self.auto_fix_issues(quality["issues"])
 
                 # 6. 進捗報告
-                await self.report_progress({
-                    "task": task,
-                    "result": result,
-                    "quality": quality
-                })
+                await self.report_progress(
+                    {"task": task, "result": result, "quality": quality}
+                )
 
                 # 7. コミットとPR作成
                 if await self.has_changes():
@@ -131,8 +129,8 @@ class ContinuousBackendImprovement:
                     "api": api_health,
                     "database": db_health,
                     "tests": test_health,
-                    "ci_cd": ci_health
-                }
+                    "ci_cd": ci_health,
+                },
             }
 
         except Exception as e:
@@ -140,7 +138,7 @@ class ContinuousBackendImprovement:
                 "is_healthy": False,
                 "status": "error",
                 "issues": [str(e)],
-                "details": {}
+                "details": {},
             }
 
     async def check_api_health(self) -> Dict[str, Any]:
@@ -156,14 +154,11 @@ class ContinuousBackendImprovement:
                 "healthy": healthy and response_time < 500,
                 "response_time": response_time,
                 "endpoints_checked": 5,
-                "failed_endpoints": 0 if healthy else 1
+                "failed_endpoints": 0 if healthy else 1,
             }
 
         except Exception:
-            return {
-                "healthy": False,
-                "error": "Could not check API health"
-            }
+            return {"healthy": False, "error": "Could not check API health"}
 
     async def check_database_health(self) -> Dict[str, Any]:
         """データベース健全性チェック"""
@@ -175,44 +170,44 @@ class ContinuousBackendImprovement:
                 "healthy": True,
                 "connection_time": random.uniform(10, 50),
                 "active_connections": random.randint(5, 20),
-                "pool_size": 20
+                "pool_size": 20,
             }
 
         except Exception:
-            return {
-                "healthy": False,
-                "error": "Database connection failed"
-            }
+            return {"healthy": False, "error": "Database connection failed"}
 
     async def check_test_health(self) -> Dict[str, Any]:
         """テスト健全性チェック"""
         try:
             # 最近のテスト結果をチェック
-            result = subprocess.run([
-                "uv", "run", "pytest", "--collect-only", "-q"
-            ], capture_output=True, text=True, timeout=30)
+            result = subprocess.run(
+                ["uv", "run", "pytest", "--collect-only", "-q"],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
 
             test_count = result.stdout.count(" PASSED") if result.returncode == 0 else 0
 
             return {
                 "healthy": result.returncode == 0,
                 "total_tests": test_count,
-                "failed_tests": 0 if result.returncode == 0 else 1
+                "failed_tests": 0 if result.returncode == 0 else 1,
             }
 
         except Exception:
-            return {
-                "healthy": False,
-                "error": "Could not check test health"
-            }
+            return {"healthy": False, "error": "Could not check test health"}
 
     async def check_ci_health(self) -> Dict[str, Any]:
         """CI/CD健全性チェック"""
         try:
             # GitHub Actionsステータス確認
-            result = subprocess.run([
-                "gh", "run", "list", "--limit", "5", "--json", "status,conclusion"
-            ], capture_output=True, text=True, timeout=30)
+            result = subprocess.run(
+                ["gh", "run", "list", "--limit", "5", "--json", "status,conclusion"],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
 
             if result.returncode == 0:
                 runs = json.loads(result.stdout)
@@ -221,7 +216,7 @@ class ContinuousBackendImprovement:
                 return {
                     "healthy": len(failed_runs) == 0,
                     "recent_runs": len(runs),
-                    "failed_runs": len(failed_runs)
+                    "failed_runs": len(failed_runs),
                 }
             else:
                 return {"healthy": True, "note": "Could not check CI status"}
@@ -279,7 +274,7 @@ class ContinuousBackendImprovement:
             "name": task,
             "priority": "high",
             "estimated_duration": random.randint(5, 30),  # minutes
-            "description": self.get_task_description(task)
+            "description": self.get_task_description(task),
         }
 
     def get_task_description(self, task_name: str) -> str:
@@ -292,7 +287,7 @@ class ContinuousBackendImprovement:
             "implement_missing_apis": "不足しているAPIの実装",
             "update_documentation": "ドキュメントの更新",
             "security_patches": "セキュリティパッチの適用",
-            "performance_tuning": "パフォーマンスチューニング"
+            "performance_tuning": "パフォーマンスチューニング",
         }
         return descriptions.get(task_name, "General improvement task")
 
@@ -333,7 +328,7 @@ class ContinuousBackendImprovement:
                 "type": "test_creation",
                 "description": "Create unit tests for new API endpoints",
                 "priority": "high",
-                "estimated_effort": "medium"
+                "estimated_effort": "medium",
             }
         ]
 
@@ -344,7 +339,7 @@ class ContinuousBackendImprovement:
                 "type": "performance_optimization",
                 "description": "Optimize database queries with N+1 issues",
                 "priority": "medium",
-                "estimated_effort": "high"
+                "estimated_effort": "high",
             }
         ]
 
@@ -355,7 +350,7 @@ class ContinuousBackendImprovement:
                 "type": "security_patch",
                 "description": "Update dependencies with known vulnerabilities",
                 "priority": "high",
-                "estimated_effort": "low"
+                "estimated_effort": "low",
             }
         ]
 
@@ -366,7 +361,7 @@ class ContinuousBackendImprovement:
                 "type": "code_refactoring",
                 "description": "Refactor high complexity functions",
                 "priority": "medium",
-                "estimated_effort": "high"
+                "estimated_effort": "high",
             }
         ]
 
@@ -377,7 +372,7 @@ class ContinuousBackendImprovement:
                 "type": "api_implementation",
                 "description": "Implement missing CRUD operations for entities",
                 "priority": "high",
-                "estimated_effort": "medium"
+                "estimated_effort": "medium",
             }
         ]
 
@@ -413,23 +408,26 @@ class ContinuousBackendImprovement:
             return {
                 "status": "completed",
                 "execution_time": execution_time,
-                "details": result
+                "details": result,
             }
 
         except Exception as e:
             return {
                 "status": "failed",
                 "error": str(e),
-                "execution_time": time.time() - start_time
+                "execution_time": time.time() - start_time,
             }
 
     async def execute_merge_prs(self) -> Dict[str, Any]:
         """未マージPRを処理"""
         try:
             # 未マージPRをリスト
-            result = subprocess.run([
-                "gh", "pr", "list", "--json", "number,title"
-            ], capture_output=True, text=True, timeout=30)
+            result = subprocess.run(
+                ["gh", "pr", "list", "--json", "number,title"],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
 
             if result.returncode == 0:
                 prs = json.loads(result.stdout)
@@ -441,7 +439,7 @@ class ContinuousBackendImprovement:
                     return {
                         "action": "pr_processed",
                         "pr_number": pr["number"],
-                        "pr_title": pr["title"]
+                        "pr_title": pr["title"],
                     }
 
             return {"action": "no_prs_to_process"}
@@ -453,9 +451,12 @@ class ContinuousBackendImprovement:
         """失敗テストを修正"""
         try:
             # テスト実行
-            result = subprocess.run([
-                "uv", "run", "pytest", "-x", "--tb=short"
-            ], capture_output=True, text=True, timeout=120)
+            result = subprocess.run(
+                ["uv", "run", "pytest", "-x", "--tb=short"],
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
 
             if result.returncode == 0:
                 return {"action": "all_tests_passing"}
@@ -463,7 +464,7 @@ class ContinuousBackendImprovement:
                 # 失敗したテストを分析して修正
                 return {
                     "action": "test_fixes_applied",
-                    "fixed_tests": random.randint(1, 5)
+                    "fixed_tests": random.randint(1, 5),
                 }
 
         except Exception as e:
@@ -473,9 +474,12 @@ class ContinuousBackendImprovement:
         """テストカバレッジを改善"""
         try:
             # カバレッジ分析
-            subprocess.run([
-                "uv", "run", "pytest", "--cov=app", "--cov-report=json"
-            ], capture_output=True, text=True, timeout=120)
+            subprocess.run(
+                ["uv", "run", "pytest", "--cov=app", "--cov-report=json"],
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
 
             # 新しいテストを生成
             new_tests = random.randint(5, 15)
@@ -484,7 +488,7 @@ class ContinuousBackendImprovement:
             return {
                 "action": "coverage_improved",
                 "new_tests_created": new_tests,
-                "coverage_improvement": f"{coverage_improvement:.1f}%"
+                "coverage_improvement": f"{coverage_improvement:.1f}%",
             }
 
         except Exception as e:
@@ -498,7 +502,7 @@ class ContinuousBackendImprovement:
         return {
             "action": "queries_optimized",
             "optimized_count": optimized_queries,
-            "performance_improvement": f"{performance_improvement:.1f}%"
+            "performance_improvement": f"{performance_improvement:.1f}%",
         }
 
     async def execute_implement_apis(self) -> Dict[str, Any]:
@@ -508,7 +512,7 @@ class ContinuousBackendImprovement:
         return {
             "action": "apis_implemented",
             "new_endpoints": new_endpoints,
-            "api_completeness": "improved"
+            "api_completeness": "improved",
         }
 
     async def execute_update_docs(self) -> Dict[str, Any]:
@@ -518,7 +522,7 @@ class ContinuousBackendImprovement:
         return {
             "action": "documentation_updated",
             "files_updated": updated_files,
-            "documentation_coverage": "improved"
+            "documentation_coverage": "improved",
         }
 
     async def execute_security_patches(self) -> Dict[str, Any]:
@@ -528,7 +532,7 @@ class ContinuousBackendImprovement:
         return {
             "action": "security_patches_applied",
             "patches_count": patches_applied,
-            "security_score": "improved"
+            "security_score": "improved",
         }
 
     async def execute_performance_tuning(self) -> Dict[str, Any]:
@@ -539,7 +543,7 @@ class ContinuousBackendImprovement:
         return {
             "action": "performance_tuned",
             "optimizations_applied": optimizations,
-            "response_time_improvement": f"{response_time_improvement:.1f}%"
+            "response_time_improvement": f"{response_time_improvement:.1f}%",
         }
 
     async def execute_generic_task(self, task: Dict[str, Any]) -> Dict[str, Any]:
@@ -548,7 +552,7 @@ class ContinuousBackendImprovement:
 
         return {
             "action": "generic_task_completed",
-            "task_type": task.get("type", "unknown")
+            "task_type": task.get("type", "unknown"),
         }
 
     async def verify_quality(self) -> Dict[str, Any]:
@@ -560,7 +564,12 @@ class ContinuousBackendImprovement:
             error_rate_score = await self.check_error_rate_score()
             code_quality_score = await self.check_code_quality_score()
 
-            scores = [coverage_score, response_time_score, error_rate_score, code_quality_score]
+            scores = [
+                coverage_score,
+                response_time_score,
+                error_rate_score,
+                code_quality_score,
+            ]
             overall_score = sum(scores) / len(scores)
 
             # 改善が必要な領域を特定
@@ -582,8 +591,8 @@ class ContinuousBackendImprovement:
                     "test_coverage": coverage_score,
                     "response_time": response_time_score,
                     "error_rate": error_rate_score,
-                    "code_quality": code_quality_score
-                }
+                    "code_quality": code_quality_score,
+                },
             }
 
         except Exception as e:
@@ -591,7 +600,7 @@ class ContinuousBackendImprovement:
                 "overall_score": 5.0,
                 "needs_improvement": True,
                 "issues": ["quality_check_failed"],
-                "error": str(e)
+                "error": str(e),
             }
 
     async def check_test_coverage_score(self) -> float:
@@ -662,7 +671,7 @@ class ContinuousBackendImprovement:
             "execution_result": data["result"]["status"],
             "quality_score": data["quality"]["overall_score"],
             "improvements_needed": data["quality"]["needs_improvement"],
-            "cycle_summary": f"Task: {data['task']['name']} | Quality: {data['quality']['overall_score']:.1f}/10"
+            "cycle_summary": f"Task: {data['task']['name']} | Quality: {data['quality']['overall_score']:.1f}/10",
         }
 
         # 進捗レポートを保存
@@ -678,9 +687,12 @@ class ContinuousBackendImprovement:
     async def has_changes(self) -> bool:
         """変更があるかチェック"""
         try:
-            result = subprocess.run([
-                "git", "status", "--porcelain"
-            ], capture_output=True, text=True, timeout=10)
+            result = subprocess.run(
+                ["git", "status", "--porcelain"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
 
             return len(result.stdout.strip()) > 0
 
@@ -707,11 +719,20 @@ class ContinuousBackendImprovement:
             subprocess.run(["git", "push", "-u", "origin", branch_name], check=True)
 
             # PR作成
-            pr_result = subprocess.run([
-                "gh", "pr", "create",
-                "--title", title,
-                "--body", f"Continuous improvement cycle - {datetime.now().isoformat()}"
-            ], capture_output=True, text=True, check=True)
+            pr_result = subprocess.run(
+                [
+                    "gh",
+                    "pr",
+                    "create",
+                    "--title",
+                    title,
+                    "--body",
+                    f"Continuous improvement cycle - {datetime.now().isoformat()}",
+                ],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
 
             return pr_result.stdout.strip()
 
@@ -726,7 +747,7 @@ class ContinuousBackendImprovement:
         error_log = {
             "timestamp": datetime.now().isoformat(),
             "error": str(error),
-            "error_type": type(error).__name__
+            "error_type": type(error).__name__,
         }
 
         logs_dir = Path("logs/continuous_improvement")
@@ -743,16 +764,12 @@ class ContinuousBackendImprovement:
         """バックアップタスクに切り替え"""
         print("🔄 Switching to backup task...")
 
-        backup_tasks = [
-            "update_documentation",
-            "code_cleanup",
-            "dependency_updates"
-        ]
+        backup_tasks = ["update_documentation", "code_cleanup", "dependency_updates"]
 
         backup_task = {
             "name": random.choice(backup_tasks),
             "priority": "low",
-            "description": "Backup task for error recovery"
+            "description": "Backup task for error recovery",
         }
 
         await self.execute_task(backup_task)

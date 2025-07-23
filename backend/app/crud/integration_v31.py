@@ -50,21 +50,33 @@ class IntegrationService:
     # External System Management
     # =============================================================================
 
-    async def create_external_system(self, db: Session, system_data: Dict[str, Any]) -> ExternalSystem:
+    async def create_external_system(
+        self, db: Session, system_data: Dict[str, Any]
+    ) -> ExternalSystem:
         """Create a new external system with configuration validation."""
         try:
             # Validate required fields
-            required_fields = ["organization_id", "name", "code", "integration_type", "created_by"]
+            required_fields = [
+                "organization_id",
+                "name",
+                "code",
+                "integration_type",
+                "created_by",
+            ]
             for field in required_fields:
                 if not system_data.get(field):
                     raise ValueError(f"Missing required field: {field}")
 
             # Check for duplicate code
-            existing = db.query(ExternalSystem).filter(
-                ExternalSystem.code == system_data["code"]
-            ).first()
+            existing = (
+                db.query(ExternalSystem)
+                .filter(ExternalSystem.code == system_data["code"])
+                .first()
+            )
             if existing:
-                raise ValueError(f"External system with code '{system_data['code']}' already exists")
+                raise ValueError(
+                    f"External system with code '{system_data['code']}' already exists"
+                )
 
             # Create external system
             external_system = ExternalSystem(**system_data)
@@ -87,8 +99,14 @@ class IntegrationService:
 
             # Log audit trail
             await self._log_audit_action(
-                db, external_system.organization_id, "create", "external_system",
-                external_system.id, None, system_data, external_system.created_by
+                db,
+                external_system.organization_id,
+                "create",
+                "external_system",
+                external_system.id,
+                None,
+                system_data,
+                external_system.created_by,
             )
 
             return external_system
@@ -97,13 +115,18 @@ class IntegrationService:
             db.rollback()
             raise e
 
-    async def get_external_system(self, db: Session, system_id: str) -> Optional[ExternalSystem]:
+    async def get_external_system(
+        self, db: Session, system_id: str
+    ) -> Optional[ExternalSystem]:
         """Get external system by ID with connection status check."""
         system = db.query(ExternalSystem).filter(ExternalSystem.id == system_id).first()
         if system:
             # Update connection status if health check is due
-            if (not system.last_health_check or
-                datetime.now() - system.last_health_check > timedelta(seconds=system.health_check_interval)):
+            if (
+                not system.last_health_check
+                or datetime.now() - system.last_health_check
+                > timedelta(seconds=system.health_check_interval)
+            ):
                 await self._check_system_health(db, system)
         return system
 
@@ -115,10 +138,12 @@ class IntegrationService:
         connection_status: Optional[str] = None,
         is_active: Optional[bool] = None,
         page: int = 1,
-        per_page: int = 50
+        per_page: int = 50,
     ) -> Dict[str, Any]:
         """List external systems with filtering and pagination."""
-        query = db.query(ExternalSystem).filter(ExternalSystem.organization_id == organization_id)
+        query = db.query(ExternalSystem).filter(
+            ExternalSystem.organization_id == organization_id
+        )
 
         # Apply filters
         if integration_type:
@@ -139,14 +164,11 @@ class IntegrationService:
             "total_count": total_count,
             "page": page,
             "per_page": per_page,
-            "has_more": total_count > page * per_page
+            "has_more": total_count > page * per_page,
         }
 
     async def update_external_system(
-        self,
-        db: Session,
-        system_id: str,
-        update_data: Dict[str, Any]
+        self, db: Session, system_id: str, update_data: Dict[str, Any]
     ) -> Optional[ExternalSystem]:
         """Update external system configuration."""
         system = db.query(ExternalSystem).filter(ExternalSystem.id == system_id).first()
@@ -157,12 +179,14 @@ class IntegrationService:
             "name": system.name,
             "connection_config": system.connection_config,
             "auth_config": system.auth_config,
-            "is_active": system.is_active
+            "is_active": system.is_active,
         }
 
         # Update fields
         for field, value in update_data.items():
-            if field not in ["id", "created_at", "created_by"] and hasattr(system, field):
+            if field not in ["id", "created_at", "created_by"] and hasattr(
+                system, field
+            ):
                 setattr(system, field, value)
 
         system.updated_at = datetime.now()
@@ -171,17 +195,20 @@ class IntegrationService:
 
         # Log audit trail
         await self._log_audit_action(
-            db, system.organization_id, "update", "external_system",
-            system.id, old_values, update_data, update_data.get("updated_by")
+            db,
+            system.organization_id,
+            "update",
+            "external_system",
+            system.id,
+            old_values,
+            update_data,
+            update_data.get("updated_by"),
         )
 
         return system
 
     async def test_system_connection(
-        self,
-        db: Session,
-        system_id: str,
-        test_config: Dict[str, Any]
+        self, db: Session, system_id: str, test_config: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Test connection to external system."""
         system = db.query(ExternalSystem).filter(ExternalSystem.id == system_id).first()
@@ -192,7 +219,7 @@ class IntegrationService:
         result = {
             "system_id": system_id,
             "test_type": test_config.get("test_type", "basic"),
-            "started_at": start_time.isoformat()
+            "started_at": start_time.isoformat(),
         }
 
         try:
@@ -203,17 +230,16 @@ class IntegrationService:
 
             # Execute test
             response = requests.get(
-                test_url,
-                headers=headers,
-                timeout=timeout,
-                allow_redirects=True
+                test_url, headers=headers, timeout=timeout, allow_redirects=True
             )
 
             end_time = datetime.now()
             response_time = (end_time - start_time).total_seconds() * 1000
 
             # Update system status
-            system.connection_status = ConnectionStatus.CONNECTED if response.ok else ConnectionStatus.ERROR
+            system.connection_status = (
+                ConnectionStatus.CONNECTED if response.ok else ConnectionStatus.ERROR
+            )
             system.last_health_check = datetime.now()
             system.average_response_time = (
                 (system.average_response_time or 0) + Decimal(str(response_time))
@@ -221,13 +247,15 @@ class IntegrationService:
 
             db.commit()
 
-            result.update({
-                "status": "success" if response.ok else "error",
-                "response_code": response.status_code,
-                "response_time_ms": response_time,
-                "response_headers": dict(response.headers),
-                "completed_at": end_time.isoformat()
-            })
+            result.update(
+                {
+                    "status": "success" if response.ok else "error",
+                    "response_code": response.status_code,
+                    "response_time_ms": response_time,
+                    "response_headers": dict(response.headers),
+                    "completed_at": end_time.isoformat(),
+                }
+            )
 
             if test_config.get("include_response_body", False):
                 result["response_body"] = response.text[:1000]  # Truncate for safety
@@ -237,11 +265,13 @@ class IntegrationService:
             system.last_health_check = datetime.now()
             db.commit()
 
-            result.update({
-                "status": "error",
-                "error": str(e),
-                "completed_at": datetime.now().isoformat()
-            })
+            result.update(
+                {
+                    "status": "error",
+                    "error": str(e),
+                    "completed_at": datetime.now().isoformat(),
+                }
+            )
 
         return result
 
@@ -249,20 +279,31 @@ class IntegrationService:
     # Integration Connector Management
     # =============================================================================
 
-    async def create_connector(self, db: Session, connector_data: Dict[str, Any]) -> IntegrationConnector:
+    async def create_connector(
+        self, db: Session, connector_data: Dict[str, Any]
+    ) -> IntegrationConnector:
         """Create a new integration connector."""
         try:
             # Validate required fields
-            required_fields = ["organization_id", "external_system_id", "name", "code",
-                             "endpoint_url", "sync_direction", "created_by"]
+            required_fields = [
+                "organization_id",
+                "external_system_id",
+                "name",
+                "code",
+                "endpoint_url",
+                "sync_direction",
+                "created_by",
+            ]
             for field in required_fields:
                 if not connector_data.get(field):
                     raise ValueError(f"Missing required field: {field}")
 
             # Verify external system exists
-            external_system = db.query(ExternalSystem).filter(
-                ExternalSystem.id == connector_data["external_system_id"]
-            ).first()
+            external_system = (
+                db.query(ExternalSystem)
+                .filter(ExternalSystem.id == connector_data["external_system_id"])
+                .first()
+            )
             if not external_system:
                 raise ValueError("External system not found")
 
@@ -281,8 +322,14 @@ class IntegrationService:
 
             # Log audit trail
             await self._log_audit_action(
-                db, connector.organization_id, "create", "integration_connector",
-                connector.id, None, connector_data, connector.created_by
+                db,
+                connector.organization_id,
+                "create",
+                "integration_connector",
+                connector.id,
+                None,
+                connector_data,
+                connector.created_by,
             )
 
             return connector
@@ -292,15 +339,15 @@ class IntegrationService:
             raise e
 
     async def execute_connector(
-        self,
-        db: Session,
-        connector_id: str,
-        execution_config: Dict[str, Any]
+        self, db: Session, connector_id: str, execution_config: Dict[str, Any]
     ) -> IntegrationExecution:
         """Execute integration connector with full processing pipeline."""
-        connector = db.query(IntegrationConnector).options(
-            joinedload(IntegrationConnector.external_system)
-        ).filter(IntegrationConnector.id == connector_id).first()
+        connector = (
+            db.query(IntegrationConnector)
+            .options(joinedload(IntegrationConnector.external_system))
+            .filter(IntegrationConnector.id == connector_id)
+            .first()
+        )
 
         if not connector:
             raise ValueError("Connector not found")
@@ -315,7 +362,7 @@ class IntegrationService:
             execution_type=execution_config.get("execution_type", "manual"),
             triggered_by=execution_config.get("triggered_by"),
             status=SyncStatus.RUNNING,
-            started_at=datetime.now()
+            started_at=datetime.now(),
         )
 
         db.add(execution)
@@ -325,16 +372,24 @@ class IntegrationService:
         try:
             # Execute based on sync direction
             if connector.sync_direction == SyncDirection.INBOUND:
-                result = await self._execute_inbound_sync(db, connector, execution, execution_config)
+                result = await self._execute_inbound_sync(
+                    db, connector, execution, execution_config
+                )
             elif connector.sync_direction == SyncDirection.OUTBOUND:
-                result = await self._execute_outbound_sync(db, connector, execution, execution_config)
+                result = await self._execute_outbound_sync(
+                    db, connector, execution, execution_config
+                )
             else:  # BIDIRECTIONAL
-                result = await self._execute_bidirectional_sync(db, connector, execution, execution_config)
+                result = await self._execute_bidirectional_sync(
+                    db, connector, execution, execution_config
+                )
 
             # Update execution with results
             execution.status = SyncStatus.COMPLETED
             execution.completed_at = datetime.now()
-            execution.duration_ms = int((execution.completed_at - execution.started_at).total_seconds() * 1000)
+            execution.duration_ms = int(
+                (execution.completed_at - execution.started_at).total_seconds() * 1000
+            )
 
             # Update metrics
             for key, value in result.items():
@@ -346,7 +401,8 @@ class IntegrationService:
             connector.successful_executions += 1
             connector.last_run_at = datetime.now()
             connector.average_execution_time = (
-                (connector.average_execution_time or 0) + Decimal(str(execution.duration_ms))
+                (connector.average_execution_time or 0)
+                + Decimal(str(execution.duration_ms))
             ) / connector.total_executions
 
             db.commit()
@@ -355,7 +411,9 @@ class IntegrationService:
             execution.status = SyncStatus.FAILED
             execution.error_message = str(e)
             execution.completed_at = datetime.now()
-            execution.duration_ms = int((execution.completed_at - execution.started_at).total_seconds() * 1000)
+            execution.duration_ms = int(
+                (execution.completed_at - execution.started_at).total_seconds() * 1000
+            )
 
             connector.total_executions += 1
             connector.failed_executions += 1
@@ -375,7 +433,9 @@ class IntegrationService:
     # Data Mapping & Transformation
     # =============================================================================
 
-    async def create_data_mapping(self, db: Session, mapping_data: Dict[str, Any]) -> DataMapping:
+    async def create_data_mapping(
+        self, db: Session, mapping_data: Dict[str, Any]
+    ) -> DataMapping:
         """Create a new data mapping configuration."""
         try:
             # Validate field mappings
@@ -399,7 +459,9 @@ class IntegrationService:
             db.rollback()
             raise e
 
-    async def create_transformation(self, db: Session, transformation_data: Dict[str, Any]) -> DataTransformation:
+    async def create_transformation(
+        self, db: Session, transformation_data: Dict[str, Any]
+    ) -> DataTransformation:
         """Create a new data transformation."""
         try:
             transformation = DataTransformation(**transformation_data)
@@ -419,15 +481,14 @@ class IntegrationService:
             raise e
 
     async def apply_data_transformation(
-        self,
-        db: Session,
-        transformation_id: str,
-        input_data: List[Dict[str, Any]]
+        self, db: Session, transformation_id: str, input_data: List[Dict[str, Any]]
     ) -> Dict[str, Any]:
         """Apply data transformation to input data."""
-        transformation = db.query(DataTransformation).filter(
-            DataTransformation.id == transformation_id
-        ).first()
+        transformation = (
+            db.query(DataTransformation)
+            .filter(DataTransformation.id == transformation_id)
+            .first()
+        )
 
         if not transformation:
             raise ValueError("Transformation not found")
@@ -438,19 +499,29 @@ class IntegrationService:
             "input_count": len(input_data),
             "output_data": [],
             "errors": [],
-            "started_at": start_time
+            "started_at": start_time,
         }
 
         try:
             # Apply transformation based on type
             if transformation.transformation_type == TransformationType.FIELD_MAPPING:
-                result["output_data"] = await self._apply_field_mapping(transformation, input_data)
-            elif transformation.transformation_type == TransformationType.DATA_CONVERSION:
-                result["output_data"] = await self._apply_data_conversion(transformation, input_data)
+                result["output_data"] = await self._apply_field_mapping(
+                    transformation, input_data
+                )
+            elif (
+                transformation.transformation_type == TransformationType.DATA_CONVERSION
+            ):
+                result["output_data"] = await self._apply_data_conversion(
+                    transformation, input_data
+                )
             elif transformation.transformation_type == TransformationType.CUSTOM_SCRIPT:
-                result["output_data"] = await self._execute_custom_script(transformation, input_data)
+                result["output_data"] = await self._execute_custom_script(
+                    transformation, input_data
+                )
             else:
-                raise ValueError(f"Unsupported transformation type: {transformation.transformation_type}")
+                raise ValueError(
+                    f"Unsupported transformation type: {transformation.transformation_type}"
+                )
 
             end_time = datetime.now()
             execution_time = int((end_time - start_time).total_seconds() * 1000)
@@ -459,15 +530,18 @@ class IntegrationService:
             transformation.total_executions += 1
             transformation.successful_executions += 1
             transformation.average_execution_time = (
-                (transformation.average_execution_time or 0) + Decimal(str(execution_time))
+                (transformation.average_execution_time or 0)
+                + Decimal(str(execution_time))
             ) / transformation.total_executions
 
-            result.update({
-                "status": "success",
-                "output_count": len(result["output_data"]),
-                "execution_time_ms": execution_time,
-                "completed_at": end_time
-            })
+            result.update(
+                {
+                    "status": "success",
+                    "output_count": len(result["output_data"]),
+                    "execution_time_ms": execution_time,
+                    "completed_at": end_time,
+                }
+            )
 
             db.commit()
 
@@ -477,11 +551,9 @@ class IntegrationService:
             transformation.last_error = str(e)
             db.commit()
 
-            result.update({
-                "status": "error",
-                "error": str(e),
-                "completed_at": datetime.now()
-            })
+            result.update(
+                {"status": "error", "error": str(e), "completed_at": datetime.now()}
+            )
 
         return result
 
@@ -489,15 +561,21 @@ class IntegrationService:
     # Webhook Management
     # =============================================================================
 
-    async def create_webhook_endpoint(self, db: Session, webhook_data: Dict[str, Any]) -> WebhookEndpoint:
+    async def create_webhook_endpoint(
+        self, db: Session, webhook_data: Dict[str, Any]
+    ) -> WebhookEndpoint:
         """Create a new webhook endpoint."""
         try:
             # Generate unique endpoint URL if not provided
             if not webhook_data.get("endpoint_url"):
-                webhook_data["endpoint_url"] = f"/webhooks/{webhook_data['organization_id']}/{uuid.uuid4().hex[:8]}"
+                webhook_data["endpoint_url"] = (
+                    f"/webhooks/{webhook_data['organization_id']}/{uuid.uuid4().hex[:8]}"
+                )
 
             # Generate webhook secret for signature verification
-            if webhook_data.get("enable_signature_verification", True) and not webhook_data.get("webhook_secret"):
+            if webhook_data.get(
+                "enable_signature_verification", True
+            ) and not webhook_data.get("webhook_secret"):
                 webhook_data["webhook_secret"] = self._generate_webhook_secret()
 
             webhook = WebhookEndpoint(**webhook_data)
@@ -513,16 +591,16 @@ class IntegrationService:
             raise e
 
     async def process_webhook_request(
-        self,
-        db: Session,
-        endpoint_url: str,
-        request_data: Dict[str, Any]
+        self, db: Session, endpoint_url: str, request_data: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Process incoming webhook request."""
-        webhook = db.query(WebhookEndpoint).filter(
-            WebhookEndpoint.endpoint_url == endpoint_url,
-            WebhookEndpoint.is_active
-        ).first()
+        webhook = (
+            db.query(WebhookEndpoint)
+            .filter(
+                WebhookEndpoint.endpoint_url == endpoint_url, WebhookEndpoint.is_active
+            )
+            .first()
+        )
 
         if not webhook:
             raise ValueError("Webhook endpoint not found or inactive")
@@ -539,7 +617,7 @@ class IntegrationService:
             content_length=len(request_data.get("body", "")),
             client_ip=request_data.get("client_ip"),
             user_agent=request_data.get("user_agent"),
-            received_at=datetime.now()
+            received_at=datetime.now(),
         )
 
         db.add(webhook_request)
@@ -548,7 +626,9 @@ class IntegrationService:
 
         try:
             # Security checks
-            security_result = await self._validate_webhook_security(webhook, webhook_request, request_data)
+            security_result = await self._validate_webhook_security(
+                webhook, webhook_request, request_data
+            )
             if not security_result["valid"]:
                 webhook_request.processing_status = "blocked"
                 webhook_request.error_message = security_result["reason"]
@@ -563,15 +643,24 @@ class IntegrationService:
 
             # Execute processing script if configured
             if webhook.processing_script:
-                result = await self._execute_webhook_processing(webhook, webhook_request)
+                result = await self._execute_webhook_processing(
+                    webhook, webhook_request
+                )
             else:
-                result = {"status": "received", "message": "Webhook received successfully"}
+                result = {
+                    "status": "received",
+                    "message": "Webhook received successfully",
+                }
 
             # Update request with results
             webhook_request.processing_status = "completed"
             webhook_request.processing_completed_at = datetime.now()
             webhook_request.processing_duration_ms = int(
-                (webhook_request.processing_completed_at - webhook_request.processing_started_at).total_seconds() * 1000
+                (
+                    webhook_request.processing_completed_at
+                    - webhook_request.processing_started_at
+                ).total_seconds()
+                * 1000
             )
             webhook_request.response_status_code = 200
             webhook_request.response_body = json.dumps(result)
@@ -601,18 +690,24 @@ class IntegrationService:
     # Message Queue Management
     # =============================================================================
 
-    async def create_integration_message(self, db: Session, message_data: Dict[str, Any]) -> IntegrationMessage:
+    async def create_integration_message(
+        self, db: Session, message_data: Dict[str, Any]
+    ) -> IntegrationMessage:
         """Create a new integration message for async processing."""
         try:
             # Generate unique message ID if not provided
             if not message_data.get("message_id"):
-                message_data["message_id"] = f"{message_data['message_type']}_{uuid.uuid4().hex[:12]}"
+                message_data["message_id"] = (
+                    f"{message_data['message_type']}_{uuid.uuid4().hex[:12]}"
+                )
 
             message = IntegrationMessage(**message_data)
 
             # Set scheduling
             if message.delay_seconds and message.delay_seconds > 0:
-                message.scheduled_at = datetime.now() + timedelta(seconds=message.delay_seconds)
+                message.scheduled_at = datetime.now() + timedelta(
+                    seconds=message.delay_seconds
+                )
                 message.next_attempt_at = message.scheduled_at
             else:
                 message.scheduled_at = datetime.now()
@@ -620,7 +715,9 @@ class IntegrationService:
 
             # Set expiration
             if not message.expires_at and message_data.get("ttl_seconds"):
-                message.expires_at = datetime.now() + timedelta(seconds=message_data["ttl_seconds"])
+                message.expires_at = datetime.now() + timedelta(
+                    seconds=message_data["ttl_seconds"]
+                )
 
             db.add(message)
             db.commit()
@@ -632,25 +729,33 @@ class IntegrationService:
             db.rollback()
             raise e
 
-    async def process_pending_messages(self, db: Session, organization_id: str, limit: int = 100) -> Dict[str, Any]:
+    async def process_pending_messages(
+        self, db: Session, organization_id: str, limit: int = 100
+    ) -> Dict[str, Any]:
         """Process pending integration messages."""
         # Get pending messages
-        messages = db.query(IntegrationMessage).filter(
-            IntegrationMessage.organization_id == organization_id,
-            IntegrationMessage.status == "pending",
-            IntegrationMessage.next_attempt_at <= datetime.now(),
-            or_(
-                IntegrationMessage.expires_at.is_(None),
-                IntegrationMessage.expires_at > datetime.now()
+        messages = (
+            db.query(IntegrationMessage)
+            .filter(
+                IntegrationMessage.organization_id == organization_id,
+                IntegrationMessage.status == "pending",
+                IntegrationMessage.next_attempt_at <= datetime.now(),
+                or_(
+                    IntegrationMessage.expires_at.is_(None),
+                    IntegrationMessage.expires_at > datetime.now(),
+                ),
             )
-        ).order_by(IntegrationMessage.priority.desc(), IntegrationMessage.created_at).limit(limit).all()
+            .order_by(IntegrationMessage.priority.desc(), IntegrationMessage.created_at)
+            .limit(limit)
+            .all()
+        )
 
         results = {
             "processed": 0,
             "successful": 0,
             "failed": 0,
             "expired": 0,
-            "messages": []
+            "messages": [],
         }
 
         for message in messages:
@@ -680,18 +785,22 @@ class IntegrationService:
                     else:
                         message.status = "pending"
                         message.next_attempt_at = datetime.now() + timedelta(
-                            seconds=min(300, 30 * (2 ** message.attempt_count))  # Exponential backoff
+                            seconds=min(
+                                300, 30 * (2**message.attempt_count)
+                            )  # Exponential backoff
                         )
 
                     message.error_message = result.get("error")
                     results["failed"] += 1
 
                 results["processed"] += 1
-                results["messages"].append({
-                    "message_id": message.message_id,
-                    "status": message.status,
-                    "attempt_count": message.attempt_count
-                })
+                results["messages"].append(
+                    {
+                        "message_id": message.message_id,
+                        "status": message.status,
+                        "attempt_count": message.attempt_count,
+                    }
+                )
 
                 db.commit()
 
@@ -707,7 +816,9 @@ class IntegrationService:
     # Integration Analytics & Monitoring
     # =============================================================================
 
-    async def get_integration_health(self, db: Session, organization_id: str) -> Dict[str, Any]:
+    async def get_integration_health(
+        self, db: Session, organization_id: str
+    ) -> Dict[str, Any]:
         """Get comprehensive integration system health and metrics."""
         # External systems health
         systems_query = db.query(ExternalSystem).filter(
@@ -724,13 +835,15 @@ class IntegrationService:
             IntegrationConnector.organization_id == organization_id
         )
         total_connectors = connectors_query.count()
-        active_connectors = connectors_query.filter(IntegrationConnector.is_active).count()
+        active_connectors = connectors_query.filter(
+            IntegrationConnector.is_active
+        ).count()
 
         # Recent execution stats (last 24 hours)
         since_24h = datetime.now() - timedelta(hours=24)
         recent_executions = db.query(IntegrationExecution).filter(
             IntegrationExecution.organization_id == organization_id,
-            IntegrationExecution.started_at >= since_24h
+            IntegrationExecution.started_at >= since_24h,
         )
 
         total_executions = recent_executions.count()
@@ -742,56 +855,75 @@ class IntegrationService:
         ).count()
 
         # Average response times
-        avg_response_time = db.query(func.avg(ExternalSystem.average_response_time)).filter(
-            ExternalSystem.organization_id == organization_id,
-            ExternalSystem.average_response_time.isnot(None)
-        ).scalar() or 0
+        avg_response_time = (
+            db.query(func.avg(ExternalSystem.average_response_time))
+            .filter(
+                ExternalSystem.organization_id == organization_id,
+                ExternalSystem.average_response_time.isnot(None),
+            )
+            .scalar()
+            or 0
+        )
 
         # Message queue health
-        pending_messages = db.query(IntegrationMessage).filter(
-            IntegrationMessage.organization_id == organization_id,
-            IntegrationMessage.status == "pending"
-        ).count()
+        pending_messages = (
+            db.query(IntegrationMessage)
+            .filter(
+                IntegrationMessage.organization_id == organization_id,
+                IntegrationMessage.status == "pending",
+            )
+            .count()
+        )
 
-        failed_messages = db.query(IntegrationMessage).filter(
-            IntegrationMessage.organization_id == organization_id,
-            IntegrationMessage.status == "failed"
-        ).count()
+        failed_messages = (
+            db.query(IntegrationMessage)
+            .filter(
+                IntegrationMessage.organization_id == organization_id,
+                IntegrationMessage.status == "failed",
+            )
+            .count()
+        )
 
         # Calculate health score
         health_factors = [
             (connected_systems / max(total_systems, 1)) * 0.3,  # Connection health
-            (successful_executions / max(total_executions, 1)) * 0.4,  # Execution success rate
+            (successful_executions / max(total_executions, 1))
+            * 0.4,  # Execution success rate
             min(1.0, (1000 - avg_response_time) / 1000) * 0.2,  # Response time
-            (1 - min(1.0, pending_messages / 100)) * 0.1  # Queue health
+            (1 - min(1.0, pending_messages / 100)) * 0.1,  # Queue health
         ]
         overall_health_score = sum(health_factors) * 100
 
         return {
             "overall_health_score": round(overall_health_score, 2),
-            "status": "healthy" if overall_health_score >= 80 else "degraded" if overall_health_score >= 60 else "unhealthy",
+            "status": "healthy"
+            if overall_health_score >= 80
+            else "degraded"
+            if overall_health_score >= 60
+            else "unhealthy",
             "external_systems": {
                 "total": total_systems,
                 "active": active_systems,
                 "connected": connected_systems,
-                "connection_rate": round((connected_systems / max(total_systems, 1)) * 100, 2)
+                "connection_rate": round(
+                    (connected_systems / max(total_systems, 1)) * 100, 2
+                ),
             },
-            "connectors": {
-                "total": total_connectors,
-                "active": active_connectors
-            },
+            "connectors": {"total": total_connectors, "active": active_connectors},
             "executions_24h": {
                 "total": total_executions,
                 "successful": successful_executions,
                 "failed": failed_executions,
-                "success_rate": round((successful_executions / max(total_executions, 1)) * 100, 2)
+                "success_rate": round(
+                    (successful_executions / max(total_executions, 1)) * 100, 2
+                ),
             },
             "performance": {
                 "average_response_time_ms": float(avg_response_time or 0),
                 "pending_messages": pending_messages,
-                "failed_messages": failed_messages
+                "failed_messages": failed_messages,
             },
-            "checked_at": datetime.now().isoformat()
+            "checked_at": datetime.now().isoformat(),
         }
 
     # =============================================================================
@@ -806,10 +938,12 @@ class IntegrationService:
                 system.base_url,
                 headers=headers,
                 timeout=system.timeout_seconds,
-                allow_redirects=True
+                allow_redirects=True,
             )
 
-            system.connection_status = ConnectionStatus.CONNECTED if response.ok else ConnectionStatus.ERROR
+            system.connection_status = (
+                ConnectionStatus.CONNECTED if response.ok else ConnectionStatus.ERROR
+            )
             system.last_health_check = datetime.now()
             system.total_requests += 1
 
@@ -843,8 +977,9 @@ class IntegrationService:
             headers["Authorization"] = f"Bearer {system.credentials.get('token', '')}"
         elif system.auth_type == "basic":
             import base64
-            username = system.credentials.get('username', '')
-            password = system.credentials.get('password', '')
+
+            username = system.credentials.get("username", "")
+            password = system.credentials.get("password", "")
             credentials = base64.b64encode(f"{username}:{password}".encode()).decode()
             headers["Authorization"] = f"Basic {credentials}"
 
@@ -855,7 +990,7 @@ class IntegrationService:
         db: Session,
         connector: IntegrationConnector,
         execution: IntegrationExecution,
-        config: Dict[str, Any]
+        config: Dict[str, Any],
     ) -> Dict[str, Any]:
         """Execute inbound data synchronization."""
         # Fetch data from external system
@@ -866,11 +1001,13 @@ class IntegrationService:
             connector.endpoint_url,
             headers=headers,
             params=connector.request_parameters,
-            timeout=connector.timeout_seconds
+            timeout=connector.timeout_seconds,
         )
 
         if not response.ok:
-            raise Exception(f"External API error: {response.status_code} - {response.text}")
+            raise Exception(
+                f"External API error: {response.status_code} - {response.text}"
+            )
 
         # Parse response data
         if connector.data_format == DataFormat.JSON:
@@ -884,7 +1021,9 @@ class IntegrationService:
         # Apply transformations if configured
         if connector.transformations:
             for transformation in connector.transformations:
-                transform_result = await self.apply_data_transformation(db, transformation.id, data)
+                transform_result = await self.apply_data_transformation(
+                    db, transformation.id, data
+                )
                 data = transform_result["output_data"]
 
         return {
@@ -892,7 +1031,7 @@ class IntegrationService:
             "records_processed": len(data) if isinstance(data, list) else 1,
             "response_status_code": response.status_code,
             "response_headers": dict(response.headers),
-            "sample_response_data": data[:3] if isinstance(data, list) else data
+            "sample_response_data": data[:3] if isinstance(data, list) else data,
         }
 
     async def _execute_outbound_sync(
@@ -900,7 +1039,7 @@ class IntegrationService:
         db: Session,
         connector: IntegrationConnector,
         execution: IntegrationExecution,
-        config: Dict[str, Any]
+        config: Dict[str, Any],
     ) -> Dict[str, Any]:
         """Execute outbound data synchronization."""
         # Get data to send (implementation depends on entity type)
@@ -915,17 +1054,21 @@ class IntegrationService:
             connector.endpoint_url,
             headers=headers,
             json=data_to_send,
-            timeout=connector.timeout_seconds
+            timeout=connector.timeout_seconds,
         )
 
         if not response.ok:
-            raise Exception(f"External API error: {response.status_code} - {response.text}")
+            raise Exception(
+                f"External API error: {response.status_code} - {response.text}"
+            )
 
         return {
-            "records_requested": len(data_to_send) if isinstance(data_to_send, list) else 1,
+            "records_requested": len(data_to_send)
+            if isinstance(data_to_send, list)
+            else 1,
             "records_sent": len(data_to_send) if isinstance(data_to_send, list) else 1,
             "response_status_code": response.status_code,
-            "response_headers": dict(response.headers)
+            "response_headers": dict(response.headers),
         }
 
     async def _execute_bidirectional_sync(
@@ -933,18 +1076,18 @@ class IntegrationService:
         db: Session,
         connector: IntegrationConnector,
         execution: IntegrationExecution,
-        config: Dict[str, Any]
+        config: Dict[str, Any],
     ) -> Dict[str, Any]:
         """Execute bidirectional data synchronization."""
         # Execute both inbound and outbound
-        inbound_result = await self._execute_inbound_sync(db, connector, execution, config)
-        outbound_result = await self._execute_outbound_sync(db, connector, execution, config)
+        inbound_result = await self._execute_inbound_sync(
+            db, connector, execution, config
+        )
+        outbound_result = await self._execute_outbound_sync(
+            db, connector, execution, config
+        )
 
-        return {
-            **inbound_result,
-            **outbound_result,
-            "sync_direction": "bidirectional"
-        }
+        return {**inbound_result, **outbound_result, "sync_direction": "bidirectional"}
 
     async def _log_audit_action(
         self,
@@ -955,7 +1098,7 @@ class IntegrationService:
         entity_id: str,
         old_values: Optional[Dict],
         new_values: Dict,
-        user_id: Optional[str] = None
+        user_id: Optional[str] = None,
     ):
         """Log integration audit action."""
         audit_log = IntegrationAuditLog(
@@ -966,7 +1109,7 @@ class IntegrationService:
             user_id=user_id,
             old_values=old_values,
             new_values=new_values,
-            changes_summary=f"{action.title()} {entity_type}"
+            changes_summary=f"{action.title()} {entity_type}",
         )
 
         db.add(audit_log)
@@ -975,13 +1118,14 @@ class IntegrationService:
     def _generate_webhook_secret(self) -> str:
         """Generate secure webhook secret."""
         import secrets
+
         return secrets.token_urlsafe(32)
 
     async def _validate_webhook_security(
         self,
         webhook: WebhookEndpoint,
         request: WebhookRequest,
-        request_data: Dict[str, Any]
+        request_data: Dict[str, Any],
     ) -> Dict[str, Any]:
         """Validate webhook request security."""
         # Check IP allowlist
@@ -997,7 +1141,7 @@ class IntegrationService:
             expected_signature = hmac.new(
                 webhook.webhook_secret.encode(),
                 request.body.encode() if request.body else b"",
-                hashlib.sha256
+                hashlib.sha256,
             ).hexdigest()
 
             if not hmac.compare_digest(signature, f"sha256={expected_signature}"):
@@ -1005,7 +1149,9 @@ class IntegrationService:
 
         return {"valid": True}
 
-    async def _process_message_by_type(self, db: Session, message: IntegrationMessage) -> Dict[str, Any]:
+    async def _process_message_by_type(
+        self, db: Session, message: IntegrationMessage
+    ) -> Dict[str, Any]:
         """Process integration message based on its type."""
         try:
             if message.message_type == "data_sync":
@@ -1015,21 +1161,30 @@ class IntegrationService:
             elif message.message_type == "notification":
                 return await self._process_notification_message(db, message)
             else:
-                return {"success": False, "error": f"Unknown message type: {message.message_type}"}
+                return {
+                    "success": False,
+                    "error": f"Unknown message type: {message.message_type}",
+                }
         except Exception as e:
             return {"success": False, "error": str(e)}
 
-    async def _process_sync_message(self, db: Session, message: IntegrationMessage) -> Dict[str, Any]:
+    async def _process_sync_message(
+        self, db: Session, message: IntegrationMessage
+    ) -> Dict[str, Any]:
         """Process data synchronization message."""
         # Implementation for sync message processing
         return {"success": True, "data": {"processed": True}}
 
-    async def _process_webhook_message(self, db: Session, message: IntegrationMessage) -> Dict[str, Any]:
+    async def _process_webhook_message(
+        self, db: Session, message: IntegrationMessage
+    ) -> Dict[str, Any]:
         """Process webhook delivery message."""
         # Implementation for webhook message processing
         return {"success": True, "data": {"delivered": True}}
 
-    async def _process_notification_message(self, db: Session, message: IntegrationMessage) -> Dict[str, Any]:
+    async def _process_notification_message(
+        self, db: Session, message: IntegrationMessage
+    ) -> Dict[str, Any]:
         """Process notification message."""
         # Implementation for notification message processing
         return {"success": True, "data": {"sent": True}}

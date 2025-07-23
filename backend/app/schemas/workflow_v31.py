@@ -33,6 +33,7 @@ from app.models.workflow_extended import (
 # Base Schemas
 # =============================================================================
 
+
 class BaseWorkflowSchema(BaseModel):
     """Base schema for workflow-related models."""
 
@@ -45,6 +46,7 @@ class BaseWorkflowSchema(BaseModel):
 # Workflow Definition Schemas
 # =============================================================================
 
+
 class WorkflowDefinitionCreateRequest(BaseWorkflowSchema):
     """Schema for creating a new workflow definition."""
 
@@ -53,13 +55,23 @@ class WorkflowDefinitionCreateRequest(BaseWorkflowSchema):
     code: str = Field(..., min_length=1, max_length=100, description="Workflow code")
     description: Optional[str] = Field(None, description="Workflow description")
     workflow_type: WorkflowType = Field(..., description="Workflow type")
-    category: Optional[str] = Field(None, max_length=100, description="Workflow category")
+    category: Optional[str] = Field(
+        None, max_length=100, description="Workflow category"
+    )
 
     # Configuration
-    definition_schema: Dict[str, Any] = Field(..., description="JSON workflow definition")
-    steps_config: List[Dict[str, Any]] = Field(default_factory=list, description="Steps configuration")
-    decision_rules: Dict[str, Any] = Field(default_factory=dict, description="Decision rules")
-    approval_matrix: Dict[str, Any] = Field(default_factory=dict, description="Approval matrix")
+    definition_schema: Dict[str, Any] = Field(
+        ..., description="JSON workflow definition"
+    )
+    steps_config: List[Dict[str, Any]] = Field(
+        default_factory=list, description="Steps configuration"
+    )
+    decision_rules: Dict[str, Any] = Field(
+        default_factory=dict, description="Decision rules"
+    )
+    approval_matrix: Dict[str, Any] = Field(
+        default_factory=dict, description="Approval matrix"
+    )
 
     # Execution settings
     auto_start: bool = Field(False, description="Auto-start workflow")
@@ -70,61 +82,91 @@ class WorkflowDefinitionCreateRequest(BaseWorkflowSchema):
 
     # Triggers
     trigger_types: List[str] = Field(default_factory=list, description="Trigger types")
-    trigger_conditions: Dict[str, Any] = Field(default_factory=dict, description="Trigger conditions")
-    trigger_schedule: Optional[str] = Field(None, max_length=100, description="Cron schedule")
+    trigger_conditions: Dict[str, Any] = Field(
+        default_factory=dict, description="Trigger conditions"
+    )
+    trigger_schedule: Optional[str] = Field(
+        None, max_length=100, description="Cron schedule"
+    )
 
     # Assignment rules
     default_assignee_type: str = Field("user", description="Default assignee type")
     default_assignee_id: Optional[str] = Field(None, description="Default assignee ID")
-    assignment_rules: Dict[str, Any] = Field(default_factory=dict, description="Assignment rules")
-    escalation_rules: List[Dict[str, Any]] = Field(default_factory=list, description="Escalation rules")
+    assignment_rules: Dict[str, Any] = Field(
+        default_factory=dict, description="Assignment rules"
+    )
+    escalation_rules: List[Dict[str, Any]] = Field(
+        default_factory=list, description="Escalation rules"
+    )
 
     # Notifications
-    notification_settings: Dict[str, Any] = Field(default_factory=dict, description="Notification settings")
-    email_templates: Dict[str, Any] = Field(default_factory=dict, description="Email templates")
-    reminder_settings: Dict[str, Any] = Field(default_factory=dict, description="Reminder settings")
+    notification_settings: Dict[str, Any] = Field(
+        default_factory=dict, description="Notification settings"
+    )
+    email_templates: Dict[str, Any] = Field(
+        default_factory=dict, description="Email templates"
+    )
+    reminder_settings: Dict[str, Any] = Field(
+        default_factory=dict, description="Reminder settings"
+    )
 
     # SLA and performance
     sla_minutes: Optional[int] = Field(None, ge=1, description="SLA in minutes")
-    warning_threshold_percent: Decimal = Field(Decimal("80.0"), ge=0, le=100, description="Warning threshold %")
-    escalation_threshold_percent: Decimal = Field(Decimal("100.0"), ge=0, le=200, description="Escalation threshold %")
+    warning_threshold_percent: Decimal = Field(
+        Decimal("80.0"), ge=0, le=100, description="Warning threshold %"
+    )
+    escalation_threshold_percent: Decimal = Field(
+        Decimal("100.0"), ge=0, le=200, description="Escalation threshold %"
+    )
 
     # Access control
     is_public: bool = Field(False, description="Public workflow")
     allowed_roles: List[str] = Field(default_factory=list, description="Allowed roles")
     allowed_users: List[str] = Field(default_factory=list, description="Allowed users")
-    allowed_departments: List[str] = Field(default_factory=list, description="Allowed departments")
+    allowed_departments: List[str] = Field(
+        default_factory=list, description="Allowed departments"
+    )
 
     # Metadata
     tags: List[str] = Field(default_factory=list, description="Tags")
-    custom_fields: Dict[str, Any] = Field(default_factory=dict, description="Custom fields")
-    workflow_metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
+    custom_fields: Dict[str, Any] = Field(
+        default_factory=dict, description="Custom fields"
+    )
+    workflow_metadata: Dict[str, Any] = Field(
+        default_factory=dict, description="Additional metadata"
+    )
     created_by: str = Field(..., description="Creator user ID")
 
-    @validator('definition_schema')
+    @validator("definition_schema")
     def validate_definition_schema(cls, v):
         """Validate workflow definition schema."""
         if not isinstance(v, dict):
-            raise ValueError('Definition schema must be a dictionary')
-        if 'steps' not in v or not isinstance(v['steps'], list):
-            raise ValueError('Definition schema must contain steps array')
-        if len(v['steps']) == 0:
-            raise ValueError('Definition schema must contain at least one step')
+            raise ValueError("Definition schema must be a dictionary")
+        if "steps" not in v or not isinstance(v["steps"], list):
+            raise ValueError("Definition schema must contain steps array")
+        if len(v["steps"]) == 0:
+            raise ValueError("Definition schema must contain at least one step")
         return v
 
 
 class WorkflowDefinitionUpdateRequest(BaseWorkflowSchema):
     """Schema for updating a workflow definition."""
 
-    name: Optional[str] = Field(None, min_length=1, max_length=200, description="Workflow name")
+    name: Optional[str] = Field(
+        None, min_length=1, max_length=200, description="Workflow name"
+    )
     description: Optional[str] = Field(None, description="Workflow description")
-    definition_schema: Optional[Dict[str, Any]] = Field(None, description="JSON workflow definition")
+    definition_schema: Optional[Dict[str, Any]] = Field(
+        None, description="JSON workflow definition"
+    )
     status: Optional[WorkflowStatus] = Field(None, description="Workflow status")
     sla_minutes: Optional[int] = Field(None, ge=1, description="SLA in minutes")
     auto_start: Optional[bool] = Field(None, description="Auto-start workflow")
     is_public: Optional[bool] = Field(None, description="Public workflow")
     tags: Optional[List[str]] = Field(None, description="Tags")
-    workflow_metadata: Optional[Dict[str, Any]] = Field(None, description="Additional metadata")
+    workflow_metadata: Optional[Dict[str, Any]] = Field(
+        None, description="Additional metadata"
+    )
 
 
 class WorkflowDefinitionResponse(BaseWorkflowSchema):
@@ -139,7 +181,9 @@ class WorkflowDefinitionResponse(BaseWorkflowSchema):
     category: Optional[str] = Field(None, description="Workflow category")
 
     # Configuration
-    definition_schema: Dict[str, Any] = Field(..., description="JSON workflow definition")
+    definition_schema: Dict[str, Any] = Field(
+        ..., description="JSON workflow definition"
+    )
     auto_start: bool = Field(..., description="Auto-start workflow")
     parallel_execution: bool = Field(..., description="Allow parallel execution")
     max_parallel_tasks: int = Field(..., description="Max parallel tasks")
@@ -152,7 +196,9 @@ class WorkflowDefinitionResponse(BaseWorkflowSchema):
     status: WorkflowStatus = Field(..., description="Workflow status")
     usage_count: int = Field(..., description="Usage count")
     success_rate: Optional[Decimal] = Field(None, description="Success rate %")
-    average_completion_time: Optional[Decimal] = Field(None, description="Average completion time")
+    average_completion_time: Optional[Decimal] = Field(
+        None, description="Average completion time"
+    )
 
     # Versioning
     version: str = Field(..., description="Version")
@@ -173,7 +219,9 @@ class WorkflowDefinitionResponse(BaseWorkflowSchema):
 class WorkflowDefinitionListResponse(BaseWorkflowSchema):
     """Schema for workflow definition list response."""
 
-    definitions: List[WorkflowDefinitionResponse] = Field(..., description="Workflow definitions")
+    definitions: List[WorkflowDefinitionResponse] = Field(
+        ..., description="Workflow definitions"
+    )
     total_count: int = Field(..., description="Total count")
     page: int = Field(1, description="Current page")
     per_page: int = Field(50, description="Items per page")
@@ -183,6 +231,7 @@ class WorkflowDefinitionListResponse(BaseWorkflowSchema):
 # =============================================================================
 # Workflow Step Schemas
 # =============================================================================
+
 
 class WorkflowStepResponse(BaseWorkflowSchema):
     """Schema for workflow step response."""
@@ -208,7 +257,9 @@ class WorkflowStepResponse(BaseWorkflowSchema):
     allow_delegate: bool = Field(..., description="Allow delegation")
 
     # Timing
-    estimated_duration_minutes: Optional[int] = Field(None, description="Estimated duration")
+    estimated_duration_minutes: Optional[int] = Field(
+        None, description="Estimated duration"
+    )
 
     # Status
     is_active: bool = Field(..., description="Active status")
@@ -217,6 +268,7 @@ class WorkflowStepResponse(BaseWorkflowSchema):
 # =============================================================================
 # Workflow Instance Schemas
 # =============================================================================
+
 
 class WorkflowInstanceStartRequest(BaseWorkflowSchema):
     """Schema for starting a workflow instance."""
@@ -228,21 +280,29 @@ class WorkflowInstanceStartRequest(BaseWorkflowSchema):
     # Context
     entity_type: Optional[str] = Field(None, max_length=100, description="Entity type")
     entity_id: Optional[str] = Field(None, max_length=200, description="Entity ID")
-    context_data: Dict[str, Any] = Field(default_factory=dict, description="Context data")
+    context_data: Dict[str, Any] = Field(
+        default_factory=dict, description="Context data"
+    )
     form_data: Dict[str, Any] = Field(default_factory=dict, description="Form data")
 
     # Priority
     priority: TaskPriority = Field(TaskPriority.NORMAL, description="Priority level")
     urgency_level: int = Field(3, ge=1, le=5, description="Urgency level")
-    business_impact: Optional[str] = Field(None, max_length=100, description="Business impact")
+    business_impact: Optional[str] = Field(
+        None, max_length=100, description="Business impact"
+    )
 
     # Settings
     due_date: Optional[datetime] = Field(None, description="Due date")
-    notification_settings: Dict[str, Any] = Field(default_factory=dict, description="Notification settings")
+    notification_settings: Dict[str, Any] = Field(
+        default_factory=dict, description="Notification settings"
+    )
 
     # Metadata
     tags: List[str] = Field(default_factory=list, description="Tags")
-    custom_fields: Dict[str, Any] = Field(default_factory=dict, description="Custom fields")
+    custom_fields: Dict[str, Any] = Field(
+        default_factory=dict, description="Custom fields"
+    )
     initiated_by: str = Field(..., description="Initiator user ID")
 
 
@@ -307,7 +367,9 @@ class WorkflowInstanceResponse(BaseWorkflowSchema):
 class WorkflowInstanceListResponse(BaseWorkflowSchema):
     """Schema for workflow instance list response."""
 
-    instances: List[WorkflowInstanceResponse] = Field(..., description="Workflow instances")
+    instances: List[WorkflowInstanceResponse] = Field(
+        ..., description="Workflow instances"
+    )
     total_count: int = Field(..., description="Total count")
     page: int = Field(1, description="Current page")
     per_page: int = Field(50, description="Items per page")
@@ -317,6 +379,7 @@ class WorkflowInstanceListResponse(BaseWorkflowSchema):
 # =============================================================================
 # Workflow Task Schemas
 # =============================================================================
+
 
 class WorkflowTaskResponse(BaseWorkflowSchema):
     """Schema for workflow task response."""
@@ -341,7 +404,9 @@ class WorkflowTaskResponse(BaseWorkflowSchema):
 
     # Timing
     due_date: Optional[datetime] = Field(None, description="Due date")
-    estimated_duration_minutes: Optional[int] = Field(None, description="Estimated duration")
+    estimated_duration_minutes: Optional[int] = Field(
+        None, description="Estimated duration"
+    )
     actual_duration_minutes: Optional[int] = Field(None, description="Actual duration")
     started_at: Optional[datetime] = Field(None, description="Start timestamp")
     completed_at: Optional[datetime] = Field(None, description="Completion timestamp")
@@ -355,7 +420,9 @@ class WorkflowTaskResponse(BaseWorkflowSchema):
     completion_notes: Optional[str] = Field(None, description="Completion notes")
 
     # Delegation and escalation
-    original_assignee_id: Optional[str] = Field(None, description="Original assignee ID")
+    original_assignee_id: Optional[str] = Field(
+        None, description="Original assignee ID"
+    )
     delegated_from: Optional[str] = Field(None, description="Delegated from user ID")
     delegated_to: Optional[str] = Field(None, description="Delegated to user ID")
     escalated_to: Optional[str] = Field(None, description="Escalated to user ID")
@@ -394,7 +461,9 @@ class TaskAssignmentRequest(BaseWorkflowSchema):
 
     assignee_id: str = Field(..., description="New assignee user ID")
     assigned_by: str = Field(..., description="User making assignment")
-    assignment_reason: Optional[str] = Field(None, max_length=500, description="Assignment reason")
+    assignment_reason: Optional[str] = Field(
+        None, max_length=500, description="Assignment reason"
+    )
     notify_assignee: bool = Field(True, description="Send notification to assignee")
 
 
@@ -403,16 +472,22 @@ class TaskDelegationRequest(BaseWorkflowSchema):
 
     delegate_to: str = Field(..., description="User to delegate to")
     delegated_by: str = Field(..., description="User delegating task")
-    delegation_reason: Optional[str] = Field(None, max_length=500, description="Delegation reason")
+    delegation_reason: Optional[str] = Field(
+        None, max_length=500, description="Delegation reason"
+    )
     temporary: bool = Field(False, description="Temporary delegation")
-    return_date: Optional[datetime] = Field(None, description="Return date for temporary delegation")
+    return_date: Optional[datetime] = Field(
+        None, description="Return date for temporary delegation"
+    )
 
 
 class TaskEscalationRequest(BaseWorkflowSchema):
     """Schema for task escalation requests."""
 
     escalate_to: str = Field(..., description="User to escalate to")
-    escalation_reason: str = Field(..., min_length=1, max_length=500, description="Escalation reason")
+    escalation_reason: str = Field(
+        ..., min_length=1, max_length=500, description="Escalation reason"
+    )
     escalation_type: str = Field("manual", description="Escalation type")
     priority_increase: bool = Field(True, description="Increase task priority")
 
@@ -420,6 +495,7 @@ class TaskEscalationRequest(BaseWorkflowSchema):
 # =============================================================================
 # Comments and Attachments Schemas
 # =============================================================================
+
 
 class WorkflowCommentCreateRequest(BaseWorkflowSchema):
     """Schema for creating workflow comments."""
@@ -429,7 +505,9 @@ class WorkflowCommentCreateRequest(BaseWorkflowSchema):
     comment_type: str = Field("general", description="Comment type")
     is_internal: bool = Field(False, description="Internal comment")
     parent_comment_id: Optional[str] = Field(None, description="Parent comment ID")
-    mentioned_users: List[str] = Field(default_factory=list, description="Mentioned users")
+    mentioned_users: List[str] = Field(
+        default_factory=list, description="Mentioned users"
+    )
     author_id: str = Field(..., description="Author user ID")
 
 
@@ -468,7 +546,9 @@ class WorkflowAttachmentCreateRequest(BaseWorkflowSchema):
 
     organization_id: str = Field(..., description="Organization ID")
     filename: str = Field(..., min_length=1, max_length=500, description="Filename")
-    original_filename: Optional[str] = Field(None, max_length=500, description="Original filename")
+    original_filename: Optional[str] = Field(
+        None, max_length=500, description="Original filename"
+    )
     file_path: str = Field(..., max_length=1000, description="File path")
     file_size: int = Field(..., ge=0, description="File size in bytes")
     file_type: Optional[str] = Field(None, max_length=100, description="File type")
@@ -480,7 +560,9 @@ class WorkflowAttachmentCreateRequest(BaseWorkflowSchema):
 
     # Storage
     storage_provider: str = Field("local", description="Storage provider")
-    storage_path: Optional[str] = Field(None, max_length=1000, description="Storage path")
+    storage_path: Optional[str] = Field(
+        None, max_length=1000, description="Storage path"
+    )
 
     # Security
     access_level: str = Field("task_participants", description="Access level")
@@ -528,6 +610,7 @@ class WorkflowAttachmentResponse(BaseWorkflowSchema):
 # Analytics Schemas
 # =============================================================================
 
+
 class WorkflowAnalyticsRequest(BaseWorkflowSchema):
     """Schema for workflow analytics request."""
 
@@ -561,15 +644,27 @@ class WorkflowAnalyticsResponse(BaseWorkflowSchema):
     active_instances: int = Field(..., description="Active instances")
 
     # Performance metrics
-    average_completion_time_hours: Optional[Decimal] = Field(None, description="Average completion time")
-    median_completion_time_hours: Optional[Decimal] = Field(None, description="Median completion time")
-    min_completion_time_hours: Optional[Decimal] = Field(None, description="Minimum completion time")
-    max_completion_time_hours: Optional[Decimal] = Field(None, description="Maximum completion time")
+    average_completion_time_hours: Optional[Decimal] = Field(
+        None, description="Average completion time"
+    )
+    median_completion_time_hours: Optional[Decimal] = Field(
+        None, description="Median completion time"
+    )
+    min_completion_time_hours: Optional[Decimal] = Field(
+        None, description="Minimum completion time"
+    )
+    max_completion_time_hours: Optional[Decimal] = Field(
+        None, description="Maximum completion time"
+    )
 
     # SLA metrics
-    sla_compliance_rate: Optional[Decimal] = Field(None, description="SLA compliance rate %")
+    sla_compliance_rate: Optional[Decimal] = Field(
+        None, description="SLA compliance rate %"
+    )
     sla_breaches: int = Field(..., description="SLA breaches")
-    average_sla_deviation_hours: Optional[Decimal] = Field(None, description="Average SLA deviation")
+    average_sla_deviation_hours: Optional[Decimal] = Field(
+        None, description="Average SLA deviation"
+    )
 
     # Task metrics
     total_tasks: int = Field(..., description="Total tasks")
@@ -584,7 +679,9 @@ class WorkflowAnalyticsResponse(BaseWorkflowSchema):
 
     # Bottlenecks
     bottleneck_steps: List[Dict[str, Any]] = Field(..., description="Bottleneck steps")
-    common_failure_points: List[Dict[str, Any]] = Field(..., description="Common failure points")
+    common_failure_points: List[Dict[str, Any]] = Field(
+        ..., description="Common failure points"
+    )
 
     # Trends
     volume_trend: Optional[str] = Field(None, description="Volume trend")
@@ -600,8 +697,12 @@ class WorkflowDashboardResponse(BaseWorkflowSchema):
 
     active_instances: int = Field(..., description="Active instances")
     overdue_tasks: int = Field(..., description="Overdue tasks")
-    completed_instances_period: int = Field(..., description="Completed instances in period")
-    average_completion_time_hours: float = Field(..., description="Average completion time")
+    completed_instances_period: int = Field(
+        ..., description="Completed instances in period"
+    )
+    average_completion_time_hours: float = Field(
+        ..., description="Average completion time"
+    )
 
     top_bottlenecks: List[Dict[str, Any]] = Field(..., description="Top bottlenecks")
 
@@ -612,6 +713,7 @@ class WorkflowDashboardResponse(BaseWorkflowSchema):
 # =============================================================================
 # Template Schemas
 # =============================================================================
+
 
 class WorkflowTemplateResponse(BaseWorkflowSchema):
     """Schema for workflow template response."""
@@ -650,6 +752,7 @@ class WorkflowTemplateResponse(BaseWorkflowSchema):
 # Activity and Audit Schemas
 # =============================================================================
 
+
 class WorkflowActivityResponse(BaseWorkflowSchema):
     """Schema for workflow activity response."""
 
@@ -682,6 +785,7 @@ class WorkflowActivityResponse(BaseWorkflowSchema):
 # List Response Schemas
 # =============================================================================
 
+
 class WorkflowTaskListResponse(BaseWorkflowSchema):
     """Schema for workflow task list response."""
 
@@ -695,7 +799,9 @@ class WorkflowTaskListResponse(BaseWorkflowSchema):
 class WorkflowCommentListResponse(BaseWorkflowSchema):
     """Schema for workflow comment list response."""
 
-    comments: List[WorkflowCommentResponse] = Field(..., description="Workflow comments")
+    comments: List[WorkflowCommentResponse] = Field(
+        ..., description="Workflow comments"
+    )
     total_count: int = Field(..., description="Total count")
     page: int = Field(1, description="Current page")
     per_page: int = Field(50, description="Items per page")
@@ -705,7 +811,9 @@ class WorkflowCommentListResponse(BaseWorkflowSchema):
 class WorkflowAttachmentListResponse(BaseWorkflowSchema):
     """Schema for workflow attachment list response."""
 
-    attachments: List[WorkflowAttachmentResponse] = Field(..., description="Workflow attachments")
+    attachments: List[WorkflowAttachmentResponse] = Field(
+        ..., description="Workflow attachments"
+    )
     total_count: int = Field(..., description="Total count")
     page: int = Field(1, description="Current page")
     per_page: int = Field(50, description="Items per page")
@@ -715,7 +823,9 @@ class WorkflowAttachmentListResponse(BaseWorkflowSchema):
 class WorkflowActivityListResponse(BaseWorkflowSchema):
     """Schema for workflow activity list response."""
 
-    activities: List[WorkflowActivityResponse] = Field(..., description="Workflow activities")
+    activities: List[WorkflowActivityResponse] = Field(
+        ..., description="Workflow activities"
+    )
     total_count: int = Field(..., description="Total count")
     page: int = Field(1, description="Current page")
     per_page: int = Field(50, description="Items per page")
@@ -725,7 +835,9 @@ class WorkflowActivityListResponse(BaseWorkflowSchema):
 class WorkflowTemplateListResponse(BaseWorkflowSchema):
     """Schema for workflow template list response."""
 
-    templates: List[WorkflowTemplateResponse] = Field(..., description="Workflow templates")
+    templates: List[WorkflowTemplateResponse] = Field(
+        ..., description="Workflow templates"
+    )
     total_count: int = Field(..., description="Total count")
     page: int = Field(1, description="Current page")
     per_page: int = Field(50, description="Items per page")

@@ -61,4 +61,6 @@ async def test_sustained_load():
     success_rate = successful_requests / total_requests if total_requests > 0 else 0
 
     assert success_rate >= 0.90  # 90% success rate under sustained load
-    assert total_requests >= duration_seconds * requests_per_second * 0.8  # At least 80% of expected requests
+    assert (
+        total_requests >= duration_seconds * requests_per_second * 0.8
+    )  # At least 80% of expected requests

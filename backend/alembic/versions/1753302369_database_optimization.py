@@ -13,11 +13,12 @@ def upgrade():
     """Add performance optimization indexes."""
     print(f"🔧 Adding performance indexes at {datetime.utcnow()}")
 
-
     # Frequently filtered by user and time range
     # Estimated improvement: 60-80% faster filtered queries
     try:
-        op.execute("""CREATE INDEX idx_audit_logs_user_time ON audit_logs(user_id, created_at);""")
+        op.execute(
+            """CREATE INDEX idx_audit_logs_user_time ON audit_logs(user_id, created_at);"""
+        )
         print("✅ Added index: audit_logs.user_id,created_at")
     except Exception as e:
         print(f"⚠️ Index creation failed (may already exist): {e}")
@@ -25,7 +26,9 @@ def upgrade():
     # Common query pattern for user activity reports
     # Estimated improvement: 60-80% faster filtered queries
     try:
-        op.execute("""CREATE INDEX idx_user_activity_user_time ON user_activity_logs(user_id, timestamp);""")
+        op.execute(
+            """CREATE INDEX idx_user_activity_user_time ON user_activity_logs(user_id, timestamp);"""
+        )
         print("✅ Added index: user_activity_logs.user_id,timestamp")
     except Exception as e:
         print(f"⚠️ Index creation failed (may already exist): {e}")
@@ -41,7 +44,9 @@ def upgrade():
     # Financial reports often group by category and time
     # Estimated improvement: 60-80% faster filtered queries
     try:
-        op.execute("""CREATE INDEX idx_expenses_category_time ON expenses(category_id, created_at);""")
+        op.execute(
+            """CREATE INDEX idx_expenses_category_time ON expenses(category_id, created_at);"""
+        )
         print("✅ Added index: expenses.category_id,created_at")
     except Exception as e:
         print(f"⚠️ Index creation failed (may already exist): {e}")
@@ -57,7 +62,9 @@ def upgrade():
     # Active organization queries with temporal filtering
     # Estimated improvement: 60-80% faster filtered queries
     try:
-        op.execute("""CREATE INDEX idx_organizations_active_time ON organizations(is_active, created_at);""")
+        op.execute(
+            """CREATE INDEX idx_organizations_active_time ON organizations(is_active, created_at);"""
+        )
         print("✅ Added index: organizations.is_active,created_at")
     except Exception as e:
         print(f"⚠️ Index creation failed (may already exist): {e}")
@@ -66,7 +73,6 @@ def upgrade():
 def downgrade():
     """Remove optimization indexes."""
     print(f"🔧 Removing performance indexes at {datetime.utcnow()}")
-
 
     # Remove Frequently filtered by user and time range
     try:

@@ -76,10 +76,12 @@ crm_service = CRMService()
 # 1. Customer Management Endpoints
 # =============================================================================
 
-@router.post("/customers", response_model=CustomerResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/customers", response_model=CustomerResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_customer(
-    customer: CustomerCreate,
-    db: Session = Depends(get_db)
+    customer: CustomerCreate, db: Session = Depends(get_db)
 ) -> CustomerResponse:
     """
     Create a new customer in the CRM system.
@@ -102,7 +104,7 @@ async def create_customer(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to create customer: {str(e)}"
+            detail=f"Failed to create customer: {str(e)}",
         )
 
 
@@ -117,7 +119,7 @@ async def list_customers(
     is_prospect: Optional[bool] = Query(None),
     search_text: Optional[str] = Query(None),
     skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000)
+    limit: int = Query(100, ge=1, le=1000),
 ) -> List[CustomerResponse]:
     """
     List customers with advanced filtering and search capabilities.
@@ -136,7 +138,7 @@ async def list_customers(
         industry=industry,
         is_active=is_active,
         is_prospect=is_prospect,
-        search_text=search_text
+        search_text=search_text,
     )
 
     customers = await crm_service.get_customers(db, filter_request, skip, limit)
@@ -145,24 +147,20 @@ async def list_customers(
 
 @router.get("/customers/{customer_id}", response_model=CustomerResponse)
 async def get_customer(
-    customer_id: str,
-    db: Session = Depends(get_db)
+    customer_id: str, db: Session = Depends(get_db)
 ) -> CustomerResponse:
     """Get customer details by ID with comprehensive profile information."""
     customer = await crm_service.get_customer_by_id(db, customer_id)
     if not customer:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Customer not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Customer not found"
         )
     return customer
 
 
 @router.put("/customers/{customer_id}", response_model=CustomerResponse)
 async def update_customer(
-    customer_id: str,
-    customer_update: CustomerUpdate,
-    db: Session = Depends(get_db)
+    customer_id: str, customer_update: CustomerUpdate, db: Session = Depends(get_db)
 ) -> CustomerResponse:
     """
     Update customer information with comprehensive profile management.
@@ -173,19 +171,19 @@ async def update_customer(
     - Automatic health score recalculation
     - Audit trail maintenance
     """
-    updated_customer = await crm_service.update_customer(db, customer_id, customer_update)
+    updated_customer = await crm_service.update_customer(
+        db, customer_id, customer_update
+    )
     if not updated_customer:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Customer not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Customer not found"
         )
     return updated_customer
 
 
 @router.get("/customers/{customer_id}/health-score", response_model=CustomerHealthScore)
 async def get_customer_health_score(
-    customer_id: str,
-    db: Session = Depends(get_db)
+    customer_id: str, db: Session = Depends(get_db)
 ) -> CustomerHealthScore:
     """
     Calculate and return comprehensive customer health score.
@@ -201,7 +199,7 @@ async def get_customer_health_score(
     if not health_score:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Customer not found or health score cannot be calculated"
+            detail="Customer not found or health score cannot be calculated",
         )
     return health_score
 
@@ -210,10 +208,12 @@ async def get_customer_health_score(
 # 2. Contact Management Endpoints
 # =============================================================================
 
-@router.post("/contacts", response_model=ContactResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/contacts", response_model=ContactResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_contact(
-    contact: ContactCreate,
-    db: Session = Depends(get_db)
+    contact: ContactCreate, db: Session = Depends(get_db)
 ) -> ContactResponse:
     """
     Create a new contact for a customer.
@@ -232,7 +232,7 @@ async def create_contact(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to create contact: {str(e)}"
+            detail=f"Failed to create contact: {str(e)}",
         )
 
 
@@ -245,43 +245,44 @@ async def list_contacts(
     is_decision_maker: Optional[bool] = Query(None),
     is_active: Optional[bool] = Query(True),
     skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000)
+    limit: int = Query(100, ge=1, le=1000),
 ) -> List[ContactResponse]:
     """List contacts with filtering by customer, type, and decision-making authority."""
     contacts = await crm_service.get_contacts(
-        db, customer_id, organization_id, contact_type,
-        is_decision_maker, is_active, skip, limit
+        db,
+        customer_id,
+        organization_id,
+        contact_type,
+        is_decision_maker,
+        is_active,
+        skip,
+        limit,
     )
     return contacts
 
 
 @router.get("/contacts/{contact_id}", response_model=ContactResponse)
 async def get_contact(
-    contact_id: str,
-    db: Session = Depends(get_db)
+    contact_id: str, db: Session = Depends(get_db)
 ) -> ContactResponse:
     """Get contact details by ID with full profile information."""
     contact = await crm_service.get_contact_by_id(db, contact_id)
     if not contact:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Contact not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Contact not found"
         )
     return contact
 
 
 @router.put("/contacts/{contact_id}", response_model=ContactResponse)
 async def update_contact(
-    contact_id: str,
-    contact_update: ContactUpdate,
-    db: Session = Depends(get_db)
+    contact_id: str, contact_update: ContactUpdate, db: Session = Depends(get_db)
 ) -> ContactResponse:
     """Update contact information with relationship tracking."""
     updated_contact = await crm_service.update_contact(db, contact_id, contact_update)
     if not updated_contact:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Contact not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Contact not found"
         )
     return updated_contact
 
@@ -290,11 +291,9 @@ async def update_contact(
 # 3. Lead Management Endpoints
 # =============================================================================
 
+
 @router.post("/leads", response_model=LeadResponse, status_code=status.HTTP_201_CREATED)
-async def create_lead(
-    lead: LeadCreate,
-    db: Session = Depends(get_db)
-) -> LeadResponse:
+async def create_lead(lead: LeadCreate, db: Session = Depends(get_db)) -> LeadResponse:
     """
     Create a new lead in the CRM system.
 
@@ -316,7 +315,7 @@ async def create_lead(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to create lead: {str(e)}"
+            detail=f"Failed to create lead: {str(e)}",
         )
 
 
@@ -332,7 +331,7 @@ async def list_leads(
     campaign_id: Optional[str] = Query(None),
     search_text: Optional[str] = Query(None),
     skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000)
+    limit: int = Query(100, ge=1, le=1000),
 ) -> List[LeadResponse]:
     """
     List leads with comprehensive filtering and search capabilities.
@@ -352,7 +351,7 @@ async def list_leads(
         is_qualified=is_qualified,
         min_lead_score=min_lead_score,
         campaign_id=campaign_id,
-        search_text=search_text
+        search_text=search_text,
     )
 
     leads = await crm_service.get_leads(db, filter_request, skip, limit)
@@ -360,25 +359,19 @@ async def list_leads(
 
 
 @router.get("/leads/{lead_id}", response_model=LeadResponse)
-async def get_lead(
-    lead_id: str,
-    db: Session = Depends(get_db)
-) -> LeadResponse:
+async def get_lead(lead_id: str, db: Session = Depends(get_db)) -> LeadResponse:
     """Get lead details by ID with scoring and qualification information."""
     lead = await crm_service.get_lead_by_id(db, lead_id)
     if not lead:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Lead not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Lead not found"
         )
     return lead
 
 
 @router.put("/leads/{lead_id}", response_model=LeadResponse)
 async def update_lead(
-    lead_id: str,
-    lead_update: LeadUpdate,
-    db: Session = Depends(get_db)
+    lead_id: str, lead_update: LeadUpdate, db: Session = Depends(get_db)
 ) -> LeadResponse:
     """
     Update lead information with automatic scoring recalculation.
@@ -392,17 +385,14 @@ async def update_lead(
     updated_lead = await crm_service.update_lead(db, lead_id, lead_update)
     if not updated_lead:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Lead not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Lead not found"
         )
     return updated_lead
 
 
 @router.post("/leads/{lead_id}/convert", response_model=LeadConversionAnalysis)
 async def convert_lead(
-    lead_id: str,
-    conversion_request: ConvertLeadRequest,
-    db: Session = Depends(get_db)
+    lead_id: str, conversion_request: ConvertLeadRequest, db: Session = Depends(get_db)
 ) -> LeadConversionAnalysis:
     """
     Convert lead to customer and opportunity.
@@ -423,15 +413,13 @@ async def convert_lead(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to convert lead: {str(e)}"
+            detail=f"Failed to convert lead: {str(e)}",
         )
 
 
 @router.post("/leads/{lead_id}/assign", response_model=LeadResponse)
 async def assign_lead(
-    lead_id: str,
-    assignment_request: AssignLeadRequest,
-    db: Session = Depends(get_db)
+    lead_id: str, assignment_request: AssignLeadRequest, db: Session = Depends(get_db)
 ) -> LeadResponse:
     """Assign lead to sales representative with notification."""
     try:
@@ -443,7 +431,7 @@ async def assign_lead(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to assign lead: {str(e)}"
+            detail=f"Failed to assign lead: {str(e)}",
         )
 
 
@@ -451,10 +439,14 @@ async def assign_lead(
 # 4. Opportunity Management Endpoints
 # =============================================================================
 
-@router.post("/opportunities", response_model=OpportunityResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/opportunities",
+    response_model=OpportunityResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_opportunity(
-    opportunity: OpportunityCreate,
-    db: Session = Depends(get_db)
+    opportunity: OpportunityCreate, db: Session = Depends(get_db)
 ) -> OpportunityResponse:
     """
     Create a new sales opportunity.
@@ -477,7 +469,7 @@ async def create_opportunity(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to create opportunity: {str(e)}"
+            detail=f"Failed to create opportunity: {str(e)}",
         )
 
 
@@ -494,7 +486,7 @@ async def list_opportunities(
     expected_close_date_from: Optional[date] = Query(None),
     expected_close_date_to: Optional[date] = Query(None),
     skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000)
+    limit: int = Query(100, ge=1, le=1000),
 ) -> List[OpportunityResponse]:
     """
     List opportunities with comprehensive filtering for pipeline management.
@@ -515,7 +507,7 @@ async def list_opportunities(
         min_amount=min_amount,
         max_amount=max_amount,
         expected_close_date_from=expected_close_date_from,
-        expected_close_date_to=expected_close_date_to
+        expected_close_date_to=expected_close_date_to,
     )
 
     opportunities = await crm_service.get_opportunities(db, filter_request, skip, limit)
@@ -524,15 +516,13 @@ async def list_opportunities(
 
 @router.get("/opportunities/{opportunity_id}", response_model=OpportunityResponse)
 async def get_opportunity(
-    opportunity_id: str,
-    db: Session = Depends(get_db)
+    opportunity_id: str, db: Session = Depends(get_db)
 ) -> OpportunityResponse:
     """Get opportunity details by ID with complete sales information."""
     opportunity = await crm_service.get_opportunity_by_id(db, opportunity_id)
     if not opportunity:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Opportunity not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Opportunity not found"
         )
     return opportunity
 
@@ -541,7 +531,7 @@ async def get_opportunity(
 async def update_opportunity(
     opportunity_id: str,
     opportunity_update: OpportunityUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> OpportunityResponse:
     """
     Update opportunity with automatic pipeline management.
@@ -553,20 +543,23 @@ async def update_opportunity(
     - Forecast category updates
     - Competition analysis updates
     """
-    updated_opportunity = await crm_service.update_opportunity(db, opportunity_id, opportunity_update)
+    updated_opportunity = await crm_service.update_opportunity(
+        db, opportunity_id, opportunity_update
+    )
     if not updated_opportunity:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Opportunity not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Opportunity not found"
         )
     return updated_opportunity
 
 
-@router.post("/opportunities/{opportunity_id}/update-stage", response_model=OpportunityResponse)
+@router.post(
+    "/opportunities/{opportunity_id}/update-stage", response_model=OpportunityResponse
+)
 async def update_opportunity_stage(
     opportunity_id: str,
     stage_update: UpdateOpportunityStageRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> OpportunityResponse:
     """
     Update opportunity stage with automatic pipeline management.
@@ -580,14 +573,18 @@ async def update_opportunity_stage(
     """
     try:
         updated_opportunity = await crm_service.update_opportunity_stage(
-            db, opportunity_id, stage_update.stage, stage_update.probability, stage_update.notes
+            db,
+            opportunity_id,
+            stage_update.stage,
+            stage_update.probability,
+            stage_update.notes,
         )
         return updated_opportunity
 
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to update opportunity stage: {str(e)}"
+            detail=f"Failed to update opportunity stage: {str(e)}",
         )
 
 
@@ -595,7 +592,7 @@ async def update_opportunity_stage(
 async def get_sales_forecast(
     organization_id: str = Query(...),
     forecast_period: str = Query("monthly"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> SalesForecast:
     """
     Generate sales forecast based on pipeline analysis.
@@ -607,7 +604,9 @@ async def get_sales_forecast(
     - Historical accuracy tracking
     - Committed vs. best-case scenarios
     """
-    forecast = await crm_service.generate_sales_forecast(db, organization_id, forecast_period)
+    forecast = await crm_service.generate_sales_forecast(
+        db, organization_id, forecast_period
+    )
     return forecast
 
 
@@ -615,10 +614,12 @@ async def get_sales_forecast(
 # 5. Activity Tracking Endpoints
 # =============================================================================
 
-@router.post("/activities", response_model=ActivityResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/activities", response_model=ActivityResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_activity(
-    activity: ActivityCreate,
-    db: Session = Depends(get_db)
+    activity: ActivityCreate, db: Session = Depends(get_db)
 ) -> ActivityResponse:
     """
     Create a new CRM activity for tracking customer interactions.
@@ -637,7 +638,7 @@ async def create_activity(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to create activity: {str(e)}"
+            detail=f"Failed to create activity: {str(e)}",
         )
 
 
@@ -654,7 +655,7 @@ async def list_activities(
     date_from: Optional[date] = Query(None),
     date_to: Optional[date] = Query(None),
     skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000)
+    limit: int = Query(100, ge=1, le=1000),
 ) -> List[ActivityResponse]:
     """
     List activities with comprehensive filtering for activity management.
@@ -675,7 +676,7 @@ async def list_activities(
         activity_type=activity_type,
         is_completed=is_completed,
         date_from=date_from,
-        date_to=date_to
+        date_to=date_to,
     )
 
     activities = await crm_service.get_activities(db, filter_request, skip, limit)
@@ -684,24 +685,20 @@ async def list_activities(
 
 @router.get("/activities/{activity_id}", response_model=ActivityResponse)
 async def get_activity(
-    activity_id: str,
-    db: Session = Depends(get_db)
+    activity_id: str, db: Session = Depends(get_db)
 ) -> ActivityResponse:
     """Get activity details by ID with complete interaction information."""
     activity = await crm_service.get_activity_by_id(db, activity_id)
     if not activity:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Activity not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Activity not found"
         )
     return activity
 
 
 @router.put("/activities/{activity_id}", response_model=ActivityResponse)
 async def update_activity(
-    activity_id: str,
-    activity_update: ActivityUpdate,
-    db: Session = Depends(get_db)
+    activity_id: str, activity_update: ActivityUpdate, db: Session = Depends(get_db)
 ) -> ActivityResponse:
     """
     Update activity with outcome tracking and follow-up management.
@@ -713,11 +710,12 @@ async def update_activity(
     - Communication metrics
     - Integration updates
     """
-    updated_activity = await crm_service.update_activity(db, activity_id, activity_update)
+    updated_activity = await crm_service.update_activity(
+        db, activity_id, activity_update
+    )
     if not updated_activity:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Activity not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Activity not found"
         )
     return updated_activity
 
@@ -726,10 +724,12 @@ async def update_activity(
 # 6. Campaign Management Endpoints
 # =============================================================================
 
-@router.post("/campaigns", response_model=CampaignResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/campaigns", response_model=CampaignResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_campaign(
-    campaign: CampaignCreate,
-    db: Session = Depends(get_db)
+    campaign: CampaignCreate, db: Session = Depends(get_db)
 ) -> CampaignResponse:
     """
     Create a new marketing campaign.
@@ -752,7 +752,7 @@ async def create_campaign(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to create campaign: {str(e)}"
+            detail=f"Failed to create campaign: {str(e)}",
         )
 
 
@@ -764,7 +764,7 @@ async def list_campaigns(
     status: Optional[str] = Query(None),
     is_active: Optional[bool] = Query(True),
     skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000)
+    limit: int = Query(100, ge=1, le=1000),
 ) -> List[CampaignResponse]:
     """List campaigns with filtering by type, status, and activity."""
     campaigns = await crm_service.get_campaigns(
@@ -775,24 +775,20 @@ async def list_campaigns(
 
 @router.get("/campaigns/{campaign_id}", response_model=CampaignResponse)
 async def get_campaign(
-    campaign_id: str,
-    db: Session = Depends(get_db)
+    campaign_id: str, db: Session = Depends(get_db)
 ) -> CampaignResponse:
     """Get campaign details by ID with complete performance metrics."""
     campaign = await crm_service.get_campaign_by_id(db, campaign_id)
     if not campaign:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Campaign not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Campaign not found"
         )
     return campaign
 
 
 @router.put("/campaigns/{campaign_id}", response_model=CampaignResponse)
 async def update_campaign(
-    campaign_id: str,
-    campaign_update: CampaignUpdate,
-    db: Session = Depends(get_db)
+    campaign_id: str, campaign_update: CampaignUpdate, db: Session = Depends(get_db)
 ) -> CampaignResponse:
     """
     Update campaign with performance tracking and ROI calculation.
@@ -804,11 +800,12 @@ async def update_campaign(
     - Budget management
     - Automated reporting
     """
-    updated_campaign = await crm_service.update_campaign(db, campaign_id, campaign_update)
+    updated_campaign = await crm_service.update_campaign(
+        db, campaign_id, campaign_update
+    )
     if not updated_campaign:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Campaign not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Campaign not found"
         )
     return updated_campaign
 
@@ -817,7 +814,7 @@ async def update_campaign(
 async def send_bulk_email_campaign(
     campaign_id: str,
     email_request: BulkEmailCampaignRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     """
     Execute bulk email campaign with tracking.
@@ -831,15 +828,18 @@ async def send_bulk_email_campaign(
     """
     try:
         result = await crm_service.send_bulk_email_campaign(
-            db, campaign_id, email_request.recipient_list,
-            email_request.email_template_id, email_request.send_date
+            db,
+            campaign_id,
+            email_request.recipient_list,
+            email_request.email_template_id,
+            email_request.send_date,
         )
         return result
 
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to send email campaign: {str(e)}"
+            detail=f"Failed to send email campaign: {str(e)}",
         )
 
 
@@ -847,10 +847,14 @@ async def send_bulk_email_campaign(
 # 7. Support Ticket Management Endpoints
 # =============================================================================
 
-@router.post("/support-tickets", response_model=SupportTicketResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/support-tickets",
+    response_model=SupportTicketResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_support_ticket(
-    ticket: SupportTicketCreate,
-    db: Session = Depends(get_db)
+    ticket: SupportTicketCreate, db: Session = Depends(get_db)
 ) -> SupportTicketResponse:
     """
     Create a new customer support ticket.
@@ -873,7 +877,7 @@ async def create_support_ticket(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to create support ticket: {str(e)}"
+            detail=f"Failed to create support ticket: {str(e)}",
         )
 
 
@@ -888,36 +892,40 @@ async def list_support_tickets(
     is_escalated: Optional[bool] = Query(None),
     sla_breached: Optional[bool] = Query(None),
     skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000)
+    limit: int = Query(100, ge=1, le=1000),
 ) -> List[SupportTicketResponse]:
     """List support tickets with comprehensive filtering for support management."""
     tickets = await crm_service.get_support_tickets(
-        db, customer_id, assigned_to_id, status, priority,
-        category, is_escalated, sla_breached, skip, limit
+        db,
+        customer_id,
+        assigned_to_id,
+        status,
+        priority,
+        category,
+        is_escalated,
+        sla_breached,
+        skip,
+        limit,
     )
     return tickets
 
 
 @router.get("/support-tickets/{ticket_id}", response_model=SupportTicketResponse)
 async def get_support_ticket(
-    ticket_id: str,
-    db: Session = Depends(get_db)
+    ticket_id: str, db: Session = Depends(get_db)
 ) -> SupportTicketResponse:
     """Get support ticket details by ID with complete case information."""
     ticket = await crm_service.get_support_ticket_by_id(db, ticket_id)
     if not ticket:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Support ticket not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Support ticket not found"
         )
     return ticket
 
 
 @router.put("/support-tickets/{ticket_id}", response_model=SupportTicketResponse)
 async def update_support_ticket(
-    ticket_id: str,
-    ticket_update: SupportTicketUpdate,
-    db: Session = Depends(get_db)
+    ticket_id: str, ticket_update: SupportTicketUpdate, db: Session = Depends(get_db)
 ) -> SupportTicketResponse:
     """
     Update support ticket with SLA tracking and resolution management.
@@ -929,20 +937,23 @@ async def update_support_ticket(
     - SLA compliance monitoring
     - Escalation management
     """
-    updated_ticket = await crm_service.update_support_ticket(db, ticket_id, ticket_update)
+    updated_ticket = await crm_service.update_support_ticket(
+        db, ticket_id, ticket_update
+    )
     if not updated_ticket:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Support ticket not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Support ticket not found"
         )
     return updated_ticket
 
 
-@router.post("/support-tickets/{ticket_id}/escalate", response_model=SupportTicketResponse)
+@router.post(
+    "/support-tickets/{ticket_id}/escalate", response_model=SupportTicketResponse
+)
 async def escalate_support_ticket(
     ticket_id: str,
     escalation_request: EscalateTicketRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> SupportTicketResponse:
     """
     Escalate support ticket to higher level support.
@@ -956,14 +967,17 @@ async def escalate_support_ticket(
     """
     try:
         escalated_ticket = await crm_service.escalate_support_ticket(
-            db, ticket_id, escalation_request.escalated_to_id, escalation_request.escalation_reason
+            db,
+            ticket_id,
+            escalation_request.escalated_to_id,
+            escalation_request.escalation_reason,
         )
         return escalated_ticket
 
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to escalate ticket: {str(e)}"
+            detail=f"Failed to escalate ticket: {str(e)}",
         )
 
 
@@ -971,12 +985,13 @@ async def escalate_support_ticket(
 # 8. CRM Analytics and Reporting Endpoints
 # =============================================================================
 
+
 @router.get("/analytics/dashboard", response_model=CRMDashboardMetrics)
 async def get_crm_dashboard_metrics(
     organization_id: str = Query(...),
     period_start: date = Query(...),
     period_end: date = Query(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> CRMDashboardMetrics:
     """
     Get comprehensive CRM dashboard metrics for specified period.
@@ -1001,7 +1016,7 @@ async def get_pipeline_analytics(
     sales_rep_id: Optional[str] = Query(None),
     period_start: Optional[date] = Query(None),
     period_end: Optional[date] = Query(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     """
     Get detailed sales pipeline analytics and insights.
@@ -1026,7 +1041,7 @@ async def get_sales_performance_analytics(
     sales_rep_id: Optional[str] = Query(None),
     period_start: date = Query(...),
     period_end: date = Query(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     """
     Get sales performance analytics for teams or individuals.
@@ -1050,7 +1065,7 @@ async def get_customer_insights(
     organization_id: str = Query(...),
     customer_segment: Optional[str] = Query(None),
     analysis_period: int = Query(12, ge=1, le=60),  # months
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     """
     Get comprehensive customer insights and behavior analysis.
@@ -1073,6 +1088,7 @@ async def get_customer_insights(
 # 9. Lead Conversion Analysis Endpoints
 # =============================================================================
 
+
 @router.get("/analytics/lead-conversion", response_model=Dict[str, Any])
 async def get_lead_conversion_analytics(
     organization_id: str = Query(...),
@@ -1080,7 +1096,7 @@ async def get_lead_conversion_analytics(
     period_end: date = Query(...),
     lead_source: Optional[str] = Query(None),
     campaign_id: Optional[str] = Query(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     """
     Get detailed lead conversion analytics and funnel analysis.
@@ -1101,8 +1117,7 @@ async def get_lead_conversion_analytics(
 
 @router.get("/leads/{lead_id}/conversion-probability", response_model=Dict[str, Any])
 async def get_lead_conversion_probability(
-    lead_id: str,
-    db: Session = Depends(get_db)
+    lead_id: str, db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """
     Calculate lead conversion probability using machine learning models.
@@ -1118,7 +1133,7 @@ async def get_lead_conversion_probability(
     if not probability:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Lead not found or insufficient data for analysis"
+            detail="Lead not found or insufficient data for analysis",
         )
     return probability
 
@@ -1127,12 +1142,13 @@ async def get_lead_conversion_probability(
 # 10. Sales Pipeline Management Endpoints
 # =============================================================================
 
+
 @router.get("/pipeline/overview", response_model=Dict[str, Any])
 async def get_pipeline_overview(
     organization_id: str = Query(...),
     sales_rep_id: Optional[str] = Query(None),
     time_period: str = Query("current_quarter"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     """
     Get comprehensive sales pipeline overview and management dashboard.
@@ -1156,7 +1172,7 @@ async def get_pipeline_velocity_analysis(
     organization_id: str = Query(...),
     period_months: int = Query(6, ge=1, le=24),
     stage_analysis: bool = Query(True),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     """
     Get pipeline velocity analysis for sales process optimization.
@@ -1179,7 +1195,7 @@ async def get_pipeline_velocity_analysis(
 async def get_forecast_accuracy_analysis(
     organization_id: str = Query(...),
     lookback_months: int = Query(12, ge=3, le=36),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     """
     Analyze forecast accuracy and prediction reliability.
@@ -1200,8 +1216,7 @@ async def get_forecast_accuracy_analysis(
 
 @router.post("/pipeline/bulk-update", response_model=Dict[str, Any])
 async def bulk_update_pipeline(
-    updates: List[Dict[str, Any]],
-    db: Session = Depends(get_db)
+    updates: List[Dict[str, Any]], db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """
     Perform bulk updates on multiple opportunities in the pipeline.
@@ -1221,7 +1236,7 @@ async def bulk_update_pipeline(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to perform bulk update: {str(e)}"
+            detail=f"Failed to perform bulk update: {str(e)}",
         )
 
 
@@ -1229,10 +1244,9 @@ async def bulk_update_pipeline(
 # Health Check and System Status
 # =============================================================================
 
+
 @router.get("/health", response_model=Dict[str, Any])
-async def crm_health_check(
-    db: Session = Depends(get_db)
-) -> Dict[str, Any]:
+async def crm_health_check(db: Session = Depends(get_db)) -> Dict[str, Any]:
     """
     CRM system health check and status information.
 
@@ -1251,5 +1265,5 @@ async def crm_health_check(
         return {
             "status": "unhealthy",
             "error": str(e),
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat(),
         }

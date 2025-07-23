@@ -36,7 +36,13 @@ def list_organizations(
     skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
 ) -> Any:
     """List organizations - v19.0 practical approach"""
-    orgs = db.query(Organization).filter(Organization.is_active).offset(skip).limit(limit).all()  # type: ignore[misc]
+    orgs = (
+        db.query(Organization)
+        .filter(Organization.is_active)
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )  # type: ignore[misc]
     return orgs  # type: ignore[return-value]
 
 

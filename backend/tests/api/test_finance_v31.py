@@ -62,7 +62,9 @@ class TestAccountManagement:
 
     @patch("app.api.v1.finance_v31.AccountCRUD")
     @patch("app.api.v1.finance_v31.get_current_user")
-    def test_create_account_success(self, mock_user, mock_crud_class, sample_account_data, sample_account_response):
+    def test_create_account_success(
+        self, mock_user, mock_crud_class, sample_account_data, sample_account_response
+    ):
         """Test successful account creation."""
         # Setup mocks
         mock_user.return_value = {"sub": "user-123"}
@@ -86,7 +88,9 @@ class TestAccountManagement:
 
     @patch("app.api.v1.finance_v31.AccountCRUD")
     @patch("app.api.v1.finance_v31.get_current_user")
-    def test_create_account_duplicate_code(self, mock_user, mock_crud_class, sample_account_data):
+    def test_create_account_duplicate_code(
+        self, mock_user, mock_crud_class, sample_account_data
+    ):
         """Test account creation with duplicate code."""
         # Setup mocks
         mock_user.return_value = {"sub": "user-123"}
@@ -105,7 +109,9 @@ class TestAccountManagement:
 
     @patch("app.api.v1.finance_v31.AccountCRUD")
     @patch("app.api.v1.finance_v31.get_current_user")
-    def test_get_account_success(self, mock_user, mock_crud_class, sample_account_response):
+    def test_get_account_success(
+        self, mock_user, mock_crud_class, sample_account_response
+    ):
         """Test successful account retrieval."""
         # Setup mocks
         mock_user.return_value = {"sub": "user-123"}
@@ -139,7 +145,9 @@ class TestAccountManagement:
 
     @patch("app.api.v1.finance_v31.AccountCRUD")
     @patch("app.api.v1.finance_v31.get_current_user")
-    def test_list_accounts_success(self, mock_user, mock_crud_class, sample_account_response):
+    def test_list_accounts_success(
+        self, mock_user, mock_crud_class, sample_account_response
+    ):
         """Test successful account listing."""
         # Setup mocks
         mock_user.return_value = {"sub": "user-123"}
@@ -158,7 +166,9 @@ class TestAccountManagement:
 
     @patch("app.api.v1.finance_v31.AccountCRUD")
     @patch("app.api.v1.finance_v31.get_current_user")
-    def test_update_account_success(self, mock_user, mock_crud_class, sample_account_response):
+    def test_update_account_success(
+        self, mock_user, mock_crud_class, sample_account_response
+    ):
         """Test successful account update."""
         # Setup mocks
         mock_user.return_value = {"sub": "user-123"}
@@ -243,16 +253,25 @@ class TestJournalEntryProcessing:
 
     @patch("app.api.v1.finance_v31.JournalEntryCRUD")
     @patch("app.api.v1.finance_v31.get_current_user")
-    def test_create_journal_entry_success(self, mock_user, mock_crud_class,
-                                        sample_journal_entry_data, sample_journal_entry_response):
+    def test_create_journal_entry_success(
+        self,
+        mock_user,
+        mock_crud_class,
+        sample_journal_entry_data,
+        sample_journal_entry_response,
+    ):
         """Test successful journal entry creation."""
         # Setup mocks
         mock_user.return_value = {"sub": "user-123"}
         mock_crud = mock_crud_class.return_value
-        mock_crud.create_journal_entry.return_value = Mock(**sample_journal_entry_response)
+        mock_crud.create_journal_entry.return_value = Mock(
+            **sample_journal_entry_response
+        )
 
         # Make request
-        response = client.post("/finance/journal-entries", json=sample_journal_entry_data)
+        response = client.post(
+            "/finance/journal-entries", json=sample_journal_entry_data
+        )
 
         # Assertions
         assert response.status_code == 201
@@ -269,7 +288,9 @@ class TestJournalEntryProcessing:
         # Setup mocks
         mock_user.return_value = {"sub": "user-123"}
         mock_crud = mock_crud_class.return_value
-        mock_crud.create_journal_entry.side_effect = ValueError("Debits must equal credits")
+        mock_crud.create_journal_entry.side_effect = ValueError(
+            "Debits must equal credits"
+        )
 
         # Unbalanced entry data
         unbalanced_data = {
@@ -298,7 +319,9 @@ class TestJournalEntryProcessing:
 
     @patch("app.api.v1.finance_v31.JournalEntryCRUD")
     @patch("app.api.v1.finance_v31.get_current_user")
-    def test_post_journal_entry_success(self, mock_user, mock_crud_class, sample_journal_entry_response):
+    def test_post_journal_entry_success(
+        self, mock_user, mock_crud_class, sample_journal_entry_response
+    ):
         """Test successful journal entry posting."""
         # Setup mocks
         mock_user.return_value = {"sub": "user-123"}
@@ -308,7 +331,9 @@ class TestJournalEntryProcessing:
         mock_crud.post_journal_entry.return_value = posted_entry
 
         # Make request
-        response = client.post("/finance/journal-entries/post", json={"journal_entry_id": "je-123"})
+        response = client.post(
+            "/finance/journal-entries/post", json={"journal_entry_id": "je-123"}
+        )
 
         # Assertions
         assert response.status_code == 200
@@ -317,7 +342,9 @@ class TestJournalEntryProcessing:
 
     @patch("app.api.v1.finance_v31.JournalEntryCRUD")
     @patch("app.api.v1.finance_v31.get_current_user")
-    def test_reverse_journal_entry_success(self, mock_user, mock_crud_class, sample_journal_entry_response):
+    def test_reverse_journal_entry_success(
+        self, mock_user, mock_crud_class, sample_journal_entry_response
+    ):
         """Test successful journal entry reversal."""
         # Setup mocks
         mock_user.return_value = {"sub": "user-123"}
@@ -381,8 +408,9 @@ class TestBudgetManagement:
 
     @patch("app.api.v1.finance_v31.BudgetCRUD")
     @patch("app.api.v1.finance_v31.get_current_user")
-    def test_create_budget_success(self, mock_user, mock_crud_class,
-                                 sample_budget_data, sample_budget_response):
+    def test_create_budget_success(
+        self, mock_user, mock_crud_class, sample_budget_data, sample_budget_response
+    ):
         """Test successful budget creation."""
         # Setup mocks
         mock_user.return_value = {"sub": "user-123"}
@@ -401,7 +429,9 @@ class TestBudgetManagement:
 
     @patch("app.api.v1.finance_v31.BudgetCRUD")
     @patch("app.api.v1.finance_v31.get_current_user")
-    def test_approve_budget_success(self, mock_user, mock_crud_class, sample_budget_response):
+    def test_approve_budget_success(
+        self, mock_user, mock_crud_class, sample_budget_response
+    ):
         """Test successful budget approval."""
         # Setup mocks
         mock_user.return_value = {"sub": "user-123"}
@@ -500,8 +530,13 @@ class TestCostCenterOperations:
 
     @patch("app.api.v1.finance_v31.CostCenterCRUD")
     @patch("app.api.v1.finance_v31.get_current_user")
-    def test_create_cost_center_success(self, mock_user, mock_crud_class,
-                                      sample_cost_center_data, sample_cost_center_response):
+    def test_create_cost_center_success(
+        self,
+        mock_user,
+        mock_crud_class,
+        sample_cost_center_data,
+        sample_cost_center_response,
+    ):
         """Test successful cost center creation."""
         # Setup mocks
         mock_user.return_value = {"sub": "user-123"}
@@ -719,8 +754,9 @@ class TestTaxConfiguration:
 
     @patch("app.api.v1.finance_v31.TaxConfigurationCRUD")
     @patch("app.api.v1.finance_v31.get_current_user")
-    def test_create_tax_configuration_success(self, mock_user, mock_crud_class,
-                                            sample_tax_data, sample_tax_response):
+    def test_create_tax_configuration_success(
+        self, mock_user, mock_crud_class, sample_tax_data, sample_tax_response
+    ):
         """Test successful tax configuration creation."""
         # Setup mocks
         mock_user.return_value = {"sub": "user-123"}
@@ -763,7 +799,7 @@ class TestTaxConfiguration:
         }
         response = client.post(
             "/finance/tax-configurations/calculate?organization_id=org-123",
-            json=calculation_request
+            json=calculation_request,
         )
 
         # Assertions
@@ -804,7 +840,7 @@ class TestTrialBalance:
                 "credit_balance": 50000.00,
                 "total_debits": 0.00,
                 "total_credits": 50000.00,
-            }
+            },
         ]
         mock_crud.get_trial_balance.return_value = trial_balance_data
 
@@ -831,7 +867,9 @@ class TestFinancialAnalytics:
     @patch("app.api.v1.finance_v31.FinancialReportCRUD")
     @patch("app.api.v1.finance_v31.BudgetCRUD")
     @patch("app.api.v1.finance_v31.get_current_user")
-    def test_get_financial_dashboard_success(self, mock_user, mock_budget_crud, mock_report_crud, mock_journal_crud):
+    def test_get_financial_dashboard_success(
+        self, mock_user, mock_budget_crud, mock_report_crud, mock_journal_crud
+    ):
         """Test successful financial dashboard generation."""
         # Setup mocks
         mock_user.return_value = {"sub": "user-123"}
@@ -843,7 +881,9 @@ class TestFinancialAnalytics:
             "equity": {"total": 70000.00},
             "balanced": True,
         }
-        mock_report_crud.return_value.generate_balance_sheet.return_value = balance_sheet
+        mock_report_crud.return_value.generate_balance_sheet.return_value = (
+            balance_sheet
+        )
 
         # Mock income statement
         income_statement = {
@@ -852,7 +892,9 @@ class TestFinancialAnalytics:
             "net_income": 30000.00,
             "margin_percentage": 37.5,
         }
-        mock_report_crud.return_value.generate_income_statement.return_value = income_statement
+        mock_report_crud.return_value.generate_income_statement.return_value = (
+            income_statement
+        )
 
         # Mock trial balance
         trial_balance = [
@@ -893,7 +935,9 @@ class TestFinanceIntegration:
     @patch("app.api.v1.finance_v31.AccountCRUD")
     @patch("app.api.v1.finance_v31.JournalEntryCRUD")
     @patch("app.api.v1.finance_v31.get_current_user")
-    def test_complete_transaction_workflow(self, mock_user, mock_journal_crud, mock_account_crud):
+    def test_complete_transaction_workflow(
+        self, mock_user, mock_journal_crud, mock_account_crud
+    ):
         """Test complete transaction workflow from account creation to posting."""
         # Setup user
         mock_user.return_value = {"sub": "user-123"}
@@ -924,7 +968,9 @@ class TestFinanceIntegration:
         mock_entry = Mock(id="je-1", is_posted=False)
         mock_posted_entry = Mock(id="je-1", is_posted=True)
         mock_journal_crud.return_value.create_journal_entry.return_value = mock_entry
-        mock_journal_crud.return_value.post_journal_entry.return_value = mock_posted_entry
+        mock_journal_crud.return_value.post_journal_entry.return_value = (
+            mock_posted_entry
+        )
 
         # Step 1: Create account
         account_response = client.post("/finance/accounts", json=account_data)
@@ -935,5 +981,7 @@ class TestFinanceIntegration:
         assert entry_response.status_code == 201
 
         # Step 3: Post journal entry
-        post_response = client.post("/finance/journal-entries/post", json={"journal_entry_id": "je-1"})
+        post_response = client.post(
+            "/finance/journal-entries/post", json={"journal_entry_id": "je-1"}
+        )
         assert post_response.status_code == 200

@@ -80,11 +80,14 @@ document_service = DocumentService()
 # 1. Document Storage & Management Endpoints
 # =============================================================================
 
-@router.post("/documents", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/documents", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_document(
     document: DocumentCreate,
     file: Optional[UploadFile] = File(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> DocumentResponse:
     """
     Create a new document with file upload and comprehensive metadata.
@@ -107,13 +110,15 @@ async def create_document(
 
         # Generate unique document number
         document_data = document.dict()
-        created_document = await document_service.create_document(db, document_data, file_content)
+        created_document = await document_service.create_document(
+            db, document_data, file_content
+        )
         return created_document
 
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to create document: {str(e)}"
+            detail=f"Failed to create document: {str(e)}",
         )
 
 
@@ -131,7 +136,7 @@ async def list_documents(
     created_after: Optional[datetime] = Query(None),
     created_before: Optional[datetime] = Query(None),
     skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000)
+    limit: int = Query(100, ge=1, le=1000),
 ) -> List[DocumentResponse]:
     """
     List documents with comprehensive filtering and search capabilities.
@@ -147,17 +152,26 @@ async def list_documents(
     tag_list = tags.split(",") if tags else None
 
     documents = await document_service.get_documents(
-        db, organization_id, folder_id, document_type, status,
-        owner_id, category, search_text, tag_list,
-        created_after, created_before, skip, limit
+        db,
+        organization_id,
+        folder_id,
+        document_type,
+        status,
+        owner_id,
+        category,
+        search_text,
+        tag_list,
+        created_after,
+        created_before,
+        skip,
+        limit,
     )
     return documents
 
 
 @router.get("/documents/{document_id}", response_model=DocumentResponse)
 async def get_document(
-    document_id: str,
-    db: Session = Depends(get_db)
+    document_id: str, db: Session = Depends(get_db)
 ) -> DocumentResponse:
     """
     Get document details by ID with comprehensive metadata.
@@ -172,8 +186,7 @@ async def get_document(
     document = await document_service.get_document_by_id(db, document_id)
     if not document:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Document not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
         )
     return document
 
@@ -183,7 +196,7 @@ async def update_document(
     document_id: str,
     document_update: DocumentUpdate,
     user_id: str = Query(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> DocumentResponse:
     """
     Update document metadata with change tracking and version control.
@@ -200,8 +213,7 @@ async def update_document(
     )
     if not updated_document:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Document not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
         )
     return updated_document
 
@@ -212,7 +224,7 @@ async def create_document_version(
     version_data: DocumentVersionCreate,
     file: Optional[UploadFile] = File(None),
     user_id: str = Query(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> DocumentResponse:
     """
     Create a new version of an existing document.
@@ -238,7 +250,7 @@ async def create_document_version(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to create document version: {str(e)}"
+            detail=f"Failed to create document version: {str(e)}",
         )
 
 
@@ -247,7 +259,7 @@ async def move_document(
     document_id: str,
     move_request: DocumentMoveRequest,
     user_id: str = Query(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> DocumentResponse:
     """
     Move document to a different folder with permission validation.
@@ -268,15 +280,13 @@ async def move_document(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to move document: {str(e)}"
+            detail=f"Failed to move document: {str(e)}",
         )
 
 
 @router.delete("/documents/{document_id}")
 async def delete_document(
-    document_id: str,
-    user_id: str = Query(...),
-    db: Session = Depends(get_db)
+    document_id: str, user_id: str = Query(...), db: Session = Depends(get_db)
 ) -> Dict[str, str]:
     """
     Soft delete document with retention policy compliance.
@@ -291,8 +301,7 @@ async def delete_document(
     success = await document_service.delete_document(db, document_id, user_id)
     if not success:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Document not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
         )
     return {"message": "Document deleted successfully"}
 
@@ -301,10 +310,12 @@ async def delete_document(
 # 2. Folder & Category Organization Endpoints
 # =============================================================================
 
-@router.post("/folders", response_model=FolderResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/folders", response_model=FolderResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_folder(
-    folder: FolderCreate,
-    db: Session = Depends(get_db)
+    folder: FolderCreate, db: Session = Depends(get_db)
 ) -> FolderResponse:
     """
     Create a new folder with hierarchical organization support.
@@ -323,7 +334,7 @@ async def create_folder(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to create folder: {str(e)}"
+            detail=f"Failed to create folder: {str(e)}",
         )
 
 
@@ -332,7 +343,7 @@ async def get_folder_contents(
     folder_id: str,
     include_subfolders: bool = Query(True),
     include_documents: bool = Query(True),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> FolderContentsResponse:
     """
     Get folder contents including subfolders and documents.
@@ -355,7 +366,7 @@ async def list_folders(
     organization_id: str = Query(...),
     parent_folder_id: Optional[str] = Query(None),
     include_archived: bool = Query(False),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> List[FolderResponse]:
     """List folders with hierarchical filtering and organization support."""
     # Implementation would go here - simplified for length
@@ -366,12 +377,17 @@ async def list_folders(
 # 3. Document Sharing & Permissions Endpoints
 # =============================================================================
 
-@router.post("/documents/{document_id}/shares", response_model=ShareResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/documents/{document_id}/shares",
+    response_model=ShareResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_document_share(
     document_id: str,
     share: ShareCreate,
     shared_by_id: str = Query(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> ShareResponse:
     """
     Create a document share with granular permission control.
@@ -395,7 +411,7 @@ async def create_document_share(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to create document share: {str(e)}"
+            detail=f"Failed to create document share: {str(e)}",
         )
 
 
@@ -403,7 +419,7 @@ async def create_document_share(
 async def get_document_shares(
     document_id: str,
     include_expired: bool = Query(False),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> List[ShareResponse]:
     """
     Get all shares for a document with filtering options.
@@ -415,15 +431,15 @@ async def get_document_shares(
     - Permission summary
     - Expiration tracking
     """
-    shares = await document_service.get_document_shares(db, document_id, include_expired)
+    shares = await document_service.get_document_shares(
+        db, document_id, include_expired
+    )
     return shares
 
 
 @router.delete("/shares/{share_id}")
 async def revoke_document_share(
-    share_id: str,
-    revoked_by_id: str = Query(...),
-    db: Session = Depends(get_db)
+    share_id: str, revoked_by_id: str = Query(...), db: Session = Depends(get_db)
 ) -> Dict[str, str]:
     """
     Revoke a document share with immediate effect.
@@ -438,16 +454,14 @@ async def revoke_document_share(
     success = await document_service.revoke_document_share(db, share_id, revoked_by_id)
     if not success:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Share not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Share not found"
         )
     return {"message": "Document share revoked successfully"}
 
 
 @router.post("/shares/access", response_model=Dict[str, Any])
 async def access_shared_document(
-    access_request: ShareAccessRequest,
-    db: Session = Depends(get_db)
+    access_request: ShareAccessRequest, db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """
     Access shared document using share token with validation.
@@ -467,10 +481,12 @@ async def access_shared_document(
 # 4. Workflow & Approval Processes Endpoints
 # =============================================================================
 
-@router.post("/workflows", response_model=WorkflowResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/workflows", response_model=WorkflowResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_approval_workflow(
-    workflow: WorkflowCreate,
-    db: Session = Depends(get_db)
+    workflow: WorkflowCreate, db: Session = Depends(get_db)
 ) -> WorkflowResponse:
     """
     Create a document approval workflow template.
@@ -492,16 +508,18 @@ async def create_approval_workflow(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to create workflow: {str(e)}"
+            detail=f"Failed to create workflow: {str(e)}",
         )
 
 
-@router.post("/documents/{document_id}/submit-approval", response_model=List[ApprovalResponse])
+@router.post(
+    "/documents/{document_id}/submit-approval", response_model=List[ApprovalResponse]
+)
 async def submit_document_for_approval(
     document_id: str,
     approval_request: ApprovalSubmissionRequest,
     requested_by_id: str = Query(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> List[ApprovalResponse]:
     """
     Submit document for approval workflow processing.
@@ -516,15 +534,18 @@ async def submit_document_for_approval(
     """
     try:
         approvals = await document_service.submit_document_for_approval(
-            db, document_id, approval_request.workflow_id,
-            approval_request.approvers, requested_by_id
+            db,
+            document_id,
+            approval_request.workflow_id,
+            approval_request.approvers,
+            requested_by_id,
         )
         return approvals
 
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to submit for approval: {str(e)}"
+            detail=f"Failed to submit for approval: {str(e)}",
         )
 
 
@@ -532,7 +553,7 @@ async def submit_document_for_approval(
 async def process_approval_decision(
     approval_id: str,
     decision_request: ApprovalDecisionRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> ApprovalResponse:
     """
     Process approval decision with workflow progression.
@@ -547,15 +568,18 @@ async def process_approval_decision(
     """
     try:
         processed_approval = await document_service.process_approval_decision(
-            db, approval_id, decision_request.decision,
-            decision_request.comments, decision_request.conditions
+            db,
+            approval_id,
+            decision_request.decision,
+            decision_request.comments,
+            decision_request.conditions,
         )
         return processed_approval
 
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to process approval decision: {str(e)}"
+            detail=f"Failed to process approval decision: {str(e)}",
         )
 
 
@@ -565,7 +589,7 @@ async def get_pending_approvals(
     organization_id: Optional[str] = Query(None),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> List[ApprovalResponse]:
     """Get pending approvals for a user with filtering and prioritization."""
     # Implementation would filter pending approvals for the user
@@ -576,10 +600,12 @@ async def get_pending_approvals(
 # 5. Document Templates & Generation Endpoints
 # =============================================================================
 
-@router.post("/templates", response_model=TemplateResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/templates", response_model=TemplateResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_document_template(
-    template: TemplateCreate,
-    db: Session = Depends(get_db)
+    template: TemplateCreate, db: Session = Depends(get_db)
 ) -> TemplateResponse:
     """
     Create a document template for automated document generation.
@@ -601,16 +627,18 @@ async def create_document_template(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to create template: {str(e)}"
+            detail=f"Failed to create template: {str(e)}",
         )
 
 
-@router.post("/templates/{template_id}/generate", response_model=TemplateGenerationResponse)
+@router.post(
+    "/templates/{template_id}/generate", response_model=TemplateGenerationResponse
+)
 async def generate_document_from_template(
     template_id: str,
     generation_request: TemplateGenerationRequest,
     generated_by_id: str = Query(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> TemplateGenerationResponse:
     """
     Generate a document from template with field substitution.
@@ -633,13 +661,13 @@ async def generate_document_from_template(
             filename=generated_document.filename,
             generation_success=True,
             validation_errors=[],
-            field_values_used=generation_request.field_values
+            field_values_used=generation_request.field_values,
         )
 
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to generate document: {str(e)}"
+            detail=f"Failed to generate document: {str(e)}",
         )
 
 
@@ -651,7 +679,7 @@ async def list_templates(
     is_public: Optional[bool] = Query(None),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> List[TemplateResponse]:
     """List document templates with filtering and categorization."""
     # Implementation would filter templates based on criteria
@@ -662,13 +690,14 @@ async def list_templates(
 # 6. Advanced Search & Discovery Endpoints
 # =============================================================================
 
+
 @router.post("/documents/search", response_model=AdvancedSearchResponse)
 async def search_documents(
     search_request: DocumentSearchRequest,
     organization_id: str = Query(...),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=500),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> AdvancedSearchResponse:
     """
     Advanced document search with full-text indexing and faceted search.
@@ -691,7 +720,7 @@ async def search_documents(
             "owner_id": search_request.owner_id,
             "tags": search_request.tags,
             "created_after": search_request.created_after,
-            "created_before": search_request.created_before
+            "created_before": search_request.created_before,
         }
 
         documents = await document_service.search_documents(
@@ -706,13 +735,12 @@ async def search_documents(
             total_count=len(documents),
             search_time_ms=search_time_ms,
             facets={},
-            suggestions=[]
+            suggestions=[],
         )
 
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Search failed: {str(e)}"
+            status_code=status.HTTP_400_BAD_REQUEST, detail=f"Search failed: {str(e)}"
         )
 
 
@@ -721,7 +749,7 @@ async def get_search_suggestions(
     query: str = Query(..., min_length=2),
     organization_id: str = Query(...),
     limit: int = Query(10, ge=1, le=50),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> List[str]:
     """
     Get search suggestions and autocomplete for document search.
@@ -741,12 +769,17 @@ async def get_search_suggestions(
 # 7. Collaboration & Comments Endpoints
 # =============================================================================
 
-@router.post("/documents/{document_id}/comments", response_model=CommentResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/documents/{document_id}/comments",
+    response_model=CommentResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_document_comment(
     document_id: str,
     comment: CommentCreate,
     author_id: str = Query(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> CommentResponse:
     """
     Add a comment to a document with collaboration features.
@@ -770,7 +803,7 @@ async def create_document_comment(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to create comment: {str(e)}"
+            detail=f"Failed to create comment: {str(e)}",
         )
 
 
@@ -781,7 +814,7 @@ async def get_document_comments(
     thread_id: Optional[str] = Query(None),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> List[CommentResponse]:
     """Get comments for a document with threading and filtering support."""
     # Implementation would retrieve and filter comments
@@ -790,9 +823,7 @@ async def get_document_comments(
 
 @router.post("/comments/{comment_id}/resolve", response_model=CommentResponse)
 async def resolve_comment(
-    comment_id: str,
-    resolved_by_id: str = Query(...),
-    db: Session = Depends(get_db)
+    comment_id: str, resolved_by_id: str = Query(...), db: Session = Depends(get_db)
 ) -> CommentResponse:
     """
     Mark a comment as resolved with resolution tracking.
@@ -804,11 +835,12 @@ async def resolve_comment(
     - Activity logging
     - Thread status updates
     """
-    resolved_comment = await document_service.resolve_comment(db, comment_id, resolved_by_id)
+    resolved_comment = await document_service.resolve_comment(
+        db, comment_id, resolved_by_id
+    )
     if not resolved_comment:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Comment not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found"
         )
     return resolved_comment
 
@@ -817,10 +849,10 @@ async def resolve_comment(
 # 8. Document Analytics & Insights Endpoints
 # =============================================================================
 
+
 @router.post("/analytics", response_model=DocumentAnalyticsResponse)
 async def get_document_analytics(
-    analytics_request: DocumentAnalyticsRequest,
-    db: Session = Depends(get_db)
+    analytics_request: DocumentAnalyticsRequest, db: Session = Depends(get_db)
 ) -> DocumentAnalyticsResponse:
     """
     Generate comprehensive document analytics and insights.
@@ -835,8 +867,10 @@ async def get_document_analytics(
     """
     try:
         analytics = await document_service.get_document_analytics(
-            db, analytics_request.organization_id,
-            analytics_request.period_start, analytics_request.period_end
+            db,
+            analytics_request.organization_id,
+            analytics_request.period_start,
+            analytics_request.period_end,
         )
 
         # Transform to response format
@@ -852,20 +886,20 @@ async def get_document_analytics(
                 "average_file_size_bytes": analytics.average_file_size_bytes,
                 "largest_file_size_bytes": analytics.largest_file_size_bytes,
                 "storage_by_type": {},
-                "storage_by_category": {}
+                "storage_by_category": {},
             },
             usage_metrics={
                 "total_views": analytics.total_views,
                 "unique_viewers": analytics.unique_viewers,
                 "total_downloads": analytics.total_downloads,
-                "total_shares": analytics.total_shares
+                "total_shares": analytics.total_shares,
             },
             collaboration_metrics={
                 "total_comments": analytics.total_comments,
                 "active_collaborators": analytics.active_collaborators,
                 "collaboration_sessions": 0,
                 "average_response_time_hours": None,
-                "most_collaborative_documents": []
+                "most_collaborative_documents": [],
             },
             workflow_metrics={
                 "approvals_requested": analytics.approvals_requested,
@@ -875,18 +909,18 @@ async def get_document_analytics(
                 "signatures_requested": analytics.signatures_requested,
                 "signatures_completed": analytics.signatures_completed,
                 "average_signing_time_hours": analytics.average_signing_time_hours,
-                "signature_success_rate": analytics.signature_success_rate
+                "signature_success_rate": analytics.signature_success_rate,
             },
             popular_content={},
             user_engagement={},
             system_performance={},
-            calculated_date=analytics.calculated_date
+            calculated_date=analytics.calculated_date,
         )
 
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to generate analytics: {str(e)}"
+            detail=f"Failed to generate analytics: {str(e)}",
         )
 
 
@@ -896,7 +930,7 @@ async def get_popular_content(
     period_days: int = Query(30, ge=1, le=365),
     metric: str = Query("views", regex="^(views|downloads|shares|comments)$"),
     limit: int = Query(10, ge=1, le=100),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> Dict[str, List[Dict[str, Any]]]:
     """Get popular content based on various engagement metrics."""
     # Implementation would analyze engagement data
@@ -907,12 +941,16 @@ async def get_popular_content(
 # 9. Digital Signatures & E-signing Endpoints
 # =============================================================================
 
-@router.post("/documents/{document_id}/signatures/request", response_model=List[SignatureResponse])
+
+@router.post(
+    "/documents/{document_id}/signatures/request",
+    response_model=List[SignatureResponse],
+)
 async def request_document_signatures(
     document_id: str,
     signature_request: SignatureRequestCreate,
     requested_by_id: str = Query(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> List[SignatureResponse]:
     """
     Request digital signatures for a document.
@@ -927,19 +965,21 @@ async def request_document_signatures(
     """
     try:
         # Convert single signature request to list format
-        signers = [{
-            "signer_id": signature_request.signer_id,
-            "signer_name": signature_request.signer_name,
-            "signer_email": signature_request.signer_email,
-            "signer_role": signature_request.signer_role,
-            "signature_type": signature_request.signature_type,
-            "page_number": signature_request.page_number,
-            "position_x": signature_request.position_x,
-            "position_y": signature_request.position_y,
-            "width": signature_request.width,
-            "height": signature_request.height,
-            "signing_deadline": signature_request.signing_deadline
-        }]
+        signers = [
+            {
+                "signer_id": signature_request.signer_id,
+                "signer_name": signature_request.signer_name,
+                "signer_email": signature_request.signer_email,
+                "signer_role": signature_request.signer_role,
+                "signature_type": signature_request.signature_type,
+                "page_number": signature_request.page_number,
+                "position_x": signature_request.position_x,
+                "position_y": signature_request.position_y,
+                "width": signature_request.width,
+                "height": signature_request.height,
+                "signing_deadline": signature_request.signing_deadline,
+            }
+        ]
 
         signatures = await document_service.request_document_signature(
             db, document_id, signers, requested_by_id
@@ -949,7 +989,7 @@ async def request_document_signatures(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to request signatures: {str(e)}"
+            detail=f"Failed to request signatures: {str(e)}",
         )
 
 
@@ -957,7 +997,7 @@ async def request_document_signatures(
 async def process_document_signature(
     signature_id: str,
     signature_data: SignatureProcessRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> SignatureResponse:
     """
     Process a digital signature with verification and validation.
@@ -979,7 +1019,7 @@ async def process_document_signature(
             "ip_address": signature_data.ip_address,
             "user_agent": signature_data.user_agent,
             "geolocation": signature_data.geolocation,
-            "verification_method": signature_data.verification_method
+            "verification_method": signature_data.verification_method,
         }
 
         processed_signature = await document_service.process_document_signature(
@@ -990,15 +1030,15 @@ async def process_document_signature(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to process signature: {str(e)}"
+            detail=f"Failed to process signature: {str(e)}",
         )
 
 
-@router.get("/documents/{document_id}/signatures", response_model=List[SignatureResponse])
+@router.get(
+    "/documents/{document_id}/signatures", response_model=List[SignatureResponse]
+)
 async def get_document_signatures(
-    document_id: str,
-    status: Optional[str] = Query(None),
-    db: Session = Depends(get_db)
+    document_id: str, status: Optional[str] = Query(None), db: Session = Depends(get_db)
 ) -> List[SignatureResponse]:
     """Get signature status and details for a document."""
     # Implementation would retrieve signatures with filtering
@@ -1009,7 +1049,7 @@ async def get_document_signatures(
 async def request_bulk_signatures(
     bulk_request: BulkSignatureRequest,
     requested_by_id: str = Query(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     """
     Request signatures for multiple documents in bulk.
@@ -1030,30 +1070,30 @@ async def request_bulk_signatures(
                 signatures = await document_service.request_document_signature(
                     db, document_id, bulk_request.signers, requested_by_id
                 )
-                results.append({
-                    "document_id": document_id,
-                    "signatures_requested": len(signatures),
-                    "success": True
-                })
+                results.append(
+                    {
+                        "document_id": document_id,
+                        "signatures_requested": len(signatures),
+                        "success": True,
+                    }
+                )
             except Exception as e:
-                errors.append({
-                    "document_id": document_id,
-                    "error": str(e),
-                    "success": False
-                })
+                errors.append(
+                    {"document_id": document_id, "error": str(e), "success": False}
+                )
 
         return {
             "total_documents": len(bulk_request.document_ids),
             "successful": len(results),
             "failed": len(errors),
             "results": results,
-            "errors": errors
+            "errors": errors,
         }
 
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Bulk signature request failed: {str(e)}"
+            detail=f"Bulk signature request failed: {str(e)}",
         )
 
 
@@ -1061,11 +1101,12 @@ async def request_bulk_signatures(
 # 10. Bulk Operations & Management Endpoints
 # =============================================================================
 
+
 @router.post("/documents/bulk-operation", response_model=BulkOperationResponse)
 async def perform_bulk_document_operation(
     operation: BulkDocumentOperation,
     user_id: str = Query(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> BulkOperationResponse:
     """
     Perform bulk operations on multiple documents.
@@ -1087,7 +1128,10 @@ async def perform_bulk_document_operation(
             try:
                 if operation.operation == "move":
                     await document_service.move_document(
-                        db, document_id, operation.parameters.get("target_folder_id"), user_id
+                        db,
+                        document_id,
+                        operation.parameters.get("target_folder_id"),
+                        user_id,
                     )
                 elif operation.operation == "delete":
                     await document_service.delete_document(db, document_id, user_id)
@@ -1109,13 +1153,13 @@ async def perform_bulk_document_operation(
             success_rate=len(successful) / len(operation.document_ids) * 100,
             successful_documents=successful,
             failed_documents=failed,
-            execution_time_ms=execution_time_ms
+            execution_time_ms=execution_time_ms,
         )
 
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Bulk operation failed: {str(e)}"
+            detail=f"Bulk operation failed: {str(e)}",
         )
 
 
@@ -1123,7 +1167,7 @@ async def perform_bulk_document_operation(
 async def bulk_tag_documents(
     tag_operation: BulkTagOperation,
     user_id: str = Query(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> BulkOperationResponse:
     """
     Bulk tag/untag multiple documents.
@@ -1144,7 +1188,7 @@ async def bulk_tag_documents(
         success_rate=100.0,
         successful_documents=tag_operation.document_ids,
         failed_documents=[],
-        execution_time_ms=100
+        execution_time_ms=100,
     )
 
 
@@ -1152,7 +1196,7 @@ async def bulk_tag_documents(
 async def bulk_share_documents(
     share_operation: BulkShareOperation,
     shared_by_id: str = Query(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> BulkOperationResponse:
     """
     Share multiple documents with consistent settings.
@@ -1173,7 +1217,7 @@ async def bulk_share_documents(
         success_rate=100.0,
         successful_documents=share_operation.document_ids,
         failed_documents=[],
-        execution_time_ms=150
+        execution_time_ms=150,
     )
 
 
@@ -1181,7 +1225,7 @@ async def bulk_share_documents(
 async def export_documents(
     export_request: ExportRequest,
     user_id: str = Query(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     """
     Export documents and metadata in various formats.
@@ -1201,13 +1245,12 @@ async def export_documents(
             "export_id": export_id,
             "status": "processing",
             "estimated_completion": datetime.now().isoformat(),
-            "download_url": f"/api/v1/exports/{export_id}/download"
+            "download_url": f"/api/v1/exports/{export_id}/download",
         }
 
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Export failed: {str(e)}"
+            status_code=status.HTTP_400_BAD_REQUEST, detail=f"Export failed: {str(e)}"
         )
 
 
@@ -1215,7 +1258,7 @@ async def export_documents(
 async def import_documents(
     import_request: ImportRequest,
     user_id: str = Query(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     """
     Import documents from various sources with metadata processing.
@@ -1235,13 +1278,12 @@ async def import_documents(
             "import_id": import_id,
             "status": "processing",
             "progress_percentage": 0,
-            "estimated_completion": datetime.now().isoformat()
+            "estimated_completion": datetime.now().isoformat(),
         }
 
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Import failed: {str(e)}"
+            status_code=status.HTTP_400_BAD_REQUEST, detail=f"Import failed: {str(e)}"
         )
 
 
@@ -1249,10 +1291,9 @@ async def import_documents(
 # System Health and Status
 # =============================================================================
 
+
 @router.get("/health", response_model=SystemHealthResponse)
-async def document_system_health(
-    db: Session = Depends(get_db)
-) -> SystemHealthResponse:
+async def document_system_health(db: Session = Depends(get_db)) -> SystemHealthResponse:
     """
     Document management system health check and status.
 
@@ -1273,7 +1314,7 @@ async def document_system_health(
             statistics=health_status["statistics"],
             performance_metrics=health_status.get("performance_metrics", {}),
             version=health_status["version"],
-            timestamp=health_status["timestamp"]
+            timestamp=health_status["timestamp"],
         )
 
     except Exception:
@@ -1283,5 +1324,5 @@ async def document_system_health(
             services_available=False,
             statistics={},
             version="31.0",
-            timestamp=datetime.utcnow().isoformat()
+            timestamp=datetime.utcnow().isoformat(),
         )

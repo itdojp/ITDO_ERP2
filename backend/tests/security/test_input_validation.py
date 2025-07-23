@@ -25,7 +25,7 @@ class TestInputValidationSecurity:
             {"name": "../../../etc/passwd"},
             {"name": "{{constructor.constructor('return process')().exit()}}"},
             {"email": "invalid-email"},
-            {"id": "'; UNION SELECT * FROM users --"}
+            {"id": "'; UNION SELECT * FROM users --"},
         ]
 
         for malicious_input in malicious_inputs:
@@ -35,14 +35,18 @@ class TestInputValidationSecurity:
             for endpoint in endpoints:
                 response = client.post(endpoint, json=malicious_input)
                 # Should reject malicious input with validation error
-                assert response.status_code in [400, 422, 404]  # 404 if endpoint doesn't exist
+                assert response.status_code in [
+                    400,
+                    422,
+                    404,
+                ]  # 404 if endpoint doesn't exist
 
     def test_oversized_input_rejected(self, client):
         """Test that oversized input is rejected"""
         oversized_data = {
             "name": "x" * 10000,  # Very long string
             "description": "y" * 50000,
-            "data": ["item"] * 1000  # Large array
+            "data": ["item"] * 1000,  # Large array
         }
 
         response = client.post("/api/v1/test-endpoint", json=oversized_data)
@@ -82,8 +86,8 @@ class TestInputValidationSecurity:
         unicode_attacks = [
             {"name": "test\u0000null"},  # Null byte
             {"name": "test\u202emoc.evil\u202d.good.com"},  # Right-to-left override
-            {"name": "test\uFEFFzero-width"},  # Zero-width no-break space
-            {"name": "test\u200Binvisible"},  # Zero-width space
+            {"name": "test\ufeffzero-width"},  # Zero-width no-break space
+            {"name": "test\u200binvisible"},  # Zero-width space
         ]
 
         for unicode_input in unicode_attacks:

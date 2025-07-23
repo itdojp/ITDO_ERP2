@@ -50,9 +50,7 @@ class AnalyticsService:
     # =============================================================================
 
     async def create_data_source(
-        self,
-        db: Session,
-        data_source_data: dict
+        self, db: Session, data_source_data: dict
     ) -> AnalyticsDataSource:
         """Create a new analytics data source with connection configuration."""
 
@@ -77,7 +75,7 @@ class AnalyticsService:
             tags=data_source_data.get("tags", []),
             analytics_metadata=data_source_data.get("metadata", {}),
             custom_fields=data_source_data.get("custom_fields", {}),
-            created_by=data_source_data["created_by"]
+            created_by=data_source_data["created_by"],
         )
 
         db.add(data_source)
@@ -85,22 +83,26 @@ class AnalyticsService:
         db.refresh(data_source)
 
         await self._log_analytics_action(
-            db, "create_data_source", "data_source", data_source.id,
-            data_source_data["created_by"], {"name": data_source.name}
+            db,
+            "create_data_source",
+            "data_source",
+            data_source.id,
+            data_source_data["created_by"],
+            {"name": data_source.name},
         )
 
         return data_source
 
     async def test_data_source_connection(
-        self,
-        db: Session,
-        data_source_id: str
+        self, db: Session, data_source_id: str
     ) -> Dict[str, Any]:
         """Test data source connection and return health status."""
 
-        data_source = db.query(AnalyticsDataSource).filter(
-            AnalyticsDataSource.id == data_source_id
-        ).first()
+        data_source = (
+            db.query(AnalyticsDataSource)
+            .filter(AnalyticsDataSource.id == data_source_id)
+            .first()
+        )
 
         if not data_source:
             return {"status": "error", "message": "Data source not found"}
@@ -110,8 +112,12 @@ class AnalyticsService:
             connection_result = await self._test_connection_by_type(data_source)
 
             # Update health status
-            data_source.health_status = "healthy" if connection_result["success"] else "unhealthy"
-            data_source.last_error = None if connection_result["success"] else connection_result.get("error")
+            data_source.health_status = (
+                "healthy" if connection_result["success"] else "unhealthy"
+            )
+            data_source.last_error = (
+                None if connection_result["success"] else connection_result.get("error")
+            )
 
             db.commit()
 
@@ -119,7 +125,7 @@ class AnalyticsService:
                 "status": "success" if connection_result["success"] else "error",
                 "connection_time_ms": connection_result.get("connection_time_ms", 0),
                 "message": connection_result.get("message", ""),
-                "details": connection_result.get("details", {})
+                "details": connection_result.get("details", {}),
             }
 
         except Exception as e:
@@ -131,15 +137,15 @@ class AnalyticsService:
             return {"status": "error", "message": str(e)}
 
     async def sync_data_source(
-        self,
-        db: Session,
-        data_source_id: str
+        self, db: Session, data_source_id: str
     ) -> Dict[str, Any]:
         """Sync data from data source and update metrics."""
 
-        data_source = db.query(AnalyticsDataSource).filter(
-            AnalyticsDataSource.id == data_source_id
-        ).first()
+        data_source = (
+            db.query(AnalyticsDataSource)
+            .filter(AnalyticsDataSource.id == data_source_id)
+            .first()
+        )
 
         if not data_source:
             return {"status": "error", "message": "Data source not found"}
@@ -157,8 +163,8 @@ class AnalyticsService:
 
             processing_time = (datetime.utcnow() - sync_start).total_seconds()
             data_source.processing_time_avg = (
-                (data_source.processing_time_avg or 0 + processing_time) / 2
-            )
+                data_source.processing_time_avg or 0 + processing_time
+            ) / 2
 
             db.commit()
 
@@ -166,7 +172,7 @@ class AnalyticsService:
                 "status": "success",
                 "records_processed": sync_result.get("records_processed", 0),
                 "processing_time_seconds": processing_time,
-                "metrics_updated": sync_result.get("metrics_updated", 0)
+                "metrics_updated": sync_result.get("metrics_updated", 0),
             }
 
         except Exception as e:
@@ -176,7 +182,9 @@ class AnalyticsService:
 
             return {"status": "error", "message": str(e)}
 
-    async def _test_connection_by_type(self, data_source: AnalyticsDataSource) -> Dict[str, Any]:
+    async def _test_connection_by_type(
+        self, data_source: AnalyticsDataSource
+    ) -> Dict[str, Any]:
         """Test connection based on data source type."""
 
         if data_source.source_type == "database":
@@ -189,9 +197,7 @@ class AnalyticsService:
             return {"success": True, "message": "Mock connection test successful"}
 
     async def _sync_data_by_type(
-        self,
-        db: Session,
-        data_source: AnalyticsDataSource
+        self, db: Session, data_source: AnalyticsDataSource
     ) -> Dict[str, Any]:
         """Sync data based on data source type."""
 
@@ -201,18 +207,14 @@ class AnalyticsService:
 
         return {
             "records_processed": records_processed,
-            "metrics_updated": metrics_updated
+            "metrics_updated": metrics_updated,
         }
 
     # =============================================================================
     # Metric Management
     # =============================================================================
 
-    async def create_metric(
-        self,
-        db: Session,
-        metric_data: dict
-    ) -> AnalyticsMetric:
+    async def create_metric(self, db: Session, metric_data: dict) -> AnalyticsMetric:
         """Create a new analytics metric with calculation configuration."""
 
         metric = AnalyticsMetric(
@@ -252,7 +254,7 @@ class AnalyticsService:
             allowed_users=metric_data.get("allowed_users", []),
             tags=metric_data.get("tags", []),
             analytics_metadata=metric_data.get("metadata", {}),
-            created_by=metric_data["created_by"]
+            created_by=metric_data["created_by"],
         )
 
         db.add(metric)
@@ -263,8 +265,12 @@ class AnalyticsService:
         await self._schedule_metric_calculation(db, metric.id)
 
         await self._log_analytics_action(
-            db, "create_metric", "metric", metric.id,
-            metric_data["created_by"], {"name": metric.name, "type": metric.metric_type.value}
+            db,
+            "create_metric",
+            "metric",
+            metric.id,
+            metric_data["created_by"],
+            {"name": metric.name, "type": metric.metric_type.value},
         )
 
         return metric
@@ -274,13 +280,13 @@ class AnalyticsService:
         db: Session,
         metric_id: str,
         period_start: Optional[datetime] = None,
-        period_end: Optional[datetime] = None
+        period_end: Optional[datetime] = None,
     ) -> Dict[str, Any]:
         """Calculate metric value for specified period."""
 
-        metric = db.query(AnalyticsMetric).filter(
-            AnalyticsMetric.id == metric_id
-        ).first()
+        metric = (
+            db.query(AnalyticsMetric).filter(AnalyticsMetric.id == metric_id).first()
+        )
 
         if not metric:
             return {"status": "error", "message": "Metric not found"}
@@ -318,7 +324,7 @@ class AnalyticsService:
                 dimensions=calculation_result.get("dimensions", {}),
                 quality_score=calculation_result.get("quality_score", Decimal("1.0")),
                 source_query=calculation_result.get("source_query"),
-                calculation_metadata=calculation_result.get("metadata", {})
+                calculation_metadata=calculation_result.get("metadata", {}),
             )
 
             db.add(data_point)
@@ -341,13 +347,17 @@ class AnalyticsService:
                 "period_start": period_start.isoformat(),
                 "period_end": period_end.isoformat(),
                 "quality_score": float(calculation_result.get("quality_score", 1.0)),
-                "calculation_metadata": calculation_result.get("metadata", {})
+                "calculation_metadata": calculation_result.get("metadata", {}),
             }
 
         except Exception as e:
             await self._log_analytics_action(
-                db, "calculate_metric_error", "metric", metric_id,
-                None, {"error": str(e)}
+                db,
+                "calculate_metric_error",
+                "metric",
+                metric_id,
+                None,
+                {"error": str(e)},
             )
             return {"status": "error", "message": str(e)}
 
@@ -356,7 +366,7 @@ class AnalyticsService:
         db: Session,
         metric: AnalyticsMetric,
         period_start: datetime,
-        period_end: datetime
+        period_end: datetime,
     ) -> Dict[str, Any]:
         """Execute metric calculation based on formula and configuration."""
 
@@ -395,8 +405,8 @@ class AnalyticsService:
             "source_query": f"SELECT {metric.calculation_formula} FROM data WHERE period BETWEEN '{period_start}' AND '{period_end}'",
             "metadata": {
                 "calculation_time_ms": np.random.randint(50, 500),
-                "data_points_analyzed": np.random.randint(100, 10000)
-            }
+                "data_points_analyzed": np.random.randint(100, 10000),
+            },
         }
 
     async def get_metric_trends(
@@ -404,26 +414,40 @@ class AnalyticsService:
         db: Session,
         metric_id: str,
         period_type: PeriodType = PeriodType.DAY,
-        period_count: int = 30
+        period_count: int = 30,
     ) -> List[Dict[str, Any]]:
         """Get metric trend data for specified periods."""
 
-        data_points = db.query(AnalyticsDataPoint).filter(
-            AnalyticsDataPoint.metric_id == metric_id,
-            AnalyticsDataPoint.period_type == period_type
-        ).order_by(desc(AnalyticsDataPoint.timestamp)).limit(period_count).all()
+        data_points = (
+            db.query(AnalyticsDataPoint)
+            .filter(
+                AnalyticsDataPoint.metric_id == metric_id,
+                AnalyticsDataPoint.period_type == period_type,
+            )
+            .order_by(desc(AnalyticsDataPoint.timestamp))
+            .limit(period_count)
+            .all()
+        )
 
         trends = []
         for point in reversed(data_points):
-            trends.append({
-                "timestamp": point.timestamp.isoformat(),
-                "period_start": point.period_start.isoformat() if point.period_start else None,
-                "period_end": point.period_end.isoformat() if point.period_end else None,
-                "value": float(point.value),
-                "raw_value": float(point.raw_value) if point.raw_value else None,
-                "quality_score": float(point.quality_score) if point.quality_score else None,
-                "is_anomaly": point.is_anomaly
-            })
+            trends.append(
+                {
+                    "timestamp": point.timestamp.isoformat(),
+                    "period_start": point.period_start.isoformat()
+                    if point.period_start
+                    else None,
+                    "period_end": point.period_end.isoformat()
+                    if point.period_end
+                    else None,
+                    "value": float(point.value),
+                    "raw_value": float(point.raw_value) if point.raw_value else None,
+                    "quality_score": float(point.quality_score)
+                    if point.quality_score
+                    else None,
+                    "is_anomaly": point.is_anomaly,
+                }
+            )
 
         return trends
 
@@ -432,14 +456,14 @@ class AnalyticsService:
     # =============================================================================
 
     async def create_dashboard(
-        self,
-        db: Session,
-        dashboard_data: dict
+        self, db: Session, dashboard_data: dict
     ) -> AnalyticsDashboard:
         """Create a new analytics dashboard with widget configuration."""
 
         # Generate unique slug
-        slug = dashboard_data.get("slug") or self._generate_dashboard_slug(dashboard_data["name"])
+        slug = dashboard_data.get("slug") or self._generate_dashboard_slug(
+            dashboard_data["name"]
+        )
 
         dashboard = AnalyticsDashboard(
             organization_id=dashboard_data["organization_id"],
@@ -465,12 +489,14 @@ class AnalyticsService:
             theme=dashboard_data.get("theme", "default"),
             color_scheme=dashboard_data.get("color_scheme"),
             custom_css=dashboard_data.get("custom_css"),
-            export_formats=dashboard_data.get("export_formats", ["pdf", "png", "excel"]),
+            export_formats=dashboard_data.get(
+                "export_formats", ["pdf", "png", "excel"]
+            ),
             email_recipients=dashboard_data.get("email_recipients", []),
             email_schedule=dashboard_data.get("email_schedule"),
             tags=dashboard_data.get("tags", []),
             analytics_metadata=dashboard_data.get("metadata", {}),
-            created_by=dashboard_data["created_by"]
+            created_by=dashboard_data["created_by"],
         )
 
         # Generate share token if shared
@@ -482,8 +508,12 @@ class AnalyticsService:
         db.refresh(dashboard)
 
         await self._log_analytics_action(
-            db, "create_dashboard", "dashboard", dashboard.id,
-            dashboard_data["created_by"], {"name": dashboard.name, "type": dashboard.dashboard_type.value}
+            db,
+            "create_dashboard",
+            "dashboard",
+            dashboard.id,
+            dashboard_data["created_by"],
+            {"name": dashboard.name, "type": dashboard.dashboard_type.value},
         )
 
         return dashboard
@@ -494,13 +524,15 @@ class AnalyticsService:
         dashboard_id: str,
         period_start: Optional[datetime] = None,
         period_end: Optional[datetime] = None,
-        filters: Optional[Dict[str, Any]] = None
+        filters: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Get dashboard data with all widget information."""
 
-        dashboard = db.query(AnalyticsDashboard).filter(
-            AnalyticsDashboard.id == dashboard_id
-        ).first()
+        dashboard = (
+            db.query(AnalyticsDashboard)
+            .filter(AnalyticsDashboard.id == dashboard_id)
+            .first()
+        )
 
         if not dashboard:
             return {"status": "error", "message": "Dashboard not found"}
@@ -532,11 +564,13 @@ class AnalyticsService:
                 "widget_settings": dashboard.widget_settings,
                 "global_filters": dashboard.global_filters,
                 "theme": dashboard.theme,
-                "last_updated": dashboard.updated_at.isoformat() if dashboard.updated_at else None
+                "last_updated": dashboard.updated_at.isoformat()
+                if dashboard.updated_at
+                else None,
             },
             "widget_data": widget_data,
             "period_start": period_start.isoformat() if period_start else None,
-            "period_end": period_end.isoformat() if period_end else None
+            "period_end": period_end.isoformat() if period_end else None,
         }
 
     async def _get_widget_data(
@@ -545,20 +579,28 @@ class AnalyticsService:
         widget: Dict[str, Any],
         period_start: Optional[datetime],
         period_end: Optional[datetime],
-        filters: Optional[Dict[str, Any]]
+        filters: Optional[Dict[str, Any]],
     ) -> Dict[str, Any]:
         """Get data for individual dashboard widget."""
 
         widget_type = widget.get("type", "metric")
 
         if widget_type == "metric":
-            return await self._get_metric_widget_data(db, widget, period_start, period_end, filters)
+            return await self._get_metric_widget_data(
+                db, widget, period_start, period_end, filters
+            )
         elif widget_type == "chart":
-            return await self._get_chart_widget_data(db, widget, period_start, period_end, filters)
+            return await self._get_chart_widget_data(
+                db, widget, period_start, period_end, filters
+            )
         elif widget_type == "table":
-            return await self._get_table_widget_data(db, widget, period_start, period_end, filters)
+            return await self._get_table_widget_data(
+                db, widget, period_start, period_end, filters
+            )
         elif widget_type == "kpi":
-            return await self._get_kpi_widget_data(db, widget, period_start, period_end, filters)
+            return await self._get_kpi_widget_data(
+                db, widget, period_start, period_end, filters
+            )
         else:
             return {"type": widget_type, "data": {}, "status": "unknown_widget_type"}
 
@@ -568,7 +610,7 @@ class AnalyticsService:
         widget: Dict[str, Any],
         period_start: Optional[datetime],
         period_end: Optional[datetime],
-        filters: Optional[Dict[str, Any]]
+        filters: Optional[Dict[str, Any]],
     ) -> Dict[str, Any]:
         """Get data for metric widget."""
 
@@ -576,17 +618,20 @@ class AnalyticsService:
         if not metric_id:
             return {"type": "metric", "data": {}, "status": "missing_metric_id"}
 
-        metric = db.query(AnalyticsMetric).filter(
-            AnalyticsMetric.id == metric_id
-        ).first()
+        metric = (
+            db.query(AnalyticsMetric).filter(AnalyticsMetric.id == metric_id).first()
+        )
 
         if not metric:
             return {"type": "metric", "data": {}, "status": "metric_not_found"}
 
         # Get latest value
-        latest_point = db.query(AnalyticsDataPoint).filter(
-            AnalyticsDataPoint.metric_id == metric_id
-        ).order_by(desc(AnalyticsDataPoint.timestamp)).first()
+        latest_point = (
+            db.query(AnalyticsDataPoint)
+            .filter(AnalyticsDataPoint.metric_id == metric_id)
+            .order_by(desc(AnalyticsDataPoint.timestamp))
+            .first()
+        )
 
         return {
             "type": "metric",
@@ -596,27 +641,31 @@ class AnalyticsService:
                     "name": metric.name,
                     "display_name": metric.display_name or metric.name,
                     "unit": metric.unit,
-                    "format_pattern": metric.format_pattern
+                    "format_pattern": metric.format_pattern,
                 },
                 "current_value": float(latest_point.value) if latest_point else 0,
-                "previous_value": float(metric.previous_value) if metric.previous_value else None,
+                "previous_value": float(metric.previous_value)
+                if metric.previous_value
+                else None,
                 "trend_direction": metric.trend_direction,
-                "trend_percentage": float(metric.trend_percentage) if metric.trend_percentage else None,
-                "target_value": float(metric.target_value) if metric.target_value else None,
-                "last_updated": latest_point.timestamp.isoformat() if latest_point else None
+                "trend_percentage": float(metric.trend_percentage)
+                if metric.trend_percentage
+                else None,
+                "target_value": float(metric.target_value)
+                if metric.target_value
+                else None,
+                "last_updated": latest_point.timestamp.isoformat()
+                if latest_point
+                else None,
             },
-            "status": "success"
+            "status": "success",
         }
 
     # =============================================================================
     # Report Management
     # =============================================================================
 
-    async def create_report(
-        self,
-        db: Session,
-        report_data: dict
-    ) -> AnalyticsReport:
+    async def create_report(self, db: Session, report_data: dict) -> AnalyticsReport:
         """Create a new analytics report with scheduling configuration."""
 
         report = AnalyticsReport(
@@ -646,20 +695,26 @@ class AnalyticsService:
             allowed_users=report_data.get("allowed_users", []),
             tags=report_data.get("tags", []),
             analytics_metadata=report_data.get("metadata", {}),
-            created_by=report_data["created_by"]
+            created_by=report_data["created_by"],
         )
 
         # Calculate next run if scheduled
         if report.is_scheduled and report.schedule_cron:
-            report.next_run_at = await self._calculate_next_report_run(report.schedule_cron)
+            report.next_run_at = await self._calculate_next_report_run(
+                report.schedule_cron
+            )
 
         db.add(report)
         db.commit()
         db.refresh(report)
 
         await self._log_analytics_action(
-            db, "create_report", "report", report.id,
-            report_data["created_by"], {"name": report.name, "type": report.report_type}
+            db,
+            "create_report",
+            "report",
+            report.id,
+            report_data["created_by"],
+            {"name": report.name, "type": report.report_type},
         )
 
         return report
@@ -669,13 +724,13 @@ class AnalyticsService:
         db: Session,
         report_id: str,
         execution_type: str = "manual",
-        triggered_by: Optional[str] = None
+        triggered_by: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Generate report and create execution record."""
 
-        report = db.query(AnalyticsReport).filter(
-            AnalyticsReport.id == report_id
-        ).first()
+        report = (
+            db.query(AnalyticsReport).filter(AnalyticsReport.id == report_id).first()
+        )
 
         if not report:
             return {"status": "error", "message": "Report not found"}
@@ -690,7 +745,7 @@ class AnalyticsService:
             started_at=datetime.utcnow(),
             parameters=report.parameters,
             filters=report.filters,
-            output_format=report.format
+            output_format=report.format,
         )
 
         db.add(execution)
@@ -698,12 +753,16 @@ class AnalyticsService:
 
         try:
             # Generate report
-            generation_result = await self._generate_report_content(db, report, execution)
+            generation_result = await self._generate_report_content(
+                db, report, execution
+            )
 
             # Update execution with results
             execution.status = ReportStatus.COMPLETED
             execution.completed_at = datetime.utcnow()
-            execution.duration_ms = int((execution.completed_at - execution.started_at).total_seconds() * 1000)
+            execution.duration_ms = int(
+                (execution.completed_at - execution.started_at).total_seconds() * 1000
+            )
             execution.output_path = generation_result.get("output_path")
             execution.output_size_bytes = generation_result.get("output_size_bytes")
             execution.records_processed = generation_result.get("records_processed")
@@ -715,8 +774,8 @@ class AnalyticsService:
             report.last_run_at = execution.completed_at
             report.last_generation_duration = execution.duration_ms
             report.avg_generation_time = (
-                (report.avg_generation_time or 0 + execution.duration_ms) // 2
-            )
+                report.avg_generation_time or 0 + execution.duration_ms
+            ) // 2
             report.last_output_path = execution.output_path
             report.last_output_size = execution.output_size_bytes
 
@@ -731,7 +790,7 @@ class AnalyticsService:
                 "execution_id": execution.id,
                 "output_path": execution.output_path,
                 "generation_time_ms": execution.duration_ms,
-                "records_processed": execution.records_processed
+                "records_processed": execution.records_processed,
             }
 
         except Exception as e:
@@ -750,9 +809,7 @@ class AnalyticsService:
     # =============================================================================
 
     async def create_prediction_model(
-        self,
-        db: Session,
-        prediction_data: dict
+        self, db: Session, prediction_data: dict
     ) -> AnalyticsPrediction:
         """Create and train a predictive analytics model."""
 
@@ -771,7 +828,7 @@ class AnalyticsService:
             update_frequency=prediction_data.get("update_frequency", "weekly"),
             tags=prediction_data.get("tags", []),
             model_metadata=prediction_data.get("metadata", {}),
-            created_by=prediction_data["created_by"]
+            created_by=prediction_data["created_by"],
         )
 
         db.add(prediction)
@@ -782,22 +839,26 @@ class AnalyticsService:
         await self._train_prediction_model(db, prediction.id)
 
         await self._log_analytics_action(
-            db, "create_prediction", "prediction", prediction.id,
-            prediction_data["created_by"], {"name": prediction.name, "type": prediction.prediction_type}
+            db,
+            "create_prediction",
+            "prediction",
+            prediction.id,
+            prediction_data["created_by"],
+            {"name": prediction.name, "type": prediction.prediction_type},
         )
 
         return prediction
 
     async def _train_prediction_model(
-        self,
-        db: Session,
-        prediction_id: str
+        self, db: Session, prediction_id: str
     ) -> Dict[str, Any]:
         """Train prediction model with historical data."""
 
-        prediction = db.query(AnalyticsPrediction).filter(
-            AnalyticsPrediction.id == prediction_id
-        ).first()
+        prediction = (
+            db.query(AnalyticsPrediction)
+            .filter(AnalyticsPrediction.id == prediction_id)
+            .first()
+        )
 
         if not prediction:
             return {"status": "error", "message": "Prediction model not found"}
@@ -810,15 +871,21 @@ class AnalyticsService:
 
             # Train model based on type
             if prediction.model_type == "linear_regression":
-                model_result = await self._train_linear_regression(training_data, prediction)
+                model_result = await self._train_linear_regression(
+                    training_data, prediction
+                )
             elif prediction.model_type == "arima":
                 model_result = await self._train_arima(training_data, prediction)
             else:
-                model_result = await self._train_default_model(training_data, prediction)
+                model_result = await self._train_default_model(
+                    training_data, prediction
+                )
 
             # Update prediction with results
             prediction.last_trained_at = training_start
-            prediction.training_duration = int((datetime.utcnow() - training_start).total_seconds())
+            prediction.training_duration = int(
+                (datetime.utcnow() - training_start).total_seconds()
+            )
             prediction.accuracy_score = model_result.get("accuracy_score")
             prediction.mae_score = model_result.get("mae_score")
             prediction.rmse_score = model_result.get("rmse_score")
@@ -827,7 +894,9 @@ class AnalyticsService:
             prediction.training_data_points = model_result.get("data_points", 0)
 
             # Generate and cache predictions
-            predictions = await self._generate_predictions(model_result["model"], prediction)
+            predictions = await self._generate_predictions(
+                model_result["model"], prediction
+            )
             prediction.cached_predictions = predictions
             prediction.cache_valid_until = datetime.utcnow() + timedelta(
                 days=7 if prediction.update_frequency == "weekly" else 1
@@ -837,10 +906,12 @@ class AnalyticsService:
 
             return {
                 "status": "success",
-                "accuracy_score": float(prediction.accuracy_score) if prediction.accuracy_score else None,
+                "accuracy_score": float(prediction.accuracy_score)
+                if prediction.accuracy_score
+                else None,
                 "training_duration": prediction.training_duration,
                 "data_points": model_result.get("data_points", 0),
-                "predictions_generated": len(predictions)
+                "predictions_generated": len(predictions),
             }
 
         except Exception as e:
@@ -850,25 +921,25 @@ class AnalyticsService:
             return {"status": "error", "message": str(e)}
 
     async def get_predictions(
-        self,
-        db: Session,
-        prediction_id: str,
-        forecast_days: Optional[int] = None
+        self, db: Session, prediction_id: str, forecast_days: Optional[int] = None
     ) -> Dict[str, Any]:
         """Get predictions from trained model."""
 
-        prediction = db.query(AnalyticsPrediction).filter(
-            AnalyticsPrediction.id == prediction_id
-        ).first()
+        prediction = (
+            db.query(AnalyticsPrediction)
+            .filter(AnalyticsPrediction.id == prediction_id)
+            .first()
+        )
 
         if not prediction:
             return {"status": "error", "message": "Prediction model not found"}
 
         # Check if cached predictions are valid
-        if (prediction.cached_predictions and
-            prediction.cache_valid_until and
-            prediction.cache_valid_until > datetime.utcnow()):
-
+        if (
+            prediction.cached_predictions
+            and prediction.cache_valid_until
+            and prediction.cache_valid_until > datetime.utcnow()
+        ):
             predictions = prediction.cached_predictions
         else:
             # Regenerate predictions
@@ -884,21 +955,21 @@ class AnalyticsService:
             "status": "success",
             "prediction_id": prediction_id,
             "model_type": prediction.model_type,
-            "last_trained_at": prediction.last_trained_at.isoformat() if prediction.last_trained_at else None,
-            "accuracy_score": float(prediction.accuracy_score) if prediction.accuracy_score else None,
+            "last_trained_at": prediction.last_trained_at.isoformat()
+            if prediction.last_trained_at
+            else None,
+            "accuracy_score": float(prediction.accuracy_score)
+            if prediction.accuracy_score
+            else None,
             "predictions": predictions,
-            "forecast_horizon": len(predictions)
+            "forecast_horizon": len(predictions),
         }
 
     # =============================================================================
     # Alert Management
     # =============================================================================
 
-    async def create_alert(
-        self,
-        db: Session,
-        alert_data: dict
-    ) -> AnalyticsAlert:
+    async def create_alert(self, db: Session, alert_data: dict) -> AnalyticsAlert:
         """Create a new analytics alert with threshold configuration."""
 
         alert = AnalyticsAlert(
@@ -921,7 +992,7 @@ class AnalyticsService:
             notification_template=alert_data.get("notification_template"),
             tags=alert_data.get("tags", []),
             alert_metadata=alert_data.get("metadata", {}),
-            created_by=alert_data["created_by"]
+            created_by=alert_data["created_by"],
         )
 
         db.add(alert)
@@ -929,30 +1000,37 @@ class AnalyticsService:
         db.refresh(alert)
 
         await self._log_analytics_action(
-            db, "create_alert", "alert", alert.id,
-            alert_data["created_by"], {"name": alert.name, "metric_id": alert.metric_id}
+            db,
+            "create_alert",
+            "alert",
+            alert.id,
+            alert_data["created_by"],
+            {"name": alert.name, "metric_id": alert.metric_id},
         )
 
         return alert
 
     async def _check_metric_alerts(
-        self,
-        db: Session,
-        metric: AnalyticsMetric,
-        current_value: Decimal
+        self, db: Session, metric: AnalyticsMetric, current_value: Decimal
     ) -> List[Dict[str, Any]]:
         """Check if metric value triggers any alerts."""
 
-        alerts = db.query(AnalyticsAlert).filter(
-            AnalyticsAlert.metric_id == metric.id,
-            AnalyticsAlert.is_active,
-            not AnalyticsAlert.is_suppressed
-        ).all()
+        alerts = (
+            db.query(AnalyticsAlert)
+            .filter(
+                AnalyticsAlert.metric_id == metric.id,
+                AnalyticsAlert.is_active,
+                not AnalyticsAlert.is_suppressed,
+            )
+            .all()
+        )
 
         triggered_alerts = []
 
         for alert in alerts:
-            is_triggered = await self._evaluate_alert_condition(alert, current_value, metric)
+            is_triggered = await self._evaluate_alert_condition(
+                alert, current_value, metric
+            )
 
             if is_triggered:
                 # Update alert status
@@ -963,13 +1041,15 @@ class AnalyticsService:
                 # Send notifications
                 await self._send_alert_notifications(db, alert, metric, current_value)
 
-                triggered_alerts.append({
-                    "alert_id": alert.id,
-                    "name": alert.name,
-                    "priority": alert.priority.value,
-                    "current_value": float(current_value),
-                    "triggered_at": alert.last_triggered_at.isoformat()
-                })
+                triggered_alerts.append(
+                    {
+                        "alert_id": alert.id,
+                        "name": alert.name,
+                        "priority": alert.priority.value,
+                        "current_value": float(current_value),
+                        "triggered_at": alert.last_triggered_at.isoformat(),
+                    }
+                )
 
             alert.last_evaluated_at = datetime.utcnow()
 
@@ -986,7 +1066,7 @@ class AnalyticsService:
         db: Session,
         organization_id: str,
         analytics_types: Optional[List[AnalyticsType]] = None,
-        period_days: int = 30
+        period_days: int = 30,
     ) -> List[Dict[str, Any]]:
         """Generate AI-powered analytics insights."""
 
@@ -995,7 +1075,7 @@ class AnalyticsService:
         # Get metrics for analysis
         query = db.query(AnalyticsMetric).filter(
             AnalyticsMetric.organization_id == organization_id,
-            AnalyticsMetric.is_active
+            AnalyticsMetric.is_active,
         )
 
         if analytics_types:
@@ -1005,11 +1085,15 @@ class AnalyticsService:
 
         for metric in metrics:
             # Generate insights for each metric
-            metric_insights = await self._generate_metric_insights(db, metric, period_days)
+            metric_insights = await self._generate_metric_insights(
+                db, metric, period_days
+            )
             insights.extend(metric_insights)
 
         # Generate cross-metric insights
-        cross_insights = await self._generate_cross_metric_insights(db, metrics, period_days)
+        cross_insights = await self._generate_cross_metric_insights(
+            db, metrics, period_days
+        )
         insights.extend(cross_insights)
 
         # Store insights in database
@@ -1035,7 +1119,7 @@ class AnalyticsService:
                 generation_version="1.0",
                 generation_parameters={"period_days": period_days},
                 tags=insight_data.get("tags", []),
-                insight_metadata=insight_data.get("metadata", {})
+                insight_metadata=insight_data.get("metadata", {}),
             )
 
             db.add(insight)
@@ -1055,18 +1139,20 @@ class AnalyticsService:
         entity_type: str,
         entity_id: str,
         user_id: Optional[str],
-        context_data: Optional[Dict[str, Any]] = None
+        context_data: Optional[Dict[str, Any]] = None,
     ):
         """Log analytics action for audit trail."""
 
         audit_log = AnalyticsAuditLog(
-            organization_id=context_data.get("organization_id") if context_data else None,
+            organization_id=context_data.get("organization_id")
+            if context_data
+            else None,
             action_type=action_type,
             entity_type=entity_type,
             entity_id=entity_id,
             user_id=user_id,
             context_data=context_data or {},
-            impact_level="medium"
+            impact_level="medium",
         )
 
         db.add(audit_log)
@@ -1075,8 +1161,9 @@ class AnalyticsService:
     def _generate_dashboard_slug(self, name: str) -> str:
         """Generate unique slug for dashboard."""
         import re
-        slug = re.sub(r'[^a-zA-Z0-9\s-]', '', name.lower())
-        slug = re.sub(r'\s+', '-', slug)
+
+        slug = re.sub(r"[^a-zA-Z0-9\s-]", "", name.lower())
+        slug = re.sub(r"\s+", "-", slug)
         return f"{slug}-{uuid.uuid4().hex[:8]}"
 
     async def _calculate_next_sync(self, data_source: AnalyticsDataSource) -> datetime:
@@ -1103,15 +1190,24 @@ class AnalyticsService:
 
             # Get system statistics
             total_metrics = db.query(AnalyticsMetric).count()
-            active_data_sources = db.query(AnalyticsDataSource).filter(
-                AnalyticsDataSource.is_active
-            ).count()
-            total_dashboards = db.query(AnalyticsDashboard).filter(
-                AnalyticsDashboard.is_active
-            ).count()
-            recent_data_points = db.query(AnalyticsDataPoint).filter(
-                AnalyticsDataPoint.created_at >= datetime.utcnow() - timedelta(hours=24)
-            ).count()
+            active_data_sources = (
+                db.query(AnalyticsDataSource)
+                .filter(AnalyticsDataSource.is_active)
+                .count()
+            )
+            total_dashboards = (
+                db.query(AnalyticsDashboard)
+                .filter(AnalyticsDashboard.is_active)
+                .count()
+            )
+            recent_data_points = (
+                db.query(AnalyticsDataPoint)
+                .filter(
+                    AnalyticsDataPoint.created_at
+                    >= datetime.utcnow() - timedelta(hours=24)
+                )
+                .count()
+            )
 
             return {
                 "status": "healthy",
@@ -1121,15 +1217,15 @@ class AnalyticsService:
                     "total_metrics": total_metrics,
                     "active_data_sources": active_data_sources,
                     "total_dashboards": total_dashboards,
-                    "recent_data_points": recent_data_points
+                    "recent_data_points": recent_data_points,
                 },
                 "version": "31.0",
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.utcnow().isoformat(),
             }
 
         except Exception as e:
             return {
                 "status": "unhealthy",
                 "error": str(e),
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.utcnow().isoformat(),
             }

@@ -25,7 +25,7 @@ class AdvancedTestAutomation:
             "coverage_improvements": [],
             "mutation_tests": [],
             "performance_tests": [],
-            "integration_tests": []
+            "integration_tests": [],
         }
         self.target_coverage = 95.0
 
@@ -38,7 +38,7 @@ class AdvancedTestAutomation:
             "services": [],
             "api_endpoints": [],
             "utilities": [],
-            "untested_functions": []
+            "untested_functions": [],
         }
 
         # Analyze models
@@ -46,21 +46,27 @@ class AdvancedTestAutomation:
         if models_dir.exists():
             for model_file in models_dir.glob("*.py"):
                 if model_file.name != "__init__.py":
-                    structure["models"].append(await self.analyze_model_file(model_file))
+                    structure["models"].append(
+                        await self.analyze_model_file(model_file)
+                    )
 
         # Analyze services
         services_dir = Path("app/services")
         if services_dir.exists():
             for service_file in services_dir.rglob("*.py"):
                 if service_file.name != "__init__.py":
-                    structure["services"].append(await self.analyze_service_file(service_file))
+                    structure["services"].append(
+                        await self.analyze_service_file(service_file)
+                    )
 
         # Analyze API endpoints
         api_dir = Path("app/api")
         if api_dir.exists():
             for api_file in api_dir.rglob("*.py"):
                 if api_file.name != "__init__.py" and "router" not in api_file.name:
-                    structure["api_endpoints"].append(await self.analyze_api_file(api_file))
+                    structure["api_endpoints"].append(
+                        await self.analyze_api_file(api_file)
+                    )
 
         return structure
 
@@ -77,7 +83,7 @@ class AdvancedTestAutomation:
                 "classes": [],
                 "methods": [],
                 "relationships": [],
-                "validation_rules": []
+                "validation_rules": [],
             }
 
             for node in ast.walk(tree):
@@ -86,7 +92,7 @@ class AdvancedTestAutomation:
                         "name": node.name,
                         "methods": [],
                         "properties": [],
-                        "validators": []
+                        "validators": [],
                     }
 
                     for item in node.body:
@@ -95,7 +101,9 @@ class AdvancedTestAutomation:
                                 class_info["validators"].append(item.name)
                             else:
                                 class_info["methods"].append(item.name)
-                        elif isinstance(item, ast.AnnAssign) and hasattr(item.target, 'id'):
+                        elif isinstance(item, ast.AnnAssign) and hasattr(
+                            item.target, "id"
+                        ):
                             class_info["properties"].append(item.target.id)
 
                     model_info["classes"].append(class_info)
@@ -107,7 +115,7 @@ class AdvancedTestAutomation:
                 "file": str(file_path),
                 "error": str(e),
                 "classes": [],
-                "methods": []
+                "methods": [],
             }
 
     async def analyze_service_file(self, file_path: Path) -> Dict[str, Any]:
@@ -124,7 +132,7 @@ class AdvancedTestAutomation:
                 "classes": [],
                 "async_functions": [],
                 "database_operations": [],
-                "external_calls": []
+                "external_calls": [],
             }
 
             for node in ast.walk(tree):
@@ -134,7 +142,7 @@ class AdvancedTestAutomation:
                         "args": [arg.arg for arg in node.args.args],
                         "is_async": False,
                         "complexity": self.calculate_complexity(node),
-                        "returns": self.extract_return_type(node)
+                        "returns": self.extract_return_type(node),
                     }
                     service_info["functions"].append(func_info)
                 elif isinstance(node, ast.AsyncFunctionDef):
@@ -143,7 +151,7 @@ class AdvancedTestAutomation:
                         "args": [arg.arg for arg in node.args.args],
                         "is_async": True,
                         "complexity": self.calculate_complexity(node),
-                        "returns": self.extract_return_type(node)
+                        "returns": self.extract_return_type(node),
                     }
                     service_info["async_functions"].append(func_info)
                 elif isinstance(node, ast.ClassDef):
@@ -151,7 +159,9 @@ class AdvancedTestAutomation:
 
             # Detect database operations
             if "db." in content or "session." in content:
-                service_info["database_operations"] = self.extract_db_operations(content)
+                service_info["database_operations"] = self.extract_db_operations(
+                    content
+                )
 
             # Detect external API calls
             if "requests." in content or "httpx." in content or "aiohttp." in content:
@@ -160,11 +170,7 @@ class AdvancedTestAutomation:
             return service_info
 
         except Exception as e:
-            return {
-                "file": str(file_path),
-                "error": str(e),
-                "functions": []
-            }
+            return {"file": str(file_path), "error": str(e), "functions": []}
 
     async def analyze_api_file(self, file_path: Path) -> Dict[str, Any]:
         """Analyze an API endpoint file for test generation opportunities."""
@@ -176,27 +182,28 @@ class AdvancedTestAutomation:
                 "endpoints": [],
                 "middlewares": [],
                 "dependencies": [],
-                "error_handlers": []
+                "error_handlers": [],
             }
 
             # Extract FastAPI endpoint information
-            endpoints = re.findall(r'@router\.(get|post|put|delete|patch)\("([^"]+)"', content)
+            endpoints = re.findall(
+                r'@router\.(get|post|put|delete|patch)\("([^"]+)"', content
+            )
             for method, path in endpoints:
-                api_info["endpoints"].append({
-                    "method": method.upper(),
-                    "path": path,
-                    "needs_auth": "current_user" in content,
-                    "has_validation": "Pydantic" in content or "BaseModel" in content
-                })
+                api_info["endpoints"].append(
+                    {
+                        "method": method.upper(),
+                        "path": path,
+                        "needs_auth": "current_user" in content,
+                        "has_validation": "Pydantic" in content
+                        or "BaseModel" in content,
+                    }
+                )
 
             return api_info
 
         except Exception as e:
-            return {
-                "file": str(file_path),
-                "error": str(e),
-                "endpoints": []
-            }
+            return {"file": str(file_path), "error": str(e), "endpoints": []}
 
     def calculate_complexity(self, node: ast.AST) -> int:
         """Calculate cyclomatic complexity of a function."""
@@ -213,19 +220,23 @@ class AdvancedTestAutomation:
     def extract_return_type(self, node: ast.FunctionDef) -> Optional[str]:
         """Extract return type annotation from function."""
         if node.returns:
-            return ast.unparse(node.returns) if hasattr(ast, 'unparse') else str(node.returns)
+            return (
+                ast.unparse(node.returns)
+                if hasattr(ast, "unparse")
+                else str(node.returns)
+            )
         return None
 
     def extract_db_operations(self, content: str) -> List[str]:
         """Extract database operations from code."""
         operations = []
         patterns = [
-            r'db\.query\(',
-            r'db\.add\(',
-            r'db\.commit\(',
-            r'db\.rollback\(',
-            r'session\.execute\(',
-            r'session\.scalar\('
+            r"db\.query\(",
+            r"db\.add\(",
+            r"db\.commit\(",
+            r"db\.rollback\(",
+            r"session\.execute\(",
+            r"session\.scalar\(",
         ]
 
         for pattern in patterns:
@@ -238,9 +249,9 @@ class AdvancedTestAutomation:
         """Extract external API calls from code."""
         calls = []
         patterns = [
-            r'requests\.(get|post|put|delete)\(',
-            r'httpx\.(get|post|put|delete)\(',
-            r'aiohttp\.(get|post|put|delete)\('
+            r"requests\.(get|post|put|delete)\(",
+            r"httpx\.(get|post|put|delete)\(",
+            r"aiohttp\.(get|post|put|delete)\(",
         ]
 
         for pattern in patterns:
@@ -340,18 +351,22 @@ class Test{class_info["name"]}:
 '''
 
             # Save generated test
-            test_file = Path(f"tests/unit/models/test_{class_info['name'].lower()}_advanced.py")
+            test_file = Path(
+                f"tests/unit/models/test_{class_info['name'].lower()}_advanced.py"
+            )
             test_file.parent.mkdir(parents=True, exist_ok=True)
 
             with open(test_file, "w", encoding="utf-8") as f:
                 f.write(test_content)
 
-            self.test_results["generated_tests"].append({
-                "type": "model",
-                "file": str(test_file),
-                "target": class_info["name"],
-                "test_count": len(class_info["validators"]) + 4
-            })
+            self.test_results["generated_tests"].append(
+                {
+                    "type": "model",
+                    "file": str(test_file),
+                    "target": class_info["name"],
+                    "test_count": len(class_info["validators"]) + 4,
+                }
+            )
 
             generated_count += 1
 
@@ -489,18 +504,23 @@ class Test{service_name.title().replace("_", "")}Service:
         with open(test_file, "w", encoding="utf-8") as f:
             f.write(test_content)
 
-        test_count = len(service_info["functions"]) * 2 + len(service_info["async_functions"]) * 2
+        test_count = (
+            len(service_info["functions"]) * 2
+            + len(service_info["async_functions"]) * 2
+        )
         if service_info["database_operations"]:
             test_count += 2
         if service_info["external_calls"]:
             test_count += 2
 
-        self.test_results["generated_tests"].append({
-            "type": "service",
-            "file": str(test_file),
-            "target": service_name,
-            "test_count": test_count
-        })
+        self.test_results["generated_tests"].append(
+            {
+                "type": "service",
+                "file": str(test_file),
+                "target": service_name,
+                "test_count": test_count,
+            }
+        )
 
         return 1
 
@@ -607,12 +627,14 @@ class Test{api_name.title().replace("_", "")}API:
         auth_endpoints = sum(1 for ep in api_info["endpoints"] if ep["needs_auth"])
         test_count += auth_endpoints  # additional auth tests
 
-        self.test_results["generated_tests"].append({
-            "type": "api",
-            "file": str(test_file),
-            "target": api_name,
-            "test_count": test_count
-        })
+        self.test_results["generated_tests"].append(
+            {
+                "type": "api",
+                "file": str(test_file),
+                "target": api_name,
+                "test_count": test_count,
+            }
+        )
 
         return 1
 
@@ -668,14 +690,12 @@ class Test{api_name.title().replace("_", "")}API:
 
         try:
             # Install mutmut if not present
-            subprocess.run(["pip", "install", "mutmut"], check=True, capture_output=True)
+            subprocess.run(
+                ["pip", "install", "mutmut"], check=True, capture_output=True
+            )
 
             # Run mutation testing on critical modules
-            critical_modules = [
-                "app/services",
-                "app/models",
-                "app/api/v1"
-            ]
+            critical_modules = ["app/services", "app/models", "app/api/v1"]
 
             for module in critical_modules:
                 if Path(module).exists():
@@ -683,14 +703,18 @@ class Test{api_name.title().replace("_", "")}API:
                         ["mutmut", "run", "--paths-to-mutate", module],
                         capture_output=True,
                         text=True,
-                        timeout=300
+                        timeout=300,
                     )
 
-                    self.test_results["mutation_tests"].append({
-                        "module": module,
-                        "status": "completed" if result.returncode == 0 else "failed",
-                        "output": result.stdout
-                    })
+                    self.test_results["mutation_tests"].append(
+                        {
+                            "module": module,
+                            "status": "completed"
+                            if result.returncode == 0
+                            else "failed",
+                            "output": result.stdout,
+                        }
+                    )
 
             print("✅ Mutation testing completed")
 
@@ -789,11 +813,9 @@ class TestPerformance:
         with open(perf_test_file, "w", encoding="utf-8") as f:
             f.write(perf_test_content)
 
-        self.test_results["performance_tests"].append({
-            "file": str(perf_test_file),
-            "test_count": 4,
-            "type": "performance"
-        })
+        self.test_results["performance_tests"].append(
+            {"file": str(perf_test_file), "test_count": 4, "type": "performance"}
+        )
 
         print("✅ Performance tests generated")
 
@@ -899,11 +921,9 @@ class TestIntegration:
         with open(integration_test_file, "w", encoding="utf-8") as f:
             f.write(integration_test_content)
 
-        self.test_results["integration_tests"].append({
-            "file": str(integration_test_file),
-            "test_count": 4,
-            "type": "integration"
-        })
+        self.test_results["integration_tests"].append(
+            {"file": str(integration_test_file), "test_count": 4, "type": "integration"}
+        )
 
         print("✅ Integration tests generated")
 
@@ -913,14 +933,21 @@ class TestIntegration:
 
         try:
             # Run tests with coverage
-            result = subprocess.run([
-                "uv", "run", "pytest",
-                "--cov=app",
-                "--cov-report=html",
-                "--cov-report=term-missing",
-                "--cov-report=json",
-                "-v"
-            ], capture_output=True, text=True, timeout=600)
+            result = subprocess.run(
+                [
+                    "uv",
+                    "run",
+                    "pytest",
+                    "--cov=app",
+                    "--cov-report=html",
+                    "--cov-report=term-missing",
+                    "--cov-report=json",
+                    "-v",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=600,
+            )
 
             if result.returncode == 0:
                 print("✅ All tests passed successfully")
@@ -933,18 +960,26 @@ class TestIntegration:
 
                     total_coverage = coverage_data["totals"]["percent_covered"]
 
-                    self.test_results["coverage_improvements"].append({
-                        "total_coverage": total_coverage,
-                        "target_coverage": self.target_coverage,
-                        "improvement_needed": max(0, self.target_coverage - total_coverage)
-                    })
+                    self.test_results["coverage_improvements"].append(
+                        {
+                            "total_coverage": total_coverage,
+                            "target_coverage": self.target_coverage,
+                            "improvement_needed": max(
+                                0, self.target_coverage - total_coverage
+                            ),
+                        }
+                    )
 
                     print(f"📊 Current test coverage: {total_coverage:.1f}%")
 
                     if total_coverage >= self.target_coverage:
-                        print(f"🎯 Coverage target achieved! ({total_coverage:.1f}% >= {self.target_coverage}%)")
+                        print(
+                            f"🎯 Coverage target achieved! ({total_coverage:.1f}% >= {self.target_coverage}%)"
+                        )
                     else:
-                        print(f"⚠️ Coverage below target: {total_coverage:.1f}% < {self.target_coverage}%")
+                        print(
+                            f"⚠️ Coverage below target: {total_coverage:.1f}% < {self.target_coverage}%"
+                        )
             else:
                 print(f"❌ Some tests failed:\n{result.stderr}")
 
@@ -1000,9 +1035,15 @@ async def main():
         print("\n🎉 Advanced Test Automation Complete!")
         print("=" * 70)
         print("📈 Summary:")
-        print(f"   - Generated Tests: {len(automation.test_results['generated_tests'])}")
-        print(f"   - Performance Tests: {len(automation.test_results['performance_tests'])}")
-        print(f"   - Integration Tests: {len(automation.test_results['integration_tests'])}")
+        print(
+            f"   - Generated Tests: {len(automation.test_results['generated_tests'])}"
+        )
+        print(
+            f"   - Performance Tests: {len(automation.test_results['performance_tests'])}"
+        )
+        print(
+            f"   - Integration Tests: {len(automation.test_results['integration_tests'])}"
+        )
         print(f"   - Mutation Tests: {len(automation.test_results['mutation_tests'])}")
         print(f"   - Results File: {results_file}")
 

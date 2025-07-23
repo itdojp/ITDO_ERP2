@@ -25,7 +25,6 @@ class AuditLogCreate(AuditLogBase):
     """Schema for creating audit logs."""
 
 
-
 class AuditLogResponse(AuditLogBase):
     """Schema for audit log responses."""
 

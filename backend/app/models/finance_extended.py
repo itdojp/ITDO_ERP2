@@ -187,7 +187,9 @@ class JournalEntry(Base):
     approver = relationship("User", foreign_keys=[approved_by])
     creator = relationship("User", foreign_keys=[created_by])
     updater = relationship("User", foreign_keys=[updated_by])
-    lines = relationship("JournalEntryLine", back_populates="journal_entry", cascade="all, delete-orphan")
+    lines = relationship(
+        "JournalEntryLine", back_populates="journal_entry", cascade="all, delete-orphan"
+    )
 
 
 class JournalEntryLine(Base):
@@ -196,7 +198,9 @@ class JournalEntryLine(Base):
     __tablename__ = "finance_journal_entry_lines"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    journal_entry_id = Column(String, ForeignKey("finance_journal_entries.id"), nullable=False)
+    journal_entry_id = Column(
+        String, ForeignKey("finance_journal_entries.id"), nullable=False
+    )
     account_id = Column(String, ForeignKey("finance_accounts.id"), nullable=False)
 
     # Line details
@@ -288,7 +292,9 @@ class Budget(Base):
     # Budget identification
     budget_name = Column(String(200), nullable=False)
     budget_code = Column(String(50), nullable=False)
-    budget_type = Column(String(50), default="operational")  # operational, capital, cash_flow
+    budget_type = Column(
+        String(50), default="operational"
+    )  # operational, capital, cash_flow
 
     # Status and approval
     status = Column(SQLEnum(BudgetStatus), default=BudgetStatus.DRAFT)
@@ -343,7 +349,9 @@ class Budget(Base):
     approver = relationship("User", foreign_keys=[approved_by])
     creator = relationship("User", foreign_keys=[created_by])
     updater = relationship("User", foreign_keys=[updated_by])
-    budget_lines = relationship("BudgetLine", back_populates="budget", cascade="all, delete-orphan")
+    budget_lines = relationship(
+        "BudgetLine", back_populates="budget", cascade="all, delete-orphan"
+    )
 
 
 class BudgetLine(Base):
@@ -420,7 +428,9 @@ class CostCenter(Base):
     # Cost center identification
     cost_center_code = Column(String(50), nullable=False, unique=True)
     cost_center_name = Column(String(200), nullable=False)
-    cost_center_type = Column(String(50), default="operational")  # operational, service, support
+    cost_center_type = Column(
+        String(50), default="operational"
+    )  # operational, service, support
 
     # Hierarchy
     parent_cost_center_id = Column(String, ForeignKey("finance_cost_centers.id"))
@@ -483,7 +493,9 @@ class FinancialReport(Base):
     # Report identification
     report_name = Column(String(200), nullable=False)
     report_code = Column(String(50), nullable=False)
-    report_type = Column(String(50), nullable=False)  # balance_sheet, income_statement, cash_flow
+    report_type = Column(
+        String(50), nullable=False
+    )  # balance_sheet, income_statement, cash_flow
 
     # Template configuration
     template_data = Column(JSON)
@@ -537,7 +549,9 @@ class TaxConfiguration(Base):
     # Tax identification
     tax_name = Column(String(200), nullable=False)
     tax_code = Column(String(50), nullable=False)
-    tax_type = Column(String(50), nullable=False)  # sales_tax, vat, income_tax, withholding
+    tax_type = Column(
+        String(50), nullable=False
+    )  # sales_tax, vat, income_tax, withholding
 
     # Tax rates
     tax_rate = Column(Numeric(6, 4), nullable=False)  # Percentage as decimal
@@ -578,7 +592,9 @@ class TaxConfiguration(Base):
     # Relationships
     organization = relationship("Organization")
     tax_payable_account = relationship("Account", foreign_keys=[tax_payable_account_id])
-    tax_receivable_account = relationship("Account", foreign_keys=[tax_receivable_account_id])
+    tax_receivable_account = relationship(
+        "Account", foreign_keys=[tax_receivable_account_id]
+    )
     tax_expense_account = relationship("Account", foreign_keys=[tax_expense_account_id])
     creator = relationship("User", foreign_keys=[created_by])
 
@@ -592,7 +608,9 @@ class FinanceAuditLog(Base):
     organization_id = Column(String, ForeignKey("organizations.id"), nullable=False)
 
     # Audit event details
-    event_type = Column(String(50), nullable=False)  # create, update, delete, post, approve
+    event_type = Column(
+        String(50), nullable=False
+    )  # create, update, delete, post, approve
     table_name = Column(String(100), nullable=False)
     record_id = Column(String, nullable=False)
 

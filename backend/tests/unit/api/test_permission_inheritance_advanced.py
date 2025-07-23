@@ -13,14 +13,15 @@ class TestPermissionInheritanceAPI:
         self.client = TestClient(app)
         self.headers = {"Content-Type": "application/json"}
 
-
     def test_post__inheritance_rules_success(self):
         """Test POST /inheritance-rules successful response."""
         # Setup test data
         test_data = self.get_test_data_for_post()
 
         # Make request
-        response = self.client.post("/inheritance-rules", json=test_data, headers=self.headers)
+        response = self.client.post(
+            "/inheritance-rules", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -33,7 +34,9 @@ class TestPermissionInheritanceAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.post("/inheritance-rules", json=invalid_data, headers=self.headers)
+        response = self.client.post(
+            "/inheritance-rules", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -52,7 +55,9 @@ class TestPermissionInheritanceAPI:
         test_data = self.get_test_data_for_put()
 
         # Make request
-        response = self.client.put("/inheritance-rules/{rule_id}", json=test_data, headers=self.headers)
+        response = self.client.put(
+            "/inheritance-rules/{rule_id}", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -65,7 +70,9 @@ class TestPermissionInheritanceAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.put("/inheritance-rules/{rule_id}", json=invalid_data, headers=self.headers)
+        response = self.client.put(
+            "/inheritance-rules/{rule_id}", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -84,7 +91,9 @@ class TestPermissionInheritanceAPI:
         test_data = self.get_test_data_for_post()
 
         # Make request
-        response = self.client.post("/permission-dependencies", json=test_data, headers=self.headers)
+        response = self.client.post(
+            "/permission-dependencies", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -97,7 +106,9 @@ class TestPermissionInheritanceAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.post("/permission-dependencies", json=invalid_data, headers=self.headers)
+        response = self.client.post(
+            "/permission-dependencies", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -116,7 +127,11 @@ class TestPermissionInheritanceAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/roles/{role_id}/effective-permissions", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/roles/{role_id}/effective-permissions",
+            json=test_data,
+            headers=self.headers,
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -129,7 +144,11 @@ class TestPermissionInheritanceAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/roles/{role_id}/effective-permissions", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/roles/{role_id}/effective-permissions",
+            json=invalid_data,
+            headers=self.headers,
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -148,7 +167,9 @@ class TestPermissionInheritanceAPI:
         test_data = self.get_test_data_for_post()
 
         # Make request
-        response = self.client.post("/roles/{role_id}/resolve-conflict", json=test_data, headers=self.headers)
+        response = self.client.post(
+            "/roles/{role_id}/resolve-conflict", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -161,7 +182,9 @@ class TestPermissionInheritanceAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.post("/roles/{role_id}/resolve-conflict", json=invalid_data, headers=self.headers)
+        response = self.client.post(
+            "/roles/{role_id}/resolve-conflict", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -180,7 +203,9 @@ class TestPermissionInheritanceAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/roles/{role_id}/audit-logs", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/roles/{role_id}/audit-logs", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -193,7 +218,9 @@ class TestPermissionInheritanceAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/roles/{role_id}/audit-logs", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/roles/{role_id}/audit-logs", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422

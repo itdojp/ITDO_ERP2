@@ -1,4 +1,5 @@
 """Unit tests for audit log service."""
+
 from datetime import datetime, timedelta
 from unittest.mock import Mock
 
@@ -299,14 +300,14 @@ def test_audit_log_service_default_parameters(audit_service, mock_db):
 def test_audit_log_level_enum():
     """Test audit log level enum values."""
     # Test that the enum has expected values
-    assert hasattr(AuditLogLevel, '__members__')
+    assert hasattr(AuditLogLevel, "__members__")
     # Just verify it can be imported and used
 
 
 def test_audit_log_category_enum():
     """Test audit log category enum values."""
     # Test that the enum has expected values
-    assert hasattr(AuditLogCategory, '__members__')
+    assert hasattr(AuditLogCategory, "__members__")
     # Just verify it can be imported and used
 
 

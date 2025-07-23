@@ -12,9 +12,11 @@ from pydantic import BaseModel, EmailStr, Field, validator
 # Token Models
 # =============================================================================
 
+
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
 
 class TokenResponse(BaseModel):
     access_token: str
@@ -23,18 +25,22 @@ class TokenResponse(BaseModel):
     expires_in: int
     scope: Optional[str] = None
 
+
 class TokenData(BaseModel):
     username: Optional[str] = None
     scopes: List[str] = []
+
 
 # =============================================================================
 # User Authentication Models
 # =============================================================================
 
+
 class UserLogin(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
     password: str = Field(..., min_length=8)
     mfa_code: Optional[str] = Field(None, min_length=6, max_length=6)
+
 
 class UserRegister(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
@@ -42,19 +48,20 @@ class UserRegister(BaseModel):
     password: str = Field(..., min_length=8)
     full_name: Optional[str] = Field(None, max_length=100)
 
-    @validator('password')
+    @validator("password")
     def validate_password(cls, v):
         if len(v) < 8:
-            raise ValueError('Password must be at least 8 characters long')
+            raise ValueError("Password must be at least 8 characters long")
         if not any(c.isupper() for c in v):
-            raise ValueError('Password must contain at least one uppercase letter')
+            raise ValueError("Password must contain at least one uppercase letter")
         if not any(c.islower() for c in v):
-            raise ValueError('Password must contain at least one lowercase letter')
+            raise ValueError("Password must contain at least one lowercase letter")
         if not any(c.isdigit() for c in v):
-            raise ValueError('Password must contain at least one digit')
-        if not any(c in '!@#$%^&*()_+-=[]{}|;:,.<>?' for c in v):
-            raise ValueError('Password must contain at least one special character')
+            raise ValueError("Password must contain at least one digit")
+        if not any(c in "!@#$%^&*()_+-=[]{}|;:,.<>?" for c in v):
+            raise ValueError("Password must contain at least one special character")
         return v
+
 
 class UserResponse(BaseModel):
     id: str
@@ -69,20 +76,25 @@ class UserResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
 # =============================================================================
 # Multi-Factor Authentication Models
 # =============================================================================
 
+
 class MFASetupRequest(BaseModel):
     device_name: str = Field(..., min_length=1, max_length=100)
+
 
 class MFASetupResponse(BaseModel):
     secret: str
     qr_code: str  # Base64 encoded QR code image
     backup_codes: List[str]
 
+
 class MFAVerifyRequest(BaseModel):
     token: str = Field(..., min_length=6, max_length=6)
+
 
 class MFADevice(BaseModel):
     id: str
@@ -95,9 +107,11 @@ class MFADevice(BaseModel):
     class Config:
         from_attributes = True
 
+
 # =============================================================================
 # API Key Management Models
 # =============================================================================
+
 
 class APIKeyCreateRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
@@ -105,11 +119,12 @@ class APIKeyCreateRequest(BaseModel):
     scopes: List[str] = Field(default=["read"])
     expires_at: Optional[datetime] = None
 
-    @validator('expires_at')
+    @validator("expires_at")
     def validate_expires_at(cls, v):
         if v and v <= datetime.utcnow():
-            raise ValueError('Expiration date must be in the future')
+            raise ValueError("Expiration date must be in the future")
         return v
+
 
 class APIKeyResponse(BaseModel):
     id: str
@@ -120,6 +135,7 @@ class APIKeyResponse(BaseModel):
     scopes: List[str]
     created_at: datetime
     expires_at: Optional[datetime]
+
 
 class APIKeyInfo(BaseModel):
     id: str
@@ -134,12 +150,15 @@ class APIKeyInfo(BaseModel):
     class Config:
         from_attributes = True
 
+
 class APIKeyListResponse(BaseModel):
     api_keys: List[APIKeyInfo]
+
 
 # =============================================================================
 # Session Management Models
 # =============================================================================
+
 
 class SessionInfo(BaseModel):
     session_id: str
@@ -152,55 +171,62 @@ class SessionInfo(BaseModel):
     class Config:
         from_attributes = True
 
+
 class SessionListResponse(BaseModel):
     sessions: List[SessionInfo]
+
 
 # =============================================================================
 # Password Management Models
 # =============================================================================
+
 
 class PasswordChangeRequest(BaseModel):
     current_password: str = Field(..., min_length=1)
     new_password: str = Field(..., min_length=8)
     confirm_password: str = Field(..., min_length=8)
 
-    @validator('confirm_password')
+    @validator("confirm_password")
     def passwords_match(cls, v, values, **kwargs):
-        if 'new_password' in values and v != values['new_password']:
-            raise ValueError('Passwords do not match')
+        if "new_password" in values and v != values["new_password"]:
+            raise ValueError("Passwords do not match")
         return v
 
-    @validator('new_password')
+    @validator("new_password")
     def validate_new_password(cls, v):
         if len(v) < 8:
-            raise ValueError('Password must be at least 8 characters long')
+            raise ValueError("Password must be at least 8 characters long")
         if not any(c.isupper() for c in v):
-            raise ValueError('Password must contain at least one uppercase letter')
+            raise ValueError("Password must contain at least one uppercase letter")
         if not any(c.islower() for c in v):
-            raise ValueError('Password must contain at least one lowercase letter')
+            raise ValueError("Password must contain at least one lowercase letter")
         if not any(c.isdigit() for c in v):
-            raise ValueError('Password must contain at least one digit')
-        if not any(c in '!@#$%^&*()_+-=[]{}|;:,.<>?' for c in v):
-            raise ValueError('Password must contain at least one special character')
+            raise ValueError("Password must contain at least one digit")
+        if not any(c in "!@#$%^&*()_+-=[]{}|;:,.<>?" for c in v):
+            raise ValueError("Password must contain at least one special character")
         return v
+
 
 class PasswordResetRequest(BaseModel):
     email: EmailStr
+
 
 class PasswordResetConfirm(BaseModel):
     token: str = Field(..., min_length=1)
     new_password: str = Field(..., min_length=8)
     confirm_password: str = Field(..., min_length=8)
 
-    @validator('confirm_password')
+    @validator("confirm_password")
     def passwords_match(cls, v, values, **kwargs):
-        if 'new_password' in values and v != values['new_password']:
-            raise ValueError('Passwords do not match')
+        if "new_password" in values and v != values["new_password"]:
+            raise ValueError("Passwords do not match")
         return v
+
 
 # =============================================================================
 # OAuth2 Models
 # =============================================================================
+
 
 class OAuth2AuthorizeRequest(BaseModel):
     response_type: str = Field(..., regex="^code$")
@@ -209,12 +235,14 @@ class OAuth2AuthorizeRequest(BaseModel):
     scope: str = Field(default="read")
     state: Optional[str] = None
 
+
 class OAuth2TokenRequest(BaseModel):
     grant_type: str = Field(..., regex="^authorization_code$")
     code: str = Field(..., min_length=1)
     redirect_uri: str = Field(..., min_length=1)
     client_id: str = Field(..., min_length=1)
     client_secret: str = Field(..., min_length=1)
+
 
 class OAuth2Client(BaseModel):
     client_id: str
@@ -226,13 +254,16 @@ class OAuth2Client(BaseModel):
     class Config:
         from_attributes = True
 
+
 # =============================================================================
 # Permission & Role Models
 # =============================================================================
 
+
 class PermissionCheck(BaseModel):
     permission: str = Field(..., min_length=1, max_length=100)
     resource: Optional[str] = Field(None, max_length=100)
+
 
 class PermissionResponse(BaseModel):
     user_id: str
@@ -240,9 +271,11 @@ class PermissionResponse(BaseModel):
     resource: Optional[str]
     has_permission: bool
 
+
 class RoleAssignRequest(BaseModel):
     user_id: str = Field(..., min_length=1)
     role_name: str = Field(..., min_length=1, max_length=50)
+
 
 class Role(BaseModel):
     id: str
@@ -255,6 +288,7 @@ class Role(BaseModel):
     class Config:
         from_attributes = True
 
+
 class Permission(BaseModel):
     id: str
     name: str
@@ -265,9 +299,11 @@ class Permission(BaseModel):
     class Config:
         from_attributes = True
 
+
 # =============================================================================
 # Login Attempt & Security Models
 # =============================================================================
+
 
 class LoginAttempt(BaseModel):
     id: str
@@ -280,6 +316,7 @@ class LoginAttempt(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 class SecurityLog(BaseModel):
     id: str
@@ -294,9 +331,11 @@ class SecurityLog(BaseModel):
     class Config:
         from_attributes = True
 
+
 # =============================================================================
 # Account Management Models
 # =============================================================================
+
 
 class AccountInfo(BaseModel):
     user: UserResponse
@@ -307,6 +346,7 @@ class AccountInfo(BaseModel):
     account_locked: bool
     failed_login_attempts: int
 
+
 class AccountSecurity(BaseModel):
     password_strength: str  # weak, medium, strong
     mfa_enabled: bool
@@ -314,9 +354,11 @@ class AccountSecurity(BaseModel):
     last_security_scan: datetime
     security_score: int  # 0-100
 
+
 # =============================================================================
 # Audit & Compliance Models
 # =============================================================================
+
 
 class AuditEvent(BaseModel):
     id: str
@@ -334,6 +376,7 @@ class AuditEvent(BaseModel):
     class Config:
         from_attributes = True
 
+
 class ComplianceReport(BaseModel):
     report_id: str
     report_type: str
@@ -346,9 +389,11 @@ class ComplianceReport(BaseModel):
     policy_violations: int
     compliance_score: float
 
+
 # =============================================================================
 # Rate Limiting Models
 # =============================================================================
+
 
 class RateLimitInfo(BaseModel):
     identifier: str
@@ -357,13 +402,16 @@ class RateLimitInfo(BaseModel):
     reset_time: datetime
     blocked: bool
 
+
 class RateLimitResponse(BaseModel):
     rate_limit: RateLimitInfo
     message: str
 
+
 # =============================================================================
 # Webhook Models
 # =============================================================================
+
 
 class WebhookEvent(BaseModel):
     event_id: str
@@ -372,6 +420,7 @@ class WebhookEvent(BaseModel):
     data: Dict[str, Any]
     timestamp: datetime
     signature: str
+
 
 class WebhookConfig(BaseModel):
     id: str
@@ -384,9 +433,11 @@ class WebhookConfig(BaseModel):
     class Config:
         from_attributes = True
 
+
 # =============================================================================
 # Advanced Security Models
 # =============================================================================
+
 
 class IPWhitelist(BaseModel):
     id: str
@@ -398,6 +449,7 @@ class IPWhitelist(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 class DeviceInfo(BaseModel):
     device_id: str
@@ -411,6 +463,7 @@ class DeviceInfo(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 class TrustedDevice(BaseModel):
     id: str
