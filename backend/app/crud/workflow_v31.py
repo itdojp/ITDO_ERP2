@@ -1073,7 +1073,9 @@ class WorkflowService:
 
         db.commit()
 
-    async def _update_instance_progress(self, db: Session, instance: WorkflowInstance) -> dict:
+    async def _update_instance_progress(
+        self, db: Session, instance: WorkflowInstance
+    ) -> dict:
         """Update workflow instance progress percentage."""
         completed_tasks = (
             db.query(WorkflowTask)
@@ -1129,7 +1131,9 @@ class WorkflowService:
         # This would integrate with the notification system
         pass
 
-    async def _send_mention_notifications(self, db: Session, comment: WorkflowComment) -> dict:
+    async def _send_mention_notifications(
+        self, db: Session, comment: WorkflowComment
+    ) -> dict:
         """Send notifications to mentioned users in comments."""
         # This would integrate with the notification system
         pass

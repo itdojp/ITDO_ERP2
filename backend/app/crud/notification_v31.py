@@ -1076,7 +1076,9 @@ class NotificationService:
         # Implementation would integrate with push service (Firebase, APNs, etc.)
         pass
 
-    async def _deliver_in_app(self, db: Session, delivery: NotificationDelivery) -> dict:
+    async def _deliver_in_app(
+        self, db: Session, delivery: NotificationDelivery
+    ) -> dict:
         """Deliver in-app notification."""
         # In-app notifications are already created in database
         await self.update_delivery_status(db, delivery.id, DeliveryStatus.DELIVERED)
