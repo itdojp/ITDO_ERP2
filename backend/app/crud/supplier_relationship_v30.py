@@ -38,7 +38,7 @@ class InvalidStatusError(Exception):
 
 
 class SupplierRelationshipCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def get_by_id(self, relationship_id: str) -> Optional[SupplierRelationship]:
@@ -225,7 +225,7 @@ class SupplierRelationshipCRUD:
 
         return relationship
 
-    def schedule_review(self, relationship_id: str, review_date: date):
+    def schedule_review(self, relationship_id: str, review_date: date) -> dict:
         """レビュー日程設定"""
         relationship = self.get_by_id(relationship_id)
         if relationship:
@@ -235,7 +235,7 @@ class SupplierRelationshipCRUD:
 
 
 class SupplierPerformanceReviewCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def get_by_id(self, review_id: str) -> Optional[SupplierPerformanceReview]:
@@ -398,7 +398,7 @@ class SupplierPerformanceReviewCRUD:
 
 
 class SupplierNegotiationCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def get_by_id(self, negotiation_id: str) -> Optional[SupplierNegotiation]:
@@ -532,7 +532,7 @@ class SupplierNegotiationCRUD:
 
 
 class SupplierContractCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def get_by_id(self, contract_id: str) -> Optional[SupplierContract]:
@@ -711,7 +711,7 @@ class SupplierContractCRUD:
 
         return f"{prefix}-{new_number:04d}"
 
-    def _create_renewal_milestone(self, contract_id: str, milestone_date: date):
+    def _create_renewal_milestone(self, contract_id: str, milestone_date: date) -> dict:
         """更新マイルストーン作成"""
         milestone = ContractMilestone(
             id=str(uuid.uuid4()),

@@ -19,7 +19,7 @@ UpdateSchemaType = TypeVar("UpdateSchemaType", bound=BaseModel)
 class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     """Base CRUD operations class"""
 
-    def __init__(self, model: Type[ModelType]):
+    def __init__(self, model: Type[ModelType]) -> dict:
         """
         CRUD object with default methods to Create, Read, Update, Delete (CRUD).
 

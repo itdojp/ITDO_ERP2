@@ -201,7 +201,7 @@ class ExpenseCategoryBulkCreate(BaseModel):
     categories: List[ExpenseCategoryCreate] = Field(..., description="Categories to create")
 
     @validator("categories")
-    def validate_categories(cls, v):
+    def validate_categories(cls, v) -> dict:
         if not v:
             raise ValueError("At least one category must be provided")
         return v

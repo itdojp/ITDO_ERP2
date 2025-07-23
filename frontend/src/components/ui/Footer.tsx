@@ -1,5 +1,5 @@
-import React, { useState, FormEvent } from 'react';
-import { cn } from '@/lib/utils';
+import React, { useState, FormEvent } from "react";
+import { cn } from "@/lib/utils";
 
 export interface LinkSection {
   id: string;
@@ -45,7 +45,7 @@ export interface Award {
 }
 
 export interface AppStoreLink {
-  platform: 'ios' | 'android';
+  platform: "ios" | "android";
   href: string;
   image: string;
 }
@@ -84,8 +84,8 @@ export interface FooterProps {
   currentLanguage?: string;
   copyright?: string;
   customContent?: React.ReactNode;
-  variant?: 'default' | 'minimal' | 'expanded';
-  theme?: 'light' | 'dark';
+  variant?: "default" | "minimal" | "expanded";
+  theme?: "light" | "dark";
   sticky?: boolean;
   fullWidth?: boolean;
   showBorder?: boolean;
@@ -99,9 +99,9 @@ export interface FooterProps {
   onBackToTop?: () => void;
   onLanguageChange?: (langCode: string) => void;
   className?: string;
-  'data-testid'?: string;
-  'data-category'?: string;
-  'data-id'?: string;
+  "data-testid"?: string;
+  "data-category"?: string;
+  "data-id"?: string;
 }
 
 export const Footer: React.FC<FooterProps> = ({
@@ -121,8 +121,8 @@ export const Footer: React.FC<FooterProps> = ({
   currentLanguage,
   copyright,
   customContent,
-  variant = 'default',
-  theme = 'light',
+  variant = "default",
+  theme = "light",
   sticky = false,
   fullWidth = true,
   showBorder = true,
@@ -136,30 +136,30 @@ export const Footer: React.FC<FooterProps> = ({
   onBackToTop,
   onLanguageChange,
   className,
-  'data-testid': dataTestId = 'footer-container',
-  'data-category': dataCategory,
-  'data-id': dataId,
+  "data-testid": dataTestId = "footer-container",
+  "data-category": dataCategory,
+  "data-id": dataId,
   ...props
 }) => {
-  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [newsletterEmail, setNewsletterEmail] = useState("");
   const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
 
   const variantClasses = {
-    default: 'py-12',
-    minimal: 'py-6',
-    expanded: 'py-16'
+    default: "py-12",
+    minimal: "py-6",
+    expanded: "py-16",
   };
 
   const themeClasses = {
-    light: 'bg-gray-50 text-gray-900',
-    dark: 'bg-gray-900 text-white'
+    light: "bg-gray-50 text-gray-900",
+    dark: "bg-gray-900 text-white",
   };
 
   const handleNewsletterSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (newsletterEmail && onNewsletterSignup) {
       onNewsletterSignup(newsletterEmail);
-      setNewsletterEmail('');
+      setNewsletterEmail("");
     }
   };
 
@@ -169,7 +169,7 @@ export const Footer: React.FC<FooterProps> = ({
       const currentYear = new Date().getFullYear();
       return `© ${currentYear} ${companyName}. All rights reserved.`;
     }
-    return '';
+    return "";
   };
 
   if (loading) {
@@ -177,10 +177,10 @@ export const Footer: React.FC<FooterProps> = ({
       <footer
         data-testid="footer-loading"
         className={cn(
-          'flex items-center justify-center py-8',
+          "flex items-center justify-center py-8",
           themeClasses[theme],
-          showBorder && 'border-t',
-          className
+          showBorder && "border-t",
+          className,
         )}
       >
         {loadingComponent || (
@@ -196,27 +196,31 @@ export const Footer: React.FC<FooterProps> = ({
   return (
     <footer
       className={cn(
-        'relative',
+        "relative",
         variantClasses[variant],
         themeClasses[theme],
         `theme-${theme}`,
-        sticky && 'sticky bottom-0 z-40',
-        fullWidth && 'w-full',
-        showBorder && 'border-t',
-        centered && 'text-center',
-        responsive && 'responsive-footer',
-        className
+        sticky && "sticky bottom-0 z-40",
+        fullWidth && "w-full",
+        showBorder && "border-t",
+        centered && "text-center",
+        responsive && "responsive-footer",
+        className,
       )}
       data-testid={dataTestId}
       data-category={dataCategory}
       data-id={dataId}
       {...props}
     >
-      <div className={cn('mx-auto px-6', !fullWidth && 'max-w-7xl')}>
+      <div className={cn("mx-auto px-6", !fullWidth && "max-w-7xl")}>
         {/* Main Footer Content */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
           {/* Company Section */}
-          {(companyName || companyDescription || logo || socialLinks.length > 0 || appStoreLinks.length > 0) && (
+          {(companyName ||
+            companyDescription ||
+            logo ||
+            socialLinks.length > 0 ||
+            appStoreLinks.length > 0) && (
             <div className="col-span-1 lg:col-span-2">
               {logo && <div className="mb-4">{logo}</div>}
               {companyName && (
@@ -227,11 +231,11 @@ export const Footer: React.FC<FooterProps> = ({
                   {companyDescription}
                 </p>
               )}
-              
+
               {/* Social Links */}
               {socialLinks.length > 0 && (
                 <div className="flex space-x-4 mb-4">
-                  {socialLinks.map(social => (
+                  {socialLinks.map((social) => (
                     <a
                       key={social.id}
                       href={social.href}
@@ -248,11 +252,20 @@ export const Footer: React.FC<FooterProps> = ({
               {/* App Store Links */}
               {appStoreLinks.length > 0 && (
                 <div className="flex space-x-3">
-                  {appStoreLinks.map(app => (
-                    <a key={app.platform} href={app.href} target="_blank" rel="noopener noreferrer">
+                  {appStoreLinks.map((app) => (
+                    <a
+                      key={app.platform}
+                      href={app.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
                       <img
                         src={app.image}
-                        alt={app.platform === 'ios' ? 'Download on the App Store' : 'Get it on Google Play'}
+                        alt={
+                          app.platform === "ios"
+                            ? "Download on the App Store"
+                            : "Get it on Google Play"
+                        }
                         className="h-10"
                       />
                     </a>
@@ -263,13 +276,13 @@ export const Footer: React.FC<FooterProps> = ({
           )}
 
           {/* Link Sections */}
-          {linkSections.map(section => (
+          {linkSections.map((section) => (
             <div key={section.id}>
               <h4 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider mb-4">
                 {section.title}
               </h4>
               <ul className="space-y-2">
-                {section.links.map(link => (
+                {section.links.map((link) => (
                   <li key={link.id}>
                     {link.href ? (
                       <a
@@ -301,13 +314,19 @@ export const Footer: React.FC<FooterProps> = ({
               </h4>
               <div className="space-y-2">
                 {contactInfo.address && (
-                  <p className="text-gray-600 dark:text-gray-400">{contactInfo.address}</p>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    {contactInfo.address}
+                  </p>
                 )}
                 {contactInfo.phone && (
-                  <p className="text-gray-600 dark:text-gray-400">{contactInfo.phone}</p>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    {contactInfo.phone}
+                  </p>
                 )}
                 {contactInfo.email && (
-                  <p className="text-gray-600 dark:text-gray-400">{contactInfo.email}</p>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    {contactInfo.email}
+                  </p>
                 )}
               </div>
             </div>
@@ -317,7 +336,9 @@ export const Footer: React.FC<FooterProps> = ({
         {/* Newsletter Signup */}
         {showNewsletter && (
           <div className="mb-8 p-6 bg-gray-100 dark:bg-gray-800 rounded-lg">
-            <h4 className="text-lg font-semibold mb-2">Subscribe to our newsletter</h4>
+            <h4 className="text-lg font-semibold mb-2">
+              Subscribe to our newsletter
+            </h4>
             <p className="text-gray-600 dark:text-gray-400 mb-4">
               Get the latest updates and news delivered to your inbox.
             </p>
@@ -347,13 +368,15 @@ export const Footer: React.FC<FooterProps> = ({
               Certifications
             </h4>
             <div className="flex flex-wrap gap-4">
-              {certifications.map(cert => (
+              {certifications.map((cert) => (
                 <div key={cert.id} className="flex items-center space-x-2">
                   {cert.icon}
                   <div>
                     <span className="font-medium">{cert.name}</span>
                     {cert.description && (
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{cert.description}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {cert.description}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -369,10 +392,12 @@ export const Footer: React.FC<FooterProps> = ({
               Awards & Recognition
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {awards.map(award => (
+              {awards.map((award) => (
                 <div key={award.id}>
                   <h5 className="font-medium">{award.title}</h5>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{award.organization}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {award.organization}
+                  </p>
                 </div>
               ))}
             </div>
@@ -386,7 +411,7 @@ export const Footer: React.FC<FooterProps> = ({
               Payment Methods
             </h4>
             <div className="flex space-x-4">
-              {paymentMethods.map(method => (
+              {paymentMethods.map((method) => (
                 <div key={method.id} className="flex items-center space-x-2">
                   {method.icon}
                   <span className="text-sm">{method.name}</span>
@@ -403,7 +428,7 @@ export const Footer: React.FC<FooterProps> = ({
               Security
             </h4>
             <div className="flex space-x-4">
-              {securityBadges.map(badge => (
+              {securityBadges.map((badge) => (
                 <div key={badge.id} className="flex items-center space-x-2">
                   {badge.icon}
                   <span className="text-sm">{badge.name}</span>
@@ -427,7 +452,7 @@ export const Footer: React.FC<FooterProps> = ({
             {/* Legal Links */}
             {legalLinks.length > 0 && (
               <div className="flex space-x-6">
-                {legalLinks.map(link => (
+                {legalLinks.map((link) => (
                   <a
                     key={link.id}
                     href={link.href}
@@ -448,14 +473,15 @@ export const Footer: React.FC<FooterProps> = ({
                   className="flex items-center space-x-1 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
                 >
                   <span>
-                    {languages.find(lang => lang.code === currentLanguage)?.label || 'Language'}
+                    {languages.find((lang) => lang.code === currentLanguage)
+                      ?.label || "Language"}
                   </span>
                   <span>▼</span>
                 </button>
 
                 {languageMenuOpen && (
                   <div className="absolute bottom-full right-0 mb-2 w-32 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
-                    {languages.map(lang => (
+                    {languages.map((lang) => (
                       <button
                         key={lang.code}
                         onClick={() => {
@@ -463,10 +489,10 @@ export const Footer: React.FC<FooterProps> = ({
                           setLanguageMenuOpen(false);
                         }}
                         className={cn(
-                          'block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors',
+                          "block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors",
                           lang.code === currentLanguage
-                            ? 'text-blue-600 bg-blue-50 dark:bg-blue-900'
-                            : 'text-gray-700 dark:text-gray-300'
+                            ? "text-blue-600 bg-blue-50 dark:bg-blue-900"
+                            : "text-gray-700 dark:text-gray-300",
                         )}
                       >
                         {lang.label}

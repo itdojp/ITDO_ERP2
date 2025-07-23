@@ -1061,22 +1061,22 @@ class NotificationService:
 
         return None
 
-    async def _deliver_email(self, db: Session, delivery: NotificationDelivery):
+    async def _deliver_email(self, db: Session, delivery: NotificationDelivery) -> dict:
         """Deliver notification via email."""
         # Implementation would integrate with email service (AWS SES, SendGrid, etc.)
         pass
 
-    async def _deliver_sms(self, db: Session, delivery: NotificationDelivery):
+    async def _deliver_sms(self, db: Session, delivery: NotificationDelivery) -> dict:
         """Deliver notification via SMS."""
         # Implementation would integrate with SMS service (Twilio, AWS SNS, etc.)
         pass
 
-    async def _deliver_push(self, db: Session, delivery: NotificationDelivery):
+    async def _deliver_push(self, db: Session, delivery: NotificationDelivery) -> dict:
         """Deliver notification via push notification."""
         # Implementation would integrate with push service (Firebase, APNs, etc.)
         pass
 
-    async def _deliver_in_app(self, db: Session, delivery: NotificationDelivery):
+    async def _deliver_in_app(self, db: Session, delivery: NotificationDelivery) -> dict:
         """Deliver in-app notification."""
         # In-app notifications are already created in database
         await self.update_delivery_status(db, delivery.id, DeliveryStatus.DELIVERED)

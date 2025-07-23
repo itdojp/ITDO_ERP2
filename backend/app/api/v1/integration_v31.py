@@ -22,34 +22,26 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.crud.integration_v31 import integration_service
-from app.schemas.integration_v31 import (
-    # Bulk operations
+from app.schemas.integration_v31 import (  # Bulk operations; Data Mapping schemas; Transformation schemas; External System schemas; Connector schemas; Execution schemas; Analytics schemas; Message Queue schemas; Webhook schemas
     BulkConnectorExecutionRequest,
     BulkExecutionResponse,
     ConnectorExecutionRequest,
     ConnectorListResponse,
-    # Data Mapping schemas
     DataMappingCreateRequest,
     DataMappingResponse,
-    # Transformation schemas
     DataTransformationCreateRequest,
     DataTransformationResponse,
     ExecutionListResponse,
-    # External System schemas
     ExternalSystemCreateRequest,
     ExternalSystemListResponse,
     ExternalSystemResponse,
     ExternalSystemUpdateRequest,
     IntegrationAnalyticsRequest,
     IntegrationAnalyticsResponse,
-    # Connector schemas
     IntegrationConnectorCreateRequest,
     IntegrationConnectorResponse,
-    # Execution schemas
     IntegrationExecutionResponse,
-    # Analytics schemas
     IntegrationHealthResponse,
-    # Message Queue schemas
     IntegrationMessageCreateRequest,
     IntegrationMessageResponse,
     MappingListResponse,
@@ -57,7 +49,6 @@ from app.schemas.integration_v31 import (
     SystemConnectionTestRequest,
     TransformationExecutionRequest,
     TransformationListResponse,
-    # Webhook schemas
     WebhookEndpointCreateRequest,
     WebhookEndpointResponse,
     WebhookListResponse,
@@ -1055,7 +1046,7 @@ async def retry_execution(execution_id: str, db: Session = Depends(get_db)):
 
 
 @router.get("/integration-types", response_model=List[Dict[str, Any]])
-async def get_integration_types():
+async def get_integration_types() -> None:
     """Get available integration types and their descriptions."""
     integration_types = [
         {
@@ -1111,7 +1102,7 @@ async def get_integration_types():
 
 
 @router.get("/data-formats", response_model=List[Dict[str, Any]])
-async def get_data_formats():
+async def get_data_formats() -> None:
     """Get available data formats for integration."""
     data_formats = [
         {"value": "json", "label": "JSON", "description": "JavaScript Object Notation"},
@@ -1173,7 +1164,7 @@ async def test_transformation_script(
 
 
 @router.get("/system-templates", response_model=List[Dict[str, Any]])
-async def get_system_templates():
+async def get_system_templates() -> None:
     """Get predefined templates for common external systems."""
     try:
         templates = await integration_service.get_system_templates()

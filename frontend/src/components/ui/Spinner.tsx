@@ -1,11 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 
 interface SpinnerProps {
-  size?: 'sm' | 'md' | 'lg' | 'xl';
-  color?: 'primary' | 'success' | 'warning' | 'danger' | 'white' | 'gray';
-  type?: 'spin' | 'pulse' | 'bounce' | 'ring' | 'dots' | 'bars' | 'grid' | 'pulsing-dots';
-  speed?: 'slow' | 'normal' | 'fast';
-  theme?: 'light' | 'dark' | 'auto';
+  size?: "sm" | "md" | "lg" | "xl";
+  color?: "primary" | "success" | "warning" | "danger" | "white" | "gray";
+  type?:
+    | "spin"
+    | "pulse"
+    | "bounce"
+    | "ring"
+    | "dots"
+    | "bars"
+    | "grid"
+    | "pulsing-dots";
+  speed?: "slow" | "normal" | "fast";
+  theme?: "light" | "dark" | "auto";
   text?: string;
   description?: string;
   showText?: boolean;
@@ -13,7 +21,7 @@ interface SpinnerProps {
   inline?: boolean;
   overlay?: boolean;
   backdropBlur?: boolean;
-  position?: 'top' | 'center' | 'bottom';
+  position?: "top" | "center" | "bottom";
   strokeWidth?: number;
   borderColor?: string;
   borderTopColor?: string;
@@ -28,16 +36,16 @@ interface SpinnerProps {
   className?: string;
   style?: React.CSSProperties;
   title?: string;
-  'aria-label'?: string;
-  'aria-describedby'?: string;
+  "aria-label"?: string;
+  "aria-describedby"?: string;
 }
 
 export const Spinner: React.FC<SpinnerProps> = ({
-  size = 'md',
-  color = 'primary',
-  type = 'spin',
-  speed = 'normal',
-  theme = 'auto',
+  size = "md",
+  color = "primary",
+  type = "spin",
+  speed = "normal",
+  theme = "auto",
   text,
   description,
   showText = false,
@@ -45,7 +53,7 @@ export const Spinner: React.FC<SpinnerProps> = ({
   inline = false,
   overlay = false,
   backdropBlur = false,
-  position = 'center',
+  position = "center",
   strokeWidth = 2,
   borderColor,
   borderTopColor,
@@ -57,11 +65,11 @@ export const Spinner: React.FC<SpinnerProps> = ({
   indeterminate = false,
   show = true,
   icon,
-  className = '',
+  className = "",
   style,
   title,
-  'aria-label': ariaLabel,
-  'aria-describedby': ariaDescribedBy
+  "aria-label": ariaLabel,
+  "aria-describedby": ariaDescribedBy,
 }) => {
   const [visible, setVisible] = useState(delay === 0);
   const [startTime] = useState(Date.now());
@@ -103,58 +111,62 @@ export const Spinner: React.FC<SpinnerProps> = ({
 
   const getSizeClasses = () => {
     const sizeMap = {
-      sm: 'w-4 h-4',
-      md: 'w-6 h-6',
-      lg: 'w-8 h-8',
-      xl: 'w-12 h-12'
+      sm: "w-4 h-4",
+      md: "w-6 h-6",
+      lg: "w-8 h-8",
+      xl: "w-12 h-12",
     };
     return sizeMap[size];
   };
 
   const getColorClasses = () => {
-    if (theme === 'dark') return 'text-white';
-    if (theme === 'light') return 'text-gray-600';
-    
+    if (theme === "dark") return "text-white";
+    if (theme === "light") return "text-gray-600";
+
     const colorMap = {
-      primary: 'text-blue-500',
-      success: 'text-green-500',
-      warning: 'text-yellow-500',
-      danger: 'text-red-500',
-      white: 'text-white',
-      gray: 'text-gray-500'
+      primary: "text-blue-500",
+      success: "text-green-500",
+      warning: "text-yellow-500",
+      danger: "text-red-500",
+      white: "text-white",
+      gray: "text-gray-500",
     };
     return colorMap[color];
   };
 
   const getSpeedClasses = () => {
     const speedMap = {
-      slow: 'animate-slow-spin',
-      normal: 'animate-spin',
-      fast: 'animate-fast-spin'
+      slow: "animate-slow-spin",
+      normal: "animate-spin",
+      fast: "animate-fast-spin",
     };
-    return speedMap[speed] || 'animate-spin';
+    return speedMap[speed] || "animate-spin";
   };
 
   const getBorderClasses = () => {
     const borderMap = {
-      2: 'border-2',
-      3: 'border-3',
-      4: 'border-4'
+      2: "border-2",
+      3: "border-3",
+      4: "border-4",
     };
-    return borderMap[strokeWidth] || 'border-2';
+    return borderMap[strokeWidth] || "border-2";
   };
 
   const renderSpinIcon = () => {
     if (icon) {
-      return <span className={`${getSizeClasses()} ${getSpeedClasses()}`}>{icon}</span>;
+      return (
+        <span className={`${getSizeClasses()} ${getSpeedClasses()}`}>
+          {icon}
+        </span>
+      );
     }
 
-    if (type === 'ring') {
+    if (type === "ring") {
       return (
-        <div 
+        <div
           className={`
             ${getSizeClasses()} ${getBorderClasses()} ${borderColor || getColorClasses()}
-            ${borderTopColor || 'border-t-transparent'} rounded-full ${getSpeedClasses()}
+            ${borderTopColor || "border-t-transparent"} rounded-full ${getSpeedClasses()}
           `}
           role="img"
           aria-hidden="true"
@@ -167,9 +179,9 @@ export const Spinner: React.FC<SpinnerProps> = ({
     }
 
     return (
-      <svg 
+      <svg
         className={`${getSizeClasses()} ${getColorClasses()} ${getSpeedClasses()}`}
-        fill="none" 
+        fill="none"
         viewBox="0 0 24 24"
         role="img"
         aria-hidden="true"
@@ -178,17 +190,17 @@ export const Spinner: React.FC<SpinnerProps> = ({
         title={title}
         style={animationDuration ? { animationDuration } : style}
       >
-        <circle 
-          className="opacity-25" 
-          cx="12" 
-          cy="12" 
-          r="10" 
-          stroke="currentColor" 
+        <circle
+          className="opacity-25"
+          cx="12"
+          cy="12"
+          r="10"
+          stroke="currentColor"
           strokeWidth={strokeWidth}
         />
-        <path 
-          className="opacity-75" 
-          fill="currentColor" 
+        <path
+          className="opacity-75"
+          fill="currentColor"
           d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
         />
       </svg>
@@ -196,7 +208,7 @@ export const Spinner: React.FC<SpinnerProps> = ({
   };
 
   const renderPulseIcon = () => (
-    <div 
+    <div
       className={`${getSizeClasses()} ${getColorClasses()} bg-current rounded-full animate-pulse`}
       role="img"
       aria-hidden="true"
@@ -207,7 +219,7 @@ export const Spinner: React.FC<SpinnerProps> = ({
   );
 
   const renderBounceIcon = () => (
-    <div 
+    <div
       className={`${getSizeClasses()} ${getColorClasses()} bg-current rounded-full animate-bounce`}
       role="img"
       aria-hidden="true"
@@ -225,13 +237,13 @@ export const Spinner: React.FC<SpinnerProps> = ({
         className={`w-2 h-2 ${getColorClasses()} bg-current rounded-full animate-pulse`}
         style={{
           animationDelay: `${index * 0.1}s`,
-          animationDuration: animationDuration || '1.4s'
+          animationDuration: animationDuration || "1.4s",
         }}
       />
     ));
 
     return (
-      <div 
+      <div
         className="flex space-x-1"
         role="img"
         aria-hidden="true"
@@ -251,13 +263,13 @@ export const Spinner: React.FC<SpinnerProps> = ({
         className={`w-3 h-3 ${getColorClasses()} bg-current rounded-full animate-pulse`}
         style={{
           animationDelay: `${index * 0.2}s`,
-          animationDuration: animationDuration || '1s'
+          animationDuration: animationDuration || "1s",
         }}
       />
     ));
 
     return (
-      <div 
+      <div
         className="flex space-x-2"
         role="img"
         aria-hidden="true"
@@ -277,13 +289,13 @@ export const Spinner: React.FC<SpinnerProps> = ({
         className={`w-1 h-6 ${getColorClasses()} bg-current animate-pulse`}
         style={{
           animationDelay: `${index * 0.1}s`,
-          animationDuration: animationDuration || '1.2s'
+          animationDuration: animationDuration || "1.2s",
         }}
       />
     ));
 
     return (
-      <div 
+      <div
         className="flex space-x-1 items-end"
         role="img"
         aria-hidden="true"
@@ -303,13 +315,13 @@ export const Spinner: React.FC<SpinnerProps> = ({
         className={`w-2 h-2 ${getColorClasses()} bg-current animate-pulse`}
         style={{
           animationDelay: `${(index % 3) * 0.1}s`,
-          animationDuration: animationDuration || '1.5s'
+          animationDuration: animationDuration || "1.5s",
         }}
       />
     ));
 
     return (
-      <div 
+      <div
         className="grid grid-cols-3 gap-1"
         role="img"
         aria-hidden="true"
@@ -322,45 +334,43 @@ export const Spinner: React.FC<SpinnerProps> = ({
   };
 
   const renderSpinner = () => {
-    if (type === 'pulse') return renderPulseIcon();
-    if (type === 'bounce') return renderBounceIcon();
-    if (type === 'dots') return renderDots();
-    if (type === 'pulsing-dots') return renderPulsingDots();
-    if (type === 'bars') return renderBars();
-    if (type === 'grid') return renderGrid();
+    if (type === "pulse") return renderPulseIcon();
+    if (type === "bounce") return renderBounceIcon();
+    if (type === "dots") return renderDots();
+    if (type === "pulsing-dots") return renderPulsingDots();
+    if (type === "bars") return renderBars();
+    if (type === "grid") return renderGrid();
     return renderSpinIcon();
   };
 
   const getPositionClasses = () => {
     const positionMap = {
-      top: 'justify-start items-start pt-20',
-      center: 'justify-center items-center',
-      bottom: 'justify-end items-end pb-20'
+      top: "justify-start items-start pt-20",
+      center: "justify-center items-center",
+      bottom: "justify-end items-end pb-20",
     };
     return positionMap[position];
   };
 
   const renderContent = () => (
-    <div className={`${centered ? 'flex items-center justify-center' : ''} ${inline ? 'inline-flex' : 'flex'} flex-col items-center space-y-2`}>
+    <div
+      className={`${centered ? "flex items-center justify-center" : ""} ${inline ? "inline-flex" : "flex"} flex-col items-center space-y-2`}
+    >
       {renderSpinner()}
-      
+
       {(showText || (text && showText !== false)) && (
         <div className="text-center">
           <div className="text-sm font-medium text-gray-700">
-            {text || 'Loading...'}
+            {text || "Loading..."}
           </div>
           {description && (
-            <div className="text-xs text-gray-500 mt-1">
-              {description}
-            </div>
+            <div className="text-xs text-gray-500 mt-1">{description}</div>
           )}
         </div>
       )}
-      
+
       {progress !== undefined && (
-        <div className="text-xs font-medium text-gray-600">
-          {progress}%
-        </div>
+        <div className="text-xs font-medium text-gray-600">{progress}%</div>
       )}
     </div>
   );
@@ -371,15 +381,18 @@ export const Spinner: React.FC<SpinnerProps> = ({
 
   if (overlay) {
     return (
-      <div 
+      <div
         data-testid="spinner-overlay"
         className={`
           fixed inset-0 z-50 bg-black/50 
-          ${backdropBlur ? 'backdrop-blur-sm' : ''}
+          ${backdropBlur ? "backdrop-blur-sm" : ""}
           flex ${getPositionClasses()}
         `}
       >
-        <div className={`flex flex-col items-center space-y-4 ${className}`} style={style}>
+        <div
+          className={`flex flex-col items-center space-y-4 ${className}`}
+          style={style}
+        >
           {renderContent()}
         </div>
       </div>
@@ -387,9 +400,9 @@ export const Spinner: React.FC<SpinnerProps> = ({
   }
 
   return (
-    <div 
+    <div
       className={`
-        ${delay > 0 && !visible ? 'opacity-0' : 'opacity-100'}
+        ${delay > 0 && !visible ? "opacity-0" : "opacity-100"}
         transition-opacity duration-200 ${className}
       `}
       style={style}

@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { createPortal } from 'react-dom';
-import { cn } from '@/lib/utils';
-import { Calendar } from './Calendar';
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
+import { cn } from "@/lib/utils";
+import { Calendar } from "./Calendar";
 
 export interface DateRange {
   start: Date;
@@ -11,11 +11,11 @@ export interface DateRange {
 export interface DatePickerProps {
   value?: Date | Date[] | DateRange | null;
   defaultValue?: Date | Date[] | DateRange | null;
-  mode?: 'single' | 'multiple' | 'range';
+  mode?: "single" | "multiple" | "range";
   format?: string;
   placeholder?: string;
-  size?: 'sm' | 'md' | 'lg';
-  theme?: 'light' | 'dark';
+  size?: "sm" | "md" | "lg";
+  theme?: "light" | "dark";
   disabled?: boolean;
   readonly?: boolean;
   required?: boolean;
@@ -33,7 +33,7 @@ export interface DatePickerProps {
   warning?: boolean;
   label?: string;
   helperText?: string;
-  position?: 'bottom' | 'top' | 'left' | 'right';
+  position?: "bottom" | "top" | "left" | "right";
   zIndex?: number;
   minDate?: Date;
   maxDate?: Date;
@@ -51,19 +51,19 @@ export interface DatePickerProps {
   onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
   onError?: (error: string) => void;
   className?: string;
-  'data-testid'?: string;
-  'data-category'?: string;
-  'data-id'?: string;
+  "data-testid"?: string;
+  "data-category"?: string;
+  "data-id"?: string;
 }
 
 export const DatePicker: React.FC<DatePickerProps> = ({
   value,
   defaultValue,
-  mode = 'single',
-  format = 'MM/dd/yyyy',
-  placeholder = 'Select date',
-  size = 'md',
-  theme = 'light',
+  mode = "single",
+  format = "MM/dd/yyyy",
+  placeholder = "Select date",
+  size = "md",
+  theme = "light",
   disabled = false,
   readonly = false,
   required = false,
@@ -81,7 +81,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   warning = false,
   label,
   helperText,
-  position = 'bottom',
+  position = "bottom",
   zIndex = 1000,
   minDate,
   maxDate,
@@ -99,14 +99,14 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   onBlur,
   onError,
   className,
-  'data-testid': dataTestId = 'datepicker-container',
-  'data-category': dataCategory,
-  'data-id': dataId,
+  "data-testid": dataTestId = "datepicker-container",
+  "data-category": dataCategory,
+  "data-id": dataId,
   ...props
 }) => {
   const [isOpen, setIsOpen] = useState(inline);
   const [internalValue, setInternalValue] = useState(value || defaultValue);
-  const [inputValue, setInputValue] = useState('');
+  const [inputValue, setInputValue] = useState("");
   const [calendarPosition, setCalendarPosition] = useState(position);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -114,43 +114,46 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   const calendarRef = useRef<HTMLDivElement>(null);
 
   const sizeClasses = {
-    sm: 'size-sm text-sm px-3 py-1.5',
-    md: 'size-md text-base px-4 py-2',
-    lg: 'size-lg text-lg px-5 py-3'
+    sm: "size-sm text-sm px-3 py-1.5",
+    md: "size-md text-base px-4 py-2",
+    lg: "size-lg text-lg px-5 py-3",
   };
 
   const themeClasses = {
-    light: 'theme-light bg-white border-gray-300 text-gray-900',
-    dark: 'theme-dark bg-gray-800 border-gray-600 text-white'
+    light: "theme-light bg-white border-gray-300 text-gray-900",
+    dark: "theme-dark bg-gray-800 border-gray-600 text-white",
   };
 
   // Format date for display
-  const formatDate = useCallback((date: Date | null) => {
-    if (!date) return '';
-    
-    if (showTime) {
-      const timeStr = date.toLocaleTimeString('en-US', { 
-        hour12: false, 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      });
-      return `${formatDateOnly(date)} ${timeStr}`;
-    }
-    
-    return formatDateOnly(date);
-  }, [showTime, format]);
+  const formatDate = useCallback(
+    (date: Date | null) => {
+      if (!date) return "";
+
+      if (showTime) {
+        const timeStr = date.toLocaleTimeString("en-US", {
+          hour12: false,
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        return `${formatDateOnly(date)} ${timeStr}`;
+      }
+
+      return formatDateOnly(date);
+    },
+    [showTime, format],
+  );
 
   const formatDateOnly = (date: Date) => {
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, "0");
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
     const year = date.getFullYear().toString();
-    
+
     switch (format) {
-      case 'MM-dd-yyyy':
+      case "MM-dd-yyyy":
         return `${month}-${day}-${year}`;
-      case 'dd/MM/yyyy':
+      case "dd/MM/yyyy":
         return `${day}/${month}/${year}`;
-      case 'yyyy-MM-dd':
+      case "yyyy-MM-dd":
         return `${year}-${month}-${day}`;
       default:
         return `${month}/${day}/${year}`;
@@ -160,49 +163,51 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   // Parse date from string
   const parseDate = (dateStr: string): Date | null => {
     if (!dateStr) return null;
-    
+
     const parts = dateStr.split(/[-/]/);
     if (parts.length !== 3) return null;
-    
+
     let day: number, month: number, year: number;
-    
+
     switch (format) {
-      case 'MM-dd-yyyy':
-      case 'MM/dd/yyyy':
+      case "MM-dd-yyyy":
+      case "MM/dd/yyyy":
         [month, day, year] = parts.map(Number);
         break;
-      case 'dd/MM/yyyy':
+      case "dd/MM/yyyy":
         [day, month, year] = parts.map(Number);
         break;
-      case 'yyyy-MM-dd':
+      case "yyyy-MM-dd":
         [year, month, day] = parts.map(Number);
         break;
       default:
         [month, day, year] = parts.map(Number);
     }
-    
+
     const date = new Date(year, month - 1, day);
     return isNaN(date.getTime()) ? null : date;
   };
 
   // Update input value when internal value changes
   useEffect(() => {
-    if (mode === 'single') {
+    if (mode === "single") {
       const singleValue = internalValue as Date | null;
-      setInputValue(singleValue ? formatDate(singleValue) : '');
-    } else if (mode === 'range') {
+      setInputValue(singleValue ? formatDate(singleValue) : "");
+    } else if (mode === "range") {
       const rangeValue = internalValue as DateRange | null;
       if (rangeValue?.start && rangeValue?.end) {
-        setInputValue(`${formatDate(rangeValue.start)} - ${formatDate(rangeValue.end)}`);
+        setInputValue(
+          `${formatDate(rangeValue.start)} - ${formatDate(rangeValue.end)}`,
+        );
       } else {
-        setInputValue('');
+        setInputValue("");
       }
-    } else if (mode === 'multiple') {
+    } else if (mode === "multiple") {
       const multipleValue = internalValue as Date[] | null;
       if (multipleValue && multipleValue.length > 0) {
-        setInputValue(multipleValue.map(date => formatDate(date)).join(', '));
+        setInputValue(multipleValue.map((date) => formatDate(date)).join(", "));
       } else {
-        setInputValue('');
+        setInputValue("");
       }
     }
   }, [internalValue, formatDate, mode]);
@@ -212,14 +217,18 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     if (inline) return;
 
     const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
 
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [isOpen, inline]);
 
@@ -238,24 +247,27 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       let newPosition = position;
 
       // Check if calendar fits below input
-      if (position === 'bottom' && inputRect.bottom + calendarRect.height > viewportHeight) {
-        newPosition = 'top';
+      if (
+        position === "bottom" &&
+        inputRect.bottom + calendarRect.height > viewportHeight
+      ) {
+        newPosition = "top";
       }
       // Check if calendar fits above input
-      else if (position === 'top' && inputRect.top - calendarRect.height < 0) {
-        newPosition = 'bottom';
+      else if (position === "top" && inputRect.top - calendarRect.height < 0) {
+        newPosition = "bottom";
       }
 
       setCalendarPosition(newPosition);
     };
 
     updatePosition();
-    window.addEventListener('scroll', updatePosition);
-    window.addEventListener('resize', updatePosition);
+    window.addEventListener("scroll", updatePosition);
+    window.addEventListener("resize", updatePosition);
 
     return () => {
-      window.removeEventListener('scroll', updatePosition);
-      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener("scroll", updatePosition);
+      window.removeEventListener("resize", updatePosition);
     };
   }, [isOpen, position, autoAdjustPosition, inline]);
 
@@ -271,28 +283,28 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 
   const handleInputBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     if (readonly) return;
-    
+
     const dateValue = parseDate(e.target.value);
     if (dateValue) {
       setInternalValue(dateValue);
       onChange?.(dateValue);
-    } else if (e.target.value && e.target.value.trim() !== '') {
-      onError?.('Invalid date format');
+    } else if (e.target.value && e.target.value.trim() !== "") {
+      onError?.("Invalid date format");
     }
-    
+
     onBlur?.(e);
   };
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'ArrowDown' && !isOpen) {
+    if (e.key === "ArrowDown" && !isOpen) {
       setIsOpen(true);
-    } else if (e.key === 'Escape' && isOpen) {
+    } else if (e.key === "Escape" && isOpen) {
       setIsOpen(false);
     }
   };
 
   const handleDateSelect = (date: Date) => {
-    if (mode === 'single') {
+    if (mode === "single") {
       setInternalValue(date);
       onChange?.(date);
       if (closeOnSelect) {
@@ -316,12 +328,12 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 
   const handleClear = () => {
     setInternalValue(null);
-    setInputValue('');
-    if (mode === 'single') {
+    setInputValue("");
+    if (mode === "single") {
       onChange?.(null);
-    } else if (mode === 'range') {
+    } else if (mode === "range") {
       onRangeSelect?.(null);
-    } else if (mode === 'multiple') {
+    } else if (mode === "multiple") {
       onMultipleChange?.([]);
     }
   };
@@ -339,8 +351,8 @@ export const DatePicker: React.FC<DatePickerProps> = ({
         onBlur: handleInputBlur,
         onKeyDown: handleInputKeyDown,
         onFocus,
-        'data-testid': 'datepicker-input',
-        ...inputProps
+        "data-testid": "datepicker-input",
+        ...inputProps,
       });
     }
 
@@ -354,14 +366,14 @@ export const DatePicker: React.FC<DatePickerProps> = ({
           disabled={disabled}
           readOnly={readonly}
           className={cn(
-            'border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors',
+            "border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors",
             sizeClasses[size],
             themeClasses[theme],
-            error && 'error border-red-500',
-            success && 'success border-green-500',
-            warning && 'warning border-yellow-500',
-            disabled && 'opacity-50 cursor-not-allowed',
-            readonly && 'bg-gray-50'
+            error && "error border-red-500",
+            success && "success border-green-500",
+            warning && "warning border-yellow-500",
+            disabled && "opacity-50 cursor-not-allowed",
+            readonly && "bg-gray-50",
           )}
           onClick={handleInputClick}
           onChange={handleInputChange}
@@ -371,7 +383,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
           data-testid="datepicker-input"
           {...inputProps}
         />
-        
+
         {showIcon && (
           <button
             type="button"
@@ -383,7 +395,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
             📅
           </button>
         )}
-        
+
         {clearable && internalValue && (
           <button
             type="button"
@@ -407,22 +419,26 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       <div
         ref={calendarRef}
         className={cn(
-          'absolute bg-white border rounded-lg shadow-lg z-50',
+          "absolute bg-white border rounded-lg shadow-lg z-50",
           `position-${calendarPosition}`,
-          animated && 'animated',
-          calendarPosition === 'bottom' && 'top-full mt-2',
-          calendarPosition === 'top' && 'bottom-full mb-2',
-          calendarPosition === 'left' && 'right-full mr-2',
-          calendarPosition === 'right' && 'left-full ml-2'
+          animated && "animated",
+          calendarPosition === "bottom" && "top-full mt-2",
+          calendarPosition === "top" && "bottom-full mb-2",
+          calendarPosition === "left" && "right-full mr-2",
+          calendarPosition === "right" && "left-full ml-2",
         )}
         style={{ zIndex }}
         data-testid="datepicker-calendar"
         {...calendarProps}
       >
         <Calendar
-          selectedDate={mode === 'single' ? (internalValue as Date) : undefined}
-          selectedRange={mode === 'range' ? (internalValue as DateRange) : undefined}
-          selectedDates={mode === 'multiple' ? (internalValue as Date[]) : undefined}
+          selectedDate={mode === "single" ? (internalValue as Date) : undefined}
+          selectedRange={
+            mode === "range" ? (internalValue as DateRange) : undefined
+          }
+          selectedDates={
+            mode === "multiple" ? (internalValue as Date[]) : undefined
+          }
           mode={mode}
           theme={theme}
           minDate={minDate}
@@ -435,7 +451,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
           onMultipleSelect={handleMultipleSelect}
           onTimeChange={(time) => {
             // Handle time change
-            if (mode === 'single' && internalValue) {
+            if (mode === "single" && internalValue) {
               const newDate = new Date(internalValue as Date);
               newDate.setHours(time.hours, time.minutes);
               setInternalValue(newDate);
@@ -452,7 +468,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
       </div>
     );
 
-    if (portal && typeof window !== 'undefined') {
+    if (portal && typeof window !== "undefined") {
       return createPortal(calendarElement, document.body);
     }
 
@@ -462,7 +478,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   if (loading) {
     return (
       <div
-        className={cn('flex items-center', className)}
+        className={cn("flex items-center", className)}
         data-testid="datepicker-loading"
       >
         {loadingComponent || (
@@ -478,7 +494,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   if (inline) {
     return (
       <div
-        className={cn('inline-datepicker', className)}
+        className={cn("inline-datepicker", className)}
         data-testid={dataTestId}
         data-category={dataCategory}
         data-id={dataId}
@@ -490,12 +506,18 @@ export const DatePicker: React.FC<DatePickerProps> = ({
             {required && <span className="text-red-500 ml-1">*</span>}
           </label>
         )}
-        
+
         <div data-testid="datepicker-calendar">
           <Calendar
-            selectedDate={mode === 'single' ? (internalValue as Date) : undefined}
-            selectedRange={mode === 'range' ? (internalValue as DateRange) : undefined}
-            selectedDates={mode === 'multiple' ? (internalValue as Date[]) : undefined}
+            selectedDate={
+              mode === "single" ? (internalValue as Date) : undefined
+            }
+            selectedRange={
+              mode === "range" ? (internalValue as DateRange) : undefined
+            }
+            selectedDates={
+              mode === "multiple" ? (internalValue as Date[]) : undefined
+            }
             mode={mode}
             theme={theme}
             minDate={minDate}
@@ -509,7 +531,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
             {...calendarProps}
           />
         </div>
-        
+
         {helperText && (
           <p className="mt-2 text-sm text-gray-600">{helperText}</p>
         )}
@@ -520,12 +542,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
   return (
     <div
       ref={containerRef}
-      className={cn(
-        'relative',
-        `size-${size}`,
-        `theme-${theme}`,
-        className
-      )}
+      className={cn("relative", `size-${size}`, `theme-${theme}`, className)}
       data-testid={dataTestId}
       data-category={dataCategory}
       data-id={dataId}
@@ -537,17 +554,17 @@ export const DatePicker: React.FC<DatePickerProps> = ({
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>
       )}
-      
+
       {renderInput()}
-      
-      {error && typeof error === 'string' && (
+
+      {error && typeof error === "string" && (
         <p className="mt-1 text-sm text-red-600">{error}</p>
       )}
-      
+
       {helperText && !error && (
         <p className="mt-1 text-sm text-gray-600">{helperText}</p>
       )}
-      
+
       {isOpen && renderCalendar()}
     </div>
   );

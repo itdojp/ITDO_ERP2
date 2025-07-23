@@ -24,27 +24,23 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.crud.document_v31 import DocumentService
-from app.schemas.document_v31 import (
+from app.schemas.document_v31 import (  # Bulk operations schemas; Comment schemas; Document schemas; Search and analytics schemas; Sharing schemas; Signature schemas; System schemas; Template schemas
     AdvancedSearchResponse,
     ApprovalDecisionRequest,
     ApprovalResponse,
     ApprovalSubmissionRequest,
-    # Bulk operations schemas
     BulkDocumentOperation,
     BulkOperationResponse,
     BulkShareOperation,
     BulkSignatureRequest,
     BulkTagOperation,
-    # Comment schemas
     CommentCreate,
     CommentResponse,
     DocumentAnalyticsRequest,
     DocumentAnalyticsResponse,
-    # Document schemas
     DocumentCreate,
     DocumentMoveRequest,
     DocumentResponse,
-    # Search and analytics schemas
     DocumentSearchRequest,
     DocumentUpdate,
     DocumentVersionCreate,
@@ -54,16 +50,12 @@ from app.schemas.document_v31 import (
     FolderResponse,
     ImportRequest,
     ShareAccessRequest,
-    # Sharing schemas
     ShareCreate,
     ShareResponse,
     SignatureProcessRequest,
-    # Signature schemas
     SignatureRequestCreate,
     SignatureResponse,
-    # System schemas
     SystemHealthResponse,
-    # Template schemas
     TemplateCreate,
     TemplateGenerationRequest,
     TemplateGenerationResponse,

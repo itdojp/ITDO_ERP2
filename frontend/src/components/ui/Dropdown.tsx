@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect, cloneElement } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useState, useRef, useEffect, cloneElement } from "react";
+import { createPortal } from "react-dom";
 
 interface DropdownProps {
   children: React.ReactNode;
@@ -7,8 +7,8 @@ interface DropdownProps {
   visible?: boolean;
   defaultVisible?: boolean;
   onVisibleChange?: (visible: boolean) => void;
-  position?: 'top' | 'bottom' | 'left' | 'right';
-  triggerType?: 'click' | 'hover' | 'focus';
+  position?: "top" | "bottom" | "left" | "right";
+  triggerType?: "click" | "hover" | "focus";
   disabled?: boolean;
   width?: number | string;
   maxHeight?: number;
@@ -16,7 +16,7 @@ interface DropdownProps {
   zIndex?: number;
   portal?: boolean;
   overlay?: boolean;
-  animation?: 'fade' | 'slide' | 'scale';
+  animation?: "fade" | "slide" | "scale";
   loading?: boolean;
   searchable?: boolean;
   className?: string;
@@ -44,27 +44,27 @@ const DropdownComponent: React.FC<DropdownProps> = ({
   visible: controlledVisible,
   defaultVisible = false,
   onVisibleChange,
-  position = 'bottom',
-  triggerType = 'click',
+  position = "bottom",
+  triggerType = "click",
   disabled = false,
-  width = 'auto',
+  width = "auto",
   maxHeight,
   offset = 4,
   zIndex = 1000,
   portal = true,
   overlay = false,
-  animation = 'fade',
+  animation = "fade",
   loading = false,
   searchable = false,
-  className = ''
+  className = "",
 }) => {
   const [internalVisible, setInternalVisible] = useState(defaultVisible);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const triggerRef = useRef<HTMLElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  
+
   const isControlled = controlledVisible !== undefined;
   const isVisible = isControlled ? controlledVisible : internalVisible;
 
@@ -82,18 +82,18 @@ const DropdownComponent: React.FC<DropdownProps> = ({
     };
 
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && isVisible) {
+      if (event.key === "Escape" && isVisible) {
         handleClose();
       }
     };
 
     if (isVisible) {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('keydown', handleEscape);
-      
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", handleEscape);
+
       return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-        document.removeEventListener('keydown', handleEscape);
+        document.removeEventListener("mousedown", handleClickOutside);
+        document.removeEventListener("keydown", handleEscape);
       };
     }
   }, [isVisible]);
@@ -106,7 +106,7 @@ const DropdownComponent: React.FC<DropdownProps> = ({
 
   const handleOpen = () => {
     if (disabled) return;
-    
+
     if (!isControlled) {
       setInternalVisible(true);
     }
@@ -115,12 +115,12 @@ const DropdownComponent: React.FC<DropdownProps> = ({
 
   const handleClose = () => {
     if (disabled) return;
-    
+
     if (!isControlled) {
       setInternalVisible(false);
     }
     onVisibleChange?.(false);
-    setSearchTerm('');
+    setSearchTerm("");
     setFocusedIndex(-1);
   };
 
@@ -140,30 +140,30 @@ const DropdownComponent: React.FC<DropdownProps> = ({
     let left = 0;
 
     switch (position) {
-      case 'top':
+      case "top":
         top = triggerRect.top - offset;
         left = triggerRect.left;
         break;
-      case 'bottom':
+      case "bottom":
         top = triggerRect.bottom + offset;
         left = triggerRect.left;
         break;
-      case 'left':
+      case "left":
         top = triggerRect.top;
         left = triggerRect.left - offset;
         break;
-      case 'right':
+      case "right":
         top = triggerRect.top;
         left = triggerRect.right + offset;
         break;
     }
 
     const style: React.CSSProperties = {
-      position: 'fixed',
+      position: "fixed",
       top,
       left,
       zIndex,
-      width: typeof width === 'number' ? `${width}px` : width,
+      width: typeof width === "number" ? `${width}px` : width,
     };
 
     if (maxHeight) {
@@ -174,12 +174,12 @@ const DropdownComponent: React.FC<DropdownProps> = ({
   };
 
   const getAnimationClasses = () => {
-    if (!isVisible) return 'opacity-0 scale-95 pointer-events-none';
-    
+    if (!isVisible) return "opacity-0 scale-95 pointer-events-none";
+
     const animationMap = {
-      fade: 'opacity-100 scale-100',
-      slide: 'opacity-100 translate-y-0',
-      scale: 'opacity-100 scale-100'
+      fade: "opacity-100 scale-100",
+      slide: "opacity-100 translate-y-0",
+      scale: "opacity-100 scale-100",
     };
     return animationMap[animation];
   };
@@ -187,26 +187,26 @@ const DropdownComponent: React.FC<DropdownProps> = ({
   const getTriggerEvents = () => {
     const events: Record<string, any> = {};
 
-    if (triggerType === 'click') {
+    if (triggerType === "click") {
       events.onClick = handleToggle;
     }
 
-    if (triggerType === 'hover') {
+    if (triggerType === "hover") {
       events.onMouseEnter = handleOpen;
       events.onMouseLeave = handleClose;
     }
 
-    if (triggerType === 'focus') {
+    if (triggerType === "focus") {
       events.onFocus = handleOpen;
       events.onBlur = handleClose;
     }
 
     // Keyboard support
     events.onKeyDown = (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter' || e.key === ' ') {
+      if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
         handleToggle();
-      } else if (e.key === 'ArrowDown') {
+      } else if (e.key === "ArrowDown") {
         e.preventDefault();
         if (!isVisible) {
           handleOpen();
@@ -223,7 +223,7 @@ const DropdownComponent: React.FC<DropdownProps> = ({
 
     return React.Children.toArray(children).filter((child) => {
       if (React.isValidElement(child) && child.type === DropdownItem) {
-        const childText = React.Children.toArray(child.props.children).join('');
+        const childText = React.Children.toArray(child.props.children).join("");
         return childText.toLowerCase().includes(searchTerm.toLowerCase());
       }
       return true;
@@ -232,23 +232,29 @@ const DropdownComponent: React.FC<DropdownProps> = ({
 
   const getDropdownItems = () => {
     return React.Children.toArray(filterChildren(children)).filter(
-      child => React.isValidElement(child) && child.type === DropdownItem
+      (child) => React.isValidElement(child) && child.type === DropdownItem,
     );
   };
 
   const handleKeyNavigation = (e: React.KeyboardEvent) => {
     const items = getDropdownItems();
 
-    if (e.key === 'ArrowDown') {
+    if (e.key === "ArrowDown") {
       e.preventDefault();
-      setFocusedIndex(prev => (prev + 1) % items.length);
-    } else if (e.key === 'ArrowUp') {
+      setFocusedIndex((prev) => (prev + 1) % items.length);
+    } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      setFocusedIndex(prev => prev <= 0 ? items.length - 1 : prev - 1);
-    } else if (e.key === 'Enter' && focusedIndex >= 0) {
+      setFocusedIndex((prev) => (prev <= 0 ? items.length - 1 : prev - 1));
+    } else if (e.key === "Enter" && focusedIndex >= 0) {
       e.preventDefault();
-      const focusedItem = items[focusedIndex] as React.ReactElement<DropdownItemProps>;
-      if (focusedItem && focusedItem.props.onClick && !focusedItem.props.disabled) {
+      const focusedItem = items[
+        focusedIndex
+      ] as React.ReactElement<DropdownItemProps>;
+      if (
+        focusedItem &&
+        focusedItem.props.onClick &&
+        !focusedItem.props.disabled
+      ) {
         focusedItem.props.onClick();
         handleClose();
       }
@@ -263,7 +269,7 @@ const DropdownComponent: React.FC<DropdownProps> = ({
       const isFocused = focusedIndex === itemIndex;
       const enhanced = React.cloneElement(child, {
         ...child.props,
-        className: `${child.props.className || ''} ${isFocused ? 'focus' : ''}`,
+        className: `${child.props.className || ""} ${isFocused ? "focus" : ""}`,
       });
       itemIndex++;
       return enhanced;
@@ -280,11 +286,13 @@ const DropdownComponent: React.FC<DropdownProps> = ({
       data-offset={offset}
       style={getDropdownStyle()}
       className={[
-        'bg-white border border-gray-200 rounded-md shadow-lg transition-all duration-200',
-        maxHeight ? 'overflow-auto' : '',
+        "bg-white border border-gray-200 rounded-md shadow-lg transition-all duration-200",
+        maxHeight ? "overflow-auto" : "",
         getAnimationClasses(),
-        className
-      ].filter(Boolean).join(' ')}
+        className,
+      ]
+        .filter(Boolean)
+        .join(" ")}
       onKeyDown={handleKeyNavigation}
       tabIndex={-1}
     >
@@ -313,7 +321,7 @@ const DropdownComponent: React.FC<DropdownProps> = ({
           </svg>
         </div>
       )}
-      
+
       {!loading && searchable && (
         <div className="p-2 border-b border-gray-100">
           <input
@@ -326,12 +334,8 @@ const DropdownComponent: React.FC<DropdownProps> = ({
           />
         </div>
       )}
-      
-      {!loading && (
-        <div className="py-1">
-          {enhancedChildren}
-        </div>
-      )}
+
+      {!loading && <div className="py-1">{enhancedChildren}</div>}
     </div>
   );
 
@@ -360,10 +364,9 @@ const DropdownComponent: React.FC<DropdownProps> = ({
   return (
     <>
       {enhancedTrigger}
-      {portal && typeof window !== 'undefined'
+      {portal && typeof window !== "undefined"
         ? createPortal(portalContent, document.body)
-        : portalContent
-      }
+        : portalContent}
     </>
   );
 };
@@ -375,7 +378,7 @@ const DropdownItem: React.FC<DropdownItemProps> = ({
   danger = false,
   icon,
   shortcut,
-  className = ''
+  className = "",
 }) => {
   const handleClick = () => {
     if (!disabled && onClick) {
@@ -386,20 +389,20 @@ const DropdownItem: React.FC<DropdownItemProps> = ({
   return (
     <div
       className={[
-        'flex items-center justify-between px-4 py-2 text-sm cursor-pointer hover:bg-gray-50 transition-colors',
-        disabled ? 'disabled opacity-50 cursor-not-allowed' : '',
-        danger ? 'text-red-600 hover:bg-red-50' : 'text-gray-700',
-        className
-      ].filter(Boolean).join(' ')}
+        "flex items-center justify-between px-4 py-2 text-sm cursor-pointer hover:bg-gray-50 transition-colors",
+        disabled ? "disabled opacity-50 cursor-not-allowed" : "",
+        danger ? "text-red-600 hover:bg-red-50" : "text-gray-700",
+        className,
+      ]
+        .filter(Boolean)
+        .join(" ")}
       onClick={handleClick}
     >
       <div className="flex items-center">
         {icon && <span className="mr-3">{icon}</span>}
         <span>{children}</span>
       </div>
-      {shortcut && (
-        <span className="text-xs text-gray-400">{shortcut}</span>
-      )}
+      {shortcut && <span className="text-xs text-gray-400">{shortcut}</span>}
     </div>
   );
 };
@@ -411,16 +414,14 @@ const DropdownDivider: React.FC = () => {
 const DropdownGroup: React.FC<DropdownGroupProps> = ({
   children,
   title,
-  className = ''
+  className = "",
 }) => {
   return (
     <div className={className}>
       <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide border-b border-gray-100">
         {title}
       </div>
-      <div className="py-1">
-        {children}
-      </div>
+      <div className="py-1">{children}</div>
     </div>
   );
 };

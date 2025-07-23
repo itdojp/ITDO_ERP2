@@ -1,10 +1,17 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from "react";
 
 interface TagProps {
   children: React.ReactNode;
-  color?: 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info';
-  size?: 'small' | 'medium' | 'large';
-  variant?: 'solid' | 'outlined' | 'subtle';
+  color?:
+    | "default"
+    | "primary"
+    | "secondary"
+    | "success"
+    | "warning"
+    | "error"
+    | "info";
+  size?: "small" | "medium" | "large";
+  variant?: "solid" | "outlined" | "subtle";
   closable?: boolean;
   onClose?: () => void;
   beforeClose?: () => boolean;
@@ -16,7 +23,7 @@ interface TagProps {
   onClick?: () => void;
   disabled?: boolean;
   loading?: boolean;
-  radius?: 'none' | 'small' | 'medium' | 'large' | 'full';
+  radius?: "none" | "small" | "medium" | "large" | "full";
   dot?: boolean;
   animated?: boolean;
   checkable?: boolean;
@@ -41,27 +48,34 @@ interface TagGroupProps {
 
 interface TagStatusProps {
   children: React.ReactNode;
-  status: 'active' | 'inactive' | 'pending' | 'processing' | 'success' | 'error' | 'warning';
+  status:
+    | "active"
+    | "inactive"
+    | "pending"
+    | "processing"
+    | "success"
+    | "error"
+    | "warning";
   className?: string;
 }
 
 const TagComponent: React.FC<TagProps> = ({
   children,
-  color = 'default',
-  size = 'medium',
-  variant = 'solid',
+  color = "default",
+  size = "medium",
+  variant = "solid",
   closable = false,
   onClose,
   beforeClose,
   closeIcon,
   icon,
-  className = '',
+  className = "",
   style,
   clickable = false,
   onClick,
   disabled = false,
   loading = false,
-  radius = 'medium',
+  radius = "medium",
   dot = false,
   animated = false,
   checkable = false,
@@ -87,7 +101,7 @@ const TagComponent: React.FC<TagProps> = ({
     if (animated) {
       const timer = setTimeout(() => {
         if (tagRef.current) {
-          tagRef.current.classList.add('animate-fade-in');
+          tagRef.current.classList.add("animate-fade-in");
         }
       }, 50);
       return () => clearTimeout(timer);
@@ -97,60 +111,60 @@ const TagComponent: React.FC<TagProps> = ({
   const getColorClasses = () => {
     const colorMap = {
       default: {
-        solid: 'bg-gray-100 text-gray-800 border-gray-200',
-        outlined: 'bg-transparent text-gray-700 border-gray-300',
-        subtle: 'bg-gray-50 text-gray-600 border-transparent'
+        solid: "bg-gray-100 text-gray-800 border-gray-200",
+        outlined: "bg-transparent text-gray-700 border-gray-300",
+        subtle: "bg-gray-50 text-gray-600 border-transparent",
       },
       primary: {
-        solid: 'bg-blue-500 text-white border-blue-500',
-        outlined: 'bg-transparent text-blue-600 border-blue-500',
-        subtle: 'bg-blue-50 text-blue-600 border-transparent'
+        solid: "bg-blue-500 text-white border-blue-500",
+        outlined: "bg-transparent text-blue-600 border-blue-500",
+        subtle: "bg-blue-50 text-blue-600 border-transparent",
       },
       secondary: {
-        solid: 'bg-gray-500 text-white border-gray-500',
-        outlined: 'bg-transparent text-gray-600 border-gray-500',
-        subtle: 'bg-gray-50 text-gray-600 border-transparent'
+        solid: "bg-gray-500 text-white border-gray-500",
+        outlined: "bg-transparent text-gray-600 border-gray-500",
+        subtle: "bg-gray-50 text-gray-600 border-transparent",
       },
       success: {
-        solid: 'bg-green-500 text-white border-green-500',
-        outlined: 'bg-transparent text-green-600 border-green-500',
-        subtle: 'bg-green-50 text-green-600 border-transparent'
+        solid: "bg-green-500 text-white border-green-500",
+        outlined: "bg-transparent text-green-600 border-green-500",
+        subtle: "bg-green-50 text-green-600 border-transparent",
       },
       warning: {
-        solid: 'bg-yellow-500 text-white border-yellow-500',
-        outlined: 'bg-transparent text-yellow-600 border-yellow-500',
-        subtle: 'bg-yellow-50 text-yellow-600 border-transparent'
+        solid: "bg-yellow-500 text-white border-yellow-500",
+        outlined: "bg-transparent text-yellow-600 border-yellow-500",
+        subtle: "bg-yellow-50 text-yellow-600 border-transparent",
       },
       error: {
-        solid: 'bg-red-500 text-white border-red-500',
-        outlined: 'bg-transparent text-red-600 border-red-500',
-        subtle: 'bg-red-50 text-red-600 border-transparent'
+        solid: "bg-red-500 text-white border-red-500",
+        outlined: "bg-transparent text-red-600 border-red-500",
+        subtle: "bg-red-50 text-red-600 border-transparent",
       },
       info: {
-        solid: 'bg-blue-400 text-white border-blue-400',
-        outlined: 'bg-transparent text-blue-500 border-blue-400',
-        subtle: 'bg-blue-50 text-blue-500 border-transparent'
-      }
+        solid: "bg-blue-400 text-white border-blue-400",
+        outlined: "bg-transparent text-blue-500 border-blue-400",
+        subtle: "bg-blue-50 text-blue-500 border-transparent",
+      },
     };
     return colorMap[color][variant];
   };
 
   const getSizeClasses = () => {
     const sizeMap = {
-      small: 'px-2 py-0.5 text-xs',
-      medium: 'px-3 py-1 text-sm',
-      large: 'px-4 py-1.5 text-base'
+      small: "px-2 py-0.5 text-xs",
+      medium: "px-3 py-1 text-sm",
+      large: "px-4 py-1.5 text-base",
     };
     return sizeMap[size];
   };
 
   const getRadiusClasses = () => {
     const radiusMap = {
-      none: 'rounded-none',
-      small: 'rounded-sm',
-      medium: 'rounded-md',
-      large: 'rounded-lg',
-      full: 'rounded-full'
+      none: "rounded-none",
+      small: "rounded-sm",
+      medium: "rounded-md",
+      large: "rounded-lg",
+      full: "rounded-full",
     };
     return radiusMap[radius];
   };
@@ -173,7 +187,7 @@ const TagComponent: React.FC<TagProps> = ({
 
   const handleClose = (e: React.MouseEvent) => {
     e.stopPropagation();
-    
+
     if (beforeClose && !beforeClose()) {
       return;
     }
@@ -185,9 +199,9 @@ const TagComponent: React.FC<TagProps> = ({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (disabled || loading) return;
 
-    if (checkable && (e.key === 'Enter' || e.key === ' ')) {
+    if (checkable && (e.key === "Enter" || e.key === " ")) {
       e.preventDefault();
-      const newChecked = e.key === 'Enter' ? !isChecked : !isChecked;
+      const newChecked = e.key === "Enter" ? !isChecked : !isChecked;
       if (!isControlledCheckable) {
         setInternalChecked(newChecked);
       }
@@ -212,26 +226,29 @@ const TagComponent: React.FC<TagProps> = ({
   }
 
   const tagClasses = [
-    'inline-flex items-center gap-1 border font-medium transition-all duration-200',
+    "inline-flex items-center gap-1 border font-medium transition-all duration-200",
     getSizeClasses(),
     getColorClasses(),
     getRadiusClasses(),
-    clickable || checkable ? 'cursor-pointer hover:opacity-80' : '',
-    disabled ? 'opacity-50 cursor-not-allowed' : '',
-    loading ? 'opacity-75' : '',
-    checkable && isChecked ? 'ring-2 ring-blue-300' : '',
-    animated ? 'transform transition-transform' : '',
-    className
-  ].filter(Boolean).join(' ');
+    clickable || checkable ? "cursor-pointer hover:opacity-80" : "",
+    disabled ? "opacity-50 cursor-not-allowed" : "",
+    loading ? "opacity-75" : "",
+    checkable && isChecked ? "ring-2 ring-blue-300" : "",
+    animated ? "transform transition-transform" : "",
+    className,
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   const contentStyle: React.CSSProperties = {
     ...style,
     ...(maxWidth && { maxWidth: `${maxWidth}px` }),
-    ...(truncate && maxWidth && {
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
-      whiteSpace: 'nowrap'
-    })
+    ...(truncate &&
+      maxWidth && {
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap",
+      }),
   };
 
   return (
@@ -245,18 +262,18 @@ const TagComponent: React.FC<TagProps> = ({
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         tabIndex={clickable || checkable ? 0 : undefined}
-        role={checkable ? 'checkbox' : clickable ? 'button' : undefined}
+        role={checkable ? "checkbox" : clickable ? "button" : undefined}
         aria-checked={checkable ? isChecked : undefined}
         aria-disabled={disabled}
         {...props}
       >
         {dot && (
-          <span 
+          <span
             data-testid="tag-dot"
-            className={`w-2 h-2 rounded-full ${getColorClasses().includes('bg-') ? 'bg-current' : 'bg-gray-400'}`} 
+            className={`w-2 h-2 rounded-full ${getColorClasses().includes("bg-") ? "bg-current" : "bg-gray-400"}`}
           />
         )}
-        
+
         {loading && (
           <svg
             className="w-3 h-3 animate-spin"
@@ -280,13 +297,13 @@ const TagComponent: React.FC<TagProps> = ({
             />
           </svg>
         )}
-        
+
         {icon && <span>{icon}</span>}
-        
-        <span className={truncate && maxWidth ? 'truncate' : ''}>
+
+        <span className={truncate && maxWidth ? "truncate" : ""}>
           {children}
         </span>
-        
+
         {closable && (
           <button
             type="button"
@@ -312,7 +329,7 @@ const TagComponent: React.FC<TagProps> = ({
           </button>
         )}
       </span>
-      
+
       {tooltip && showTooltip && (
         <div
           ref={tooltipRef}
@@ -332,21 +349,21 @@ const TagGroup: React.FC<TagGroupProps> = ({
   defaultValue = [],
   onChange,
   multiple = true,
-  className = ''
+  className = "",
 }) => {
   const [internalValue, setInternalValue] = useState<string[]>(defaultValue);
-  
+
   const isControlled = controlledValue !== undefined;
   const currentValue = isControlled ? controlledValue : internalValue;
 
   const handleTagChange = (tagValue: string, checked: boolean) => {
     let newValue: string[];
-    
+
     if (multiple) {
       if (checked) {
         newValue = [...currentValue, tagValue];
       } else {
-        newValue = currentValue.filter(v => v !== tagValue);
+        newValue = currentValue.filter((v) => v !== tagValue);
       }
     } else {
       newValue = checked ? [tagValue] : [];
@@ -360,14 +377,14 @@ const TagGroup: React.FC<TagGroupProps> = ({
 
   const enhancedChildren = React.Children.map(children, (child) => {
     if (React.isValidElement(child) && child.type === TagComponent) {
-      const tagValue = child.props.value || '';
+      const tagValue = child.props.value || "";
       const isSelected = currentValue.includes(tagValue);
-      
+
       return React.cloneElement(child, {
         ...child.props,
         checkable: true,
         checked: isSelected,
-        onChange: (checked: boolean) => handleTagChange(tagValue, checked)
+        onChange: (checked: boolean) => handleTagChange(tagValue, checked),
       });
     }
     return child;
@@ -383,16 +400,16 @@ const TagGroup: React.FC<TagGroupProps> = ({
 const TagStatus: React.FC<TagStatusProps> = ({
   children,
   status,
-  className = ''
+  className = "",
 }) => {
   const statusConfig = {
-    active: { color: 'success' as const, dot: true },
-    inactive: { color: 'default' as const, dot: true },
-    pending: { color: 'warning' as const, dot: true },
-    processing: { color: 'info' as const, loading: true },
-    success: { color: 'success' as const, icon: '✓' },
-    error: { color: 'error' as const, icon: '✗' },
-    warning: { color: 'warning' as const, icon: '⚠' }
+    active: { color: "success" as const, dot: true },
+    inactive: { color: "default" as const, dot: true },
+    pending: { color: "warning" as const, dot: true },
+    processing: { color: "info" as const, loading: true },
+    success: { color: "success" as const, icon: "✓" },
+    error: { color: "error" as const, icon: "✗" },
+    warning: { color: "warning" as const, icon: "⚠" },
   };
 
   const config = statusConfig[status];

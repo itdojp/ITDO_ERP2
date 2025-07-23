@@ -74,7 +74,7 @@ async def get_performance_summary(
         total = len(metrics)
 
         # Calculate percentiles
-        def percentile(data, p):
+        def percentile(data, p) -> dict:
             if not data:
                 return 0
             k = (len(data) - 1) * p

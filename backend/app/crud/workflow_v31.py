@@ -843,7 +843,7 @@ class WorkflowService:
     # Helper Methods
     # =============================================================================
 
-    async def _validate_workflow_schema(self, schema: Dict[str, Any]):
+    async def _validate_workflow_schema(self, schema: Dict[str, Any]) -> dict:
         """Validate workflow definition schema."""
         required_fields = ["steps", "start_step"]
         for field in required_fields:
@@ -1073,7 +1073,7 @@ class WorkflowService:
 
         db.commit()
 
-    async def _update_instance_progress(self, db: Session, instance: WorkflowInstance):
+    async def _update_instance_progress(self, db: Session, instance: WorkflowInstance) -> dict:
         """Update workflow instance progress percentage."""
         completed_tasks = (
             db.query(WorkflowTask)
@@ -1129,7 +1129,7 @@ class WorkflowService:
         # This would integrate with the notification system
         pass
 
-    async def _send_mention_notifications(self, db: Session, comment: WorkflowComment):
+    async def _send_mention_notifications(self, db: Session, comment: WorkflowComment) -> dict:
         """Send notifications to mentioned users in comments."""
         # This would integrate with the notification system
         pass

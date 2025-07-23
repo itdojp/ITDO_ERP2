@@ -325,7 +325,7 @@ class LeaveRequestBase(BaseModel):
     notes: Optional[str] = None
 
     @validator("end_date")
-    def validate_end_date(cls, v, values):
+    def validate_end_date(cls, v, values) -> dict:
         if "start_date" in values and v < values["start_date"]:
             raise ValueError("End date must be after start date")
         return v

@@ -114,7 +114,7 @@ class AuditLogEntryCreateRequest(BaseAuditSchema):
     event_timestamp: Optional[datetime] = Field(None, description="Event timestamp")
 
     @validator("outcome")
-    def validate_outcome(cls, v):
+    def validate_outcome(cls, v) -> dict:
         """Validate outcome values."""
         valid_outcomes = ["success", "failure", "partial"]
         if v not in valid_outcomes:
@@ -122,7 +122,7 @@ class AuditLogEntryCreateRequest(BaseAuditSchema):
         return v
 
     @validator("ip_address")
-    def validate_ip_address(cls, v):
+    def validate_ip_address(cls, v) -> dict:
         """Basic IP address validation."""
         if v and not (len(v.split(".")) == 4 or ":" in v):
             raise ValueError("Invalid IP address format")
@@ -238,7 +238,7 @@ class AuditLogSearchRequest(BaseAuditSchema):
     per_page: int = Field(50, ge=1, le=1000, description="Items per page")
 
     @validator("sort_order")
-    def validate_sort_order(cls, v):
+    def validate_sort_order(cls, v) -> dict:
         """Validate sort order."""
         if v not in ["asc", "desc"]:
             raise ValueError('Sort order must be "asc" or "desc"')
@@ -307,7 +307,7 @@ class AuditRuleCreateRequest(BaseAuditSchema):
     created_by: str = Field(..., description="Creator user ID")
 
     @validator("rule_type")
-    def validate_rule_type(cls, v):
+    def validate_rule_type(cls, v) -> dict:
         """Validate rule type."""
         valid_types = ["event_trigger", "threshold", "pattern", "anomaly"]
         if v not in valid_types:
@@ -315,7 +315,7 @@ class AuditRuleCreateRequest(BaseAuditSchema):
         return v
 
     @validator("evaluation_frequency")
-    def validate_evaluation_frequency(cls, v):
+    def validate_evaluation_frequency(cls, v) -> dict:
         """Validate evaluation frequency."""
         valid_frequencies = ["real_time", "hourly", "daily", "weekly"]
         if v not in valid_frequencies:
@@ -532,7 +532,7 @@ class AuditReportCreateRequest(BaseAuditSchema):
     generated_by: str = Field(..., description="Generator user ID")
 
     @validator("report_type")
-    def validate_report_type(cls, v):
+    def validate_report_type(cls, v) -> dict:
         """Validate report type."""
         valid_types = ["compliance", "security", "operational", "forensic", "custom"]
         if v not in valid_types:
@@ -540,7 +540,7 @@ class AuditReportCreateRequest(BaseAuditSchema):
         return v
 
     @validator("file_format")
-    def validate_file_format(cls, v):
+    def validate_file_format(cls, v) -> dict:
         """Validate file format."""
         valid_formats = ["pdf", "xlsx", "csv", "json", "html"]
         if v not in valid_formats:
@@ -548,7 +548,7 @@ class AuditReportCreateRequest(BaseAuditSchema):
         return v
 
     @validator("period_end")
-    def validate_period_end(cls, v, values):
+    def validate_period_end(cls, v, values) -> dict:
         """Validate period end is after period start."""
         if "period_start" in values and v <= values["period_start"]:
             raise ValueError("Period end must be after period start")
@@ -761,7 +761,7 @@ class ComplianceAssessmentCreateRequest(BaseAuditSchema):
     assessment_notes: Optional[str] = Field(None, description="Assessment notes")
 
     @validator("compliance_status")
-    def validate_compliance_status(cls, v):
+    def validate_compliance_status(cls, v) -> dict:
         """Validate compliance status."""
         valid_statuses = ["compliant", "non_compliant", "partial", "not_assessed"]
         if v not in valid_statuses:
@@ -769,7 +769,7 @@ class ComplianceAssessmentCreateRequest(BaseAuditSchema):
         return v
 
     @validator("risk_level")
-    def validate_risk_level(cls, v):
+    def validate_risk_level(cls, v) -> dict:
         """Validate risk level."""
         valid_levels = ["low", "medium", "high", "critical"]
         if v not in valid_levels:
@@ -777,7 +777,7 @@ class ComplianceAssessmentCreateRequest(BaseAuditSchema):
         return v
 
     @validator("assessment_method")
-    def validate_assessment_method(cls, v):
+    def validate_assessment_method(cls, v) -> dict:
         """Validate assessment method."""
         valid_methods = ["automated", "manual", "hybrid"]
         if v not in valid_methods:
@@ -976,7 +976,7 @@ class AuditExportRequest(BaseAuditSchema):
     encryption: bool = Field(True, description="Encrypt export")
 
     @validator("export_type")
-    def validate_export_type(cls, v):
+    def validate_export_type(cls, v) -> dict:
         """Validate export type."""
         valid_types = ["audit_logs", "alerts", "reports", "sessions", "compliance"]
         if v not in valid_types:
@@ -984,7 +984,7 @@ class AuditExportRequest(BaseAuditSchema):
         return v
 
     @validator("format")
-    def validate_format(cls, v):
+    def validate_format(cls, v) -> dict:
         """Validate export format."""
         valid_formats = ["csv", "json", "xlsx", "xml"]
         if v not in valid_formats:

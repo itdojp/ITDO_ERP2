@@ -1,5 +1,11 @@
-import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
-import { cn } from '@/lib/utils';
+import React, {
+  useState,
+  useRef,
+  useCallback,
+  useEffect,
+  useMemo,
+} from "react";
+import { cn } from "@/lib/utils";
 
 export interface ContextMenuItem {
   label: string;
@@ -16,11 +22,11 @@ export interface VirtualListProps<T = any> {
   getItemWidth?: (index: number) => number;
   height?: number;
   width?: number;
-  direction?: 'vertical' | 'horizontal';
+  direction?: "vertical" | "horizontal";
   overscan?: number;
   batchSize?: number;
   loading?: boolean;
-  loadingState?: 'initial' | 'more' | 'complete';
+  loadingState?: "initial" | "more" | "complete";
   infiniteScroll?: boolean;
   searchable?: boolean;
   searchQuery?: string;
@@ -37,7 +43,7 @@ export interface VirtualListProps<T = any> {
   contextMenu?: ContextMenuItem[];
   stickyHeader?: boolean;
   scrollToIndex?: number;
-  scrollBehavior?: 'auto' | 'smooth';
+  scrollBehavior?: "auto" | "smooth";
   windowMode?: boolean;
   enableItemCache?: boolean;
   cacheSize?: number;
@@ -55,9 +61,9 @@ export interface VirtualListProps<T = any> {
   onResize?: (width: number, height: number) => void;
   onPerformanceReport?: (metrics: any) => void;
   className?: string;
-  'data-testid'?: string;
-  'data-category'?: string;
-  'data-id'?: string;
+  "data-testid"?: string;
+  "data-category"?: string;
+  "data-id"?: string;
 }
 
 export const VirtualList = <T extends any>({
@@ -68,14 +74,14 @@ export const VirtualList = <T extends any>({
   getItemWidth,
   height = 400,
   width = 300,
-  direction = 'vertical',
+  direction = "vertical",
   overscan = 3,
   batchSize = 10,
   loading = false,
-  loadingState = 'initial',
+  loadingState = "initial",
   infiniteScroll = false,
   searchable = false,
-  searchQuery = '',
+  searchQuery = "",
   searchFilter,
   selectable = false,
   multiSelect = false,
@@ -89,7 +95,7 @@ export const VirtualList = <T extends any>({
   contextMenu = [],
   stickyHeader = false,
   scrollToIndex,
-  scrollBehavior = 'auto',
+  scrollBehavior = "auto",
   windowMode = false,
   enableItemCache = false,
   cacheSize = 100,
@@ -97,7 +103,7 @@ export const VirtualList = <T extends any>({
   renderItem,
   renderGroupHeader,
   getItemKey,
-  ariaLabel = 'Virtual list',
+  ariaLabel = "Virtual list",
   ariaDescribedBy,
   onScroll,
   onLoadMore,
@@ -107,36 +113,46 @@ export const VirtualList = <T extends any>({
   onResize,
   onPerformanceReport,
   className,
-  'data-testid': dataTestId = 'virtual-list-container',
-  'data-category': dataCategory,
-  'data-id': dataId,
+  "data-testid": dataTestId = "virtual-list-container",
+  "data-category": dataCategory,
+  "data-id": dataId,
   ...props
 }: VirtualListProps<T>) => {
   const [scrollTop, setScrollTop] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
   const [internalSearchQuery, setInternalSearchQuery] = useState(searchQuery);
-  const [internalSelectedItems, setInternalSelectedItems] = useState<T[]>(selectedItems);
-  const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number; y: number; item: T } | null>(null);
+  const [internalSelectedItems, setInternalSelectedItems] =
+    useState<T[]>(selectedItems);
+  const [contextMenuPosition, setContextMenuPosition] = useState<{
+    x: number;
+    y: number;
+    item: T;
+  } | null>(null);
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  const [itemCache, setItemCache] = useState<Map<string, React.ReactNode>>(new Map());
+  const [itemCache, setItemCache] = useState<Map<string, React.ReactNode>>(
+    new Map(),
+  );
 
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const performanceRef = useRef({
     renderStart: 0,
     renderEnd: 0,
-    scrollCount: 0
+    scrollCount: 0,
   });
 
   // Calculate item dimensions
-  const getItemSize = useCallback((index: number) => {
-    if (direction === 'vertical') {
-      return getItemHeight ? getItemHeight(index) : itemHeight;
-    } else {
-      return getItemWidth ? getItemWidth(index) : itemWidth;
-    }
-  }, [direction, getItemHeight, getItemWidth, itemHeight, itemWidth]);
+  const getItemSize = useCallback(
+    (index: number) => {
+      if (direction === "vertical") {
+        return getItemHeight ? getItemHeight(index) : itemHeight;
+      } else {
+        return getItemWidth ? getItemWidth(index) : itemWidth;
+      }
+    },
+    [direction, getItemHeight, getItemWidth, itemHeight, itemWidth],
+  );
 
   // Filter and sort items
   const processedItems = useMemo(() => {
@@ -144,7 +160,9 @@ export const VirtualList = <T extends any>({
 
     // Apply search filter
     if (internalSearchQuery && searchFilter) {
-      filtered = filtered.filter(item => searchFilter(item, internalSearchQuery));
+      filtered = filtered.filter((item) =>
+        searchFilter(item, internalSearchQuery),
+      );
     }
 
     // Apply sorting
@@ -160,7 +178,7 @@ export const VirtualList = <T extends any>({
     if (!groupBy) return { ungrouped: processedItems };
 
     const groups: Record<string, T[]> = {};
-    processedItems.forEach(item => {
+    processedItems.forEach((item) => {
       const group = groupBy(item);
       if (!groups[group]) {
         groups[group] = [];
@@ -177,8 +195,8 @@ export const VirtualList = <T extends any>({
       return { startIndex: 0, endIndex: 0, totalSize: 0 };
     }
 
-    const scroll = direction === 'vertical' ? scrollTop : scrollLeft;
-    const containerSize = direction === 'vertical' ? height : width;
+    const scroll = direction === "vertical" ? scrollTop : scrollLeft;
+    const containerSize = direction === "vertical" ? height : width;
 
     let currentOffset = 0;
     let start = 0;
@@ -212,135 +230,175 @@ export const VirtualList = <T extends any>({
     }
 
     return { startIndex: start, endIndex: end, totalSize: total };
-  }, [processedItems.length, scrollTop, scrollLeft, direction, height, width, getItemSize, overscan]);
+  }, [
+    processedItems.length,
+    scrollTop,
+    scrollLeft,
+    direction,
+    height,
+    width,
+    getItemSize,
+    overscan,
+  ]);
 
   // Handle scroll
-  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    const target = e.currentTarget;
-    const newScrollTop = target.scrollTop;
-    const newScrollLeft = target.scrollLeft;
+  const handleScroll = useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      const target = e.currentTarget;
+      const newScrollTop = target.scrollTop;
+      const newScrollLeft = target.scrollLeft;
 
-    setScrollTop(newScrollTop);
-    setScrollLeft(newScrollLeft);
-    onScroll?.(newScrollTop, newScrollLeft);
+      setScrollTop(newScrollTop);
+      setScrollLeft(newScrollLeft);
+      onScroll?.(newScrollTop, newScrollLeft);
 
-    if (enablePerformanceMonitoring) {
-      performanceRef.current.scrollCount++;
-    }
-
-    // Infinite scroll
-    if (infiniteScroll && onLoadMore) {
-      const scrollBottom = target.scrollHeight - target.scrollTop - target.clientHeight;
-      if (scrollBottom < 100) {
-        onLoadMore();
+      if (enablePerformanceMonitoring) {
+        performanceRef.current.scrollCount++;
       }
-    }
-  }, [onScroll, infiniteScroll, onLoadMore, enablePerformanceMonitoring]);
+
+      // Infinite scroll
+      if (infiniteScroll && onLoadMore) {
+        const scrollBottom =
+          target.scrollHeight - target.scrollTop - target.clientHeight;
+        if (scrollBottom < 100) {
+          onLoadMore();
+        }
+      }
+    },
+    [onScroll, infiniteScroll, onLoadMore, enablePerformanceMonitoring],
+  );
 
   // Handle search
-  const handleSearch = useCallback((query: string) => {
-    setInternalSearchQuery(query);
-    onSearch?.(query);
-  }, [onSearch]);
+  const handleSearch = useCallback(
+    (query: string) => {
+      setInternalSearchQuery(query);
+      onSearch?.(query);
+    },
+    [onSearch],
+  );
 
   // Handle selection
-  const handleItemSelect = useCallback((item: T, event: React.MouseEvent) => {
-    let newSelection: T[];
+  const handleItemSelect = useCallback(
+    (item: T, event: React.MouseEvent) => {
+      let newSelection: T[];
 
-    if (multiSelect && (event.ctrlKey || event.metaKey)) {
-      const isSelected = internalSelectedItems.includes(item);
-      newSelection = isSelected
-        ? internalSelectedItems.filter(selected => selected !== item)
-        : [...internalSelectedItems, item];
-    } else {
-      newSelection = [item];
-    }
+      if (multiSelect && (event.ctrlKey || event.metaKey)) {
+        const isSelected = internalSelectedItems.includes(item);
+        newSelection = isSelected
+          ? internalSelectedItems.filter((selected) => selected !== item)
+          : [...internalSelectedItems, item];
+      } else {
+        newSelection = [item];
+      }
 
-    setInternalSelectedItems(newSelection);
-    onSelectionChange?.(newSelection);
-  }, [internalSelectedItems, multiSelect, onSelectionChange]);
+      setInternalSelectedItems(newSelection);
+      onSelectionChange?.(newSelection);
+    },
+    [internalSelectedItems, multiSelect, onSelectionChange],
+  );
 
   // Handle context menu
-  const handleContextMenu = useCallback((e: React.MouseEvent, item: T) => {
-    if (contextMenu.length === 0) return;
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent, item: T) => {
+      if (contextMenu.length === 0) return;
 
-    e.preventDefault();
-    setContextMenuPosition({
-      x: e.clientX,
-      y: e.clientY,
-      item
-    });
-  }, [contextMenu]);
+      e.preventDefault();
+      setContextMenuPosition({
+        x: e.clientX,
+        y: e.clientY,
+        item,
+      });
+    },
+    [contextMenu],
+  );
 
   // Handle keyboard navigation
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault();
-        setFocusedIndex(prev => Math.min(processedItems.length - 1, prev + 1));
-        break;
-      case 'ArrowUp':
-        e.preventDefault();
-        setFocusedIndex(prev => Math.max(0, prev - 1));
-        break;
-      case 'Enter':
-        if (focusedIndex >= 0 && selectable) {
-          handleItemSelect(processedItems[focusedIndex], e as any);
-        }
-        break;
-      case 'Escape':
-        setContextMenuPosition(null);
-        break;
-    }
-  }, [processedItems, focusedIndex, selectable, handleItemSelect]);
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      switch (e.key) {
+        case "ArrowDown":
+          e.preventDefault();
+          setFocusedIndex((prev) =>
+            Math.min(processedItems.length - 1, prev + 1),
+          );
+          break;
+        case "ArrowUp":
+          e.preventDefault();
+          setFocusedIndex((prev) => Math.max(0, prev - 1));
+          break;
+        case "Enter":
+          if (focusedIndex >= 0 && selectable) {
+            handleItemSelect(processedItems[focusedIndex], e as any);
+          }
+          break;
+        case "Escape":
+          setContextMenuPosition(null);
+          break;
+      }
+    },
+    [processedItems, focusedIndex, selectable, handleItemSelect],
+  );
 
   // Handle drag and drop
-  const handleDragStart = useCallback((e: React.DragEvent, index: number) => {
-    if (!draggable) return;
-    setDraggedIndex(index);
-    e.dataTransfer.effectAllowed = 'move';
-  }, [draggable]);
+  const handleDragStart = useCallback(
+    (e: React.DragEvent, index: number) => {
+      if (!draggable) return;
+      setDraggedIndex(index);
+      e.dataTransfer.effectAllowed = "move";
+    },
+    [draggable],
+  );
 
-  const handleDragOver = useCallback((e: React.DragEvent, index: number) => {
-    if (!draggable || draggedIndex === null) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  }, [draggable, draggedIndex]);
+  const handleDragOver = useCallback(
+    (e: React.DragEvent, index: number) => {
+      if (!draggable || draggedIndex === null) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+    },
+    [draggable, draggedIndex],
+  );
 
-  const handleDrop = useCallback((e: React.DragEvent, dropIndex: number) => {
-    if (!draggable || draggedIndex === null) return;
-    e.preventDefault();
-    
-    if (draggedIndex !== dropIndex) {
-      onReorder?.(draggedIndex, dropIndex);
-    }
-    
-    setDraggedIndex(null);
-  }, [draggable, draggedIndex, onReorder]);
+  const handleDrop = useCallback(
+    (e: React.DragEvent, dropIndex: number) => {
+      if (!draggable || draggedIndex === null) return;
+      e.preventDefault();
+
+      if (draggedIndex !== dropIndex) {
+        onReorder?.(draggedIndex, dropIndex);
+      }
+
+      setDraggedIndex(null);
+    },
+    [draggable, draggedIndex, onReorder],
+  );
 
   // Scroll to specific index
   useEffect(() => {
-    if (scrollToIndex !== undefined && scrollContainerRef.current && scrollContainerRef.current.scrollTo) {
+    if (
+      scrollToIndex !== undefined &&
+      scrollContainerRef.current &&
+      scrollContainerRef.current.scrollTo
+    ) {
       let offset = 0;
       for (let i = 0; i < scrollToIndex; i++) {
         offset += getItemSize(i);
       }
 
       try {
-        if (direction === 'vertical') {
+        if (direction === "vertical") {
           scrollContainerRef.current.scrollTo({
             top: offset,
-            behavior: scrollBehavior
+            behavior: scrollBehavior,
           });
         } else {
           scrollContainerRef.current.scrollTo({
             left: offset,
-            behavior: scrollBehavior
+            behavior: scrollBehavior,
           });
         }
       } catch (error) {
         // Fallback for environments that don't support scrollTo
-        if (direction === 'vertical') {
+        if (direction === "vertical") {
           scrollContainerRef.current.scrollTop = offset;
         } else {
           scrollContainerRef.current.scrollLeft = offset;
@@ -353,20 +411,27 @@ export const VirtualList = <T extends any>({
   useEffect(() => {
     if (enablePerformanceMonitoring) {
       performanceRef.current.renderStart = performance.now();
-      
+
       return () => {
         performanceRef.current.renderEnd = performance.now();
-        const renderTime = performanceRef.current.renderEnd - performanceRef.current.renderStart;
-        
+        const renderTime =
+          performanceRef.current.renderEnd - performanceRef.current.renderStart;
+
         onPerformanceReport?.({
           renderTime,
           scrollCount: performanceRef.current.scrollCount,
           visibleItems: endIndex - startIndex + 1,
-          totalItems: processedItems.length
+          totalItems: processedItems.length,
         });
       };
     }
-  }, [enablePerformanceMonitoring, onPerformanceReport, startIndex, endIndex, processedItems.length]);
+  }, [
+    enablePerformanceMonitoring,
+    onPerformanceReport,
+    startIndex,
+    endIndex,
+    processedItems.length,
+  ]);
 
   // Handle resize
   useEffect(() => {
@@ -379,20 +444,23 @@ export const VirtualList = <T extends any>({
       }
     };
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, [onResize]);
 
   // Click outside handler
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
         setContextMenuPosition(null);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   // Render search input
@@ -419,7 +487,7 @@ export const VirtualList = <T extends any>({
 
     return (
       <div
-        className={cn('border-b', stickyHeader && 'sticky top-0 z-10 bg-white')}
+        className={cn("border-b", stickyHeader && "sticky top-0 z-10 bg-white")}
         data-testid="virtual-list-header"
       >
         {header}
@@ -433,10 +501,10 @@ export const VirtualList = <T extends any>({
       return (
         <div
           className={cn(
-            'flex items-center justify-center',
-            `loading-${loadingState}`
+            "flex items-center justify-center",
+            `loading-${loadingState}`,
           )}
-          style={{ height: direction === 'vertical' ? height : 'auto' }}
+          style={{ height: direction === "vertical" ? height : "auto" }}
           data-testid="virtual-list-loading"
         >
           <div className="w-8 h-8 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
@@ -448,7 +516,7 @@ export const VirtualList = <T extends any>({
       return (
         <div
           className="flex items-center justify-center text-gray-500"
-          style={{ height: direction === 'vertical' ? height : 'auto' }}
+          style={{ height: direction === "vertical" ? height : "auto" }}
           data-testid="virtual-list-empty"
         >
           {emptyState || <div>No items to display</div>}
@@ -487,7 +555,7 @@ export const VirtualList = <T extends any>({
         } else {
           renderedItem = renderItem(item, i);
           if (itemCache.size < cacheSize) {
-            setItemCache(prev => new Map(prev).set(cacheKey, renderedItem));
+            setItemCache((prev) => new Map(prev).set(cacheKey, renderedItem));
           }
         }
       } else {
@@ -498,16 +566,17 @@ export const VirtualList = <T extends any>({
         <div
           key={key}
           className={cn(
-            'virtual-list-item',
-            isSelected && 'selected bg-blue-50',
-            isFocused && 'focused ring-2 ring-blue-500',
-            isDragged && 'dragging opacity-50'
+            "virtual-list-item",
+            isSelected && "selected bg-blue-50",
+            isFocused && "focused ring-2 ring-blue-500",
+            isDragged && "dragging opacity-50",
           )}
           style={{
-            position: 'absolute',
-            [direction === 'vertical' ? 'top' : 'left']: currentOffset,
-            [direction === 'vertical' ? 'height' : 'width']: itemSize,
-            [direction === 'vertical' ? 'width' : 'height']: direction === 'vertical' ? '100%' : itemSize
+            position: "absolute",
+            [direction === "vertical" ? "top" : "left"]: currentOffset,
+            [direction === "vertical" ? "height" : "width"]: itemSize,
+            [direction === "vertical" ? "width" : "height"]:
+              direction === "vertical" ? "100%" : itemSize,
           }}
           onClick={(e) => selectable && handleItemSelect(item, e)}
           onContextMenu={(e) => handleContextMenu(e, item)}
@@ -518,7 +587,7 @@ export const VirtualList = <T extends any>({
           data-testid={`virtual-item-${getItemKey ? getItemKey(item, i) : i}`}
         >
           {renderedItem}
-        </div>
+        </div>,
       );
 
       currentOffset += itemSize;
@@ -528,8 +597,8 @@ export const VirtualList = <T extends any>({
       <div
         className="relative"
         style={{
-          [direction === 'vertical' ? 'height' : 'width']: totalSize,
-          [direction === 'vertical' ? 'width' : 'height']: '100%'
+          [direction === "vertical" ? "height" : "width"]: totalSize,
+          [direction === "vertical" ? "width" : "height"]: "100%",
         }}
       >
         {visibleItems}
@@ -540,14 +609,16 @@ export const VirtualList = <T extends any>({
   // Render grouped items
   const renderGroupedItems = () => {
     const groups = Object.entries(groupedItems);
-    let currentOffset = 0;
+    const currentOffset = 0;
     const visibleElements = [];
 
     groups.forEach(([groupName, groupItems]) => {
       // Render group header
-      const groupHeader = renderGroupHeader ? 
-        renderGroupHeader(groupName, groupItems) :
-        <div className="font-semibold p-2 bg-gray-100">{groupName}</div>;
+      const groupHeader = renderGroupHeader ? (
+        renderGroupHeader(groupName, groupItems)
+      ) : (
+        <div className="font-semibold p-2 bg-gray-100">{groupName}</div>
+      );
 
       visibleElements.push(
         <div
@@ -556,7 +627,7 @@ export const VirtualList = <T extends any>({
           data-testid={`group-${groupName}`}
         >
           {groupHeader}
-        </div>
+        </div>,
       );
 
       // Render group items
@@ -568,14 +639,14 @@ export const VirtualList = <T extends any>({
         visibleElements.push(
           <div
             key={key}
-            className={cn('group-item', isSelected && 'selected bg-blue-50')}
+            className={cn("group-item", isSelected && "selected bg-blue-50")}
             onClick={(e) => selectable && handleItemSelect(item, e)}
             onContextMenu={(e) => handleContextMenu(e, item)}
             draggable={draggable}
             data-testid={`virtual-item-${key}`}
           >
             {renderItem(item, globalIndex)}
-          </div>
+          </div>,
         );
       });
     });
@@ -615,15 +686,15 @@ export const VirtualList = <T extends any>({
     <div
       ref={containerRef}
       className={cn(
-        'virtual-list',
+        "virtual-list",
         `direction-${direction}`,
-        direction === 'horizontal' && 'horizontal-scroll',
-        windowMode && 'window-mode',
-        className
+        direction === "horizontal" && "horizontal-scroll",
+        windowMode && "window-mode",
+        className,
       )}
       style={{
-        height: direction === 'vertical' ? height : 'auto',
-        width: direction === 'horizontal' ? width : 'auto'
+        height: direction === "vertical" ? height : "auto",
+        width: direction === "horizontal" ? width : "auto",
       }}
       tabIndex={0}
       onKeyDown={handleKeyDown}
@@ -637,27 +708,23 @@ export const VirtualList = <T extends any>({
     >
       {renderSearch()}
       {renderHeader()}
-      
+
       <div
         ref={scrollContainerRef}
         className="scroll-container overflow-auto"
         style={{
-          height: direction === 'vertical' ? height : 'auto',
-          width: direction === 'horizontal' ? width : 'auto',
-          scrollBehavior
+          height: direction === "vertical" ? height : "auto",
+          width: direction === "horizontal" ? width : "auto",
+          scrollBehavior,
         }}
         onScroll={handleScroll}
         data-testid="virtual-list-scroll"
       >
         {renderItems()}
       </div>
-      
-      {footer && (
-        <div className="border-t p-2">
-          {footer}
-        </div>
-      )}
-      
+
+      {footer && <div className="border-t p-2">{footer}</div>}
+
       {renderContextMenu()}
     </div>
   );

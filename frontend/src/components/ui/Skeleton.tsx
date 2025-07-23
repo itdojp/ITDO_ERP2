@@ -1,12 +1,12 @@
-import React from 'react';
-import { cn } from '@/lib/utils';
+import React from "react";
+import { cn } from "@/lib/utils";
 
 export interface SkeletonProps {
-  variant?: 'text' | 'circular' | 'rectangular' | 'rounded';
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
-  animation?: 'pulse' | 'wave' | 'none';
-  theme?: 'light' | 'dark';
-  intensity?: 'low' | 'medium' | 'high';
+  variant?: "text" | "circular" | "rectangular" | "rounded";
+  size?: "xs" | "sm" | "md" | "lg" | "xl";
+  animation?: "pulse" | "wave" | "none";
+  theme?: "light" | "dark";
+  intensity?: "low" | "medium" | "high";
   width?: number | string;
   height?: number | string;
   aspectRatio?: string;
@@ -44,17 +44,17 @@ export interface SkeletonProps {
   children?: React.ReactNode;
   className?: string;
   style?: React.CSSProperties;
-  'data-testid'?: string;
-  'data-category'?: string;
-  'data-id'?: string;
+  "data-testid"?: string;
+  "data-category"?: string;
+  "data-id"?: string;
 }
 
 export const Skeleton: React.FC<SkeletonProps> = ({
-  variant = 'rectangular',
-  size = 'md',
-  animation = 'pulse',
-  theme = 'light',
-  intensity = 'medium',
+  variant = "rectangular",
+  size = "md",
+  animation = "pulse",
+  theme = "light",
+  intensity = "medium",
   width,
   height,
   aspectRatio,
@@ -79,7 +79,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({
   complex = false,
   responsive = false,
   gradient = false,
-  gradientColors = ['#f0f0f0', '#e0e0e0', '#d0d0d0'],
+  gradientColors = ["#f0f0f0", "#e0e0e0", "#d0d0d0"],
   randomAnimation = false,
   staggered = false,
   staggerDelay = 0.1,
@@ -92,47 +92,52 @@ export const Skeleton: React.FC<SkeletonProps> = ({
   children,
   className,
   style,
-  'data-testid': dataTestId = 'skeleton-container',
-  'data-category': dataCategory,
-  'data-id': dataId,
+  "data-testid": dataTestId = "skeleton-container",
+  "data-category": dataCategory,
+  "data-id": dataId,
   ...props
 }) => {
   const sizeClasses = {
-    xs: 'size-xs h-3',
-    sm: 'size-sm h-4',
-    md: 'size-md h-5',
-    lg: 'size-lg h-6',
-    xl: 'size-xl h-8'
+    xs: "size-xs h-3",
+    sm: "size-sm h-4",
+    md: "size-md h-5",
+    lg: "size-lg h-6",
+    xl: "size-xl h-8",
   };
 
   const variantClasses = {
-    text: 'variant-text h-4',
-    circular: 'variant-circular rounded-full aspect-square',
-    rectangular: 'variant-rectangular',
-    rounded: 'variant-rounded rounded-lg'
+    text: "variant-text h-4",
+    circular: "variant-circular rounded-full aspect-square",
+    rectangular: "variant-rectangular",
+    rounded: "variant-rounded rounded-lg",
   };
 
   const animationClasses = {
-    pulse: 'animation-pulse animate-pulse',
-    wave: 'animation-wave animate-pulse',
-    none: 'animation-none'
+    pulse: "animation-pulse animate-pulse",
+    wave: "animation-wave animate-pulse",
+    none: "animation-none",
   };
 
   const themeClasses = {
-    light: 'theme-light bg-gray-200',
-    dark: 'theme-dark bg-gray-700'
+    light: "theme-light bg-gray-200",
+    dark: "theme-dark bg-gray-700",
   };
 
   const intensityClasses = {
-    low: 'intensity-low opacity-40',
-    medium: 'intensity-medium opacity-60',
-    high: 'intensity-high opacity-80'
+    low: "intensity-low opacity-40",
+    medium: "intensity-medium opacity-60",
+    high: "intensity-high opacity-80",
   };
 
   // Don't render skeleton if not loading and has children
   if (!loading && children) {
     return (
-      <div className={cn(fadeIn && 'fade-in', transition && 'transition-opacity duration-300')}>
+      <div
+        className={cn(
+          fadeIn && "fade-in",
+          transition && "transition-opacity duration-300",
+        )}
+      >
         {children}
       </div>
     );
@@ -147,10 +152,10 @@ export const Skeleton: React.FC<SkeletonProps> = ({
     const styles: React.CSSProperties = {};
 
     if (width !== undefined) {
-      styles.width = typeof width === 'number' ? `${width}px` : width;
+      styles.width = typeof width === "number" ? `${width}px` : width;
     }
     if (height !== undefined) {
-      styles.height = typeof height === 'number' ? `${height}px` : height;
+      styles.height = typeof height === "number" ? `${height}px` : height;
     }
     if (aspectRatio) {
       styles.aspectRatio = aspectRatio;
@@ -159,7 +164,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({
       styles.borderRadius = borderRadius;
     }
     if (shimmerColor) {
-      styles['--shimmer-color' as any] = shimmerColor;
+      styles["--shimmer-color" as any] = shimmerColor;
     }
     if (animationDuration) {
       styles.animationDuration = animationDuration;
@@ -168,12 +173,12 @@ export const Skeleton: React.FC<SkeletonProps> = ({
       styles.animationDelay = animationDelay;
     }
     if (gradient && gradientColors.length >= 3) {
-      styles['--gradient-start' as any] = gradientColors[0];
-      styles['--gradient-middle' as any] = gradientColors[1];
-      styles['--gradient-end' as any] = gradientColors[2];
+      styles["--gradient-start" as any] = gradientColors[0];
+      styles["--gradient-middle" as any] = gradientColors[1];
+      styles["--gradient-end" as any] = gradientColors[2];
     }
     if (staggered) {
-      styles['--stagger-delay' as any] = `${staggerDelay}s`;
+      styles["--stagger-delay" as any] = `${staggerDelay}s`;
     }
 
     return styles;
@@ -181,77 +186,102 @@ export const Skeleton: React.FC<SkeletonProps> = ({
 
   const renderTextLines = () => {
     const lineElements = [];
-    
+
     for (let i = 0; i < lines; i++) {
-      let lineWidth = 'w-full';
-      
+      let lineWidth = "w-full";
+
       if (lineWidths && lineWidths[i]) {
         // Use custom width from lineWidths array
         lineElements.push(
           <div
             key={i}
             className={cn(
-              'h-4 bg-current mb-2 last:mb-0',
+              "h-4 bg-current mb-2 last:mb-0",
               variantClasses[variant],
-              animationClasses[animation]
+              animationClasses[animation],
             )}
             style={{ width: lineWidths[i] }}
             data-testid="skeleton-line"
-          />
+          />,
         );
       } else {
         // Default behavior: last line is 3/4 width
         if (i === lines - 1 && lines > 1) {
-          lineWidth = 'w-3/4';
+          lineWidth = "w-3/4";
         }
-        
+
         lineElements.push(
           <div
             key={i}
             className={cn(
-              'h-4 bg-current mb-2 last:mb-0',
+              "h-4 bg-current mb-2 last:mb-0",
               lineWidth,
               variantClasses[variant],
-              animationClasses[animation]
+              animationClasses[animation],
             )}
             data-testid="skeleton-line"
-          />
+          />,
         );
       }
     }
-    
+
     return lineElements;
   };
 
   const renderCard = () => (
     <div className="space-y-4" data-testid="skeleton-card">
-      <div 
-        className={cn(
-          'h-6 bg-current rounded',
-          animationClasses[animation]
-        )}
+      <div
+        className={cn("h-6 bg-current rounded", animationClasses[animation])}
         data-testid="skeleton-card-header"
       />
       <div className="space-y-2" data-testid="skeleton-card-content">
-        <div className={cn('h-4 bg-current rounded w-full', animationClasses[animation])} />
-        <div className={cn('h-4 bg-current rounded w-3/4', animationClasses[animation])} />
-        <div className={cn('h-4 bg-current rounded w-1/2', animationClasses[animation])} />
+        <div
+          className={cn(
+            "h-4 bg-current rounded w-full",
+            animationClasses[animation],
+          )}
+        />
+        <div
+          className={cn(
+            "h-4 bg-current rounded w-3/4",
+            animationClasses[animation],
+          )}
+        />
+        <div
+          className={cn(
+            "h-4 bg-current rounded w-1/2",
+            animationClasses[animation],
+          )}
+        />
       </div>
     </div>
   );
 
   const renderListItem = () => (
-    <div className="flex items-center space-x-3" data-testid="skeleton-list-item">
-      <div 
+    <div
+      className="flex items-center space-x-3"
+      data-testid="skeleton-list-item"
+    >
+      <div
         className={cn(
-          'w-10 h-10 bg-current rounded-full flex-shrink-0',
-          animationClasses[animation]
+          "w-10 h-10 bg-current rounded-full flex-shrink-0",
+          animationClasses[animation],
         )}
         data-testid="skeleton-list-avatar"
       />
       <div className="flex-1 space-y-2" data-testid="skeleton-list-content">
-        <div className={cn('h-4 bg-current rounded w-1/4', animationClasses[animation])} />
-        <div className={cn('h-3 bg-current rounded w-3/4', animationClasses[animation])} />
+        <div
+          className={cn(
+            "h-4 bg-current rounded w-1/4",
+            animationClasses[animation],
+          )}
+        />
+        <div
+          className={cn(
+            "h-3 bg-current rounded w-3/4",
+            animationClasses[animation],
+          )}
+        />
       </div>
     </div>
   );
@@ -262,8 +292,8 @@ export const Skeleton: React.FC<SkeletonProps> = ({
         <div
           key={i}
           className={cn(
-            'h-4 bg-current rounded flex-1',
-            animationClasses[animation]
+            "h-4 bg-current rounded flex-1",
+            animationClasses[animation],
           )}
           data-testid="skeleton-table-cell"
         />
@@ -280,18 +310,18 @@ export const Skeleton: React.FC<SkeletonProps> = ({
   const renderInput = () => (
     <div className="space-y-2">
       {withLabel && (
-        <div 
+        <div
           className={cn(
-            'h-4 bg-current rounded w-1/4',
-            animationClasses[animation]
+            "h-4 bg-current rounded w-1/4",
+            animationClasses[animation],
           )}
           data-testid="skeleton-input-label"
         />
       )}
-      <div 
+      <div
         className={cn(
-          'h-10 bg-current rounded w-full',
-          animationClasses[animation]
+          "h-10 bg-current rounded w-full",
+          animationClasses[animation],
         )}
         data-testid="skeleton-input-field"
       />
@@ -300,26 +330,49 @@ export const Skeleton: React.FC<SkeletonProps> = ({
 
   const renderComplex = () => (
     <div className="space-y-4" data-testid="skeleton-complex">
-      <div 
+      <div
         className={cn(
-          'h-12 bg-current rounded w-full',
-          animationClasses[animation]
+          "h-12 bg-current rounded w-full",
+          animationClasses[animation],
         )}
         data-testid="skeleton-complex-header"
       />
       <div className="flex space-x-4">
-        <div 
+        <div
           className={cn(
-            'w-1/4 h-64 bg-current rounded',
-            animationClasses[animation]
+            "w-1/4 h-64 bg-current rounded",
+            animationClasses[animation],
           )}
           data-testid="skeleton-complex-sidebar"
         />
-        <div className="flex-1 space-y-3" data-testid="skeleton-complex-content">
-          <div className={cn('h-6 bg-current rounded w-3/4', animationClasses[animation])} />
-          <div className={cn('h-4 bg-current rounded w-full', animationClasses[animation])} />
-          <div className={cn('h-4 bg-current rounded w-5/6', animationClasses[animation])} />
-          <div className={cn('h-4 bg-current rounded w-2/3', animationClasses[animation])} />
+        <div
+          className="flex-1 space-y-3"
+          data-testid="skeleton-complex-content"
+        >
+          <div
+            className={cn(
+              "h-6 bg-current rounded w-3/4",
+              animationClasses[animation],
+            )}
+          />
+          <div
+            className={cn(
+              "h-4 bg-current rounded w-full",
+              animationClasses[animation],
+            )}
+          />
+          <div
+            className={cn(
+              "h-4 bg-current rounded w-5/6",
+              animationClasses[animation],
+            )}
+          />
+          <div
+            className={cn(
+              "h-4 bg-current rounded w-2/3",
+              animationClasses[animation],
+            )}
+          />
         </div>
       </div>
     </div>
@@ -332,38 +385,38 @@ export const Skeleton: React.FC<SkeletonProps> = ({
     if (paragraph) return renderParagraph();
     if (input) return renderInput();
     if (complex) return renderComplex();
-    
-    if (variant === 'text' && lines > 1) {
+
+    if (variant === "text" && lines > 1) {
       return renderTextLines();
     }
-    
+
     return null;
   };
 
   const renderSingleSkeleton = (index?: number) => {
     const content = renderSkeletonContent();
-    
+
     if (content) {
       return (
         <div
           key={index}
           className={cn(
-            'skeleton-wrapper',
+            "skeleton-wrapper",
             sizeClasses[size],
             themeClasses[theme],
             intensityClasses[intensity],
-            rounded && 'rounded',
-            shimmer && 'shimmer',
-            avatar && 'avatar',
-            image && 'image',
-            button && 'button',
-            responsive && 'responsive',
-            gradient && 'gradient',
-            randomAnimation && 'random-animation',
-            staggered && 'staggered',
-            transition && 'transition',
-            loading && 'loading',
-            className
+            rounded && "rounded",
+            shimmer && "shimmer",
+            avatar && "avatar",
+            image && "image",
+            button && "button",
+            responsive && "responsive",
+            gradient && "gradient",
+            randomAnimation && "random-animation",
+            staggered && "staggered",
+            transition && "transition",
+            loading && "loading",
+            className,
           )}
           style={{ ...getInlineStyles(), ...style }}
           aria-label={ariaLabel}
@@ -385,24 +438,24 @@ export const Skeleton: React.FC<SkeletonProps> = ({
       <div
         key={index}
         className={cn(
-          'skeleton-container bg-current',
+          "skeleton-container bg-current",
           sizeClasses[size],
           variantClasses[variant],
           animationClasses[animation],
           themeClasses[theme],
           intensityClasses[intensity],
-          rounded && 'rounded',
-          shimmer && 'shimmer',
-          avatar && 'avatar',
-          image && 'image',
-          button && 'button',
-          responsive && 'responsive',
-          gradient && 'gradient',
-          randomAnimation && 'random-animation',
-          staggered && 'staggered',
-          transition && 'transition',
-          loading && 'loading',
-          className
+          rounded && "rounded",
+          shimmer && "shimmer",
+          avatar && "avatar",
+          image && "image",
+          button && "button",
+          responsive && "responsive",
+          gradient && "gradient",
+          randomAnimation && "random-animation",
+          staggered && "staggered",
+          transition && "transition",
+          loading && "loading",
+          className,
         )}
         style={{ ...getInlineStyles(), ...style }}
         aria-label={ariaLabel}
@@ -421,9 +474,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({
 
   if (count > 1) {
     return (
-      <>
-        {Array.from({ length: count }, (_, i) => renderSingleSkeleton(i))}
-      </>
+      <>{Array.from({ length: count }, (_, i) => renderSingleSkeleton(i))}</>
     );
   }
 

@@ -57,7 +57,7 @@ from app.schemas.finance_v31 import (
 class AccountCRUD(CRUDBase[Account, AccountCreate, AccountUpdate]):
     """CRUD operations for Chart of Accounts."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         super().__init__(Account)
         self.db = db
 
@@ -223,7 +223,7 @@ class AccountCRUD(CRUDBase[Account, AccountCreate, AccountUpdate]):
 class JournalEntryCRUD(CRUDBase[JournalEntry, JournalEntryCreate, JournalEntryUpdate]):
     """CRUD operations for Journal Entries."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         super().__init__(JournalEntry)
         self.db = db
 
@@ -468,7 +468,7 @@ class JournalEntryCRUD(CRUDBase[JournalEntry, JournalEntryCreate, JournalEntryUp
 class BudgetCRUD(CRUDBase[Budget, BudgetCreate, BudgetUpdate]):
     """CRUD operations for Budget management."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         super().__init__(Budget)
         self.db = db
 
@@ -621,7 +621,7 @@ class BudgetCRUD(CRUDBase[Budget, BudgetCreate, BudgetUpdate]):
 class CostCenterCRUD(CRUDBase[CostCenter, CostCenterCreate, CostCenterUpdate]):
     """CRUD operations for Cost Center management."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         super().__init__(CostCenter)
         self.db = db
 
@@ -733,7 +733,7 @@ class FinancialPeriodCRUD(
 ):
     """CRUD operations for Financial Period management."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         super().__init__(FinancialPeriod)
         self.db = db
 
@@ -774,7 +774,7 @@ class FinancialReportCRUD(
 ):
     """CRUD operations for Financial Report management."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         super().__init__(FinancialReport)
         self.db = db
 
@@ -941,7 +941,7 @@ class TaxConfigurationCRUD(
 ):
     """CRUD operations for Tax Configuration."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         super().__init__(TaxConfiguration)
         self.db = db
 

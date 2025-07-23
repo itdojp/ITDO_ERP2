@@ -1,19 +1,20 @@
 <<<<<<< HEAD
 """Unit tests for security audit service."""
-import pytest
-from unittest.mock import Mock, AsyncMock
-from uuid import uuid4
 from datetime import datetime
+from unittest.mock import AsyncMock, Mock
+from uuid import uuid4
+
+import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.services.security.audit_service import SecurityAuditService
 from app.models.security.audit_log import SecurityAuditLog
 from app.schemas.security.audit_log import (
     SecurityAuditLogCreate,
+    SecurityAuditLogFilter,
     SecurityEventType,
     SecuritySeverity,
-    SecurityAuditLogFilter,
 )
+from app.services.security.audit_service import SecurityAuditService
 
 
 @pytest.fixture

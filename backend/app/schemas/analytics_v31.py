@@ -108,7 +108,7 @@ class DataSourceCreateRequest(BaseAnalyticsSchema):
     created_by: str = Field(..., description="Creator user ID")
 
     @validator("source_type")
-    def validate_source_type(cls, v):
+    def validate_source_type(cls, v) -> dict:
         """Validate source type."""
         allowed_types = ["database", "api", "file", "stream", "webhook"]
         if v not in allowed_types:
@@ -116,7 +116,7 @@ class DataSourceCreateRequest(BaseAnalyticsSchema):
         return v
 
     @validator("sync_frequency")
-    def validate_sync_frequency(cls, v):
+    def validate_sync_frequency(cls, v) -> dict:
         """Validate sync frequency."""
         allowed_frequencies = ["realtime", "hourly", "daily", "weekly", "monthly"]
         if v not in allowed_frequencies:
@@ -273,7 +273,7 @@ class MetricCreateRequest(BaseAnalyticsSchema):
     created_by: str = Field(..., description="Creator user ID")
 
     @validator("calculation_frequency")
-    def validate_calculation_frequency(cls, v):
+    def validate_calculation_frequency(cls, v) -> dict:
         """Validate calculation frequency."""
         allowed_frequencies = ["realtime", "hourly", "daily", "weekly", "monthly"]
         if v not in allowed_frequencies:
@@ -283,7 +283,7 @@ class MetricCreateRequest(BaseAnalyticsSchema):
         return v
 
     @validator("chart_type")
-    def validate_chart_type(cls, v):
+    def validate_chart_type(cls, v) -> dict:
         """Validate chart type."""
         allowed_types = [
             "line",
@@ -476,7 +476,7 @@ class DashboardCreateRequest(BaseAnalyticsSchema):
     created_by: str = Field(..., description="Creator user ID")
 
     @validator("access_level")
-    def validate_access_level(cls, v):
+    def validate_access_level(cls, v) -> dict:
         """Validate access level."""
         allowed_levels = ["private", "team", "department", "organization", "public"]
         if v not in allowed_levels:
@@ -486,7 +486,7 @@ class DashboardCreateRequest(BaseAnalyticsSchema):
         return v
 
     @validator("theme")
-    def validate_theme(cls, v):
+    def validate_theme(cls, v) -> dict:
         """Validate theme."""
         allowed_themes = ["default", "dark", "light", "corporate", "modern", "minimal"]
         if v not in allowed_themes:
@@ -621,7 +621,7 @@ class ReportCreateRequest(BaseAnalyticsSchema):
     created_by: str = Field(..., description="Creator user ID")
 
     @validator("format")
-    def validate_format(cls, v):
+    def validate_format(cls, v) -> dict:
         """Validate output format."""
         allowed_formats = ["pdf", "excel", "csv", "html", "json", "png", "svg"]
         if v not in allowed_formats:
@@ -629,7 +629,7 @@ class ReportCreateRequest(BaseAnalyticsSchema):
         return v
 
     @validator("delivery_method")
-    def validate_delivery_method(cls, v):
+    def validate_delivery_method(cls, v) -> dict:
         """Validate delivery method."""
         allowed_methods = ["email", "webhook", "ftp", "s3", "download"]
         if v not in allowed_methods:
@@ -753,7 +753,7 @@ class PredictionCreateRequest(BaseAnalyticsSchema):
     created_by: str = Field(..., description="Creator user ID")
 
     @validator("prediction_type")
-    def validate_prediction_type(cls, v):
+    def validate_prediction_type(cls, v) -> dict:
         """Validate prediction type."""
         allowed_types = ["forecast", "trend", "classification", "anomaly", "regression"]
         if v not in allowed_types:
@@ -763,7 +763,7 @@ class PredictionCreateRequest(BaseAnalyticsSchema):
         return v
 
     @validator("model_type")
-    def validate_model_type(cls, v):
+    def validate_model_type(cls, v) -> dict:
         """Validate model type."""
         allowed_models = [
             "linear_regression",
@@ -778,7 +778,7 @@ class PredictionCreateRequest(BaseAnalyticsSchema):
         return v
 
     @validator("update_frequency")
-    def validate_update_frequency(cls, v):
+    def validate_update_frequency(cls, v) -> dict:
         """Validate update frequency."""
         allowed_frequencies = ["daily", "weekly", "monthly", "quarterly"]
         if v not in allowed_frequencies:
@@ -901,7 +901,7 @@ class AlertCreateRequest(BaseAnalyticsSchema):
     created_by: str = Field(..., description="Creator user ID")
 
     @validator("alert_type")
-    def validate_alert_type(cls, v):
+    def validate_alert_type(cls, v) -> dict:
         """Validate alert type."""
         allowed_types = ["threshold", "anomaly", "trend", "comparison", "change"]
         if v not in allowed_types:
@@ -909,7 +909,7 @@ class AlertCreateRequest(BaseAnalyticsSchema):
         return v
 
     @validator("evaluation_frequency")
-    def validate_evaluation_frequency(cls, v):
+    def validate_evaluation_frequency(cls, v) -> dict:
         """Validate evaluation frequency."""
         allowed_frequencies = ["realtime", "hourly", "daily", "weekly"]
         if v not in allowed_frequencies:
@@ -919,7 +919,7 @@ class AlertCreateRequest(BaseAnalyticsSchema):
         return v
 
     @validator("notification_channels")
-    def validate_notification_channels(cls, v):
+    def validate_notification_channels(cls, v) -> dict:
         """Validate notification channels."""
         allowed_channels = ["email", "sms", "slack", "teams", "webhook", "in_app"]
         for channel in v:
