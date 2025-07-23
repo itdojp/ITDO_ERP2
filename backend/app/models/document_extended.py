@@ -186,7 +186,9 @@ class DocumentExtended(Base):
 
     # Digital signatures
     requires_signature = Column(Boolean, default=False)
-    signature_status = Column(SQLEnum(SignatureStatus), default=SignatureStatus.NOT_REQUIRED)
+    signature_status = Column(
+        SQLEnum(SignatureStatus), default=SignatureStatus.NOT_REQUIRED
+    )
     signature_deadline = Column(DateTime)
 
     # Analytics and tracking
@@ -362,7 +364,9 @@ class DocumentComment(Base):
 
     # Comment content
     content = Column(Text, nullable=False)
-    comment_type = Column(String(50), default="general")  # general, review, approval, suggestion
+    comment_type = Column(
+        String(50), default="general"
+    )  # general, review, approval, suggestion
 
     # Comment position (for annotations)
     page_number = Column(Integer)
@@ -602,7 +606,9 @@ class DocumentActivity(Base):
     organization_id = Column(String, ForeignKey("organizations.id"), nullable=False)
 
     # Activity information
-    activity_type = Column(String(50), nullable=False)  # view, download, edit, share, comment, approve
+    activity_type = Column(
+        String(50), nullable=False
+    )  # view, download, edit, share, comment, approve
     action = Column(String(100), nullable=False)
     description = Column(Text)
 
@@ -758,7 +764,9 @@ class DocumentAnalytics(Base):
     # Reporting period
     period_start = Column(Date, nullable=False)
     period_end = Column(Date, nullable=False)
-    period_type = Column(String(20), default="monthly")  # daily, weekly, monthly, quarterly
+    period_type = Column(
+        String(20), default="monthly"
+    )  # daily, weekly, monthly, quarterly
 
     # Document metrics
     total_documents = Column(Integer, default=0)

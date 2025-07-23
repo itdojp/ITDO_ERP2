@@ -1,4 +1,5 @@
 """Advanced tests for audit service."""
+
 from unittest.mock import Mock
 
 # Import the service class
@@ -12,7 +13,6 @@ class TestAuditService:
         """Setup test environment."""
         self.mock_db = Mock()
         # self.service = ServiceClass(self.mock_db)
-
 
     def test___init___success(self):
         """Test __init__ successful execution."""

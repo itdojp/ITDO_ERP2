@@ -1,4 +1,5 @@
 """Security audit API endpoints."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -27,7 +28,7 @@ router = APIRouter()
 async def log_security_event(
     event_data: SecurityAuditLogCreate,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_active_superuser)
+    current_user: User = Depends(deps.get_current_active_superuser),
 ) -> SecurityAuditLogResponse:
     """Log a security event (admin only)."""
     service = SecurityAuditService(db)
@@ -46,7 +47,7 @@ async def get_security_logs(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_active_superuser)
+    current_user: User = Depends(deps.get_current_active_superuser),
 ) -> List[SecurityAuditLogResponse]:
     """Get security audit logs with filters (admin only)."""
     filters = SecurityAuditLogFilter(
@@ -55,7 +56,7 @@ async def get_security_logs(
         user_id=user_id,
         start_date=start_date,
         end_date=end_date,
-        result=result
+        result=result,
     )
 
     service = SecurityAuditService(db)
@@ -68,7 +69,7 @@ async def get_security_metrics(
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_active_superuser)
+    current_user: User = Depends(deps.get_current_active_superuser),
 ) -> SecurityMetrics:
     """Get security metrics summary (admin only)."""
     service = SecurityAuditService(db)
@@ -80,7 +81,7 @@ async def get_security_metrics(
 async def detect_user_anomalies(
     user_id: UUID,
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_active_superuser)
+    current_user: User = Depends(deps.get_current_active_superuser),
 ) -> dict:
     """Detect security anomalies for a user (admin only)."""
     service = SecurityAuditService(db)
@@ -93,7 +94,7 @@ async def get_my_security_logs(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
     db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_active_user)
+    current_user: User = Depends(deps.get_current_active_user),
 ) -> List[SecurityAuditLogResponse]:
     """Get current user's security logs."""
     filters = SecurityAuditLogFilter(user_id=current_user.id)

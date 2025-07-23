@@ -239,7 +239,9 @@ class CustomerExtended(Base):
     # Relationships
     organization = relationship("Organization")
     account_manager = relationship("User", foreign_keys=[account_manager_id])
-    customer_success_manager = relationship("User", foreign_keys=[customer_success_manager_id])
+    customer_success_manager = relationship(
+        "User", foreign_keys=[customer_success_manager_id]
+    )
     sales_rep = relationship("User", foreign_keys=[sales_rep_id])
     creator = relationship("User", foreign_keys=[created_by])
     updater = relationship("User", foreign_keys=[updated_by])
@@ -460,7 +462,9 @@ class OpportunityExtended(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     customer_id = Column(String, ForeignKey("customers_extended.id"), nullable=False)
     organization_id = Column(String, ForeignKey("organizations.id"), nullable=False)
-    lead_id = Column(String, ForeignKey("leads_extended.id"))  # Source lead if applicable
+    lead_id = Column(
+        String, ForeignKey("leads_extended.id")
+    )  # Source lead if applicable
 
     # Opportunity identification
     opportunity_number = Column(String(50), nullable=False, unique=True, index=True)
@@ -752,7 +756,9 @@ class SupportTicket(Base):
     component = Column(String(100))
 
     # Priority and severity
-    priority = Column(SQLEnum(SupportTicketPriority), default=SupportTicketPriority.MEDIUM)
+    priority = Column(
+        SQLEnum(SupportTicketPriority), default=SupportTicketPriority.MEDIUM
+    )
     severity = Column(String(20))  # low, medium, high, critical
 
     # Status and assignment
@@ -826,7 +832,9 @@ class CRMAnalytics(Base):
     # Reporting period
     period_start = Column(Date, nullable=False)
     period_end = Column(Date, nullable=False)
-    period_type = Column(String(20), default="monthly")  # daily, weekly, monthly, quarterly, annual
+    period_type = Column(
+        String(20), default="monthly"
+    )  # daily, weekly, monthly, quarterly, annual
 
     # Lead metrics
     leads_generated = Column(Integer, default=0)

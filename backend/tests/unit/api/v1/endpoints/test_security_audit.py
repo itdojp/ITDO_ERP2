@@ -1,4 +1,5 @@
 """Unit tests for security audit API endpoints."""
+
 from datetime import datetime
 from unittest.mock import AsyncMock, Mock, patch
 from uuid import uuid4
@@ -70,16 +71,16 @@ async def test_log_security_event_success(mock_current_user, mock_audit_service)
 
     mock_audit_service.log_event = AsyncMock(return_value=Mock(id=uuid4()))
 
-    with patch('app.api.v1.endpoints.security.audit.SecurityAuditService') as mock_service_class:
+    with patch(
+        "app.api.v1.endpoints.security.audit.SecurityAuditService"
+    ) as mock_service_class:
         mock_service_class.return_value = mock_audit_service
 
         from app.api.v1.endpoints.security.audit import log_security_event
 
         # Act
         result = await log_security_event(
-            event_data=event_data,
-            current_user=mock_current_user,
-            db=Mock()
+            event_data=event_data, current_user=mock_current_user, db=Mock()
         )
 
         # Assert
@@ -105,9 +106,7 @@ async def test_log_security_event_non_admin_forbidden(mock_current_user_non_admi
     # Act & Assert
     with pytest.raises(HTTPException) as exc_info:
         await log_security_event(
-            event_data=event_data,
-            current_user=mock_current_user_non_admin,
-            db=Mock()
+            event_data=event_data, current_user=mock_current_user_non_admin, db=Mock()
         )
 
     assert exc_info.value.status_code == 403
@@ -115,12 +114,16 @@ async def test_log_security_event_non_admin_forbidden(mock_current_user_non_admi
 
 
 @pytest.mark.asyncio
-async def test_get_security_logs_success(mock_current_user, mock_audit_service, sample_audit_log_response):
+async def test_get_security_logs_success(
+    mock_current_user, mock_audit_service, sample_audit_log_response
+):
     """Test successful retrieval of security logs."""
     # Arrange
     mock_audit_service.get_logs = AsyncMock(return_value=[sample_audit_log_response])
 
-    with patch('app.api.v1.endpoints.security.audit.SecurityAuditService') as mock_service_class:
+    with patch(
+        "app.api.v1.endpoints.security.audit.SecurityAuditService"
+    ) as mock_service_class:
         mock_service_class.return_value = mock_audit_service
 
         from app.api.v1.endpoints.security.audit import get_security_logs
@@ -135,7 +138,7 @@ async def test_get_security_logs_success(mock_current_user, mock_audit_service, 
             limit=50,
             offset=0,
             current_user=mock_current_user,
-            db=Mock()
+            db=Mock(),
         )
 
         # Assert
@@ -157,16 +160,15 @@ async def test_get_security_metrics_success(mock_current_user, mock_audit_servic
     )
     mock_audit_service.get_metrics = AsyncMock(return_value=mock_metrics)
 
-    with patch('app.api.v1.endpoints.security.audit.SecurityAuditService') as mock_service_class:
+    with patch(
+        "app.api.v1.endpoints.security.audit.SecurityAuditService"
+    ) as mock_service_class:
         mock_service_class.return_value = mock_audit_service
 
         from app.api.v1.endpoints.security.audit import get_security_metrics
 
         # Act
-        result = await get_security_metrics(
-            current_user=mock_current_user,
-            db=Mock()
-        )
+        result = await get_security_metrics(current_user=mock_current_user, db=Mock())
 
         # Assert
         assert result == mock_metrics
@@ -183,16 +185,16 @@ async def test_detect_user_anomalies_success(mock_current_user, mock_audit_servi
     ]
     mock_audit_service.detect_anomalies = AsyncMock(return_value=mock_anomalies)
 
-    with patch('app.api.v1.endpoints.security.audit.SecurityAuditService') as mock_service_class:
+    with patch(
+        "app.api.v1.endpoints.security.audit.SecurityAuditService"
+    ) as mock_service_class:
         mock_service_class.return_value = mock_audit_service
 
         from app.api.v1.endpoints.security.audit import detect_user_anomalies
 
         # Act
         result = await detect_user_anomalies(
-            user_id=user_id,
-            current_user=mock_current_user,
-            db=Mock()
+            user_id=user_id, current_user=mock_current_user, db=Mock()
         )
 
         # Assert
@@ -201,22 +203,23 @@ async def test_detect_user_anomalies_success(mock_current_user, mock_audit_servi
 
 
 @pytest.mark.asyncio
-async def test_get_my_security_logs_success(mock_current_user, mock_audit_service, sample_audit_log_response):
+async def test_get_my_security_logs_success(
+    mock_current_user, mock_audit_service, sample_audit_log_response
+):
     """Test successful retrieval of user's own security logs."""
     # Arrange
     mock_audit_service.get_logs = AsyncMock(return_value=[sample_audit_log_response])
 
-    with patch('app.api.v1.endpoints.security.audit.SecurityAuditService') as mock_service_class:
+    with patch(
+        "app.api.v1.endpoints.security.audit.SecurityAuditService"
+    ) as mock_service_class:
         mock_service_class.return_value = mock_audit_service
 
         from app.api.v1.endpoints.security.audit import get_my_security_logs
 
         # Act
         result = await get_my_security_logs(
-            limit=50,
-            offset=0,
-            current_user=mock_current_user,
-            db=Mock()
+            limit=50, offset=0, current_user=mock_current_user, db=Mock()
         )
 
         # Assert
@@ -230,7 +233,9 @@ async def test_get_security_logs_with_filters(mock_current_user, mock_audit_serv
     # Arrange
     mock_audit_service.get_logs = AsyncMock(return_value=[])
 
-    with patch('app.api.v1.endpoints.security.audit.SecurityAuditService') as mock_service_class:
+    with patch(
+        "app.api.v1.endpoints.security.audit.SecurityAuditService"
+    ) as mock_service_class:
         mock_service_class.return_value = mock_audit_service
 
         from app.api.v1.endpoints.security.audit import get_security_logs
@@ -245,15 +250,15 @@ async def test_get_security_logs_with_filters(mock_current_user, mock_audit_serv
             limit=100,
             offset=10,
             current_user=mock_current_user,
-            db=Mock()
+            db=Mock(),
         )
 
         # Assert
         mock_audit_service.get_logs.assert_called_once()
         call_args = mock_audit_service.get_logs.call_args[0][0]
-        assert hasattr(call_args, 'event_type')
-        assert hasattr(call_args, 'severity')
-        assert hasattr(call_args, 'user_id')
+        assert hasattr(call_args, "event_type")
+        assert hasattr(call_args, "severity")
+        assert hasattr(call_args, "user_id")
         assert call_args.limit == 100
         assert call_args.offset == 10
 
@@ -264,7 +269,9 @@ async def test_audit_service_exception_handling(mock_current_user, mock_audit_se
     # Arrange
     mock_audit_service.get_logs = AsyncMock(side_effect=Exception("Database error"))
 
-    with patch('app.api.v1.endpoints.security.audit.SecurityAuditService') as mock_service_class:
+    with patch(
+        "app.api.v1.endpoints.security.audit.SecurityAuditService"
+    ) as mock_service_class:
         mock_service_class.return_value = mock_audit_service
 
         from app.api.v1.endpoints.security.audit import get_security_logs
@@ -280,7 +287,7 @@ async def test_audit_service_exception_handling(mock_current_user, mock_audit_se
                 limit=50,
                 offset=0,
                 current_user=mock_current_user,
-                db=Mock()
+                db=Mock(),
             )
 
 
@@ -308,7 +315,9 @@ async def test_pagination_parameters():
     from app.api.v1.endpoints.security.audit import get_security_logs
 
     # Test with valid pagination
-    with patch('app.api.v1.endpoints.security.audit.SecurityAuditService') as mock_service_class:
+    with patch(
+        "app.api.v1.endpoints.security.audit.SecurityAuditService"
+    ) as mock_service_class:
         mock_service = Mock()
         mock_service.get_logs = AsyncMock(return_value=[])
         mock_service_class.return_value = mock_service
@@ -322,7 +331,7 @@ async def test_pagination_parameters():
             limit=100,
             offset=0,
             current_user=mock_current_user(),
-            db=Mock()
+            db=Mock(),
         )
 
         # Verify pagination parameters are passed correctly

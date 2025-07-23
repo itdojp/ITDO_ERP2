@@ -13,14 +13,15 @@ class TestAgentHealthAPI:
         self.client = TestClient(app)
         self.headers = {"Content-Type": "application/json"}
 
-
     def test_get__health_comprehensive_success(self):
         """Test GET /health/comprehensive successful response."""
         # Setup test data
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/health/comprehensive", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/health/comprehensive", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -33,7 +34,9 @@ class TestAgentHealthAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/health/comprehensive", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/health/comprehensive", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -44,7 +47,9 @@ class TestAgentHealthAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/health/agents", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/health/agents", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -57,7 +62,9 @@ class TestAgentHealthAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/health/agents", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/health/agents", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -68,7 +75,9 @@ class TestAgentHealthAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/health/agents/{agent_id}", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/health/agents/{agent_id}", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -81,7 +90,9 @@ class TestAgentHealthAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/health/agents/{agent_id}", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/health/agents/{agent_id}", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -92,7 +103,9 @@ class TestAgentHealthAPI:
         test_data = self.get_test_data_for_post()
 
         # Make request
-        response = self.client.post("/health/agents/{agent_id}/ping", json=test_data, headers=self.headers)
+        response = self.client.post(
+            "/health/agents/{agent_id}/ping", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -105,7 +118,9 @@ class TestAgentHealthAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.post("/health/agents/{agent_id}/ping", json=invalid_data, headers=self.headers)
+        response = self.client.post(
+            "/health/agents/{agent_id}/ping", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -116,7 +131,9 @@ class TestAgentHealthAPI:
         test_data = self.get_test_data_for_post()
 
         # Make request
-        response = self.client.post("/health/agents/{agent_id}/escalate", json=test_data, headers=self.headers)
+        response = self.client.post(
+            "/health/agents/{agent_id}/escalate", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -129,7 +146,11 @@ class TestAgentHealthAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.post("/health/agents/{agent_id}/escalate", json=invalid_data, headers=self.headers)
+        response = self.client.post(
+            "/health/agents/{agent_id}/escalate",
+            json=invalid_data,
+            headers=self.headers,
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -140,7 +161,9 @@ class TestAgentHealthAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/health/system/metrics", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/health/system/metrics", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -153,7 +176,9 @@ class TestAgentHealthAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/health/system/metrics", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/health/system/metrics", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -164,7 +189,9 @@ class TestAgentHealthAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/health/agents/activity-log", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/health/agents/activity-log", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -177,7 +204,9 @@ class TestAgentHealthAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/health/agents/activity-log", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/health/agents/activity-log", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -188,7 +217,9 @@ class TestAgentHealthAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/health/agents/workload-analysis", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/health/agents/workload-analysis", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -201,7 +232,9 @@ class TestAgentHealthAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/health/agents/workload-analysis", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/health/agents/workload-analysis", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -212,7 +245,9 @@ class TestAgentHealthAPI:
         test_data = self.get_test_data_for_post()
 
         # Make request
-        response = self.client.post("/health/agents/{agent_id}/take-break", json=test_data, headers=self.headers)
+        response = self.client.post(
+            "/health/agents/{agent_id}/take-break", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -225,7 +260,11 @@ class TestAgentHealthAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.post("/health/agents/{agent_id}/take-break", json=invalid_data, headers=self.headers)
+        response = self.client.post(
+            "/health/agents/{agent_id}/take-break",
+            json=invalid_data,
+            headers=self.headers,
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -236,7 +275,9 @@ class TestAgentHealthAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/health/github-integration", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/health/github-integration", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -249,7 +290,9 @@ class TestAgentHealthAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/health/github-integration", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/health/github-integration", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422

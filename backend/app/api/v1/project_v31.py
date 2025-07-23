@@ -92,6 +92,7 @@ router = APIRouter()
 # 1. Project Management Endpoint
 # =============================================================================
 
+
 @router.get("/projects", response_model=List[ProjectResponse])
 async def list_projects(
     organization_id: Optional[str] = Query(None),
@@ -131,8 +132,9 @@ async def list_projects(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error retrieving projects: {str(e)}"
+            detail=f"Error retrieving projects: {str(e)}",
         )
+
 
 @router.post("/projects", response_model=ProjectResponse)
 async def create_new_project(
@@ -144,15 +146,13 @@ async def create_new_project(
         project = create_project(db, project_data)
         return project
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error creating project: {str(e)}"
+            detail=f"Error creating project: {str(e)}",
         )
+
 
 @router.get("/projects/{project_id}", response_model=ProjectResponse)
 async def get_project_details(
@@ -163,10 +163,10 @@ async def get_project_details(
     project = get_project(db, project_id)
     if not project:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Project not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
         )
     return project
+
 
 @router.put("/projects/{project_id}", response_model=ProjectResponse)
 async def update_project_details(
@@ -179,20 +179,17 @@ async def update_project_details(
         project = update_project(db, project_id, project_data)
         if not project:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Project not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
             )
         return project
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error updating project: {str(e)}"
+            detail=f"Error updating project: {str(e)}",
         )
+
 
 @router.delete("/projects/{project_id}")
 async def delete_project_record(
@@ -204,19 +201,20 @@ async def delete_project_record(
         success = delete_project(db, project_id)
         if not success:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Project not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
             )
         return {"message": "Project successfully archived"}
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error deleting project: {str(e)}"
+            detail=f"Error deleting project: {str(e)}",
         )
+
 
 # =============================================================================
 # 2. Task Management Endpoint
 # =============================================================================
+
 
 @router.get("/tasks", response_model=List[TaskResponse])
 async def list_tasks(
@@ -257,8 +255,9 @@ async def list_tasks(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error retrieving tasks: {str(e)}"
+            detail=f"Error retrieving tasks: {str(e)}",
         )
+
 
 @router.post("/tasks", response_model=TaskResponse)
 async def create_new_task(
@@ -270,15 +269,13 @@ async def create_new_task(
         task = create_task(db, task_data)
         return task
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error creating task: {str(e)}"
+            detail=f"Error creating task: {str(e)}",
         )
+
 
 @router.get("/tasks/{task_id}", response_model=TaskResponse)
 async def get_task_details(
@@ -289,10 +286,10 @@ async def get_task_details(
     task = get_task(db, task_id)
     if not task:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Task not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Task not found"
         )
     return task
+
 
 @router.put("/tasks/{task_id}", response_model=TaskResponse)
 async def update_task_details(
@@ -305,20 +302,17 @@ async def update_task_details(
         task = update_task(db, task_id, task_data)
         if not task:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Task not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Task not found"
             )
         return task
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error updating task: {str(e)}"
+            detail=f"Error updating task: {str(e)}",
         )
+
 
 @router.post("/tasks/{task_id}/dependencies", response_model=TaskDependencyResponse)
 async def create_task_dependency_relationship(
@@ -335,15 +329,13 @@ async def create_task_dependency_relationship(
         dependency = create_task_dependency(db, dependency_data)
         return dependency
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error creating task dependency: {str(e)}"
+            detail=f"Error creating task dependency: {str(e)}",
         )
+
 
 @router.put("/tasks/bulk-update", response_model=Dict[str, Any])
 async def bulk_update_tasks(
@@ -359,6 +351,7 @@ async def bulk_update_tasks(
             try:
                 # Create update object from bulk updates
                 from app.schemas.project_v31 import TaskUpdate
+
                 task_update = TaskUpdate(**bulk_data.updates)
                 task = update_task(db, task_id, task_update)
                 if task:
@@ -371,19 +364,23 @@ async def bulk_update_tasks(
         return {
             "updated_count": updated_count,
             "total_requested": len(bulk_data.task_ids),
-            "errors": errors
+            "errors": errors,
         }
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error in bulk update: {str(e)}"
+            detail=f"Error in bulk update: {str(e)}",
         )
+
 
 # =============================================================================
 # 3. Resource Management Endpoint
 # =============================================================================
 
-@router.get("/projects/{project_id}/resources", response_model=List[ProjectResourceResponse])
+
+@router.get(
+    "/projects/{project_id}/resources", response_model=List[ProjectResourceResponse]
+)
 async def list_project_resources(
     project_id: str,
     active_only: bool = Query(True),
@@ -396,8 +393,9 @@ async def list_project_resources(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error retrieving project resources: {str(e)}"
+            detail=f"Error retrieving project resources: {str(e)}",
         )
+
 
 @router.post("/projects/{project_id}/resources", response_model=ProjectResourceResponse)
 async def create_resource_allocation(
@@ -414,15 +412,13 @@ async def create_resource_allocation(
         resource = create_project_resource(db, resource_data)
         return resource
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error creating resource allocation: {str(e)}"
+            detail=f"Error creating resource allocation: {str(e)}",
         )
+
 
 @router.put("/resources/{resource_id}", response_model=ProjectResourceResponse)
 async def update_resource_allocation_details(
@@ -436,23 +432,22 @@ async def update_resource_allocation_details(
         if not resource:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Resource allocation not found"
+                detail="Resource allocation not found",
             )
         return resource
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error updating resource allocation: {str(e)}"
+            detail=f"Error updating resource allocation: {str(e)}",
         )
+
 
 # =============================================================================
 # 4. Time Tracking Endpoint
 # =============================================================================
+
 
 @router.get("/time-entries", response_model=List[TimeEntryResponse])
 async def list_time_entries(
@@ -490,8 +485,9 @@ async def list_time_entries(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error retrieving time entries: {str(e)}"
+            detail=f"Error retrieving time entries: {str(e)}",
         )
+
 
 @router.post("/time-entries", response_model=TimeEntryResponse)
 async def create_time_entry(
@@ -503,15 +499,13 @@ async def create_time_entry(
         entry = create_time_entry(db, time_data)
         return entry
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error creating time entry: {str(e)}"
+            detail=f"Error creating time entry: {str(e)}",
         )
+
 
 @router.put("/time-entries/{entry_id}", response_model=TimeEntryResponse)
 async def update_time_entry_details(
@@ -527,8 +521,7 @@ async def update_time_entry_details(
         entry = db.query(TimeEntry).filter(TimeEntry.id == entry_id).first()
         if not entry:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Time entry not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Time entry not found"
             )
 
         # Update fields
@@ -549,8 +542,9 @@ async def update_time_entry_details(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error updating time entry: {str(e)}"
+            detail=f"Error updating time entry: {str(e)}",
         )
+
 
 @router.post("/time-entries/{entry_id}/approve", response_model=TimeEntryResponse)
 async def approve_time_entry_request(
@@ -563,19 +557,20 @@ async def approve_time_entry_request(
         entry = approve_time_entry(db, entry_id, approval_data.approver_id)
         if not entry:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Time entry not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Time entry not found"
             )
         return entry
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error approving time entry: {str(e)}"
+            detail=f"Error approving time entry: {str(e)}",
         )
+
 
 # =============================================================================
 # 5. Risk Management Endpoint
 # =============================================================================
+
 
 @router.get("/projects/{project_id}/risks", response_model=List[ProjectRiskResponse])
 async def list_project_risks(
@@ -590,8 +585,9 @@ async def list_project_risks(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error retrieving project risks: {str(e)}"
+            detail=f"Error retrieving project risks: {str(e)}",
         )
+
 
 @router.post("/projects/{project_id}/risks", response_model=ProjectRiskResponse)
 async def create_project_risk_assessment(
@@ -608,15 +604,13 @@ async def create_project_risk_assessment(
         risk = create_project_risk(db, risk_data)
         return risk
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error creating project risk: {str(e)}"
+            detail=f"Error creating project risk: {str(e)}",
         )
+
 
 @router.put("/risks/{risk_id}", response_model=ProjectRiskResponse)
 async def update_project_risk_details(
@@ -632,8 +626,7 @@ async def update_project_risk_details(
         risk = db.query(ProjectRisk).filter(ProjectRisk.id == risk_id).first()
         if not risk:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Risk not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Risk not found"
             )
 
         # Update fields
@@ -654,8 +647,9 @@ async def update_project_risk_details(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error updating risk: {str(e)}"
+            detail=f"Error updating risk: {str(e)}",
         )
+
 
 @router.post("/risks/{risk_id}/status", response_model=ProjectRiskResponse)
 async def update_risk_status_action(
@@ -668,21 +662,24 @@ async def update_risk_status_action(
         risk = update_risk_status(db, risk_id, status_data.status)
         if not risk:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Risk not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Risk not found"
             )
         return risk
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error updating risk status: {str(e)}"
+            detail=f"Error updating risk status: {str(e)}",
         )
+
 
 # =============================================================================
 # 6. Milestone Management Endpoint
 # =============================================================================
 
-@router.get("/projects/{project_id}/milestones", response_model=List[ProjectMilestoneResponse])
+
+@router.get(
+    "/projects/{project_id}/milestones", response_model=List[ProjectMilestoneResponse]
+)
 async def list_project_milestones(
     project_id: str,
     db: Session = Depends(get_db),
@@ -691,18 +688,23 @@ async def list_project_milestones(
     try:
         from app.models.project_extended import ProjectMilestoneExtended
 
-        milestones = db.query(ProjectMilestoneExtended).filter(
-            ProjectMilestoneExtended.project_id == project_id
-        ).all()
+        milestones = (
+            db.query(ProjectMilestoneExtended)
+            .filter(ProjectMilestoneExtended.project_id == project_id)
+            .all()
+        )
 
         return milestones
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error retrieving milestones: {str(e)}"
+            detail=f"Error retrieving milestones: {str(e)}",
         )
 
-@router.post("/projects/{project_id}/milestones", response_model=ProjectMilestoneResponse)
+
+@router.post(
+    "/projects/{project_id}/milestones", response_model=ProjectMilestoneResponse
+)
 async def create_project_milestone(
     project_id: str,
     milestone_data: ProjectMilestoneCreate,
@@ -727,8 +729,9 @@ async def create_project_milestone(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error creating milestone: {str(e)}"
+            detail=f"Error creating milestone: {str(e)}",
         )
+
 
 @router.put("/milestones/{milestone_id}", response_model=ProjectMilestoneResponse)
 async def update_project_milestone_details(
@@ -740,14 +743,15 @@ async def update_project_milestone_details(
     try:
         from app.models.project_extended import ProjectMilestoneExtended
 
-        milestone = db.query(ProjectMilestoneExtended).filter(
-            ProjectMilestoneExtended.id == milestone_id
-        ).first()
+        milestone = (
+            db.query(ProjectMilestoneExtended)
+            .filter(ProjectMilestoneExtended.id == milestone_id)
+            .first()
+        )
 
         if not milestone:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Milestone not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Milestone not found"
             )
 
         update_data = milestone_data.model_dump(exclude_unset=True)
@@ -763,12 +767,14 @@ async def update_project_milestone_details(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error updating milestone: {str(e)}"
+            detail=f"Error updating milestone: {str(e)}",
         )
+
 
 # =============================================================================
 # 7. Issue Management Endpoint
 # =============================================================================
+
 
 @router.get("/projects/{project_id}/issues", response_model=List[ProjectIssueResponse])
 async def list_project_issues(
@@ -801,8 +807,9 @@ async def list_project_issues(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error retrieving issues: {str(e)}"
+            detail=f"Error retrieving issues: {str(e)}",
         )
+
 
 @router.post("/projects/{project_id}/issues", response_model=ProjectIssueResponse)
 async def create_project_issue(
@@ -815,11 +822,12 @@ async def create_project_issue(
         from app.models.project_extended import ProjectExtended, ProjectIssue
 
         # Validate project exists
-        project = db.query(ProjectExtended).filter(ProjectExtended.id == project_id).first()
+        project = (
+            db.query(ProjectExtended).filter(ProjectExtended.id == project_id).first()
+        )
         if not project:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Project not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
             )
 
         # Ensure project_id matches
@@ -828,7 +836,11 @@ async def create_project_issue(
 
         # Generate issue number if not provided
         if not issue_data.issue_number:
-            count = db.query(ProjectIssue).filter(ProjectIssue.project_id == project_id).count()
+            count = (
+                db.query(ProjectIssue)
+                .filter(ProjectIssue.project_id == project_id)
+                .count()
+            )
             issue_data.issue_number = f"{project.project_code}-I-{count + 1:04d}"
 
         issue = ProjectIssue(**issue_data.model_dump())
@@ -841,8 +853,9 @@ async def create_project_issue(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error creating issue: {str(e)}"
+            detail=f"Error creating issue: {str(e)}",
         )
+
 
 @router.put("/issues/{issue_id}", response_model=ProjectIssueResponse)
 async def update_project_issue_details(
@@ -857,8 +870,7 @@ async def update_project_issue_details(
         issue = db.query(ProjectIssue).filter(ProjectIssue.id == issue_id).first()
         if not issue:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Issue not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Issue not found"
             )
 
         update_data = issue_data.model_dump(exclude_unset=True)
@@ -874,12 +886,14 @@ async def update_project_issue_details(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error updating issue: {str(e)}"
+            detail=f"Error updating issue: {str(e)}",
         )
+
 
 # =============================================================================
 # 8. Portfolio Management Endpoint
 # =============================================================================
+
 
 @router.get("/portfolios", response_model=List[ProjectPortfolioResponse])
 async def list_portfolios(
@@ -894,8 +908,9 @@ async def list_portfolios(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error retrieving portfolios: {str(e)}"
+            detail=f"Error retrieving portfolios: {str(e)}",
         )
+
 
 @router.post("/portfolios", response_model=ProjectPortfolioResponse)
 async def create_project_portfolio(
@@ -907,15 +922,13 @@ async def create_project_portfolio(
         portfolio = create_portfolio(db, portfolio_data)
         return portfolio
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error creating portfolio: {str(e)}"
+            detail=f"Error creating portfolio: {str(e)}",
         )
+
 
 @router.put("/portfolios/{portfolio_id}", response_model=ProjectPortfolioResponse)
 async def update_portfolio_details(
@@ -927,11 +940,14 @@ async def update_portfolio_details(
     try:
         from app.models.project_extended import ProjectPortfolio
 
-        portfolio = db.query(ProjectPortfolio).filter(ProjectPortfolio.id == portfolio_id).first()
+        portfolio = (
+            db.query(ProjectPortfolio)
+            .filter(ProjectPortfolio.id == portfolio_id)
+            .first()
+        )
         if not portfolio:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Portfolio not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Portfolio not found"
             )
 
         update_data = portfolio_data.model_dump(exclude_unset=True)
@@ -947,12 +963,14 @@ async def update_portfolio_details(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error updating portfolio: {str(e)}"
+            detail=f"Error updating portfolio: {str(e)}",
         )
+
 
 # =============================================================================
 # 9. Template Management Endpoint
 # =============================================================================
+
 
 @router.get("/templates", response_model=List[ProjectTemplateResponse])
 async def list_project_templates(
@@ -984,8 +1002,9 @@ async def list_project_templates(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error retrieving templates: {str(e)}"
+            detail=f"Error retrieving templates: {str(e)}",
         )
+
 
 @router.post("/templates", response_model=ProjectTemplateResponse)
 async def create_project_template(
@@ -1007,8 +1026,9 @@ async def create_project_template(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error creating template: {str(e)}"
+            detail=f"Error creating template: {str(e)}",
         )
+
 
 @router.post("/templates/{template_id}/create-project", response_model=ProjectResponse)
 async def create_project_from_template(
@@ -1021,11 +1041,12 @@ async def create_project_from_template(
         from app.models.project_extended import ProjectTemplate
 
         # Get template
-        template = db.query(ProjectTemplate).filter(ProjectTemplate.id == template_id).first()
+        template = (
+            db.query(ProjectTemplate).filter(ProjectTemplate.id == template_id).first()
+        )
         if not template:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Template not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Template not found"
             )
 
         # Create project from template data
@@ -1035,7 +1056,7 @@ async def create_project_from_template(
             project_manager_id=project_request.project_manager_id,
             planned_start_date=project_request.planned_start_date,
             total_budget=project_request.total_budget,
-            **template.template_data
+            **template.template_data,
         )
 
         project = create_project(db, project_create)
@@ -1048,12 +1069,14 @@ async def create_project_from_template(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error creating project from template: {str(e)}"
+            detail=f"Error creating project from template: {str(e)}",
         )
+
 
 # =============================================================================
 # 10. Project Analytics Endpoint
 # =============================================================================
+
 
 @router.get("/projects/{project_id}/dashboard", response_model=ProjectDashboardMetrics)
 async def get_project_dashboard_data(
@@ -1065,15 +1088,13 @@ async def get_project_dashboard_data(
         metrics = get_project_dashboard_metrics(db, project_id)
         return ProjectDashboardMetrics(**metrics)
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error retrieving dashboard metrics: {str(e)}"
+            detail=f"Error retrieving dashboard metrics: {str(e)}",
         )
+
 
 @router.get("/projects/{project_id}/health", response_model=ProjectHealthScore)
 async def get_project_health_analysis(
@@ -1085,17 +1106,18 @@ async def get_project_health_analysis(
         health = calculate_project_health_score(db, project_id)
         return ProjectHealthScore(**health)
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error calculating health score: {str(e)}"
+            detail=f"Error calculating health score: {str(e)}",
         )
 
-@router.get("/organizations/{organization_id}/project-summary", response_model=OrganizationProjectSummary)
+
+@router.get(
+    "/organizations/{organization_id}/project-summary",
+    response_model=OrganizationProjectSummary,
+)
 async def get_organization_summary(
     organization_id: str,
     db: Session = Depends(get_db),
@@ -1107,8 +1129,9 @@ async def get_organization_summary(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error retrieving organization summary: {str(e)}"
+            detail=f"Error retrieving organization summary: {str(e)}",
         )
+
 
 @router.post("/projects/{project_id}/clone", response_model=ProjectResponse)
 async def clone_project(
@@ -1122,8 +1145,7 @@ async def clone_project(
         source_project = get_project(db, project_id)
         if not source_project:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Source project not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Source project not found"
             )
 
         # Create new project with cloned data
@@ -1139,7 +1161,10 @@ async def clone_project(
 
         if clone_request.include_timeline and source_project.planned_start_date:
             from datetime import timedelta
-            duration = (source_project.planned_end_date - source_project.planned_start_date).days
+
+            duration = (
+                source_project.planned_end_date - source_project.planned_start_date
+            ).days
             project_data["planned_start_date"] = date.today()
             project_data["planned_end_date"] = date.today() + timedelta(days=duration)
 
@@ -1153,5 +1178,5 @@ async def clone_project(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error cloning project: {str(e)}"
+            detail=f"Error cloning project: {str(e)}",
         )

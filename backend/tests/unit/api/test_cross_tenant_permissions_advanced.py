@@ -13,7 +13,6 @@ class TestCrossTenantPermissionsAPI:
         self.client = TestClient(app)
         self.headers = {"Content-Type": "application/json"}
 
-
     def test_post__rules_success(self):
         """Test POST /rules successful response."""
         # Setup test data
@@ -52,7 +51,9 @@ class TestCrossTenantPermissionsAPI:
         test_data = self.get_test_data_for_put()
 
         # Make request
-        response = self.client.put("/rules/{rule_id}", json=test_data, headers=self.headers)
+        response = self.client.put(
+            "/rules/{rule_id}", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -65,7 +66,9 @@ class TestCrossTenantPermissionsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.put("/rules/{rule_id}", json=invalid_data, headers=self.headers)
+        response = self.client.put(
+            "/rules/{rule_id}", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -84,7 +87,9 @@ class TestCrossTenantPermissionsAPI:
         test_data = self.get_test_data_for_delete()
 
         # Make request
-        response = self.client.delete("/rules/{rule_id}", json=test_data, headers=self.headers)
+        response = self.client.delete(
+            "/rules/{rule_id}", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -97,7 +102,9 @@ class TestCrossTenantPermissionsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.delete("/rules/{rule_id}", json=invalid_data, headers=self.headers)
+        response = self.client.delete(
+            "/rules/{rule_id}", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -148,7 +155,9 @@ class TestCrossTenantPermissionsAPI:
         test_data = self.get_test_data_for_post()
 
         # Make request
-        response = self.client.post("/batch-check", json=test_data, headers=self.headers)
+        response = self.client.post(
+            "/batch-check", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -161,7 +170,9 @@ class TestCrossTenantPermissionsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.post("/batch-check", json=invalid_data, headers=self.headers)
+        response = self.client.post(
+            "/batch-check", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -180,7 +191,9 @@ class TestCrossTenantPermissionsAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/users/{user_id}/access", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/users/{user_id}/access", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -193,7 +206,9 @@ class TestCrossTenantPermissionsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/users/{user_id}/access", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/users/{user_id}/access", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -212,7 +227,9 @@ class TestCrossTenantPermissionsAPI:
         test_data = self.get_test_data_for_post()
 
         # Make request
-        response = self.client.post("/cleanup-expired", json=test_data, headers=self.headers)
+        response = self.client.post(
+            "/cleanup-expired", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -225,7 +242,9 @@ class TestCrossTenantPermissionsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.post("/cleanup-expired", json=invalid_data, headers=self.headers)
+        response = self.client.post(
+            "/cleanup-expired", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -244,7 +263,11 @@ class TestCrossTenantPermissionsAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/users/{user_id}/cross-tenant-organizations", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/users/{user_id}/cross-tenant-organizations",
+            json=test_data,
+            headers=self.headers,
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -257,7 +280,11 @@ class TestCrossTenantPermissionsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/users/{user_id}/cross-tenant-organizations", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/users/{user_id}/cross-tenant-organizations",
+            json=invalid_data,
+            headers=self.headers,
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -276,7 +303,9 @@ class TestCrossTenantPermissionsAPI:
         test_data = self.get_test_data_for_post()
 
         # Make request
-        response = self.client.post("/quick-check", json=test_data, headers=self.headers)
+        response = self.client.post(
+            "/quick-check", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -289,7 +318,9 @@ class TestCrossTenantPermissionsAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.post("/quick-check", json=invalid_data, headers=self.headers)
+        response = self.client.post(
+            "/quick-check", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422

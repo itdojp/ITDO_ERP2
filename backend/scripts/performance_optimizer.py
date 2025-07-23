@@ -26,7 +26,7 @@ class PerformanceOptimizer:
             "memory_usage": 512,  # MB
             "cpu_usage": 70,  # %
             "concurrent_requests": 1000,
-            "cache_hit_rate": 90  # %
+            "cache_hit_rate": 90,  # %
         }
 
         self.optimization_tasks = [
@@ -36,7 +36,7 @@ class PerformanceOptimizer:
             "resource_usage_optimization",
             "concurrent_processing_optimization",
             "memory_leak_detection",
-            "slow_endpoint_optimization"
+            "slow_endpoint_optimization",
         ]
 
         self.initialize_performance_db()
@@ -46,7 +46,7 @@ class PerformanceOptimizer:
         conn = sqlite3.connect(self.optimization_db)
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS performance_metrics (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -59,9 +59,9 @@ class PerformanceOptimizer:
                 concurrent_requests INTEGER,
                 error_count INTEGER
             )
-        ''')
+        """)
 
-        cursor.execute('''
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS optimization_results (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -73,9 +73,9 @@ class PerformanceOptimizer:
                 success BOOLEAN,
                 notes TEXT
             )
-        ''')
+        """)
 
-        cursor.execute('''
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS slow_queries (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -86,7 +86,7 @@ class PerformanceOptimizer:
                 optimization_applied BOOLEAN DEFAULT 0,
                 optimization_notes TEXT
             )
-        ''')
+        """)
 
         conn.commit()
         conn.close()
@@ -103,7 +103,7 @@ class PerformanceOptimizer:
             "started_at": datetime.now().isoformat(),
             "optimizations": [],
             "performance_improvements": {},
-            "recommendations": []
+            "recommendations": [],
         }
 
         try:
@@ -204,17 +204,23 @@ class PerformanceOptimizer:
                 "database": db_metrics,
                 "cache": cache_metrics,
                 "concurrency": concurrency_metrics,
-                "overall_score": self.calculate_overall_performance_score({
-                    **system_metrics,
-                    **api_metrics,
-                    **db_metrics,
-                    **cache_metrics,
-                    **concurrency_metrics
-                })
+                "overall_score": self.calculate_overall_performance_score(
+                    {
+                        **system_metrics,
+                        **api_metrics,
+                        **db_metrics,
+                        **cache_metrics,
+                        **concurrency_metrics,
+                    }
+                ),
             }
 
-            print(f"   ✅ Baseline measurement completed in {baseline_metrics['measurement_duration']:.2f}s")
-            print(f"   📊 Overall Performance Score: {baseline_metrics['overall_score']:.1f}/100")
+            print(
+                f"   ✅ Baseline measurement completed in {baseline_metrics['measurement_duration']:.2f}s"
+            )
+            print(
+                f"   📊 Overall Performance Score: {baseline_metrics['overall_score']:.1f}/100"
+            )
 
             return baseline_metrics
 
@@ -227,14 +233,14 @@ class PerformanceOptimizer:
         try:
             cpu_percent = psutil.cpu_percent(interval=1)
             memory = psutil.virtual_memory()
-            disk = psutil.disk_usage('/')
+            disk = psutil.disk_usage("/")
 
             return {
                 "cpu_usage_percent": cpu_percent,
                 "memory_usage_mb": memory.used / 1024 / 1024,
                 "memory_usage_percent": memory.percent,
                 "disk_usage_percent": disk.percent,
-                "available_memory_mb": memory.available / 1024 / 1024
+                "available_memory_mb": memory.available / 1024 / 1024,
             }
         except Exception as e:
             return {"error": f"System resource measurement failed: {e}"}
@@ -250,7 +256,7 @@ class PerformanceOptimizer:
                 "/api/v1/users",
                 "/api/v1/organizations",
                 "/api/v1/products",
-                "/api/v1/auth/token"
+                "/api/v1/auth/token",
             ]
 
             response_times = []
@@ -280,7 +286,7 @@ class PerformanceOptimizer:
                 "max_response_time_ms": max_response_time,
                 "min_response_time_ms": min_response_time,
                 "endpoints_tested": len(endpoints_to_test),
-                "successful_tests": len(response_times)
+                "successful_tests": len(response_times),
             }
 
         except Exception as e:
@@ -298,7 +304,7 @@ class PerformanceOptimizer:
             test_queries = [
                 "SELECT COUNT(*) FROM users",
                 "SELECT * FROM organizations LIMIT 10",
-                "SELECT * FROM products WHERE is_active = true LIMIT 20"
+                "SELECT * FROM products WHERE is_active = true LIMIT 20",
             ]
 
             for query in test_queries:
@@ -319,7 +325,7 @@ class PerformanceOptimizer:
                 "avg_query_time_ms": avg_query_time,
                 "total_queries_tested": len(test_queries),
                 "slow_queries_detected": len(slow_queries),
-                "slow_queries": slow_queries[:5]  # 最初の5個
+                "slow_queries": slow_queries[:5],  # 最初の5個
             }
 
         except Exception as e:
@@ -335,14 +341,14 @@ class PerformanceOptimizer:
                     "query": "SELECT * FROM audit_logs WHERE created_at > '2024-01-01'",
                     "execution_time_ms": 1250,
                     "table": "audit_logs",
-                    "issue": "Missing index on created_at"
+                    "issue": "Missing index on created_at",
                 },
                 {
                     "query": "SELECT u.*, o.name FROM users u JOIN organizations o ON u.org_id = o.id",
                     "execution_time_ms": 850,
                     "table": "users, organizations",
-                    "issue": "N+1 query pattern"
-                }
+                    "issue": "N+1 query pattern",
+                },
             ]
 
             return slow_queries
@@ -367,7 +373,7 @@ class PerformanceOptimizer:
                 "cache_hit_rate": cache_hit_rate,
                 "cache_miss_rate": cache_miss_rate,
                 "avg_cache_response_time_ms": cache_response_time,
-                "cache_enabled": True
+                "cache_enabled": True,
             }
 
         except Exception as e:
@@ -388,7 +394,7 @@ class PerformanceOptimizer:
                 "successful_requests": success_count,
                 "failed_requests": concurrent_requests - success_count,
                 "success_rate": (success_count / concurrent_requests) * 100,
-                "avg_concurrent_response_time_ms": avg_response_time
+                "avg_concurrent_response_time_ms": avg_response_time,
             }
 
         except Exception as e:
@@ -412,13 +418,18 @@ class PerformanceOptimizer:
             # API応答時間スコア (低い方が良い)
             if "avg_response_time_ms" in metrics:
                 response_time_target = self.performance_targets["api_response_time"]
-                response_score = max(0, 100 - (metrics["avg_response_time_ms"] / response_time_target) * 50)
+                response_score = max(
+                    0,
+                    100 - (metrics["avg_response_time_ms"] / response_time_target) * 50,
+                )
                 scores.append(response_score)
 
             # データベースクエリ時間スコア (低い方が良い)
             if "avg_query_time_ms" in metrics:
                 query_time_target = self.performance_targets["database_query_time"]
-                query_score = max(0, 100 - (metrics["avg_query_time_ms"] / query_time_target) * 50)
+                query_score = max(
+                    0, 100 - (metrics["avg_query_time_ms"] / query_time_target) * 50
+                )
                 scores.append(query_score)
 
             # キャッシュヒット率スコア (高い方が良い)
@@ -463,7 +474,9 @@ class PerformanceOptimizer:
 
             optimization_duration = time.time() - optimization_start
 
-            print(f"   ✅ Database optimization completed in {optimization_duration:.2f}s")
+            print(
+                f"   ✅ Database optimization completed in {optimization_duration:.2f}s"
+            )
             print(f"   📊 Applied {len(optimizations_applied)} optimizations")
 
             return {
@@ -471,14 +484,14 @@ class PerformanceOptimizer:
                 "duration": optimization_duration,
                 "optimizations_applied": optimizations_applied,
                 "total_optimizations": len(optimizations_applied),
-                "estimated_improvement": "30-60% query performance improvement"
+                "estimated_improvement": "30-60% query performance improvement",
             }
 
         except Exception as e:
             return {
                 "optimization_type": "database_query_optimization",
                 "error": str(e),
-                "duration": time.time() - optimization_start
+                "duration": time.time() - optimization_start,
             }
 
     async def fix_n_plus_one_queries(self) -> List[Dict[str, Any]]:
@@ -491,22 +504,22 @@ class PerformanceOptimizer:
                 "before": "SELECT * FROM users; SELECT * FROM organizations WHERE id = ?",
                 "after": "SELECT u.*, o.name FROM users u LEFT JOIN organizations o ON u.org_id = o.id",
                 "improvement": "Reduced queries from N+1 to 1",
-                "estimated_speedup": "70%"
+                "estimated_speedup": "70%",
             },
             {
                 "issue": "Product category loading",
                 "before": "SELECT * FROM products; SELECT * FROM categories WHERE id = ?",
                 "after": "SELECT p.*, c.name FROM products p LEFT JOIN categories c ON p.category_id = c.id",
                 "improvement": "Reduced queries from N+1 to 1",
-                "estimated_speedup": "65%"
+                "estimated_speedup": "65%",
             },
             {
                 "issue": "Task assignee loading",
                 "before": "SELECT * FROM tasks; SELECT * FROM users WHERE id = ?",
                 "after": "SELECT t.*, u.name FROM tasks t LEFT JOIN users u ON t.assigned_to = u.id",
                 "improvement": "Reduced queries from N+1 to 1",
-                "estimated_speedup": "60%"
-            }
+                "estimated_speedup": "60%",
+            },
         ]
 
         # 実際の実装では、コードベースをスキャンしてN+1パターンを検出し修正
@@ -527,7 +540,7 @@ class PerformanceOptimizer:
                 "columns": ["user_id", "created_at"],
                 "type": "composite",
                 "reason": "Frequent filtering by user and date range",
-                "estimated_improvement": "80%"
+                "estimated_improvement": "80%",
             },
             {
                 "table": "user_activity_logs",
@@ -535,7 +548,7 @@ class PerformanceOptimizer:
                 "columns": ["user_id", "timestamp"],
                 "type": "composite",
                 "reason": "User activity timeline queries",
-                "estimated_improvement": "75%"
+                "estimated_improvement": "75%",
             },
             {
                 "table": "organizations",
@@ -543,7 +556,7 @@ class PerformanceOptimizer:
                 "columns": ["is_active"],
                 "type": "btree",
                 "reason": "Active organization filtering",
-                "estimated_improvement": "50%"
+                "estimated_improvement": "50%",
             },
             {
                 "table": "products",
@@ -551,8 +564,8 @@ class PerformanceOptimizer:
                 "columns": ["organization_id", "category_id"],
                 "type": "composite",
                 "reason": "Product filtering by org and category",
-                "estimated_improvement": "60%"
-            }
+                "estimated_improvement": "60%",
+            },
         ]
 
         # 実際の実装では、SQLクエリを実行してインデックスを作成
@@ -572,22 +585,22 @@ class PerformanceOptimizer:
                 "target": "User lookup queries",
                 "ttl": 300,  # seconds
                 "estimated_hit_rate": "85%",
-                "estimated_improvement": "90% for cached queries"
+                "estimated_improvement": "90% for cached queries",
             },
             {
                 "cache_type": "Application-level cache",
                 "target": "Organization hierarchy",
                 "ttl": 600,
                 "estimated_hit_rate": "92%",
-                "estimated_improvement": "95% for cached queries"
+                "estimated_improvement": "95% for cached queries",
             },
             {
                 "cache_type": "Database query result cache",
                 "target": "Product catalog queries",
                 "ttl": 180,
                 "estimated_hit_rate": "78%",
-                "estimated_improvement": "85% for cached queries"
-            }
+                "estimated_improvement": "85% for cached queries",
+            },
         ]
 
         for implementation in cache_implementations:
@@ -606,22 +619,22 @@ class PerformanceOptimizer:
                 "original_time_ms": 1250,
                 "optimized_time_ms": 85,
                 "optimization": "Added composite index and query restructuring",
-                "improvement_percentage": 93.2
+                "improvement_percentage": 93.2,
             },
             {
                 "query_type": "User-organization join",
                 "original_time_ms": 850,
                 "optimized_time_ms": 45,
                 "optimization": "Replaced N+1 with single JOIN query",
-                "improvement_percentage": 94.7
+                "improvement_percentage": 94.7,
             },
             {
                 "query_type": "Product aggregation",
                 "original_time_ms": 420,
                 "optimized_time_ms": 65,
                 "optimization": "Added covering index and optimized GROUP BY",
-                "improvement_percentage": 84.5
-            }
+                "improvement_percentage": 84.5,
+            },
         ]
 
         for fix in slow_query_fixes:
@@ -639,17 +652,20 @@ class PerformanceOptimizer:
             conn = sqlite3.connect(self.optimization_db)
             cursor = conn.cursor()
 
-            cursor.execute('''
+            cursor.execute(
+                """
                 INSERT INTO slow_queries
                 (query_hash, query_text, execution_time_ms, optimization_applied, optimization_notes)
                 VALUES (?, ?, ?, ?, ?)
-            ''', (
-                f"hash_{optimization['query_type']}",
-                optimization['query_type'],
-                optimization['original_time_ms'],
-                True,
-                f"Optimized from {optimization['original_time_ms']}ms to {optimization['optimized_time_ms']}ms"
-            ))
+            """,
+                (
+                    f"hash_{optimization['query_type']}",
+                    optimization["query_type"],
+                    optimization["original_time_ms"],
+                    True,
+                    f"Optimized from {optimization['original_time_ms']}ms to {optimization['optimized_time_ms']}ms",
+                ),
+            )
 
             conn.commit()
             conn.close()
@@ -691,14 +707,14 @@ class PerformanceOptimizer:
                 "duration": optimization_duration,
                 "optimizations": optimizations,
                 "total_optimizations": len(optimizations),
-                "estimated_improvement": "40-70% API response time improvement"
+                "estimated_improvement": "40-70% API response time improvement",
             }
 
         except Exception as e:
             return {
                 "optimization_type": "api_response_optimization",
                 "error": str(e),
-                "duration": time.time() - optimization_start
+                "duration": time.time() - optimization_start,
             }
 
     async def implement_response_compression(self) -> Dict[str, Any]:
@@ -712,7 +728,7 @@ class PerformanceOptimizer:
             "compression_ratio": "75%",
             "affected_endpoints": "All JSON responses",
             "estimated_bandwidth_savings": "60-80%",
-            "implementation_status": "completed"
+            "implementation_status": "completed",
         }
 
     async def improve_pagination(self) -> Dict[str, Any]:
@@ -726,7 +742,7 @@ class PerformanceOptimizer:
             "improvement": "Replaced offset pagination with cursor-based",
             "performance_gain": "90% for large datasets",
             "memory_usage_reduction": "80%",
-            "implementation_status": "completed"
+            "implementation_status": "completed",
         }
 
     async def implement_response_caching(self) -> Dict[str, Any]:
@@ -741,7 +757,7 @@ class PerformanceOptimizer:
             "cache_duration": "5-60 minutes depending on endpoint",
             "expected_hit_rate": "70-90%",
             "response_time_improvement": "95% for cached responses",
-            "implementation_status": "completed"
+            "implementation_status": "completed",
         }
 
     async def optimize_async_processing(self) -> Dict[str, Any]:
@@ -755,11 +771,11 @@ class PerformanceOptimizer:
             "improvements": [
                 "Converted blocking I/O to async",
                 "Implemented connection pooling",
-                "Added background task processing"
+                "Added background task processing",
             ],
             "concurrency_improvement": "300%",
             "resource_utilization": "Improved by 60%",
-            "implementation_status": "completed"
+            "implementation_status": "completed",
         }
 
     async def enhance_caching_strategy(self) -> Dict[str, Any]:
@@ -789,21 +805,23 @@ class PerformanceOptimizer:
 
             optimization_duration = time.time() - optimization_start
 
-            print(f"   ✅ Caching enhancement completed in {optimization_duration:.2f}s")
+            print(
+                f"   ✅ Caching enhancement completed in {optimization_duration:.2f}s"
+            )
 
             return {
                 "optimization_type": "caching_strategy_enhancement",
                 "duration": optimization_duration,
                 "enhancements": enhancements,
                 "total_enhancements": len(enhancements),
-                "estimated_improvement": "50-80% cache performance improvement"
+                "estimated_improvement": "50-80% cache performance improvement",
             }
 
         except Exception as e:
             return {
                 "optimization_type": "caching_strategy_enhancement",
                 "error": str(e),
-                "duration": time.time() - optimization_start
+                "duration": time.time() - optimization_start,
             }
 
     async def enhance_redis_integration(self) -> Dict[str, Any]:
@@ -818,10 +836,10 @@ class PerformanceOptimizer:
                 "Implemented connection pooling",
                 "Added Redis Cluster support",
                 "Optimized serialization",
-                "Added cache warming strategies"
+                "Added cache warming strategies",
             ],
             "performance_gain": "40%",
-            "reliability_improvement": "95%"
+            "reliability_improvement": "95%",
         }
 
     async def optimize_distributed_cache(self) -> Dict[str, Any]:
@@ -836,10 +854,10 @@ class PerformanceOptimizer:
                 "Consistent hashing",
                 "Cache replication",
                 "Automatic failover",
-                "Load balancing"
+                "Load balancing",
             ],
             "scalability_improvement": "200%",
-            "availability": "99.9%"
+            "availability": "99.9%",
         }
 
     async def implement_cache_invalidation(self) -> Dict[str, Any]:
@@ -854,10 +872,10 @@ class PerformanceOptimizer:
                 "Tag-based invalidation",
                 "Event-driven invalidation",
                 "TTL optimization",
-                "Dependency tracking"
+                "Dependency tracking",
             ],
             "cache_efficiency": "Improved by 35%",
-            "data_consistency": "100%"
+            "data_consistency": "100%",
         }
 
     async def implement_edge_caching(self) -> Dict[str, Any]:
@@ -872,10 +890,10 @@ class PerformanceOptimizer:
                 "Geographic distribution",
                 "Smart routing",
                 "Cache purging",
-                "Real-time monitoring"
+                "Real-time monitoring",
             ],
             "latency_reduction": "60%",
-            "global_performance": "Improved by 80%"
+            "global_performance": "Improved by 80%",
         }
 
     async def optimize_resource_usage(self) -> Dict[str, Any]:
@@ -905,21 +923,23 @@ class PerformanceOptimizer:
 
             optimization_duration = time.time() - optimization_start
 
-            print(f"   ✅ Resource optimization completed in {optimization_duration:.2f}s")
+            print(
+                f"   ✅ Resource optimization completed in {optimization_duration:.2f}s"
+            )
 
             return {
                 "optimization_type": "resource_usage_optimization",
                 "duration": optimization_duration,
                 "optimizations": optimizations,
                 "total_optimizations": len(optimizations),
-                "estimated_improvement": "30-50% resource utilization improvement"
+                "estimated_improvement": "30-50% resource utilization improvement",
             }
 
         except Exception as e:
             return {
                 "optimization_type": "resource_usage_optimization",
                 "error": str(e),
-                "duration": time.time() - optimization_start
+                "duration": time.time() - optimization_start,
             }
 
     async def optimize_memory_usage(self) -> Dict[str, Any]:
@@ -934,10 +954,10 @@ class PerformanceOptimizer:
                 "Object pooling",
                 "Lazy loading",
                 "Memory-efficient data structures",
-                "Garbage collection tuning"
+                "Garbage collection tuning",
             ],
             "memory_reduction": "35%",
-            "performance_gain": "25%"
+            "performance_gain": "25%",
         }
 
     async def optimize_cpu_usage(self) -> Dict[str, Any]:
@@ -952,10 +972,10 @@ class PerformanceOptimizer:
                 "Algorithm optimization",
                 "Vectorization",
                 "Parallel processing",
-                "Code profiling and optimization"
+                "Code profiling and optimization",
             ],
             "cpu_efficiency": "Improved by 40%",
-            "throughput_increase": "60%"
+            "throughput_increase": "60%",
         }
 
     async def optimize_io_operations(self) -> Dict[str, Any]:
@@ -970,10 +990,10 @@ class PerformanceOptimizer:
                 "Async I/O",
                 "Batch operations",
                 "Connection pooling",
-                "Buffer optimization"
+                "Buffer optimization",
             ],
             "io_performance": "Improved by 70%",
-            "latency_reduction": "50%"
+            "latency_reduction": "50%",
         }
 
     async def optimize_garbage_collection(self) -> Dict[str, Any]:
@@ -988,10 +1008,10 @@ class PerformanceOptimizer:
                 "GC tuning",
                 "Memory pool optimization",
                 "Reference counting optimization",
-                "Generational GC tuning"
+                "Generational GC tuning",
             ],
             "gc_efficiency": "Improved by 45%",
-            "pause_time_reduction": "60%"
+            "pause_time_reduction": "60%",
         }
 
     async def optimize_concurrent_processing(self) -> Dict[str, Any]:
@@ -1021,21 +1041,23 @@ class PerformanceOptimizer:
 
             optimization_duration = time.time() - optimization_start
 
-            print(f"   ✅ Concurrency optimization completed in {optimization_duration:.2f}s")
+            print(
+                f"   ✅ Concurrency optimization completed in {optimization_duration:.2f}s"
+            )
 
             return {
                 "optimization_type": "concurrent_processing_optimization",
                 "duration": optimization_duration,
                 "optimizations": optimizations,
                 "total_optimizations": len(optimizations),
-                "estimated_improvement": "100-300% concurrent processing improvement"
+                "estimated_improvement": "100-300% concurrent processing improvement",
             }
 
         except Exception as e:
             return {
                 "optimization_type": "concurrent_processing_optimization",
                 "error": str(e),
-                "duration": time.time() - optimization_start
+                "duration": time.time() - optimization_start,
             }
 
     async def enhance_async_processing(self) -> Dict[str, Any]:
@@ -1050,10 +1072,10 @@ class PerformanceOptimizer:
                 "Event loop optimization",
                 "Async context managers",
                 "Non-blocking I/O",
-                "Async middleware"
+                "Async middleware",
             ],
             "throughput_increase": "200%",
-            "latency_reduction": "40%"
+            "latency_reduction": "40%",
         }
 
     async def optimize_worker_pools(self) -> Dict[str, Any]:
@@ -1068,10 +1090,10 @@ class PerformanceOptimizer:
                 "Dynamic pool sizing",
                 "Task queue optimization",
                 "Worker lifecycle management",
-                "Load distribution"
+                "Load distribution",
             ],
             "efficiency_gain": "80%",
-            "resource_utilization": "Improved by 60%"
+            "resource_utilization": "Improved by 60%",
         }
 
     async def improve_load_balancing(self) -> Dict[str, Any]:
@@ -1086,10 +1108,10 @@ class PerformanceOptimizer:
                 "Round-robin optimization",
                 "Health-based routing",
                 "Geographic load balancing",
-                "Dynamic weight adjustment"
+                "Dynamic weight adjustment",
             ],
             "availability_improvement": "99.9%",
-            "response_time_consistency": "Improved by 50%"
+            "response_time_consistency": "Improved by 50%",
         }
 
     async def optimize_concurrent_requests(self) -> Dict[str, Any]:
@@ -1104,16 +1126,14 @@ class PerformanceOptimizer:
                 "Request batching",
                 "Connection multiplexing",
                 "Rate limiting optimization",
-                "Circuit breaker pattern"
+                "Circuit breaker pattern",
             ],
             "concurrent_capacity": "Increased by 300%",
-            "error_rate_reduction": "70%"
+            "error_rate_reduction": "70%",
         }
 
     async def calculate_performance_improvements(
-        self,
-        baseline: Dict[str, Any],
-        post_optimization: Dict[str, Any]
+        self, baseline: Dict[str, Any], post_optimization: Dict[str, Any]
     ) -> Dict[str, Any]:
         """パフォーマンス改善を計算"""
         print("   📊 Calculating performance improvements...")
@@ -1122,10 +1142,12 @@ class PerformanceOptimizer:
             improvements = {}
 
             # API応答時間の改善
-            if ("api" in baseline and "api" in post_optimization and
-                "avg_response_time_ms" in baseline["api"] and
-                "avg_response_time_ms" in post_optimization["api"]):
-
+            if (
+                "api" in baseline
+                and "api" in post_optimization
+                and "avg_response_time_ms" in baseline["api"]
+                and "avg_response_time_ms" in post_optimization["api"]
+            ):
                 before = baseline["api"]["avg_response_time_ms"]
                 after = post_optimization["api"]["avg_response_time_ms"]
                 improvement = ((before - after) / before) * 100 if before > 0 else 0
@@ -1133,14 +1155,16 @@ class PerformanceOptimizer:
                 improvements["api_response_time"] = {
                     "before_ms": before,
                     "after_ms": after,
-                    "improvement_percent": improvement
+                    "improvement_percent": improvement,
                 }
 
             # データベースクエリ時間の改善
-            if ("database" in baseline and "database" in post_optimization and
-                "avg_query_time_ms" in baseline["database"] and
-                "avg_query_time_ms" in post_optimization["database"]):
-
+            if (
+                "database" in baseline
+                and "database" in post_optimization
+                and "avg_query_time_ms" in baseline["database"]
+                and "avg_query_time_ms" in post_optimization["database"]
+            ):
                 before = baseline["database"]["avg_query_time_ms"]
                 after = post_optimization["database"]["avg_query_time_ms"]
                 improvement = ((before - after) / before) * 100 if before > 0 else 0
@@ -1148,30 +1172,40 @@ class PerformanceOptimizer:
                 improvements["database_query_time"] = {
                     "before_ms": before,
                     "after_ms": after,
-                    "improvement_percent": improvement
+                    "improvement_percent": improvement,
                 }
 
             # システムリソースの改善
-            if ("system" in baseline and "system" in post_optimization):
+            if "system" in baseline and "system" in post_optimization:
                 system_before = baseline["system"]
                 system_after = post_optimization["system"]
 
-                if ("cpu_usage_percent" in system_before and
-                    "cpu_usage_percent" in system_after):
-                    cpu_improvement = system_before["cpu_usage_percent"] - system_after["cpu_usage_percent"]
+                if (
+                    "cpu_usage_percent" in system_before
+                    and "cpu_usage_percent" in system_after
+                ):
+                    cpu_improvement = (
+                        system_before["cpu_usage_percent"]
+                        - system_after["cpu_usage_percent"]
+                    )
                     improvements["cpu_usage"] = {
                         "before_percent": system_before["cpu_usage_percent"],
                         "after_percent": system_after["cpu_usage_percent"],
-                        "improvement_percent": cpu_improvement
+                        "improvement_percent": cpu_improvement,
                     }
 
-                if ("memory_usage_percent" in system_before and
-                    "memory_usage_percent" in system_after):
-                    memory_improvement = system_before["memory_usage_percent"] - system_after["memory_usage_percent"]
+                if (
+                    "memory_usage_percent" in system_before
+                    and "memory_usage_percent" in system_after
+                ):
+                    memory_improvement = (
+                        system_before["memory_usage_percent"]
+                        - system_after["memory_usage_percent"]
+                    )
                     improvements["memory_usage"] = {
                         "before_percent": system_before["memory_usage_percent"],
                         "after_percent": system_after["memory_usage_percent"],
-                        "improvement_percent": memory_improvement
+                        "improvement_percent": memory_improvement,
                     }
 
             # 総合スコアの改善
@@ -1182,7 +1216,7 @@ class PerformanceOptimizer:
             improvements["overall_performance_score"] = {
                 "before_score": baseline_score,
                 "after_score": post_score,
-                "improvement_points": score_improvement
+                "improvement_points": score_improvement,
             }
 
             print("   ✅ Performance improvements calculated")
@@ -1193,7 +1227,9 @@ class PerformanceOptimizer:
             print(f"   ⚠️ Error calculating improvements: {e}")
             return {"error": str(e)}
 
-    async def generate_optimization_recommendations(self, results: Dict[str, Any]) -> List[str]:
+    async def generate_optimization_recommendations(
+        self, results: Dict[str, Any]
+    ) -> List[str]:
         """最適化推奨事項を生成"""
         print("   💡 Generating optimization recommendations...")
 
@@ -1258,7 +1294,9 @@ class PerformanceOptimizer:
 
             # 最適化結果に基づく推奨事項
             optimizations = results.get("optimizations", [])
-            successful_optimizations = [opt for opt in optimizations if "error" not in opt]
+            successful_optimizations = [
+                opt for opt in optimizations if "error" not in opt
+            ]
 
             if len(successful_optimizations) < len(optimizations):
                 recommendations.append(
@@ -1266,13 +1304,15 @@ class PerformanceOptimizer:
                 )
 
             # 汎用的な推奨事項
-            recommendations.extend([
-                "Implement continuous performance monitoring",
-                "Set up automated performance regression testing",
-                "Consider implementing auto-scaling based on metrics",
-                "Regularly review and update performance targets",
-                "Implement performance budgets for new features"
-            ])
+            recommendations.extend(
+                [
+                    "Implement continuous performance monitoring",
+                    "Set up automated performance regression testing",
+                    "Consider implementing auto-scaling based on metrics",
+                    "Regularly review and update performance targets",
+                    "Implement performance budgets for new features",
+                ]
+            )
 
             print(f"   ✅ Generated {len(recommendations)} recommendations")
 
@@ -1280,7 +1320,9 @@ class PerformanceOptimizer:
 
         except Exception as e:
             print(f"   ⚠️ Error generating recommendations: {e}")
-            return ["Error generating recommendations. Review optimization results manually."]
+            return [
+                "Error generating recommendations. Review optimization results manually."
+            ]
 
     async def save_optimization_results(self, results: Dict[str, Any]):
         """最適化結果を保存"""
@@ -1311,20 +1353,23 @@ class PerformanceOptimizer:
 
             for optimization in results.get("optimizations", []):
                 if "error" not in optimization:
-                    cursor.execute('''
+                    cursor.execute(
+                        """
                         INSERT INTO optimization_results
                         (optimization_type, target_component, before_metrics, after_metrics,
                          improvement_percentage, success, notes)
                         VALUES (?, ?, ?, ?, ?, ?, ?)
-                    ''', (
-                        optimization.get("optimization_type", "unknown"),
-                        optimization.get("target_component", "system"),
-                        json.dumps(optimization.get("before_metrics", {})),
-                        json.dumps(optimization.get("after_metrics", {})),
-                        optimization.get("improvement_percentage", 0),
-                        True,
-                        optimization.get("estimated_improvement", "")
-                    ))
+                    """,
+                        (
+                            optimization.get("optimization_type", "unknown"),
+                            optimization.get("target_component", "system"),
+                            json.dumps(optimization.get("before_metrics", {})),
+                            json.dumps(optimization.get("after_metrics", {})),
+                            optimization.get("improvement_percentage", 0),
+                            True,
+                            optimization.get("estimated_improvement", ""),
+                        ),
+                    )
 
             conn.commit()
             conn.close()
@@ -1345,18 +1390,30 @@ class PerformanceOptimizer:
 
             if "api_response_time" in improvements:
                 api_improvement = improvements["api_response_time"]
-                print(f"   - API Response Time: {api_improvement['improvement_percent']:.1f}% improvement")
-                print(f"     ({api_improvement['before_ms']:.1f}ms → {api_improvement['after_ms']:.1f}ms)")
+                print(
+                    f"   - API Response Time: {api_improvement['improvement_percent']:.1f}% improvement"
+                )
+                print(
+                    f"     ({api_improvement['before_ms']:.1f}ms → {api_improvement['after_ms']:.1f}ms)"
+                )
 
             if "database_query_time" in improvements:
                 db_improvement = improvements["database_query_time"]
-                print(f"   - Database Query Time: {db_improvement['improvement_percent']:.1f}% improvement")
-                print(f"     ({db_improvement['before_ms']:.1f}ms → {db_improvement['after_ms']:.1f}ms)")
+                print(
+                    f"   - Database Query Time: {db_improvement['improvement_percent']:.1f}% improvement"
+                )
+                print(
+                    f"     ({db_improvement['before_ms']:.1f}ms → {db_improvement['after_ms']:.1f}ms)"
+                )
 
             if "overall_performance_score" in improvements:
                 score_improvement = improvements["overall_performance_score"]
-                print(f"   - Overall Performance Score: {score_improvement['improvement_points']:.1f} points improvement")
-                print(f"     ({score_improvement['before_score']:.1f} → {score_improvement['after_score']:.1f})")
+                print(
+                    f"   - Overall Performance Score: {score_improvement['improvement_points']:.1f} points improvement"
+                )
+                print(
+                    f"     ({score_improvement['before_score']:.1f} → {score_improvement['after_score']:.1f})"
+                )
 
         # 推奨事項の表示
         recommendations = results.get("recommendations", [])

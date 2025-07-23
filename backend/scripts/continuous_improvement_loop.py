@@ -23,7 +23,7 @@ class ContinuousImprovement:
             "test_coverage": 85.0,
             "code_quality": 9.0,
             "api_response_time": 200.0,
-            "error_rate": 0.1
+            "error_rate": 0.1,
         }
 
     def log(self, message: str, level: str = "INFO"):
@@ -48,7 +48,7 @@ class ContinuousImprovement:
             "api_response_time": await self.get_api_response_time(),
             "error_rate": await self.get_error_rate(),
             "database_performance": await self.get_database_performance(),
-            "security_score": await self.get_security_score()
+            "security_score": await self.get_security_score(),
         }
 
         return metrics
@@ -71,7 +71,7 @@ class ContinuousImprovement:
                 ["uv", "run", "ruff", "check", ".", "--output-format=json"],
                 capture_output=True,
                 text=True,
-                cwd=Path.cwd()
+                cwd=Path.cwd(),
             )
 
             if result.returncode == 0:
@@ -111,11 +111,7 @@ class ContinuousImprovement:
 
     async def get_database_performance(self) -> Dict[str, Any]:
         """Get database performance metrics."""
-        return {
-            "query_time": 45.2,
-            "connections": 12,
-            "slow_queries": 2
-        }
+        return {"query_time": 45.2, "connections": 12, "slow_queries": 2}
 
     async def get_security_score(self) -> float:
         """Get security score (1-10)."""
@@ -175,7 +171,7 @@ from unittest.mock import Mock
 def test_{module_name}_imports():
     """Test that the module can be imported."""
     try:
-        import {module_path.replace('/', '.').replace('.py', '')}
+        import {module_path.replace("/", ".").replace(".py", "")}
         assert True
     except ImportError as e:
         pytest.skip(f"Module import failed: {{e}}")
@@ -206,7 +202,7 @@ def test_{module_name}_basic_functionality():
                 ["uv", "run", "ruff", "check", ".", "--fix"],
                 capture_output=True,
                 text=True,
-                cwd=Path.cwd()
+                cwd=Path.cwd(),
             )
 
             if result.returncode == 0:
@@ -219,7 +215,7 @@ def test_{module_name}_basic_functionality():
                 ["uv", "run", "ruff", "format", "."],
                 capture_output=True,
                 text=True,
-                cwd=Path.cwd()
+                cwd=Path.cwd(),
             )
 
             if format_result.returncode == 0:
@@ -238,7 +234,7 @@ def test_{module_name}_basic_functionality():
                 ["python", "scripts/database_optimizer.py"],
                 capture_output=True,
                 text=True,
-                cwd=Path.cwd()
+                cwd=Path.cwd(),
             )
 
             if result.returncode == 0:
@@ -258,14 +254,16 @@ def test_{module_name}_basic_functionality():
             "API rate limiting improvements",
             "Database connection pooling",
             "Caching layer optimization",
-            "Security audit enhancements"
+            "Security audit enhancements",
         ]
 
         feature = features[self.cycle_count % len(features)]
         self.log(f"Identified next feature: {feature}")
 
         # Create a placeholder implementation
-        feature_file = Path(f"docs/features/cycle_{self.cycle_count}_{feature.lower().replace(' ', '_')}.md")
+        feature_file = Path(
+            f"docs/features/cycle_{self.cycle_count}_{feature.lower().replace(' ', '_')}.md"
+        )
         feature_file.parent.mkdir(parents=True, exist_ok=True)
 
         feature_content = f"""# {feature}
@@ -331,7 +329,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>"""
                 ["git", "commit", "-m", commit_message],
                 capture_output=True,
                 text=True,
-                cwd=Path.cwd()
+                cwd=Path.cwd(),
             )
 
             if result.returncode == 0:
@@ -399,7 +397,10 @@ Co-Authored-By: Claude <noreply@anthropic.com>"""
             elif metrics["code_quality"] < self.quality_threshold["code_quality"]:
                 await self.fix_code_quality_issues()
                 improvements_made = True
-            elif metrics["api_response_time"] > self.quality_threshold["api_response_time"]:
+            elif (
+                metrics["api_response_time"]
+                > self.quality_threshold["api_response_time"]
+            ):
                 await self.optimize_performance()
                 improvements_made = True
             else:

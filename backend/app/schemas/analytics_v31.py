@@ -34,6 +34,7 @@ from app.models.analytics_extended import (
 # Base Schemas
 # =============================================================================
 
+
 class BaseAnalyticsSchema(BaseModel):
     """Base schema for analytics-related models."""
 
@@ -46,6 +47,7 @@ class BaseAnalyticsSchema(BaseModel):
 # Data Source Schemas
 # =============================================================================
 
+
 class DataSourceCreateRequest(BaseAnalyticsSchema):
     """Schema for creating analytics data source."""
 
@@ -53,18 +55,34 @@ class DataSourceCreateRequest(BaseAnalyticsSchema):
     name: str = Field(..., min_length=1, max_length=200, description="Data source name")
     code: str = Field(..., min_length=1, max_length=100, description="Unique code")
     description: Optional[str] = Field(None, description="Description")
-    source_type: str = Field(..., description="Source type (database, api, file, stream)")
+    source_type: str = Field(
+        ..., description="Source type (database, api, file, stream)"
+    )
 
     # Connection configuration
-    connection_string: Optional[str] = Field(None, max_length=1000, description="Connection string")
-    connection_config: Dict[str, Any] = Field(default_factory=dict, description="Connection config")
-    authentication_config: Dict[str, Any] = Field(default_factory=dict, description="Auth config")
+    connection_string: Optional[str] = Field(
+        None, max_length=1000, description="Connection string"
+    )
+    connection_config: Dict[str, Any] = Field(
+        default_factory=dict, description="Connection config"
+    )
+    authentication_config: Dict[str, Any] = Field(
+        default_factory=dict, description="Auth config"
+    )
 
     # Schema and mappings
-    schema_definition: Dict[str, Any] = Field(default_factory=dict, description="Schema definition")
-    table_mappings: Dict[str, Any] = Field(default_factory=dict, description="Table mappings")
-    field_mappings: Dict[str, Any] = Field(default_factory=dict, description="Field mappings")
-    transformation_rules: Dict[str, Any] = Field(default_factory=dict, description="Transformation rules")
+    schema_definition: Dict[str, Any] = Field(
+        default_factory=dict, description="Schema definition"
+    )
+    table_mappings: Dict[str, Any] = Field(
+        default_factory=dict, description="Table mappings"
+    )
+    field_mappings: Dict[str, Any] = Field(
+        default_factory=dict, description="Field mappings"
+    )
+    transformation_rules: Dict[str, Any] = Field(
+        default_factory=dict, description="Transformation rules"
+    )
 
     # Sync settings
     sync_frequency: str = Field("daily", description="Sync frequency")
@@ -72,29 +90,39 @@ class DataSourceCreateRequest(BaseAnalyticsSchema):
     is_realtime: bool = Field(False, description="Real-time source")
 
     # Validation and quality
-    validation_rules: Dict[str, Any] = Field(default_factory=dict, description="Validation rules")
-    cleansing_rules: Dict[str, Any] = Field(default_factory=dict, description="Cleansing rules")
+    validation_rules: Dict[str, Any] = Field(
+        default_factory=dict, description="Validation rules"
+    )
+    cleansing_rules: Dict[str, Any] = Field(
+        default_factory=dict, description="Cleansing rules"
+    )
 
     # Metadata
     tags: List[str] = Field(default_factory=list, description="Tags")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
-    custom_fields: Dict[str, Any] = Field(default_factory=dict, description="Custom fields")
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict, description="Additional metadata"
+    )
+    custom_fields: Dict[str, Any] = Field(
+        default_factory=dict, description="Custom fields"
+    )
     created_by: str = Field(..., description="Creator user ID")
 
-    @validator('source_type')
+    @validator("source_type")
     def validate_source_type(cls, v):
         """Validate source type."""
-        allowed_types = ['database', 'api', 'file', 'stream', 'webhook']
+        allowed_types = ["database", "api", "file", "stream", "webhook"]
         if v not in allowed_types:
             raise ValueError(f"Source type must be one of: {', '.join(allowed_types)}")
         return v
 
-    @validator('sync_frequency')
+    @validator("sync_frequency")
     def validate_sync_frequency(cls, v):
         """Validate sync frequency."""
-        allowed_frequencies = ['realtime', 'hourly', 'daily', 'weekly', 'monthly']
+        allowed_frequencies = ["realtime", "hourly", "daily", "weekly", "monthly"]
         if v not in allowed_frequencies:
-            raise ValueError(f"Sync frequency must be one of: {', '.join(allowed_frequencies)}")
+            raise ValueError(
+                f"Sync frequency must be one of: {', '.join(allowed_frequencies)}"
+            )
         return v
 
 
@@ -122,8 +150,12 @@ class DataSourceResponse(BaseAnalyticsSchema):
 
     # Performance metrics
     records_processed: int = Field(..., description="Records processed")
-    processing_time_avg: Optional[Decimal] = Field(None, description="Average processing time")
-    throughput_per_minute: Optional[Decimal] = Field(None, description="Throughput per minute")
+    processing_time_avg: Optional[Decimal] = Field(
+        None, description="Average processing time"
+    )
+    throughput_per_minute: Optional[Decimal] = Field(
+        None, description="Throughput per minute"
+    )
     quality_score: Optional[Decimal] = Field(None, description="Data quality score")
 
     # Metadata
@@ -140,7 +172,9 @@ class DataSourceConnectionTest(BaseAnalyticsSchema):
     status: str = Field(..., description="Test status")
     connection_time_ms: int = Field(0, description="Connection time in milliseconds")
     message: str = Field("", description="Test message")
-    details: Dict[str, Any] = Field(default_factory=dict, description="Additional details")
+    details: Dict[str, Any] = Field(
+        default_factory=dict, description="Additional details"
+    )
 
 
 class DataSourceSyncResult(BaseAnalyticsSchema):
@@ -157,6 +191,7 @@ class DataSourceSyncResult(BaseAnalyticsSchema):
 # Metric Schemas
 # =============================================================================
 
+
 class MetricCreateRequest(BaseAnalyticsSchema):
     """Schema for creating analytics metric."""
 
@@ -164,7 +199,9 @@ class MetricCreateRequest(BaseAnalyticsSchema):
     data_source_id: Optional[str] = Field(None, description="Data source ID")
     name: str = Field(..., min_length=1, max_length=200, description="Metric name")
     code: str = Field(..., min_length=1, max_length=100, description="Unique code")
-    display_name: Optional[str] = Field(None, max_length=200, description="Display name")
+    display_name: Optional[str] = Field(
+        None, max_length=200, description="Display name"
+    )
     description: Optional[str] = Field(None, description="Description")
     category: Optional[str] = Field(None, max_length=100, description="Category")
 
@@ -175,13 +212,21 @@ class MetricCreateRequest(BaseAnalyticsSchema):
 
     # Calculation definition
     calculation_formula: str = Field(..., description="Calculation formula")
-    calculation_fields: List[str] = Field(default_factory=list, description="Calculation fields")
-    calculation_filters: Dict[str, Any] = Field(default_factory=dict, description="Calculation filters")
-    calculation_parameters: Dict[str, Any] = Field(default_factory=dict, description="Calculation parameters")
+    calculation_fields: List[str] = Field(
+        default_factory=list, description="Calculation fields"
+    )
+    calculation_filters: Dict[str, Any] = Field(
+        default_factory=dict, description="Calculation filters"
+    )
+    calculation_parameters: Dict[str, Any] = Field(
+        default_factory=dict, description="Calculation parameters"
+    )
 
     # Units and formatting
     unit: Optional[str] = Field(None, max_length=50, description="Unit of measure")
-    format_pattern: Optional[str] = Field(None, max_length=100, description="Format pattern")
+    format_pattern: Optional[str] = Field(
+        None, max_length=100, description="Format pattern"
+    )
     decimal_places: int = Field(2, ge=0, le=10, description="Decimal places")
     multiplier: Decimal = Field(Decimal("1"), description="Value multiplier")
 
@@ -190,20 +235,28 @@ class MetricCreateRequest(BaseAnalyticsSchema):
     min_threshold: Optional[Decimal] = Field(None, description="Minimum threshold")
     max_threshold: Optional[Decimal] = Field(None, description="Maximum threshold")
     warning_threshold: Optional[Decimal] = Field(None, description="Warning threshold")
-    critical_threshold: Optional[Decimal] = Field(None, description="Critical threshold")
+    critical_threshold: Optional[Decimal] = Field(
+        None, description="Critical threshold"
+    )
 
     # Benchmarking
     benchmark_value: Optional[Decimal] = Field(None, description="Benchmark value")
-    benchmark_source: Optional[str] = Field(None, max_length=200, description="Benchmark source")
+    benchmark_source: Optional[str] = Field(
+        None, max_length=200, description="Benchmark source"
+    )
     industry_average: Optional[Decimal] = Field(None, description="Industry average")
 
     # Calculation schedule
     calculation_frequency: str = Field("daily", description="Calculation frequency")
-    calculation_schedule: Optional[str] = Field(None, description="Calculation schedule (cron)")
+    calculation_schedule: Optional[str] = Field(
+        None, description="Calculation schedule (cron)"
+    )
 
     # Display configuration
     chart_type: str = Field("line", description="Chart type")
-    color_scheme: Optional[str] = Field(None, max_length=100, description="Color scheme")
+    color_scheme: Optional[str] = Field(
+        None, max_length=100, description="Color scheme"
+    )
     display_order: int = Field(0, description="Display order")
     is_featured: bool = Field(False, description="Featured metric")
 
@@ -214,21 +267,34 @@ class MetricCreateRequest(BaseAnalyticsSchema):
 
     # Metadata
     tags: List[str] = Field(default_factory=list, description="Tags")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict, description="Additional metadata"
+    )
     created_by: str = Field(..., description="Creator user ID")
 
-    @validator('calculation_frequency')
+    @validator("calculation_frequency")
     def validate_calculation_frequency(cls, v):
         """Validate calculation frequency."""
-        allowed_frequencies = ['realtime', 'hourly', 'daily', 'weekly', 'monthly']
+        allowed_frequencies = ["realtime", "hourly", "daily", "weekly", "monthly"]
         if v not in allowed_frequencies:
-            raise ValueError(f"Calculation frequency must be one of: {', '.join(allowed_frequencies)}")
+            raise ValueError(
+                f"Calculation frequency must be one of: {', '.join(allowed_frequencies)}"
+            )
         return v
 
-    @validator('chart_type')
+    @validator("chart_type")
     def validate_chart_type(cls, v):
         """Validate chart type."""
-        allowed_types = ['line', 'bar', 'area', 'pie', 'donut', 'gauge', 'number', 'table']
+        allowed_types = [
+            "line",
+            "bar",
+            "area",
+            "pie",
+            "donut",
+            "gauge",
+            "number",
+            "table",
+        ]
         if v not in allowed_types:
             raise ValueError(f"Chart type must be one of: {', '.join(allowed_types)}")
         return v
@@ -274,8 +340,12 @@ class MetricResponse(BaseAnalyticsSchema):
 
     # Calculation info
     calculation_frequency: str = Field(..., description="Calculation frequency")
-    last_calculated_at: Optional[datetime] = Field(None, description="Last calculation time")
-    next_calculation_at: Optional[datetime] = Field(None, description="Next calculation time")
+    last_calculated_at: Optional[datetime] = Field(
+        None, description="Last calculation time"
+    )
+    next_calculation_at: Optional[datetime] = Field(
+        None, description="Next calculation time"
+    )
 
     # Metadata
     tags: List[str] = Field(..., description="Tags")
@@ -291,7 +361,9 @@ class MetricCalculationRequest(BaseAnalyticsSchema):
     period_start: Optional[datetime] = Field(None, description="Period start time")
     period_end: Optional[datetime] = Field(None, description="Period end time")
     force_recalculation: bool = Field(False, description="Force recalculation")
-    parameters: Dict[str, Any] = Field(default_factory=dict, description="Calculation parameters")
+    parameters: Dict[str, Any] = Field(
+        default_factory=dict, description="Calculation parameters"
+    )
 
 
 class MetricCalculationResult(BaseAnalyticsSchema):
@@ -303,7 +375,9 @@ class MetricCalculationResult(BaseAnalyticsSchema):
     period_start: str = Field(..., description="Period start (ISO format)")
     period_end: str = Field(..., description="Period end (ISO format)")
     quality_score: float = Field(..., description="Quality score")
-    calculation_metadata: Dict[str, Any] = Field(..., description="Calculation metadata")
+    calculation_metadata: Dict[str, Any] = Field(
+        ..., description="Calculation metadata"
+    )
 
 
 class MetricTrendData(BaseAnalyticsSchema):
@@ -331,6 +405,7 @@ class MetricTrendsResponse(BaseAnalyticsSchema):
 # Dashboard Schemas
 # =============================================================================
 
+
 class DashboardCreateRequest(BaseAnalyticsSchema):
     """Schema for creating analytics dashboard."""
 
@@ -341,20 +416,36 @@ class DashboardCreateRequest(BaseAnalyticsSchema):
     dashboard_type: DashboardType = Field(..., description="Dashboard type")
 
     # Layout configuration
-    layout_config: Dict[str, Any] = Field(default_factory=dict, description="Layout configuration")
-    grid_config: Dict[str, Any] = Field(default_factory=dict, description="Grid configuration")
-    responsive_config: Dict[str, Any] = Field(default_factory=dict, description="Responsive configuration")
+    layout_config: Dict[str, Any] = Field(
+        default_factory=dict, description="Layout configuration"
+    )
+    grid_config: Dict[str, Any] = Field(
+        default_factory=dict, description="Grid configuration"
+    )
+    responsive_config: Dict[str, Any] = Field(
+        default_factory=dict, description="Responsive configuration"
+    )
 
     # Widgets
-    widgets: List[Dict[str, Any]] = Field(default_factory=list, description="Widget definitions")
-    widget_positions: Dict[str, Any] = Field(default_factory=dict, description="Widget positions")
-    widget_settings: Dict[str, Any] = Field(default_factory=dict, description="Widget settings")
+    widgets: List[Dict[str, Any]] = Field(
+        default_factory=list, description="Widget definitions"
+    )
+    widget_positions: Dict[str, Any] = Field(
+        default_factory=dict, description="Widget positions"
+    )
+    widget_settings: Dict[str, Any] = Field(
+        default_factory=dict, description="Widget settings"
+    )
 
     # Filters and refresh
-    global_filters: Dict[str, Any] = Field(default_factory=dict, description="Global filters")
+    global_filters: Dict[str, Any] = Field(
+        default_factory=dict, description="Global filters"
+    )
     default_period: str = Field("last_30_days", description="Default time period")
     auto_refresh: bool = Field(True, description="Auto refresh enabled")
-    refresh_interval: int = Field(300, ge=30, le=3600, description="Refresh interval in seconds")
+    refresh_interval: int = Field(
+        300, ge=30, le=3600, description="Refresh interval in seconds"
+    )
 
     # Sharing and permissions
     is_public: bool = Field(False, description="Public dashboard")
@@ -369,27 +460,35 @@ class DashboardCreateRequest(BaseAnalyticsSchema):
     custom_css: Optional[str] = Field(None, description="Custom CSS")
 
     # Export and email
-    export_formats: List[str] = Field(default_factory=lambda: ["pdf", "png", "excel"], description="Export formats")
-    email_recipients: List[str] = Field(default_factory=list, description="Email recipients")
+    export_formats: List[str] = Field(
+        default_factory=lambda: ["pdf", "png", "excel"], description="Export formats"
+    )
+    email_recipients: List[str] = Field(
+        default_factory=list, description="Email recipients"
+    )
     email_schedule: Optional[str] = Field(None, description="Email schedule (cron)")
 
     # Metadata
     tags: List[str] = Field(default_factory=list, description="Tags")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict, description="Additional metadata"
+    )
     created_by: str = Field(..., description="Creator user ID")
 
-    @validator('access_level')
+    @validator("access_level")
     def validate_access_level(cls, v):
         """Validate access level."""
-        allowed_levels = ['private', 'team', 'department', 'organization', 'public']
+        allowed_levels = ["private", "team", "department", "organization", "public"]
         if v not in allowed_levels:
-            raise ValueError(f"Access level must be one of: {', '.join(allowed_levels)}")
+            raise ValueError(
+                f"Access level must be one of: {', '.join(allowed_levels)}"
+            )
         return v
 
-    @validator('theme')
+    @validator("theme")
     def validate_theme(cls, v):
         """Validate theme."""
-        allowed_themes = ['default', 'dark', 'light', 'corporate', 'modern', 'minimal']
+        allowed_themes = ["default", "dark", "light", "corporate", "modern", "minimal"]
         if v not in allowed_themes:
             raise ValueError(f"Theme must be one of: {', '.join(allowed_themes)}")
         return v
@@ -441,7 +540,9 @@ class DashboardDataRequest(BaseAnalyticsSchema):
 
     period_start: Optional[datetime] = Field(None, description="Period start time")
     period_end: Optional[datetime] = Field(None, description="Period end time")
-    filters: Dict[str, Any] = Field(default_factory=dict, description="Additional filters")
+    filters: Dict[str, Any] = Field(
+        default_factory=dict, description="Additional filters"
+    )
     refresh_cache: bool = Field(False, description="Refresh cached data")
 
 
@@ -461,6 +562,7 @@ class DashboardDataResponse(BaseAnalyticsSchema):
 # Report Schemas
 # =============================================================================
 
+
 class ReportCreateRequest(BaseAnalyticsSchema):
     """Schema for creating analytics report."""
 
@@ -476,24 +578,34 @@ class ReportCreateRequest(BaseAnalyticsSchema):
     data_sources: List[str] = Field(default_factory=list, description="Data source IDs")
 
     # Parameters and filters
-    parameters: Dict[str, Any] = Field(default_factory=dict, description="Report parameters")
+    parameters: Dict[str, Any] = Field(
+        default_factory=dict, description="Report parameters"
+    )
     filters: Dict[str, Any] = Field(default_factory=dict, description="Report filters")
-    period_config: Dict[str, Any] = Field(default_factory=dict, description="Period configuration")
+    period_config: Dict[str, Any] = Field(
+        default_factory=dict, description="Period configuration"
+    )
 
     # Scheduling
     is_scheduled: bool = Field(False, description="Scheduled report")
-    schedule_config: Dict[str, Any] = Field(default_factory=dict, description="Schedule configuration")
+    schedule_config: Dict[str, Any] = Field(
+        default_factory=dict, description="Schedule configuration"
+    )
     schedule_cron: Optional[str] = Field(None, description="Cron schedule")
 
     # Output settings
     format: str = Field("pdf", description="Output format")
     template_id: Optional[str] = Field(None, description="Template ID")
-    output_settings: Dict[str, Any] = Field(default_factory=dict, description="Output settings")
+    output_settings: Dict[str, Any] = Field(
+        default_factory=dict, description="Output settings"
+    )
 
     # Distribution
     recipients: List[str] = Field(default_factory=list, description="Email recipients")
     delivery_method: str = Field("email", description="Delivery method")
-    delivery_config: Dict[str, Any] = Field(default_factory=dict, description="Delivery configuration")
+    delivery_config: Dict[str, Any] = Field(
+        default_factory=dict, description="Delivery configuration"
+    )
 
     # Security
     is_confidential: bool = Field(False, description="Confidential report")
@@ -503,23 +615,27 @@ class ReportCreateRequest(BaseAnalyticsSchema):
 
     # Metadata
     tags: List[str] = Field(default_factory=list, description="Tags")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict, description="Additional metadata"
+    )
     created_by: str = Field(..., description="Creator user ID")
 
-    @validator('format')
+    @validator("format")
     def validate_format(cls, v):
         """Validate output format."""
-        allowed_formats = ['pdf', 'excel', 'csv', 'html', 'json', 'png', 'svg']
+        allowed_formats = ["pdf", "excel", "csv", "html", "json", "png", "svg"]
         if v not in allowed_formats:
             raise ValueError(f"Format must be one of: {', '.join(allowed_formats)}")
         return v
 
-    @validator('delivery_method')
+    @validator("delivery_method")
     def validate_delivery_method(cls, v):
         """Validate delivery method."""
-        allowed_methods = ['email', 'webhook', 'ftp', 's3', 'download']
+        allowed_methods = ["email", "webhook", "ftp", "s3", "download"]
         if v not in allowed_methods:
-            raise ValueError(f"Delivery method must be one of: {', '.join(allowed_methods)}")
+            raise ValueError(
+                f"Delivery method must be one of: {', '.join(allowed_methods)}"
+            )
         return v
 
 
@@ -542,13 +658,19 @@ class ReportResponse(BaseAnalyticsSchema):
 
     # Statistics
     generation_count: int = Field(..., description="Generation count")
-    last_generation_duration: Optional[int] = Field(None, description="Last generation duration (ms)")
-    avg_generation_time: Optional[int] = Field(None, description="Average generation time (ms)")
+    last_generation_duration: Optional[int] = Field(
+        None, description="Last generation duration (ms)"
+    )
+    avg_generation_time: Optional[int] = Field(
+        None, description="Average generation time (ms)"
+    )
 
     # Output
     format: str = Field(..., description="Output format")
     last_output_path: Optional[str] = Field(None, description="Last output path")
-    last_output_size: Optional[int] = Field(None, description="Last output size (bytes)")
+    last_output_size: Optional[int] = Field(
+        None, description="Last output size (bytes)"
+    )
     last_error: Optional[str] = Field(None, description="Last error message")
 
     # Access control
@@ -567,8 +689,12 @@ class ReportGenerationRequest(BaseAnalyticsSchema):
     """Schema for report generation request."""
 
     execution_type: str = Field("manual", description="Execution type")
-    parameters: Dict[str, Any] = Field(default_factory=dict, description="Generation parameters")
-    filters: Dict[str, Any] = Field(default_factory=dict, description="Generation filters")
+    parameters: Dict[str, Any] = Field(
+        default_factory=dict, description="Generation parameters"
+    )
+    filters: Dict[str, Any] = Field(
+        default_factory=dict, description="Generation filters"
+    )
     period_start: Optional[date] = Field(None, description="Report period start")
     period_end: Optional[date] = Field(None, description="Report period end")
     output_format: Optional[str] = Field(None, description="Override output format")
@@ -590,6 +716,7 @@ class ReportGenerationResult(BaseAnalyticsSchema):
 # Prediction Schemas
 # =============================================================================
 
+
 class PredictionCreateRequest(BaseAnalyticsSchema):
     """Schema for creating prediction model."""
 
@@ -601,42 +728,63 @@ class PredictionCreateRequest(BaseAnalyticsSchema):
     model_type: str = Field(..., description="Model type")
 
     # Model configuration
-    model_parameters: Dict[str, Any] = Field(default_factory=dict, description="Model parameters")
-    feature_columns: List[str] = Field(default_factory=list, description="Feature columns")
+    model_parameters: Dict[str, Any] = Field(
+        default_factory=dict, description="Model parameters"
+    )
+    feature_columns: List[str] = Field(
+        default_factory=list, description="Feature columns"
+    )
     target_column: Optional[str] = Field(None, description="Target column")
 
     # Prediction settings
-    prediction_horizon: int = Field(..., ge=1, le=365, description="Prediction horizon in days")
-    prediction_intervals: List[float] = Field(default_factory=list, description="Confidence intervals")
+    prediction_horizon: int = Field(
+        ..., ge=1, le=365, description="Prediction horizon in days"
+    )
+    prediction_intervals: List[float] = Field(
+        default_factory=list, description="Confidence intervals"
+    )
     update_frequency: str = Field("weekly", description="Model update frequency")
 
     # Metadata
     tags: List[str] = Field(default_factory=list, description="Tags")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict, description="Additional metadata"
+    )
     created_by: str = Field(..., description="Creator user ID")
 
-    @validator('prediction_type')
+    @validator("prediction_type")
     def validate_prediction_type(cls, v):
         """Validate prediction type."""
-        allowed_types = ['forecast', 'trend', 'classification', 'anomaly', 'regression']
+        allowed_types = ["forecast", "trend", "classification", "anomaly", "regression"]
         if v not in allowed_types:
-            raise ValueError(f"Prediction type must be one of: {', '.join(allowed_types)}")
+            raise ValueError(
+                f"Prediction type must be one of: {', '.join(allowed_types)}"
+            )
         return v
 
-    @validator('model_type')
+    @validator("model_type")
     def validate_model_type(cls, v):
         """Validate model type."""
-        allowed_models = ['linear_regression', 'arima', 'prophet', 'lstm', 'random_forest', 'xgboost']
+        allowed_models = [
+            "linear_regression",
+            "arima",
+            "prophet",
+            "lstm",
+            "random_forest",
+            "xgboost",
+        ]
         if v not in allowed_models:
             raise ValueError(f"Model type must be one of: {', '.join(allowed_models)}")
         return v
 
-    @validator('update_frequency')
+    @validator("update_frequency")
     def validate_update_frequency(cls, v):
         """Validate update frequency."""
-        allowed_frequencies = ['daily', 'weekly', 'monthly', 'quarterly']
+        allowed_frequencies = ["daily", "weekly", "monthly", "quarterly"]
         if v not in allowed_frequencies:
-            raise ValueError(f"Update frequency must be one of: {', '.join(allowed_frequencies)}")
+            raise ValueError(
+                f"Update frequency must be one of: {', '.join(allowed_frequencies)}"
+            )
         return v
 
 
@@ -660,9 +808,13 @@ class PredictionResponse(BaseAnalyticsSchema):
     # Status and training
     is_active: bool = Field(..., description="Active status")
     last_trained_at: Optional[datetime] = Field(None, description="Last training time")
-    training_duration: Optional[int] = Field(None, description="Training duration (seconds)")
+    training_duration: Optional[int] = Field(
+        None, description="Training duration (seconds)"
+    )
     model_version: Optional[str] = Field(None, description="Model version")
-    training_data_points: Optional[int] = Field(None, description="Training data points")
+    training_data_points: Optional[int] = Field(
+        None, description="Training data points"
+    )
 
     # Predictions
     prediction_horizon: int = Field(..., description="Prediction horizon (days)")
@@ -687,13 +839,16 @@ class PredictionResult(BaseAnalyticsSchema):
     accuracy_score: Optional[float] = Field(None, description="Model accuracy")
     predictions: List[Dict[str, Any]] = Field(..., description="Prediction values")
     forecast_horizon: int = Field(..., description="Forecast horizon")
-    confidence_intervals: List[float] = Field(default_factory=list, description="Confidence intervals")
+    confidence_intervals: List[float] = Field(
+        default_factory=list, description="Confidence intervals"
+    )
     generated_at: str = Field(..., description="Generation timestamp")
 
 
 # =============================================================================
 # Alert Schemas
 # =============================================================================
+
 
 class AlertCreateRequest(BaseAnalyticsSchema):
     """Schema for creating analytics alert."""
@@ -706,8 +861,12 @@ class AlertCreateRequest(BaseAnalyticsSchema):
 
     # Alert conditions
     conditions: Dict[str, Any] = Field(..., description="Alert conditions")
-    threshold_config: Dict[str, Any] = Field(default_factory=dict, description="Threshold configuration")
-    comparison_config: Dict[str, Any] = Field(default_factory=dict, description="Comparison configuration")
+    threshold_config: Dict[str, Any] = Field(
+        default_factory=dict, description="Threshold configuration"
+    )
+    comparison_config: Dict[str, Any] = Field(
+        default_factory=dict, description="Comparison configuration"
+    )
 
     # Evaluation settings
     evaluation_frequency: str = Field("hourly", description="Evaluation frequency")
@@ -716,42 +875,58 @@ class AlertCreateRequest(BaseAnalyticsSchema):
 
     # Alert severity
     priority: AlertPriority = Field(AlertPriority.MEDIUM, description="Alert priority")
-    severity_rules: Dict[str, Any] = Field(default_factory=dict, description="Severity rules")
-    escalation_rules: List[Dict[str, Any]] = Field(default_factory=list, description="Escalation rules")
+    severity_rules: Dict[str, Any] = Field(
+        default_factory=dict, description="Severity rules"
+    )
+    escalation_rules: List[Dict[str, Any]] = Field(
+        default_factory=list, description="Escalation rules"
+    )
 
     # Notification settings
-    notification_channels: List[str] = Field(default_factory=lambda: ["email"], description="Notification channels")
-    notification_recipients: List[str] = Field(default_factory=list, description="Notification recipients")
-    notification_template: Optional[str] = Field(None, description="Notification template")
+    notification_channels: List[str] = Field(
+        default_factory=lambda: ["email"], description="Notification channels"
+    )
+    notification_recipients: List[str] = Field(
+        default_factory=list, description="Notification recipients"
+    )
+    notification_template: Optional[str] = Field(
+        None, description="Notification template"
+    )
 
     # Metadata
     tags: List[str] = Field(default_factory=list, description="Tags")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict, description="Additional metadata"
+    )
     created_by: str = Field(..., description="Creator user ID")
 
-    @validator('alert_type')
+    @validator("alert_type")
     def validate_alert_type(cls, v):
         """Validate alert type."""
-        allowed_types = ['threshold', 'anomaly', 'trend', 'comparison', 'change']
+        allowed_types = ["threshold", "anomaly", "trend", "comparison", "change"]
         if v not in allowed_types:
             raise ValueError(f"Alert type must be one of: {', '.join(allowed_types)}")
         return v
 
-    @validator('evaluation_frequency')
+    @validator("evaluation_frequency")
     def validate_evaluation_frequency(cls, v):
         """Validate evaluation frequency."""
-        allowed_frequencies = ['realtime', 'hourly', 'daily', 'weekly']
+        allowed_frequencies = ["realtime", "hourly", "daily", "weekly"]
         if v not in allowed_frequencies:
-            raise ValueError(f"Evaluation frequency must be one of: {', '.join(allowed_frequencies)}")
+            raise ValueError(
+                f"Evaluation frequency must be one of: {', '.join(allowed_frequencies)}"
+            )
         return v
 
-    @validator('notification_channels')
+    @validator("notification_channels")
     def validate_notification_channels(cls, v):
         """Validate notification channels."""
-        allowed_channels = ['email', 'sms', 'slack', 'teams', 'webhook', 'in_app']
+        allowed_channels = ["email", "sms", "slack", "teams", "webhook", "in_app"]
         for channel in v:
             if channel not in allowed_channels:
-                raise ValueError(f"Notification channel must be one of: {', '.join(allowed_channels)}")
+                raise ValueError(
+                    f"Notification channel must be one of: {', '.join(allowed_channels)}"
+                )
         return v
 
 
@@ -770,7 +945,9 @@ class AlertResponse(BaseAnalyticsSchema):
     is_triggered: bool = Field(..., description="Currently triggered")
     trigger_count: int = Field(..., description="Total trigger count")
     last_triggered_at: Optional[datetime] = Field(None, description="Last trigger time")
-    last_evaluated_at: Optional[datetime] = Field(None, description="Last evaluation time")
+    last_evaluated_at: Optional[datetime] = Field(
+        None, description="Last evaluation time"
+    )
 
     # Configuration
     priority: AlertPriority = Field(..., description="Alert priority")
@@ -803,6 +980,7 @@ class AlertResponse(BaseAnalyticsSchema):
 # Insight Schemas
 # =============================================================================
 
+
 class InsightResponse(BaseAnalyticsSchema):
     """Schema for analytics insight response."""
 
@@ -821,7 +999,9 @@ class InsightResponse(BaseAnalyticsSchema):
     # Insight data
     key_findings: List[Dict[str, Any]] = Field(..., description="Key findings")
     supporting_data: Dict[str, Any] = Field(..., description="Supporting data")
-    statistical_significance: Optional[Decimal] = Field(None, description="Statistical significance")
+    statistical_significance: Optional[Decimal] = Field(
+        None, description="Statistical significance"
+    )
     confidence_level: Optional[Decimal] = Field(None, description="Confidence level")
 
     # Recommendations
@@ -861,15 +1041,22 @@ class InsightGenerationRequest(BaseAnalyticsSchema):
     """Schema for insight generation request."""
 
     organization_id: str = Field(..., description="Organization ID")
-    analytics_types: List[AnalyticsType] = Field(default_factory=list, description="Analytics types to analyze")
+    analytics_types: List[AnalyticsType] = Field(
+        default_factory=list, description="Analytics types to analyze"
+    )
     period_days: int = Field(30, ge=7, le=365, description="Analysis period in days")
-    focus_areas: List[str] = Field(default_factory=list, description="Specific focus areas")
-    min_confidence: float = Field(0.7, ge=0.0, le=1.0, description="Minimum confidence threshold")
+    focus_areas: List[str] = Field(
+        default_factory=list, description="Specific focus areas"
+    )
+    min_confidence: float = Field(
+        0.7, ge=0.0, le=1.0, description="Minimum confidence threshold"
+    )
 
 
 # =============================================================================
 # System Health Schemas
 # =============================================================================
+
 
 class AnalyticsSystemHealthResponse(BaseAnalyticsSchema):
     """Schema for analytics system health response."""
@@ -890,12 +1077,17 @@ class AnalyticsSystemHealthResponse(BaseAnalyticsSchema):
 # Bulk Operations Schemas
 # =============================================================================
 
+
 class BulkMetricOperationRequest(BaseAnalyticsSchema):
     """Schema for bulk metric operations."""
 
-    metric_ids: List[str] = Field(..., min_items=1, max_items=100, description="Metric IDs")
+    metric_ids: List[str] = Field(
+        ..., min_items=1, max_items=100, description="Metric IDs"
+    )
     operation: str = Field(..., description="Operation type")
-    parameters: Dict[str, Any] = Field(default_factory=dict, description="Operation parameters")
+    parameters: Dict[str, Any] = Field(
+        default_factory=dict, description="Operation parameters"
+    )
 
 
 class BulkOperationResponse(BaseAnalyticsSchema):

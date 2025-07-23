@@ -19,16 +19,17 @@ class TestAuthenticationSecurity:
 
     def test_unauthenticated_access_blocked(self, client):
         """Test that unauthenticated access is properly blocked"""
-        protected_endpoints = [
-            "/api/v1/users/me",
-            "/api/v1/admin",
-            "/api/v1/protected"
-        ]
+        protected_endpoints = ["/api/v1/users/me", "/api/v1/admin", "/api/v1/protected"]
 
         for endpoint in protected_endpoints:
             response = client.get(endpoint)
             # Should return 401 (Unauthorized) or redirect to login
-            assert response.status_code in [401, 403, 302, 404]  # 404 is ok if endpoint doesn't exist
+            assert response.status_code in [
+                401,
+                403,
+                302,
+                404,
+            ]  # 404 is ok if endpoint doesn't exist
 
     def test_invalid_token_rejected(self, client):
         """Test that invalid tokens are rejected"""
@@ -37,7 +38,7 @@ class TestAuthenticationSecurity:
             "Bearer invalid",
             "Bearer ",
             "",
-            "malformed.jwt.token"
+            "malformed.jwt.token",
         ]
 
         for token in invalid_tokens:
@@ -59,28 +60,29 @@ class TestAuthenticationSecurity:
         """Test brute force attack protection"""
         # Attempt multiple failed logins
         for _ in range(10):
-            response = client.post("/api/v1/auth/token", data={
-                "username": "nonexistent",
-                "password": "wrongpassword"
-            })
+            response = client.post(
+                "/api/v1/auth/token",
+                data={"username": "nonexistent", "password": "wrongpassword"},
+            )
             # Should eventually rate limit or return consistent error
             assert response.status_code in [401, 422, 429, 404]
 
     def test_password_requirements(self, client):
         """Test password strength requirements"""
-        weak_passwords = [
-            "123",
-            "password",
-            "abc",
-            "12345678",
-            "aaaaaaaa"
-        ]
+        weak_passwords = ["123", "password", "abc", "12345678", "aaaaaaaa"]
 
         for weak_password in weak_passwords:
-            response = client.post("/api/v1/auth/register", json={
-                "username": "testuser",
-                "email": "test@example.com",
-                "password": weak_password
-            })
+            response = client.post(
+                "/api/v1/auth/register",
+                json={
+                    "username": "testuser",
+                    "email": "test@example.com",
+                    "password": weak_password,
+                },
+            )
             # Should reject weak passwords
-            assert response.status_code in [400, 422, 404]  # 404 if endpoint doesn't exist
+            assert response.status_code in [
+                400,
+                422,
+                404,
+            ]  # 404 if endpoint doesn't exist

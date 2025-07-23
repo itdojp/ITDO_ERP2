@@ -52,10 +52,7 @@ class DocumentService:
     # =============================================================================
 
     async def create_document(
-        self,
-        db: Session,
-        document_data: dict,
-        file_content: bytes = None
+        self, db: Session, document_data: dict, file_content: bytes = None
     ) -> DocumentExtended:
         """Create a new document with comprehensive metadata and file handling."""
 
@@ -81,7 +78,9 @@ class DocumentService:
             category=document_data.get("category"),
             subcategory=document_data.get("subcategory"),
             filename=document_data["filename"],
-            original_filename=document_data.get("original_filename", document_data["filename"]),
+            original_filename=document_data.get(
+                "original_filename", document_data["filename"]
+            ),
             file_extension=os.path.splitext(document_data["filename"])[1].lower(),
             mime_type=mime_type,
             file_size_bytes=file_size,
@@ -99,7 +98,7 @@ class DocumentService:
             is_confidential=document_data.get("is_confidential", False),
             security_classification=document_data.get("security_classification"),
             requires_approval=document_data.get("requires_approval", False),
-            requires_signature=document_data.get("requires_signature", False)
+            requires_signature=document_data.get("requires_signature", False),
         )
 
         db.add(document)
@@ -108,21 +107,32 @@ class DocumentService:
 
         # Log activity
         await self._log_document_activity(
-            db, document.id, "create", "Document created",
-            document_data["created_by_id"], {"file_size": file_size}
+            db,
+            document.id,
+            "create",
+            "Document created",
+            document_data["created_by_id"],
+            {"file_size": file_size},
         )
 
         return document
 
-    async def get_document_by_id(self, db: Session, document_id: str) -> Optional[DocumentExtended]:
+    async def get_document_by_id(
+        self, db: Session, document_id: str
+    ) -> Optional[DocumentExtended]:
         """Get document by ID with full details."""
-        document = db.query(DocumentExtended).options(
-            joinedload(DocumentExtended.owner),
-            joinedload(DocumentExtended.creator),
-            joinedload(DocumentExtended.folder),
-            joinedload(DocumentExtended.shares),
-            joinedload(DocumentExtended.comments)
-        ).filter(DocumentExtended.id == document_id).first()
+        document = (
+            db.query(DocumentExtended)
+            .options(
+                joinedload(DocumentExtended.owner),
+                joinedload(DocumentExtended.creator),
+                joinedload(DocumentExtended.folder),
+                joinedload(DocumentExtended.shares),
+                joinedload(DocumentExtended.comments),
+            )
+            .filter(DocumentExtended.id == document_id)
+            .first()
+        )
 
         if document:
             # Update view count and last viewed timestamp
@@ -146,13 +156,13 @@ class DocumentService:
         created_after: Optional[datetime] = None,
         created_before: Optional[datetime] = None,
         skip: int = 0,
-        limit: int = 100
+        limit: int = 100,
     ) -> List[DocumentExtended]:
         """Get documents with comprehensive filtering options."""
 
         query = db.query(DocumentExtended).filter(
             DocumentExtended.organization_id == organization_id,
-            DocumentExtended.status != DocumentStatus.DELETED
+            DocumentExtended.status != DocumentStatus.DELETED,
         )
 
         if folder_id:
@@ -175,7 +185,7 @@ class DocumentService:
                 DocumentExtended.title.ilike(f"%{search_text}%"),
                 DocumentExtended.description.ilike(f"%{search_text}%"),
                 DocumentExtended.filename.ilike(f"%{search_text}%"),
-                DocumentExtended.extracted_text.ilike(f"%{search_text}%")
+                DocumentExtended.extracted_text.ilike(f"%{search_text}%"),
             )
             query = query.filter(search_filter)
 
@@ -189,18 +199,23 @@ class DocumentService:
         if created_before:
             query = query.filter(DocumentExtended.created_at <= created_before)
 
-        return query.order_by(desc(DocumentExtended.updated_at)).offset(skip).limit(limit).all()
+        return (
+            query.order_by(desc(DocumentExtended.updated_at))
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
 
     async def update_document(
-        self,
-        db: Session,
-        document_id: str,
-        update_data: dict,
-        user_id: str
+        self, db: Session, document_id: str, update_data: dict, user_id: str
     ) -> Optional[DocumentExtended]:
         """Update document with change tracking and versioning."""
 
-        document = db.query(DocumentExtended).filter(DocumentExtended.id == document_id).first()
+        document = (
+            db.query(DocumentExtended)
+            .filter(DocumentExtended.id == document_id)
+            .first()
+        )
         if not document:
             return None
 
@@ -210,9 +225,16 @@ class DocumentService:
 
         # Update allowed fields
         updatable_fields = [
-            "title", "description", "category", "subcategory", "tags",
-            "metadata", "custom_properties", "is_confidential",
-            "security_classification", "status"
+            "title",
+            "description",
+            "category",
+            "subcategory",
+            "tags",
+            "metadata",
+            "custom_properties",
+            "is_confidential",
+            "security_classification",
+            "status",
         ]
 
         for field in updatable_fields:
@@ -227,8 +249,12 @@ class DocumentService:
 
         # Log activity
         await self._log_document_activity(
-            db, document_id, "update", "Document updated", user_id,
-            {"old_values": old_values, "new_values": new_values}
+            db,
+            document_id,
+            "update",
+            "Document updated",
+            user_id,
+            {"old_values": old_values, "new_values": new_values},
         )
 
         return document
@@ -239,7 +265,7 @@ class DocumentService:
         original_document_id: str,
         new_version_data: dict,
         file_content: bytes = None,
-        user_id: str = None
+        user_id: str = None,
     ) -> DocumentExtended:
         """Create a new version of an existing document."""
 
@@ -283,17 +309,27 @@ class DocumentService:
 
         # Log versioning activity
         await self._log_document_activity(
-            db, original_document_id, "version", f"New version {new_version} created",
-            user_id, {"new_version_id": new_document.id, "version": new_version}
+            db,
+            original_document_id,
+            "version",
+            f"New version {new_version} created",
+            user_id,
+            {"new_version_id": new_document.id, "version": new_version},
         )
 
         db.commit()
         return new_document
 
-    async def delete_document(self, db: Session, document_id: str, user_id: str) -> bool:
+    async def delete_document(
+        self, db: Session, document_id: str, user_id: str
+    ) -> bool:
         """Soft delete document (mark as deleted)."""
 
-        document = db.query(DocumentExtended).filter(DocumentExtended.id == document_id).first()
+        document = (
+            db.query(DocumentExtended)
+            .filter(DocumentExtended.id == document_id)
+            .first()
+        )
         if not document:
             return False
 
@@ -322,9 +358,11 @@ class DocumentService:
         level = 0
 
         if folder_data.get("parent_folder_id"):
-            parent = db.query(DocumentFolder).filter(
-                DocumentFolder.id == folder_data["parent_folder_id"]
-            ).first()
+            parent = (
+                db.query(DocumentFolder)
+                .filter(DocumentFolder.id == folder_data["parent_folder_id"])
+                .first()
+            )
             if parent:
                 full_path = f"{parent.full_path}/{folder_data['name']}"
                 level = parent.level + 1
@@ -338,12 +376,14 @@ class DocumentService:
             organization_id=folder_data["organization_id"],
             owner_id=folder_data["owner_id"],
             created_by_id=folder_data["created_by_id"],
-            default_access_level=folder_data.get("default_access_level", AccessLevel.VIEW),
+            default_access_level=folder_data.get(
+                "default_access_level", AccessLevel.VIEW
+            ),
             storage_quota_bytes=folder_data.get("storage_quota_bytes"),
             max_file_size_bytes=folder_data.get("max_file_size_bytes"),
             allowed_file_types=folder_data.get("allowed_file_types", []),
             tags=folder_data.get("tags", []),
-            custom_properties=folder_data.get("custom_properties", {})
+            custom_properties=folder_data.get("custom_properties", {}),
         )
 
         db.add(folder)
@@ -361,34 +401,40 @@ class DocumentService:
         db: Session,
         folder_id: str,
         include_subfolders: bool = True,
-        include_documents: bool = True
+        include_documents: bool = True,
     ) -> Dict[str, List]:
         """Get folder contents including subfolders and documents."""
 
         result = {"subfolders": [], "documents": []}
 
         if include_subfolders:
-            subfolders = db.query(DocumentFolder).filter(
-                DocumentFolder.parent_folder_id == folder_id,
-                not DocumentFolder.is_archived
-            ).order_by(DocumentFolder.name).all()
+            subfolders = (
+                db.query(DocumentFolder)
+                .filter(
+                    DocumentFolder.parent_folder_id == folder_id,
+                    not DocumentFolder.is_archived,
+                )
+                .order_by(DocumentFolder.name)
+                .all()
+            )
             result["subfolders"] = subfolders
 
         if include_documents:
-            documents = db.query(DocumentExtended).filter(
-                DocumentExtended.folder_id == folder_id,
-                DocumentExtended.status != DocumentStatus.DELETED
-            ).order_by(DocumentExtended.title).all()
+            documents = (
+                db.query(DocumentExtended)
+                .filter(
+                    DocumentExtended.folder_id == folder_id,
+                    DocumentExtended.status != DocumentStatus.DELETED,
+                )
+                .order_by(DocumentExtended.title)
+                .all()
+            )
             result["documents"] = documents
 
         return result
 
     async def move_document(
-        self,
-        db: Session,
-        document_id: str,
-        new_folder_id: Optional[str],
-        user_id: str
+        self, db: Session, document_id: str, new_folder_id: Optional[str], user_id: str
     ) -> DocumentExtended:
         """Move document to a different folder."""
 
@@ -409,8 +455,12 @@ class DocumentService:
 
         # Log activity
         await self._log_document_activity(
-            db, document_id, "move", "Document moved", user_id,
-            {"old_folder_id": old_folder_id, "new_folder_id": new_folder_id}
+            db,
+            document_id,
+            "move",
+            "Document moved",
+            user_id,
+            {"old_folder_id": old_folder_id, "new_folder_id": new_folder_id},
         )
 
         return document
@@ -420,11 +470,7 @@ class DocumentService:
     # =============================================================================
 
     async def create_document_share(
-        self,
-        db: Session,
-        document_id: str,
-        share_data: dict,
-        shared_by_id: str
+        self, db: Session, document_id: str, share_data: dict, shared_by_id: str
     ) -> DocumentShare:
         """Create a document share with specified permissions."""
 
@@ -452,7 +498,7 @@ class DocumentService:
             max_downloads=share_data.get("max_downloads"),
             share_message=share_data.get("share_message"),
             notify_on_access=share_data.get("notify_on_access", False),
-            shared_by_id=shared_by_id
+            shared_by_id=shared_by_id,
         )
 
         db.add(share)
@@ -466,42 +512,40 @@ class DocumentService:
 
         # Log activity
         await self._log_document_activity(
-            db, document_id, "share", "Document shared", shared_by_id,
-            {"share_type": share_data["share_type"], "access_level": share_data.get("access_level")}
+            db,
+            document_id,
+            "share",
+            "Document shared",
+            shared_by_id,
+            {
+                "share_type": share_data["share_type"],
+                "access_level": share_data.get("access_level"),
+            },
         )
 
         return share
 
     async def get_document_shares(
-        self,
-        db: Session,
-        document_id: str,
-        include_expired: bool = False
+        self, db: Session, document_id: str, include_expired: bool = False
     ) -> List[DocumentShare]:
         """Get all shares for a document."""
 
         query = db.query(DocumentShare).filter(
             DocumentShare.document_id == document_id,
             DocumentShare.is_active,
-            not DocumentShare.is_revoked
+            not DocumentShare.is_revoked,
         )
 
         if not include_expired:
             now = datetime.utcnow()
             query = query.filter(
-                or_(
-                    DocumentShare.expires_at.is_(None),
-                    DocumentShare.expires_at > now
-                )
+                or_(DocumentShare.expires_at.is_(None), DocumentShare.expires_at > now)
             )
 
         return query.all()
 
     async def revoke_document_share(
-        self,
-        db: Session,
-        share_id: str,
-        revoked_by_id: str
+        self, db: Session, share_id: str, revoked_by_id: str
     ) -> bool:
         """Revoke a document share."""
 
@@ -517,8 +561,12 @@ class DocumentService:
 
         # Log activity
         await self._log_document_activity(
-            db, share.document_id, "unshare", "Document share revoked", revoked_by_id,
-            {"share_id": share_id}
+            db,
+            share.document_id,
+            "unshare",
+            "Document share revoked",
+            revoked_by_id,
+            {"share_id": share_id},
         )
 
         return True
@@ -528,10 +576,7 @@ class DocumentService:
     # =============================================================================
 
     async def create_document_comment(
-        self,
-        db: Session,
-        comment_data: dict,
-        author_id: str
+        self, db: Session, comment_data: dict, author_id: str
     ) -> DocumentComment:
         """Create a comment on a document."""
 
@@ -552,7 +597,7 @@ class DocumentService:
             is_private=comment_data.get("is_private", False),
             requires_response=comment_data.get("requires_response", False),
             attachments=comment_data.get("attachments", []),
-            author_id=author_id
+            author_id=author_id,
         )
 
         db.add(comment)
@@ -566,21 +611,27 @@ class DocumentService:
 
         # Log activity
         await self._log_document_activity(
-            db, comment_data["document_id"], "comment", "Comment added", author_id,
-            {"comment_id": comment.id, "comment_type": comment_data.get("comment_type")}
+            db,
+            comment_data["document_id"],
+            "comment",
+            "Comment added",
+            author_id,
+            {
+                "comment_id": comment.id,
+                "comment_type": comment_data.get("comment_type"),
+            },
         )
 
         return comment
 
     async def resolve_comment(
-        self,
-        db: Session,
-        comment_id: str,
-        resolved_by_id: str
+        self, db: Session, comment_id: str, resolved_by_id: str
     ) -> Optional[DocumentComment]:
         """Mark a comment as resolved."""
 
-        comment = db.query(DocumentComment).filter(DocumentComment.id == comment_id).first()
+        comment = (
+            db.query(DocumentComment).filter(DocumentComment.id == comment_id).first()
+        )
         if not comment:
             return None
 
@@ -592,8 +643,12 @@ class DocumentService:
 
         # Log activity
         await self._log_document_activity(
-            db, comment.document_id, "comment_resolve", "Comment resolved", resolved_by_id,
-            {"comment_id": comment_id}
+            db,
+            comment.document_id,
+            "comment_resolve",
+            "Comment resolved",
+            resolved_by_id,
+            {"comment_id": comment_id},
         )
 
         return comment
@@ -603,10 +658,7 @@ class DocumentService:
     # =============================================================================
 
     async def create_approval_workflow(
-        self,
-        db: Session,
-        workflow_data: dict,
-        created_by_id: str
+        self, db: Session, workflow_data: dict, created_by_id: str
     ) -> DocumentWorkflow:
         """Create a document approval workflow."""
 
@@ -626,7 +678,7 @@ class DocumentService:
             trigger_conditions=workflow_data.get("trigger_conditions", {}),
             completion_actions=workflow_data.get("completion_actions", {}),
             tags=workflow_data.get("tags", []),
-            created_by_id=created_by_id
+            created_by_id=created_by_id,
         )
 
         db.add(workflow)
@@ -641,7 +693,7 @@ class DocumentService:
         document_id: str,
         workflow_id: str,
         approvers: List[Dict[str, Any]],
-        requested_by_id: str
+        requested_by_id: str,
     ) -> List[DocumentApproval]:
         """Submit document for approval workflow."""
 
@@ -649,7 +701,11 @@ class DocumentService:
         if not document:
             raise ValueError("Document not found")
 
-        workflow = db.query(DocumentWorkflow).filter(DocumentWorkflow.id == workflow_id).first()
+        workflow = (
+            db.query(DocumentWorkflow)
+            .filter(DocumentWorkflow.id == workflow_id)
+            .first()
+        )
         if not workflow:
             raise ValueError("Workflow not found")
 
@@ -670,9 +726,10 @@ class DocumentService:
                 approver_id=approver_data["approver_id"],
                 approver_role=approver_data.get("approver_role"),
                 is_required=approver_data.get("is_required", True),
-                deadline=datetime.utcnow() + timedelta(days=workflow.default_deadline_days),
+                deadline=datetime.utcnow()
+                + timedelta(days=workflow.default_deadline_days),
                 approval_criteria=approver_data.get("approval_criteria", {}),
-                requested_by_id=requested_by_id
+                requested_by_id=requested_by_id,
             )
 
             db.add(approval)
@@ -687,8 +744,12 @@ class DocumentService:
 
         # Log activity
         await self._log_document_activity(
-            db, document_id, "approval_request", "Document submitted for approval",
-            requested_by_id, {"workflow_id": workflow_id, "approver_count": len(approvers)}
+            db,
+            document_id,
+            "approval_request",
+            "Document submitted for approval",
+            requested_by_id,
+            {"workflow_id": workflow_id, "approver_count": len(approvers)},
         )
 
         return approvals
@@ -699,11 +760,15 @@ class DocumentService:
         approval_id: str,
         decision: ApprovalStatus,
         comments: Optional[str] = None,
-        conditions: Optional[str] = None
+        conditions: Optional[str] = None,
     ) -> DocumentApproval:
         """Process an approval decision."""
 
-        approval = db.query(DocumentApproval).filter(DocumentApproval.id == approval_id).first()
+        approval = (
+            db.query(DocumentApproval)
+            .filter(DocumentApproval.id == approval_id)
+            .first()
+        )
         if not approval:
             raise ValueError("Approval not found")
 
@@ -716,11 +781,15 @@ class DocumentService:
 
         if decision == ApprovalStatus.APPROVED:
             # Check if this was the final approval step
-            remaining_approvals = db.query(DocumentApproval).filter(
-                DocumentApproval.document_id == approval.document_id,
-                DocumentApproval.status == ApprovalStatus.PENDING,
-                DocumentApproval.step_number > approval.step_number
-            ).all()
+            remaining_approvals = (
+                db.query(DocumentApproval)
+                .filter(
+                    DocumentApproval.document_id == approval.document_id,
+                    DocumentApproval.status == ApprovalStatus.PENDING,
+                    DocumentApproval.step_number > approval.step_number,
+                )
+                .all()
+            )
 
             if not remaining_approvals:
                 # All approvals complete
@@ -740,10 +809,14 @@ class DocumentService:
             document.approval_deadline = None
 
             # Mark all pending approvals as withdrawn
-            pending_approvals = db.query(DocumentApproval).filter(
-                DocumentApproval.document_id == approval.document_id,
-                DocumentApproval.status == ApprovalStatus.PENDING
-            ).all()
+            pending_approvals = (
+                db.query(DocumentApproval)
+                .filter(
+                    DocumentApproval.document_id == approval.document_id,
+                    DocumentApproval.status == ApprovalStatus.PENDING,
+                )
+                .all()
+            )
 
             for pending in pending_approvals:
                 if pending.id != approval_id:
@@ -753,8 +826,12 @@ class DocumentService:
 
         # Log activity
         await self._log_document_activity(
-            db, approval.document_id, "approval_decision", f"Approval {decision.value}",
-            approval.approver_id, {"approval_id": approval_id, "decision": decision.value}
+            db,
+            approval.document_id,
+            "approval_decision",
+            f"Approval {decision.value}",
+            approval.approver_id,
+            {"approval_id": approval_id, "decision": decision.value},
         )
 
         return approval
@@ -768,7 +845,7 @@ class DocumentService:
         db: Session,
         document_id: str,
         signers: List[Dict[str, Any]],
-        requested_by_id: str
+        requested_by_id: str,
     ) -> List[DocumentSignature]:
         """Request digital signatures for a document."""
 
@@ -796,7 +873,7 @@ class DocumentService:
                 width=signer_data.get("width", 150),
                 height=signer_data.get("height", 50),
                 signing_deadline=signer_data.get("signing_deadline"),
-                requested_by_id=requested_by_id
+                requested_by_id=requested_by_id,
             )
 
             db.add(signature)
@@ -806,8 +883,12 @@ class DocumentService:
 
         # Log activity
         await self._log_document_activity(
-            db, document_id, "signature_request", "Signature requested",
-            requested_by_id, {"signer_count": len(signers)}
+            db,
+            document_id,
+            "signature_request",
+            "Signature requested",
+            requested_by_id,
+            {"signer_count": len(signers)},
         )
 
         return signatures
@@ -817,11 +898,15 @@ class DocumentService:
         db: Session,
         signature_id: str,
         signature_data: bytes,
-        signer_metadata: Dict[str, Any]
+        signer_metadata: Dict[str, Any],
     ) -> DocumentSignature:
         """Process a document signature."""
 
-        signature = db.query(DocumentSignature).filter(DocumentSignature.id == signature_id).first()
+        signature = (
+            db.query(DocumentSignature)
+            .filter(DocumentSignature.id == signature_id)
+            .first()
+        )
         if not signature:
             raise ValueError("Signature request not found")
 
@@ -838,7 +923,9 @@ class DocumentService:
         signature.consent_given = True
         signature.consent_timestamp = datetime.utcnow()
         signature.is_verified = True
-        signature.verification_method = signer_metadata.get("verification_method", "email")
+        signature.verification_method = signer_metadata.get(
+            "verification_method", "email"
+        )
 
         # Update audit trail
         audit_entry = {
@@ -846,7 +933,7 @@ class DocumentService:
             "action": "signature_applied",
             "signer_email": signature.signer_email,
             "ip_address": signature.ip_address,
-            "user_agent": signature.user_agent
+            "user_agent": signature.user_agent,
         }
 
         if signature.audit_trail:
@@ -856,10 +943,14 @@ class DocumentService:
 
         # Check if all signatures are complete
         document = await self.get_document_by_id(db, signature.document_id)
-        pending_signatures = db.query(DocumentSignature).filter(
-            DocumentSignature.document_id == signature.document_id,
-            DocumentSignature.status == SignatureStatus.PENDING
-        ).count()
+        pending_signatures = (
+            db.query(DocumentSignature)
+            .filter(
+                DocumentSignature.document_id == signature.document_id,
+                DocumentSignature.status == SignatureStatus.PENDING,
+            )
+            .count()
+        )
 
         if pending_signatures == 0:
             document.signature_status = SignatureStatus.SIGNED
@@ -868,8 +959,12 @@ class DocumentService:
 
         # Log activity
         await self._log_document_activity(
-            db, signature.document_id, "signature", "Document signed",
-            signature.signer_id, {"signature_id": signature_id}
+            db,
+            signature.document_id,
+            "signature",
+            "Document signed",
+            signature.signer_id,
+            {"signature_id": signature_id},
         )
 
         return signature
@@ -879,10 +974,7 @@ class DocumentService:
     # =============================================================================
 
     async def create_document_template(
-        self,
-        db: Session,
-        template_data: dict,
-        created_by_id: str
+        self, db: Session, template_data: dict, created_by_id: str
     ) -> DocumentTemplate:
         """Create a document template."""
 
@@ -906,7 +998,7 @@ class DocumentService:
             is_restricted=template_data.get("is_restricted", False),
             allowed_groups=template_data.get("allowed_groups", []),
             tags=template_data.get("tags", []),
-            created_by_id=created_by_id
+            created_by_id=created_by_id,
         )
 
         db.add(template)
@@ -920,11 +1012,15 @@ class DocumentService:
         db: Session,
         template_id: str,
         field_values: Dict[str, Any],
-        generated_by_id: str
+        generated_by_id: str,
     ) -> DocumentExtended:
         """Generate a document from a template with field substitution."""
 
-        template = db.query(DocumentTemplate).filter(DocumentTemplate.id == template_id).first()
+        template = (
+            db.query(DocumentTemplate)
+            .filter(DocumentTemplate.id == template_id)
+            .first()
+        )
         if not template:
             raise ValueError("Template not found")
 
@@ -935,7 +1031,10 @@ class DocumentService:
             processed_content = processed_content.replace(placeholder, str(value))
 
         # Generate filename
-        filename = template.default_filename or f"Document_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        filename = (
+            template.default_filename
+            or f"Document_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        )
         for field, value in field_values.items():
             placeholder = f"{{{{{field}}}}}"
             filename = filename.replace(placeholder, str(value))
@@ -954,11 +1053,13 @@ class DocumentService:
                 "generated_from_template": template_id,
                 "template_name": template.name,
                 "generation_date": datetime.utcnow().isoformat(),
-                "field_values": field_values
-            }
+                "field_values": field_values,
+            },
         }
 
-        document = await self.create_document(db, document_data, processed_content.encode())
+        document = await self.create_document(
+            db, document_data, processed_content.encode()
+        )
 
         # Update template usage statistics
         template.usage_count += 1
@@ -978,13 +1079,13 @@ class DocumentService:
         search_query: str,
         filters: Optional[Dict[str, Any]] = None,
         skip: int = 0,
-        limit: int = 50
+        limit: int = 50,
     ) -> List[DocumentExtended]:
         """Advanced document search with full-text search and filtering."""
 
         query = db.query(DocumentExtended).filter(
             DocumentExtended.organization_id == organization_id,
-            DocumentExtended.status != DocumentStatus.DELETED
+            DocumentExtended.status != DocumentStatus.DELETED,
         )
 
         # Full-text search
@@ -998,7 +1099,7 @@ class DocumentService:
                     DocumentExtended.description.ilike(f"%{term}%"),
                     DocumentExtended.filename.ilike(f"%{term}%"),
                     DocumentExtended.extracted_text.ilike(f"%{term}%"),
-                    DocumentExtended.ocr_text.ilike(f"%{term}%")
+                    DocumentExtended.ocr_text.ilike(f"%{term}%"),
                 )
                 search_conditions.append(term_condition)
 
@@ -1008,7 +1109,9 @@ class DocumentService:
         # Apply filters
         if filters:
             if filters.get("document_type"):
-                query = query.filter(DocumentExtended.document_type == filters["document_type"])
+                query = query.filter(
+                    DocumentExtended.document_type == filters["document_type"]
+                )
 
             if filters.get("category"):
                 query = query.filter(DocumentExtended.category == filters["category"])
@@ -1017,10 +1120,14 @@ class DocumentService:
                 query = query.filter(DocumentExtended.owner_id == filters["owner_id"])
 
             if filters.get("created_after"):
-                query = query.filter(DocumentExtended.created_at >= filters["created_after"])
+                query = query.filter(
+                    DocumentExtended.created_at >= filters["created_after"]
+                )
 
             if filters.get("created_before"):
-                query = query.filter(DocumentExtended.created_at <= filters["created_before"])
+                query = query.filter(
+                    DocumentExtended.created_at <= filters["created_before"]
+                )
 
             if filters.get("tags"):
                 for tag in filters["tags"]:
@@ -1030,111 +1137,162 @@ class DocumentService:
         query = query.order_by(
             desc(DocumentExtended.view_count),
             desc(DocumentExtended.last_modified_at),
-            desc(DocumentExtended.created_at)
+            desc(DocumentExtended.created_at),
         )
 
         return query.offset(skip).limit(limit).all()
 
     async def get_document_analytics(
-        self,
-        db: Session,
-        organization_id: str,
-        period_start: date,
-        period_end: date
+        self, db: Session, organization_id: str, period_start: date, period_end: date
     ) -> DocumentAnalytics:
         """Generate comprehensive document analytics for a period."""
 
         # Document metrics
-        total_docs = db.query(DocumentExtended).filter(
-            DocumentExtended.organization_id == organization_id,
-            DocumentExtended.status != DocumentStatus.DELETED
-        ).count()
+        total_docs = (
+            db.query(DocumentExtended)
+            .filter(
+                DocumentExtended.organization_id == organization_id,
+                DocumentExtended.status != DocumentStatus.DELETED,
+            )
+            .count()
+        )
 
-        new_docs = db.query(DocumentExtended).filter(
-            DocumentExtended.organization_id == organization_id,
-            DocumentExtended.created_at >= period_start,
-            DocumentExtended.created_at <= period_end
-        ).count()
+        new_docs = (
+            db.query(DocumentExtended)
+            .filter(
+                DocumentExtended.organization_id == organization_id,
+                DocumentExtended.created_at >= period_start,
+                DocumentExtended.created_at <= period_end,
+            )
+            .count()
+        )
 
-        updated_docs = db.query(DocumentExtended).filter(
-            DocumentExtended.organization_id == organization_id,
-            DocumentExtended.last_modified_at >= period_start,
-            DocumentExtended.last_modified_at <= period_end,
-            DocumentExtended.created_at < period_start
-        ).count()
+        updated_docs = (
+            db.query(DocumentExtended)
+            .filter(
+                DocumentExtended.organization_id == organization_id,
+                DocumentExtended.last_modified_at >= period_start,
+                DocumentExtended.last_modified_at <= period_end,
+                DocumentExtended.created_at < period_start,
+            )
+            .count()
+        )
 
-        deleted_docs = db.query(DocumentExtended).filter(
-            DocumentExtended.organization_id == organization_id,
-            DocumentExtended.status == DocumentStatus.DELETED,
-            DocumentExtended.archived_at >= period_start,
-            DocumentExtended.archived_at <= period_end
-        ).count()
+        deleted_docs = (
+            db.query(DocumentExtended)
+            .filter(
+                DocumentExtended.organization_id == organization_id,
+                DocumentExtended.status == DocumentStatus.DELETED,
+                DocumentExtended.archived_at >= period_start,
+                DocumentExtended.archived_at <= period_end,
+            )
+            .count()
+        )
 
         # Storage metrics
-        storage_stats = db.query(
-            func.sum(DocumentExtended.file_size_bytes).label("total_storage"),
-            func.avg(DocumentExtended.file_size_bytes).label("avg_file_size"),
-            func.max(DocumentExtended.file_size_bytes).label("max_file_size")
-        ).filter(
-            DocumentExtended.organization_id == organization_id,
-            DocumentExtended.status != DocumentStatus.DELETED
-        ).first()
+        storage_stats = (
+            db.query(
+                func.sum(DocumentExtended.file_size_bytes).label("total_storage"),
+                func.avg(DocumentExtended.file_size_bytes).label("avg_file_size"),
+                func.max(DocumentExtended.file_size_bytes).label("max_file_size"),
+            )
+            .filter(
+                DocumentExtended.organization_id == organization_id,
+                DocumentExtended.status != DocumentStatus.DELETED,
+            )
+            .first()
+        )
 
         # Activity metrics
         activities = db.query(DocumentActivity).filter(
             DocumentActivity.organization_id == organization_id,
             DocumentActivity.timestamp >= period_start,
-            DocumentActivity.timestamp <= period_end
+            DocumentActivity.timestamp <= period_end,
         )
 
-        total_views = activities.filter(DocumentActivity.activity_type == "view").count()
-        total_downloads = activities.filter(DocumentActivity.activity_type == "download").count()
-        total_shares = activities.filter(DocumentActivity.activity_type == "share").count()
-
-        unique_viewers = activities.filter(DocumentActivity.activity_type == "view").distinct(
-            DocumentActivity.user_id
+        total_views = activities.filter(
+            DocumentActivity.activity_type == "view"
         ).count()
+        total_downloads = activities.filter(
+            DocumentActivity.activity_type == "download"
+        ).count()
+        total_shares = activities.filter(
+            DocumentActivity.activity_type == "share"
+        ).count()
+
+        unique_viewers = (
+            activities.filter(DocumentActivity.activity_type == "view")
+            .distinct(DocumentActivity.user_id)
+            .count()
+        )
 
         # Collaboration metrics
-        comments = db.query(DocumentComment).filter(
-            DocumentComment.organization_id == organization_id,
-            DocumentComment.created_at >= period_start,
-            DocumentComment.created_at <= period_end
-        ).count()
+        comments = (
+            db.query(DocumentComment)
+            .filter(
+                DocumentComment.organization_id == organization_id,
+                DocumentComment.created_at >= period_start,
+                DocumentComment.created_at <= period_end,
+            )
+            .count()
+        )
 
-        active_collaborators = db.query(DocumentComment).filter(
-            DocumentComment.organization_id == organization_id,
-            DocumentComment.created_at >= period_start,
-            DocumentComment.created_at <= period_end
-        ).distinct(DocumentComment.author_id).count()
+        active_collaborators = (
+            db.query(DocumentComment)
+            .filter(
+                DocumentComment.organization_id == organization_id,
+                DocumentComment.created_at >= period_start,
+                DocumentComment.created_at <= period_end,
+            )
+            .distinct(DocumentComment.author_id)
+            .count()
+        )
 
         # Workflow metrics
-        approvals_requested = db.query(DocumentApproval).filter(
-            DocumentApproval.organization_id == organization_id,
-            DocumentApproval.created_at >= period_start,
-            DocumentApproval.created_at <= period_end
-        ).count()
+        approvals_requested = (
+            db.query(DocumentApproval)
+            .filter(
+                DocumentApproval.organization_id == organization_id,
+                DocumentApproval.created_at >= period_start,
+                DocumentApproval.created_at <= period_end,
+            )
+            .count()
+        )
 
-        approvals_completed = db.query(DocumentApproval).filter(
-            DocumentApproval.organization_id == organization_id,
-            DocumentApproval.decision_date >= period_start,
-            DocumentApproval.decision_date <= period_end,
-            DocumentApproval.status.in_([ApprovalStatus.APPROVED, ApprovalStatus.REJECTED])
-        ).count()
+        approvals_completed = (
+            db.query(DocumentApproval)
+            .filter(
+                DocumentApproval.organization_id == organization_id,
+                DocumentApproval.decision_date >= period_start,
+                DocumentApproval.decision_date <= period_end,
+                DocumentApproval.status.in_(
+                    [ApprovalStatus.APPROVED, ApprovalStatus.REJECTED]
+                ),
+            )
+            .count()
+        )
 
         # Signature metrics
-        signatures_requested = db.query(DocumentSignature).filter(
-            DocumentSignature.organization_id == organization_id,
-            DocumentSignature.created_at >= period_start,
-            DocumentSignature.created_at <= period_end
-        ).count()
+        signatures_requested = (
+            db.query(DocumentSignature)
+            .filter(
+                DocumentSignature.organization_id == organization_id,
+                DocumentSignature.created_at >= period_start,
+                DocumentSignature.created_at <= period_end,
+            )
+            .count()
+        )
 
-        signatures_completed = db.query(DocumentSignature).filter(
-            DocumentSignature.organization_id == organization_id,
-            DocumentSignature.signed_at >= period_start,
-            DocumentSignature.signed_at <= period_end,
-            DocumentSignature.status == SignatureStatus.SIGNED
-        ).count()
+        signatures_completed = (
+            db.query(DocumentSignature)
+            .filter(
+                DocumentSignature.organization_id == organization_id,
+                DocumentSignature.signed_at >= period_start,
+                DocumentSignature.signed_at <= period_end,
+                DocumentSignature.status == SignatureStatus.SIGNED,
+            )
+            .count()
+        )
 
         # Create analytics record
         analytics = DocumentAnalytics(
@@ -1158,7 +1316,7 @@ class DocumentService:
             approvals_completed=approvals_completed,
             signatures_requested=signatures_requested,
             signatures_completed=signatures_completed,
-            calculated_date=datetime.utcnow()
+            calculated_date=datetime.utcnow(),
         )
 
         db.add(analytics)
@@ -1178,21 +1336,21 @@ class DocumentService:
         activity_type: str,
         description: str,
         user_id: Optional[str] = None,
-        details: Optional[Dict[str, Any]] = None
+        details: Optional[Dict[str, Any]] = None,
     ) -> DocumentActivity:
         """Log document activity for audit trail."""
 
         activity = DocumentActivity(
             document_id=document_id,
-            organization_id=db.query(DocumentExtended.organization_id).filter(
-                DocumentExtended.id == document_id
-            ).scalar(),
+            organization_id=db.query(DocumentExtended.organization_id)
+            .filter(DocumentExtended.id == document_id)
+            .scalar(),
             activity_type=activity_type,
             action=activity_type,
             description=description,
             user_id=user_id,
             details=details or {},
-            success=True
+            success=True,
         )
 
         db.add(activity)
@@ -1208,19 +1366,27 @@ class DocumentService:
             return
 
         # Count documents in folder
-        doc_stats = db.query(
-            func.count(DocumentExtended.id).label("doc_count"),
-            func.sum(DocumentExtended.file_size_bytes).label("total_size")
-        ).filter(
-            DocumentExtended.folder_id == folder_id,
-            DocumentExtended.status != DocumentStatus.DELETED
-        ).first()
+        doc_stats = (
+            db.query(
+                func.count(DocumentExtended.id).label("doc_count"),
+                func.sum(DocumentExtended.file_size_bytes).label("total_size"),
+            )
+            .filter(
+                DocumentExtended.folder_id == folder_id,
+                DocumentExtended.status != DocumentStatus.DELETED,
+            )
+            .first()
+        )
 
         # Count subfolders
-        subfolder_count = db.query(DocumentFolder).filter(
-            DocumentFolder.parent_folder_id == folder_id,
-            not DocumentFolder.is_archived
-        ).count()
+        subfolder_count = (
+            db.query(DocumentFolder)
+            .filter(
+                DocumentFolder.parent_folder_id == folder_id,
+                not DocumentFolder.is_archived,
+            )
+            .count()
+        )
 
         folder.document_count = doc_stats.doc_count or 0
         folder.total_size_bytes = doc_stats.total_size or 0
@@ -1238,7 +1404,9 @@ class DocumentService:
 
             # Get basic statistics
             total_documents = db.query(DocumentExtended).count()
-            total_storage = db.query(func.sum(DocumentExtended.file_size_bytes)).scalar() or 0
+            total_storage = (
+                db.query(func.sum(DocumentExtended.file_size_bytes)).scalar() or 0
+            )
             total_folders = db.query(DocumentFolder).count()
 
             return {
@@ -1248,15 +1416,15 @@ class DocumentService:
                 "statistics": {
                     "total_documents": total_documents,
                     "total_storage_bytes": total_storage,
-                    "total_folders": total_folders
+                    "total_folders": total_folders,
                 },
                 "version": "31.0",
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.utcnow().isoformat(),
             }
 
         except Exception as e:
             return {
                 "status": "unhealthy",
                 "error": str(e),
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.utcnow().isoformat(),
             }

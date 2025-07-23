@@ -1,4 +1,5 @@
 """Unit tests for performance monitoring API endpoints."""
+
 from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
 
@@ -66,7 +67,9 @@ def sample_resource_usage():
 
 
 @pytest.mark.asyncio
-async def test_log_performance_metric_success(mock_current_user, sample_performance_metric):
+async def test_log_performance_metric_success(
+    mock_current_user, sample_performance_metric
+):
     """Test successful performance metric logging."""
     from app.api.v1.endpoints.monitoring.performance import log_performance_metric
 
@@ -114,19 +117,20 @@ async def test_get_performance_summary_success(mock_current_user):
 
     # Assert
     assert isinstance(result, PerformanceSummary)
-    assert hasattr(result, 'total_requests')
-    assert hasattr(result, 'avg_response_time')
-    assert hasattr(result, 'error_rate')
+    assert hasattr(result, "total_requests")
+    assert hasattr(result, "avg_response_time")
+    assert hasattr(result, "error_rate")
 
 
 @pytest.mark.asyncio
 async def test_get_system_health_success(mock_current_user, sample_system_health):
     """Test successful system health check."""
-    with patch('psutil.cpu_percent', return_value=25.5), \
-         patch('psutil.virtual_memory') as mock_memory, \
-         patch('psutil.disk_usage') as mock_disk, \
-         patch('psutil.boot_time', return_value=datetime.utcnow().timestamp() - 86400):
-
+    with (
+        patch("psutil.cpu_percent", return_value=25.5),
+        patch("psutil.virtual_memory") as mock_memory,
+        patch("psutil.disk_usage") as mock_disk,
+        patch("psutil.boot_time", return_value=datetime.utcnow().timestamp() - 86400),
+    ):
         mock_memory.return_value.percent = 45.2
         mock_disk.return_value.percent = 30.1
 
@@ -147,13 +151,14 @@ async def test_get_system_health_success(mock_current_user, sample_system_health
 @pytest.mark.asyncio
 async def test_get_resource_usage_success(mock_current_user):
     """Test successful resource usage retrieval."""
-    with patch('psutil.cpu_percent', return_value=35.2), \
-         patch('psutil.virtual_memory') as mock_memory, \
-         patch('psutil.disk_usage') as mock_disk, \
-         patch('psutil.net_io_counters') as mock_net, \
-         patch('psutil.getloadavg', return_value=[1.2, 1.5, 1.8]), \
-         patch('len', return_value=125):
-
+    with (
+        patch("psutil.cpu_percent", return_value=35.2),
+        patch("psutil.virtual_memory") as mock_memory,
+        patch("psutil.disk_usage") as mock_disk,
+        patch("psutil.net_io_counters") as mock_net,
+        patch("psutil.getloadavg", return_value=[1.2, 1.5, 1.8]),
+        patch("len", return_value=125),
+    ):
         mock_memory.return_value.percent = 55.8
         mock_disk.return_value.percent = 40.3
         mock_net.return_value.bytes_sent = 1024000
@@ -234,11 +239,12 @@ async def test_performance_summary_calculation(mock_current_user):
 @pytest.mark.asyncio
 async def test_system_health_status_determination():
     """Test system health status determination logic."""
-    with patch('psutil.cpu_percent', return_value=95.0), \
-         patch('psutil.virtual_memory') as mock_memory, \
-         patch('psutil.disk_usage') as mock_disk, \
-         patch('psutil.boot_time', return_value=datetime.utcnow().timestamp() - 86400):
-
+    with (
+        patch("psutil.cpu_percent", return_value=95.0),
+        patch("psutil.virtual_memory") as mock_memory,
+        patch("psutil.disk_usage") as mock_disk,
+        patch("psutil.boot_time", return_value=datetime.utcnow().timestamp() - 86400),
+    ):
         mock_memory.return_value.percent = 90.0
         mock_disk.return_value.percent = 85.0
 
@@ -301,15 +307,15 @@ async def test_performance_percentile_calculations(mock_current_user):
     )
 
     assert isinstance(result, PerformanceSummary)
-    assert hasattr(result, 'p50_response_time')
-    assert hasattr(result, 'p95_response_time')
-    assert hasattr(result, 'p99_response_time')
+    assert hasattr(result, "p50_response_time")
+    assert hasattr(result, "p95_response_time")
+    assert hasattr(result, "p99_response_time")
 
 
 @pytest.mark.asyncio
 async def test_resource_usage_network_metrics():
     """Test network I/O metrics in resource usage."""
-    with patch('psutil.net_io_counters') as mock_net:
+    with patch("psutil.net_io_counters") as mock_net:
         mock_net.return_value.bytes_sent = 5000000
         mock_net.return_value.bytes_recv = 10000000
 

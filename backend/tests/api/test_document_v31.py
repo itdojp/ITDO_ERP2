@@ -40,6 +40,7 @@ from app.models.document_extended import (
 
 client = TestClient(app)
 
+
 # Test data fixtures
 @pytest.fixture
 def sample_document_data():
@@ -58,7 +59,7 @@ def sample_document_data():
         "tags": ["important", "contract"],
         "metadata": {"client": "Test Client"},
         "is_confidential": True,
-        "requires_approval": True
+        "requires_approval": True,
     }
 
 
@@ -75,7 +76,7 @@ def sample_folder_data():
         "default_access_level": "view",
         "storage_quota_bytes": 1073741824,  # 1GB
         "allowed_file_types": ["pdf", "docx", "xlsx"],
-        "tags": ["documents", "contracts"]
+        "tags": ["documents", "contracts"],
     }
 
 
@@ -91,7 +92,7 @@ def sample_share_data():
         "can_print": False,
         "expires_at": (datetime.utcnow() + timedelta(days=30)).isoformat(),
         "max_views": 10,
-        "share_message": "Please review this document"
+        "share_message": "Please review this document",
     }
 
 
@@ -106,7 +107,7 @@ def sample_comment_data():
         "position_x": "100.5",
         "position_y": "200.75",
         "mentioned_users": ["user-789"],
-        "requires_response": True
+        "requires_response": True,
     }
 
 
@@ -122,10 +123,10 @@ def sample_workflow_data():
         "steps": [
             {"step": 1, "name": "Legal Review", "required": True},
             {"step": 2, "name": "Financial Review", "required": True},
-            {"step": 3, "name": "Executive Approval", "required": False}
+            {"step": 3, "name": "Executive Approval", "required": False},
         ],
         "default_deadline_days": 5,
-        "send_notifications": True
+        "send_notifications": True,
     }
 
 
@@ -142,18 +143,18 @@ def sample_template_data():
         "template_content": "<h1>{{contract_title}}</h1><p>Party: {{party_name}}</p>",
         "placeholder_fields": [
             {"name": "contract_title", "type": "text", "required": True},
-            {"name": "party_name", "type": "text", "required": True}
+            {"name": "party_name", "type": "text", "required": True},
         ],
         "required_fields": ["contract_title", "party_name"],
         "owner_id": "user-123",
-        "created_by_id": "user-123"
+        "created_by_id": "user-123",
     }
 
 
 class TestDocumentManagement:
     """Test suite for Document Storage & Management endpoints."""
 
-    @patch('app.crud.document_v31.DocumentService.create_document')
+    @patch("app.crud.document_v31.DocumentService.create_document")
     def test_create_document_success(self, mock_create, sample_document_data):
         """Test successful document creation."""
         mock_document = DocumentExtended()
@@ -178,18 +179,18 @@ class TestDocumentManagement:
         invalid_data = {
             "organization_id": "org-123",
             # Missing required fields
-            "document_type": "invalid_type"
+            "document_type": "invalid_type",
         }
 
         response = client.post("/api/v1/documents", json=invalid_data)
         assert response.status_code == 422
 
-    @patch('app.crud.document_v31.DocumentService.get_documents')
+    @patch("app.crud.document_v31.DocumentService.get_documents")
     def test_list_documents_with_filters(self, mock_get_documents):
         """Test document listing with comprehensive filters."""
         mock_documents = [
             DocumentExtended(id="doc-1", title="Document 1"),
-            DocumentExtended(id="doc-2", title="Document 2")
+            DocumentExtended(id="doc-2", title="Document 2"),
         ]
         mock_get_documents.return_value = mock_documents
 
@@ -201,8 +202,8 @@ class TestDocumentManagement:
                 "category": "contracts",
                 "search_text": "test",
                 "tags": "important,contract",
-                "limit": 50
-            }
+                "limit": 50,
+            },
         )
 
         assert response.status_code == 200
@@ -210,7 +211,7 @@ class TestDocumentManagement:
         assert len(data) == 2
         mock_get_documents.assert_called_once()
 
-    @patch('app.crud.document_v31.DocumentService.get_document_by_id')
+    @patch("app.crud.document_v31.DocumentService.get_document_by_id")
     def test_get_document_by_id_success(self, mock_get_document):
         """Test successful document retrieval by ID."""
         mock_document = DocumentExtended()
@@ -226,7 +227,7 @@ class TestDocumentManagement:
         assert data["id"] == "doc-123"
         mock_get_document.assert_called_once()
 
-    @patch('app.crud.document_v31.DocumentService.update_document')
+    @patch("app.crud.document_v31.DocumentService.update_document")
     def test_update_document_success(self, mock_update):
         """Test successful document update."""
         mock_document = DocumentExtended()
@@ -237,12 +238,11 @@ class TestDocumentManagement:
         update_data = {
             "title": "Updated Document",
             "description": "Updated description",
-            "tags": ["updated", "contract"]
+            "tags": ["updated", "contract"],
         }
 
         response = client.put(
-            "/api/v1/documents/doc-123?user_id=user-123",
-            json=update_data
+            "/api/v1/documents/doc-123?user_id=user-123", json=update_data
         )
 
         assert response.status_code == 200
@@ -250,7 +250,7 @@ class TestDocumentManagement:
         assert data["title"] == "Updated Document"
         mock_update.assert_called_once()
 
-    @patch('app.crud.document_v31.DocumentService.create_document_version')
+    @patch("app.crud.document_v31.DocumentService.create_document_version")
     def test_create_document_version(self, mock_create_version):
         """Test document version creation."""
         mock_document = DocumentExtended()
@@ -262,12 +262,11 @@ class TestDocumentManagement:
         version_data = {
             "filename": "test_v2.pdf",
             "description": "Version 2 with updates",
-            "major_update": True
+            "major_update": True,
         }
 
         response = client.post(
-            "/api/v1/documents/doc-123/versions?user_id=user-123",
-            json=version_data
+            "/api/v1/documents/doc-123/versions?user_id=user-123", json=version_data
         )
 
         assert response.status_code == 200
@@ -275,7 +274,7 @@ class TestDocumentManagement:
         assert data["version"] == "2.0"
         assert data["parent_document_id"] == "doc-123"
 
-    @patch('app.crud.document_v31.DocumentService.move_document')
+    @patch("app.crud.document_v31.DocumentService.move_document")
     def test_move_document(self, mock_move):
         """Test document move operation."""
         mock_document = DocumentExtended()
@@ -286,15 +285,14 @@ class TestDocumentManagement:
         move_data = {"new_folder_id": "folder-789"}
 
         response = client.post(
-            "/api/v1/documents/doc-123/move?user_id=user-123",
-            json=move_data
+            "/api/v1/documents/doc-123/move?user_id=user-123", json=move_data
         )
 
         assert response.status_code == 200
         data = response.json()
         assert data["folder_id"] == "folder-789"
 
-    @patch('app.crud.document_v31.DocumentService.delete_document')
+    @patch("app.crud.document_v31.DocumentService.delete_document")
     def test_delete_document(self, mock_delete):
         """Test document deletion."""
         mock_delete.return_value = True
@@ -309,7 +307,7 @@ class TestDocumentManagement:
 class TestFolderManagement:
     """Test suite for Folder & Category Organization endpoints."""
 
-    @patch('app.crud.document_v31.DocumentService.create_folder')
+    @patch("app.crud.document_v31.DocumentService.create_folder")
     def test_create_folder_success(self, mock_create, sample_folder_data):
         """Test successful folder creation."""
         mock_folder = DocumentFolder()
@@ -327,18 +325,18 @@ class TestFolderManagement:
         assert data["name"] == sample_folder_data["name"]
         assert data["level"] == 0
 
-    @patch('app.crud.document_v31.DocumentService.get_folder_contents')
+    @patch("app.crud.document_v31.DocumentService.get_folder_contents")
     def test_get_folder_contents(self, mock_get_contents):
         """Test folder contents retrieval."""
         mock_contents = {
             "subfolders": [
                 DocumentFolder(id="sub-1", name="Subfolder 1"),
-                DocumentFolder(id="sub-2", name="Subfolder 2")
+                DocumentFolder(id="sub-2", name="Subfolder 2"),
             ],
             "documents": [
                 DocumentExtended(id="doc-1", title="Document 1"),
-                DocumentExtended(id="doc-2", title="Document 2")
-            ]
+                DocumentExtended(id="doc-2", title="Document 2"),
+            ],
         }
         mock_get_contents.return_value = mock_contents
 
@@ -353,7 +351,7 @@ class TestFolderManagement:
 class TestDocumentSharing:
     """Test suite for Document Sharing & Permissions endpoints."""
 
-    @patch('app.crud.document_v31.DocumentService.create_document_share')
+    @patch("app.crud.document_v31.DocumentService.create_document_share")
     def test_create_document_share(self, mock_create_share, sample_share_data):
         """Test document share creation."""
         mock_share = DocumentShare()
@@ -367,7 +365,7 @@ class TestDocumentSharing:
 
         response = client.post(
             "/api/v1/documents/doc-123/shares?shared_by_id=user-123",
-            json=sample_share_data
+            json=sample_share_data,
         )
 
         assert response.status_code == 201
@@ -375,12 +373,12 @@ class TestDocumentSharing:
         assert data["document_id"] == "doc-123"
         assert data["access_level"] == "view"
 
-    @patch('app.crud.document_v31.DocumentService.get_document_shares')
+    @patch("app.crud.document_v31.DocumentService.get_document_shares")
     def test_get_document_shares(self, mock_get_shares):
         """Test document shares retrieval."""
         mock_shares = [
             DocumentShare(id="share-1", access_level=AccessLevel.VIEW),
-            DocumentShare(id="share-2", access_level=AccessLevel.EDIT)
+            DocumentShare(id="share-2", access_level=AccessLevel.EDIT),
         ]
         mock_get_shares.return_value = mock_shares
 
@@ -390,7 +388,7 @@ class TestDocumentSharing:
         data = response.json()
         assert len(data) == 2
 
-    @patch('app.crud.document_v31.DocumentService.revoke_document_share')
+    @patch("app.crud.document_v31.DocumentService.revoke_document_share")
     def test_revoke_document_share(self, mock_revoke):
         """Test document share revocation."""
         mock_revoke.return_value = True
@@ -405,7 +403,7 @@ class TestDocumentSharing:
 class TestWorkflowManagement:
     """Test suite for Workflow & Approval Processes endpoints."""
 
-    @patch('app.crud.document_v31.DocumentService.create_approval_workflow')
+    @patch("app.crud.document_v31.DocumentService.create_approval_workflow")
     def test_create_workflow(self, mock_create_workflow, sample_workflow_data):
         """Test workflow creation."""
         mock_workflow = DocumentWorkflow()
@@ -421,12 +419,12 @@ class TestWorkflowManagement:
         data = response.json()
         assert data["name"] == sample_workflow_data["name"]
 
-    @patch('app.crud.document_v31.DocumentService.submit_document_for_approval')
+    @patch("app.crud.document_v31.DocumentService.submit_document_for_approval")
     def test_submit_for_approval(self, mock_submit):
         """Test document approval submission."""
         mock_approvals = [
             DocumentApproval(id="approval-1", step_number=1),
-            DocumentApproval(id="approval-2", step_number=2)
+            DocumentApproval(id="approval-2", step_number=2),
         ]
         mock_submit.return_value = mock_approvals
 
@@ -434,20 +432,20 @@ class TestWorkflowManagement:
             "workflow_id": "workflow-123",
             "approvers": [
                 {"approver_id": "user-456", "step_name": "Legal Review"},
-                {"approver_id": "user-789", "step_name": "Financial Review"}
-            ]
+                {"approver_id": "user-789", "step_name": "Financial Review"},
+            ],
         }
 
         response = client.post(
             "/api/v1/documents/doc-123/submit-approval?requested_by_id=user-123",
-            json=approval_data
+            json=approval_data,
         )
 
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 2
 
-    @patch('app.crud.document_v31.DocumentService.process_approval_decision')
+    @patch("app.crud.document_v31.DocumentService.process_approval_decision")
     def test_process_approval_decision(self, mock_process):
         """Test approval decision processing."""
         mock_approval = DocumentApproval()
@@ -460,12 +458,11 @@ class TestWorkflowManagement:
         decision_data = {
             "decision": "approved",
             "comments": "Looks good to proceed",
-            "conditions": "Ensure final review by legal"
+            "conditions": "Ensure final review by legal",
         }
 
         response = client.post(
-            "/api/v1/approvals/approval-123/decision",
-            json=decision_data
+            "/api/v1/approvals/approval-123/decision", json=decision_data
         )
 
         assert response.status_code == 200
@@ -476,7 +473,7 @@ class TestWorkflowManagement:
 class TestTemplateManagement:
     """Test suite for Document Templates & Generation endpoints."""
 
-    @patch('app.crud.document_v31.DocumentService.create_document_template')
+    @patch("app.crud.document_v31.DocumentService.create_document_template")
     def test_create_template(self, mock_create_template, sample_template_data):
         """Test template creation."""
         mock_template = DocumentTemplate()
@@ -492,7 +489,7 @@ class TestTemplateManagement:
         data = response.json()
         assert data["name"] == sample_template_data["name"]
 
-    @patch('app.crud.document_v31.DocumentService.generate_document_from_template')
+    @patch("app.crud.document_v31.DocumentService.generate_document_from_template")
     def test_generate_from_template(self, mock_generate):
         """Test document generation from template."""
         mock_document = DocumentExtended()
@@ -505,13 +502,13 @@ class TestTemplateManagement:
             "template_id": "template-123",
             "field_values": {
                 "contract_title": "Service Agreement",
-                "party_name": "ABC Corporation"
-            }
+                "party_name": "ABC Corporation",
+            },
         }
 
         response = client.post(
             "/api/v1/templates/template-123/generate?generated_by_id=user-123",
-            json=generation_data
+            json=generation_data,
         )
 
         assert response.status_code == 200
@@ -523,12 +520,12 @@ class TestTemplateManagement:
 class TestDocumentSearch:
     """Test suite for Advanced Search & Discovery endpoints."""
 
-    @patch('app.crud.document_v31.DocumentService.search_documents')
+    @patch("app.crud.document_v31.DocumentService.search_documents")
     def test_search_documents(self, mock_search):
         """Test advanced document search."""
         mock_documents = [
             DocumentExtended(id="doc-1", title="Contract ABC"),
-            DocumentExtended(id="doc-2", title="Agreement XYZ")
+            DocumentExtended(id="doc-2", title="Agreement XYZ"),
         ]
         mock_search.return_value = mock_documents
 
@@ -536,12 +533,11 @@ class TestDocumentSearch:
             "query": "contract agreement",
             "document_type": "pdf",
             "category": "contracts",
-            "tags": ["important"]
+            "tags": ["important"],
         }
 
         response = client.post(
-            "/api/v1/documents/search?organization_id=org-123",
-            json=search_data
+            "/api/v1/documents/search?organization_id=org-123", json=search_data
         )
 
         assert response.status_code == 200
@@ -554,11 +550,7 @@ class TestDocumentSearch:
         """Test search suggestions endpoint."""
         response = client.get(
             "/api/v1/documents/search/suggestions",
-            params={
-                "query": "contract",
-                "organization_id": "org-123",
-                "limit": 5
-            }
+            params={"query": "contract", "organization_id": "org-123", "limit": 5},
         )
 
         assert response.status_code == 200
@@ -570,7 +562,7 @@ class TestDocumentSearch:
 class TestCollaboration:
     """Test suite for Collaboration & Comments endpoints."""
 
-    @patch('app.crud.document_v31.DocumentService.create_document_comment')
+    @patch("app.crud.document_v31.DocumentService.create_document_comment")
     def test_create_comment(self, mock_create_comment, sample_comment_data):
         """Test comment creation."""
         mock_comment = DocumentComment()
@@ -583,14 +575,14 @@ class TestCollaboration:
 
         response = client.post(
             "/api/v1/documents/doc-123/comments?author_id=user-123",
-            json=sample_comment_data
+            json=sample_comment_data,
         )
 
         assert response.status_code == 201
         data = response.json()
         assert data["content"] == sample_comment_data["content"]
 
-    @patch('app.crud.document_v31.DocumentService.resolve_comment')
+    @patch("app.crud.document_v31.DocumentService.resolve_comment")
     def test_resolve_comment(self, mock_resolve):
         """Test comment resolution."""
         mock_comment = DocumentComment()
@@ -612,7 +604,7 @@ class TestCollaboration:
 class TestDocumentAnalytics:
     """Test suite for Document Analytics & Insights endpoints."""
 
-    @patch('app.crud.document_v31.DocumentService.get_document_analytics')
+    @patch("app.crud.document_v31.DocumentService.get_document_analytics")
     def test_get_analytics(self, mock_get_analytics):
         """Test document analytics generation."""
         from app.models.document_extended import DocumentAnalytics
@@ -631,7 +623,7 @@ class TestDocumentAnalytics:
             "organization_id": "org-123",
             "period_start": "2024-01-01",
             "period_end": "2024-01-31",
-            "period_type": "monthly"
+            "period_type": "monthly",
         }
 
         response = client.post("/api/v1/analytics", json=analytics_data)
@@ -645,12 +637,12 @@ class TestDocumentAnalytics:
 class TestDigitalSignatures:
     """Test suite for Digital Signatures & E-signing endpoints."""
 
-    @patch('app.crud.document_v31.DocumentService.request_document_signature')
+    @patch("app.crud.document_v31.DocumentService.request_document_signature")
     def test_request_signature(self, mock_request_signature):
         """Test signature request creation."""
         mock_signatures = [
             DocumentSignature(id="sig-1", signer_email="signer1@test.com"),
-            DocumentSignature(id="sig-2", signer_email="signer2@test.com")
+            DocumentSignature(id="sig-2", signer_email="signer2@test.com"),
         ]
         mock_request_signature.return_value = mock_signatures
 
@@ -660,19 +652,19 @@ class TestDigitalSignatures:
             "signer_email": "john.doe@test.com",
             "page_number": 1,
             "position_x": "100.0",
-            "position_y": "200.0"
+            "position_y": "200.0",
         }
 
         response = client.post(
             "/api/v1/documents/doc-123/signatures/request?requested_by_id=user-123",
-            json=signature_data
+            json=signature_data,
         )
 
         assert response.status_code == 200
         data = response.json()
         assert len(data) >= 1
 
-    @patch('app.crud.document_v31.DocumentService.process_document_signature')
+    @patch("app.crud.document_v31.DocumentService.process_document_signature")
     def test_process_signature(self, mock_process_signature):
         """Test signature processing."""
         mock_signature = DocumentSignature()
@@ -683,19 +675,18 @@ class TestDigitalSignatures:
         mock_process_signature.return_value = mock_signature
 
         # Create a simple signature image (1x1 pixel PNG)
-        signature_bytes = base64.b64encode(b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xdb\x00\x00\x00\x00IEND\xaeB`\x82').decode()
+        signature_bytes = base64.b64encode(
+            b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xdb\x00\x00\x00\x00IEND\xaeB`\x82"
+        ).decode()
 
         signature_data = {
             "signature_data": signature_bytes,
             "consent_given": True,
             "ip_address": "192.168.1.100",
-            "user_agent": "Mozilla/5.0 Test Browser"
+            "user_agent": "Mozilla/5.0 Test Browser",
         }
 
-        response = client.post(
-            "/api/v1/signatures/sig-123/sign",
-            json=signature_data
-        )
+        response = client.post("/api/v1/signatures/sig-123/sign", json=signature_data)
 
         assert response.status_code == 200
         data = response.json()
@@ -710,15 +701,14 @@ class TestBulkOperations:
         operation_data = {
             "document_ids": ["doc-1", "doc-2", "doc-3"],
             "operation": "move",
-            "parameters": {"target_folder_id": "folder-456"}
+            "parameters": {"target_folder_id": "folder-456"},
         }
 
-        with patch('app.crud.document_v31.DocumentService.move_document') as mock_move:
+        with patch("app.crud.document_v31.DocumentService.move_document") as mock_move:
             mock_move.return_value = DocumentExtended(id="doc-1")
 
             response = client.post(
-                "/api/v1/documents/bulk-operation?user_id=user-123",
-                json=operation_data
+                "/api/v1/documents/bulk-operation?user_id=user-123", json=operation_data
             )
 
             assert response.status_code == 200
@@ -731,12 +721,11 @@ class TestBulkOperations:
         tag_data = {
             "document_ids": ["doc-1", "doc-2"],
             "tags_to_add": ["urgent", "reviewed"],
-            "tags_to_remove": ["draft"]
+            "tags_to_remove": ["draft"],
         }
 
         response = client.post(
-            "/api/v1/documents/bulk-tag?user_id=user-123",
-            json=tag_data
+            "/api/v1/documents/bulk-tag?user_id=user-123", json=tag_data
         )
 
         assert response.status_code == 200
@@ -751,13 +740,12 @@ class TestBulkOperations:
             "share_settings": {
                 "share_type": "user",
                 "shared_with_user_id": "user-456",
-                "access_level": "view"
-            }
+                "access_level": "view",
+            },
         }
 
         response = client.post(
-            "/api/v1/documents/bulk-share?shared_by_id=user-123",
-            json=share_data
+            "/api/v1/documents/bulk-share?shared_by_id=user-123", json=share_data
         )
 
         assert response.status_code == 200
@@ -770,13 +758,10 @@ class TestBulkOperations:
             "document_ids": ["doc-1", "doc-2"],
             "export_format": "zip",
             "include_metadata": True,
-            "include_versions": False
+            "include_versions": False,
         }
 
-        response = client.post(
-            "/api/v1/export?user_id=user-123",
-            json=export_data
-        )
+        response = client.post("/api/v1/export?user_id=user-123", json=export_data)
 
         assert response.status_code == 200
         data = response.json()
@@ -789,13 +774,10 @@ class TestBulkOperations:
             "source_type": "file_upload",
             "source_location": "/tmp/documents.zip",
             "target_folder_id": "folder-123",
-            "preserve_structure": True
+            "preserve_structure": True,
         }
 
-        response = client.post(
-            "/api/v1/import?user_id=user-123",
-            json=import_data
-        )
+        response = client.post("/api/v1/import?user_id=user-123", json=import_data)
 
         assert response.status_code == 200
         data = response.json()
@@ -806,7 +788,7 @@ class TestBulkOperations:
 class TestSystemHealth:
     """Test suite for system health and status endpoints."""
 
-    @patch('app.crud.document_v31.DocumentService.get_system_health')
+    @patch("app.crud.document_v31.DocumentService.get_system_health")
     def test_system_health_success(self, mock_get_health):
         """Test successful system health check."""
         mock_health = {
@@ -816,10 +798,10 @@ class TestSystemHealth:
             "statistics": {
                 "total_documents": 1000,
                 "total_storage_bytes": 10737418240,
-                "total_folders": 50
+                "total_folders": 50,
             },
             "version": "31.0",
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat(),
         }
         mock_get_health.return_value = mock_health
 
@@ -830,7 +812,7 @@ class TestSystemHealth:
         assert data["status"] == "healthy"
         assert data["services_available"] is True
 
-    @patch('app.crud.document_v31.DocumentService.get_system_health')
+    @patch("app.crud.document_v31.DocumentService.get_system_health")
     def test_system_health_failure(self, mock_get_health):
         """Test system health check failure handling."""
         mock_get_health.side_effect = Exception("Database connection failed")
@@ -847,7 +829,7 @@ class TestSystemHealth:
 class TestDocumentIntegrationScenarios:
     """Integration test scenarios for complete document workflows."""
 
-    @patch('app.crud.document_v31.DocumentService')
+    @patch("app.crud.document_v31.DocumentService")
     def test_complete_document_lifecycle(self, mock_service):
         """Test complete document lifecycle from creation to deletion."""
         mock_service_instance = mock_service.return_value
@@ -870,7 +852,7 @@ class TestDocumentIntegrationScenarios:
             "organization_id": "org-123",
             "name": "Test Folder",
             "owner_id": "user-123",
-            "created_by_id": "user-123"
+            "created_by_id": "user-123",
         }
 
         folder_response = client.post("/api/v1/folders", json=folder_data)
@@ -884,7 +866,7 @@ class TestDocumentIntegrationScenarios:
             "filename": "test.pdf",
             "owner_id": "user-123",
             "created_by_id": "user-123",
-            "folder_id": "folder-456"
+            "folder_id": "folder-456",
         }
 
         document_response = client.post("/api/v1/documents", json=document_data)
@@ -895,24 +877,22 @@ class TestDocumentIntegrationScenarios:
             "organization_id": "org-123",
             "share_type": "user",
             "shared_with_user_id": "user-456",
-            "access_level": "view"
+            "access_level": "view",
         }
 
         share_response = client.post(
-            "/api/v1/documents/doc-123/shares?shared_by_id=user-123",
-            json=share_data
+            "/api/v1/documents/doc-123/shares?shared_by_id=user-123", json=share_data
         )
         assert share_response.status_code == 201
 
         # 4. Add comment
         comment_data = {
             "organization_id": "org-123",
-            "content": "Please review this document"
+            "content": "Please review this document",
         }
 
         comment_response = client.post(
-            "/api/v1/documents/doc-123/comments?author_id=user-123",
-            json=comment_data
+            "/api/v1/documents/doc-123/comments?author_id=user-123", json=comment_data
         )
         assert comment_response.status_code == 201
 
@@ -920,7 +900,7 @@ class TestDocumentIntegrationScenarios:
         delete_response = client.delete("/api/v1/documents/doc-123?user_id=user-123")
         assert delete_response.status_code == 200
 
-    @patch('app.crud.document_v31.DocumentService')
+    @patch("app.crud.document_v31.DocumentService")
     def test_approval_workflow_process(self, mock_service):
         """Test complete approval workflow process."""
         mock_service_instance = mock_service.return_value
@@ -928,8 +908,12 @@ class TestDocumentIntegrationScenarios:
         # Mock workflow and approval entities
         mock_workflow = DocumentWorkflow(id="workflow-123", name="Test Workflow")
         mock_approvals = [
-            DocumentApproval(id="approval-1", step_number=1, status=ApprovalStatus.PENDING),
-            DocumentApproval(id="approval-2", step_number=2, status=ApprovalStatus.PENDING)
+            DocumentApproval(
+                id="approval-1", step_number=1, status=ApprovalStatus.PENDING
+            ),
+            DocumentApproval(
+                id="approval-2", step_number=2, status=ApprovalStatus.PENDING
+            ),
         ]
 
         mock_service_instance.create_approval_workflow.return_value = mock_workflow
@@ -943,8 +927,8 @@ class TestDocumentIntegrationScenarios:
             "created_by_id": "user-123",
             "steps": [
                 {"step": 1, "name": "Legal Review"},
-                {"step": 2, "name": "Executive Approval"}
-            ]
+                {"step": 2, "name": "Executive Approval"},
+            ],
         }
 
         workflow_response = client.post("/api/v1/workflows", json=workflow_data)
@@ -955,25 +939,24 @@ class TestDocumentIntegrationScenarios:
             "workflow_id": "workflow-123",
             "approvers": [
                 {"approver_id": "user-456", "step_name": "Legal Review"},
-                {"approver_id": "user-789", "step_name": "Executive Approval"}
-            ]
+                {"approver_id": "user-789", "step_name": "Executive Approval"},
+            ],
         }
 
         submission_response = client.post(
             "/api/v1/documents/doc-123/submit-approval?requested_by_id=user-123",
-            json=approval_data
+            json=approval_data,
         )
         assert submission_response.status_code == 200
 
         # Process approval decision
         decision_data = {
             "decision": "approved",
-            "comments": "Approved with minor revisions"
+            "comments": "Approved with minor revisions",
         }
 
         decision_response = client.post(
-            "/api/v1/approvals/approval-1/decision",
-            json=decision_data
+            "/api/v1/approvals/approval-1/decision", json=decision_data
         )
         assert decision_response.status_code == 200
 

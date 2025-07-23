@@ -13,7 +13,6 @@ class TestHealthAPI:
         self.client = TestClient(app)
         self.headers = {"Content-Type": "application/json"}
 
-
     def test_get___success(self):
         """Test GET / successful response."""
         # Setup test data
@@ -116,7 +115,9 @@ class TestHealthAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/metrics-endpoint", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/metrics-endpoint", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -129,7 +130,9 @@ class TestHealthAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/metrics-endpoint", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/metrics-endpoint", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422

@@ -1,4 +1,5 @@
 """Advanced tests for user_profile service."""
+
 from unittest.mock import Mock
 
 # Import the service class
@@ -12,7 +13,6 @@ class TestUserProfileService:
         """Setup test environment."""
         self.mock_db = Mock()
         # self.service = ServiceClass(self.mock_db)
-
 
     def test_upload_success(self):
         """Test upload successful execution."""

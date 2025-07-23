@@ -1,4 +1,5 @@
 """Extended unit tests for health check API endpoints."""
+
 from unittest.mock import Mock, patch
 
 import pytest
@@ -22,6 +23,7 @@ def mock_current_user():
 def client():
     """Create test client."""
     from fastapi import FastAPI
+
     app = FastAPI()
     app.include_router(router)
     return TestClient(app)
@@ -54,7 +56,7 @@ def test_health_check_response_structure(client):
                 assert data[field] is not None
 
 
-@patch('app.core.database.get_db')
+@patch("app.core.database.get_db")
 def test_health_check_database_connection(mock_get_db, client):
     """Test health check with database connection."""
     # Mock database session
@@ -88,8 +90,8 @@ def test_health_check_performance():
     assert response.status_code in [200, 503]
 
 
-@patch('psutil.virtual_memory')
-@patch('psutil.cpu_percent')
+@patch("psutil.virtual_memory")
+@patch("psutil.cpu_percent")
 def test_health_check_system_resources(mock_cpu, mock_memory, client):
     """Test health check with system resource monitoring."""
     # Mock system resource data
@@ -148,7 +150,7 @@ def test_health_check_concurrent_requests():
     assert all(code in [200, 503] for code in results)
 
 
-@patch('app.core.database.engine')
+@patch("app.core.database.engine")
 def test_health_check_database_error(mock_engine, client):
     """Test health check with database error."""
     # Mock database connection error
@@ -179,7 +181,7 @@ def test_health_check_status_values(client):
             assert data["status"] in valid_statuses
 
 
-@patch('datetime.datetime')
+@patch("datetime.datetime")
 def test_health_check_timestamp_format(mock_datetime, client):
     """Test health check timestamp format."""
     from datetime import datetime
@@ -205,7 +207,7 @@ def test_health_check_error_handling():
     app = FastAPI()
 
     # Mock router to raise an exception
-    with patch('app.api.v1.health.router') as mock_router:
+    with patch("app.api.v1.health.router") as mock_router:
         mock_router.get.side_effect = Exception("Internal error")
 
         # Even with errors, health check should be robust
@@ -256,7 +258,7 @@ def test_health_check_idempotent(client):
             assert data1["status"] == data2["status"]
 
 
-@patch('socket.gethostname')
+@patch("socket.gethostname")
 def test_health_check_hostname_info(mock_hostname, client):
     """Test health check includes hostname information."""
     mock_hostname.return_value = "test-server"

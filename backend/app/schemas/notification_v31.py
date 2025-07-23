@@ -33,6 +33,7 @@ from app.models.notification_extended import (
 # Base Schemas
 # =============================================================================
 
+
 class BaseNotificationSchema(BaseModel):
     """Base schema for notification-related models."""
 
@@ -45,11 +46,14 @@ class BaseNotificationSchema(BaseModel):
 # Notification Schemas
 # =============================================================================
 
+
 class NotificationCreateRequest(BaseNotificationSchema):
     """Schema for creating a new notification."""
 
     organization_id: str = Field(..., description="Organization ID")
-    title: str = Field(..., min_length=1, max_length=500, description="Notification title")
+    title: str = Field(
+        ..., min_length=1, max_length=500, description="Notification title"
+    )
     message: str = Field(..., min_length=1, description="Notification message")
     summary: Optional[str] = Field(None, max_length=500, description="Brief summary")
 
@@ -57,67 +61,123 @@ class NotificationCreateRequest(BaseNotificationSchema):
     notification_type: NotificationType = Field(..., description="Type of notification")
     category: Optional[str] = Field(None, max_length=100, description="Category")
     subcategory: Optional[str] = Field(None, max_length=100, description="Subcategory")
-    priority: NotificationPriority = Field(NotificationPriority.NORMAL, description="Priority level")
+    priority: NotificationPriority = Field(
+        NotificationPriority.NORMAL, description="Priority level"
+    )
 
     # Recipients
     recipient_user_id: Optional[str] = Field(None, description="Target user ID")
-    recipient_email: Optional[str] = Field(None, max_length=200, description="Recipient email")
-    recipient_phone: Optional[str] = Field(None, max_length=50, description="Recipient phone")
-    recipient_groups: List[str] = Field(default_factory=list, description="Target groups")
+    recipient_email: Optional[str] = Field(
+        None, max_length=200, description="Recipient email"
+    )
+    recipient_phone: Optional[str] = Field(
+        None, max_length=50, description="Recipient phone"
+    )
+    recipient_groups: List[str] = Field(
+        default_factory=list, description="Target groups"
+    )
     recipient_roles: List[str] = Field(default_factory=list, description="Target roles")
 
     # Targeting
-    target_audience: Dict[str, Any] = Field(default_factory=dict, description="Audience targeting")
-    audience_filter: Dict[str, Any] = Field(default_factory=dict, description="Audience filters")
-    geographic_targeting: List[str] = Field(default_factory=list, description="Geographic targets")
-    demographic_targeting: Dict[str, Any] = Field(default_factory=dict, description="Demographic targeting")
+    target_audience: Dict[str, Any] = Field(
+        default_factory=dict, description="Audience targeting"
+    )
+    audience_filter: Dict[str, Any] = Field(
+        default_factory=dict, description="Audience filters"
+    )
+    geographic_targeting: List[str] = Field(
+        default_factory=list, description="Geographic targets"
+    )
+    demographic_targeting: Dict[str, Any] = Field(
+        default_factory=dict, description="Demographic targeting"
+    )
 
     # Content
     content_html: Optional[str] = Field(None, description="HTML content")
     content_plain: Optional[str] = Field(None, description="Plain text content")
     content_markdown: Optional[str] = Field(None, description="Markdown content")
-    rich_content: Dict[str, Any] = Field(default_factory=dict, description="Rich content data")
-    attachments: List[Dict[str, Any]] = Field(default_factory=list, description="Attachments")
+    rich_content: Dict[str, Any] = Field(
+        default_factory=dict, description="Rich content data"
+    )
+    attachments: List[Dict[str, Any]] = Field(
+        default_factory=list, description="Attachments"
+    )
 
     # Delivery
-    channels: List[str] = Field(default_factory=lambda: ["in_app"], description="Delivery channels")
-    primary_channel: NotificationChannel = Field(NotificationChannel.IN_APP, description="Primary channel")
-    fallback_channels: List[str] = Field(default_factory=list, description="Fallback channels")
+    channels: List[str] = Field(
+        default_factory=lambda: ["in_app"], description="Delivery channels"
+    )
+    primary_channel: NotificationChannel = Field(
+        NotificationChannel.IN_APP, description="Primary channel"
+    )
+    fallback_channels: List[str] = Field(
+        default_factory=list, description="Fallback channels"
+    )
 
     # Scheduling
     send_at: Optional[datetime] = Field(None, description="Scheduled send time")
-    scheduled_at: Optional[datetime] = Field(None, description="Scheduled for processing")
+    scheduled_at: Optional[datetime] = Field(
+        None, description="Scheduled for processing"
+    )
     expires_at: Optional[datetime] = Field(None, description="Expiration time")
     timezone: Optional[str] = Field(None, max_length=50, description="Timezone")
 
     # Template
     template_id: Optional[str] = Field(None, description="Template ID")
-    template_variables: Dict[str, Any] = Field(default_factory=dict, description="Template variables")
-    personalization_data: Dict[str, Any] = Field(default_factory=dict, description="Personalization data")
+    template_variables: Dict[str, Any] = Field(
+        default_factory=dict, description="Template variables"
+    )
+    personalization_data: Dict[str, Any] = Field(
+        default_factory=dict, description="Personalization data"
+    )
 
     # Source
-    source_system: Optional[str] = Field(None, max_length=100, description="Source system")
-    source_event: Optional[str] = Field(None, max_length=200, description="Source event")
-    source_entity_type: Optional[str] = Field(None, max_length=100, description="Source entity type")
-    source_entity_id: Optional[str] = Field(None, max_length=200, description="Source entity ID")
-    context_data: Dict[str, Any] = Field(default_factory=dict, description="Context data")
+    source_system: Optional[str] = Field(
+        None, max_length=100, description="Source system"
+    )
+    source_event: Optional[str] = Field(
+        None, max_length=200, description="Source event"
+    )
+    source_entity_type: Optional[str] = Field(
+        None, max_length=100, description="Source entity type"
+    )
+    source_entity_id: Optional[str] = Field(
+        None, max_length=200, description="Source entity ID"
+    )
+    context_data: Dict[str, Any] = Field(
+        default_factory=dict, description="Context data"
+    )
 
     # Interaction
-    action_buttons: List[Dict[str, Any]] = Field(default_factory=list, description="Action buttons")
-    deep_link_url: Optional[str] = Field(None, max_length=1000, description="Deep link URL")
-    tracking_params: Dict[str, Any] = Field(default_factory=dict, description="Tracking parameters")
+    action_buttons: List[Dict[str, Any]] = Field(
+        default_factory=list, description="Action buttons"
+    )
+    deep_link_url: Optional[str] = Field(
+        None, max_length=1000, description="Deep link URL"
+    )
+    tracking_params: Dict[str, Any] = Field(
+        default_factory=dict, description="Tracking parameters"
+    )
 
     # A/B Testing
-    ab_test_group: Optional[str] = Field(None, max_length=50, description="A/B test group")
-    ab_test_variant: Optional[str] = Field(None, max_length=50, description="A/B test variant")
+    ab_test_group: Optional[str] = Field(
+        None, max_length=50, description="A/B test group"
+    )
+    ab_test_variant: Optional[str] = Field(
+        None, max_length=50, description="A/B test variant"
+    )
 
     # Metadata
     tags: List[str] = Field(default_factory=list, description="Tags")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
-    custom_fields: Dict[str, Any] = Field(default_factory=dict, description="Custom fields")
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict, description="Additional metadata"
+    )
+    custom_fields: Dict[str, Any] = Field(
+        default_factory=dict, description="Custom fields"
+    )
     created_by: Optional[str] = Field(None, description="Creator user ID")
 
-    @validator('channels')
+    @validator("channels")
     def validate_channels(cls, v):
         """Validate channels list."""
         if not v:
@@ -132,15 +192,21 @@ class NotificationCreateRequest(BaseNotificationSchema):
 class NotificationUpdateRequest(BaseNotificationSchema):
     """Schema for updating a notification."""
 
-    title: Optional[str] = Field(None, min_length=1, max_length=500, description="Notification title")
-    message: Optional[str] = Field(None, min_length=1, description="Notification message")
+    title: Optional[str] = Field(
+        None, min_length=1, max_length=500, description="Notification title"
+    )
+    message: Optional[str] = Field(
+        None, min_length=1, description="Notification message"
+    )
     summary: Optional[str] = Field(None, max_length=500, description="Brief summary")
     category: Optional[str] = Field(None, max_length=100, description="Category")
     subcategory: Optional[str] = Field(None, max_length=100, description="Subcategory")
     priority: Optional[NotificationPriority] = Field(None, description="Priority level")
     content_html: Optional[str] = Field(None, description="HTML content")
     content_plain: Optional[str] = Field(None, description="Plain text content")
-    rich_content: Optional[Dict[str, Any]] = Field(None, description="Rich content data")
+    rich_content: Optional[Dict[str, Any]] = Field(
+        None, description="Rich content data"
+    )
     tags: Optional[List[str]] = Field(None, description="Tags")
     metadata: Optional[Dict[str, Any]] = Field(None, description="Additional metadata")
 
@@ -205,6 +271,7 @@ class NotificationListResponse(BaseNotificationSchema):
 # Template Schemas
 # =============================================================================
 
+
 class NotificationTemplateCreateRequest(BaseNotificationSchema):
     """Schema for creating a notification template."""
 
@@ -212,40 +279,66 @@ class NotificationTemplateCreateRequest(BaseNotificationSchema):
     name: str = Field(..., min_length=1, max_length=200, description="Template name")
     code: str = Field(..., min_length=1, max_length=100, description="Template code")
     description: Optional[str] = Field(None, description="Template description")
-    category: Optional[str] = Field(None, max_length=100, description="Template category")
+    category: Optional[str] = Field(
+        None, max_length=100, description="Template category"
+    )
 
     # Content templates
-    subject_template: Optional[str] = Field(None, max_length=500, description="Subject template")
-    title_template: Optional[str] = Field(None, max_length=500, description="Title template")
+    subject_template: Optional[str] = Field(
+        None, max_length=500, description="Subject template"
+    )
+    title_template: Optional[str] = Field(
+        None, max_length=500, description="Title template"
+    )
     message_template: str = Field(..., description="Message template")
     html_template: Optional[str] = Field(None, description="HTML template")
     plain_template: Optional[str] = Field(None, description="Plain text template")
 
     # Configuration
-    notification_type: NotificationType = Field(..., description="Default notification type")
-    default_priority: NotificationPriority = Field(NotificationPriority.NORMAL, description="Default priority")
-    default_channels: List[str] = Field(default_factory=lambda: ["in_app"], description="Default channels")
+    notification_type: NotificationType = Field(
+        ..., description="Default notification type"
+    )
+    default_priority: NotificationPriority = Field(
+        NotificationPriority.NORMAL, description="Default priority"
+    )
+    default_channels: List[str] = Field(
+        default_factory=lambda: ["in_app"], description="Default channels"
+    )
 
     # Variables
-    variables: List[str] = Field(default_factory=list, description="Available variables")
-    required_variables: List[str] = Field(default_factory=list, description="Required variables")
-    default_values: Dict[str, Any] = Field(default_factory=dict, description="Default values")
-    validation_rules: Dict[str, Any] = Field(default_factory=dict, description="Validation rules")
+    variables: List[str] = Field(
+        default_factory=list, description="Available variables"
+    )
+    required_variables: List[str] = Field(
+        default_factory=list, description="Required variables"
+    )
+    default_values: Dict[str, Any] = Field(
+        default_factory=dict, description="Default values"
+    )
+    validation_rules: Dict[str, Any] = Field(
+        default_factory=dict, description="Validation rules"
+    )
 
     # Styling
-    styling: Dict[str, Any] = Field(default_factory=dict, description="Styling configuration")
+    styling: Dict[str, Any] = Field(
+        default_factory=dict, description="Styling configuration"
+    )
     layout: Optional[str] = Field(None, max_length=100, description="Layout")
     theme: Optional[str] = Field(None, max_length=100, description="Theme")
 
     # Localization
     language: str = Field("en", max_length=10, description="Primary language")
-    localized_versions: Dict[str, Any] = Field(default_factory=dict, description="Localized versions")
+    localized_versions: Dict[str, Any] = Field(
+        default_factory=dict, description="Localized versions"
+    )
 
     # Access
     owner_id: str = Field(..., description="Owner user ID")
     is_public: bool = Field(False, description="Public template")
     tags: List[str] = Field(default_factory=list, description="Tags")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict, description="Additional metadata"
+    )
     created_by: str = Field(..., description="Creator user ID")
 
 
@@ -265,7 +358,9 @@ class NotificationTemplateResponse(BaseNotificationSchema):
     message_template: str = Field(..., description="Message template")
 
     # Configuration
-    notification_type: NotificationType = Field(..., description="Default notification type")
+    notification_type: NotificationType = Field(
+        ..., description="Default notification type"
+    )
     default_priority: NotificationPriority = Field(..., description="Default priority")
     default_channels: List[str] = Field(..., description="Default channels")
 
@@ -298,24 +393,31 @@ class TemplateGenerationRequest(BaseNotificationSchema):
 
     # Override template defaults
     title: Optional[str] = Field(None, description="Override title")
-    priority: Optional[NotificationPriority] = Field(None, description="Override priority")
+    priority: Optional[NotificationPriority] = Field(
+        None, description="Override priority"
+    )
     channels: Optional[List[str]] = Field(None, description="Override channels")
 
     # Recipients
     recipient_user_id: Optional[str] = Field(None, description="Target user ID")
     recipient_email: Optional[str] = Field(None, description="Recipient email")
-    recipient_groups: List[str] = Field(default_factory=list, description="Target groups")
+    recipient_groups: List[str] = Field(
+        default_factory=list, description="Target groups"
+    )
 
     # Scheduling
     send_at: Optional[datetime] = Field(None, description="Scheduled send time")
 
     # Context
-    context_data: Dict[str, Any] = Field(default_factory=dict, description="Additional context")
+    context_data: Dict[str, Any] = Field(
+        default_factory=dict, description="Additional context"
+    )
 
 
 # =============================================================================
 # Delivery Schemas
 # =============================================================================
+
 
 class NotificationDeliveryResponse(BaseNotificationSchema):
     """Schema for notification delivery response."""
@@ -353,6 +455,7 @@ class NotificationDeliveryResponse(BaseNotificationSchema):
 # Preference Schemas
 # =============================================================================
 
+
 class NotificationPreferenceUpdateRequest(BaseNotificationSchema):
     """Schema for updating notification preferences."""
 
@@ -361,39 +464,73 @@ class NotificationPreferenceUpdateRequest(BaseNotificationSchema):
     global_opt_out: Optional[bool] = Field(None, description="Global opt-out")
 
     # Channel preferences
-    email_enabled: Optional[bool] = Field(None, description="Email notifications enabled")
+    email_enabled: Optional[bool] = Field(
+        None, description="Email notifications enabled"
+    )
     sms_enabled: Optional[bool] = Field(None, description="SMS notifications enabled")
     push_enabled: Optional[bool] = Field(None, description="Push notifications enabled")
-    in_app_enabled: Optional[bool] = Field(None, description="In-app notifications enabled")
+    in_app_enabled: Optional[bool] = Field(
+        None, description="In-app notifications enabled"
+    )
 
     # Type-specific preferences
-    system_notifications: Optional[bool] = Field(None, description="System notifications")
+    system_notifications: Optional[bool] = Field(
+        None, description="System notifications"
+    )
     alert_notifications: Optional[bool] = Field(None, description="Alert notifications")
-    warning_notifications: Optional[bool] = Field(None, description="Warning notifications")
+    warning_notifications: Optional[bool] = Field(
+        None, description="Warning notifications"
+    )
     info_notifications: Optional[bool] = Field(None, description="Info notifications")
-    reminder_notifications: Optional[bool] = Field(None, description="Reminder notifications")
+    reminder_notifications: Optional[bool] = Field(
+        None, description="Reminder notifications"
+    )
     task_notifications: Optional[bool] = Field(None, description="Task notifications")
-    message_notifications: Optional[bool] = Field(None, description="Message notifications")
-    announcement_notifications: Optional[bool] = Field(None, description="Announcement notifications")
+    message_notifications: Optional[bool] = Field(
+        None, description="Message notifications"
+    )
+    announcement_notifications: Optional[bool] = Field(
+        None, description="Announcement notifications"
+    )
 
     # Timing preferences
     quiet_hours_enabled: Optional[bool] = Field(None, description="Quiet hours enabled")
-    quiet_hours_start: Optional[str] = Field(None, pattern=r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$", description="Quiet hours start (HH:MM)")
-    quiet_hours_end: Optional[str] = Field(None, pattern=r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$", description="Quiet hours end (HH:MM)")
+    quiet_hours_start: Optional[str] = Field(
+        None,
+        pattern=r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$",
+        description="Quiet hours start (HH:MM)",
+    )
+    quiet_hours_end: Optional[str] = Field(
+        None,
+        pattern=r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$",
+        description="Quiet hours end (HH:MM)",
+    )
     timezone: Optional[str] = Field(None, max_length=50, description="User timezone")
 
     # Frequency preferences
-    max_emails_per_day: Optional[int] = Field(None, ge=0, le=1000, description="Max emails per day")
-    max_sms_per_day: Optional[int] = Field(None, ge=0, le=100, description="Max SMS per day")
-    digest_frequency: Optional[str] = Field(None, pattern=r"^(instant|hourly|daily|weekly)$", description="Digest frequency")
+    max_emails_per_day: Optional[int] = Field(
+        None, ge=0, le=1000, description="Max emails per day"
+    )
+    max_sms_per_day: Optional[int] = Field(
+        None, ge=0, le=100, description="Max SMS per day"
+    )
+    digest_frequency: Optional[str] = Field(
+        None, pattern=r"^(instant|hourly|daily|weekly)$", description="Digest frequency"
+    )
 
     # Contact info
-    email_address: Optional[str] = Field(None, max_length=200, description="Email address")
+    email_address: Optional[str] = Field(
+        None, max_length=200, description="Email address"
+    )
     phone_number: Optional[str] = Field(None, max_length=50, description="Phone number")
 
     # Advanced settings
-    language_preference: Optional[str] = Field(None, max_length=10, description="Language preference")
-    content_format: Optional[str] = Field(None, pattern=r"^(html|plain|markdown)$", description="Content format")
+    language_preference: Optional[str] = Field(
+        None, max_length=10, description="Language preference"
+    )
+    content_format: Optional[str] = Field(
+        None, pattern=r"^(html|plain|markdown)$", description="Content format"
+    )
     grouping_enabled: Optional[bool] = Field(None, description="Grouping enabled")
 
 
@@ -422,7 +559,9 @@ class NotificationPreferenceResponse(BaseNotificationSchema):
     reminder_notifications: bool = Field(..., description="Reminder notifications")
     task_notifications: bool = Field(..., description="Task notifications")
     message_notifications: bool = Field(..., description="Message notifications")
-    announcement_notifications: bool = Field(..., description="Announcement notifications")
+    announcement_notifications: bool = Field(
+        ..., description="Announcement notifications"
+    )
 
     # Timing preferences
     quiet_hours_enabled: bool = Field(..., description="Quiet hours enabled")
@@ -449,34 +588,55 @@ class NotificationPreferenceResponse(BaseNotificationSchema):
 # Subscription Schemas
 # =============================================================================
 
+
 class NotificationSubscriptionCreateRequest(BaseNotificationSchema):
     """Schema for creating a notification subscription."""
 
     organization_id: str = Field(..., description="Organization ID")
-    topic: str = Field(..., min_length=1, max_length=200, description="Subscription topic")
+    topic: str = Field(
+        ..., min_length=1, max_length=200, description="Subscription topic"
+    )
     event_type: Optional[str] = Field(None, max_length=200, description="Event type")
     entity_type: Optional[str] = Field(None, max_length=100, description="Entity type")
     entity_id: Optional[str] = Field(None, max_length=200, description="Entity ID")
 
     # Configuration
-    channels: List[str] = Field(default_factory=lambda: ["in_app"], description="Notification channels")
-    priority: NotificationPriority = Field(NotificationPriority.NORMAL, description="Priority level")
+    channels: List[str] = Field(
+        default_factory=lambda: ["in_app"], description="Notification channels"
+    )
+    priority: NotificationPriority = Field(
+        NotificationPriority.NORMAL, description="Priority level"
+    )
 
     # Filters
-    filters: Dict[str, Any] = Field(default_factory=dict, description="Subscription filters")
-    conditions: Dict[str, Any] = Field(default_factory=dict, description="Subscription conditions")
+    filters: Dict[str, Any] = Field(
+        default_factory=dict, description="Subscription filters"
+    )
+    conditions: Dict[str, Any] = Field(
+        default_factory=dict, description="Subscription conditions"
+    )
     keywords: List[str] = Field(default_factory=list, description="Keywords")
 
     # Frequency
-    frequency: str = Field("instant", pattern=r"^(instant|daily|weekly|monthly)$", description="Notification frequency")
-    delivery_time: Optional[str] = Field(None, pattern=r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$", description="Delivery time (HH:MM)")
+    frequency: str = Field(
+        "instant",
+        pattern=r"^(instant|daily|weekly|monthly)$",
+        description="Notification frequency",
+    )
+    delivery_time: Optional[str] = Field(
+        None,
+        pattern=r"^([01]?[0-9]|2[0-3]):[0-5][0-9]$",
+        description="Delivery time (HH:MM)",
+    )
     timezone: Optional[str] = Field(None, max_length=50, description="Timezone")
 
     # Metadata
     name: Optional[str] = Field(None, max_length=200, description="Subscription name")
     description: Optional[str] = Field(None, description="Description")
     expires_at: Optional[datetime] = Field(None, description="Expiration time")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict, description="Additional metadata"
+    )
 
 
 class NotificationSubscriptionResponse(BaseNotificationSchema):
@@ -500,7 +660,9 @@ class NotificationSubscriptionResponse(BaseNotificationSchema):
 
     # Analytics
     notification_count: int = Field(..., description="Notification count")
-    last_notification_at: Optional[datetime] = Field(None, description="Last notification time")
+    last_notification_at: Optional[datetime] = Field(
+        None, description="Last notification time"
+    )
 
     # Metadata
     name: Optional[str] = Field(None, description="Subscription name")
@@ -517,13 +679,16 @@ class NotificationSubscriptionResponse(BaseNotificationSchema):
 # Event Schemas
 # =============================================================================
 
+
 class NotificationEventCreateRequest(BaseNotificationSchema):
     """Schema for creating a notification event."""
 
     organization_id: str = Field(..., description="Organization ID")
     event_name: str = Field(..., min_length=1, max_length=200, description="Event name")
     event_type: str = Field(..., min_length=1, max_length=100, description="Event type")
-    source_system: Optional[str] = Field(None, max_length=100, description="Source system")
+    source_system: Optional[str] = Field(
+        None, max_length=100, description="Source system"
+    )
 
     # Event data
     event_data: Dict[str, Any] = Field(default_factory=dict, description="Event data")
@@ -531,9 +696,13 @@ class NotificationEventCreateRequest(BaseNotificationSchema):
     entity_id: Optional[str] = Field(None, max_length=200, description="Entity ID")
 
     # Event metadata
-    priority: NotificationPriority = Field(NotificationPriority.NORMAL, description="Event priority")
+    priority: NotificationPriority = Field(
+        NotificationPriority.NORMAL, description="Event priority"
+    )
     batch_id: Optional[str] = Field(None, max_length=100, description="Batch ID")
-    correlation_id: Optional[str] = Field(None, max_length=100, description="Correlation ID")
+    correlation_id: Optional[str] = Field(
+        None, max_length=100, description="Correlation ID"
+    )
     event_timestamp: datetime = Field(..., description="Event timestamp")
 
 
@@ -554,7 +723,9 @@ class NotificationEventResponse(BaseNotificationSchema):
     # Processing status
     is_processed: bool = Field(..., description="Processing status")
     processed_at: Optional[datetime] = Field(None, description="Processed timestamp")
-    processing_errors: List[Dict[str, Any]] = Field(..., description="Processing errors")
+    processing_errors: List[Dict[str, Any]] = Field(
+        ..., description="Processing errors"
+    )
 
     # Event metadata
     priority: NotificationPriority = Field(..., description="Event priority")
@@ -570,17 +741,24 @@ class NotificationEventResponse(BaseNotificationSchema):
 # Analytics Schemas
 # =============================================================================
 
+
 class NotificationAnalyticsRequest(BaseNotificationSchema):
     """Schema for notification analytics request."""
 
     organization_id: str = Field(..., description="Organization ID")
     period_start: date = Field(..., description="Period start date")
     period_end: date = Field(..., description="Period end date")
-    period_type: str = Field("daily", pattern=r"^(daily|weekly|monthly|yearly)$", description="Period type")
+    period_type: str = Field(
+        "daily", pattern=r"^(daily|weekly|monthly|yearly)$", description="Period type"
+    )
 
     # Filters
-    notification_type: Optional[NotificationType] = Field(None, description="Filter by notification type")
-    channel: Optional[NotificationChannel] = Field(None, description="Filter by channel")
+    notification_type: Optional[NotificationType] = Field(
+        None, description="Filter by notification type"
+    )
+    channel: Optional[NotificationChannel] = Field(
+        None, description="Filter by channel"
+    )
     user_id: Optional[str] = Field(None, description="Filter by user")
 
 
@@ -624,14 +802,20 @@ class NotificationAnalyticsResponse(BaseNotificationSchema):
     unique_viewers: int = Field(..., description="Unique viewers")
 
     # Performance metrics
-    average_delivery_time_seconds: Optional[Decimal] = Field(None, description="Average delivery time")
-    delivery_success_rate: Optional[Decimal] = Field(None, description="Delivery success rate")
+    average_delivery_time_seconds: Optional[Decimal] = Field(
+        None, description="Average delivery time"
+    )
+    delivery_success_rate: Optional[Decimal] = Field(
+        None, description="Delivery success rate"
+    )
     open_rate: Optional[Decimal] = Field(None, description="Open rate")
     click_rate: Optional[Decimal] = Field(None, description="Click rate")
 
     # Cost metrics
     total_cost: Optional[Decimal] = Field(None, description="Total cost")
-    cost_per_notification: Optional[Decimal] = Field(None, description="Cost per notification")
+    cost_per_notification: Optional[Decimal] = Field(
+        None, description="Cost per notification"
+    )
 
     # Calculated
     calculated_date: datetime = Field(..., description="Calculation timestamp")
@@ -641,15 +825,22 @@ class NotificationAnalyticsResponse(BaseNotificationSchema):
 # Interaction Schemas
 # =============================================================================
 
+
 class NotificationInteractionRequest(BaseNotificationSchema):
     """Schema for logging notification interaction."""
 
     notification_id: str = Field(..., description="Notification ID")
-    interaction_type: str = Field(..., min_length=1, max_length=50, description="Interaction type")
-    action_id: Optional[str] = Field(None, max_length=100, description="Action button ID")
+    interaction_type: str = Field(
+        ..., min_length=1, max_length=50, description="Interaction type"
+    )
+    action_id: Optional[str] = Field(
+        None, max_length=100, description="Action button ID"
+    )
 
     # Context
-    channel: Optional[NotificationChannel] = Field(None, description="Interaction channel")
+    channel: Optional[NotificationChannel] = Field(
+        None, description="Interaction channel"
+    )
     device_type: Optional[str] = Field(None, max_length=50, description="Device type")
     platform: Optional[str] = Field(None, max_length=50, description="Platform")
     browser: Optional[str] = Field(None, max_length=100, description="Browser")
@@ -657,13 +848,18 @@ class NotificationInteractionRequest(BaseNotificationSchema):
     user_agent: Optional[str] = Field(None, max_length=500, description="User agent")
 
     # Additional data
-    interaction_data: Dict[str, Any] = Field(default_factory=dict, description="Interaction data")
-    duration_seconds: Optional[int] = Field(None, ge=0, description="Duration in seconds")
+    interaction_data: Dict[str, Any] = Field(
+        default_factory=dict, description="Interaction data"
+    )
+    duration_seconds: Optional[int] = Field(
+        None, ge=0, description="Duration in seconds"
+    )
 
 
 # =============================================================================
 # Health and Status Schemas
 # =============================================================================
+
 
 class NotificationSystemHealthResponse(BaseNotificationSchema):
     """Schema for notification system health response."""
@@ -684,12 +880,17 @@ class NotificationSystemHealthResponse(BaseNotificationSchema):
 # Bulk Operation Schemas
 # =============================================================================
 
+
 class BulkNotificationRequest(BaseNotificationSchema):
     """Schema for bulk notification operations."""
 
-    notifications: List[NotificationCreateRequest] = Field(..., min_items=1, max_items=1000, description="Notifications to create")
+    notifications: List[NotificationCreateRequest] = Field(
+        ..., min_items=1, max_items=1000, description="Notifications to create"
+    )
     batch_id: Optional[str] = Field(None, description="Batch ID")
-    priority: NotificationPriority = Field(NotificationPriority.NORMAL, description="Batch priority")
+    priority: NotificationPriority = Field(
+        NotificationPriority.NORMAL, description="Batch priority"
+    )
 
 
 class BulkNotificationResponse(BaseNotificationSchema):
@@ -701,7 +902,9 @@ class BulkNotificationResponse(BaseNotificationSchema):
     failed: int = Field(..., description="Failed operations")
 
     # Results
-    created_notifications: List[str] = Field(..., description="Created notification IDs")
+    created_notifications: List[str] = Field(
+        ..., description="Created notification IDs"
+    )
     errors: List[Dict[str, Any]] = Field(..., description="Error details")
 
     # Processing info
@@ -712,6 +915,7 @@ class BulkNotificationResponse(BaseNotificationSchema):
 # =============================================================================
 # WebSocket Schemas
 # =============================================================================
+
 
 class WebSocketNotificationMessage(BaseNotificationSchema):
     """Schema for WebSocket notification messages."""
@@ -727,5 +931,9 @@ class WebSocketSubscriptionRequest(BaseNotificationSchema):
 
     user_id: str = Field(..., description="User ID")
     organization_id: str = Field(..., description="Organization ID")
-    channels: List[str] = Field(default_factory=list, description="Channels to subscribe")
-    filters: Dict[str, Any] = Field(default_factory=dict, description="Subscription filters")
+    channels: List[str] = Field(
+        default_factory=list, description="Channels to subscribe"
+    )
+    filters: Dict[str, Any] = Field(
+        default_factory=dict, description="Subscription filters"
+    )

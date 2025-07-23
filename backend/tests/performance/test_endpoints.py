@@ -68,10 +68,12 @@ class TestEndpointPerformance:
             response = client.get("/api/v1/health")
             end_time = time.time()
 
-            result_queue.put({
-                "status_code": response.status_code,
-                "response_time": (end_time - start_time) * 1000
-            })
+            result_queue.put(
+                {
+                    "status_code": response.status_code,
+                    "response_time": (end_time - start_time) * 1000,
+                }
+            )
 
         # Create concurrent threads
         threads = []

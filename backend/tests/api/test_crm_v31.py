@@ -40,6 +40,7 @@ from app.models.crm_extended import (
 
 client = TestClient(app)
 
+
 # Test data setup
 @pytest.fixture
 def sample_customer_data():
@@ -60,7 +61,7 @@ def sample_customer_data():
         "main_country": "JP",
         "account_manager_id": "user-123",
         "customer_tier": "gold",
-        "tags": ["enterprise", "priority"]
+        "tags": ["enterprise", "priority"],
     }
 
 
@@ -78,7 +79,7 @@ def sample_contact_data():
         "work_phone": "+81-3-1234-5679",
         "contact_type": "primary",
         "is_decision_maker": True,
-        "influence_level": 8
+        "influence_level": 8,
     }
 
 
@@ -97,7 +98,7 @@ def sample_lead_data():
         "industry": "Financial Services",
         "budget_range": "1000000-5000000",
         "products_interested": ["ERP System", "Analytics"],
-        "assigned_to_id": "user-456"
+        "assigned_to_id": "user-456",
     }
 
 
@@ -115,7 +116,7 @@ def sample_opportunity_data():
         "stage": "qualification",
         "probability": "25.00",
         "products": ["ERP Core", "Analytics Module"],
-        "customer_needs": ["Process automation", "Real-time reporting"]
+        "customer_needs": ["Process automation", "Real-time reporting"],
     }
 
 
@@ -132,7 +133,7 @@ def sample_activity_data():
         "activity_date": datetime.now().isoformat(),
         "duration_minutes": 45,
         "owner_id": "user-456",
-        "outcome": "Positive response, needs assessment scheduled"
+        "outcome": "Positive response, needs assessment scheduled",
     }
 
 
@@ -149,7 +150,7 @@ def sample_campaign_data():
         "budget": "100000.00",
         "target_leads": 500,
         "target_revenue": "5000000.00",
-        "key_message": "Modernize your business with our ERP solution"
+        "key_message": "Modernize your business with our ERP solution",
     }
 
 
@@ -165,14 +166,14 @@ def sample_support_ticket_data():
         "priority": "high",
         "reporter_name": "Taro Yamada",
         "reporter_email": "taro.yamada@testcompany.com",
-        "source": "email"
+        "source": "email",
     }
 
 
 class TestCustomerManagement:
     """Test suite for Customer Management endpoints."""
 
-    @patch('app.crud.crm_v31.CRMService.create_customer')
+    @patch("app.crud.crm_v31.CRMService.create_customer")
     def test_create_customer_success(self, mock_create, sample_customer_data):
         """Test successful customer creation."""
         # Mock response
@@ -198,18 +199,18 @@ class TestCustomerManagement:
         invalid_data = {
             "organization_id": "org-123",
             # Missing required company_name
-            "main_email": "invalid-email"  # Invalid email format
+            "main_email": "invalid-email",  # Invalid email format
         }
 
         response = client.post("/api/v1/customers", json=invalid_data)
         assert response.status_code == 422
 
-    @patch('app.crud.crm_v31.CRMService.get_customers')
+    @patch("app.crud.crm_v31.CRMService.get_customers")
     def test_list_customers_with_filters(self, mock_get_customers):
         """Test customer listing with various filters."""
         mock_customers = [
             CustomerExtended(id="customer-1", company_name="Company 1"),
-            CustomerExtended(id="customer-2", company_name="Company 2")
+            CustomerExtended(id="customer-2", company_name="Company 2"),
         ]
         mock_get_customers.return_value = mock_customers
 
@@ -220,8 +221,8 @@ class TestCustomerManagement:
                 "customer_tier": "gold",
                 "industry": "Technology",
                 "is_active": True,
-                "limit": 50
-            }
+                "limit": 50,
+            },
         )
 
         assert response.status_code == 200
@@ -229,7 +230,7 @@ class TestCustomerManagement:
         assert len(data) == 2
         mock_get_customers.assert_called_once()
 
-    @patch('app.crud.crm_v31.CRMService.get_customer_by_id')
+    @patch("app.crud.crm_v31.CRMService.get_customer_by_id")
     def test_get_customer_by_id_success(self, mock_get_customer):
         """Test successful customer retrieval by ID."""
         mock_customer = CustomerExtended()
@@ -244,7 +245,7 @@ class TestCustomerManagement:
         assert data["id"] == "customer-123"
         mock_get_customer.assert_called_once_with(unittest.mock.ANY, "customer-123")
 
-    @patch('app.crud.crm_v31.CRMService.get_customer_by_id')
+    @patch("app.crud.crm_v31.CRMService.get_customer_by_id")
     def test_get_customer_not_found(self, mock_get_customer):
         """Test customer retrieval when customer doesn't exist."""
         mock_get_customer.return_value = None
@@ -254,7 +255,7 @@ class TestCustomerManagement:
         assert response.status_code == 404
         assert "Customer not found" in response.json()["detail"]
 
-    @patch('app.crud.crm_v31.CRMService.update_customer')
+    @patch("app.crud.crm_v31.CRMService.update_customer")
     def test_update_customer_success(self, mock_update):
         """Test successful customer update."""
         mock_customer = CustomerExtended()
@@ -262,10 +263,7 @@ class TestCustomerManagement:
         mock_customer.company_name = "Updated Company"
         mock_update.return_value = mock_customer
 
-        update_data = {
-            "company_name": "Updated Company",
-            "customer_tier": "platinum"
-        }
+        update_data = {"company_name": "Updated Company", "customer_tier": "platinum"}
 
         response = client.put("/api/v1/customers/customer-123", json=update_data)
 
@@ -274,7 +272,7 @@ class TestCustomerManagement:
         assert data["company_name"] == "Updated Company"
         mock_update.assert_called_once()
 
-    @patch('app.crud.crm_v31.CRMService.calculate_customer_health_score')
+    @patch("app.crud.crm_v31.CRMService.calculate_customer_health_score")
     def test_get_customer_health_score(self, mock_calculate_health):
         """Test customer health score calculation."""
         mock_health = {
@@ -284,9 +282,12 @@ class TestCustomerManagement:
             "health_factors": {
                 "engagement": {"score": 90.0, "weight": 0.3},
                 "revenue": {"score": 80.0, "weight": 0.4},
-                "support": {"score": 88.0, "weight": 0.3}
+                "support": {"score": 88.0, "weight": 0.3},
             },
-            "recommendations": ["Increase engagement frequency", "Monitor revenue trends"]
+            "recommendations": [
+                "Increase engagement frequency",
+                "Monitor revenue trends",
+            ],
         }
         mock_calculate_health.return_value = mock_health
 
@@ -302,7 +303,7 @@ class TestCustomerManagement:
 class TestContactManagement:
     """Test suite for Contact Management endpoints."""
 
-    @patch('app.crud.crm_v31.CRMService.create_contact')
+    @patch("app.crud.crm_v31.CRMService.create_contact")
     def test_create_contact_success(self, mock_create, sample_contact_data):
         """Test successful contact creation."""
         mock_contact = ContactExtended()
@@ -320,12 +321,12 @@ class TestContactManagement:
         assert data["first_name"] == sample_contact_data["first_name"]
         assert data["last_name"] == sample_contact_data["last_name"]
 
-    @patch('app.crud.crm_v31.CRMService.get_contacts')
+    @patch("app.crud.crm_v31.CRMService.get_contacts")
     def test_list_contacts_filtered(self, mock_get_contacts):
         """Test contact listing with filters."""
         mock_contacts = [
             ContactExtended(id="contact-1", first_name="Taro"),
-            ContactExtended(id="contact-2", first_name="Hanako")
+            ContactExtended(id="contact-2", first_name="Hanako"),
         ]
         mock_get_contacts.return_value = mock_contacts
 
@@ -334,8 +335,8 @@ class TestContactManagement:
             params={
                 "customer_id": "customer-123",
                 "is_decision_maker": True,
-                "contact_type": "primary"
-            }
+                "contact_type": "primary",
+            },
         )
 
         assert response.status_code == 200
@@ -346,7 +347,7 @@ class TestContactManagement:
 class TestLeadManagement:
     """Test suite for Lead Management endpoints."""
 
-    @patch('app.crud.crm_v31.CRMService.create_lead')
+    @patch("app.crud.crm_v31.CRMService.create_lead")
     def test_create_lead_success(self, mock_create, sample_lead_data):
         """Test successful lead creation."""
         mock_lead = LeadExtended()
@@ -365,12 +366,12 @@ class TestLeadManagement:
         assert data["email"] == sample_lead_data["email"]
         assert "lead_number" in data
 
-    @patch('app.crud.crm_v31.CRMService.get_leads')
+    @patch("app.crud.crm_v31.CRMService.get_leads")
     def test_list_leads_with_filters(self, mock_get_leads):
         """Test lead listing with comprehensive filters."""
         mock_leads = [
             LeadExtended(id="lead-1", email="lead1@test.com"),
-            LeadExtended(id="lead-2", email="lead2@test.com")
+            LeadExtended(id="lead-2", email="lead2@test.com"),
         ]
         mock_get_leads.return_value = mock_leads
 
@@ -381,28 +382,28 @@ class TestLeadManagement:
                 "status": "new",
                 "lead_source": "website",
                 "min_lead_score": 40,
-                "is_qualified": False
-            }
+                "is_qualified": False,
+            },
         )
 
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 2
 
-    @patch('app.crud.crm_v31.CRMService.convert_lead_to_customer')
+    @patch("app.crud.crm_v31.CRMService.convert_lead_to_customer")
     def test_convert_lead_success(self, mock_convert):
         """Test successful lead conversion."""
         mock_conversion = {
             "lead_id": "lead-123",
             "customer_id": "customer-456",
             "contact_id": "contact-789",
-            "conversion_date": datetime.now().isoformat()
+            "conversion_date": datetime.now().isoformat(),
         }
         mock_convert.return_value = mock_conversion
 
         conversion_data = {
             "lead_id": "lead-123",
-            "customer_data": {"company_tier": "gold"}
+            "customer_data": {"company_tier": "gold"},
         }
 
         response = client.post("/api/v1/leads/lead-123/convert", json=conversion_data)
@@ -411,7 +412,7 @@ class TestLeadManagement:
         data = response.json()
         assert data["customer_id"] == "customer-456"
 
-    @patch('app.crud.crm_v31.CRMService.assign_lead')
+    @patch("app.crud.crm_v31.CRMService.assign_lead")
     def test_assign_lead_success(self, mock_assign):
         """Test successful lead assignment."""
         mock_lead = LeadExtended()
@@ -422,7 +423,7 @@ class TestLeadManagement:
         assignment_data = {
             "lead_id": "lead-123",
             "assigned_to_id": "user-456",
-            "notes": "High priority prospect"
+            "notes": "High priority prospect",
         }
 
         response = client.post("/api/v1/leads/lead-123/assign", json=assignment_data)
@@ -435,7 +436,7 @@ class TestLeadManagement:
 class TestOpportunityManagement:
     """Test suite for Opportunity Management endpoints."""
 
-    @patch('app.crud.crm_v31.CRMService.create_opportunity')
+    @patch("app.crud.crm_v31.CRMService.create_opportunity")
     def test_create_opportunity_success(self, mock_create, sample_opportunity_data):
         """Test successful opportunity creation."""
         mock_opportunity = OpportunityExtended()
@@ -454,12 +455,12 @@ class TestOpportunityManagement:
         assert data["name"] == sample_opportunity_data["name"]
         assert "opportunity_number" in data
 
-    @patch('app.crud.crm_v31.CRMService.get_opportunities')
+    @patch("app.crud.crm_v31.CRMService.get_opportunities")
     def test_list_opportunities_filtered(self, mock_get_opportunities):
         """Test opportunity listing with filters."""
         mock_opportunities = [
             OpportunityExtended(id="opp-1", name="Opportunity 1"),
-            OpportunityExtended(id="opp-2", name="Opportunity 2")
+            OpportunityExtended(id="opp-2", name="Opportunity 2"),
         ]
         mock_get_opportunities.return_value = mock_opportunities
 
@@ -469,15 +470,15 @@ class TestOpportunityManagement:
                 "customer_id": "customer-123",
                 "stage": "qualification",
                 "sales_rep_id": "user-456",
-                "min_amount": "100000"
-            }
+                "min_amount": "100000",
+            },
         )
 
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 2
 
-    @patch('app.crud.crm_v31.CRMService.update_opportunity_stage')
+    @patch("app.crud.crm_v31.CRMService.update_opportunity_stage")
     def test_update_opportunity_stage(self, mock_update_stage):
         """Test opportunity stage update."""
         mock_opportunity = OpportunityExtended()
@@ -490,16 +491,18 @@ class TestOpportunityManagement:
             "opportunity_id": "opportunity-123",
             "stage": "proposal",
             "probability": "60.00",
-            "notes": "Proposal submitted to customer"
+            "notes": "Proposal submitted to customer",
         }
 
-        response = client.post("/api/v1/opportunities/opportunity-123/update-stage", json=stage_update)
+        response = client.post(
+            "/api/v1/opportunities/opportunity-123/update-stage", json=stage_update
+        )
 
         assert response.status_code == 200
         data = response.json()
         assert data["stage"] == "proposal"
 
-    @patch('app.crud.crm_v31.CRMService.generate_sales_forecast')
+    @patch("app.crud.crm_v31.CRMService.generate_sales_forecast")
     def test_generate_sales_forecast(self, mock_generate_forecast):
         """Test sales forecast generation."""
         mock_forecast = {
@@ -512,17 +515,14 @@ class TestOpportunityManagement:
             "opportunities_by_stage": {
                 "qualification": 5,
                 "proposal": 3,
-                "negotiation": 2
-            }
+                "negotiation": 2,
+            },
         }
         mock_generate_forecast.return_value = mock_forecast
 
         response = client.get(
             "/api/v1/sales-forecast",
-            params={
-                "organization_id": "org-123",
-                "forecast_period": "monthly"
-            }
+            params={"organization_id": "org-123", "forecast_period": "monthly"},
         )
 
         assert response.status_code == 200
@@ -534,7 +534,7 @@ class TestOpportunityManagement:
 class TestActivityTracking:
     """Test suite for Activity Tracking endpoints."""
 
-    @patch('app.crud.crm_v31.CRMService.create_activity')
+    @patch("app.crud.crm_v31.CRMService.create_activity")
     def test_create_activity_success(self, mock_create, sample_activity_data):
         """Test successful activity creation."""
         mock_activity = CRMActivity()
@@ -551,12 +551,12 @@ class TestActivityTracking:
         data = response.json()
         assert data["subject"] == sample_activity_data["subject"]
 
-    @patch('app.crud.crm_v31.CRMService.get_activities')
+    @patch("app.crud.crm_v31.CRMService.get_activities")
     def test_list_activities_filtered(self, mock_get_activities):
         """Test activity listing with filters."""
         mock_activities = [
             CRMActivity(id="activity-1", subject="Call 1"),
-            CRMActivity(id="activity-2", subject="Email 1")
+            CRMActivity(id="activity-2", subject="Email 1"),
         ]
         mock_get_activities.return_value = mock_activities
 
@@ -567,8 +567,8 @@ class TestActivityTracking:
                 "activity_type": "call",
                 "is_completed": False,
                 "date_from": "2024-01-01",
-                "date_to": "2024-12-31"
-            }
+                "date_to": "2024-12-31",
+            },
         )
 
         assert response.status_code == 200
@@ -579,7 +579,7 @@ class TestActivityTracking:
 class TestCampaignManagement:
     """Test suite for Campaign Management endpoints."""
 
-    @patch('app.crud.crm_v31.CRMService.create_campaign')
+    @patch("app.crud.crm_v31.CRMService.create_campaign")
     def test_create_campaign_success(self, mock_create, sample_campaign_data):
         """Test successful campaign creation."""
         mock_campaign = CampaignExtended()
@@ -597,7 +597,7 @@ class TestCampaignManagement:
         assert data["name"] == sample_campaign_data["name"]
         assert "campaign_code" in data
 
-    @patch('app.crud.crm_v31.CRMService.send_bulk_email_campaign')
+    @patch("app.crud.crm_v31.CRMService.send_bulk_email_campaign")
     def test_send_bulk_email_campaign(self, mock_send_campaign):
         """Test bulk email campaign execution."""
         mock_result = {
@@ -605,17 +605,19 @@ class TestCampaignManagement:
             "emails_sent": 250,
             "emails_failed": 5,
             "success_rate": 98.0,
-            "status": "completed"
+            "status": "completed",
         }
         mock_send_campaign.return_value = mock_result
 
         email_request = {
             "campaign_id": "campaign-123",
             "recipient_list": ["contact-1", "contact-2", "contact-3"],
-            "email_template_id": "template-456"
+            "email_template_id": "template-456",
         }
 
-        response = client.post("/api/v1/campaigns/campaign-123/send-email", json=email_request)
+        response = client.post(
+            "/api/v1/campaigns/campaign-123/send-email", json=email_request
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -626,8 +628,10 @@ class TestCampaignManagement:
 class TestSupportTicketManagement:
     """Test suite for Support Ticket Management endpoints."""
 
-    @patch('app.crud.crm_v31.CRMService.create_support_ticket')
-    def test_create_support_ticket_success(self, mock_create, sample_support_ticket_data):
+    @patch("app.crud.crm_v31.CRMService.create_support_ticket")
+    def test_create_support_ticket_success(
+        self, mock_create, sample_support_ticket_data
+    ):
         """Test successful support ticket creation."""
         mock_ticket = SupportTicket()
         mock_ticket.id = "ticket-123"
@@ -638,14 +642,16 @@ class TestSupportTicketManagement:
 
         mock_create.return_value = mock_ticket
 
-        response = client.post("/api/v1/support-tickets", json=sample_support_ticket_data)
+        response = client.post(
+            "/api/v1/support-tickets", json=sample_support_ticket_data
+        )
 
         assert response.status_code == 201
         data = response.json()
         assert data["subject"] == sample_support_ticket_data["subject"]
         assert "ticket_number" in data
 
-    @patch('app.crud.crm_v31.CRMService.escalate_support_ticket')
+    @patch("app.crud.crm_v31.CRMService.escalate_support_ticket")
     def test_escalate_support_ticket(self, mock_escalate):
         """Test support ticket escalation."""
         mock_ticket = SupportTicket()
@@ -657,10 +663,12 @@ class TestSupportTicketManagement:
         escalation_request = {
             "ticket_id": "ticket-123",
             "escalated_to_id": "manager-456",
-            "escalation_reason": "Customer escalation requested"
+            "escalation_reason": "Customer escalation requested",
         }
 
-        response = client.post("/api/v1/support-tickets/ticket-123/escalate", json=escalation_request)
+        response = client.post(
+            "/api/v1/support-tickets/ticket-123/escalate", json=escalation_request
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -671,7 +679,7 @@ class TestSupportTicketManagement:
 class TestCRMAnalytics:
     """Test suite for CRM Analytics endpoints."""
 
-    @patch('app.crud.crm_v31.CRMService.get_crm_dashboard_metrics')
+    @patch("app.crud.crm_v31.CRMService.get_crm_dashboard_metrics")
     def test_get_dashboard_metrics(self, mock_get_metrics):
         """Test CRM dashboard metrics retrieval."""
         mock_metrics = {
@@ -688,7 +696,7 @@ class TestCRMAnalytics:
             "pipeline_value": 8750000.0,
             "new_customers": 8,
             "total_activities": 450,
-            "metrics_date": datetime.now().isoformat()
+            "metrics_date": datetime.now().isoformat(),
         }
         mock_get_metrics.return_value = mock_metrics
 
@@ -697,8 +705,8 @@ class TestCRMAnalytics:
             params={
                 "organization_id": "org-123",
                 "period_start": "2024-01-01",
-                "period_end": "2024-01-31"
-            }
+                "period_end": "2024-01-31",
+            },
         )
 
         assert response.status_code == 200
@@ -706,30 +714,24 @@ class TestCRMAnalytics:
         assert data["leads_created"] == 125
         assert data["win_rate"] == 26.7
 
-    @patch('app.crud.crm_v31.CRMService.get_pipeline_analytics')
+    @patch("app.crud.crm_v31.CRMService.get_pipeline_analytics")
     def test_get_pipeline_analytics(self, mock_get_analytics):
         """Test pipeline analytics retrieval."""
         mock_analytics = {
             "pipeline_value_by_stage": {
                 "qualification": 2000000.0,
                 "proposal": 3500000.0,
-                "negotiation": 1500000.0
+                "negotiation": 1500000.0,
             },
             "average_deal_size": 350000.0,
             "average_sales_cycle_days": 75.5,
-            "velocity_metrics": {
-                "deals_moved": 15,
-                "stage_progression_rate": 85.7
-            }
+            "velocity_metrics": {"deals_moved": 15, "stage_progression_rate": 85.7},
         }
         mock_get_analytics.return_value = mock_analytics
 
         response = client.get(
             "/api/v1/analytics/pipeline",
-            params={
-                "organization_id": "org-123",
-                "sales_rep_id": "user-456"
-            }
+            params={"organization_id": "org-123", "sales_rep_id": "user-456"},
         )
 
         assert response.status_code == 200
@@ -740,7 +742,7 @@ class TestCRMAnalytics:
 class TestPipelineManagement:
     """Test suite for Sales Pipeline Management endpoints."""
 
-    @patch('app.crud.crm_v31.CRMService.get_pipeline_overview')
+    @patch("app.crud.crm_v31.CRMService.get_pipeline_overview")
     def test_get_pipeline_overview(self, mock_get_overview):
         """Test pipeline overview retrieval."""
         mock_overview = {
@@ -752,22 +754,19 @@ class TestPipelineManagement:
                 "qualification": 7,
                 "proposal": 5,
                 "negotiation": 3,
-                "closed_won": 2
+                "closed_won": 2,
             },
             "key_metrics": {
                 "conversion_rate": 28.5,
                 "average_deal_size": 400000.0,
-                "pipeline_velocity": 82.3
-            }
+                "pipeline_velocity": 82.3,
+            },
         }
         mock_get_overview.return_value = mock_overview
 
         response = client.get(
             "/api/v1/pipeline/overview",
-            params={
-                "organization_id": "org-123",
-                "time_period": "current_quarter"
-            }
+            params={"organization_id": "org-123", "time_period": "current_quarter"},
         )
 
         assert response.status_code == 200
@@ -775,7 +774,7 @@ class TestPipelineManagement:
         assert data["total_pipeline_value"] == 10000000.0
         assert data["opportunities_count"] == 25
 
-    @patch('app.crud.crm_v31.CRMService.bulk_update_opportunities')
+    @patch("app.crud.crm_v31.CRMService.bulk_update_opportunities")
     def test_bulk_update_pipeline(self, mock_bulk_update):
         """Test bulk pipeline updates."""
         mock_result = {
@@ -783,14 +782,14 @@ class TestPipelineManagement:
             "failed_count": 0,
             "total_requested": 5,
             "success_rate": 100.0,
-            "updated_opportunities": ["opp-1", "opp-2", "opp-3", "opp-4", "opp-5"]
+            "updated_opportunities": ["opp-1", "opp-2", "opp-3", "opp-4", "opp-5"],
         }
         mock_bulk_update.return_value = mock_result
 
         updates = [
             {"opportunity_id": "opp-1", "stage": "proposal", "probability": 60.0},
             {"opportunity_id": "opp-2", "stage": "negotiation", "probability": 75.0},
-            {"opportunity_id": "opp-3", "probability": 85.0}
+            {"opportunity_id": "opp-3", "probability": 85.0},
         ]
 
         response = client.post("/api/v1/pipeline/bulk-update", json=updates)
@@ -804,7 +803,7 @@ class TestPipelineManagement:
 class TestLeadConversion:
     """Test suite for Lead Conversion Analysis endpoints."""
 
-    @patch('app.crud.crm_v31.CRMService.get_lead_conversion_analytics')
+    @patch("app.crud.crm_v31.CRMService.get_lead_conversion_analytics")
     def test_get_lead_conversion_analytics(self, mock_get_analytics):
         """Test lead conversion analytics retrieval."""
         mock_analytics = {
@@ -813,19 +812,19 @@ class TestLeadConversion:
                 "marketing_qualified": 200,
                 "sales_qualified": 100,
                 "opportunities_created": 50,
-                "deals_won": 12
+                "deals_won": 12,
             },
             "conversion_rates": {
                 "lead_to_mql": 40.0,
                 "mql_to_sql": 50.0,
                 "sql_to_opportunity": 50.0,
-                "opportunity_to_deal": 24.0
+                "opportunity_to_deal": 24.0,
             },
             "source_performance": {
                 "website": {"leads": 200, "conversions": 8, "rate": 4.0},
                 "referral": {"leads": 150, "conversions": 6, "rate": 4.0},
-                "social_media": {"leads": 100, "conversions": 2, "rate": 2.0}
-            }
+                "social_media": {"leads": 100, "conversions": 2, "rate": 2.0},
+            },
         }
         mock_get_analytics.return_value = mock_analytics
 
@@ -834,8 +833,8 @@ class TestLeadConversion:
             params={
                 "organization_id": "org-123",
                 "period_start": "2024-01-01",
-                "period_end": "2024-03-31"
-            }
+                "period_end": "2024-03-31",
+            },
         )
 
         assert response.status_code == 200
@@ -843,7 +842,7 @@ class TestLeadConversion:
         assert data["conversion_funnel"]["leads_generated"] == 500
         assert data["conversion_rates"]["lead_to_mql"] == 40.0
 
-    @patch('app.crud.crm_v31.CRMService.calculate_lead_conversion_probability')
+    @patch("app.crud.crm_v31.CRMService.calculate_lead_conversion_probability")
     def test_get_lead_conversion_probability(self, mock_calculate_probability):
         """Test lead conversion probability calculation."""
         mock_probability = {
@@ -854,13 +853,13 @@ class TestLeadConversion:
                 "demographic_score": 85,
                 "behavioral_score": 70,
                 "engagement_level": 68,
-                "source_quality": 80
+                "source_quality": 80,
             },
             "recommended_actions": [
                 "Schedule demo call",
                 "Send case study materials",
-                "Connect with decision maker"
-            ]
+                "Connect with decision maker",
+            ],
         }
         mock_calculate_probability.return_value = mock_probability
 
@@ -875,7 +874,7 @@ class TestLeadConversion:
 class TestSystemHealth:
     """Test suite for CRM system health and status endpoints."""
 
-    @patch('app.crud.crm_v31.CRMService.get_system_health')
+    @patch("app.crud.crm_v31.CRMService.get_system_health")
     def test_crm_health_check_success(self, mock_get_health):
         """Test successful CRM health check."""
         mock_health = {
@@ -885,10 +884,10 @@ class TestSystemHealth:
             "performance_metrics": {
                 "avg_response_time_ms": 125,
                 "active_connections": 15,
-                "cache_hit_rate": 94.5
+                "cache_hit_rate": 94.5,
             },
             "version": "31.0",
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
         mock_get_health.return_value = mock_health
 
@@ -899,7 +898,7 @@ class TestSystemHealth:
         assert data["status"] == "healthy"
         assert data["services_available"] is True
 
-    @patch('app.crud.crm_v31.CRMService.get_system_health')
+    @patch("app.crud.crm_v31.CRMService.get_system_health")
     def test_crm_health_check_failure(self, mock_get_health):
         """Test CRM health check failure handling."""
         mock_get_health.side_effect = Exception("Database connection failed")
@@ -916,7 +915,7 @@ class TestSystemHealth:
 class TestCRMIntegrationScenarios:
     """Integration test scenarios for complete CRM workflows."""
 
-    @patch('app.crud.crm_v31.CRMService')
+    @patch("app.crud.crm_v31.CRMService")
     def test_complete_lead_to_customer_journey(self, mock_service):
         """Test complete journey from lead creation to customer conversion."""
         # Setup mocks for the entire journey
@@ -934,7 +933,7 @@ class TestCRMIntegrationScenarios:
         mock_conversion = {
             "lead_id": "lead-123",
             "customer_id": "customer-789",
-            "contact_id": "contact-012"
+            "contact_id": "contact-012",
         }
         mock_service_instance.convert_lead_to_customer.return_value = mock_conversion
 
@@ -949,7 +948,7 @@ class TestCRMIntegrationScenarios:
             "email": "prospect@test.com",
             "first_name": "Test",
             "last_name": "Prospect",
-            "lead_source": "website"
+            "lead_source": "website",
         }
 
         lead_response = client.post("/api/v1/leads", json=lead_data)
@@ -957,12 +956,16 @@ class TestCRMIntegrationScenarios:
 
         # Step 2: Assign lead
         assignment_data = {"assigned_to_id": "sales-rep-456"}
-        assign_response = client.post("/api/v1/leads/lead-123/assign", json=assignment_data)
+        assign_response = client.post(
+            "/api/v1/leads/lead-123/assign", json=assignment_data
+        )
         assert assign_response.status_code == 200
 
         # Step 3: Convert lead
         conversion_data = {"lead_id": "lead-123"}
-        convert_response = client.post("/api/v1/leads/lead-123/convert", json=conversion_data)
+        convert_response = client.post(
+            "/api/v1/leads/lead-123/convert", json=conversion_data
+        )
         assert convert_response.status_code == 200
 
         # Step 4: Create opportunity
@@ -972,13 +975,13 @@ class TestCRMIntegrationScenarios:
             "name": "New Opportunity",
             "amount": "100000.00",
             "expected_close_date": (date.today() + timedelta(days=30)).isoformat(),
-            "sales_rep_id": "sales-rep-456"
+            "sales_rep_id": "sales-rep-456",
         }
 
         opp_response = client.post("/api/v1/opportunities", json=opp_data)
         assert opp_response.status_code == 201
 
-    @patch('app.crud.crm_v31.CRMService')
+    @patch("app.crud.crm_v31.CRMService")
     def test_customer_lifecycle_management(self, mock_service):
         """Test comprehensive customer lifecycle management."""
         mock_service_instance = mock_service.return_value
@@ -997,14 +1000,14 @@ class TestCRMIntegrationScenarios:
         # Customer lifecycle workflow
         customer_data = {
             "organization_id": "org-123",
-            "company_name": "Test Customer Corp"
+            "company_name": "Test Customer Corp",
         }
 
         contact_data = {
             "customer_id": "customer-123",
             "organization_id": "org-123",
             "first_name": "John",
-            "last_name": "Doe"
+            "last_name": "Doe",
         }
 
         activity_data = {
@@ -1013,14 +1016,14 @@ class TestCRMIntegrationScenarios:
             "activity_type": "call",
             "subject": "Welcome call",
             "activity_date": datetime.now().isoformat(),
-            "owner_id": "user-123"
+            "owner_id": "user-123",
         }
 
         ticket_data = {
             "customer_id": "customer-123",
             "organization_id": "org-123",
             "subject": "Setup assistance",
-            "description": "Customer needs help with initial setup"
+            "description": "Customer needs help with initial setup",
         }
 
         # Execute workflow

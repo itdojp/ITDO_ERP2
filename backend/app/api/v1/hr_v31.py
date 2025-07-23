@@ -110,6 +110,7 @@ router = APIRouter()
 # 1. Employee Management Endpoint
 # =============================================================================
 
+
 @router.get("/employees", response_model=List[EmployeeResponse])
 async def list_employees(
     organization_id: Optional[str] = Query(None),
@@ -137,8 +138,9 @@ async def list_employees(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error retrieving employees: {str(e)}"
+            detail=f"Error retrieving employees: {str(e)}",
         )
+
 
 @router.post("/employees", response_model=EmployeeResponse)
 async def create_new_employee(
@@ -150,15 +152,13 @@ async def create_new_employee(
         employee = create_employee(db, employee_data)
         return employee
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error creating employee: {str(e)}"
+            detail=f"Error creating employee: {str(e)}",
         )
+
 
 @router.get("/employees/{employee_id}", response_model=EmployeeResponse)
 async def get_employee_details(
@@ -169,10 +169,10 @@ async def get_employee_details(
     employee = get_employee(db, employee_id)
     if not employee:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Employee not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Employee not found"
         )
     return employee
+
 
 @router.put("/employees/{employee_id}", response_model=EmployeeResponse)
 async def update_employee_details(
@@ -185,20 +185,17 @@ async def update_employee_details(
         employee = update_employee(db, employee_id, employee_data)
         if not employee:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Employee not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Employee not found"
             )
         return employee
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error updating employee: {str(e)}"
+            detail=f"Error updating employee: {str(e)}",
         )
+
 
 @router.post("/employees/{employee_id}/terminate", response_model=EmployeeResponse)
 async def terminate_employee_record(
@@ -211,24 +208,22 @@ async def terminate_employee_record(
         employee = terminate_employee(db, employee_id, termination_data)
         if not employee:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Employee not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Employee not found"
             )
         return employee
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error terminating employee: {str(e)}"
+            detail=f"Error terminating employee: {str(e)}",
         )
+
 
 # =============================================================================
 # 2. Payroll Processing Endpoint
 # =============================================================================
+
 
 @router.get("/payroll", response_model=List[PayrollRecordResponse])
 async def list_payroll_records(
@@ -260,8 +255,9 @@ async def list_payroll_records(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error retrieving payroll records: {str(e)}"
+            detail=f"Error retrieving payroll records: {str(e)}",
         )
+
 
 @router.post("/payroll", response_model=PayrollRecordResponse)
 async def create_payroll_entry(
@@ -273,15 +269,13 @@ async def create_payroll_entry(
         record = create_payroll_record(db, payroll_data)
         return record
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error creating payroll record: {str(e)}"
+            detail=f"Error creating payroll record: {str(e)}",
         )
+
 
 @router.post("/payroll/calculate", response_model=PayrollRecordResponse)
 async def calculate_employee_payroll(
@@ -293,15 +287,13 @@ async def calculate_employee_payroll(
         record = calculate_payroll(db, calculation_data)
         return record
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error calculating payroll: {str(e)}"
+            detail=f"Error calculating payroll: {str(e)}",
         )
+
 
 @router.get("/payroll/{record_id}", response_model=PayrollRecordResponse)
 async def get_payroll_record_details(
@@ -312,10 +304,10 @@ async def get_payroll_record_details(
     record = get_payroll_record(db, record_id)
     if not record:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Payroll record not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Payroll record not found"
         )
     return record
+
 
 @router.put("/payroll/{record_id}", response_model=PayrollRecordResponse)
 async def update_payroll_entry(
@@ -328,24 +320,22 @@ async def update_payroll_entry(
         record = update_payroll_record(db, record_id, payroll_data)
         if not record:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Payroll record not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Payroll record not found"
             )
         return record
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error updating payroll record: {str(e)}"
+            detail=f"Error updating payroll record: {str(e)}",
         )
+
 
 # =============================================================================
 # 3. Leave Management Endpoint
 # =============================================================================
+
 
 @router.get("/leave-requests", response_model=List[LeaveRequestResponse])
 async def list_leave_requests(
@@ -380,8 +370,9 @@ async def list_leave_requests(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error retrieving leave requests: {str(e)}"
+            detail=f"Error retrieving leave requests: {str(e)}",
         )
+
 
 @router.post("/leave-requests", response_model=LeaveRequestResponse)
 async def create_leave_application(
@@ -393,15 +384,13 @@ async def create_leave_application(
         request = create_leave_request(db, leave_data)
         return request
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error creating leave request: {str(e)}"
+            detail=f"Error creating leave request: {str(e)}",
         )
+
 
 @router.get("/leave-requests/{request_id}", response_model=LeaveRequestResponse)
 async def get_leave_request_details(
@@ -412,10 +401,10 @@ async def get_leave_request_details(
     request = get_leave_request(db, request_id)
     if not request:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Leave request not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Leave request not found"
         )
     return request
+
 
 @router.put("/leave-requests/{request_id}", response_model=LeaveRequestResponse)
 async def update_leave_application(
@@ -428,22 +417,21 @@ async def update_leave_application(
         request = update_leave_request(db, request_id, leave_data)
         if not request:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Leave request not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Leave request not found"
             )
         return request
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error updating leave request: {str(e)}"
+            detail=f"Error updating leave request: {str(e)}",
         )
 
-@router.post("/leave-requests/{request_id}/approve", response_model=LeaveRequestResponse)
+
+@router.post(
+    "/leave-requests/{request_id}/approve", response_model=LeaveRequestResponse
+)
 async def approve_leave_application(
     request_id: str,
     approval_data: ApproveLeaveRequest,
@@ -454,24 +442,22 @@ async def approve_leave_application(
         request = approve_leave_request(db, request_id, approval_data)
         if not request:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Leave request not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Leave request not found"
             )
         return request
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error approving leave request: {str(e)}"
+            detail=f"Error approving leave request: {str(e)}",
         )
+
 
 # =============================================================================
 # 4. Performance Reviews Endpoint
 # =============================================================================
+
 
 @router.get("/performance-reviews", response_model=List[PerformanceReviewResponse])
 async def list_performance_reviews(
@@ -503,8 +489,9 @@ async def list_performance_reviews(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error retrieving performance reviews: {str(e)}"
+            detail=f"Error retrieving performance reviews: {str(e)}",
         )
+
 
 @router.post("/performance-reviews", response_model=PerformanceReviewResponse)
 async def create_performance_evaluation(
@@ -516,15 +503,13 @@ async def create_performance_evaluation(
         review = create_performance_review(db, review_data)
         return review
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error creating performance review: {str(e)}"
+            detail=f"Error creating performance review: {str(e)}",
         )
+
 
 @router.post("/performance-reviews/cycle", response_model=Dict[str, Any])
 async def create_review_cycle(
@@ -540,16 +525,19 @@ async def create_review_cycle(
             "organization_id": cycle_data.organization_id,
             "period_start": cycle_data.review_period_start,
             "period_end": cycle_data.review_period_end,
-            "reviews_created": 0  # Would be actual count
+            "reviews_created": 0,  # Would be actual count
         }
         return result
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error creating review cycle: {str(e)}"
+            detail=f"Error creating review cycle: {str(e)}",
         )
 
-@router.get("/performance-reviews/{review_id}", response_model=PerformanceReviewResponse)
+
+@router.get(
+    "/performance-reviews/{review_id}", response_model=PerformanceReviewResponse
+)
 async def get_performance_review_details(
     review_id: str,
     db: Session = Depends(get_db),
@@ -558,12 +546,14 @@ async def get_performance_review_details(
     review = get_performance_review(db, review_id)
     if not review:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Performance review not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Performance review not found"
         )
     return review
 
-@router.put("/performance-reviews/{review_id}", response_model=PerformanceReviewResponse)
+
+@router.put(
+    "/performance-reviews/{review_id}", response_model=PerformanceReviewResponse
+)
 async def update_performance_evaluation(
     review_id: str,
     review_data: PerformanceReviewUpdate,
@@ -575,23 +565,22 @@ async def update_performance_evaluation(
         if not review:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Performance review not found"
+                detail="Performance review not found",
             )
         return review
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error updating performance review: {str(e)}"
+            detail=f"Error updating performance review: {str(e)}",
         )
+
 
 # =============================================================================
 # 5. Training Management Endpoint
 # =============================================================================
+
 
 @router.get("/training", response_model=List[TrainingRecordResponse])
 async def list_training_records(
@@ -623,8 +612,9 @@ async def list_training_records(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error retrieving training records: {str(e)}"
+            detail=f"Error retrieving training records: {str(e)}",
         )
+
 
 @router.post("/training", response_model=TrainingRecordResponse)
 async def create_training_session(
@@ -636,15 +626,13 @@ async def create_training_session(
         record = create_training_record(db, training_data)
         return record
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error creating training record: {str(e)}"
+            detail=f"Error creating training record: {str(e)}",
         )
+
 
 @router.get("/training/{training_id}", response_model=TrainingRecordResponse)
 async def get_training_record_details(
@@ -655,10 +643,10 @@ async def get_training_record_details(
     record = get_training_record(db, training_id)
     if not record:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Training record not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Training record not found"
         )
     return record
+
 
 @router.put("/training/{training_id}", response_model=TrainingRecordResponse)
 async def update_training_session(
@@ -672,19 +660,17 @@ async def update_training_session(
         if not record:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Training record not found"
+                detail="Training record not found",
             )
         return record
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error updating training record: {str(e)}"
+            detail=f"Error updating training record: {str(e)}",
         )
+
 
 @router.post("/training/{training_id}/complete", response_model=TrainingRecordResponse)
 async def complete_training_session(
@@ -698,23 +684,22 @@ async def complete_training_session(
         if not record:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Training record not found"
+                detail="Training record not found",
             )
         return record
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error completing training: {str(e)}"
+            detail=f"Error completing training: {str(e)}",
         )
+
 
 # =============================================================================
 # 6. Benefits Administration Endpoint
 # =============================================================================
+
 
 @router.get("/benefits", response_model=List[EmployeeBenefitResponse])
 async def list_employee_benefits(
@@ -744,8 +729,9 @@ async def list_employee_benefits(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error retrieving benefits: {str(e)}"
+            detail=f"Error retrieving benefits: {str(e)}",
         )
+
 
 @router.post("/benefits", response_model=EmployeeBenefitResponse)
 async def create_benefit_enrollment(
@@ -757,15 +743,13 @@ async def create_benefit_enrollment(
         benefit = create_employee_benefit(db, benefit_data)
         return benefit
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error creating benefit enrollment: {str(e)}"
+            detail=f"Error creating benefit enrollment: {str(e)}",
         )
+
 
 @router.get("/benefits/{benefit_id}", response_model=EmployeeBenefitResponse)
 async def get_benefit_details(
@@ -776,10 +760,10 @@ async def get_benefit_details(
     benefit = get_employee_benefit(db, benefit_id)
     if not benefit:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Benefit enrollment not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Benefit enrollment not found"
         )
     return benefit
+
 
 @router.put("/benefits/{benefit_id}", response_model=EmployeeBenefitResponse)
 async def update_benefit_enrollment(
@@ -793,23 +777,22 @@ async def update_benefit_enrollment(
         if not benefit:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Benefit enrollment not found"
+                detail="Benefit enrollment not found",
             )
         return benefit
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error updating benefit enrollment: {str(e)}"
+            detail=f"Error updating benefit enrollment: {str(e)}",
         )
+
 
 # =============================================================================
 # 7. Recruitment Endpoint
 # =============================================================================
+
 
 @router.get("/job-postings", response_model=List[JobPostingResponse])
 async def list_job_postings(
@@ -838,8 +821,9 @@ async def list_job_postings(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error retrieving job postings: {str(e)}"
+            detail=f"Error retrieving job postings: {str(e)}",
         )
+
 
 @router.post("/job-postings", response_model=JobPostingResponse)
 async def create_job_posting(
@@ -851,15 +835,13 @@ async def create_job_posting(
         posting = create_job_posting(db, posting_data)
         return posting
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error creating job posting: {str(e)}"
+            detail=f"Error creating job posting: {str(e)}",
         )
+
 
 @router.get("/job-postings/{posting_id}", response_model=JobPostingResponse)
 async def get_job_posting_details(
@@ -870,10 +852,10 @@ async def get_job_posting_details(
     posting = get_job_posting(db, posting_id)
     if not posting:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Job posting not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Job posting not found"
         )
     return posting
+
 
 @router.put("/job-postings/{posting_id}", response_model=JobPostingResponse)
 async def update_job_posting_details(
@@ -886,24 +868,22 @@ async def update_job_posting_details(
         posting = update_job_posting(db, posting_id, posting_data)
         if not posting:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Job posting not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Job posting not found"
             )
         return posting
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error updating job posting: {str(e)}"
+            detail=f"Error updating job posting: {str(e)}",
         )
+
 
 # =============================================================================
 # 8. Onboarding Endpoint
 # =============================================================================
+
 
 @router.get("/onboarding", response_model=List[OnboardingRecordResponse])
 async def list_onboarding_records(
@@ -932,8 +912,9 @@ async def list_onboarding_records(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error retrieving onboarding records: {str(e)}"
+            detail=f"Error retrieving onboarding records: {str(e)}",
         )
+
 
 @router.post("/onboarding", response_model=OnboardingRecordResponse)
 async def create_onboarding_process(
@@ -945,15 +926,13 @@ async def create_onboarding_process(
         record = create_onboarding_record(db, onboarding_data)
         return record
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error creating onboarding record: {str(e)}"
+            detail=f"Error creating onboarding record: {str(e)}",
         )
+
 
 @router.get("/onboarding/{record_id}", response_model=OnboardingRecordResponse)
 async def get_onboarding_record_details(
@@ -964,10 +943,10 @@ async def get_onboarding_record_details(
     record = get_onboarding_record(db, record_id)
     if not record:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Onboarding record not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Onboarding record not found"
         )
     return record
+
 
 @router.put("/onboarding/{record_id}", response_model=OnboardingRecordResponse)
 async def update_onboarding_process(
@@ -981,23 +960,22 @@ async def update_onboarding_process(
         if not record:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Onboarding record not found"
+                detail="Onboarding record not found",
             )
         return record
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error updating onboarding record: {str(e)}"
+            detail=f"Error updating onboarding record: {str(e)}",
         )
+
 
 # =============================================================================
 # 9. Position Management Endpoint
 # =============================================================================
+
 
 @router.get("/positions", response_model=List[PositionResponse])
 async def list_positions(
@@ -1026,8 +1004,9 @@ async def list_positions(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error retrieving positions: {str(e)}"
+            detail=f"Error retrieving positions: {str(e)}",
         )
+
 
 @router.post("/positions", response_model=PositionResponse)
 async def create_position_definition(
@@ -1039,15 +1018,13 @@ async def create_position_definition(
         position = create_position(db, position_data)
         return position
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error creating position: {str(e)}"
+            detail=f"Error creating position: {str(e)}",
         )
+
 
 @router.get("/positions/{position_id}", response_model=PositionResponse)
 async def get_position_details(
@@ -1058,10 +1035,10 @@ async def get_position_details(
     position = get_position(db, position_id)
     if not position:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Position not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Position not found"
         )
     return position
+
 
 @router.put("/positions/{position_id}", response_model=PositionResponse)
 async def update_position_definition(
@@ -1074,24 +1051,22 @@ async def update_position_definition(
         position = update_position(db, position_id, position_data)
         if not position:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Position not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Position not found"
             )
         return position
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error updating position: {str(e)}"
+            detail=f"Error updating position: {str(e)}",
         )
+
 
 # =============================================================================
 # 10. HR Analytics Endpoint
 # =============================================================================
+
 
 @router.get("/analytics", response_model=HRAnalyticsResponse)
 async def get_hr_analytics_data(
@@ -1103,18 +1078,20 @@ async def get_hr_analytics_data(
 ) -> HRAnalyticsResponse:
     """Get HR analytics data for specified period."""
     try:
-        analytics = get_hr_analytics(db, organization_id, period_start, period_end, period_type)
+        analytics = get_hr_analytics(
+            db, organization_id, period_start, period_end, period_type
+        )
         if not analytics:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Analytics data not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Analytics data not found"
             )
         return analytics
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error retrieving HR analytics: {str(e)}"
+            detail=f"Error retrieving HR analytics: {str(e)}",
         )
+
 
 @router.get("/dashboard", response_model=HRDashboardMetrics)
 async def get_hr_dashboard_data(
@@ -1132,12 +1109,14 @@ async def get_hr_dashboard_data(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error retrieving dashboard metrics: {str(e)}"
+            detail=f"Error retrieving dashboard metrics: {str(e)}",
         )
+
 
 # =============================================================================
 # Additional Analytical Endpoints
 # =============================================================================
+
 
 @router.get("/employees/{employee_id}/tenure", response_model=EmployeeTenureAnalysis)
 async def get_employee_tenure_analysis(
@@ -1155,16 +1134,19 @@ async def get_employee_tenure_analysis(
             tenure_years=1.0,
             service_milestones=["1 year"],
             is_probationary=False,
-            probation_end_date=None
+            probation_end_date=None,
         )
         return analysis
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error retrieving tenure analysis: {str(e)}"
+            detail=f"Error retrieving tenure analysis: {str(e)}",
         )
 
-@router.get("/employees/{employee_id}/leave-balance", response_model=LeaveBalanceSummary)
+
+@router.get(
+    "/employees/{employee_id}/leave-balance", response_model=LeaveBalanceSummary
+)
 async def get_employee_leave_balance(
     employee_id: str,
     as_of_date: Optional[date] = Query(None),
@@ -1181,15 +1163,16 @@ async def get_employee_leave_balance(
             as_of_date=as_of_date,
             leave_balances={
                 "annual": {"balance": 20.0, "used": 5.0, "remaining": 15.0},
-                "sick": {"balance": 10.0, "used": 2.0, "remaining": 8.0}
-            }
+                "sick": {"balance": 10.0, "used": 2.0, "remaining": 8.0},
+            },
         )
         return balance
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error retrieving leave balance: {str(e)}"
+            detail=f"Error retrieving leave balance: {str(e)}",
         )
+
 
 @router.get("/payroll/summary", response_model=PayrollSummary)
 async def get_payroll_summary(
@@ -1209,11 +1192,11 @@ async def get_payroll_summary(
             total_net_pay=800000.0,
             total_taxes_withheld=200000.0,
             average_gross_pay=20000.0,
-            average_net_pay=16000.0
+            average_net_pay=16000.0,
         )
         return summary
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error retrieving payroll summary: {str(e)}"
+            detail=f"Error retrieving payroll summary: {str(e)}",
         )

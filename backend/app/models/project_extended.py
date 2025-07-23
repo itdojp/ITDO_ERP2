@@ -285,8 +285,16 @@ class TaskExtended(Base):
     creator = relationship("User", foreign_keys=[created_by])
 
     # Task-related relationships
-    dependencies = relationship("TaskDependencyExtended", foreign_keys="[TaskDependencyExtended.task_id]", back_populates="task")
-    dependents = relationship("TaskDependencyExtended", foreign_keys="[TaskDependencyExtended.dependent_task_id]", back_populates="dependent_task")
+    dependencies = relationship(
+        "TaskDependencyExtended",
+        foreign_keys="[TaskDependencyExtended.task_id]",
+        back_populates="task",
+    )
+    dependents = relationship(
+        "TaskDependencyExtended",
+        foreign_keys="[TaskDependencyExtended.dependent_task_id]",
+        back_populates="dependent_task",
+    )
     time_entries = relationship("TimeEntry", back_populates="task")
     comments = relationship("TaskComment", back_populates="task")
 
@@ -301,7 +309,9 @@ class TaskDependencyExtended(Base):
     dependent_task_id = Column(String, ForeignKey("tasks_extended.id"), nullable=False)
 
     # Dependency type
-    dependency_type = Column(String(50), default="finish_to_start")  # finish_to_start, start_to_start, finish_to_finish, start_to_finish
+    dependency_type = Column(
+        String(50), default="finish_to_start"
+    )  # finish_to_start, start_to_start, finish_to_finish, start_to_finish
     lag_days = Column(Integer, default=0)  # Lag time in days
 
     # Metadata
@@ -310,8 +320,12 @@ class TaskDependencyExtended(Base):
     created_by = Column(String, ForeignKey("users.id"))
 
     # Relationships
-    task = relationship("TaskExtended", foreign_keys=[task_id], back_populates="dependencies")
-    dependent_task = relationship("TaskExtended", foreign_keys=[dependent_task_id], back_populates="dependents")
+    task = relationship(
+        "TaskExtended", foreign_keys=[task_id], back_populates="dependencies"
+    )
+    dependent_task = relationship(
+        "TaskExtended", foreign_keys=[dependent_task_id], back_populates="dependents"
+    )
     creator = relationship("User", foreign_keys=[created_by])
 
 
@@ -507,7 +521,9 @@ class ProjectDeliverable(Base):
     deliverable_type = Column(String(50))  # document, software, report, presentation
 
     # Status
-    status = Column(String(50), default="planned")  # planned, in_progress, completed, delivered
+    status = Column(
+        String(50), default="planned"
+    )  # planned, in_progress, completed, delivered
     completion_percentage = Column(Numeric(5, 2), default=0)
 
     # Timeline
@@ -605,7 +621,9 @@ class TaskComment(Base):
 
     # Comment details
     comment = Column(Text, nullable=False)
-    comment_type = Column(String(50), default="general")  # general, status_update, question, review
+    comment_type = Column(
+        String(50), default="general"
+    )  # general, status_update, question, review
 
     # Mentions and notifications
     mentions = Column(JSON, default=[])  # User IDs mentioned

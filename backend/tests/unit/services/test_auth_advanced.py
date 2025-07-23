@@ -1,4 +1,5 @@
 """Advanced tests for auth service."""
+
 from unittest.mock import Mock
 
 # Import the service class
@@ -12,7 +13,6 @@ class TestAuthService:
         """Setup test environment."""
         self.mock_db = Mock()
         # self.service = ServiceClass(self.mock_db)
-
 
     def test_authenticate_user_success(self):
         """Test authenticate_user successful execution."""

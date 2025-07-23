@@ -128,7 +128,9 @@ class NotificationExtended(Base):
     notification_type = Column(SQLEnum(NotificationType), nullable=False)
     category = Column(String(100))
     subcategory = Column(String(100))
-    priority = Column(SQLEnum(NotificationPriority), default=NotificationPriority.NORMAL)
+    priority = Column(
+        SQLEnum(NotificationPriority), default=NotificationPriority.NORMAL
+    )
 
     # Recipients
     recipient_user_id = Column(String, ForeignKey("users.id"))
@@ -152,7 +154,9 @@ class NotificationExtended(Base):
 
     # Delivery channels
     channels = Column(JSON, default=["in_app"])
-    primary_channel = Column(SQLEnum(NotificationChannel), default=NotificationChannel.IN_APP)
+    primary_channel = Column(
+        SQLEnum(NotificationChannel), default=NotificationChannel.IN_APP
+    )
     fallback_channels = Column(JSON, default=[])
 
     # Scheduling and timing
@@ -221,7 +225,9 @@ class NotificationExtended(Base):
 
     # Notification-related relationships
     deliveries = relationship("NotificationDelivery", back_populates="notification")
-    interactions = relationship("NotificationInteraction", back_populates="notification")
+    interactions = relationship(
+        "NotificationInteraction", back_populates="notification"
+    )
 
 
 class NotificationTemplate(Base):
@@ -247,7 +253,9 @@ class NotificationTemplate(Base):
 
     # Template configuration
     notification_type = Column(SQLEnum(NotificationType), nullable=False)
-    default_priority = Column(SQLEnum(NotificationPriority), default=NotificationPriority.NORMAL)
+    default_priority = Column(
+        SQLEnum(NotificationPriority), default=NotificationPriority.NORMAL
+    )
     default_channels = Column(JSON, default=["in_app"])
 
     # Variables and placeholders
@@ -299,7 +307,9 @@ class NotificationDelivery(Base):
     __tablename__ = "notification_deliveries"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    notification_id = Column(String, ForeignKey("notifications_extended.id"), nullable=False)
+    notification_id = Column(
+        String, ForeignKey("notifications_extended.id"), nullable=False
+    )
     organization_id = Column(String, ForeignKey("organizations.id"), nullable=False)
 
     # Delivery channel
@@ -308,7 +318,9 @@ class NotificationDelivery(Base):
     provider_message_id = Column(String(200))
 
     # Recipient information
-    recipient_address = Column(String(500), nullable=False)  # email, phone, device token
+    recipient_address = Column(
+        String(500), nullable=False
+    )  # email, phone, device token
     recipient_name = Column(String(200))
     recipient_type = Column(String(50))  # user, group, role, external
 
@@ -391,13 +403,15 @@ class NotificationPreference(Base):
     # Timing preferences
     quiet_hours_enabled = Column(Boolean, default=False)
     quiet_hours_start = Column(String(5))  # HH:MM format
-    quiet_hours_end = Column(String(5))    # HH:MM format
+    quiet_hours_end = Column(String(5))  # HH:MM format
     timezone = Column(String(50))
 
     # Frequency preferences
     max_emails_per_day = Column(Integer, default=50)
     max_sms_per_day = Column(Integer, default=10)
-    digest_frequency = Column(String(20), default="daily")  # instant, hourly, daily, weekly
+    digest_frequency = Column(
+        String(20), default="daily"
+    )  # instant, hourly, daily, weekly
 
     # Channel-specific settings
     email_address = Column(String(200))
@@ -444,7 +458,9 @@ class NotificationSubscription(Base):
     # Subscription configuration
     status = Column(SQLEnum(SubscriptionStatus), default=SubscriptionStatus.ACTIVE)
     channels = Column(JSON, default=["in_app"])
-    priority = Column(SQLEnum(NotificationPriority), default=NotificationPriority.NORMAL)
+    priority = Column(
+        SQLEnum(NotificationPriority), default=NotificationPriority.NORMAL
+    )
 
     # Filters and conditions
     filters = Column(JSON, default={})
@@ -486,13 +502,17 @@ class NotificationInteraction(Base):
     __tablename__ = "notification_interactions"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    notification_id = Column(String, ForeignKey("notifications_extended.id"), nullable=False)
+    notification_id = Column(
+        String, ForeignKey("notifications_extended.id"), nullable=False
+    )
     organization_id = Column(String, ForeignKey("organizations.id"), nullable=False)
 
     # Interaction details
     user_id = Column(String, ForeignKey("users.id"))
     session_id = Column(String(100))
-    interaction_type = Column(String(50), nullable=False)  # view, click, action, share, dismiss
+    interaction_type = Column(
+        String(50), nullable=False
+    )  # view, click, action, share, dismiss
     action_id = Column(String(100))  # For action buttons
 
     # Context information
@@ -543,7 +563,9 @@ class NotificationEvent(Base):
     processing_errors = Column(JSON, default=[])
 
     # Event metadata
-    priority = Column(SQLEnum(NotificationPriority), default=NotificationPriority.NORMAL)
+    priority = Column(
+        SQLEnum(NotificationPriority), default=NotificationPriority.NORMAL
+    )
     batch_id = Column(String(100))
     correlation_id = Column(String(100))
 

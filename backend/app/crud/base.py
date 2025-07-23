@@ -54,7 +54,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         db: Session,
         *,
         db_obj: ModelType,
-        obj_in: Union[UpdateSchemaType, Dict[str, Any]]
+        obj_in: Union[UpdateSchemaType, Dict[str, Any]],
     ) -> ModelType:
         """Update a record"""
         obj_data = jsonable_encoder(db_obj)
@@ -77,9 +77,15 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         db.commit()
         return obj
 
-    def get_by_field(self, db: Session, field_name: str, value: Any) -> Optional[ModelType]:
+    def get_by_field(
+        self, db: Session, field_name: str, value: Any
+    ) -> Optional[ModelType]:
         """Get a record by a specific field"""
-        return db.query(self.model).filter(getattr(self.model, field_name) == value).first()
+        return (
+            db.query(self.model)
+            .filter(getattr(self.model, field_name) == value)
+            .first()
+        )
 
     def get_multi_by_field(
         self, db: Session, field_name: str, value: Any, skip: int = 0, limit: int = 100

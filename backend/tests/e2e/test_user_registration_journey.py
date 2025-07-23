@@ -73,9 +73,7 @@ class TestUserRegistrationJourneyE2E:
         tasks = []
 
         for i in range(5):  # 5 concurrent users
-            task = asyncio.create_task(
-                async_client.get(f"/api/v1/health?user={i}")
-            )
+            task = asyncio.create_task(async_client.get(f"/api/v1/health?user={i}"))
             tasks.append(task)
 
         responses = await asyncio.gather(*tasks)

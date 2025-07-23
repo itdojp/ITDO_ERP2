@@ -1,4 +1,5 @@
 """Continuous quality monitoring tool."""
+
 import json
 import os
 import subprocess
@@ -17,7 +18,7 @@ class QualityMonitor:
             "type_errors": {},
             "lint_issues": {},
             "test_results": {},
-            "improvements": []
+            "improvements": [],
         }
 
     def log(self, message: str):
@@ -38,7 +39,7 @@ class QualityMonitor:
                 ["uv", "run", "pytest", "--cov=app", "--cov-report=json", "-q"],
                 capture_output=True,
                 text=True,
-                cwd="backend"
+                cwd="backend",
             )
 
             if os.path.exists("backend/coverage.json"):
@@ -61,7 +62,7 @@ class QualityMonitor:
                 ["uv", "run", "mypy", "app/", "--ignore-missing-imports"],
                 capture_output=True,
                 text=True,
-                cwd="backend"
+                cwd="backend",
             )
 
             error_count = result.stdout.count("error:")
@@ -144,11 +145,7 @@ class Test{Path(file_path).stem.title()}:
 
         # Fix imports
         self.log("Fixing import issues...")
-        subprocess.run(
-            ["uv", "run", "isort", "."],
-            cwd="backend",
-            capture_output=True
-        )
+        subprocess.run(["uv", "run", "isort", "."], cwd="backend", capture_output=True)
         improvements.append("Fixed import ordering")
 
         # Fix basic linting
@@ -156,7 +153,7 @@ class Test{Path(file_path).stem.title()}:
         result = subprocess.run(
             ["uv", "run", "ruff", "check", ".", "--fix", "--unsafe-fixes"],
             cwd="backend",
-            capture_output=True
+            capture_output=True,
         )
         if result.returncode == 0:
             improvements.append("Fixed linting issues")
@@ -164,9 +161,7 @@ class Test{Path(file_path).stem.title()}:
         # Format code
         self.log("Formatting code...")
         subprocess.run(
-            ["uv", "run", "ruff", "format", "."],
-            cwd="backend",
-            capture_output=True
+            ["uv", "run", "ruff", "format", "."], cwd="backend", capture_output=True
         )
         improvements.append("Formatted code")
 
@@ -198,7 +193,9 @@ class Test{Path(file_path).stem.title()}:
                     test_path = self.generate_test_for_file(file_path)
 
                     if test_path:
-                        self.metrics["improvements"].append(f"Generated test: {test_path}")
+                        self.metrics["improvements"].append(
+                            f"Generated test: {test_path}"
+                        )
 
             # 4. Fix common issues
             if cycle % 5 == 0:  # Every 5 cycles
@@ -224,11 +221,11 @@ class Test{Path(file_path).stem.title()}:
 Generated: {datetime.now().isoformat()}
 
 ## Metrics
-- Coverage: {self.metrics['coverage'].get('backend', 0):.1f}%
-- Type Errors: {self.metrics['type_errors'].get('count', 0)}
+- Coverage: {self.metrics["coverage"].get("backend", 0):.1f}%
+- Type Errors: {self.metrics["type_errors"].get("count", 0)}
 
 ## Recent Improvements
-{chr(10).join(f"- {imp}" for imp in self.metrics['improvements'][-10:])}
+{chr(10).join(f"- {imp}" for imp in self.metrics["improvements"][-10:])}
 
 ## Next Steps
 - Continue improving test coverage
@@ -247,7 +244,9 @@ Generated: {datetime.now().isoformat()}
             os.chdir("/home/work/ITDO_ERP2")
 
             # Check for changes
-            result = subprocess.run(["git", "status", "-s"], capture_output=True, text=True)
+            result = subprocess.run(
+                ["git", "status", "-s"], capture_output=True, text=True
+            )
             if not result.stdout.strip():
                 return
 
@@ -256,12 +255,12 @@ Generated: {datetime.now().isoformat()}
 
             commit_message = f"""test: Quality improvements cycle {cycle} [CC02 v35]
 
-- Coverage: {self.metrics['coverage'].get('backend', 0):.1f}%
-- Type errors: {self.metrics['type_errors'].get('count', 0)}
-- Improvements: {len(self.metrics['improvements'])}
+- Coverage: {self.metrics["coverage"].get("backend", 0):.1f}%
+- Type errors: {self.metrics["type_errors"].get("count", 0)}
+- Improvements: {len(self.metrics["improvements"])}
 
 Automated quality improvements:
-{chr(10).join(f"- {imp}" for imp in self.metrics['improvements'][-5:])}
+{chr(10).join(f"- {imp}" for imp in self.metrics["improvements"][-5:])}
 """
 
             subprocess.run(["git", "commit", "-m", commit_message])

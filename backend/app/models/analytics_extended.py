@@ -159,7 +159,9 @@ class AnalyticsDataSource(Base):
     transformation_rules = Column(JSON, default={})
 
     # Sync configuration
-    sync_frequency = Column(String(50), default="daily")  # realtime, hourly, daily, weekly
+    sync_frequency = Column(
+        String(50), default="daily"
+    )  # realtime, hourly, daily, weekly
     sync_schedule = Column(String(100))  # cron expression
     last_sync_at = Column(DateTime)
     next_sync_at = Column(DateTime)
@@ -267,7 +269,9 @@ class AnalyticsMetric(Base):
     is_visible = Column(Boolean, default=True)
 
     # Permissions
-    access_level = Column(String(50), default="organization")  # public, organization, department, team, private
+    access_level = Column(
+        String(50), default="organization"
+    )  # public, organization, department, team, private
     allowed_roles = Column(JSON, default=[])
     allowed_users = Column(JSON, default=[])
 
@@ -555,7 +559,9 @@ class AnalyticsAlert(Base):
     # Alert identification
     name = Column(String(200), nullable=False)
     description = Column(Text)
-    alert_type = Column(String(100), nullable=False)  # threshold, anomaly, trend, comparison
+    alert_type = Column(
+        String(100), nullable=False
+    )  # threshold, anomaly, trend, comparison
 
     # Alert conditions
     conditions = Column(JSON, nullable=False)
@@ -627,10 +633,14 @@ class AnalyticsPrediction(Base):
     # Prediction identification
     name = Column(String(200), nullable=False)
     description = Column(Text)
-    prediction_type = Column(String(100), nullable=False)  # forecast, trend, classification, anomaly
+    prediction_type = Column(
+        String(100), nullable=False
+    )  # forecast, trend, classification, anomaly
 
     # Model configuration
-    model_type = Column(String(100), nullable=False)  # linear_regression, arima, neural_network, etc.
+    model_type = Column(
+        String(100), nullable=False
+    )  # linear_regression, arima, neural_network, etc.
     model_parameters = Column(JSON, default={})
     feature_columns = Column(JSON, default=[])
     target_column = Column(String(200))

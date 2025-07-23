@@ -33,6 +33,7 @@ from app.models.document_extended import (
 # Document Schemas
 # =============================================================================
 
+
 class DocumentBase(BaseModel):
     """Base schema for Document."""
 
@@ -145,6 +146,7 @@ class DocumentMoveRequest(BaseModel):
 # Folder Schemas
 # =============================================================================
 
+
 class FolderBase(BaseModel):
     """Base schema for Folder."""
 
@@ -216,6 +218,7 @@ class FolderContentsResponse(BaseModel):
 # =============================================================================
 # Document Sharing Schemas
 # =============================================================================
+
 
 class ShareBase(BaseModel):
     """Base schema for Document Share."""
@@ -293,6 +296,7 @@ class ShareAccessRequest(BaseModel):
 # Comment and Collaboration Schemas
 # =============================================================================
 
+
 class CommentBase(BaseModel):
     """Base schema for Document Comment."""
 
@@ -316,6 +320,7 @@ class CommentBase(BaseModel):
 
 class CommentCreate(CommentBase):
     """Schema for creating Document Comment."""
+
     pass
 
 
@@ -345,6 +350,7 @@ class CommentResponse(CommentBase):
 # =============================================================================
 # Approval Workflow Schemas
 # =============================================================================
+
 
 class WorkflowBase(BaseModel):
     """Base schema for Document Workflow."""
@@ -479,6 +485,7 @@ class ApprovalSubmissionRequest(BaseModel):
 # Digital Signature Schemas
 # =============================================================================
 
+
 class SignatureBase(BaseModel):
     """Base schema for Document Signature."""
 
@@ -558,6 +565,7 @@ class BulkSignatureRequest(BaseModel):
 # =============================================================================
 # Template Schemas
 # =============================================================================
+
 
 class TemplateBase(BaseModel):
     """Base schema for Document Template."""
@@ -647,6 +655,7 @@ class TemplateGenerationResponse(BaseModel):
 # Search and Filter Schemas
 # =============================================================================
 
+
 class DocumentSearchRequest(BaseModel):
     """Schema for document search request."""
 
@@ -697,6 +706,7 @@ class AdvancedSearchResponse(BaseModel):
 # =============================================================================
 # Analytics and Reporting Schemas
 # =============================================================================
+
 
 class DocumentAnalyticsRequest(BaseModel):
     """Schema for document analytics request."""
@@ -777,6 +787,7 @@ class DocumentAnalyticsResponse(BaseModel):
 # Permission and Access Control Schemas
 # =============================================================================
 
+
 class FolderPermissionBase(BaseModel):
     """Base schema for Folder Permission."""
 
@@ -835,6 +846,7 @@ class FolderPermissionResponse(FolderPermissionBase):
 # Activity and Audit Schemas
 # =============================================================================
 
+
 class ActivityBase(BaseModel):
     """Base schema for Document Activity."""
 
@@ -882,6 +894,7 @@ class ActivityFilterRequest(BaseModel):
 # Bulk Operations Schemas
 # =============================================================================
 
+
 class BulkDocumentOperation(BaseModel):
     """Schema for bulk document operations."""
 
@@ -928,6 +941,7 @@ class BulkShareOperation(BaseModel):
 # =============================================================================
 # System and Integration Schemas
 # =============================================================================
+
 
 class SystemHealthResponse(BaseModel):
     """Schema for system health response."""
@@ -990,6 +1004,7 @@ class SyncStatus(BaseModel):
 # =============================================================================
 # Validation and Helper Schemas
 # =============================================================================
+
 
 class FileUploadMetadata(BaseModel):
     """Schema for file upload metadata."""

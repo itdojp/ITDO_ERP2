@@ -34,6 +34,7 @@ from app.models.project_extended import (
 # Project Schemas
 # =============================================================================
 
+
 class ProjectBase(BaseModel):
     """Base schema for Project."""
 
@@ -62,6 +63,7 @@ class ProjectBase(BaseModel):
 
 class ProjectCreate(ProjectBase):
     """Schema for creating Project."""
+
     pass
 
 
@@ -125,6 +127,7 @@ class ProjectResponse(ProjectBase):
 # Task Schemas
 # =============================================================================
 
+
 class TaskBase(BaseModel):
     """Base schema for Task."""
 
@@ -153,6 +156,7 @@ class TaskBase(BaseModel):
 
 class TaskCreate(TaskBase):
     """Schema for creating Task."""
+
     pass
 
 
@@ -207,6 +211,7 @@ class TaskResponse(TaskBase):
 # Task Dependency Schemas
 # =============================================================================
 
+
 class TaskDependencyBase(BaseModel):
     """Base schema for Task Dependency."""
 
@@ -219,6 +224,7 @@ class TaskDependencyBase(BaseModel):
 
 class TaskDependencyCreate(TaskDependencyBase):
     """Schema for creating Task Dependency."""
+
     pass
 
 
@@ -236,6 +242,7 @@ class TaskDependencyResponse(TaskDependencyBase):
 # =============================================================================
 # Resource Management Schemas
 # =============================================================================
+
 
 class ProjectResourceBase(BaseModel):
     """Base schema for Project Resource."""
@@ -255,6 +262,7 @@ class ProjectResourceBase(BaseModel):
 
 class ProjectResourceCreate(ProjectResourceBase):
     """Schema for creating Project Resource."""
+
     pass
 
 
@@ -291,6 +299,7 @@ class ProjectResourceResponse(ProjectResourceBase):
 # Time Tracking Schemas
 # =============================================================================
 
+
 class TimeEntryBase(BaseModel):
     """Base schema for Time Entry."""
 
@@ -306,16 +315,17 @@ class TimeEntryBase(BaseModel):
     is_billable: bool = True
     billing_rate: Optional[Decimal] = Field(None, ge=0)
 
-    @validator('end_time')
+    @validator("end_time")
     def validate_end_time(cls, v, values):
-        if 'start_time' in values and values['start_time'] and v:
-            if v <= values['start_time']:
-                raise ValueError('End time must be after start time')
+        if "start_time" in values and values["start_time"] and v:
+            if v <= values["start_time"]:
+                raise ValueError("End time must be after start time")
         return v
 
 
 class TimeEntryCreate(TimeEntryBase):
     """Schema for creating Time Entry."""
+
     pass
 
 
@@ -352,6 +362,7 @@ class TimeEntryResponse(TimeEntryBase):
 # Risk Management Schemas
 # =============================================================================
 
+
 class ProjectRiskBase(BaseModel):
     """Base schema for Project Risk."""
 
@@ -371,6 +382,7 @@ class ProjectRiskBase(BaseModel):
 
 class ProjectRiskCreate(ProjectRiskBase):
     """Schema for creating Project Risk."""
+
     pass
 
 
@@ -415,6 +427,7 @@ class ProjectRiskResponse(ProjectRiskBase):
 # Milestone Schemas
 # =============================================================================
 
+
 class ProjectMilestoneBase(BaseModel):
     """Base schema for Project Milestone."""
 
@@ -431,6 +444,7 @@ class ProjectMilestoneBase(BaseModel):
 
 class ProjectMilestoneCreate(ProjectMilestoneBase):
     """Schema for creating Project Milestone."""
+
     pass
 
 
@@ -470,6 +484,7 @@ class ProjectMilestoneResponse(ProjectMilestoneBase):
 # Deliverable Schemas
 # =============================================================================
 
+
 class ProjectDeliverableBase(BaseModel):
     """Base schema for Project Deliverable."""
 
@@ -489,6 +504,7 @@ class ProjectDeliverableBase(BaseModel):
 
 class ProjectDeliverableCreate(ProjectDeliverableBase):
     """Schema for creating Project Deliverable."""
+
     pass
 
 
@@ -531,6 +547,7 @@ class ProjectDeliverableResponse(ProjectDeliverableBase):
 # Issue Schemas
 # =============================================================================
 
+
 class ProjectIssueBase(BaseModel):
     """Base schema for Project Issue."""
 
@@ -553,6 +570,7 @@ class ProjectIssueBase(BaseModel):
 
 class ProjectIssueCreate(ProjectIssueBase):
     """Schema for creating Project Issue."""
+
     pass
 
 
@@ -595,6 +613,7 @@ class ProjectIssueResponse(ProjectIssueBase):
 # Portfolio Schemas
 # =============================================================================
 
+
 class ProjectPortfolioBase(BaseModel):
     """Base schema for Project Portfolio."""
 
@@ -610,6 +629,7 @@ class ProjectPortfolioBase(BaseModel):
 
 class ProjectPortfolioCreate(ProjectPortfolioBase):
     """Schema for creating Project Portfolio."""
+
     pass
 
 
@@ -644,6 +664,7 @@ class ProjectPortfolioResponse(ProjectPortfolioBase):
 # Template Schemas
 # =============================================================================
 
+
 class ProjectTemplateBase(BaseModel):
     """Base schema for Project Template."""
 
@@ -660,6 +681,7 @@ class ProjectTemplateBase(BaseModel):
 
 class ProjectTemplateCreate(ProjectTemplateBase):
     """Schema for creating Project Template."""
+
     pass
 
 
@@ -694,6 +716,7 @@ class ProjectTemplateResponse(ProjectTemplateBase):
 # =============================================================================
 # Analytics and Reporting Schemas
 # =============================================================================
+
 
 class ProjectDashboardMetrics(BaseModel):
     """Schema for project dashboard metrics."""
@@ -765,6 +788,7 @@ class TaskCommentResponse(TaskComment):
 # Action Request Schemas
 # =============================================================================
 
+
 class ApproveTimeEntryRequest(BaseModel):
     """Schema for approving time entry."""
 
@@ -811,6 +835,7 @@ class ProjectCloneRequest(BaseModel):
 # =============================================================================
 # Filtering and Search Schemas
 # =============================================================================
+
 
 class ProjectFilterRequest(BaseModel):
     """Schema for project filtering."""

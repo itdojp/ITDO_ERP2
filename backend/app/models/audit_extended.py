@@ -259,7 +259,9 @@ class AuditAlert(Base):
     recommended_actions = Column(JSON, default=[])
 
     # Status tracking
-    status = Column(String(50), default="open")  # open, investigating, resolved, false_positive
+    status = Column(
+        String(50), default="open"
+    )  # open, investigating, resolved, false_positive
     assigned_to = Column(String, ForeignKey("users.id"))
     priority = Column(Integer, default=50)
 
@@ -304,7 +306,9 @@ class AuditReport(Base):
 
     # Report identification
     report_name = Column(String(300), nullable=False)
-    report_type = Column(String(100), nullable=False)  # compliance, security, operational, custom
+    report_type = Column(
+        String(100), nullable=False
+    )  # compliance, security, operational, custom
     description = Column(Text)
 
     # Report parameters
@@ -336,7 +340,9 @@ class AuditReport(Base):
 
     # Generation details
     generated_by = Column(String, ForeignKey("users.id"), nullable=False)
-    generation_status = Column(String(50), default="pending")  # pending, generating, completed, failed
+    generation_status = Column(
+        String(50), default="pending"
+    )  # pending, generating, completed, failed
     generation_progress = Column(Integer, default=0)
     generation_error = Column(Text)
 
@@ -425,7 +431,9 @@ class AuditDataRetention(Base):
     # Policy identification
     policy_name = Column(String(200), nullable=False)
     description = Column(Text)
-    policy_type = Column(String(100), nullable=False)  # event_based, time_based, size_based
+    policy_type = Column(
+        String(100), nullable=False
+    )  # event_based, time_based, size_based
 
     # Retention rules
     retention_criteria = Column(JSON, nullable=False)
@@ -489,7 +497,9 @@ class AuditCompliance(Base):
     assessment_period_end = Column(Date, nullable=False)
 
     # Compliance status
-    compliance_status = Column(String(50), nullable=False)  # compliant, non_compliant, partial, not_assessed
+    compliance_status = Column(
+        String(50), nullable=False
+    )  # compliant, non_compliant, partial, not_assessed
     compliance_score = Column(Numeric(5, 2))
     risk_level = Column(String(50))  # low, medium, high, critical
 
@@ -546,7 +556,9 @@ class AuditConfiguration(Base):
 
     # Configuration identification
     config_name = Column(String(200), nullable=False)
-    config_type = Column(String(100), nullable=False)  # logging, alerting, retention, compliance
+    config_type = Column(
+        String(100), nullable=False
+    )  # logging, alerting, retention, compliance
     description = Column(Text)
 
     # Configuration settings

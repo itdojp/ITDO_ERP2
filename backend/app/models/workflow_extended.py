@@ -165,7 +165,9 @@ class WorkflowDefinition(Base):
     trigger_schedule = Column(String(100))  # cron expression
 
     # Assignment rules
-    default_assignee_type = Column(String(50), default="user")  # user, role, group, auto
+    default_assignee_type = Column(
+        String(50), default="user"
+    )  # user, role, group, auto
     default_assignee_id = Column(String)
     assignment_rules = Column(JSON, default={})
     escalation_rules = Column(JSON, default=[])
@@ -225,13 +227,17 @@ class WorkflowStep(Base):
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     organization_id = Column(String, ForeignKey("organizations.id"), nullable=False)
-    definition_id = Column(String, ForeignKey("workflow_definitions.id"), nullable=False)
+    definition_id = Column(
+        String, ForeignKey("workflow_definitions.id"), nullable=False
+    )
 
     # Step identification
     name = Column(String(200), nullable=False)
     code = Column(String(100), nullable=False)
     description = Column(Text)
-    step_type = Column(String(100), nullable=False)  # task, approval, decision, parallel, loop, end
+    step_type = Column(
+        String(100), nullable=False
+    )  # task, approval, decision, parallel, loop, end
 
     # Position and flow
     step_order = Column(Integer, nullable=False)
@@ -301,7 +307,9 @@ class WorkflowInstance(Base):
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     organization_id = Column(String, ForeignKey("organizations.id"), nullable=False)
-    definition_id = Column(String, ForeignKey("workflow_definitions.id"), nullable=False)
+    definition_id = Column(
+        String, ForeignKey("workflow_definitions.id"), nullable=False
+    )
 
     # Instance identification
     instance_number = Column(String(100), nullable=False, index=True)
@@ -310,12 +318,14 @@ class WorkflowInstance(Base):
 
     # Context
     entity_type = Column(String(100))  # The type of entity this workflow is processing
-    entity_id = Column(String(200))    # The ID of the entity being processed
+    entity_id = Column(String(200))  # The ID of the entity being processed
     context_data = Column(JSON, default={})
     form_data = Column(JSON, default={})
 
     # Execution
-    status = Column(SQLEnum(WorkflowInstanceStatus), default=WorkflowInstanceStatus.PENDING)
+    status = Column(
+        SQLEnum(WorkflowInstanceStatus), default=WorkflowInstanceStatus.PENDING
+    )
     current_step_id = Column(String, ForeignKey("workflow_steps.id"))
     current_assignee_id = Column(String, ForeignKey("users.id"))
 
@@ -390,7 +400,9 @@ class WorkflowTask(Base):
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     organization_id = Column(String, ForeignKey("organizations.id"), nullable=False)
-    instance_id = Column(String, ForeignKey("workflow_instances_extended.id"), nullable=False)
+    instance_id = Column(
+        String, ForeignKey("workflow_instances_extended.id"), nullable=False
+    )
     step_id = Column(String, ForeignKey("workflow_steps.id"), nullable=False)
 
     # Task identification
@@ -479,7 +491,9 @@ class WorkflowActivity(Base):
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     organization_id = Column(String, ForeignKey("organizations.id"), nullable=False)
-    instance_id = Column(String, ForeignKey("workflow_instances_extended.id"), nullable=False)
+    instance_id = Column(
+        String, ForeignKey("workflow_instances_extended.id"), nullable=False
+    )
     task_id = Column(String, ForeignKey("workflow_tasks_extended.id"))
 
     # Activity details
@@ -537,7 +551,9 @@ class WorkflowComment(Base):
 
     # Comment details
     comment_text = Column(Text, nullable=False)
-    comment_type = Column(String(50), default="general")  # general, approval, rejection, question, answer
+    comment_type = Column(
+        String(50), default="general"
+    )  # general, approval, rejection, question, answer
     is_internal = Column(Boolean, default=False)
     is_system_generated = Column(Boolean, default=False)
 
@@ -592,7 +608,9 @@ class WorkflowAttachment(Base):
     mime_type = Column(String(200))
 
     # Classification
-    attachment_type = Column(String(100), default="document")  # document, image, evidence, reference
+    attachment_type = Column(
+        String(100), default="document"
+    )  # document, image, evidence, reference
     category = Column(String(100))
 
     # Storage
@@ -692,7 +710,9 @@ class WorkflowAnalytics(Base):
     # Analytics period
     period_start = Column(Date, nullable=False)
     period_end = Column(Date, nullable=False)
-    period_type = Column(String(50), nullable=False)  # daily, weekly, monthly, quarterly, yearly
+    period_type = Column(
+        String(50), nullable=False
+    )  # daily, weekly, monthly, quarterly, yearly
 
     # Scope
     definition_id = Column(String, ForeignKey("workflow_definitions.id"))

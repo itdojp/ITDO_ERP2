@@ -39,7 +39,6 @@ class ExpenseCreate(ExpenseBase):
     """Schema for creating expenses."""
 
 
-
 class ExpenseUpdate(BaseModel):
     """Schema for updating expenses."""
 
@@ -90,7 +89,6 @@ class ExpenseApprovalFlowBase(BaseModel):
 
 class ExpenseApprovalFlowCreate(ExpenseApprovalFlowBase):
     """Schema for creating expense approval flows."""
-
 
 
 class ExpenseApprovalFlowResponse(ExpenseApprovalFlowBase, BaseResponse):

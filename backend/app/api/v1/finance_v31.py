@@ -67,11 +67,14 @@ router = APIRouter()
 # 1. Chart of Accounts Management
 # =============================================================================
 
-@router.post("/accounts", response_model=AccountResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/accounts", response_model=AccountResponse, status_code=status.HTTP_201_CREATED
+)
 def create_account(
     account_data: AccountCreate,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
 ) -> AccountResponse:
     """Create new account in chart of accounts."""
     try:
@@ -79,9 +82,13 @@ def create_account(
 
         # Check for duplicate account code
         if account_data.account_code:
-            existing = account_crud.get_by_code(account_data.account_code, account_data.organization_id)
+            existing = account_crud.get_by_code(
+                account_data.account_code, account_data.organization_id
+            )
             if existing:
-                raise ValidationError(f"Account code {account_data.account_code} already exists")
+                raise ValidationError(
+                    f"Account code {account_data.account_code} already exists"
+                )
 
         account = account_crud.create_account(account_data, current_user["sub"])
         return AccountResponse.from_orm(account)
@@ -89,16 +96,20 @@ def create_account(
     except ValidationError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except BusinessRuleError as e:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)
+        )
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
 
 
 @router.get("/accounts/{account_id}", response_model=AccountResponse)
 def get_account(
     account_id: str,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
 ) -> AccountResponse:
     """Get account details by ID."""
     try:
@@ -113,7 +124,9 @@ def get_account(
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
 
 
 @router.get("/accounts", response_model=List[AccountResponse])
@@ -124,26 +137,30 @@ def list_accounts(
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Number of records to return"),
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
 ) -> List[AccountResponse]:
     """List accounts with filtering options."""
     try:
         account_crud = AccountCRUD(db)
 
         if account_type:
-            accounts = account_crud.get_by_type(account_type, organization_id, active_only)
+            accounts = account_crud.get_by_type(
+                account_type, organization_id, active_only
+            )
         else:
             accounts = account_crud.get_account_hierarchy(organization_id)
             if active_only:
                 accounts = [acc for acc in accounts if acc.is_active]
 
         # Apply pagination
-        accounts = accounts[skip:skip + limit]
+        accounts = accounts[skip : skip + limit]
 
         return [AccountResponse.from_orm(account) for account in accounts]
 
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
 
 
 @router.put("/accounts/{account_id}", response_model=AccountResponse)
@@ -151,7 +168,7 @@ def update_account(
     account_id: str,
     account_data: AccountUpdate,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
 ) -> AccountResponse:
     """Update account information."""
     try:
@@ -171,18 +188,25 @@ def update_account(
     except ValidationError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
 
 
 # =============================================================================
 # 2. Journal Entry Processing
 # =============================================================================
 
-@router.post("/journal-entries", response_model=JournalEntryResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/journal-entries",
+    response_model=JournalEntryResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 def create_journal_entry(
     entry_data: JournalEntryCreate,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
 ) -> JournalEntryResponse:
     """Create new journal entry with validation."""
     try:
@@ -194,16 +218,20 @@ def create_journal_entry(
     except ValidationError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except BusinessRuleError as e:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)
+        )
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
 
 
 @router.get("/journal-entries/{entry_id}", response_model=JournalEntryResponse)
 def get_journal_entry(
     entry_id: str,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
 ) -> JournalEntryResponse:
     """Get journal entry details."""
     try:
@@ -218,35 +246,43 @@ def get_journal_entry(
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
 
 
 @router.post("/journal-entries/post", response_model=JournalEntryResponse)
 def post_journal_entry(
     post_request: PostJournalEntryRequest,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
 ) -> JournalEntryResponse:
     """Post journal entry and update account balances."""
     try:
         journal_crud = JournalEntryCRUD(db)
-        entry = journal_crud.post_journal_entry(post_request.journal_entry_id, current_user["sub"])
+        entry = journal_crud.post_journal_entry(
+            post_request.journal_entry_id, current_user["sub"]
+        )
 
         return JournalEntryResponse.from_orm(entry)
 
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except BusinessRuleError as e:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)
+        )
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
 
 
 @router.post("/journal-entries/reverse", response_model=JournalEntryResponse)
 def reverse_journal_entry(
     reverse_request: ReverseJournalEntryRequest,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
 ) -> JournalEntryResponse:
     """Create reversing journal entry."""
     try:
@@ -254,7 +290,7 @@ def reverse_journal_entry(
         reversal_entry = journal_crud.reverse_journal_entry(
             reverse_request.journal_entry_id,
             reverse_request.reason,
-            current_user["sub"]
+            current_user["sub"],
         )
 
         return JournalEntryResponse.from_orm(reversal_entry)
@@ -262,20 +298,27 @@ def reverse_journal_entry(
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except BusinessRuleError as e:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)
+        )
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
 
 
 # =============================================================================
 # 3. Budget Management
 # =============================================================================
 
-@router.post("/budgets", response_model=BudgetResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/budgets", response_model=BudgetResponse, status_code=status.HTTP_201_CREATED
+)
 def create_budget(
     budget_data: BudgetCreate,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
 ) -> BudgetResponse:
     """Create new budget with budget lines."""
     try:
@@ -293,16 +336,20 @@ def create_budget(
     except ValidationError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except BusinessRuleError as e:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)
+        )
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
 
 
 @router.get("/budgets/{budget_id}", response_model=BudgetResponse)
 def get_budget(
     budget_id: str,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
 ) -> BudgetResponse:
     """Get budget details with budget lines."""
     try:
@@ -317,14 +364,16 @@ def get_budget(
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
 
 
 @router.post("/budgets/approve", response_model=BudgetResponse)
 def approve_budget(
     approve_request: ApproveBudgetRequest,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
 ) -> BudgetResponse:
     """Approve and activate budget."""
     try:
@@ -332,7 +381,7 @@ def approve_budget(
         budget = budget_crud.approve_budget(
             approve_request.budget_id,
             current_user["sub"],
-            approve_request.approval_notes or ""
+            approve_request.approval_notes or "",
         )
 
         return BudgetResponse.from_orm(budget)
@@ -340,43 +389,61 @@ def approve_budget(
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except BusinessRuleError as e:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)
+        )
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
 
 
 # =============================================================================
 # 4. Cost Center Operations
 # =============================================================================
 
-@router.post("/cost-centers", response_model=CostCenterResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/cost-centers",
+    response_model=CostCenterResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 def create_cost_center(
     cost_center_data: CostCenterCreate,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
 ) -> CostCenterResponse:
     """Create new cost center."""
     try:
         cost_center_crud = CostCenterCRUD(db)
-        cost_center = cost_center_crud.create_cost_center(cost_center_data, current_user["sub"])
+        cost_center = cost_center_crud.create_cost_center(
+            cost_center_data, current_user["sub"]
+        )
 
         return CostCenterResponse.from_orm(cost_center)
 
     except ValidationError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except BusinessRuleError as e:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)
+        )
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
 
 
-@router.get("/cost-centers/{cost_center_id}/performance", response_model=CostCenterPerformanceResponse)
+@router.get(
+    "/cost-centers/{cost_center_id}/performance",
+    response_model=CostCenterPerformanceResponse,
+)
 def get_cost_center_performance(
     cost_center_id: str,
     start_date: datetime = Query(..., description="Performance analysis start date"),
     end_date: datetime = Query(..., description="Performance analysis end date"),
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
 ) -> CostCenterPerformanceResponse:
     """Get cost center performance metrics."""
     try:
@@ -390,18 +457,25 @@ def get_cost_center_performance(
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
 
 
 # =============================================================================
 # 5. Financial Period Management
 # =============================================================================
 
-@router.post("/periods", response_model=FinancialPeriodResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/periods",
+    response_model=FinancialPeriodResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 def create_financial_period(
     period_data: FinancialPeriodCreate,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
 ) -> FinancialPeriodResponse:
     """Create new financial period."""
     try:
@@ -416,16 +490,20 @@ def create_financial_period(
     except ValidationError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except BusinessRuleError as e:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)
+        )
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
 
 
 @router.post("/periods/close", response_model=FinancialPeriodResponse)
 def close_financial_period(
     close_request: ClosePeriodRequest,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
 ) -> FinancialPeriodResponse:
     """Close financial period and prevent further transactions."""
     try:
@@ -437,20 +515,29 @@ def close_financial_period(
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except BusinessRuleError as e:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)
+        )
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
 
 
 # =============================================================================
 # 6. Financial Reporting
 # =============================================================================
 
-@router.post("/reports", response_model=FinancialReportResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/reports",
+    response_model=FinancialReportResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 def create_financial_report(
     report_data: FinancialReportCreate,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
 ) -> FinancialReportResponse:
     """Create new financial report template."""
     try:
@@ -465,9 +552,13 @@ def create_financial_report(
     except ValidationError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except BusinessRuleError as e:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)
+        )
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
 
 
 @router.get("/reports/balance-sheet", response_model=BalanceSheetResponse)
@@ -475,7 +566,7 @@ def generate_balance_sheet(
     organization_id: str = Query(..., description="Organization ID"),
     as_of_date: datetime = Query(..., description="Balance sheet as of date"),
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
 ) -> BalanceSheetResponse:
     """Generate balance sheet report."""
     try:
@@ -485,7 +576,9 @@ def generate_balance_sheet(
         return BalanceSheetResponse(**balance_sheet)
 
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
 
 
 @router.get("/reports/income-statement", response_model=IncomeStatementResponse)
@@ -494,28 +587,37 @@ def generate_income_statement(
     start_date: datetime = Query(..., description="Income statement start date"),
     end_date: datetime = Query(..., description="Income statement end date"),
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
 ) -> IncomeStatementResponse:
     """Generate income statement report."""
     try:
         report_crud = FinancialReportCRUD(db)
-        income_statement = report_crud.generate_income_statement(organization_id, start_date, end_date)
+        income_statement = report_crud.generate_income_statement(
+            organization_id, start_date, end_date
+        )
 
         return IncomeStatementResponse(**income_statement)
 
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
 
 
 # =============================================================================
 # 7. Tax Configuration
 # =============================================================================
 
-@router.post("/tax-configurations", response_model=TaxConfigurationResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/tax-configurations",
+    response_model=TaxConfigurationResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 def create_tax_configuration(
     tax_data: TaxConfigurationCreate,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
 ) -> TaxConfigurationResponse:
     """Create new tax configuration."""
     try:
@@ -530,9 +632,13 @@ def create_tax_configuration(
     except ValidationError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except BusinessRuleError as e:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)
+        )
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
 
 
 @router.post("/tax-configurations/calculate", response_model=TaxCalculationResponse)
@@ -540,7 +646,7 @@ def calculate_tax(
     calculation_request: TaxCalculationRequest,
     organization_id: str = Query(..., description="Organization ID"),
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
 ) -> TaxCalculationResponse:
     """Calculate tax amount based on configuration."""
     try:
@@ -549,7 +655,7 @@ def calculate_tax(
             organization_id,
             calculation_request.tax_code,
             calculation_request.base_amount,
-            calculation_request.effective_date
+            calculation_request.effective_date,
         )
 
         return TaxCalculationResponse(**calculation)
@@ -559,19 +665,22 @@ def calculate_tax(
     except ValidationError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
 
 
 # =============================================================================
 # 8. Trial Balance
 # =============================================================================
 
+
 @router.get("/trial-balance", response_model=TrialBalanceResponse)
 def get_trial_balance(
     organization_id: str = Query(..., description="Organization ID"),
     as_of_date: datetime = Query(..., description="Trial balance as of date"),
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
 ) -> TrialBalanceResponse:
     """Generate trial balance report."""
     try:
@@ -587,23 +696,29 @@ def get_trial_balance(
             accounts=trial_balance_data,
             total_debits=total_debits,
             total_credits=total_credits,
-            is_balanced=abs(total_debits - total_credits) < 0.01
+            is_balanced=abs(total_debits - total_credits) < 0.01,
         )
 
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
 
 
 # =============================================================================
 # 9. Budget Variance Analysis
 # =============================================================================
 
-@router.get("/budgets/{budget_id}/variance-analysis", response_model=BudgetVarianceAnalysisResponse)
+
+@router.get(
+    "/budgets/{budget_id}/variance-analysis",
+    response_model=BudgetVarianceAnalysisResponse,
+)
 def get_budget_variance_analysis(
     budget_id: str,
     as_of_date: Optional[datetime] = Query(None, description="Analysis as of date"),
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
 ) -> BudgetVarianceAnalysisResponse:
     """Generate budget variance analysis report."""
     try:
@@ -615,12 +730,15 @@ def get_budget_variance_analysis(
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
 
 
 # =============================================================================
 # 10. Financial Analytics Dashboard
 # =============================================================================
+
 
 @router.get("/analytics/dashboard")
 def get_financial_dashboard(
@@ -628,7 +746,7 @@ def get_financial_dashboard(
     period_start: datetime = Query(..., description="Analysis period start"),
     period_end: datetime = Query(..., description="Analysis period end"),
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
 ) -> Dict[str, Any]:
     """Get comprehensive financial analytics dashboard."""
     try:
@@ -647,7 +765,9 @@ def get_financial_dashboard(
 
         # Balance sheet as of period end
         try:
-            balance_sheet = report_crud.generate_balance_sheet(organization_id, period_end)
+            balance_sheet = report_crud.generate_balance_sheet(
+                organization_id, period_end
+            )
             dashboard_data["balance_sheet_summary"] = {
                 "total_assets": balance_sheet["assets"]["total"],
                 "total_liabilities": balance_sheet["liabilities"]["total"],
@@ -679,9 +799,10 @@ def get_financial_dashboard(
                 "total_debits": sum(line["debit_balance"] for line in trial_balance),
                 "total_credits": sum(line["credit_balance"] for line in trial_balance),
                 "is_balanced": abs(
-                    sum(line["debit_balance"] for line in trial_balance) -
-                    sum(line["credit_balance"] for line in trial_balance)
-                ) < 0.01,
+                    sum(line["debit_balance"] for line in trial_balance)
+                    - sum(line["credit_balance"] for line in trial_balance)
+                )
+                < 0.01,
             }
         except Exception:
             dashboard_data["trial_balance_summary"] = None
@@ -707,4 +828,6 @@ def get_financial_dashboard(
         return dashboard_data
 
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )

@@ -1,4 +1,5 @@
 """Advanced tests for permission_matrix service."""
+
 from unittest.mock import Mock
 
 # Import the service class
@@ -12,7 +13,6 @@ class TestPermissionMatrixService:
         """Setup test environment."""
         self.mock_db = Mock()
         # self.service = ServiceClass(self.mock_db)
-
 
     def test_get_permission_matrix_success(self):
         """Test get_permission_matrix successful execution."""

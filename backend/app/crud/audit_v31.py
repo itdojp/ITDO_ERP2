@@ -79,14 +79,18 @@ class AuditService:
             self.db.rollback()
             raise Exception(f"Failed to create audit log entry: {str(e)}")
 
-    async def bulk_create_audit_entries(self, entries_data: List[Dict[str, Any]]) -> List[AuditLogEntry]:
+    async def bulk_create_audit_entries(
+        self, entries_data: List[Dict[str, Any]]
+    ) -> List[AuditLogEntry]:
         """Bulk create audit log entries for performance."""
         try:
             entries = []
             for entry_data in entries_data:
                 # Generate correlation ID if not provided
                 if not entry_data.get("correlation_id"):
-                    entry_data["correlation_id"] = self._generate_correlation_id(entry_data)
+                    entry_data["correlation_id"] = self._generate_correlation_id(
+                        entry_data
+                    )
 
                 # Calculate risk score
                 entry_data["risk_score"] = self._calculate_risk_score(entry_data)
@@ -113,10 +117,7 @@ class AuditService:
             raise Exception(f"Failed to bulk create audit entries: {str(e)}")
 
     async def search_audit_logs(
-        self,
-        filters: Dict[str, Any],
-        page: int = 1,
-        per_page: int = 50
+        self, filters: Dict[str, Any], page: int = 1, per_page: int = 50
     ) -> Tuple[List[AuditLogEntry], int]:
         """Search audit logs with advanced filtering and performance optimization."""
         try:
@@ -124,22 +125,30 @@ class AuditService:
 
             # Apply filters
             if filters.get("organization_id"):
-                query = query.filter(AuditLogEntry.organization_id == filters["organization_id"])
+                query = query.filter(
+                    AuditLogEntry.organization_id == filters["organization_id"]
+                )
 
             if filters.get("event_type"):
                 query = query.filter(AuditLogEntry.event_type == filters["event_type"])
 
             if filters.get("event_category"):
-                query = query.filter(AuditLogEntry.event_category == filters["event_category"])
+                query = query.filter(
+                    AuditLogEntry.event_category == filters["event_category"]
+                )
 
             if filters.get("user_id"):
                 query = query.filter(AuditLogEntry.user_id == filters["user_id"])
 
             if filters.get("resource_type"):
-                query = query.filter(AuditLogEntry.resource_type == filters["resource_type"])
+                query = query.filter(
+                    AuditLogEntry.resource_type == filters["resource_type"]
+                )
 
             if filters.get("resource_id"):
-                query = query.filter(AuditLogEntry.resource_id == filters["resource_id"])
+                query = query.filter(
+                    AuditLogEntry.resource_id == filters["resource_id"]
+                )
 
             if filters.get("severity"):
                 query = query.filter(AuditLogEntry.severity == filters["severity"])
@@ -155,22 +164,32 @@ class AuditService:
 
             # Date range filtering
             if filters.get("start_date"):
-                query = query.filter(AuditLogEntry.event_timestamp >= filters["start_date"])
+                query = query.filter(
+                    AuditLogEntry.event_timestamp >= filters["start_date"]
+                )
 
             if filters.get("end_date"):
-                query = query.filter(AuditLogEntry.event_timestamp <= filters["end_date"])
+                query = query.filter(
+                    AuditLogEntry.event_timestamp <= filters["end_date"]
+                )
 
             # Risk score filtering
             if filters.get("min_risk_score"):
-                query = query.filter(AuditLogEntry.risk_score >= filters["min_risk_score"])
+                query = query.filter(
+                    AuditLogEntry.risk_score >= filters["min_risk_score"]
+                )
 
             if filters.get("max_risk_score"):
-                query = query.filter(AuditLogEntry.risk_score <= filters["max_risk_score"])
+                query = query.filter(
+                    AuditLogEntry.risk_score <= filters["max_risk_score"]
+                )
 
             # Compliance framework filtering
             if filters.get("compliance_framework"):
                 query = query.filter(
-                    AuditLogEntry.compliance_frameworks.contains([filters["compliance_framework"]])
+                    AuditLogEntry.compliance_frameworks.contains(
+                        [filters["compliance_framework"]]
+                    )
                 )
 
             # Text search in descriptions and event data
@@ -180,7 +199,7 @@ class AuditService:
                     or_(
                         AuditLogEntry.event_description.ilike(search_text),
                         AuditLogEntry.event_name.ilike(search_text),
-                        AuditLogEntry.resource_name.ilike(search_text)
+                        AuditLogEntry.resource_name.ilike(search_text),
                     )
                 )
 
@@ -209,9 +228,11 @@ class AuditService:
     async def get_audit_log_entry(self, entry_id: str) -> Optional[AuditLogEntry]:
         """Get audit log entry by ID."""
         try:
-            return self.db.query(AuditLogEntry).filter(
-                AuditLogEntry.id == entry_id
-            ).first()
+            return (
+                self.db.query(AuditLogEntry)
+                .filter(AuditLogEntry.id == entry_id)
+                .first()
+            )
         except SQLAlchemyError as e:
             raise Exception(f"Failed to get audit log entry: {str(e)}")
 
@@ -220,13 +241,15 @@ class AuditService:
         entry_id: str,
         status: str,
         acknowledged_by: str,
-        notes: Optional[str] = None
+        notes: Optional[str] = None,
     ) -> Optional[AuditLogEntry]:
         """Update audit log entry status and acknowledgment."""
         try:
-            entry = self.db.query(AuditLogEntry).filter(
-                AuditLogEntry.id == entry_id
-            ).first()
+            entry = (
+                self.db.query(AuditLogEntry)
+                .filter(AuditLogEntry.id == entry_id)
+                .first()
+            )
 
             if not entry:
                 return None
@@ -268,17 +291,16 @@ class AuditService:
             raise Exception(f"Failed to create audit rule: {str(e)}")
 
     async def list_audit_rules(
-        self,
-        filters: Dict[str, Any],
-        page: int = 1,
-        per_page: int = 50
+        self, filters: Dict[str, Any], page: int = 1, per_page: int = 50
     ) -> Tuple[List[AuditRule], int]:
         """List audit rules with filtering."""
         try:
             query = self.db.query(AuditRule)
 
             if filters.get("organization_id"):
-                query = query.filter(AuditRule.organization_id == filters["organization_id"])
+                query = query.filter(
+                    AuditRule.organization_id == filters["organization_id"]
+                )
 
             if filters.get("rule_type"):
                 query = query.filter(AuditRule.rule_type == filters["rule_type"])
@@ -288,14 +310,21 @@ class AuditService:
 
             total = query.count()
             offset = (page - 1) * per_page
-            rules = query.order_by(desc(AuditRule.created_at)).offset(offset).limit(per_page).all()
+            rules = (
+                query.order_by(desc(AuditRule.created_at))
+                .offset(offset)
+                .limit(per_page)
+                .all()
+            )
 
             return rules, total
 
         except SQLAlchemyError as e:
             raise Exception(f"Failed to list audit rules: {str(e)}")
 
-    async def test_audit_rule(self, rule_id: str, test_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def test_audit_rule(
+        self, rule_id: str, test_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Test audit rule against sample data."""
         try:
             rule = self.db.query(AuditRule).filter(AuditRule.id == rule_id).first()
@@ -309,7 +338,7 @@ class AuditService:
                 "success": True,
                 "triggered": result["triggered"],
                 "matched_conditions": result["matched_conditions"],
-                "alert_would_generate": result["triggered"] and rule.is_active
+                "alert_would_generate": result["triggered"] and rule.is_active,
             }
 
         except Exception as e:
@@ -340,17 +369,16 @@ class AuditService:
             raise Exception(f"Failed to create audit alert: {str(e)}")
 
     async def list_audit_alerts(
-        self,
-        filters: Dict[str, Any],
-        page: int = 1,
-        per_page: int = 50
+        self, filters: Dict[str, Any], page: int = 1, per_page: int = 50
     ) -> Tuple[List[AuditAlert], int]:
         """List audit alerts with filtering."""
         try:
             query = self.db.query(AuditAlert)
 
             if filters.get("organization_id"):
-                query = query.filter(AuditAlert.organization_id == filters["organization_id"])
+                query = query.filter(
+                    AuditAlert.organization_id == filters["organization_id"]
+                )
 
             if filters.get("severity"):
                 query = query.filter(AuditAlert.severity == filters["severity"])
@@ -366,7 +394,12 @@ class AuditService:
 
             total = query.count()
             offset = (page - 1) * per_page
-            alerts = query.order_by(desc(AuditAlert.created_at)).offset(offset).limit(per_page).all()
+            alerts = (
+                query.order_by(desc(AuditAlert.created_at))
+                .offset(offset)
+                .limit(per_page)
+                .all()
+            )
 
             return alerts, total
 
@@ -374,10 +407,7 @@ class AuditService:
             raise Exception(f"Failed to list audit alerts: {str(e)}")
 
     async def resolve_alert(
-        self,
-        alert_id: str,
-        resolved_by: str,
-        resolution_notes: str
+        self, alert_id: str, resolved_by: str, resolution_notes: str
     ) -> Optional[AuditAlert]:
         """Resolve an audit alert."""
         try:
@@ -423,30 +453,38 @@ class AuditService:
             raise Exception(f"Failed to generate audit report: {str(e)}")
 
     async def list_audit_reports(
-        self,
-        filters: Dict[str, Any],
-        page: int = 1,
-        per_page: int = 50
+        self, filters: Dict[str, Any], page: int = 1, per_page: int = 50
     ) -> Tuple[List[AuditReport], int]:
         """List audit reports with filtering."""
         try:
             query = self.db.query(AuditReport)
 
             if filters.get("organization_id"):
-                query = query.filter(AuditReport.organization_id == filters["organization_id"])
+                query = query.filter(
+                    AuditReport.organization_id == filters["organization_id"]
+                )
 
             if filters.get("report_type"):
                 query = query.filter(AuditReport.report_type == filters["report_type"])
 
             if filters.get("compliance_framework"):
-                query = query.filter(AuditReport.compliance_framework == filters["compliance_framework"])
+                query = query.filter(
+                    AuditReport.compliance_framework == filters["compliance_framework"]
+                )
 
             if filters.get("generation_status"):
-                query = query.filter(AuditReport.generation_status == filters["generation_status"])
+                query = query.filter(
+                    AuditReport.generation_status == filters["generation_status"]
+                )
 
             total = query.count()
             offset = (page - 1) * per_page
-            reports = query.order_by(desc(AuditReport.created_at)).offset(offset).limit(per_page).all()
+            reports = (
+                query.order_by(desc(AuditReport.created_at))
+                .offset(offset)
+                .limit(per_page)
+                .all()
+            )
 
             return reports, total
 
@@ -474,12 +512,16 @@ class AuditService:
             self.db.rollback()
             raise Exception(f"Failed to create audit session: {str(e)}")
 
-    async def update_session_activity(self, session_token: str) -> Optional[AuditSession]:
+    async def update_session_activity(
+        self, session_token: str
+    ) -> Optional[AuditSession]:
         """Update session last activity timestamp."""
         try:
-            session = self.db.query(AuditSession).filter(
-                AuditSession.session_token == session_token
-            ).first()
+            session = (
+                self.db.query(AuditSession)
+                .filter(AuditSession.session_token == session_token)
+                .first()
+            )
 
             if not session:
                 return None
@@ -502,16 +544,15 @@ class AuditService:
             raise Exception(f"Failed to update session activity: {str(e)}")
 
     async def terminate_session(
-        self,
-        session_token: str,
-        reason: str,
-        terminated_by: str = "user"
+        self, session_token: str, reason: str, terminated_by: str = "user"
     ) -> Optional[AuditSession]:
         """Terminate an audit session."""
         try:
-            session = self.db.query(AuditSession).filter(
-                AuditSession.session_token == session_token
-            ).first()
+            session = (
+                self.db.query(AuditSession)
+                .filter(AuditSession.session_token == session_token)
+                .first()
+            )
 
             if not session:
                 return None
@@ -533,7 +574,9 @@ class AuditService:
     # Compliance Management
     # =============================================================================
 
-    async def create_compliance_assessment(self, compliance_data: Dict[str, Any]) -> AuditCompliance:
+    async def create_compliance_assessment(
+        self, compliance_data: Dict[str, Any]
+    ) -> AuditCompliance:
         """Create a new compliance assessment."""
         try:
             compliance = AuditCompliance(**compliance_data)
@@ -560,7 +603,11 @@ class AuditService:
                 AuditCompliance.compliance_status == "compliant"
             ).count()
 
-            compliance_rate = (compliant_assessments / total_assessments * 100) if total_assessments > 0 else 0
+            compliance_rate = (
+                (compliant_assessments / total_assessments * 100)
+                if total_assessments > 0
+                else 0
+            )
 
             # Get assessments by framework
             framework_stats = {}
@@ -572,14 +619,16 @@ class AuditService:
                 framework_compliant = compliance_query.filter(
                     and_(
                         AuditCompliance.framework == framework,
-                        AuditCompliance.compliance_status == "compliant"
+                        AuditCompliance.compliance_status == "compliant",
                     )
                 ).count()
 
                 framework_stats[framework.value] = {
                     "total": framework_assessments,
                     "compliant": framework_compliant,
-                    "rate": (framework_compliant / framework_assessments * 100) if framework_assessments > 0 else 0
+                    "rate": (framework_compliant / framework_assessments * 100)
+                    if framework_assessments > 0
+                    else 0,
                 }
 
             # Get overdue assessments
@@ -593,7 +642,7 @@ class AuditService:
                 "compliant_assessments": compliant_assessments,
                 "framework_statistics": framework_stats,
                 "overdue_assessments": overdue_assessments,
-                "last_updated": datetime.now().isoformat()
+                "last_updated": datetime.now().isoformat(),
             }
 
         except SQLAlchemyError as e:
@@ -608,7 +657,7 @@ class AuditService:
         organization_id: str,
         period_start: datetime,
         period_end: datetime,
-        period_type: str = "daily"
+        period_type: str = "daily",
     ) -> AuditMetrics:
         """Generate comprehensive audit metrics for a period."""
         try:
@@ -617,7 +666,7 @@ class AuditService:
                 and_(
                     AuditLogEntry.organization_id == organization_id,
                     AuditLogEntry.event_timestamp >= period_start,
-                    AuditLogEntry.event_timestamp <= period_end
+                    AuditLogEntry.event_timestamp <= period_end,
                 )
             )
 
@@ -626,7 +675,9 @@ class AuditService:
             # Events by type
             events_by_type = {}
             for event_type in AuditEventType:
-                count = logs_query.filter(AuditLogEntry.event_type == event_type).count()
+                count = logs_query.filter(
+                    AuditLogEntry.event_type == event_type
+                ).count()
                 events_by_type[event_type.value] = count
 
             # Events by severity
@@ -636,14 +687,16 @@ class AuditService:
                 events_by_severity[severity.value] = count
 
             # Failed events
-            failed_events = logs_query.filter(AuditLogEntry.outcome == "failure").count()
+            failed_events = logs_query.filter(
+                AuditLogEntry.outcome == "failure"
+            ).count()
 
             # Alert metrics
             alerts_query = self.db.query(AuditAlert).filter(
                 and_(
                     AuditAlert.organization_id == organization_id,
                     AuditAlert.created_at >= period_start,
-                    AuditAlert.created_at <= period_end
+                    AuditAlert.created_at <= period_end,
                 )
             )
 
@@ -656,24 +709,32 @@ class AuditService:
                 alerts_by_severity[severity.value] = count
 
             # Calculate average resolution time
-            resolved_alerts = alerts_query.filter(AuditAlert.resolved_at.isnot(None)).all()
-            total_resolution_time = sum([
-                (alert.resolved_at - alert.created_at).total_seconds() / 60
-                for alert in resolved_alerts
-            ])
+            resolved_alerts = alerts_query.filter(
+                AuditAlert.resolved_at.isnot(None)
+            ).all()
+            total_resolution_time = sum(
+                [
+                    (alert.resolved_at - alert.created_at).total_seconds() / 60
+                    for alert in resolved_alerts
+                ]
+            )
             avg_resolution_time = (
-                total_resolution_time / len(resolved_alerts)
-                if resolved_alerts else 0
+                total_resolution_time / len(resolved_alerts) if resolved_alerts else 0
             )
 
             # Active users
-            active_users = self.db.query(AuditSession.user_id).filter(
-                and_(
-                    AuditSession.organization_id == organization_id,
-                    AuditSession.last_activity >= period_start,
-                    AuditSession.last_activity <= period_end
+            active_users = (
+                self.db.query(AuditSession.user_id)
+                .filter(
+                    and_(
+                        AuditSession.organization_id == organization_id,
+                        AuditSession.last_activity >= period_start,
+                        AuditSession.last_activity <= period_end,
+                    )
                 )
-            ).distinct().count()
+                .distinct()
+                .count()
+            )
 
             # Create metrics record
             metrics = AuditMetrics(
@@ -689,7 +750,7 @@ class AuditService:
                 alerts_by_severity=alerts_by_severity,
                 average_resolution_time=Decimal(str(round(avg_resolution_time, 2))),
                 active_users=active_users,
-                calculated_at=datetime.now()
+                calculated_at=datetime.now(),
             )
 
             self.db.add(metrics)
@@ -706,44 +767,64 @@ class AuditService:
         """Get security-focused dashboard data."""
         try:
             # Recent security events
-            security_events = self.db.query(AuditLogEntry).filter(
-                and_(
-                    AuditLogEntry.organization_id == organization_id,
-                    AuditLogEntry.event_type.in_([
-                        AuditEventType.SECURITY_VIOLATION,
-                        AuditEventType.UNAUTHORIZED_ACCESS,
-                        AuditEventType.SUSPICIOUS_ACTIVITY,
-                        AuditEventType.LOGIN_FAILED
-                    ]),
-                    AuditLogEntry.event_timestamp >= datetime.now() - timedelta(days=7)
+            security_events = (
+                self.db.query(AuditLogEntry)
+                .filter(
+                    and_(
+                        AuditLogEntry.organization_id == organization_id,
+                        AuditLogEntry.event_type.in_(
+                            [
+                                AuditEventType.SECURITY_VIOLATION,
+                                AuditEventType.UNAUTHORIZED_ACCESS,
+                                AuditEventType.SUSPICIOUS_ACTIVITY,
+                                AuditEventType.LOGIN_FAILED,
+                            ]
+                        ),
+                        AuditLogEntry.event_timestamp
+                        >= datetime.now() - timedelta(days=7),
+                    )
                 )
-            ).count()
+                .count()
+            )
 
             # Active alerts
-            active_alerts = self.db.query(AuditAlert).filter(
-                and_(
-                    AuditAlert.organization_id == organization_id,
-                    AuditAlert.status == "open"
+            active_alerts = (
+                self.db.query(AuditAlert)
+                .filter(
+                    and_(
+                        AuditAlert.organization_id == organization_id,
+                        AuditAlert.status == "open",
+                    )
                 )
-            ).count()
+                .count()
+            )
 
             # High-risk sessions
-            high_risk_sessions = self.db.query(AuditSession).filter(
-                and_(
-                    AuditSession.organization_id == organization_id,
-                    AuditSession.risk_score >= 70,
-                    AuditSession.is_active
+            high_risk_sessions = (
+                self.db.query(AuditSession)
+                .filter(
+                    and_(
+                        AuditSession.organization_id == organization_id,
+                        AuditSession.risk_score >= 70,
+                        AuditSession.is_active,
+                    )
                 )
-            ).count()
+                .count()
+            )
 
             # Failed login attempts (last 24 hours)
-            failed_logins = self.db.query(AuditLogEntry).filter(
-                and_(
-                    AuditLogEntry.organization_id == organization_id,
-                    AuditLogEntry.event_type == AuditEventType.LOGIN_FAILED,
-                    AuditLogEntry.event_timestamp >= datetime.now() - timedelta(hours=24)
+            failed_logins = (
+                self.db.query(AuditLogEntry)
+                .filter(
+                    and_(
+                        AuditLogEntry.organization_id == organization_id,
+                        AuditLogEntry.event_type == AuditEventType.LOGIN_FAILED,
+                        AuditLogEntry.event_timestamp
+                        >= datetime.now() - timedelta(hours=24),
+                    )
                 )
-            ).count()
+                .count()
+            )
 
             return {
                 "security_events_week": security_events,
@@ -751,7 +832,7 @@ class AuditService:
                 "high_risk_sessions": high_risk_sessions,
                 "failed_logins_24h": failed_logins,
                 "security_score": self._calculate_security_score(organization_id),
-                "last_updated": datetime.now().isoformat()
+                "last_updated": datetime.now().isoformat(),
             }
 
         except SQLAlchemyError as e:
@@ -764,22 +845,28 @@ class AuditService:
     async def execute_retention_policy(self, policy_id: str) -> Dict[str, Any]:
         """Execute data retention policy."""
         try:
-            policy = self.db.query(AuditDataRetention).filter(
-                AuditDataRetention.id == policy_id
-            ).first()
+            policy = (
+                self.db.query(AuditDataRetention)
+                .filter(AuditDataRetention.id == policy_id)
+                .first()
+            )
 
             if not policy:
                 return {"success": False, "error": "Policy not found"}
 
             # Calculate cutoff dates
-            delete_cutoff = datetime.now() - timedelta(days=policy.delete_after_days or 2555)
-            archive_cutoff = datetime.now() - timedelta(days=policy.archive_after_days or 365)
+            delete_cutoff = datetime.now() - timedelta(
+                days=policy.delete_after_days or 2555
+            )
+            archive_cutoff = datetime.now() - timedelta(
+                days=policy.archive_after_days or 365
+            )
 
             # Get records to process
             records_to_delete = self.db.query(AuditLogEntry).filter(
                 and_(
                     AuditLogEntry.organization_id == policy.organization_id,
-                    AuditLogEntry.created_at <= delete_cutoff
+                    AuditLogEntry.created_at <= delete_cutoff,
                 )
             )
 
@@ -787,7 +874,7 @@ class AuditService:
                 and_(
                     AuditLogEntry.organization_id == policy.organization_id,
                     AuditLogEntry.created_at <= archive_cutoff,
-                    AuditLogEntry.created_at > delete_cutoff
+                    AuditLogEntry.created_at > delete_cutoff,
                 )
             )
 
@@ -815,7 +902,7 @@ class AuditService:
                 "success": True,
                 "records_processed": delete_count + archive_count,
                 "records_archived": archive_count,
-                "records_deleted": delete_count
+                "records_deleted": delete_count,
             }
 
         except SQLAlchemyError as e:
@@ -872,9 +959,7 @@ class AuditService:
         return all(field in conditions for field in required_fields)
 
     def _evaluate_rule_conditions(
-        self,
-        conditions: Dict[str, Any],
-        test_data: Dict[str, Any]
+        self, conditions: Dict[str, Any], test_data: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Evaluate rule conditions against test data."""
         matched_conditions = []
@@ -888,21 +973,22 @@ class AuditService:
 
         triggered = len(matched_conditions) > 0
 
-        return {
-            "triggered": triggered,
-            "matched_conditions": matched_conditions
-        }
+        return {"triggered": triggered, "matched_conditions": matched_conditions}
 
     async def _evaluate_audit_rules(self, entry: AuditLogEntry):
         """Evaluate audit rules against new entry."""
         try:
             # Get active rules for organization
-            rules = self.db.query(AuditRule).filter(
-                and_(
-                    AuditRule.organization_id == entry.organization_id,
-                    AuditRule.is_active
+            rules = (
+                self.db.query(AuditRule)
+                .filter(
+                    and_(
+                        AuditRule.organization_id == entry.organization_id,
+                        AuditRule.is_active,
+                    )
                 )
-            ).all()
+                .all()
+            )
 
             for rule in rules:
                 # Convert entry to dict for evaluation
@@ -920,16 +1006,21 @@ class AuditService:
 
                 if result["triggered"]:
                     # Create alert
-                    await self.create_audit_alert({
-                        "organization_id": entry.organization_id,
-                        "rule_id": rule.id,
-                        "alert_type": "rule_violation",
-                        "title": f"Rule violation: {rule.name}",
-                        "description": f"Audit rule '{rule.name}' was triggered",
-                        "severity": rule.alert_severity,
-                        "triggering_event_ids": [entry.id],
-                        "alert_data": {"entry_id": entry.id, "rule_conditions": rule.conditions}
-                    })
+                    await self.create_audit_alert(
+                        {
+                            "organization_id": entry.organization_id,
+                            "rule_id": rule.id,
+                            "alert_type": "rule_violation",
+                            "title": f"Rule violation: {rule.name}",
+                            "description": f"Audit rule '{rule.name}' was triggered",
+                            "severity": rule.alert_severity,
+                            "triggering_event_ids": [entry.id],
+                            "alert_data": {
+                                "entry_id": entry.id,
+                                "rule_conditions": rule.conditions,
+                            },
+                        }
+                    )
 
                     # Update rule trigger count
                     rule.trigger_count += 1
@@ -954,7 +1045,7 @@ class AuditService:
                 and_(
                     AuditLogEntry.organization_id == report.organization_id,
                     AuditLogEntry.event_timestamp >= report.period_start,
-                    AuditLogEntry.event_timestamp <= report.period_end
+                    AuditLogEntry.event_timestamp <= report.period_end,
                 )
             )
 
@@ -966,11 +1057,13 @@ class AuditService:
             # Generate findings
             findings = []
             if critical_events > 0:
-                findings.append({
-                    "type": "security_concern",
-                    "description": f"{critical_events} critical security events detected",
-                    "severity": "high"
-                })
+                findings.append(
+                    {
+                        "type": "security_concern",
+                        "description": f"{critical_events} critical security events detected",
+                        "severity": "high",
+                    }
+                )
 
             # Update report
             report.total_events = total_events
@@ -991,21 +1084,31 @@ class AuditService:
         """Calculate overall security score for organization."""
         try:
             # Get recent security events
-            recent_events = self.db.query(AuditLogEntry).filter(
-                and_(
-                    AuditLogEntry.organization_id == organization_id,
-                    AuditLogEntry.event_timestamp >= datetime.now() - timedelta(days=30)
+            recent_events = (
+                self.db.query(AuditLogEntry)
+                .filter(
+                    and_(
+                        AuditLogEntry.organization_id == organization_id,
+                        AuditLogEntry.event_timestamp
+                        >= datetime.now() - timedelta(days=30),
+                    )
                 )
-            ).count()
+                .count()
+            )
 
             # Get security violations
-            violations = self.db.query(AuditLogEntry).filter(
-                and_(
-                    AuditLogEntry.organization_id == organization_id,
-                    AuditLogEntry.event_type == AuditEventType.SECURITY_VIOLATION,
-                    AuditLogEntry.event_timestamp >= datetime.now() - timedelta(days=30)
+            violations = (
+                self.db.query(AuditLogEntry)
+                .filter(
+                    and_(
+                        AuditLogEntry.organization_id == organization_id,
+                        AuditLogEntry.event_type == AuditEventType.SECURITY_VIOLATION,
+                        AuditLogEntry.event_timestamp
+                        >= datetime.now() - timedelta(days=30),
+                    )
                 )
-            ).count()
+                .count()
+            )
 
             # Calculate base score
             base_score = 100

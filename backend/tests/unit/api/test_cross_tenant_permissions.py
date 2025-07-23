@@ -74,7 +74,9 @@ class TestCross_Tenant_PermissionsAPI:
 
         with patch("app.core.database.get_db", return_value=mock_db):
             # Act
-            response = client.post("/api/v1/cross_tenant_permissions", json=invalid_data)
+            response = client.post(
+                "/api/v1/cross_tenant_permissions", json=invalid_data
+            )
 
         # Assert
         assert response.status_code == 422
@@ -87,7 +89,9 @@ class TestCross_Tenant_PermissionsAPI:
 
         with patch("app.core.database.get_db", return_value=mock_db):
             # Act
-            response = client.put(f"/api/v1/cross_tenant_permissions/{item_id}", json=update_data)
+            response = client.put(
+                f"/api/v1/cross_tenant_permissions/{item_id}", json=update_data
+            )
 
         # Assert
         assert response.status_code in [200, 404]  # 404 if item doesn't exist

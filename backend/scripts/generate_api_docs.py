@@ -63,29 +63,25 @@ async def generate_api_documentation():
         routes=app.routes,
         servers=[
             {"url": "http://localhost:8000", "description": "Development server"},
-            {"url": "https://api.itdo-erp.com", "description": "Production server"}
-        ]
+            {"url": "https://api.itdo-erp.com", "description": "Production server"},
+        ],
     )
 
     # Add additional metadata
     openapi_schema["info"]["contact"] = {
         "name": "ITDO ERP Support",
         "email": "support@itdo-erp.com",
-        "url": "https://docs.itdo-erp.com"
+        "url": "https://docs.itdo-erp.com",
     }
 
     openapi_schema["info"]["license"] = {
         "name": "MIT",
-        "url": "https://opensource.org/licenses/MIT"
+        "url": "https://opensource.org/licenses/MIT",
     }
 
     # Add security schemes
     openapi_schema["components"]["securitySchemes"] = {
-        "BearerAuth": {
-            "type": "http",
-            "scheme": "bearer",
-            "bearerFormat": "JWT"
-        },
+        "BearerAuth": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"},
         "OAuth2": {
             "type": "oauth2",
             "flows": {
@@ -95,18 +91,15 @@ async def generate_api_documentation():
                     "scopes": {
                         "read": "Read access to resources",
                         "write": "Write access to resources",
-                        "admin": "Administrative access"
-                    }
+                        "admin": "Administrative access",
+                    },
                 }
-            }
-        }
+            },
+        },
     }
 
     # Add global security requirement
-    openapi_schema["security"] = [
-        {"BearerAuth": []},
-        {"OAuth2": ["read", "write"]}
-    ]
+    openapi_schema["security"] = [{"BearerAuth": []}, {"OAuth2": ["read", "write"]}]
 
     # Add tags with descriptions
     openapi_schema["tags"] = [
@@ -115,13 +108,16 @@ async def generate_api_documentation():
         {"name": "users", "description": "User management operations"},
         {"name": "organizations", "description": "Organization management"},
         {"name": "projects", "description": "Project and task management"},
-        {"name": "financial", "description": "Financial management (budgets, expenses, reports)"},
+        {
+            "name": "financial",
+            "description": "Financial management (budgets, expenses, reports)",
+        },
         {"name": "inventory", "description": "Inventory and product management"},
         {"name": "crm", "description": "Customer relationship management"},
         {"name": "workflow", "description": "Workflow and application management"},
         {"name": "security", "description": "Security audit and monitoring"},
         {"name": "monitoring", "description": "Performance monitoring and metrics"},
-        {"name": "analytics", "description": "Business analytics and reporting"}
+        {"name": "analytics", "description": "Business analytics and reporting"},
     ]
 
     # Save OpenAPI spec in multiple formats
@@ -167,15 +163,15 @@ async def generate_api_reference(schema: Dict[str, Any], docs_dir: Path):
                 for tag in tags:
                     if tag not in endpoints_by_tag:
                         endpoints_by_tag[tag] = []
-                    endpoints_by_tag[tag].append({
-                        "path": path,
-                        "method": method.upper(),
-                        "details": details
-                    })
+                    endpoints_by_tag[tag].append(
+                        {"path": path, "method": method.upper(), "details": details}
+                    )
 
     # Generate documentation for each tag
     for tag, endpoints in sorted(endpoints_by_tag.items()):
-        tag_info = next((t for t in schema.get("tags", []) if t["name"] == tag), {"description": ""})
+        tag_info = next(
+            (t for t in schema.get("tags", []) if t["name"] == tag), {"description": ""}
+        )
 
         reference_md.append(f"\n## {tag.title()}\n")
         if tag_info.get("description"):
@@ -196,7 +192,9 @@ async def generate_api_reference(schema: Dict[str, Any], docs_dir: Path):
                 reference_md.append("**Parameters:**\n")
                 for param in details["parameters"]:
                     required = " (required)" if param.get("required") else " (optional)"
-                    reference_md.append(f"- `{param['name']}` ({param['in']}){required}: {param.get('description', 'No description')}\n")
+                    reference_md.append(
+                        f"- `{param['name']}` ({param['in']}){required}: {param.get('description', 'No description')}\n"
+                    )
 
             # Request body
             if details.get("requestBody"):
@@ -267,7 +265,6 @@ Response:
 }
 ```
 """,
-
         "user_management.md": """# User Management Examples
 
 ## Create User
@@ -303,7 +300,6 @@ curl -X PUT "http://localhost:8000/api/v1/users/123" \\
   }'
 ```
 """,
-
         "error_handling.md": """# Error Handling Examples
 
 ## Standard Error Response Format
@@ -351,7 +347,7 @@ When rate limits are exceeded:
   "retry_after": 3600
 }
 ```
-"""
+""",
     }
 
     # Write example files
@@ -375,7 +371,7 @@ async def validate_api_documentation():
         "api-reference.md",
         "examples/authentication.md",
         "examples/user_management.md",
-        "examples/error_handling.md"
+        "examples/error_handling.md",
     ]
 
     for file_path in required_files:
@@ -398,7 +394,9 @@ async def validate_api_documentation():
 
         print("✅ OpenAPI schema validation passed")
         print(f"   - Endpoints: {len(schema.get('paths', {}))}")
-        print(f"   - Components: {len(schema.get('components', {}).get('schemas', {}))}")
+        print(
+            f"   - Components: {len(schema.get('components', {}).get('schemas', {}))}"
+        )
 
         return True
     except Exception as e:

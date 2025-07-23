@@ -26,7 +26,7 @@ class TestAutomationCICD:
             "integration": {"target_coverage": 90.0, "priority": "high"},
             "e2e": {"target_coverage": 80.0, "priority": "medium"},
             "performance": {"target_coverage": 70.0, "priority": "medium"},
-            "security": {"target_coverage": 85.0, "priority": "high"}
+            "security": {"target_coverage": 85.0, "priority": "high"},
         }
 
         self.ci_cd_improvements = [
@@ -36,7 +36,7 @@ class TestAutomationCICD:
             "matrix_testing",
             "automated_quality_gates",
             "deployment_automation",
-            "rollback_mechanisms"
+            "rollback_mechanisms",
         ]
 
         self.initialize_test_db()
@@ -46,7 +46,7 @@ class TestAutomationCICD:
         conn = sqlite3.connect(self.test_db)
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS test_coverage (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -58,9 +58,9 @@ class TestAutomationCICD:
                 missed_lines TEXT,
                 improvement_needed BOOLEAN
             )
-        ''')
+        """)
 
-        cursor.execute('''
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS test_results (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -71,9 +71,9 @@ class TestAutomationCICD:
                 error_message TEXT,
                 test_type TEXT
             )
-        ''')
+        """)
 
-        cursor.execute('''
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS ci_cd_metrics (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -84,9 +84,9 @@ class TestAutomationCICD:
                 deployment_target TEXT,
                 commit_hash TEXT
             )
-        ''')
+        """)
 
-        cursor.execute('''
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS quality_gates (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -96,7 +96,7 @@ class TestAutomationCICD:
                 passed BOOLEAN,
                 blocker_level TEXT
             )
-        ''')
+        """)
 
         conn.commit()
         conn.close()
@@ -115,7 +115,7 @@ class TestAutomationCICD:
             "test_coverage_improvements": {},
             "ci_cd_enhancements": [],
             "quality_gate_results": {},
-            "recommendations": []
+            "recommendations": [],
         }
 
         try:
@@ -160,7 +160,9 @@ class TestAutomationCICD:
             automation_results["phases"]["final_coverage"] = final_coverage
 
             # Phase 9: Generate Recommendations
-            recommendations = await self.generate_test_recommendations(automation_results)
+            recommendations = await self.generate_test_recommendations(
+                automation_results
+            )
             automation_results["recommendations"] = recommendations
 
             # Complete automation
@@ -209,11 +211,14 @@ class TestAutomationCICD:
                 "module_coverage": module_coverage,
                 "missing_tests": missing_tests,
                 "coverage_hotspots": coverage_hotspots,
-                "coverage_target_met": coverage_result.get("percentage", 0) >= self.coverage_target
+                "coverage_target_met": coverage_result.get("percentage", 0)
+                >= self.coverage_target,
             }
 
             print(f"   ✅ Coverage analysis completed in {analysis_duration:.2f}s")
-            print(f"   📊 Current Coverage: {coverage_result.get('percentage', 0):.1f}%")
+            print(
+                f"   📊 Current Coverage: {coverage_result.get('percentage', 0):.1f}%"
+            )
             print(f"   🎯 Target Coverage: {self.coverage_target}%")
 
             return analysis_result
@@ -227,14 +232,21 @@ class TestAutomationCICD:
         try:
             print("     🏃 Running pytest with coverage...")
 
-            result = subprocess.run([
-                "uv", "run", "pytest",
-                "--cov=app",
-                "--cov-report=json",
-                "--cov-report=html",
-                "--cov-fail-under=80",
-                "-q"
-            ], capture_output=True, text=True, timeout=300)
+            result = subprocess.run(
+                [
+                    "uv",
+                    "run",
+                    "pytest",
+                    "--cov=app",
+                    "--cov-report=json",
+                    "--cov-report=html",
+                    "--cov-fail-under=80",
+                    "-q",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=300,
+            )
 
             # カバレッジJSONを読み込み
             coverage_file = Path("coverage.json")
@@ -247,8 +259,10 @@ class TestAutomationCICD:
                     "lines_covered": coverage_data["totals"]["covered_lines"],
                     "lines_total": coverage_data["totals"]["num_statements"],
                     "lines_missing": coverage_data["totals"]["missing_lines"],
-                    "branches_covered": coverage_data["totals"].get("covered_branches", 0),
-                    "branches_total": coverage_data["totals"].get("num_branches", 0)
+                    "branches_covered": coverage_data["totals"].get(
+                        "covered_branches", 0
+                    ),
+                    "branches_total": coverage_data["totals"].get("num_branches", 0),
                 }
             else:
                 # カバレッジファイルがない場合、stdoutから解析
@@ -273,7 +287,7 @@ class TestAutomationCICD:
                     "lines_covered": 0,  # 詳細は不明
                     "lines_total": 0,
                     "lines_missing": 0,
-                    "source": "stdout_parsing"
+                    "source": "stdout_parsing",
                 }
 
             return {"percentage": 0, "error": "Could not parse coverage"}
@@ -307,7 +321,9 @@ class TestAutomationCICD:
             print(f"     ⚠️ Error analyzing module coverage: {e}")
             return []
 
-    async def analyze_single_module_coverage(self, module_path: Path) -> Optional[Dict[str, Any]]:
+    async def analyze_single_module_coverage(
+        self, module_path: Path
+    ) -> Optional[Dict[str, Any]]:
         """単一モジュールのカバレッジを分析"""
         try:
             content = module_path.read_text(encoding="utf-8")
@@ -320,7 +336,7 @@ class TestAutomationCICD:
             test_file_patterns = [
                 f"tests/unit/test_{module_path.stem}.py",
                 f"tests/unit/{module_path.parent.name}/test_{module_path.stem}.py",
-                f"tests/integration/test_{module_path.stem}.py"
+                f"tests/integration/test_{module_path.stem}.py",
             ]
 
             has_tests = any(Path(pattern).exists() for pattern in test_file_patterns)
@@ -337,7 +353,7 @@ class TestAutomationCICD:
                 "class_count": class_count,
                 "has_tests": has_tests,
                 "estimated_coverage": estimated_coverage,
-                "needs_tests": not has_tests or estimated_coverage < 80
+                "needs_tests": not has_tests or estimated_coverage < 80,
             }
 
         except Exception:
@@ -385,21 +401,25 @@ class TestAutomationCICD:
                 content = api_file.read_text(encoding="utf-8")
 
                 # エンドポイントを検出
-                endpoints = re.findall(r"@router\.(get|post|put|delete|patch)\(", content)
+                endpoints = re.findall(
+                    r"@router\.(get|post|put|delete|patch)\(", content
+                )
 
                 if endpoints:
                     # 対応するテストファイルをチェック
                     test_file = Path(f"tests/unit/api/test_{api_file.stem}.py")
 
                     if not test_file.exists():
-                        missing_api_tests.append({
-                            "type": "api_endpoint_test",
-                            "source_file": str(api_file),
-                            "test_file": str(test_file),
-                            "endpoint_count": len(endpoints),
-                            "priority": "high",
-                            "reason": f"Found {len(endpoints)} endpoints without tests"
-                        })
+                        missing_api_tests.append(
+                            {
+                                "type": "api_endpoint_test",
+                                "source_file": str(api_file),
+                                "test_file": str(test_file),
+                                "endpoint_count": len(endpoints),
+                                "priority": "high",
+                                "reason": f"Found {len(endpoints)} endpoints without tests",
+                            }
+                        )
 
             return missing_api_tests
 
@@ -424,14 +444,16 @@ class TestAutomationCICD:
                     test_file = Path(f"tests/unit/models/test_{model_file.stem}.py")
 
                     if not test_file.exists():
-                        missing_model_tests.append({
-                            "type": "model_test",
-                            "source_file": str(model_file),
-                            "test_file": str(test_file),
-                            "class_count": len(classes),
-                            "priority": "high",
-                            "reason": f"Found {len(classes)} model classes without tests"
-                        })
+                        missing_model_tests.append(
+                            {
+                                "type": "model_test",
+                                "source_file": str(model_file),
+                                "test_file": str(test_file),
+                                "class_count": len(classes),
+                                "priority": "high",
+                                "reason": f"Found {len(classes)} model classes without tests",
+                            }
+                        )
 
             return missing_model_tests
 
@@ -456,14 +478,16 @@ class TestAutomationCICD:
                     test_file = Path(f"tests/unit/services/test_{service_file.stem}.py")
 
                     if not test_file.exists():
-                        missing_service_tests.append({
-                            "type": "service_test",
-                            "source_file": str(service_file),
-                            "test_file": str(test_file),
-                            "function_count": len(functions),
-                            "priority": "medium",
-                            "reason": f"Found {len(functions)} service functions without tests"
-                        })
+                        missing_service_tests.append(
+                            {
+                                "type": "service_test",
+                                "source_file": str(service_file),
+                                "test_file": str(test_file),
+                                "function_count": len(functions),
+                                "priority": "medium",
+                                "reason": f"Found {len(functions)} service functions without tests",
+                            }
+                        )
 
             return missing_service_tests
 
@@ -487,14 +511,16 @@ class TestAutomationCICD:
                     test_file = Path(f"tests/unit/core/test_{util_file.stem}.py")
 
                     if not test_file.exists():
-                        missing_utility_tests.append({
-                            "type": "utility_test",
-                            "source_file": str(util_file),
-                            "test_file": str(test_file),
-                            "function_count": len(functions),
-                            "priority": "low",
-                            "reason": f"Found {len(functions)} utility functions without tests"
-                        })
+                        missing_utility_tests.append(
+                            {
+                                "type": "utility_test",
+                                "source_file": str(util_file),
+                                "test_file": str(test_file),
+                                "function_count": len(functions),
+                                "priority": "low",
+                                "reason": f"Found {len(functions)} utility functions without tests",
+                            }
+                        )
 
             return missing_utility_tests
 
@@ -517,11 +543,11 @@ class TestAutomationCICD:
 
                 # 複雑度を推定（制御構造の数）
                 complexity_indicators = (
-                    content.count("if ") +
-                    content.count("for ") +
-                    content.count("while ") +
-                    content.count("except ") +
-                    content.count("elif ")
+                    content.count("if ")
+                    + content.count("for ")
+                    + content.count("while ")
+                    + content.count("except ")
+                    + content.count("elif ")
                 )
 
                 # 関数の数
@@ -530,10 +556,12 @@ class TestAutomationCICD:
                 # テストファイルの存在確認
                 potential_test_files = [
                     f"tests/unit/test_{py_file.stem}.py",
-                    f"tests/unit/{py_file.parent.name}/test_{py_file.stem}.py"
+                    f"tests/unit/{py_file.parent.name}/test_{py_file.stem}.py",
                 ]
 
-                has_tests = any(Path(test_file).exists() for test_file in potential_test_files)
+                has_tests = any(
+                    Path(test_file).exists() for test_file in potential_test_files
+                )
 
                 # ホットスポットスコアを計算
                 hotspot_score = complexity_indicators * 0.5 + function_count * 0.3
@@ -541,14 +569,16 @@ class TestAutomationCICD:
                     hotspot_score *= 2  # テストがない場合はスコアを倍増
 
                 if hotspot_score > 5:  # 閾値を超えた場合
-                    hotspots.append({
-                        "file": str(py_file.relative_to(Path.cwd())),
-                        "hotspot_score": hotspot_score,
-                        "complexity_indicators": complexity_indicators,
-                        "function_count": function_count,
-                        "has_tests": has_tests,
-                        "priority": "high" if hotspot_score > 15 else "medium"
-                    })
+                    hotspots.append(
+                        {
+                            "file": str(py_file.relative_to(Path.cwd())),
+                            "hotspot_score": hotspot_score,
+                            "complexity_indicators": complexity_indicators,
+                            "function_count": function_count,
+                            "has_tests": has_tests,
+                            "priority": "high" if hotspot_score > 15 else "medium",
+                        }
+                    )
 
             # スコアでソート
             hotspots.sort(key=lambda x: x["hotspot_score"], reverse=True)
@@ -600,25 +630,33 @@ class TestAutomationCICD:
                 "test_types": {
                     "api": len([t for t in generated_tests if t["type"] == "api"]),
                     "model": len([t for t in generated_tests if t["type"] == "model"]),
-                    "service": len([t for t in generated_tests if t["type"] == "service"]),
-                    "integration": len([t for t in generated_tests if t["type"] == "integration"])
-                }
+                    "service": len(
+                        [t for t in generated_tests if t["type"] == "service"]
+                    ),
+                    "integration": len(
+                        [t for t in generated_tests if t["type"] == "integration"]
+                    ),
+                },
             }
 
         except Exception as e:
             return {
                 "error": str(e),
-                "generation_duration": time.time() - generation_start
+                "generation_duration": time.time() - generation_start,
             }
 
-    async def generate_api_tests(self, missing_tests: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    async def generate_api_tests(
+        self, missing_tests: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         """APIテストを生成"""
         print("     🔌 Generating API tests...")
 
         generated = []
 
         try:
-            api_missing = [t for t in missing_tests if t.get("type") == "api_endpoint_test"]
+            api_missing = [
+                t for t in missing_tests if t.get("type") == "api_endpoint_test"
+            ]
 
             for missing in api_missing[:5]:  # 最初の5個を生成
                 test_content = self.create_api_test_template(missing)
@@ -630,13 +668,16 @@ class TestAutomationCICD:
                 with open(test_file_path, "w", encoding="utf-8") as f:
                     f.write(test_content)
 
-                generated.append({
-                    "type": "api",
-                    "file": str(test_file_path),
-                    "source_file": missing["source_file"],
-                    "test_count": missing["endpoint_count"] * 3,  # 各エンドポイントに3つのテスト
-                    "status": "generated"
-                })
+                generated.append(
+                    {
+                        "type": "api",
+                        "file": str(test_file_path),
+                        "source_file": missing["source_file"],
+                        "test_count": missing["endpoint_count"]
+                        * 3,  # 各エンドポイントに3つのテスト
+                        "status": "generated",
+                    }
+                )
 
                 await asyncio.sleep(0.1)  # 生成間隔
 
@@ -772,7 +813,9 @@ class Test{module_name.title()}API:
 
         return template
 
-    async def generate_model_tests(self, missing_tests: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    async def generate_model_tests(
+        self, missing_tests: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         """モデルテストを生成"""
         print("     🏗️ Generating model tests...")
 
@@ -790,13 +833,16 @@ class Test{module_name.title()}API:
                 with open(test_file_path, "w", encoding="utf-8") as f:
                     f.write(test_content)
 
-                generated.append({
-                    "type": "model",
-                    "file": str(test_file_path),
-                    "source_file": missing["source_file"],
-                    "test_count": missing["class_count"] * 4,  # 各クラスに4つのテスト
-                    "status": "generated"
-                })
+                generated.append(
+                    {
+                        "type": "model",
+                        "file": str(test_file_path),
+                        "source_file": missing["source_file"],
+                        "test_count": missing["class_count"]
+                        * 4,  # 各クラスに4つのテスト
+                        "status": "generated",
+                    }
+                )
 
                 await asyncio.sleep(0.1)
 
@@ -883,14 +929,18 @@ class Test{module_name.title()}Model:
 
         return template
 
-    async def generate_service_tests(self, missing_tests: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    async def generate_service_tests(
+        self, missing_tests: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         """サービステストを生成"""
         print("     ⚙️ Generating service tests...")
 
         generated = []
 
         try:
-            service_missing = [t for t in missing_tests if t.get("type") == "service_test"]
+            service_missing = [
+                t for t in missing_tests if t.get("type") == "service_test"
+            ]
 
             for missing in service_missing[:5]:
                 test_content = self.create_service_test_template(missing)
@@ -901,13 +951,16 @@ class Test{module_name.title()}Model:
                 with open(test_file_path, "w", encoding="utf-8") as f:
                     f.write(test_content)
 
-                generated.append({
-                    "type": "service",
-                    "file": str(test_file_path),
-                    "source_file": missing["source_file"],
-                    "test_count": missing["function_count"] * 2,  # 各関数に2つのテスト
-                    "status": "generated"
-                })
+                generated.append(
+                    {
+                        "type": "service",
+                        "file": str(test_file_path),
+                        "source_file": missing["source_file"],
+                        "test_count": missing["function_count"]
+                        * 2,  # 各関数に2つのテスト
+                        "status": "generated",
+                    }
+                )
 
                 await asyncio.sleep(0.1)
 
@@ -1005,7 +1058,7 @@ class Test{module_name.title()}Service:
                 "user_registration_workflow",
                 "authentication_workflow",
                 "crud_operations_workflow",
-                "api_integration_workflow"
+                "api_integration_workflow",
             ]
 
             for workflow in workflows:
@@ -1017,13 +1070,15 @@ class Test{module_name.title()}Service:
                 with open(test_file_path, "w", encoding="utf-8") as f:
                     f.write(test_content)
 
-                generated.append({
-                    "type": "integration",
-                    "file": str(test_file_path),
-                    "workflow": workflow,
-                    "test_count": 5,  # 各ワークフローに5つのテスト
-                    "status": "generated"
-                })
+                generated.append(
+                    {
+                        "type": "integration",
+                        "file": str(test_file_path),
+                        "workflow": workflow,
+                        "test_count": 5,  # 各ワークフローに5つのテスト
+                        "status": "generated",
+                    }
+                )
 
                 await asyncio.sleep(0.1)
 
@@ -1063,7 +1118,7 @@ def test_db():
     pass
 
 
-class Test{workflow.title().replace('_', '')}Integration:
+class Test{workflow.title().replace("_", "")}Integration:
     """Integration test class for {workflow}"""
 
     def test_workflow_happy_path(self, client, test_db):
@@ -1155,17 +1210,20 @@ class Test{workflow.title().replace('_', '')}Integration:
                 "total_tests": len(e2e_tests),
                 "config_files": config_files,
                 "test_categories": {
-                    "user_journey": len([t for t in e2e_tests if t["category"] == "user_journey"]),
-                    "api_workflow": len([t for t in e2e_tests if t["category"] == "api_workflow"]),
-                    "critical_path": len([t for t in e2e_tests if t["category"] == "critical_path"])
-                }
+                    "user_journey": len(
+                        [t for t in e2e_tests if t["category"] == "user_journey"]
+                    ),
+                    "api_workflow": len(
+                        [t for t in e2e_tests if t["category"] == "api_workflow"]
+                    ),
+                    "critical_path": len(
+                        [t for t in e2e_tests if t["category"] == "critical_path"]
+                    ),
+                },
             }
 
         except Exception as e:
-            return {
-                "error": str(e),
-                "build_duration": time.time() - build_start
-            }
+            return {"error": str(e), "build_duration": time.time() - build_start}
 
     async def create_user_journey_tests(self) -> List[Dict[str, Any]]:
         """ユーザージャーニーテストを作成"""
@@ -1175,18 +1233,28 @@ class Test{workflow.title().replace('_', '')}Integration:
             {
                 "name": "user_registration_journey",
                 "description": "Complete user registration flow",
-                "steps": ["visit_signup", "fill_form", "verify_email", "login"]
+                "steps": ["visit_signup", "fill_form", "verify_email", "login"],
             },
             {
                 "name": "admin_workflow_journey",
                 "description": "Admin user management workflow",
-                "steps": ["login_admin", "create_user", "assign_role", "verify_permissions"]
+                "steps": [
+                    "login_admin",
+                    "create_user",
+                    "assign_role",
+                    "verify_permissions",
+                ],
             },
             {
                 "name": "api_consumer_journey",
                 "description": "API consumer authentication and usage",
-                "steps": ["get_api_key", "authenticate", "make_requests", "handle_responses"]
-            }
+                "steps": [
+                    "get_api_key",
+                    "authenticate",
+                    "make_requests",
+                    "handle_responses",
+                ],
+            },
         ]
 
         created_tests = []
@@ -1200,14 +1268,16 @@ class Test{workflow.title().replace('_', '')}Integration:
             with open(test_file_path, "w", encoding="utf-8") as f:
                 f.write(test_content)
 
-            created_tests.append({
-                "category": "user_journey",
-                "name": journey["name"],
-                "file": str(test_file_path),
-                "description": journey["description"],
-                "steps": len(journey["steps"]),
-                "status": "created"
-            })
+            created_tests.append(
+                {
+                    "category": "user_journey",
+                    "name": journey["name"],
+                    "file": str(test_file_path),
+                    "description": journey["description"],
+                    "steps": len(journey["steps"]),
+                    "status": "created",
+                }
+            )
 
             await asyncio.sleep(0.1)
 
@@ -1242,7 +1312,7 @@ async def async_client():
         yield ac
 
 
-class Test{journey["name"].title().replace('_', '')}E2E:
+class Test{journey["name"].title().replace("_", "")}E2E:
     """E2E test class for {journey["name"]}"""
 
     @pytest.mark.asyncio
@@ -1310,7 +1380,7 @@ class Test{journey["name"].title().replace('_', '')}E2E:
         workflows = [
             "crud_operations_workflow",
             "authentication_workflow",
-            "permission_workflow"
+            "permission_workflow",
         ]
 
         created_tests = []
@@ -1332,7 +1402,7 @@ def client():
     return TestClient(app)
 
 
-class Test{workflow.title().replace('_', '')}Workflow:
+class Test{workflow.title().replace("_", "")}Workflow:
     def test_workflow_complete(self, client):
         """Test complete {workflow} workflow"""
         # Implement workflow test
@@ -1346,12 +1416,14 @@ class Test{workflow.title().replace('_', '')}Workflow:
             with open(test_file_path, "w", encoding="utf-8") as f:
                 f.write(test_content)
 
-            created_tests.append({
-                "category": "api_workflow",
-                "name": workflow,
-                "file": str(test_file_path),
-                "status": "created"
-            })
+            created_tests.append(
+                {
+                    "category": "api_workflow",
+                    "name": workflow,
+                    "file": str(test_file_path),
+                    "status": "created",
+                }
+            )
 
         return created_tests
 
@@ -1362,7 +1434,7 @@ class Test{workflow.title().replace('_', '')}Workflow:
         critical_paths = [
             "system_health_check",
             "data_integrity_check",
-            "security_compliance_check"
+            "security_compliance_check",
         ]
 
         created_tests = []
@@ -1384,7 +1456,7 @@ def client():
     return TestClient(app)
 
 
-class Test{path.title().replace('_', '')}CriticalPath:
+class Test{path.title().replace("_", "")}CriticalPath:
     def test_critical_path(self, client):
         """Test {path} critical path"""
         response = client.get("/api/v1/health")
@@ -1397,12 +1469,14 @@ class Test{path.title().replace('_', '')}CriticalPath:
             with open(test_file_path, "w", encoding="utf-8") as f:
                 f.write(test_content)
 
-            created_tests.append({
-                "category": "critical_path",
-                "name": path,
-                "file": str(test_file_path),
-                "status": "created"
-            })
+            created_tests.append(
+                {
+                    "category": "critical_path",
+                    "name": path,
+                    "file": str(test_file_path),
+                    "status": "created",
+                }
+            )
 
         return created_tests
 
@@ -1413,7 +1487,7 @@ class Test{path.title().replace('_', '')}CriticalPath:
         config_files = []
 
         # pytest.ini設定
-        pytest_config = '''[tool:pytest]
+        pytest_config = """[tool:pytest]
 testpaths = tests
 python_files = test_*.py
 python_classes = Test*
@@ -1432,17 +1506,15 @@ markers =
     e2e: End-to-end tests
     slow: Slow running tests
     asyncio: Async tests
-'''
+"""
 
         pytest_file = Path("pytest.ini")
         with open(pytest_file, "w") as f:
             f.write(pytest_config)
 
-        config_files.append({
-            "name": "pytest.ini",
-            "type": "pytest_config",
-            "path": str(pytest_file)
-        })
+        config_files.append(
+            {"name": "pytest.ini", "type": "pytest_config", "path": str(pytest_file)}
+        )
 
         return config_files
 
@@ -1469,7 +1541,9 @@ markers =
 
             implementation_duration = time.time() - implementation_start
 
-            print(f"   ✅ Performance tests implemented in {implementation_duration:.2f}s")
+            print(
+                f"   ✅ Performance tests implemented in {implementation_duration:.2f}s"
+            )
             print(f"   📊 Created {len(performance_tests)} performance tests")
 
             return {
@@ -1478,15 +1552,19 @@ markers =
                 "total_tests": len(performance_tests),
                 "test_types": {
                     "load": len([t for t in performance_tests if t["type"] == "load"]),
-                    "stress": len([t for t in performance_tests if t["type"] == "stress"]),
-                    "endpoint": len([t for t in performance_tests if t["type"] == "endpoint"])
-                }
+                    "stress": len(
+                        [t for t in performance_tests if t["type"] == "stress"]
+                    ),
+                    "endpoint": len(
+                        [t for t in performance_tests if t["type"] == "endpoint"]
+                    ),
+                },
             }
 
         except Exception as e:
             return {
                 "error": str(e),
-                "implementation_duration": time.time() - implementation_start
+                "implementation_duration": time.time() - implementation_start,
             }
 
     async def create_load_tests(self) -> List[Dict[str, Any]]:
@@ -1565,14 +1643,16 @@ async def test_sustained_load():
         with open(test_file_path, "w", encoding="utf-8") as f:
             f.write(load_test_content)
 
-        return [{
-            "type": "load",
-            "name": "api_load_tests",
-            "file": str(test_file_path),
-            "concurrent_users": 50,
-            "duration": "30s",
-            "status": "created"
-        }]
+        return [
+            {
+                "type": "load",
+                "name": "api_load_tests",
+                "file": str(test_file_path),
+                "concurrent_users": 50,
+                "duration": "30s",
+                "status": "created",
+            }
+        ]
 
     async def create_stress_tests(self) -> List[Dict[str, Any]]:
         """ストレステストを作成"""
@@ -1653,14 +1733,16 @@ async def test_memory_stress():
         with open(test_file_path, "w", encoding="utf-8") as f:
             f.write(stress_test_content)
 
-        return [{
-            "type": "stress",
-            "name": "api_stress_tests",
-            "file": str(test_file_path),
-            "concurrent_users": 200,
-            "test_scenarios": 2,
-            "status": "created"
-        }]
+        return [
+            {
+                "type": "stress",
+                "name": "api_stress_tests",
+                "file": str(test_file_path),
+                "concurrent_users": 200,
+                "test_scenarios": 2,
+                "status": "created",
+            }
+        ]
 
     async def create_endpoint_performance_tests(self) -> List[Dict[str, Any]]:
         """エンドポイント性能テストを作成"""
@@ -1771,14 +1853,16 @@ class TestEndpointPerformance:
         with open(test_file_path, "w", encoding="utf-8") as f:
             f.write(endpoint_test_content)
 
-        return [{
-            "type": "endpoint",
-            "name": "endpoint_performance_tests",
-            "file": str(test_file_path),
-            "endpoints_tested": 4,
-            "performance_thresholds": "100-500ms",
-            "status": "created"
-        }]
+        return [
+            {
+                "type": "endpoint",
+                "name": "endpoint_performance_tests",
+                "file": str(test_file_path),
+                "endpoints_tested": 4,
+                "performance_thresholds": "100-500ms",
+                "status": "created",
+            }
+        ]
 
     async def integrate_security_tests(self) -> Dict[str, Any]:
         """セキュリティテストを統合"""
@@ -1815,17 +1899,29 @@ class TestEndpointPerformance:
                 "security_tests": security_tests,
                 "total_tests": len(security_tests),
                 "test_categories": {
-                    "authentication": len([t for t in security_tests if t["category"] == "authentication"]),
-                    "authorization": len([t for t in security_tests if t["category"] == "authorization"]),
-                    "input_validation": len([t for t in security_tests if t["category"] == "input_validation"]),
-                    "injection": len([t for t in security_tests if t["category"] == "injection"])
-                }
+                    "authentication": len(
+                        [t for t in security_tests if t["category"] == "authentication"]
+                    ),
+                    "authorization": len(
+                        [t for t in security_tests if t["category"] == "authorization"]
+                    ),
+                    "input_validation": len(
+                        [
+                            t
+                            for t in security_tests
+                            if t["category"] == "input_validation"
+                        ]
+                    ),
+                    "injection": len(
+                        [t for t in security_tests if t["category"] == "injection"]
+                    ),
+                },
             }
 
         except Exception as e:
             return {
                 "error": str(e),
-                "integration_duration": time.time() - integration_start
+                "integration_duration": time.time() - integration_start,
             }
 
     async def create_authentication_tests(self) -> List[Dict[str, Any]]:
@@ -1926,13 +2022,15 @@ class TestAuthenticationSecurity:
         with open(test_file_path, "w", encoding="utf-8") as f:
             f.write(auth_test_content)
 
-        return [{
-            "category": "authentication",
-            "name": "authentication_security_tests",
-            "file": str(test_file_path),
-            "test_count": 5,
-            "status": "created"
-        }]
+        return [
+            {
+                "category": "authentication",
+                "name": "authentication_security_tests",
+                "file": str(test_file_path),
+                "test_count": 5,
+                "status": "created",
+            }
+        ]
 
     async def create_authorization_tests(self) -> List[Dict[str, Any]]:
         """認可テストを作成"""
@@ -2027,13 +2125,15 @@ class TestAuthorizationSecurity:
         with open(test_file_path, "w", encoding="utf-8") as f:
             f.write(authz_test_content)
 
-        return [{
-            "category": "authorization",
-            "name": "authorization_security_tests",
-            "file": str(test_file_path),
-            "test_count": 4,
-            "status": "created"
-        }]
+        return [
+            {
+                "category": "authorization",
+                "name": "authorization_security_tests",
+                "file": str(test_file_path),
+                "test_count": 4,
+                "status": "created",
+            }
+        ]
 
     async def create_input_validation_tests(self) -> List[Dict[str, Any]]:
         """入力検証テストを作成"""
@@ -2139,13 +2239,15 @@ class TestInputValidationSecurity:
         with open(test_file_path, "w", encoding="utf-8") as f:
             f.write(validation_test_content)
 
-        return [{
-            "category": "input_validation",
-            "name": "input_validation_security_tests",
-            "file": str(test_file_path),
-            "test_count": 5,
-            "status": "created"
-        }]
+        return [
+            {
+                "category": "input_validation",
+                "name": "input_validation_security_tests",
+                "file": str(test_file_path),
+                "test_count": 5,
+                "status": "created",
+            }
+        ]
 
     async def create_injection_tests(self) -> List[Dict[str, Any]]:
         """インジェクション攻撃テストを作成"""
@@ -2262,13 +2364,15 @@ class TestInjectionSecurity:
         with open(test_file_path, "w", encoding="utf-8") as f:
             f.write(injection_test_content)
 
-        return [{
-            "category": "injection",
-            "name": "injection_security_tests",
-            "file": str(test_file_path),
-            "test_count": 5,
-            "status": "created"
-        }]
+        return [
+            {
+                "category": "injection",
+                "name": "injection_security_tests",
+                "file": str(test_file_path),
+                "test_count": 5,
+                "status": "created",
+            }
+        ]
 
     async def enhance_ci_cd_pipeline(self) -> Dict[str, Any]:
         """CI/CDパイプラインを強化"""
@@ -2309,18 +2413,28 @@ class TestInjectionSecurity:
                 "enhancements": enhancements,
                 "total_enhancements": len(enhancements),
                 "categories": {
-                    "workflow": len([e for e in enhancements if e.get("type") == "workflow"]),
-                    "parallelization": len([e for e in enhancements if e.get("type") == "parallelization"]),
-                    "smart_testing": len([e for e in enhancements if e.get("type") == "smart_testing"]),
-                    "caching": len([e for e in enhancements if e.get("type") == "caching"]),
-                    "quality_gates": len([e for e in enhancements if e.get("type") == "quality_gates"])
-                }
+                    "workflow": len(
+                        [e for e in enhancements if e.get("type") == "workflow"]
+                    ),
+                    "parallelization": len(
+                        [e for e in enhancements if e.get("type") == "parallelization"]
+                    ),
+                    "smart_testing": len(
+                        [e for e in enhancements if e.get("type") == "smart_testing"]
+                    ),
+                    "caching": len(
+                        [e for e in enhancements if e.get("type") == "caching"]
+                    ),
+                    "quality_gates": len(
+                        [e for e in enhancements if e.get("type") == "quality_gates"]
+                    ),
+                },
             }
 
         except Exception as e:
             return {
                 "error": str(e),
-                "enhancement_duration": time.time() - enhancement_start
+                "enhancement_duration": time.time() - enhancement_start,
             }
 
     async def improve_github_workflows(self) -> List[Dict[str, Any]]:
@@ -2330,7 +2444,7 @@ class TestInjectionSecurity:
         workflows = []
 
         # メインCI/CDワークフローを改善
-        main_workflow = '''name: CC02 v38.0 Enhanced CI/CD Pipeline
+        main_workflow = """name: CC02 v38.0 Enhanced CI/CD Pipeline
 
 on:
   push:
@@ -2503,7 +2617,7 @@ jobs:
         run: |
           echo "Deploying to production environment..."
           # Add actual deployment commands here
-'''
+"""
 
         workflow_file = Path(".github/workflows/ci-cd-enhanced.yml")
         workflow_file.parent.mkdir(parents=True, exist_ok=True)
@@ -2511,20 +2625,22 @@ jobs:
         with open(workflow_file, "w", encoding="utf-8") as f:
             f.write(main_workflow)
 
-        workflows.append({
-            "type": "workflow",
-            "name": "enhanced_ci_cd_pipeline",
-            "file": str(workflow_file),
-            "features": [
-                "Path-based filtering",
-                "Matrix testing strategy",
-                "Parallel job execution",
-                "Advanced caching",
-                "Quality gates",
-                "Multi-environment deployment"
-            ],
-            "status": "created"
-        })
+        workflows.append(
+            {
+                "type": "workflow",
+                "name": "enhanced_ci_cd_pipeline",
+                "file": str(workflow_file),
+                "features": [
+                    "Path-based filtering",
+                    "Matrix testing strategy",
+                    "Parallel job execution",
+                    "Advanced caching",
+                    "Quality gates",
+                    "Multi-environment deployment",
+                ],
+                "status": "created",
+            }
+        )
 
         return workflows
 
@@ -2541,11 +2657,11 @@ jobs:
                 "pytest-xdist integration for parallel execution",
                 "Test sharding by test type and duration",
                 "Dynamic worker allocation based on system resources",
-                "Load balancing across test runners"
+                "Load balancing across test runners",
             ],
             "estimated_speedup": "3-5x faster test execution",
             "parallel_workers": "Auto-detected based on CPU cores",
-            "status": "implemented"
+            "status": "implemented",
         }
 
     async def implement_smart_test_selection(self) -> Dict[str, Any]:
@@ -2561,11 +2677,11 @@ jobs:
                 "Changed file impact analysis",
                 "Test dependency graph generation",
                 "Historical failure rate analysis",
-                "Risk-based test prioritization"
+                "Risk-based test prioritization",
             ],
             "test_reduction": "50-70% reduction in unnecessary test runs",
             "accuracy": "95% coverage of affected functionality",
-            "status": "implemented"
+            "status": "implemented",
         }
 
     async def improve_dependency_caching(self) -> Dict[str, Any]:
@@ -2581,11 +2697,11 @@ jobs:
                 "Multi-layer cache strategy",
                 "Dependency hash-based invalidation",
                 "Cross-job cache sharing",
-                "Cache warming for frequently used dependencies"
+                "Cache warming for frequently used dependencies",
             ],
             "cache_hit_rate": "85-95%",
             "build_time_reduction": "40-60%",
-            "status": "implemented"
+            "status": "implemented",
         }
 
     async def implement_automated_quality_gates(self) -> Dict[str, Any]:
@@ -2601,27 +2717,27 @@ jobs:
                 {
                     "name": "Test Coverage Gate",
                     "threshold": f"{self.coverage_target}%",
-                    "blocking": True
+                    "blocking": True,
                 },
                 {
                     "name": "Code Quality Gate",
                     "threshold": "8.0/10.0",
-                    "blocking": True
+                    "blocking": True,
                 },
                 {
                     "name": "Security Scan Gate",
                     "threshold": "No high/critical vulnerabilities",
-                    "blocking": True
+                    "blocking": True,
                 },
                 {
                     "name": "Performance Gate",
                     "threshold": "Response time < 500ms",
-                    "blocking": False
-                }
+                    "blocking": False,
+                },
             ],
             "auto_rollback": "Enabled on gate failure",
             "notification": "Slack/Email alerts on gate status",
-            "status": "implemented"
+            "status": "implemented",
         }
 
     async def implement_quality_gates(self) -> Dict[str, Any]:
@@ -2644,27 +2760,37 @@ jobs:
             implementation_duration = time.time() - implementation_start
 
             print(f"   ✅ Quality gates implemented in {implementation_duration:.2f}s")
-            print(f"   🚪 Gates status: {'✅ PASSED' if all_gates_passed else '❌ FAILED'}")
+            print(
+                f"   🚪 Gates status: {'✅ PASSED' if all_gates_passed else '❌ FAILED'}"
+            )
 
             return {
                 "implementation_duration": implementation_duration,
                 "quality_gates": quality_gates,
                 "all_gates_passed": all_gates_passed,
-                "failed_gates": [name for name, gate in quality_gates.items() if not gate["passed"]],
+                "failed_gates": [
+                    name for name, gate in quality_gates.items() if not gate["passed"]
+                ],
                 "gate_summary": {
                     "total_gates": len(quality_gates),
-                    "passed_gates": sum(1 for gate in quality_gates.values() if gate["passed"]),
-                    "failed_gates": sum(1 for gate in quality_gates.values() if not gate["passed"])
-                }
+                    "passed_gates": sum(
+                        1 for gate in quality_gates.values() if gate["passed"]
+                    ),
+                    "failed_gates": sum(
+                        1 for gate in quality_gates.values() if not gate["passed"]
+                    ),
+                },
             }
 
         except Exception as e:
             return {
                 "error": str(e),
-                "implementation_duration": time.time() - implementation_start
+                "implementation_duration": time.time() - implementation_start,
             }
 
-    async def check_quality_gate(self, gate_type: str, config: Dict[str, Any]) -> Dict[str, Any]:
+    async def check_quality_gate(
+        self, gate_type: str, config: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """個別品質ゲートをチェック"""
         try:
             # シミュレートされた品質メトリクス
@@ -2688,7 +2814,9 @@ jobs:
                 passed = False
 
             # 品質ゲート結果をデータベースに記録
-            self.record_quality_gate_result(gate_type, config["target_coverage"], current_coverage, passed)
+            self.record_quality_gate_result(
+                gate_type, config["target_coverage"], current_coverage, passed
+            )
 
             return {
                 "gate_type": gate_type,
@@ -2696,29 +2824,36 @@ jobs:
                 "current_coverage": current_coverage,
                 "passed": passed,
                 "priority": config["priority"],
-                "gap": config["target_coverage"] - current_coverage if not passed else 0
+                "gap": config["target_coverage"] - current_coverage
+                if not passed
+                else 0,
             }
 
         except Exception as e:
-            return {
-                "gate_type": gate_type,
-                "passed": False,
-                "error": str(e)
-            }
+            return {"gate_type": gate_type, "passed": False, "error": str(e)}
 
-    def record_quality_gate_result(self, gate_type: str, threshold: float, actual: float, passed: bool):
+    def record_quality_gate_result(
+        self, gate_type: str, threshold: float, actual: float, passed: bool
+    ):
         """品質ゲート結果をデータベースに記録"""
         try:
             conn = sqlite3.connect(self.test_db)
             cursor = conn.cursor()
 
-            blocker_level = "blocker" if not passed and gate_type in ["unit", "security"] else "warning"
+            blocker_level = (
+                "blocker"
+                if not passed and gate_type in ["unit", "security"]
+                else "warning"
+            )
 
-            cursor.execute('''
+            cursor.execute(
+                """
                 INSERT INTO quality_gates
                 (gate_type, threshold_value, actual_value, passed, blocker_level)
                 VALUES (?, ?, ?, ?, ?)
-            ''', (gate_type, threshold, actual, passed, blocker_level))
+            """,
+                (gate_type, threshold, actual, passed, blocker_level),
+            )
 
             conn.commit()
             conn.close()
@@ -2737,7 +2872,9 @@ jobs:
             final_coverage = await self.run_comprehensive_coverage_analysis()
 
             # カバレッジ改善を計算
-            coverage_improvement = await self.calculate_coverage_improvement(final_coverage)
+            coverage_improvement = await self.calculate_coverage_improvement(
+                final_coverage
+            )
 
             measurement_duration = time.time() - measurement_start
 
@@ -2745,20 +2882,22 @@ jobs:
 
             print(f"   ✅ Final coverage measured in {measurement_duration:.2f}s")
             print(f"   📊 Final Coverage: {final_coverage.get('percentage', 0):.1f}%")
-            print(f"   🎯 Target {'✅ MET' if target_met else '❌ NOT MET'} ({self.coverage_target}%)")
+            print(
+                f"   🎯 Target {'✅ MET' if target_met else '❌ NOT MET'} ({self.coverage_target}%)"
+            )
 
             return {
                 "measurement_duration": measurement_duration,
                 "final_coverage": final_coverage,
                 "coverage_improvement": coverage_improvement,
                 "target_met": target_met,
-                "target_percentage": self.coverage_target
+                "target_percentage": self.coverage_target,
             }
 
         except Exception as e:
             return {
                 "error": str(e),
-                "measurement_duration": time.time() - measurement_start
+                "measurement_duration": time.time() - measurement_start,
             }
 
     async def run_comprehensive_coverage_analysis(self) -> Dict[str, Any]:
@@ -2767,15 +2906,22 @@ jobs:
             print("     🔍 Running comprehensive coverage analysis...")
 
             # 全テストタイプでカバレッジを測定
-            result = subprocess.run([
-                "uv", "run", "pytest",
-                "--cov=app",
-                "--cov-report=json",
-                "--cov-report=html",
-                "--cov-report=term-missing",
-                "tests/",
-                "-v"
-            ], capture_output=True, text=True, timeout=600)
+            result = subprocess.run(
+                [
+                    "uv",
+                    "run",
+                    "pytest",
+                    "--cov=app",
+                    "--cov-report=json",
+                    "--cov-report=html",
+                    "--cov-report=term-missing",
+                    "tests/",
+                    "-v",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=600,
+            )
 
             # カバレッジ結果を解析
             coverage_data = await self.parse_comprehensive_coverage(result)
@@ -2787,7 +2933,9 @@ jobs:
         except Exception as e:
             return {"percentage": 0, "error": f"Coverage analysis failed: {e}"}
 
-    async def parse_comprehensive_coverage(self, result: subprocess.CompletedProcess) -> Dict[str, Any]:
+    async def parse_comprehensive_coverage(
+        self, result: subprocess.CompletedProcess
+    ) -> Dict[str, Any]:
         """包括的カバレッジ結果を解析"""
         try:
             # coverage.jsonファイルを読み込み
@@ -2801,27 +2949,28 @@ jobs:
                     "lines_covered": coverage_data["totals"]["covered_lines"],
                     "lines_total": coverage_data["totals"]["num_statements"],
                     "lines_missing": coverage_data["totals"]["missing_lines"],
-                    "branches_covered": coverage_data["totals"].get("covered_branches", 0),
+                    "branches_covered": coverage_data["totals"].get(
+                        "covered_branches", 0
+                    ),
                     "branches_total": coverage_data["totals"].get("num_branches", 0),
                     "files_analyzed": len(coverage_data["files"]),
-                    "source": "coverage.json"
+                    "source": "coverage.json",
                 }
             else:
                 # 出力から解析
                 coverage_match = re.search(r"TOTAL\s+\d+\s+\d+\s+(\d+)%", result.stdout)
                 if coverage_match:
                     percentage = float(coverage_match.group(1))
-                    return {
-                        "percentage": percentage,
-                        "source": "stdout_parsing"
-                    }
+                    return {"percentage": percentage, "source": "stdout_parsing"}
 
                 return {"percentage": 0, "source": "no_data"}
 
         except Exception as e:
             return {"percentage": 0, "error": f"Parse error: {e}"}
 
-    async def calculate_coverage_improvement(self, final_coverage: Dict[str, Any]) -> Dict[str, Any]:
+    async def calculate_coverage_improvement(
+        self, final_coverage: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """カバレッジ改善を計算"""
         try:
             # 初期カバレッジと比較（簡易実装）
@@ -2829,20 +2978,24 @@ jobs:
             final_percentage = final_coverage.get("percentage", 0)
 
             improvement = final_percentage - initial_coverage
-            improvement_ratio = (improvement / initial_coverage) * 100 if initial_coverage > 0 else 0
+            improvement_ratio = (
+                (improvement / initial_coverage) * 100 if initial_coverage > 0 else 0
+            )
 
             return {
                 "initial_coverage": initial_coverage,
                 "final_coverage": final_percentage,
                 "absolute_improvement": improvement,
                 "relative_improvement": improvement_ratio,
-                "target_gap": self.coverage_target - final_percentage
+                "target_gap": self.coverage_target - final_percentage,
             }
 
         except Exception as e:
             return {"error": f"Improvement calculation failed: {e}"}
 
-    async def generate_test_recommendations(self, automation_results: Dict[str, Any]) -> List[str]:
+    async def generate_test_recommendations(
+        self, automation_results: Dict[str, Any]
+    ) -> List[str]:
         """テスト推奨事項を生成"""
         print("   💡 Generating test recommendations...")
 
@@ -2850,15 +3003,21 @@ jobs:
 
         try:
             # カバレッジ分析に基づく推奨事項
-            coverage_analysis = automation_results.get("phases", {}).get("coverage_analysis", {})
-            if coverage_analysis and not coverage_analysis.get("coverage_target_met", False):
+            coverage_analysis = automation_results.get("phases", {}).get(
+                "coverage_analysis", {}
+            )
+            if coverage_analysis and not coverage_analysis.get(
+                "coverage_target_met", False
+            ):
                 recommendations.append(
                     "Current test coverage is below target. "
                     "Focus on adding tests for uncovered code paths."
                 )
 
             # 不足テストに基づく推奨事項
-            test_generation = automation_results.get("phases", {}).get("test_generation", {})
+            test_generation = automation_results.get("phases", {}).get(
+                "test_generation", {}
+            )
             if test_generation:
                 generated_count = test_generation.get("total_tests", 0)
                 if generated_count > 0:
@@ -2886,7 +3045,9 @@ jobs:
                 )
 
             # パフォーマンステストに基づく推奨事項
-            performance_tests = automation_results.get("phases", {}).get("performance_tests", {})
+            performance_tests = automation_results.get("phases", {}).get(
+                "performance_tests", {}
+            )
             if performance_tests:
                 recommendations.append(
                     "Configure appropriate performance thresholds based on your "
@@ -2894,7 +3055,9 @@ jobs:
                 )
 
             # セキュリティテストに基づく推奨事項
-            security_tests = automation_results.get("phases", {}).get("security_tests", {})
+            security_tests = automation_results.get("phases", {}).get(
+                "security_tests", {}
+            )
             if security_tests:
                 recommendations.append(
                     "Customize security tests with your actual endpoints and "
@@ -2902,7 +3065,9 @@ jobs:
                 )
 
             # CI/CDに基づく推奨事項
-            ci_cd_enhancements = automation_results.get("phases", {}).get("ci_cd_enhancements", {})
+            ci_cd_enhancements = automation_results.get("phases", {}).get(
+                "ci_cd_enhancements", {}
+            )
             if ci_cd_enhancements:
                 recommendations.append(
                     "Configure deployment targets and environment-specific settings "
@@ -2910,14 +3075,16 @@ jobs:
                 )
 
             # 汎用推奨事項
-            recommendations.extend([
-                "Implement test data factories for consistent test setup",
-                "Add integration with test reporting tools (Allure, pytest-html)",
-                "Set up test result notifications (Slack, email)",
-                "Implement test flakiness detection and monitoring",
-                "Create test documentation and guidelines for the team",
-                "Set up regular test maintenance and cleanup procedures"
-            ])
+            recommendations.extend(
+                [
+                    "Implement test data factories for consistent test setup",
+                    "Add integration with test reporting tools (Allure, pytest-html)",
+                    "Set up test result notifications (Slack, email)",
+                    "Implement test flakiness detection and monitoring",
+                    "Create test documentation and guidelines for the team",
+                    "Set up regular test maintenance and cleanup procedures",
+                ]
+            )
 
             print(f"   ✅ Generated {len(recommendations)} recommendations")
 
@@ -2925,7 +3092,9 @@ jobs:
 
         except Exception as e:
             print(f"   ⚠️ Error generating recommendations: {e}")
-            return ["Review test automation results and implement improvements manually."]
+            return [
+                "Review test automation results and implement improvements manually."
+            ]
 
     async def save_automation_results(self, results: Dict[str, Any]):
         """自動化結果を保存"""
@@ -2960,35 +3129,41 @@ jobs:
                 generated_tests = test_generation.get("generated_tests", [])
 
                 for test in generated_tests:
-                    cursor.execute('''
+                    cursor.execute(
+                        """
                         INSERT INTO test_results
                         (test_suite, test_name, status, duration_ms, test_type)
                         VALUES (?, ?, ?, ?, ?)
-                    ''', (
-                        test.get("file", "unknown"),
-                        test.get("type", "unknown"),
-                        test.get("status", "generated"),
-                        0,  # Duration not applicable for generated tests
-                        test.get("type", "unknown")
-                    ))
+                    """,
+                        (
+                            test.get("file", "unknown"),
+                            test.get("type", "unknown"),
+                            test.get("status", "generated"),
+                            0,  # Duration not applicable for generated tests
+                            test.get("type", "unknown"),
+                        ),
+                    )
 
             # カバレッジ結果を記録
             final_coverage = results.get("phases", {}).get("final_coverage", {})
             if final_coverage:
                 coverage_data = final_coverage.get("final_coverage", {})
 
-                cursor.execute('''
+                cursor.execute(
+                    """
                     INSERT INTO test_coverage
                     (test_type, module_name, coverage_percentage, lines_covered, lines_total, improvement_needed)
                     VALUES (?, ?, ?, ?, ?, ?)
-                ''', (
-                    "comprehensive",
-                    "all_modules",
-                    coverage_data.get("percentage", 0),
-                    coverage_data.get("lines_covered", 0),
-                    coverage_data.get("lines_total", 0),
-                    not final_coverage.get("target_met", False)
-                ))
+                """,
+                    (
+                        "comprehensive",
+                        "all_modules",
+                        coverage_data.get("percentage", 0),
+                        coverage_data.get("lines_covered", 0),
+                        coverage_data.get("lines_total", 0),
+                        not final_coverage.get("target_met", False),
+                    ),
+                )
 
             conn.commit()
             conn.close()
@@ -3026,13 +3201,17 @@ jobs:
             if final_cov.get("final_coverage"):
                 cov_data = final_cov["final_coverage"]
                 print(f"   - Final Coverage: {cov_data.get('percentage', 0):.1f}%")
-                print(f"   - Coverage Target: {'✅ MET' if final_cov.get('target_met', False) else '❌ NOT MET'}")
+                print(
+                    f"   - Coverage Target: {'✅ MET' if final_cov.get('target_met', False) else '❌ NOT MET'}"
+                )
 
         # 品質ゲート結果
         quality_gates = results.get("quality_gate_results", {})
         if quality_gates:
             gate_summary = quality_gates.get("gate_summary", {})
-            print(f"   - Quality Gates: {gate_summary.get('passed_gates', 0)}/{gate_summary.get('total_gates', 0)} passed")
+            print(
+                f"   - Quality Gates: {gate_summary.get('passed_gates', 0)}/{gate_summary.get('total_gates', 0)} passed"
+            )
 
         # 推奨事項
         recommendations = results.get("recommendations", [])

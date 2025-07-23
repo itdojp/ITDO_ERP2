@@ -13,7 +13,6 @@ class TestRolePermissionUiAPI:
         self.client = TestClient(app)
         self.headers = {"Content-Type": "application/json"}
 
-
     def test_get__definitions_success(self):
         """Test GET /definitions successful response."""
         # Setup test data
@@ -33,7 +32,9 @@ class TestRolePermissionUiAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/definitions", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/definitions", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -65,7 +66,9 @@ class TestRolePermissionUiAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/structure", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/structure", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -84,7 +87,9 @@ class TestRolePermissionUiAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/role/{role_id}/matrix", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/role/{role_id}/matrix", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -97,7 +102,9 @@ class TestRolePermissionUiAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/role/{role_id}/matrix", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/role/{role_id}/matrix", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -116,7 +123,9 @@ class TestRolePermissionUiAPI:
         test_data = self.get_test_data_for_put()
 
         # Make request
-        response = self.client.put("/role/{role_id}/matrix", json=test_data, headers=self.headers)
+        response = self.client.put(
+            "/role/{role_id}/matrix", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -129,7 +138,9 @@ class TestRolePermissionUiAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.put("/role/{role_id}/matrix", json=invalid_data, headers=self.headers)
+        response = self.client.put(
+            "/role/{role_id}/matrix", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -148,7 +159,9 @@ class TestRolePermissionUiAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/role/{role_id}/inheritance", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/role/{role_id}/inheritance", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -161,7 +174,9 @@ class TestRolePermissionUiAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/role/{role_id}/inheritance", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/role/{role_id}/inheritance", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -180,7 +195,9 @@ class TestRolePermissionUiAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/role/{role_id}/effective", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/role/{role_id}/effective", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -193,7 +210,9 @@ class TestRolePermissionUiAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/role/{role_id}/effective", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/role/{role_id}/effective", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -212,7 +231,9 @@ class TestRolePermissionUiAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/role/{role_id}/conflicts", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/role/{role_id}/conflicts", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -225,7 +246,9 @@ class TestRolePermissionUiAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/role/{role_id}/conflicts", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/role/{role_id}/conflicts", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -257,7 +280,9 @@ class TestRolePermissionUiAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.put("/bulk-update", json=invalid_data, headers=self.headers)
+        response = self.client.put(
+            "/bulk-update", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422

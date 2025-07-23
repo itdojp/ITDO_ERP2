@@ -143,7 +143,9 @@ class ExternalSystem(Base):
     rate_limit_reset_at = Column(DateTime)
 
     # Health monitoring
-    connection_status = Column(SQLEnum(ConnectionStatus), default=ConnectionStatus.DISCONNECTED)
+    connection_status = Column(
+        SQLEnum(ConnectionStatus), default=ConnectionStatus.DISCONNECTED
+    )
     last_health_check = Column(DateTime)
     health_check_interval = Column(Integer, default=300)  # seconds
     uptime_percentage = Column(Numeric(5, 2))
@@ -191,13 +193,17 @@ class IntegrationConnector(Base):
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     organization_id = Column(String, ForeignKey("organizations.id"), nullable=False)
-    external_system_id = Column(String, ForeignKey("external_systems.id"), nullable=False)
+    external_system_id = Column(
+        String, ForeignKey("external_systems.id"), nullable=False
+    )
 
     # Connector identification
     name = Column(String(200), nullable=False)
     code = Column(String(100), nullable=False, index=True)
     description = Column(Text)
-    operation_type = Column(String(100), nullable=False)  # create, read, update, delete, sync, custom
+    operation_type = Column(
+        String(100), nullable=False
+    )  # create, read, update, delete, sync, custom
 
     # Endpoint configuration
     endpoint_url = Column(String(1000), nullable=False)
@@ -268,7 +274,9 @@ class DataMapping(Base):
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     organization_id = Column(String, ForeignKey("organizations.id"), nullable=False)
-    connector_id = Column(String, ForeignKey("integration_connectors.id"), nullable=False)
+    connector_id = Column(
+        String, ForeignKey("integration_connectors.id"), nullable=False
+    )
 
     # Mapping identification
     name = Column(String(200), nullable=False)
@@ -403,10 +411,14 @@ class IntegrationExecution(Base):
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     organization_id = Column(String, ForeignKey("organizations.id"), nullable=False)
-    connector_id = Column(String, ForeignKey("integration_connectors.id"), nullable=False)
+    connector_id = Column(
+        String, ForeignKey("integration_connectors.id"), nullable=False
+    )
 
     # Execution details
-    execution_type = Column(String(50), nullable=False)  # scheduled, manual, triggered, webhook
+    execution_type = Column(
+        String(50), nullable=False
+    )  # scheduled, manual, triggered, webhook
     trigger_source = Column(String(100))
     triggered_by = Column(String, ForeignKey("users.id"))
 
@@ -532,7 +544,9 @@ class WebhookRequest(Base):
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     organization_id = Column(String, ForeignKey("organizations.id"), nullable=False)
-    webhook_endpoint_id = Column(String, ForeignKey("webhook_endpoints.id"), nullable=False)
+    webhook_endpoint_id = Column(
+        String, ForeignKey("webhook_endpoints.id"), nullable=False
+    )
 
     # Request details
     method = Column(String(20), nullable=False)
@@ -605,7 +619,9 @@ class IntegrationMessage(Base):
     queue_name = Column(String(200))
 
     # Processing
-    status = Column(String(50), default="pending")  # pending, processing, completed, failed, dead_letter
+    status = Column(
+        String(50), default="pending"
+    )  # pending, processing, completed, failed, dead_letter
     priority = Column(Integer, default=5)  # 1-10, higher is more important
     scheduled_at = Column(DateTime)
 

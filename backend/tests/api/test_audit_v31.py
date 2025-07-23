@@ -82,7 +82,7 @@ def sample_audit_log_entry():
         tags=["authentication", "login"],
         status=AuditStatus.ACTIVE,
         event_timestamp=datetime.now(),
-        created_at=datetime.now()
+        created_at=datetime.now(),
     )
 
 
@@ -95,11 +95,7 @@ def sample_audit_rule():
         name="Failed Login Attempts",
         description="Detect multiple failed login attempts",
         rule_type="threshold",
-        conditions={
-            "event_type": "login_failed",
-            "threshold": 5,
-            "time_window": 300
-        },
+        conditions={"event_type": "login_failed", "threshold": 5, "time_window": 300},
         event_filters={"outcome": "failure"},
         threshold_config={"max_attempts": 5, "window_seconds": 300},
         actions=["log", "alert", "email"],
@@ -113,7 +109,7 @@ def sample_audit_rule():
         last_triggered=datetime.now() - timedelta(hours=1),
         false_positive_count=2,
         created_at=datetime.now(),
-        created_by="user-123"
+        created_by="user-123",
     )
 
 
@@ -143,7 +139,7 @@ def sample_audit_alert():
         notification_sent=False,
         first_occurrence=datetime.now() - timedelta(minutes=10),
         last_occurrence=datetime.now(),
-        created_at=datetime.now()
+        created_at=datetime.now(),
     )
 
 
@@ -180,7 +176,7 @@ def sample_audit_report():
         retention_period_days=2555,
         is_archived=False,
         created_at=datetime.now(),
-        completed_at=datetime.now()
+        completed_at=datetime.now(),
     )
 
 
@@ -210,7 +206,7 @@ def sample_audit_session():
         data_accessed=["users", "reports"],
         permissions_used=["read", "export"],
         started_at=datetime.now() - timedelta(hours=2),
-        created_at=datetime.now() - timedelta(hours=2)
+        created_at=datetime.now() - timedelta(hours=2),
     )
 
 
@@ -218,14 +214,19 @@ def sample_audit_session():
 # Audit Log Entry Management Tests
 # =============================================================================
 
+
 class TestAuditLogEntryManagement:
     """Test audit log entry management endpoints."""
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
-    def test_create_audit_log_entry_success(self, mock_get_service, client, sample_audit_log_entry):
+    @patch("app.api.v1.audit_v31.get_audit_service")
+    def test_create_audit_log_entry_success(
+        self, mock_get_service, client, sample_audit_log_entry
+    ):
         """Test successful audit log entry creation."""
         mock_service = Mock()
-        mock_service.create_audit_log_entry = AsyncMock(return_value=sample_audit_log_entry)
+        mock_service.create_audit_log_entry = AsyncMock(
+            return_value=sample_audit_log_entry
+        )
         mock_get_service.return_value = mock_service
 
         entry_data = {
@@ -239,7 +240,7 @@ class TestAuditLogEntryManagement:
             "resource_type": "user_session",
             "action_performed": "login",
             "outcome": "success",
-            "severity": "low"
+            "severity": "low",
         }
 
         response = client.post("/logs", json=entry_data)
@@ -249,29 +250,35 @@ class TestAuditLogEntryManagement:
         assert data["event_type"] == "login"
         mock_service.create_audit_log_entry.assert_called_once()
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
+    @patch("app.api.v1.audit_v31.get_audit_service")
     def test_create_audit_log_entry_failure(self, mock_get_service, client):
         """Test audit log entry creation failure."""
         mock_service = Mock()
-        mock_service.create_audit_log_entry = AsyncMock(side_effect=Exception("Creation failed"))
+        mock_service.create_audit_log_entry = AsyncMock(
+            side_effect=Exception("Creation failed")
+        )
         mock_get_service.return_value = mock_service
 
         entry_data = {
             "organization_id": "org-123",
             "event_type": "login",
             "event_category": "authentication",
-            "event_name": "User Login"
+            "event_name": "User Login",
         }
 
         response = client.post("/logs", json=entry_data)
         assert response.status_code == 400
         assert "Failed to create audit log entry" in response.json()["detail"]
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
-    def test_bulk_create_audit_entries_success(self, mock_get_service, client, sample_audit_log_entry):
+    @patch("app.api.v1.audit_v31.get_audit_service")
+    def test_bulk_create_audit_entries_success(
+        self, mock_get_service, client, sample_audit_log_entry
+    ):
         """Test successful bulk audit entries creation."""
         mock_service = Mock()
-        mock_service.bulk_create_audit_entries = AsyncMock(return_value=[sample_audit_log_entry])
+        mock_service.bulk_create_audit_entries = AsyncMock(
+            return_value=[sample_audit_log_entry]
+        )
         mock_get_service.return_value = mock_service
 
         bulk_data = {
@@ -280,7 +287,7 @@ class TestAuditLogEntryManagement:
                     "organization_id": "org-123",
                     "event_type": "login",
                     "event_category": "authentication",
-                    "event_name": "User Login"
+                    "event_name": "User Login",
                 }
             ]
         }
@@ -291,11 +298,15 @@ class TestAuditLogEntryManagement:
         assert len(data) == 1
         assert data[0]["event_name"] == "User Login"
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
-    def test_search_audit_logs_success(self, mock_get_service, client, sample_audit_log_entry):
+    @patch("app.api.v1.audit_v31.get_audit_service")
+    def test_search_audit_logs_success(
+        self, mock_get_service, client, sample_audit_log_entry
+    ):
         """Test successful audit logs search."""
         mock_service = Mock()
-        mock_service.search_audit_logs = AsyncMock(return_value=([sample_audit_log_entry], 1))
+        mock_service.search_audit_logs = AsyncMock(
+            return_value=([sample_audit_log_entry], 1)
+        )
         mock_get_service.return_value = mock_service
 
         search_request = {
@@ -304,7 +315,7 @@ class TestAuditLogEntryManagement:
             "start_date": (datetime.now() - timedelta(days=7)).isoformat(),
             "end_date": datetime.now().isoformat(),
             "page": 1,
-            "per_page": 50
+            "per_page": 50,
         }
 
         response = client.post("/logs/search", json=search_request)
@@ -314,11 +325,15 @@ class TestAuditLogEntryManagement:
         assert len(data["entries"]) == 1
         assert data["entries"][0]["event_name"] == "User Login"
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
-    def test_get_audit_log_entry_success(self, mock_get_service, client, sample_audit_log_entry):
+    @patch("app.api.v1.audit_v31.get_audit_service")
+    def test_get_audit_log_entry_success(
+        self, mock_get_service, client, sample_audit_log_entry
+    ):
         """Test successful audit log entry retrieval."""
         mock_service = Mock()
-        mock_service.get_audit_log_entry = AsyncMock(return_value=sample_audit_log_entry)
+        mock_service.get_audit_log_entry = AsyncMock(
+            return_value=sample_audit_log_entry
+        )
         mock_get_service.return_value = mock_service
 
         response = client.get("/logs/entry-123")
@@ -327,7 +342,7 @@ class TestAuditLogEntryManagement:
         assert data["id"] == "entry-123"
         assert data["event_name"] == "User Login"
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
+    @patch("app.api.v1.audit_v31.get_audit_service")
     def test_get_audit_log_entry_not_found(self, mock_get_service, client):
         """Test audit log entry not found."""
         mock_service = Mock()
@@ -338,23 +353,33 @@ class TestAuditLogEntryManagement:
         assert response.status_code == 404
         assert "not found" in response.json()["detail"]
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
-    def test_update_audit_log_status_success(self, mock_get_service, client, sample_audit_log_entry):
+    @patch("app.api.v1.audit_v31.get_audit_service")
+    def test_update_audit_log_status_success(
+        self, mock_get_service, client, sample_audit_log_entry
+    ):
         """Test successful audit log status update."""
         mock_service = Mock()
-        mock_service.update_audit_log_status = AsyncMock(return_value=sample_audit_log_entry)
+        mock_service.update_audit_log_status = AsyncMock(
+            return_value=sample_audit_log_entry
+        )
         mock_get_service.return_value = mock_service
 
-        response = client.put("/logs/entry-123/status?status=acknowledged&acknowledged_by=user-123")
+        response = client.put(
+            "/logs/entry-123/status?status=acknowledged&acknowledged_by=user-123"
+        )
         assert response.status_code == 200
         data = response.json()
         assert data["id"] == "entry-123"
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
-    def test_get_recent_audit_logs_success(self, mock_get_service, client, sample_audit_log_entry):
+    @patch("app.api.v1.audit_v31.get_audit_service")
+    def test_get_recent_audit_logs_success(
+        self, mock_get_service, client, sample_audit_log_entry
+    ):
         """Test successful recent audit logs retrieval."""
         mock_service = Mock()
-        mock_service.search_audit_logs = AsyncMock(return_value=([sample_audit_log_entry], 1))
+        mock_service.search_audit_logs = AsyncMock(
+            return_value=([sample_audit_log_entry], 1)
+        )
         mock_get_service.return_value = mock_service
 
         response = client.get("/logs/recent?organization_id=org-123&limit=10")
@@ -363,11 +388,15 @@ class TestAuditLogEntryManagement:
         assert data["total_count"] == 1
         assert len(data["entries"]) == 1
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
-    def test_get_user_audit_logs_success(self, mock_get_service, client, sample_audit_log_entry):
+    @patch("app.api.v1.audit_v31.get_audit_service")
+    def test_get_user_audit_logs_success(
+        self, mock_get_service, client, sample_audit_log_entry
+    ):
         """Test successful user audit logs retrieval."""
         mock_service = Mock()
-        mock_service.search_audit_logs = AsyncMock(return_value=([sample_audit_log_entry], 1))
+        mock_service.search_audit_logs = AsyncMock(
+            return_value=([sample_audit_log_entry], 1)
+        )
         mock_get_service.return_value = mock_service
 
         response = client.get("/logs/user/user-123?organization_id=org-123")
@@ -375,19 +404,25 @@ class TestAuditLogEntryManagement:
         data = response.json()
         assert data["total_count"] == 1
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
-    def test_get_resource_audit_logs_success(self, mock_get_service, client, sample_audit_log_entry):
+    @patch("app.api.v1.audit_v31.get_audit_service")
+    def test_get_resource_audit_logs_success(
+        self, mock_get_service, client, sample_audit_log_entry
+    ):
         """Test successful resource audit logs retrieval."""
         mock_service = Mock()
-        mock_service.search_audit_logs = AsyncMock(return_value=([sample_audit_log_entry], 1))
+        mock_service.search_audit_logs = AsyncMock(
+            return_value=([sample_audit_log_entry], 1)
+        )
         mock_get_service.return_value = mock_service
 
-        response = client.get("/logs/resource/user_session/session-123?organization_id=org-123")
+        response = client.get(
+            "/logs/resource/user_session/session-123?organization_id=org-123"
+        )
         assert response.status_code == 200
         data = response.json()
         assert data["total_count"] == 1
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
+    @patch("app.api.v1.audit_v31.get_audit_service")
     def test_get_audit_log_statistics_success(self, mock_get_service, client):
         """Test successful audit log statistics retrieval."""
         mock_service = Mock()
@@ -405,11 +440,14 @@ class TestAuditLogEntryManagement:
 # Audit Rules Management Tests
 # =============================================================================
 
+
 class TestAuditRulesManagement:
     """Test audit rules management endpoints."""
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
-    def test_create_audit_rule_success(self, mock_get_service, client, sample_audit_rule):
+    @patch("app.api.v1.audit_v31.get_audit_service")
+    def test_create_audit_rule_success(
+        self, mock_get_service, client, sample_audit_rule
+    ):
         """Test successful audit rule creation."""
         mock_service = Mock()
         mock_service.create_audit_rule = AsyncMock(return_value=sample_audit_rule)
@@ -420,13 +458,10 @@ class TestAuditRulesManagement:
             "name": "Failed Login Attempts",
             "description": "Detect multiple failed login attempts",
             "rule_type": "threshold",
-            "conditions": {
-                "event_type": "login_failed",
-                "threshold": 5
-            },
+            "conditions": {"event_type": "login_failed", "threshold": 5},
             "actions": ["log", "alert"],
             "alert_severity": "high",
-            "created_by": "user-123"
+            "created_by": "user-123",
         }
 
         response = client.post("/rules", json=rule_data)
@@ -435,8 +470,10 @@ class TestAuditRulesManagement:
         assert data["name"] == "Failed Login Attempts"
         assert data["rule_type"] == "threshold"
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
-    def test_list_audit_rules_success(self, mock_get_service, client, sample_audit_rule):
+    @patch("app.api.v1.audit_v31.get_audit_service")
+    def test_list_audit_rules_success(
+        self, mock_get_service, client, sample_audit_rule
+    ):
         """Test successful audit rules listing."""
         mock_service = Mock()
         mock_service.list_audit_rules = AsyncMock(return_value=([sample_audit_rule], 1))
@@ -449,23 +486,25 @@ class TestAuditRulesManagement:
         assert len(data["rules"]) == 1
         assert data["rules"][0]["name"] == "Failed Login Attempts"
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
+    @patch("app.api.v1.audit_v31.get_audit_service")
     def test_test_audit_rule_success(self, mock_get_service, client):
         """Test successful audit rule testing."""
         mock_service = Mock()
-        mock_service.test_audit_rule = AsyncMock(return_value={
-            "success": True,
-            "triggered": True,
-            "matched_conditions": ["event_type", "threshold"],
-            "alert_would_generate": True
-        })
+        mock_service.test_audit_rule = AsyncMock(
+            return_value={
+                "success": True,
+                "triggered": True,
+                "matched_conditions": ["event_type", "threshold"],
+                "alert_would_generate": True,
+            }
+        )
         mock_get_service.return_value = mock_service
 
         test_data = {
             "test_data": {
                 "event_type": "login_failed",
                 "user_id": "user-123",
-                "failure_count": 6
+                "failure_count": 6,
             }
         }
 
@@ -475,16 +514,13 @@ class TestAuditRulesManagement:
         assert data["success"] is True
         assert data["triggered"] is True
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
+    @patch("app.api.v1.audit_v31.get_audit_service")
     def test_validate_rule_conditions_success(self, mock_get_service, client):
         """Test successful rule conditions validation."""
         mock_service = Mock()
         mock_get_service.return_value = mock_service
 
-        conditions = {
-            "event_type": "security_violation",
-            "severity": "high"
-        }
+        conditions = {"event_type": "security_violation", "severity": "high"}
 
         response = client.post("/rules/validate", json=conditions)
         assert response.status_code == 200
@@ -496,11 +532,14 @@ class TestAuditRulesManagement:
 # Audit Alerts Management Tests
 # =============================================================================
 
+
 class TestAuditAlertsManagement:
     """Test audit alerts management endpoints."""
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
-    def test_create_audit_alert_success(self, mock_get_service, client, sample_audit_alert):
+    @patch("app.api.v1.audit_v31.get_audit_service")
+    def test_create_audit_alert_success(
+        self, mock_get_service, client, sample_audit_alert
+    ):
         """Test successful audit alert creation."""
         mock_service = Mock()
         mock_service.create_audit_alert = AsyncMock(return_value=sample_audit_alert)
@@ -512,7 +551,7 @@ class TestAuditAlertsManagement:
             "alert_type": "threshold_exceeded",
             "title": "Multiple Failed Login Attempts",
             "severity": "high",
-            "triggering_event_ids": ["entry-1", "entry-2"]
+            "triggering_event_ids": ["entry-1", "entry-2"],
         }
 
         response = client.post("/alerts", json=alert_data)
@@ -521,11 +560,15 @@ class TestAuditAlertsManagement:
         assert data["title"] == "Multiple Failed Login Attempts Detected"
         assert data["severity"] == "high"
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
-    def test_list_audit_alerts_success(self, mock_get_service, client, sample_audit_alert):
+    @patch("app.api.v1.audit_v31.get_audit_service")
+    def test_list_audit_alerts_success(
+        self, mock_get_service, client, sample_audit_alert
+    ):
         """Test successful audit alerts listing."""
         mock_service = Mock()
-        mock_service.list_audit_alerts = AsyncMock(return_value=([sample_audit_alert], 1))
+        mock_service.list_audit_alerts = AsyncMock(
+            return_value=([sample_audit_alert], 1)
+        )
         mock_get_service.return_value = mock_service
 
         response = client.get("/alerts?organization_id=org-123")
@@ -535,7 +578,7 @@ class TestAuditAlertsManagement:
         assert len(data["alerts"]) == 1
         assert data["alerts"][0]["title"] == "Multiple Failed Login Attempts Detected"
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
+    @patch("app.api.v1.audit_v31.get_audit_service")
     def test_resolve_alert_success(self, mock_get_service, client, sample_audit_alert):
         """Test successful alert resolution."""
         mock_service = Mock()
@@ -544,7 +587,7 @@ class TestAuditAlertsManagement:
 
         resolution_data = {
             "resolved_by": "admin-123",
-            "resolution_notes": "False positive - legitimate user"
+            "resolution_notes": "False positive - legitimate user",
         }
 
         response = client.post("/alerts/alert-123/resolve", json=resolution_data)
@@ -552,11 +595,15 @@ class TestAuditAlertsManagement:
         data = response.json()
         assert data["id"] == "alert-123"
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
-    def test_get_active_alerts_success(self, mock_get_service, client, sample_audit_alert):
+    @patch("app.api.v1.audit_v31.get_audit_service")
+    def test_get_active_alerts_success(
+        self, mock_get_service, client, sample_audit_alert
+    ):
         """Test successful active alerts retrieval."""
         mock_service = Mock()
-        mock_service.list_audit_alerts = AsyncMock(return_value=([sample_audit_alert], 1))
+        mock_service.list_audit_alerts = AsyncMock(
+            return_value=([sample_audit_alert], 1)
+        )
         mock_get_service.return_value = mock_service
 
         response = client.get("/alerts/active?organization_id=org-123")
@@ -564,19 +611,23 @@ class TestAuditAlertsManagement:
         data = response.json()
         assert data["total_count"] == 1
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
+    @patch("app.api.v1.audit_v31.get_audit_service")
     def test_get_my_alerts_success(self, mock_get_service, client, sample_audit_alert):
         """Test successful user alerts retrieval."""
         mock_service = Mock()
-        mock_service.list_audit_alerts = AsyncMock(return_value=([sample_audit_alert], 1))
+        mock_service.list_audit_alerts = AsyncMock(
+            return_value=([sample_audit_alert], 1)
+        )
         mock_get_service.return_value = mock_service
 
-        response = client.get("/alerts/my-alerts?user_id=admin-123&organization_id=org-123")
+        response = client.get(
+            "/alerts/my-alerts?user_id=admin-123&organization_id=org-123"
+        )
         assert response.status_code == 200
         data = response.json()
         assert data["total_count"] == 1
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
+    @patch("app.api.v1.audit_v31.get_audit_service")
     def test_get_alerts_summary_success(self, mock_get_service, client):
         """Test successful alerts summary retrieval."""
         mock_service = Mock()
@@ -594,11 +645,14 @@ class TestAuditAlertsManagement:
 # Audit Reports Management Tests
 # =============================================================================
 
+
 class TestAuditReportsManagement:
     """Test audit reports management endpoints."""
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
-    def test_generate_audit_report_success(self, mock_get_service, client, sample_audit_report):
+    @patch("app.api.v1.audit_v31.get_audit_service")
+    def test_generate_audit_report_success(
+        self, mock_get_service, client, sample_audit_report
+    ):
         """Test successful audit report generation."""
         mock_service = Mock()
         mock_service.generate_audit_report = AsyncMock(return_value=sample_audit_report)
@@ -611,7 +665,7 @@ class TestAuditReportsManagement:
             "period_start": str(date.today() - timedelta(days=30)),
             "period_end": str(date.today()),
             "file_format": "pdf",
-            "generated_by": "admin-123"
+            "generated_by": "admin-123",
         }
 
         response = client.post("/reports", json=report_data)
@@ -620,11 +674,15 @@ class TestAuditReportsManagement:
         assert data["report_name"] == "Monthly Security Report"
         assert data["report_type"] == "security"
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
-    def test_list_audit_reports_success(self, mock_get_service, client, sample_audit_report):
+    @patch("app.api.v1.audit_v31.get_audit_service")
+    def test_list_audit_reports_success(
+        self, mock_get_service, client, sample_audit_report
+    ):
         """Test successful audit reports listing."""
         mock_service = Mock()
-        mock_service.list_audit_reports = AsyncMock(return_value=([sample_audit_report], 1))
+        mock_service.list_audit_reports = AsyncMock(
+            return_value=([sample_audit_report], 1)
+        )
         mock_get_service.return_value = mock_service
 
         response = client.get("/reports?organization_id=org-123")
@@ -634,7 +692,7 @@ class TestAuditReportsManagement:
         assert len(data["reports"]) == 1
         assert data["reports"][0]["report_name"] == "Monthly Security Report"
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
+    @patch("app.api.v1.audit_v31.get_audit_service")
     def test_get_report_templates_success(self, mock_get_service, client):
         """Test successful report templates retrieval."""
         mock_service = Mock()
@@ -651,11 +709,14 @@ class TestAuditReportsManagement:
 # Session Tracking Tests
 # =============================================================================
 
+
 class TestSessionTracking:
     """Test session tracking endpoints."""
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
-    def test_create_audit_session_success(self, mock_get_service, client, sample_audit_session):
+    @patch("app.api.v1.audit_v31.get_audit_service")
+    def test_create_audit_session_success(
+        self, mock_get_service, client, sample_audit_session
+    ):
         """Test successful audit session creation."""
         mock_service = Mock()
         mock_service.create_audit_session = AsyncMock(return_value=sample_audit_session)
@@ -667,7 +728,7 @@ class TestSessionTracking:
             "session_token": "token-abc123",
             "session_type": "web",
             "authentication_method": "password",
-            "ip_address": "192.168.1.1"
+            "ip_address": "192.168.1.1",
         }
 
         response = client.post("/sessions", json=session_data)
@@ -676,11 +737,15 @@ class TestSessionTracking:
         assert data["session_token"] == "token-abc123"
         assert data["session_type"] == "web"
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
-    def test_update_session_activity_success(self, mock_get_service, client, sample_audit_session):
+    @patch("app.api.v1.audit_v31.get_audit_service")
+    def test_update_session_activity_success(
+        self, mock_get_service, client, sample_audit_session
+    ):
         """Test successful session activity update."""
         mock_service = Mock()
-        mock_service.update_session_activity = AsyncMock(return_value=sample_audit_session)
+        mock_service.update_session_activity = AsyncMock(
+            return_value=sample_audit_session
+        )
         mock_get_service.return_value = mock_service
 
         response = client.put("/sessions/token-abc123/activity")
@@ -688,8 +753,10 @@ class TestSessionTracking:
         data = response.json()
         assert data["session_token"] == "token-abc123"
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
-    def test_terminate_session_success(self, mock_get_service, client, sample_audit_session):
+    @patch("app.api.v1.audit_v31.get_audit_service")
+    def test_terminate_session_success(
+        self, mock_get_service, client, sample_audit_session
+    ):
         """Test successful session termination."""
         mock_service = Mock()
         sample_audit_session.is_active = False
@@ -702,7 +769,7 @@ class TestSessionTracking:
         data = response.json()
         assert data["is_active"] is False
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
+    @patch("app.api.v1.audit_v31.get_audit_service")
     def test_get_active_sessions_success(self, mock_get_service, client):
         """Test successful active sessions retrieval."""
         mock_service = Mock()
@@ -713,7 +780,7 @@ class TestSessionTracking:
         data = response.json()
         assert "active_sessions" in data
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
+    @patch("app.api.v1.audit_v31.get_audit_service")
     def test_get_session_statistics_success(self, mock_get_service, client):
         """Test successful session statistics retrieval."""
         mock_service = Mock()
@@ -730,10 +797,11 @@ class TestSessionTracking:
 # Compliance Management Tests
 # =============================================================================
 
+
 class TestComplianceManagement:
     """Test compliance management endpoints."""
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
+    @patch("app.api.v1.audit_v31.get_audit_service")
     def test_create_compliance_assessment_success(self, mock_get_service, client):
         """Test successful compliance assessment creation."""
         mock_service = Mock()
@@ -744,9 +812,11 @@ class TestComplianceManagement:
             "framework": "sox",
             "requirement_name": "Access Control",
             "compliance_status": "compliant",
-            "created_at": datetime.now()
+            "created_at": datetime.now(),
         }
-        mock_service.create_compliance_assessment = AsyncMock(return_value=mock_assessment)
+        mock_service.create_compliance_assessment = AsyncMock(
+            return_value=mock_assessment
+        )
         mock_get_service.return_value = mock_service
 
         assessment_data = {
@@ -756,7 +826,7 @@ class TestComplianceManagement:
             "requirement_name": "Access Control",
             "assessment_period_start": str(date.today() - timedelta(days=30)),
             "assessment_period_end": str(date.today()),
-            "compliance_status": "compliant"
+            "compliance_status": "compliant",
         }
 
         response = client.post("/compliance/assessments", json=assessment_data)
@@ -765,18 +835,20 @@ class TestComplianceManagement:
         assert data["framework"] == "sox"
         assert data["requirement_name"] == "Access Control"
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
+    @patch("app.api.v1.audit_v31.get_audit_service")
     def test_get_compliance_dashboard_success(self, mock_get_service, client):
         """Test successful compliance dashboard retrieval."""
         mock_service = Mock()
-        mock_service.get_compliance_dashboard = AsyncMock(return_value={
-            "overall_compliance_rate": 95.5,
-            "total_assessments": 100,
-            "compliant_assessments": 95,
-            "framework_statistics": {},
-            "overdue_assessments": 5,
-            "last_updated": datetime.now().isoformat()
-        })
+        mock_service.get_compliance_dashboard = AsyncMock(
+            return_value={
+                "overall_compliance_rate": 95.5,
+                "total_assessments": 100,
+                "compliant_assessments": 95,
+                "framework_statistics": {},
+                "overdue_assessments": 5,
+                "last_updated": datetime.now().isoformat(),
+            }
+        )
         mock_get_service.return_value = mock_service
 
         response = client.get("/compliance/dashboard?organization_id=org-123")
@@ -785,7 +857,7 @@ class TestComplianceManagement:
         assert data["overall_compliance_rate"] == 95.5
         assert data["total_assessments"] == 100
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
+    @patch("app.api.v1.audit_v31.get_audit_service")
     def test_get_compliance_frameworks_success(self, mock_get_service, client):
         """Test successful compliance frameworks retrieval."""
         mock_service = Mock()
@@ -798,11 +870,13 @@ class TestComplianceManagement:
         assert len(data["frameworks"]) > 0
 
         # Check that SOX framework is included
-        sox_framework = next((f for f in data["frameworks"] if f["code"] == "sox"), None)
+        sox_framework = next(
+            (f for f in data["frameworks"] if f["code"] == "sox"), None
+        )
         assert sox_framework is not None
         assert sox_framework["name"] == "Sarbanes-Oxley Act"
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
+    @patch("app.api.v1.audit_v31.get_audit_service")
     def test_get_compliance_gaps_success(self, mock_get_service, client):
         """Test successful compliance gaps retrieval."""
         mock_service = Mock()
@@ -819,21 +893,24 @@ class TestComplianceManagement:
 # Analytics and Dashboards Tests
 # =============================================================================
 
+
 class TestAnalyticsDashboards:
     """Test analytics and dashboards endpoints."""
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
+    @patch("app.api.v1.audit_v31.get_audit_service")
     def test_get_security_dashboard_success(self, mock_get_service, client):
         """Test successful security dashboard retrieval."""
         mock_service = Mock()
-        mock_service.get_security_dashboard = AsyncMock(return_value={
-            "security_events_week": 25,
-            "active_alerts": 5,
-            "high_risk_sessions": 2,
-            "failed_logins_24h": 10,
-            "security_score": 85,
-            "last_updated": datetime.now().isoformat()
-        })
+        mock_service.get_security_dashboard = AsyncMock(
+            return_value={
+                "security_events_week": 25,
+                "active_alerts": 5,
+                "high_risk_sessions": 2,
+                "failed_logins_24h": 10,
+                "security_score": 85,
+                "last_updated": datetime.now().isoformat(),
+            }
+        )
         mock_get_service.return_value = mock_service
 
         response = client.get("/analytics/security-dashboard?organization_id=org-123")
@@ -842,7 +919,7 @@ class TestAnalyticsDashboards:
         assert data["security_events_week"] == 25
         assert data["security_score"] == 85
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
+    @patch("app.api.v1.audit_v31.get_audit_service")
     def test_generate_audit_metrics_success(self, mock_get_service, client):
         """Test successful audit metrics generation."""
         mock_service = Mock()
@@ -859,7 +936,7 @@ class TestAnalyticsDashboards:
             "total_alerts": 10,
             "alerts_by_severity": {"high": 5, "medium": 3, "low": 2},
             "active_users": 50,
-            "calculated_at": datetime.now()
+            "calculated_at": datetime.now(),
         }
         mock_service.generate_audit_metrics = AsyncMock(return_value=mock_metrics)
         mock_get_service.return_value = mock_service
@@ -867,25 +944,29 @@ class TestAnalyticsDashboards:
         period_start = (datetime.now() - timedelta(days=7)).isoformat()
         period_end = datetime.now().isoformat()
 
-        response = client.post(f"/analytics/metrics?organization_id=org-123&period_start={period_start}&period_end={period_end}")
+        response = client.post(
+            f"/analytics/metrics?organization_id=org-123&period_start={period_start}&period_end={period_end}"
+        )
         assert response.status_code == 200
         data = response.json()
         assert data["total_events"] == 1000
         assert data["total_alerts"] == 10
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
+    @patch("app.api.v1.audit_v31.get_audit_service")
     def test_get_audit_trends_success(self, mock_get_service, client):
         """Test successful audit trends retrieval."""
         mock_service = Mock()
         mock_get_service.return_value = mock_service
 
-        response = client.get("/analytics/trends?organization_id=org-123&metric_type=events")
+        response = client.get(
+            "/analytics/trends?organization_id=org-123&metric_type=events"
+        )
         assert response.status_code == 200
         data = response.json()
         assert "trend_data" in data
         assert data["metric_type"] == "events"
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
+    @patch("app.api.v1.audit_v31.get_audit_service")
     def test_get_risk_assessment_success(self, mock_get_service, client):
         """Test successful risk assessment retrieval."""
         mock_service = Mock()
@@ -902,10 +983,11 @@ class TestAnalyticsDashboards:
 # Data Export and Archival Tests
 # =============================================================================
 
+
 class TestDataExportArchival:
     """Test data export and archival endpoints."""
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
+    @patch("app.api.v1.audit_v31.get_audit_service")
     def test_export_audit_data_success(self, mock_get_service, client):
         """Test successful audit data export."""
         mock_service = Mock()
@@ -916,7 +998,7 @@ class TestDataExportArchival:
             "export_type": "audit_logs",
             "format": "csv",
             "start_date": (datetime.now() - timedelta(days=30)).isoformat(),
-            "end_date": datetime.now().isoformat()
+            "end_date": datetime.now().isoformat(),
         }
 
         response = client.post("/export", json=export_request)
@@ -925,7 +1007,7 @@ class TestDataExportArchival:
         assert data["export_id"] == "exp-123"
         assert data["status"] == "completed"
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
+    @patch("app.api.v1.audit_v31.get_audit_service")
     def test_get_export_status_success(self, mock_get_service, client):
         """Test successful export status retrieval."""
         mock_service = Mock()
@@ -937,16 +1019,18 @@ class TestDataExportArchival:
         assert data["export_id"] == "exp-123"
         assert data["status"] == "completed"
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
+    @patch("app.api.v1.audit_v31.get_audit_service")
     def test_execute_retention_policy_success(self, mock_get_service, client):
         """Test successful retention policy execution."""
         mock_service = Mock()
-        mock_service.execute_retention_policy = AsyncMock(return_value={
-            "success": True,
-            "records_processed": 1000,
-            "records_archived": 800,
-            "records_deleted": 200
-        })
+        mock_service.execute_retention_policy = AsyncMock(
+            return_value={
+                "success": True,
+                "records_processed": 1000,
+                "records_archived": 800,
+                "records_deleted": 200,
+            }
+        )
         mock_get_service.return_value = mock_service
 
         response = client.post("/retention/execute/policy-123")
@@ -955,18 +1039,17 @@ class TestDataExportArchival:
         assert data["success"] is True
         assert data["records_processed"] == 1000
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
+    @patch("app.api.v1.audit_v31.get_audit_service")
     def test_create_archive_success(self, mock_get_service, client):
         """Test successful archive creation."""
         mock_service = Mock()
         mock_get_service.return_value = mock_service
 
-        archive_criteria = {
-            "older_than_days": 365,
-            "event_types": ["login", "logout"]
-        }
+        archive_criteria = {"older_than_days": 365, "event_types": ["login", "logout"]}
 
-        response = client.post(f"/archive/create?organization_id=org-123&archive_criteria={archive_criteria}")
+        response = client.post(
+            f"/archive/create?organization_id=org-123&archive_criteria={archive_criteria}"
+        )
         assert response.status_code == 200
         data = response.json()
         assert "archive_id" in data
@@ -977,21 +1060,24 @@ class TestDataExportArchival:
 # Error Handling Tests
 # =============================================================================
 
+
 class TestErrorHandling:
     """Test error handling scenarios."""
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
+    @patch("app.api.v1.audit_v31.get_audit_service")
     def test_service_error_handling(self, mock_get_service, client):
         """Test service error handling."""
         mock_service = Mock()
-        mock_service.get_audit_log_entry = AsyncMock(side_effect=Exception("Service error"))
+        mock_service.get_audit_log_entry = AsyncMock(
+            side_effect=Exception("Service error")
+        )
         mock_get_service.return_value = mock_service
 
         response = client.get("/logs/entry-123")
         assert response.status_code == 400
         assert "Failed to get audit log entry" in response.json()["detail"]
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
+    @patch("app.api.v1.audit_v31.get_audit_service")
     def test_not_found_error_handling(self, mock_get_service, client):
         """Test not found error handling."""
         mock_service = Mock()
@@ -1019,17 +1105,24 @@ class TestErrorHandling:
 # Integration Tests
 # =============================================================================
 
+
 class TestAuditIntegration:
     """Test audit system integration scenarios."""
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
-    def test_complete_audit_workflow(self, mock_get_service, client, sample_audit_log_entry, sample_audit_alert):
+    @patch("app.api.v1.audit_v31.get_audit_service")
+    def test_complete_audit_workflow(
+        self, mock_get_service, client, sample_audit_log_entry, sample_audit_alert
+    ):
         """Test complete audit workflow from entry to alert."""
         mock_service = Mock()
 
         # Mock sequential operations
-        mock_service.create_audit_log_entry = AsyncMock(return_value=sample_audit_log_entry)
-        mock_service.list_audit_alerts = AsyncMock(return_value=([sample_audit_alert], 1))
+        mock_service.create_audit_log_entry = AsyncMock(
+            return_value=sample_audit_log_entry
+        )
+        mock_service.list_audit_alerts = AsyncMock(
+            return_value=([sample_audit_alert], 1)
+        )
         mock_service.resolve_alert = AsyncMock(return_value=sample_audit_alert)
 
         mock_get_service.return_value = mock_service
@@ -1040,7 +1133,7 @@ class TestAuditIntegration:
             "event_type": "login_failed",
             "event_category": "authentication",
             "event_name": "Failed Login Attempt",
-            "severity": "high"
+            "severity": "high",
         }
 
         response = client.post("/logs", json=entry_data)
@@ -1055,13 +1148,13 @@ class TestAuditIntegration:
         # 3. Resolve alert
         resolution_data = {
             "resolved_by": "admin-123",
-            "resolution_notes": "Investigated and resolved"
+            "resolution_notes": "Investigated and resolved",
         }
 
         response = client.post("/alerts/alert-123/resolve", json=resolution_data)
         assert response.status_code == 200
 
-    @patch('app.api.v1.audit_v31.get_audit_service')
+    @patch("app.api.v1.audit_v31.get_audit_service")
     def test_compliance_assessment_workflow(self, mock_get_service, client):
         """Test compliance assessment workflow."""
         mock_service = Mock()
@@ -1072,19 +1165,23 @@ class TestAuditIntegration:
             "id": "assessment-123",
             "framework": "sox",
             "compliance_status": "compliant",
-            "created_at": datetime.now()
+            "created_at": datetime.now(),
         }
-        mock_service.create_compliance_assessment = AsyncMock(return_value=mock_assessment)
+        mock_service.create_compliance_assessment = AsyncMock(
+            return_value=mock_assessment
+        )
 
         # Mock dashboard data
-        mock_service.get_compliance_dashboard = AsyncMock(return_value={
-            "overall_compliance_rate": 95.0,
-            "total_assessments": 1,
-            "compliant_assessments": 1,
-            "framework_statistics": {},
-            "overdue_assessments": 0,
-            "last_updated": datetime.now().isoformat()
-        })
+        mock_service.get_compliance_dashboard = AsyncMock(
+            return_value={
+                "overall_compliance_rate": 95.0,
+                "total_assessments": 1,
+                "compliant_assessments": 1,
+                "framework_statistics": {},
+                "overdue_assessments": 0,
+                "last_updated": datetime.now().isoformat(),
+            }
+        )
 
         mock_get_service.return_value = mock_service
 
@@ -1096,7 +1193,7 @@ class TestAuditIntegration:
             "requirement_name": "Access Control",
             "assessment_period_start": str(date.today() - timedelta(days=30)),
             "assessment_period_end": str(date.today()),
-            "compliance_status": "compliant"
+            "compliance_status": "compliant",
         }
 
         response = client.post("/compliance/assessments", json=assessment_data)

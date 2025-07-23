@@ -9,6 +9,7 @@ def test_types_imports():
     """Test that the module can be imported."""
     try:
         import app.types
+
         assert True
     except ImportError as e:
         pytest.skip(f"Module import failed: {e}")

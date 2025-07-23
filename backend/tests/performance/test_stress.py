@@ -21,7 +21,10 @@ async def test_api_stress_test():
         try:
             async with AsyncClient(app=app, base_url="http://test") as client:
                 response = await client.get("/api/v1/health")
-                return {"success": response.status_code == 200, "status": response.status_code}
+                return {
+                    "success": response.status_code == 200,
+                    "status": response.status_code,
+                }
         except Exception as e:
             return {"success": False, "error": str(e)}
 
@@ -42,7 +45,9 @@ async def test_api_stress_test():
     assert success_rate >= 0.70  # 70% success rate under stress
     assert total_time < 30.0  # Complete within 30 seconds
 
-    print(f"Stress test: {len(successful_results)}/{len(results)} successful ({success_rate:.2%})")
+    print(
+        f"Stress test: {len(successful_results)}/{len(results)} successful ({success_rate:.2%})"
+    )
 
 
 @pytest.mark.asyncio
@@ -56,8 +61,14 @@ async def test_memory_stress():
             async with AsyncClient(app=app, base_url="http://test") as client:
                 # Simulate large payload request
                 large_payload = {"data": "x" * 10000}  # 10KB payload
-                response = await client.post("/api/v1/test-endpoint", json=large_payload)
-                return response.status_code in [200, 201, 404]  # 404 is ok if endpoint doesn't exist
+                response = await client.post(
+                    "/api/v1/test-endpoint", json=large_payload
+                )
+                return response.status_code in [
+                    200,
+                    201,
+                    404,
+                ]  # 404 is ok if endpoint doesn't exist
         except Exception:
             return False
 

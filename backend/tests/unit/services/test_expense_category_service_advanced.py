@@ -1,4 +1,5 @@
 """Advanced tests for expense_category_service service."""
+
 from unittest.mock import Mock
 
 import pytest
@@ -14,7 +15,6 @@ class TestExpenseCategoryServiceService:
         """Setup test environment."""
         self.mock_db = Mock()
         # self.service = ServiceClass(self.mock_db)
-
 
     def test___init___success(self):
         """Test __init__ successful execution."""

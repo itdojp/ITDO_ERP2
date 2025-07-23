@@ -27,7 +27,7 @@ class TestCross_Tenant_PermissionsModel:
 
         # Assert
         assert instance is not None
-        assert hasattr(instance, 'id')
+        assert hasattr(instance, "id")
 
     def test_model_validation(self, mock_db):
         """Test model validation"""

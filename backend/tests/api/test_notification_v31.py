@@ -40,6 +40,7 @@ from app.models.notification_extended import (
 
 client = TestClient(app)
 
+
 # Test data fixtures
 @pytest.fixture
 def sample_notification_data():
@@ -57,7 +58,7 @@ def sample_notification_data():
         "channels": ["in_app", "email"],
         "primary_channel": "in_app",
         "tags": ["test", "notification"],
-        "metadata": {"source": "test_suite"}
+        "metadata": {"source": "test_suite"},
     }
 
 
@@ -75,7 +76,7 @@ def sample_template_data():
         "variables": ["user_name", "item_type"],
         "required_variables": ["user_name"],
         "owner_id": "user-123",
-        "created_by": "user-123"
+        "created_by": "user-123",
     }
 
 
@@ -92,7 +93,7 @@ def sample_preference_data():
         "quiet_hours_start": "22:00",
         "quiet_hours_end": "08:00",
         "max_emails_per_day": 25,
-        "digest_frequency": "daily"
+        "digest_frequency": "daily",
     }
 
 
@@ -108,7 +109,7 @@ def sample_subscription_data():
         "channels": ["in_app", "email"],
         "priority": "normal",
         "frequency": "instant",
-        "name": "Project Updates Subscription"
+        "name": "Project Updates Subscription",
     }
 
 
@@ -124,19 +125,19 @@ def sample_event_data():
             "task_id": "task-789",
             "task_name": "Complete documentation",
             "project_id": "project-456",
-            "completed_by": "user-123"
+            "completed_by": "user-123",
         },
         "entity_type": "task",
         "entity_id": "task-789",
         "priority": "normal",
-        "event_timestamp": datetime.utcnow().isoformat()
+        "event_timestamp": datetime.utcnow().isoformat(),
     }
 
 
 class TestNotificationManagement:
     """Test suite for Notification Management endpoints."""
 
-    @patch('app.crud.notification_v31.NotificationService.create_notification')
+    @patch("app.crud.notification_v31.NotificationService.create_notification")
     def test_create_notification_success(self, mock_create, sample_notification_data):
         """Test successful notification creation."""
         mock_notification = NotificationExtended()
@@ -165,13 +166,13 @@ class TestNotificationManagement:
         invalid_data = {
             "organization_id": "org-123",
             # Missing required fields
-            "notification_type": "invalid_type"
+            "notification_type": "invalid_type",
         }
 
         response = client.post("/api/v1/notifications", json=invalid_data)
         assert response.status_code == 422
 
-    @patch('app.crud.notification_v31.NotificationService.get_notifications')
+    @patch("app.crud.notification_v31.NotificationService.get_notifications")
     def test_get_notifications_with_filters(self, mock_get_notifications):
         """Test notification listing with comprehensive filters."""
         mock_notifications = [
@@ -180,15 +181,15 @@ class TestNotificationManagement:
                 title="Notification 1",
                 notification_type=NotificationType.INFO,
                 status=NotificationStatus.SENT,
-                primary_channel=NotificationChannel.IN_APP
+                primary_channel=NotificationChannel.IN_APP,
             ),
             NotificationExtended(
                 id="notif-2",
                 title="Notification 2",
                 notification_type=NotificationType.ALERT,
                 status=NotificationStatus.PENDING,
-                primary_channel=NotificationChannel.EMAIL
-            )
+                primary_channel=NotificationChannel.EMAIL,
+            ),
         ]
         mock_get_notifications.return_value = mock_notifications
 
@@ -201,8 +202,8 @@ class TestNotificationManagement:
                 "status": "sent",
                 "priority": "normal",
                 "is_read": False,
-                "limit": 50
-            }
+                "limit": 50,
+            },
         )
 
         assert response.status_code == 200
@@ -212,7 +213,7 @@ class TestNotificationManagement:
         assert data["total_count"] == 2
         mock_get_notifications.assert_called()
 
-    @patch('app.crud.notification_v31.NotificationService.get_notification_by_id')
+    @patch("app.crud.notification_v31.NotificationService.get_notification_by_id")
     def test_get_notification_by_id_success(self, mock_get_notification):
         """Test successful notification retrieval by ID."""
         mock_notification = NotificationExtended()
@@ -233,7 +234,7 @@ class TestNotificationManagement:
         assert data["view_count"] == 5
         mock_get_notification.assert_called_once()
 
-    @patch('app.crud.notification_v31.NotificationService.get_notification_by_id')
+    @patch("app.crud.notification_v31.NotificationService.get_notification_by_id")
     def test_update_notification_success(self, mock_get_notification):
         """Test successful notification update."""
         mock_notification = NotificationExtended()
@@ -248,18 +249,17 @@ class TestNotificationManagement:
         update_data = {
             "title": "Updated Title",
             "message": "Updated message",
-            "tags": ["updated", "test"]
+            "tags": ["updated", "test"],
         }
 
-        with patch.object(mock_notification, '__setattr__'):
+        with patch.object(mock_notification, "__setattr__"):
             response = client.put(
-                "/api/v1/notifications/notif-123?user_id=user-123",
-                json=update_data
+                "/api/v1/notifications/notif-123?user_id=user-123", json=update_data
             )
 
             assert response.status_code == 200
 
-    @patch('app.crud.notification_v31.NotificationService.mark_notification_as_read')
+    @patch("app.crud.notification_v31.NotificationService.mark_notification_as_read")
     def test_mark_notification_as_read(self, mock_mark_read):
         """Test marking notification as read."""
         mock_notification = NotificationExtended()
@@ -276,7 +276,7 @@ class TestNotificationManagement:
         assert data["is_read"] is True
         mock_mark_read.assert_called_once()
 
-    @patch('app.crud.notification_v31.NotificationService.archive_notification')
+    @patch("app.crud.notification_v31.NotificationService.archive_notification")
     def test_archive_notification(self, mock_archive):
         """Test notification archiving."""
         mock_notification = NotificationExtended()
@@ -285,13 +285,15 @@ class TestNotificationManagement:
         mock_notification.archived_at = datetime.utcnow()
         mock_archive.return_value = mock_notification
 
-        response = client.post("/api/v1/notifications/notif-123/archive?user_id=user-123")
+        response = client.post(
+            "/api/v1/notifications/notif-123/archive?user_id=user-123"
+        )
 
         assert response.status_code == 200
         data = response.json()
         assert data["is_archived"] is True
 
-    @patch('app.crud.notification_v31.NotificationService.get_notification_by_id')
+    @patch("app.crud.notification_v31.NotificationService.get_notification_by_id")
     def test_delete_notification(self, mock_get_notification):
         """Test notification deletion."""
         mock_notification = NotificationExtended()
@@ -308,7 +310,7 @@ class TestNotificationManagement:
 class TestTemplateManagement:
     """Test suite for Template Management endpoints."""
 
-    @patch('app.crud.notification_v31.NotificationService.create_notification_template')
+    @patch("app.crud.notification_v31.NotificationService.create_notification_template")
     def test_create_template_success(self, mock_create_template, sample_template_data):
         """Test successful template creation."""
         mock_template = NotificationTemplate()
@@ -329,18 +331,18 @@ class TestTemplateManagement:
 
     def test_get_templates_with_filters(self):
         """Test template listing with filters."""
-        with patch('app.api.v1.notification_v31.db.query') as mock_query:
+        with patch("app.api.v1.notification_v31.db.query") as mock_query:
             mock_templates = [
                 NotificationTemplate(
                     id="template-1",
                     name="Template 1",
-                    notification_type=NotificationType.INFO
+                    notification_type=NotificationType.INFO,
                 ),
                 NotificationTemplate(
                     id="template-2",
                     name="Template 2",
-                    notification_type=NotificationType.ALERT
-                )
+                    notification_type=NotificationType.ALERT,
+                ),
             ]
 
             # Mock the query chain
@@ -357,15 +359,17 @@ class TestTemplateManagement:
                     "organization_id": "org-123",
                     "category": "system",
                     "is_active": True,
-                    "limit": 50
-                }
+                    "limit": 50,
+                },
             )
 
             assert response.status_code == 200
             data = response.json()
             assert len(data) == 2
 
-    @patch('app.crud.notification_v31.NotificationService.generate_notification_from_template')
+    @patch(
+        "app.crud.notification_v31.NotificationService.generate_notification_from_template"
+    )
     def test_generate_from_template(self, mock_generate):
         """Test notification generation from template."""
         mock_notification = NotificationExtended()
@@ -381,16 +385,13 @@ class TestTemplateManagement:
 
         generation_data = {
             "template_id": "template-123",
-            "field_values": {
-                "user_name": "John",
-                "item_type": "task"
-            },
-            "recipient_user_id": "user-123"
+            "field_values": {"user_name": "John", "item_type": "task"},
+            "recipient_user_id": "user-123",
         }
 
         response = client.post(
             "/api/v1/templates/template-123/generate?generated_by_id=user-123",
-            json=generation_data
+            json=generation_data,
         )
 
         assert response.status_code == 200
@@ -403,20 +404,20 @@ class TestDeliveryManagement:
 
     def test_get_notification_deliveries(self):
         """Test notification deliveries retrieval."""
-        with patch('app.api.v1.notification_v31.db.query') as mock_query:
+        with patch("app.api.v1.notification_v31.db.query") as mock_query:
             mock_deliveries = [
                 NotificationDelivery(
                     id="delivery-1",
                     notification_id="notif-123",
                     channel=NotificationChannel.EMAIL,
-                    status=DeliveryStatus.DELIVERED
+                    status=DeliveryStatus.DELIVERED,
                 ),
                 NotificationDelivery(
                     id="delivery-2",
                     notification_id="notif-123",
                     channel=NotificationChannel.SMS,
-                    status=DeliveryStatus.SENT
-                )
+                    status=DeliveryStatus.SENT,
+                ),
             ]
 
             mock_query_obj = MagicMock()
@@ -430,7 +431,7 @@ class TestDeliveryManagement:
             data = response.json()
             assert len(data) == 2
 
-    @patch('app.crud.notification_v31.NotificationService.update_delivery_status')
+    @patch("app.crud.notification_v31.NotificationService.update_delivery_status")
     def test_update_delivery_status(self, mock_update_status):
         """Test delivery status update."""
         mock_delivery = NotificationDelivery()
@@ -443,7 +444,7 @@ class TestDeliveryManagement:
         response = client.post(
             "/api/v1/deliveries/delivery-123/status",
             params={"status": "delivered"},
-            json={"message_id": "provider-123", "response": {"success": True}}
+            json={"message_id": "provider-123", "response": {"success": True}},
         )
 
         assert response.status_code == 200
@@ -454,7 +455,9 @@ class TestDeliveryManagement:
 class TestPreferenceManagement:
     """Test suite for Preference Management endpoints."""
 
-    @patch('app.crud.notification_v31.NotificationService.get_user_notification_preferences')
+    @patch(
+        "app.crud.notification_v31.NotificationService.get_user_notification_preferences"
+    )
     def test_get_notification_preferences(self, mock_get_preferences):
         """Test notification preferences retrieval."""
         mock_preferences = NotificationPreference()
@@ -470,7 +473,7 @@ class TestPreferenceManagement:
 
         response = client.get(
             "/api/v1/preferences",
-            params={"user_id": "user-123", "organization_id": "org-123"}
+            params={"user_id": "user-123", "organization_id": "org-123"},
         )
 
         assert response.status_code == 200
@@ -478,22 +481,28 @@ class TestPreferenceManagement:
         assert data["email_enabled"] is True
         assert data["sms_enabled"] is False
 
-    @patch('app.crud.notification_v31.NotificationService.update_user_notification_preferences')
-    def test_update_notification_preferences(self, mock_update_preferences, sample_preference_data):
+    @patch(
+        "app.crud.notification_v31.NotificationService.update_user_notification_preferences"
+    )
+    def test_update_notification_preferences(
+        self, mock_update_preferences, sample_preference_data
+    ):
         """Test notification preferences update."""
         mock_preferences = NotificationPreference()
         mock_preferences.id = "pref-123"
         mock_preferences.user_id = "user-123"
         mock_preferences.organization_id = "org-123"
         mock_preferences.email_enabled = sample_preference_data["email_enabled"]
-        mock_preferences.quiet_hours_enabled = sample_preference_data["quiet_hours_enabled"]
+        mock_preferences.quiet_hours_enabled = sample_preference_data[
+            "quiet_hours_enabled"
+        ]
 
         mock_update_preferences.return_value = mock_preferences
 
         response = client.put(
             "/api/v1/preferences",
             params={"user_id": "user-123", "organization_id": "org-123"},
-            json=sample_preference_data
+            json=sample_preference_data,
         )
 
         assert response.status_code == 200
@@ -504,8 +513,12 @@ class TestPreferenceManagement:
 class TestSubscriptionManagement:
     """Test suite for Subscription Management endpoints."""
 
-    @patch('app.crud.notification_v31.NotificationService.create_notification_subscription')
-    def test_create_subscription_success(self, mock_create_subscription, sample_subscription_data):
+    @patch(
+        "app.crud.notification_v31.NotificationService.create_notification_subscription"
+    )
+    def test_create_subscription_success(
+        self, mock_create_subscription, sample_subscription_data
+    ):
         """Test successful subscription creation."""
         mock_subscription = NotificationSubscription()
         mock_subscription.id = "sub-123"
@@ -516,49 +529,42 @@ class TestSubscriptionManagement:
         mock_create_subscription.return_value = mock_subscription
 
         response = client.post(
-            "/api/v1/subscriptions?user_id=user-123",
-            json=sample_subscription_data
+            "/api/v1/subscriptions?user_id=user-123", json=sample_subscription_data
         )
 
         assert response.status_code == 201
         data = response.json()
         assert data["topic"] == sample_subscription_data["topic"]
 
-    @patch('app.crud.notification_v31.NotificationService.get_user_subscriptions')
+    @patch("app.crud.notification_v31.NotificationService.get_user_subscriptions")
     def test_get_user_subscriptions(self, mock_get_subscriptions):
         """Test user subscriptions retrieval."""
         mock_subscriptions = [
             NotificationSubscription(
-                id="sub-1",
-                topic="project_updates",
-                status=SubscriptionStatus.ACTIVE
+                id="sub-1", topic="project_updates", status=SubscriptionStatus.ACTIVE
             ),
             NotificationSubscription(
-                id="sub-2",
-                topic="system_alerts",
-                status=SubscriptionStatus.ACTIVE
-            )
+                id="sub-2", topic="system_alerts", status=SubscriptionStatus.ACTIVE
+            ),
         ]
 
         mock_get_subscriptions.return_value = mock_subscriptions
 
         response = client.get(
             "/api/v1/subscriptions",
-            params={"user_id": "user-123", "organization_id": "org-123"}
+            params={"user_id": "user-123", "organization_id": "org-123"},
         )
 
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 2
 
-    @patch('app.crud.notification_v31.NotificationService.unsubscribe_user')
+    @patch("app.crud.notification_v31.NotificationService.unsubscribe_user")
     def test_unsubscribe_user(self, mock_unsubscribe):
         """Test user unsubscription."""
         mock_unsubscribe.return_value = True
 
-        response = client.delete(
-            "/api/v1/subscriptions/sub-123?user_id=user-123"
-        )
+        response = client.delete("/api/v1/subscriptions/sub-123?user_id=user-123")
 
         assert response.status_code == 200
         data = response.json()
@@ -568,7 +574,7 @@ class TestSubscriptionManagement:
 class TestEventProcessing:
     """Test suite for Event Processing endpoints."""
 
-    @patch('app.crud.notification_v31.NotificationService.process_notification_event')
+    @patch("app.crud.notification_v31.NotificationService.process_notification_event")
     def test_process_notification_event(self, mock_process_event, sample_event_data):
         """Test event processing and notification generation."""
         mock_notifications = [
@@ -579,7 +585,7 @@ class TestEventProcessing:
                 notification_type=NotificationType.INFO,
                 status=NotificationStatus.PENDING,
                 primary_channel=NotificationChannel.IN_APP,
-                recipient_user_id="user-456"
+                recipient_user_id="user-456",
             )
         ]
 
@@ -594,20 +600,20 @@ class TestEventProcessing:
 
     def test_get_notification_events(self):
         """Test notification events retrieval."""
-        with patch('app.api.v1.notification_v31.db.query') as mock_query:
+        with patch("app.api.v1.notification_v31.db.query") as mock_query:
             mock_events = [
                 NotificationEvent(
                     id="event-1",
                     event_name="task_completed",
                     event_type="project_event",
-                    is_processed=True
+                    is_processed=True,
                 ),
                 NotificationEvent(
                     id="event-2",
                     event_name="user_login",
                     event_type="auth_event",
-                    is_processed=False
-                )
+                    is_processed=False,
+                ),
             ]
 
             mock_query_obj = MagicMock()
@@ -623,8 +629,8 @@ class TestEventProcessing:
                 params={
                     "organization_id": "org-123",
                     "event_type": "project_event",
-                    "processed": True
-                }
+                    "processed": True,
+                },
             )
 
             assert response.status_code == 200
@@ -635,7 +641,7 @@ class TestEventProcessing:
 class TestAnalytics:
     """Test suite for Analytics & Reporting endpoints."""
 
-    @patch('app.crud.notification_v31.NotificationService.get_notification_analytics')
+    @patch("app.crud.notification_v31.NotificationService.get_notification_analytics")
     def test_generate_notification_analytics(self, mock_get_analytics):
         """Test notification analytics generation."""
         mock_analytics = NotificationAnalytics()
@@ -656,7 +662,7 @@ class TestAnalytics:
             "organization_id": "org-123",
             "period_start": "2024-01-01",
             "period_end": "2024-01-31",
-            "period_type": "monthly"
+            "period_type": "monthly",
         }
 
         response = client.post("/api/v1/analytics", json=analytics_data)
@@ -666,7 +672,7 @@ class TestAnalytics:
         assert data["total_notifications"] == 1000
         assert float(data["delivery_success_rate"]) == 95.0
 
-    @patch('app.crud.notification_v31.NotificationService.get_notification_analytics')
+    @patch("app.crud.notification_v31.NotificationService.get_notification_analytics")
     def test_get_notification_dashboard(self, mock_get_analytics):
         """Test notification dashboard data retrieval."""
         mock_analytics = NotificationAnalytics()
@@ -688,7 +694,7 @@ class TestAnalytics:
 
         response = client.get(
             "/api/v1/analytics/dashboard",
-            params={"organization_id": "org-123", "period_days": 30}
+            params={"organization_id": "org-123", "period_days": 30},
         )
 
         assert response.status_code == 200
@@ -703,7 +709,9 @@ class TestAnalytics:
 class TestInteractionTracking:
     """Test suite for Interaction Tracking endpoints."""
 
-    @patch('app.crud.notification_v31.NotificationService._log_notification_interaction')
+    @patch(
+        "app.crud.notification_v31.NotificationService._log_notification_interaction"
+    )
     def test_log_notification_interaction(self, mock_log_interaction):
         """Test notification interaction logging."""
         mock_log_interaction.return_value = None
@@ -714,12 +722,11 @@ class TestInteractionTracking:
             "channel": "email",
             "device_type": "mobile",
             "platform": "ios",
-            "interaction_data": {"button_id": "cta_button"}
+            "interaction_data": {"button_id": "cta_button"},
         }
 
         response = client.post(
-            "/api/v1/interactions?user_id=user-123",
-            json=interaction_data
+            "/api/v1/interactions?user_id=user-123", json=interaction_data
         )
 
         assert response.status_code == 200
@@ -728,20 +735,20 @@ class TestInteractionTracking:
 
     def test_get_notification_interactions(self):
         """Test notification interactions retrieval."""
-        with patch('app.api.v1.notification_v31.db.query') as mock_query:
+        with patch("app.api.v1.notification_v31.db.query") as mock_query:
             mock_interactions = [
                 NotificationInteraction(
                     id="interaction-1",
                     notification_id="notif-123",
                     interaction_type="view",
-                    timestamp=datetime.utcnow()
+                    timestamp=datetime.utcnow(),
                 ),
                 NotificationInteraction(
                     id="interaction-2",
                     notification_id="notif-123",
                     interaction_type="click",
-                    timestamp=datetime.utcnow()
-                )
+                    timestamp=datetime.utcnow(),
+                ),
             ]
 
             mock_query_obj = MagicMock()
@@ -760,19 +767,16 @@ class TestInteractionTracking:
 class TestSystemHealth:
     """Test suite for System Health & Status endpoints."""
 
-    @patch('app.crud.notification_v31.NotificationService.get_system_health')
+    @patch("app.crud.notification_v31.NotificationService.get_system_health")
     def test_system_health_success(self, mock_get_health):
         """Test successful system health check."""
         mock_health = {
             "status": "healthy",
             "database_connection": "OK",
             "services_available": True,
-            "statistics": {
-                "total_notifications": 5000,
-                "pending_queue_items": 10
-            },
+            "statistics": {"total_notifications": 5000, "pending_queue_items": 10},
             "version": "31.0",
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat(),
         }
 
         mock_get_health.return_value = mock_health
@@ -784,7 +788,7 @@ class TestSystemHealth:
         assert data["status"] == "healthy"
         assert data["services_available"] is True
 
-    @patch('app.crud.notification_v31.NotificationService.get_system_health')
+    @patch("app.crud.notification_v31.NotificationService.get_system_health")
     def test_system_health_failure(self, mock_get_health):
         """Test system health check failure handling."""
         mock_get_health.side_effect = Exception("Database connection failed")
@@ -797,7 +801,7 @@ class TestSystemHealth:
         assert data["services_available"] is False
         assert "error" in data
 
-    @patch('app.crud.notification_v31.NotificationService.process_notification_queue')
+    @patch("app.crud.notification_v31.NotificationService.process_notification_queue")
     def test_process_notification_queue(self, mock_process_queue):
         """Test notification queue processing."""
         mock_notifications = [
@@ -807,7 +811,7 @@ class TestSystemHealth:
                 notification_type=NotificationType.INFO,
                 status=NotificationStatus.SENT,
                 primary_channel=NotificationChannel.IN_APP,
-                recipient_user_id="user-123"
+                recipient_user_id="user-123",
             ),
             NotificationExtended(
                 id="notif-2",
@@ -815,15 +819,14 @@ class TestSystemHealth:
                 notification_type=NotificationType.ALERT,
                 status=NotificationStatus.SENT,
                 primary_channel=NotificationChannel.EMAIL,
-                recipient_user_id="user-456"
-            )
+                recipient_user_id="user-456",
+            ),
         ]
 
         mock_process_queue.return_value = mock_notifications
 
         response = client.post(
-            "/api/v1/queue/process",
-            params={"queue_name": "default", "batch_size": 100}
+            "/api/v1/queue/process", params={"queue_name": "default", "batch_size": 100}
         )
 
         assert response.status_code == 200
@@ -835,7 +838,7 @@ class TestSystemHealth:
 class TestBulkOperations:
     """Test suite for Bulk Operations endpoints."""
 
-    @patch('app.crud.notification_v31.NotificationService.create_notification')
+    @patch("app.crud.notification_v31.NotificationService.create_notification")
     def test_create_bulk_notifications(self, mock_create):
         """Test bulk notification creation."""
         # Mock successful creation for all notifications
@@ -859,11 +862,11 @@ class TestBulkOperations:
                     "title": f"Bulk Notification {i}",
                     "message": f"Bulk message {i}",
                     "notification_type": "info",
-                    "recipient_user_id": f"user-{i}"
+                    "recipient_user_id": f"user-{i}",
                 }
                 for i in range(3)
             ],
-            "batch_id": "bulk-batch-123"
+            "batch_id": "bulk-batch-123",
         }
 
         response = client.post("/api/v1/notifications/bulk", json=bulk_data)
@@ -906,7 +909,7 @@ class TestWebSocketConnection:
             notification_data = {
                 "id": "notif-123",
                 "title": "Test",
-                "message": "Test message"
+                "message": "Test message",
             }
 
             await manager.send_notification(user_id, notification_data)
@@ -924,7 +927,7 @@ class TestWebSocketConnection:
 class TestNotificationIntegrationScenarios:
     """Integration test scenarios for complete notification workflows."""
 
-    @patch('app.crud.notification_v31.NotificationService')
+    @patch("app.crud.notification_v31.NotificationService")
     def test_complete_notification_lifecycle(self, mock_service):
         """Test complete notification lifecycle from creation to interaction."""
         mock_service_instance = mock_service.return_value
@@ -936,7 +939,7 @@ class TestNotificationIntegrationScenarios:
             notification_type=NotificationType.INFO,
             status=NotificationStatus.PENDING,
             primary_channel=NotificationChannel.IN_APP,
-            recipient_user_id="user-123"
+            recipient_user_id="user-123",
         )
         NotificationTemplate(id="template-123", name="Test Template")
         mock_preferences = NotificationPreference(id="pref-123", email_enabled=True)
@@ -944,7 +947,9 @@ class TestNotificationIntegrationScenarios:
         mock_service_instance.create_notification.return_value = mock_notification
         mock_service_instance.get_notification_by_id.return_value = mock_notification
         mock_service_instance.mark_notification_as_read.return_value = mock_notification
-        mock_service_instance.get_user_notification_preferences.return_value = mock_preferences
+        mock_service_instance.get_user_notification_preferences.return_value = (
+            mock_preferences
+        )
 
         # Execute the lifecycle
         # 1. Create notification
@@ -953,7 +958,7 @@ class TestNotificationIntegrationScenarios:
             "title": "Integration Test",
             "message": "Integration test message",
             "notification_type": "info",
-            "recipient_user_id": "user-123"
+            "recipient_user_id": "user-123",
         }
 
         create_response = client.post("/api/v1/notifications", json=notification_data)
@@ -964,7 +969,9 @@ class TestNotificationIntegrationScenarios:
         assert get_response.status_code == 200
 
         # 3. Mark as read
-        read_response = client.post("/api/v1/notifications/notif-123/read?user_id=user-123")
+        read_response = client.post(
+            "/api/v1/notifications/notif-123/read?user_id=user-123"
+        )
         assert read_response.status_code == 200
 
         # 4. Check preferences
@@ -973,7 +980,7 @@ class TestNotificationIntegrationScenarios:
         )
         assert pref_response.status_code == 200
 
-    @patch('app.crud.notification_v31.NotificationService')
+    @patch("app.crud.notification_v31.NotificationService")
     def test_template_generation_workflow(self, mock_service):
         """Test complete template-based notification generation workflow."""
         mock_service_instance = mock_service.return_value
@@ -982,7 +989,7 @@ class TestNotificationIntegrationScenarios:
         mock_template = NotificationTemplate(
             id="template-123",
             name="Welcome Template",
-            notification_type=NotificationType.INFO
+            notification_type=NotificationType.INFO,
         )
         mock_notification = NotificationExtended(
             id="notif-456",
@@ -991,11 +998,13 @@ class TestNotificationIntegrationScenarios:
             notification_type=NotificationType.INFO,
             status=NotificationStatus.PENDING,
             primary_channel=NotificationChannel.EMAIL,
-            recipient_user_id="user-123"
+            recipient_user_id="user-123",
         )
 
         mock_service_instance.create_notification_template.return_value = mock_template
-        mock_service_instance.generate_notification_from_template.return_value = mock_notification
+        mock_service_instance.generate_notification_from_template.return_value = (
+            mock_notification
+        )
 
         # Create template
         template_data = {
@@ -1005,7 +1014,7 @@ class TestNotificationIntegrationScenarios:
             "message_template": "Welcome to our platform, {{user_name}}!",
             "notification_type": "info",
             "owner_id": "user-123",
-            "created_by": "user-123"
+            "created_by": "user-123",
         }
 
         template_response = client.post("/api/v1/templates", json=template_data)
@@ -1015,12 +1024,12 @@ class TestNotificationIntegrationScenarios:
         generation_data = {
             "template_id": "template-123",
             "field_values": {"user_name": "John"},
-            "recipient_user_id": "user-123"
+            "recipient_user_id": "user-123",
         }
 
         generate_response = client.post(
             "/api/v1/templates/template-123/generate?generated_by_id=user-123",
-            json=generation_data
+            json=generation_data,
         )
         assert generate_response.status_code == 200
 

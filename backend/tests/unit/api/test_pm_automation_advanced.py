@@ -13,14 +13,17 @@ class TestPmAutomationAPI:
         self.client = TestClient(app)
         self.headers = {"Content-Type": "application/json"}
 
-
     def test_post__projects_project_id_auto_structure_success(self):
         """Test POST /projects/{project_id}/auto-structure successful response."""
         # Setup test data
         test_data = self.get_test_data_for_post()
 
         # Make request
-        response = self.client.post("/projects/{project_id}/auto-structure", json=test_data, headers=self.headers)
+        response = self.client.post(
+            "/projects/{project_id}/auto-structure",
+            json=test_data,
+            headers=self.headers,
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -33,7 +36,11 @@ class TestPmAutomationAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.post("/projects/{project_id}/auto-structure", json=invalid_data, headers=self.headers)
+        response = self.client.post(
+            "/projects/{project_id}/auto-structure",
+            json=invalid_data,
+            headers=self.headers,
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -52,7 +59,9 @@ class TestPmAutomationAPI:
         test_data = self.get_test_data_for_post()
 
         # Make request
-        response = self.client.post("/projects/{project_id}/auto-assign", json=test_data, headers=self.headers)
+        response = self.client.post(
+            "/projects/{project_id}/auto-assign", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -65,7 +74,11 @@ class TestPmAutomationAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.post("/projects/{project_id}/auto-assign", json=invalid_data, headers=self.headers)
+        response = self.client.post(
+            "/projects/{project_id}/auto-assign",
+            json=invalid_data,
+            headers=self.headers,
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -84,7 +97,11 @@ class TestPmAutomationAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/projects/{project_id}/progress-report", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/projects/{project_id}/progress-report",
+            json=test_data,
+            headers=self.headers,
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -97,7 +114,11 @@ class TestPmAutomationAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/projects/{project_id}/progress-report", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/projects/{project_id}/progress-report",
+            json=invalid_data,
+            headers=self.headers,
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -116,7 +137,9 @@ class TestPmAutomationAPI:
         test_data = self.get_test_data_for_post()
 
         # Make request
-        response = self.client.post("/projects/{project_id}/optimize", json=test_data, headers=self.headers)
+        response = self.client.post(
+            "/projects/{project_id}/optimize", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -129,7 +152,9 @@ class TestPmAutomationAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.post("/projects/{project_id}/optimize", json=invalid_data, headers=self.headers)
+        response = self.client.post(
+            "/projects/{project_id}/optimize", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -148,7 +173,9 @@ class TestPmAutomationAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/projects/{project_id}/analytics", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/projects/{project_id}/analytics", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -161,7 +188,9 @@ class TestPmAutomationAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/projects/{project_id}/analytics", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/projects/{project_id}/analytics", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -180,7 +209,9 @@ class TestPmAutomationAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/projects/{project_id}/dashboard", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/projects/{project_id}/dashboard", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -193,7 +224,9 @@ class TestPmAutomationAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/projects/{project_id}/dashboard", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/projects/{project_id}/dashboard", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -225,7 +258,9 @@ class TestPmAutomationAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/templates", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/templates", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -257,7 +292,9 @@ class TestPmAutomationAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/strategies", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/strategies", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422

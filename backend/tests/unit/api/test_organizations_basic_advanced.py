@@ -13,7 +13,6 @@ class TestOrganizationsBasicAPI:
         self.client = TestClient(app)
         self.headers = {"Content-Type": "application/json"}
 
-
     def test_post___success(self):
         """Test POST / successful response."""
         # Setup test data
@@ -129,7 +128,9 @@ class TestOrganizationsBasicAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/statistics", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/statistics", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -180,7 +181,9 @@ class TestOrganizationsBasicAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/{org_id}/hierarchy", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/{org_id}/hierarchy", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -193,7 +196,9 @@ class TestOrganizationsBasicAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/{org_id}/hierarchy", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/{org_id}/hierarchy", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -244,7 +249,9 @@ class TestOrganizationsBasicAPI:
         test_data = self.get_test_data_for_post()
 
         # Make request
-        response = self.client.post("/{org_id}/deactivate", json=test_data, headers=self.headers)
+        response = self.client.post(
+            "/{org_id}/deactivate", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -257,7 +264,9 @@ class TestOrganizationsBasicAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.post("/{org_id}/deactivate", json=invalid_data, headers=self.headers)
+        response = self.client.post(
+            "/{org_id}/deactivate", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -289,7 +298,9 @@ class TestOrganizationsBasicAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/code/{code}", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/code/{code}", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422
@@ -308,7 +319,9 @@ class TestOrganizationsBasicAPI:
         test_data = self.get_test_data_for_get()
 
         # Make request
-        response = self.client.get("/{org_id}/context", json=test_data, headers=self.headers)
+        response = self.client.get(
+            "/{org_id}/context", json=test_data, headers=self.headers
+        )
 
         # Assertions
         assert response.status_code in [200, 201, 204]
@@ -321,7 +334,9 @@ class TestOrganizationsBasicAPI:
         # Send invalid data
         invalid_data = {"invalid": "data"}
 
-        response = self.client.get("/{org_id}/context", json=invalid_data, headers=self.headers)
+        response = self.client.get(
+            "/{org_id}/context", json=invalid_data, headers=self.headers
+        )
 
         # Should return validation error
         assert response.status_code == 422

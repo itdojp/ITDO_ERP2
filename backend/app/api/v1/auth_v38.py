@@ -69,13 +69,16 @@ security = HTTPBearer()
 # Core Authentication Functions
 # =============================================================================
 
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """パスワードを検証"""
     return pwd_context.verify(plain_password, hashed_password)
 
+
 def get_password_hash(password: str) -> str:
     """パスワードをハッシュ化"""
     return pwd_context.hash(password)
+
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     """アクセストークンを作成"""
@@ -83,11 +86,16 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = datetime.utcnow() + timedelta(
+            minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
+        )
 
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    encoded_jwt = jwt.encode(
+        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+    )
     return encoded_jwt
+
 
 def create_refresh_token(user_id: str) -> str:
     """リフレッシュトークンを作成"""
@@ -96,9 +104,10 @@ def create_refresh_token(user_id: str) -> str:
     data.update({"exp": expire})
     return jwt.encode(data, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
+
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Security(security),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> User:
     """現在のユーザーを取得"""
     credentials_exception = HTTPException(
@@ -108,7 +117,11 @@ async def get_current_user(
     )
 
     try:
-        payload = jwt.decode(credentials.credentials, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        payload = jwt.decode(
+            credentials.credentials,
+            settings.SECRET_KEY,
+            algorithms=[settings.ALGORITHM],
+        )
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
@@ -121,47 +134,66 @@ async def get_current_user(
 
     return user
 
-async def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:
+
+async def get_current_active_user(
+    current_user: User = Depends(get_current_user),
+) -> User:
     """アクティブな現在のユーザーを取得"""
     if not current_user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
 
-def check_rate_limit(db: Session, identifier: str, max_attempts: int = 5, window_minutes: int = 15) -> bool:
+
+def check_rate_limit(
+    db: Session, identifier: str, max_attempts: int = 5, window_minutes: int = 15
+) -> bool:
     """レート制限をチェック"""
     time_window = datetime.utcnow() - timedelta(minutes=window_minutes)
 
-    attempts = db.query(LoginAttempt).filter(
-        and_(
-            LoginAttempt.identifier == identifier,
-            LoginAttempt.attempted_at > time_window,
-            not LoginAttempt.success
+    attempts = (
+        db.query(LoginAttempt)
+        .filter(
+            and_(
+                LoginAttempt.identifier == identifier,
+                LoginAttempt.attempted_at > time_window,
+                not LoginAttempt.success,
+            )
         )
-    ).count()
+        .count()
+    )
 
     return attempts < max_attempts
 
-def log_login_attempt(db: Session, identifier: str, success: bool, user_id: str = None, ip_address: str = None):
+
+def log_login_attempt(
+    db: Session,
+    identifier: str,
+    success: bool,
+    user_id: str = None,
+    ip_address: str = None,
+):
     """ログイン試行を記録"""
     attempt = LoginAttempt(
         identifier=identifier,
         success=success,
         user_id=user_id,
         ip_address=ip_address,
-        attempted_at=datetime.utcnow()
+        attempted_at=datetime.utcnow(),
     )
     db.add(attempt)
     db.commit()
+
 
 # =============================================================================
 # OAuth2 & Token Management
 # =============================================================================
 
+
 @router.post("/token", response_model=TokenResponse)
 async def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(),
     request: Request = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """OAuth2トークン取得エンドポイント"""
     client_ip = request.client.host if request else "unknown"
@@ -171,7 +203,7 @@ async def login_for_access_token(
         log_login_attempt(db, form_data.username, False, ip_address=client_ip)
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Too many login attempts. Please try again later."
+            detail="Too many login attempts. Please try again later.",
         )
 
     # ユーザー認証
@@ -186,8 +218,7 @@ async def login_for_access_token(
 
     if not user.is_active:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User account is disabled"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="User account is disabled"
         )
 
     # MFA必須チェック
@@ -197,14 +228,15 @@ async def login_for_access_token(
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="MFA code required",
-                headers={"X-MFA-Required": "true"}
+                headers={"X-MFA-Required": "true"},
             )
 
         if not verify_mfa_token(db, user.id, form_data.client_id):
-            log_login_attempt(db, form_data.username, False, user_id=user.id, ip_address=client_ip)
+            log_login_attempt(
+                db, form_data.username, False, user_id=user.id, ip_address=client_ip
+            )
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid MFA code"
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid MFA code"
             )
 
     # トークン生成
@@ -222,12 +254,14 @@ async def login_for_access_token(
         ip_address=client_ip,
         user_agent=request.headers.get("User-Agent", "") if request else "",
         created_at=datetime.utcnow(),
-        expires_at=datetime.utcnow() + access_token_expires
+        expires_at=datetime.utcnow() + access_token_expires,
     )
     db.add(session)
 
     # ログイン成功を記録
-    log_login_attempt(db, form_data.username, True, user_id=user.id, ip_address=client_ip)
+    log_login_attempt(
+        db, form_data.username, True, user_id=user.id, ip_address=client_ip
+    )
 
     db.commit()
 
@@ -236,22 +270,22 @@ async def login_for_access_token(
         refresh_token=refresh_token,
         token_type="bearer",
         expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        scope="read write"
+        scope="read write",
     )
 
+
 @router.post("/refresh", response_model=TokenResponse)
-async def refresh_access_token(
-    refresh_token: str,
-    db: Session = Depends(get_db)
-):
+async def refresh_access_token(refresh_token: str, db: Session = Depends(get_db)):
     """リフレッシュトークンで新しいアクセストークンを取得"""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate refresh token"
+        detail="Could not validate refresh token",
     )
 
     try:
-        payload = jwt.decode(refresh_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        payload = jwt.decode(
+            refresh_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+        )
         user_id: str = payload.get("sub")
         token_type: str = payload.get("type")
 
@@ -274,26 +308,31 @@ async def refresh_access_token(
         access_token=access_token,
         refresh_token=refresh_token,
         token_type="bearer",
-        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
+
 
 @router.post("/revoke")
 async def revoke_token(
     token: str,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """トークンを無効化"""
     # アクセストークンのハッシュを計算
     token_hash = hashlib.sha256(token.encode()).hexdigest()
 
     # セッションを無効化
-    session = db.query(UserSession).filter(
-        and_(
-            UserSession.user_id == current_user.id,
-            UserSession.access_token_hash == token_hash
+    session = (
+        db.query(UserSession)
+        .filter(
+            and_(
+                UserSession.user_id == current_user.id,
+                UserSession.access_token_hash == token_hash,
+            )
         )
-    ).first()
+        .first()
+    )
 
     if session:
         session.revoked_at = datetime.utcnow()
@@ -301,19 +340,21 @@ async def revoke_token(
 
     return {"message": "Token revoked successfully"}
 
+
 # =============================================================================
 # Multi-Factor Authentication (MFA)
 # =============================================================================
+
 
 def generate_mfa_secret() -> str:
     """MFA秘密鍵を生成"""
     return pyotp.random_base32()
 
+
 def generate_qr_code(user_email: str, secret: str) -> str:
     """MFA用QRコードを生成"""
     totp_uri = pyotp.totp.TOTP(secret).provisioning_uri(
-        user_email,
-        issuer_name=settings.APP_NAME
+        user_email, issuer_name=settings.APP_NAME
     )
 
     qr = qrcode.QRCode(version=1, box_size=10, border=5)
@@ -322,19 +363,19 @@ def generate_qr_code(user_email: str, secret: str) -> str:
 
     img = qr.make_image(fill_color="black", back_color="white")
     buffer = BytesIO()
-    img.save(buffer, format='PNG')
+    img.save(buffer, format="PNG")
     buffer.seek(0)
 
     return base64.b64encode(buffer.getvalue()).decode()
 
+
 def verify_mfa_token(db: Session, user_id: str, token: str) -> bool:
     """MFAトークンを検証"""
-    device = db.query(MFADevice).filter(
-        and_(
-            MFADevice.user_id == user_id,
-            MFADevice.is_active
-        )
-    ).first()
+    device = (
+        db.query(MFADevice)
+        .filter(and_(MFADevice.user_id == user_id, MFADevice.is_active))
+        .first()
+    )
 
     if not device:
         return False
@@ -342,11 +383,12 @@ def verify_mfa_token(db: Session, user_id: str, token: str) -> bool:
     totp = pyotp.TOTP(device.secret)
     return totp.verify(token, valid_window=2)
 
+
 @router.post("/mfa/setup", response_model=MFASetupResponse)
 async def setup_mfa(
     request: MFASetupRequest,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """MFAセットアップ"""
     # 既存のMFAデバイスを無効化
@@ -362,7 +404,7 @@ async def setup_mfa(
         device_type="totp",
         secret=secret,
         is_active=False,  # 検証後にアクティブ化
-        created_at=datetime.utcnow()
+        created_at=datetime.utcnow(),
     )
 
     db.add(device)
@@ -374,22 +416,22 @@ async def setup_mfa(
     return MFASetupResponse(
         secret=secret,
         qr_code=qr_code,
-        backup_codes=generate_backup_codes(db, current_user.id)
+        backup_codes=generate_backup_codes(db, current_user.id),
     )
+
 
 @router.post("/mfa/verify")
 async def verify_mfa_setup(
     request: MFAVerifyRequest,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """MFAセットアップの検証とアクティブ化"""
-    device = db.query(MFADevice).filter(
-        and_(
-            MFADevice.user_id == current_user.id,
-            not MFADevice.is_active
-        )
-    ).first()
+    device = (
+        db.query(MFADevice)
+        .filter(and_(MFADevice.user_id == current_user.id, not MFADevice.is_active))
+        .first()
+    )
 
     if not device:
         raise HTTPException(status_code=404, detail="MFA setup not found")
@@ -406,11 +448,12 @@ async def verify_mfa_setup(
 
     return {"message": "MFA successfully enabled"}
 
+
 @router.delete("/mfa/disable")
 async def disable_mfa(
     password: str,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """MFAを無効化"""
     if not verify_password(password, current_user.hashed_password):
@@ -426,6 +469,7 @@ async def disable_mfa(
 
     return {"message": "MFA disabled successfully"}
 
+
 def generate_backup_codes(db: Session, user_id: str) -> List[str]:
     """バックアップコードを生成"""
     codes = []
@@ -436,15 +480,17 @@ def generate_backup_codes(db: Session, user_id: str) -> List[str]:
     # データベースに保存（実装省略）
     return codes
 
+
 # =============================================================================
 # API Key Management
 # =============================================================================
+
 
 @router.post("/api-keys", response_model=APIKeyResponse)
 async def create_api_key(
     request: APIKeyCreateRequest,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """APIキーを作成"""
     # APIキー生成
@@ -464,7 +510,7 @@ async def create_api_key(
         scopes=request.scopes,
         expires_at=request.expires_at,
         created_at=datetime.utcnow(),
-        is_active=True
+        is_active=True,
     )
 
     db.add(db_api_key)
@@ -478,25 +524,26 @@ async def create_api_key(
         description=request.description,
         scopes=request.scopes,
         created_at=db_api_key.created_at,
-        expires_at=request.expires_at
+        expires_at=request.expires_at,
     )
+
 
 @router.get("/api-keys", response_model=APIKeyListResponse)
 async def list_api_keys(
-    current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)
 ):
     """APIキー一覧を取得"""
-    api_keys = db.query(APIKey).filter(
-        and_(
-            APIKey.user_id == current_user.id,
-            APIKey.is_active,
-            or_(
-                APIKey.expires_at.is_(None),
-                APIKey.expires_at > datetime.utcnow()
+    api_keys = (
+        db.query(APIKey)
+        .filter(
+            and_(
+                APIKey.user_id == current_user.id,
+                APIKey.is_active,
+                or_(APIKey.expires_at.is_(None), APIKey.expires_at > datetime.utcnow()),
             )
         )
-    ).all()
+        .all()
+    )
 
     return APIKeyListResponse(
         api_keys=[
@@ -508,25 +555,25 @@ async def list_api_keys(
                 "scopes": key.scopes,
                 "created_at": key.created_at,
                 "expires_at": key.expires_at,
-                "last_used_at": key.last_used_at
+                "last_used_at": key.last_used_at,
             }
             for key in api_keys
         ]
     )
 
+
 @router.delete("/api-keys/{key_id}")
 async def revoke_api_key(
     key_id: str,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """APIキーを削除"""
-    api_key = db.query(APIKey).filter(
-        and_(
-            APIKey.user_id == current_user.id,
-            APIKey.key_id == key_id
-        )
-    ).first()
+    api_key = (
+        db.query(APIKey)
+        .filter(and_(APIKey.user_id == current_user.id, APIKey.key_id == key_id))
+        .first()
+    )
 
     if not api_key:
         raise HTTPException(status_code=404, detail="API key not found")
@@ -537,26 +584,25 @@ async def revoke_api_key(
 
     return {"message": "API key revoked successfully"}
 
-async def get_user_from_api_key(
-    api_key: str,
-    db: Session
-) -> Optional[User]:
+
+async def get_user_from_api_key(api_key: str, db: Session) -> Optional[User]:
     """APIキーからユーザーを取得"""
     if not api_key.startswith("itdo_"):
         return None
 
     key_hash = hashlib.sha256(api_key.encode()).hexdigest()
 
-    db_api_key = db.query(APIKey).filter(
-        and_(
-            APIKey.key_hash == key_hash,
-            APIKey.is_active,
-            or_(
-                APIKey.expires_at.is_(None),
-                APIKey.expires_at > datetime.utcnow()
+    db_api_key = (
+        db.query(APIKey)
+        .filter(
+            and_(
+                APIKey.key_hash == key_hash,
+                APIKey.is_active,
+                or_(APIKey.expires_at.is_(None), APIKey.expires_at > datetime.utcnow()),
             )
         )
-    ).first()
+        .first()
+    )
 
     if not db_api_key:
         return None
@@ -567,23 +613,29 @@ async def get_user_from_api_key(
 
     return db.query(User).filter(User.id == db_api_key.user_id).first()
 
+
 # =============================================================================
 # Session Management
 # =============================================================================
 
+
 @router.get("/sessions", response_model=SessionListResponse)
 async def list_user_sessions(
-    current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)
 ):
     """ユーザーセッション一覧"""
-    sessions = db.query(UserSession).filter(
-        and_(
-            UserSession.user_id == current_user.id,
-            UserSession.revoked_at.is_(None),
-            UserSession.expires_at > datetime.utcnow()
+    sessions = (
+        db.query(UserSession)
+        .filter(
+            and_(
+                UserSession.user_id == current_user.id,
+                UserSession.revoked_at.is_(None),
+                UserSession.expires_at > datetime.utcnow(),
+            )
         )
-    ).order_by(UserSession.created_at.desc()).all()
+        .order_by(UserSession.created_at.desc())
+        .all()
+    )
 
     return SessionListResponse(
         sessions=[
@@ -593,25 +645,30 @@ async def list_user_sessions(
                 user_agent=session.user_agent,
                 created_at=session.created_at,
                 expires_at=session.expires_at,
-                last_activity=session.last_activity
+                last_activity=session.last_activity,
             )
             for session in sessions
         ]
     )
 
+
 @router.delete("/sessions/{session_id}")
 async def revoke_session(
     session_id: str,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """特定のセッションを無効化"""
-    session = db.query(UserSession).filter(
-        and_(
-            UserSession.user_id == current_user.id,
-            UserSession.session_id == session_id
+    session = (
+        db.query(UserSession)
+        .filter(
+            and_(
+                UserSession.user_id == current_user.id,
+                UserSession.session_id == session_id,
+            )
         )
-    ).first()
+        .first()
+    )
 
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -621,32 +678,31 @@ async def revoke_session(
 
     return {"message": "Session revoked successfully"}
 
+
 @router.delete("/sessions")
 async def revoke_all_sessions(
-    current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)
 ):
     """全セッションを無効化"""
     db.query(UserSession).filter(
-        and_(
-            UserSession.user_id == current_user.id,
-            UserSession.revoked_at.is_(None)
-        )
+        and_(UserSession.user_id == current_user.id, UserSession.revoked_at.is_(None))
     ).update({"revoked_at": datetime.utcnow()})
 
     db.commit()
 
     return {"message": "All sessions revoked successfully"}
 
+
 # =============================================================================
 # Password Management
 # =============================================================================
+
 
 @router.post("/change-password")
 async def change_password(
     request: PasswordChangeRequest,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """パスワード変更"""
     if not verify_password(request.current_password, current_user.hashed_password):
@@ -656,7 +712,7 @@ async def change_password(
     if is_password_recently_used(db, current_user.id, request.new_password):
         raise HTTPException(
             status_code=400,
-            detail="New password was recently used. Please choose a different password."
+            detail="New password was recently used. Please choose a different password.",
         )
 
     # 新しいパスワードをハッシュ化
@@ -666,7 +722,7 @@ async def change_password(
     password_history = PasswordHistory(
         user_id=current_user.id,
         password_hash=current_user.hashed_password,
-        created_at=datetime.utcnow()
+        created_at=datetime.utcnow(),
     )
     db.add(password_history)
 
@@ -675,9 +731,13 @@ async def change_password(
     current_user.password_changed_at = datetime.utcnow()
 
     # 古いパスワード履歴を削除（最新10個まで保持）
-    old_passwords = db.query(PasswordHistory).filter(
-        PasswordHistory.user_id == current_user.id
-    ).order_by(PasswordHistory.created_at.desc()).offset(10).all()
+    old_passwords = (
+        db.query(PasswordHistory)
+        .filter(PasswordHistory.user_id == current_user.id)
+        .order_by(PasswordHistory.created_at.desc())
+        .offset(10)
+        .all()
+    )
 
     for old_password in old_passwords:
         db.delete(old_password)
@@ -686,10 +746,10 @@ async def change_password(
 
     return {"message": "Password changed successfully"}
 
+
 @router.post("/reset-password")
 async def request_password_reset(
-    request: PasswordResetRequest,
-    db: Session = Depends(get_db)
+    request: PasswordResetRequest, db: Session = Depends(get_db)
 ):
     """パスワードリセット要求"""
     user = db.query(User).filter(User.email == request.email).first()
@@ -712,11 +772,16 @@ async def request_password_reset(
 
     return {"message": "If the email exists, a reset link has been sent"}
 
+
 def is_password_recently_used(db: Session, user_id: str, password: str) -> bool:
     """最近使用されたパスワードかチェック"""
-    recent_passwords = db.query(PasswordHistory).filter(
-        PasswordHistory.user_id == user_id
-    ).order_by(PasswordHistory.created_at.desc()).limit(5).all()
+    recent_passwords = (
+        db.query(PasswordHistory)
+        .filter(PasswordHistory.user_id == user_id)
+        .order_by(PasswordHistory.created_at.desc())
+        .limit(5)
+        .all()
+    )
 
     for history in recent_passwords:
         if verify_password(password, history.password_hash):
@@ -724,36 +789,42 @@ def is_password_recently_used(db: Session, user_id: str, password: str) -> bool:
 
     return False
 
+
 def send_password_reset_email(email: str, reset_token: str):
     """パスワードリセットメールを送信"""
     # 実装省略 - 実際のメール送信ロジック
     pass
 
+
 # =============================================================================
 # Role & Permission Management
 # =============================================================================
+
 
 @router.post("/check-permission")
 async def check_user_permission(
     request: PermissionCheck,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """ユーザー権限をチェック"""
-    has_permission = user_has_permission(db, current_user.id, request.permission, request.resource)
+    has_permission = user_has_permission(
+        db, current_user.id, request.permission, request.resource
+    )
 
     return {
         "user_id": current_user.id,
         "permission": request.permission,
         "resource": request.resource,
-        "has_permission": has_permission
+        "has_permission": has_permission,
     }
+
 
 @router.post("/assign-role")
 async def assign_user_role(
     request: RoleAssignRequest,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """ユーザーにロールを割り当て（管理者のみ）"""
     if not user_has_permission(db, current_user.id, "manage_users", "users"):
@@ -771,14 +842,19 @@ async def assign_user_role(
 
     return {"message": f"Role {request.role_name} assigned to user {request.user_id}"}
 
-def user_has_permission(db: Session, user_id: str, permission: str, resource: str = None) -> bool:
+
+def user_has_permission(
+    db: Session, user_id: str, permission: str, resource: str = None
+) -> bool:
     """ユーザーが特定の権限を持っているかチェック"""
     # 実装省略 - 複雑な権限チェックロジック
     return True  # 簡略化
 
+
 # =============================================================================
 # OAuth2 Authorization Code Flow
 # =============================================================================
+
 
 @router.get("/authorize")
 async def oauth2_authorize(
@@ -787,7 +863,7 @@ async def oauth2_authorize(
     redirect_uri: str,
     scope: str = "read",
     state: str = None,
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(get_current_active_user),
 ):
     """OAuth2認可エンドポイント"""
     if response_type != "code":
@@ -807,10 +883,10 @@ async def oauth2_authorize(
 
     return {"redirect_url": redirect_url}
 
+
 @router.post("/oauth2/token")
 async def oauth2_token_exchange(
-    request: OAuth2TokenRequest,
-    db: Session = Depends(get_db)
+    request: OAuth2TokenRequest, db: Session = Depends(get_db)
 ):
     """OAuth2トークン交換エンドポイント"""
     if request.grant_type != "authorization_code":
@@ -829,5 +905,5 @@ async def oauth2_token_exchange(
         access_token=access_token,
         refresh_token=refresh_token,
         token_type="bearer",
-        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
