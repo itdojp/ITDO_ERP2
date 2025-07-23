@@ -1,0 +1,49 @@
+name: Scheduled Test Suite
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # 6時間ごと
+  workflow_dispatch:
+
+jobs:
+  full-test-suite:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Environment
+        run: |
+          # 全ツールセットアップ
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Backend Tests with Coverage
+        working-directory: backend
+        run: |
+          uv sync --dev
+          uv run pytest --cov=app --cov-report=json --cov-report=html
+
+      - name: Frontend Tests with Coverage
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run coverage
+
+      - name: Generate Quality Report
+        run: |
+          cd scripts/test-dashboard
+          uv run python generate-dashboard.py
+
+      - name: Upload Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-${{ github.run_id }}
+          path: |
+            test-quality-dashboard.html
+            backend/htmlcov/
+            frontend/coverage/
+
+      - name: Notify Results
+        if: failure()
+        run: |
+          echo "::error::Scheduled tests failed!"
+          # Slack/Discord通知など
