@@ -1,7 +1,8 @@
 """Basic organization schemas for ERP v17.0 user management."""
 
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional
+
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -29,14 +30,14 @@ class OrganizationCreate(BaseModel):
     parent_id: Optional[int] = Field(None, description="Parent organization ID")
     is_active: bool = Field(True, description="Active status")
     description: Optional[str] = Field(None, description="Description")
-    
+
     @field_validator('email')
     @classmethod
     def validate_email(cls, v):
         if v and '@' not in v:
             raise ValueError('Invalid email format')
         return v
-    
+
     @field_validator('code')
     @classmethod
     def validate_code(cls, v):
@@ -57,7 +58,7 @@ class OrganizationUpdate(BaseModel):
     parent_id: Optional[int] = None
     is_active: Optional[bool] = None
     description: Optional[str] = None
-    
+
     @field_validator('email')
     @classmethod
     def validate_email(cls, v):
@@ -86,6 +87,6 @@ class OrganizationResponse(BaseModel):
     is_parent: bool = Field(..., description="Has subsidiary organizations")
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: Optional[datetime] = Field(None, description="Last update timestamp")
-    
+
     class Config:
         from_attributes = True

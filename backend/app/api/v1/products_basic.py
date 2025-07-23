@@ -3,38 +3,38 @@ Basic Product Management API for ERP v17.0
 Focused on essential product operations with simplified endpoints
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session
 from typing import List, Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_active_user
+from app.crud.product_basic import (
+    convert_category_to_response,
+    convert_to_response,
+    create_category,
+    create_product,
+    deactivate_product,
+    get_categories,
+    get_category_by_id,
+    get_product_by_code,
+    get_product_by_id,
+    get_product_by_sku,
+    get_product_statistics,
+    get_products,
+    get_products_by_category,
+    update_product,
+)
+from app.models.product import ProductStatus, ProductType
+from app.models.user import User
 from app.schemas.product_basic import (
-    ProductCreate, 
-    ProductUpdate, 
-    ProductResponse, 
     ProductBasic,
     ProductCategoryCreate,
-    ProductCategoryUpdate,
-    ProductCategoryResponse
-)
-from app.models.user import User
-from app.models.product import ProductStatus, ProductType
-from app.crud.product_basic import (
-    create_product,
-    get_product_by_id,
-    get_product_by_code,
-    get_product_by_sku,
-    get_products,
-    update_product,
-    deactivate_product,
-    get_products_by_category,
-    create_category,
-    get_category_by_id,
-    get_categories,
-    get_product_statistics,
-    convert_to_response,
-    convert_category_to_response
+    ProductCategoryResponse,
+    ProductCreate,
+    ProductResponse,
+    ProductUpdate,
 )
 
 router = APIRouter(prefix="/products-basic", tags=["Products Basic"])
@@ -87,7 +87,7 @@ async def list_products(
         sort_by=sort_by,
         sort_order=sort_order
     )
-    
+
     # Convert to response format
     return [convert_to_response(product) for product in products]
 
@@ -115,7 +115,7 @@ async def get_product(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Product not found"
         )
-    
+
     return convert_to_response(product)
 
 
@@ -134,7 +134,7 @@ async def update_product_info(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Product not found"
         )
-    
+
     try:
         updated_product = update_product(db, product_id, product_data, updated_by=current_user.id)
         if not updated_product:
@@ -142,7 +142,7 @@ async def update_product_info(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to update product"
             )
-        
+
         return convert_to_response(updated_product)
     except Exception as e:
         raise HTTPException(
@@ -165,7 +165,7 @@ async def deactivate_product_item(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Product not found"
         )
-    
+
     try:
         deactivated_product = deactivate_product(db, product_id, deactivated_by=current_user.id)
         if not deactivated_product:
@@ -173,7 +173,7 @@ async def deactivate_product_item(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to deactivate product"
             )
-        
+
         return convert_to_response(deactivated_product)
     except Exception as e:
         raise HTTPException(
@@ -196,7 +196,7 @@ async def get_product_by_code_endpoint(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Product not found"
         )
-    
+
     return ProductBasic(
         id=product.id,
         code=product.code,
@@ -221,7 +221,7 @@ async def get_product_by_sku_endpoint(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Product not found"
         )
-    
+
     return ProductBasic(
         id=product.id,
         code=product.code,
@@ -246,7 +246,7 @@ async def get_product_erp_context(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Product not found"
         )
-    
+
     return product.get_erp_context()
 
 
@@ -283,7 +283,7 @@ async def list_product_categories(
         parent_id=parent_id,
         is_active=is_active
     )
-    
+
     return [convert_category_to_response(category) for category in categories]
 
 
@@ -300,7 +300,7 @@ async def get_product_category(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Category not found"
         )
-    
+
     return convert_category_to_response(category)
 
 
@@ -313,7 +313,7 @@ async def get_products_in_category(
 ):
     """Get products in a category."""
     products = get_products_by_category(db, category_id, include_subcategories)
-    
+
     return [
         ProductBasic(
             id=product.id,

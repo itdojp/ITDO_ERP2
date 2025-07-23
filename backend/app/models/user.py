@@ -634,12 +634,12 @@ class User(SoftDeletableModel):
         if self.full_name:
             return self.full_name
         return self.email
-    
+
     def is_erp_user(self) -> bool:
         """Check if user has ERP access permissions."""
         # Basic check - could be expanded with specific ERP permissions
         return self.is_active and bool(self.organization_id)
-    
+
     def get_erp_context(self) -> dict[str, Any]:
         """Get ERP-specific user context."""
         return {

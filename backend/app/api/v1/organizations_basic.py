@@ -3,30 +3,31 @@ Basic Organization Management API for ERP v17.0
 Focused on essential organization operations with simplified endpoints
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session
 from typing import List, Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_active_user
-from app.schemas.organization_basic import (
-    OrganizationCreate, 
-    OrganizationUpdate, 
-    OrganizationResponse, 
-    OrganizationBasic
+from app.crud.organization_basic import (
+    convert_to_response,
+    create_organization,
+    deactivate_organization,
+    get_organization_by_code,
+    get_organization_by_id,
+    get_organization_hierarchy,
+    get_organization_statistics,
+    get_organizations,
+    get_root_organizations,
+    update_organization,
 )
 from app.models.user import User
-from app.crud.organization_basic import (
-    create_organization,
-    get_organization_by_id,
-    get_organization_by_code,
-    get_organizations,
-    update_organization,
-    deactivate_organization,
-    get_organization_hierarchy,
-    get_root_organizations,
-    get_organization_statistics,
-    convert_to_response
+from app.schemas.organization_basic import (
+    OrganizationBasic,
+    OrganizationCreate,
+    OrganizationResponse,
+    OrganizationUpdate,
 )
 
 router = APIRouter(prefix="/organizations-basic", tags=["Organizations Basic"])
@@ -45,7 +46,7 @@ async def create_new_organization(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required"
         )
-    
+
     try:
         organization = create_organization(db, org_data, created_by=current_user.id)
         return convert_to_response(organization)
@@ -79,7 +80,7 @@ async def list_organizations(
         sort_by=sort_by,
         sort_order=sort_order
     )
-    
+
     # Convert to response format
     return [convert_to_response(org) for org in organizations]
 
@@ -91,7 +92,7 @@ async def list_root_organizations(
 ):
     """Get all root organizations (no parent)."""
     root_orgs = get_root_organizations(db)
-    
+
     return [
         OrganizationBasic(
             id=org.id,
@@ -124,7 +125,7 @@ async def get_organization(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Organization not found"
         )
-    
+
     return convert_to_response(organization)
 
 
@@ -141,7 +142,7 @@ async def get_organization_hierarchy_info(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Organization not found"
         )
-    
+
     return {
         "organization": convert_to_response(hierarchy_info["organization"]),
         "hierarchy_path": hierarchy_info["hierarchy_path"],
@@ -165,7 +166,7 @@ async def update_organization_info(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Organization not found"
         )
-    
+
     # Check permissions - only superuser or org members can update
     if not current_user.is_superuser:
         # Check if user belongs to this organization
@@ -175,7 +176,7 @@ async def update_organization_info(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Access denied"
             )
-    
+
     try:
         updated_org = update_organization(db, org_id, org_data, updated_by=current_user.id)
         if not updated_org:
@@ -183,7 +184,7 @@ async def update_organization_info(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to update organization"
             )
-        
+
         return convert_to_response(updated_org)
     except Exception as e:
         raise HTTPException(
@@ -205,7 +206,7 @@ async def deactivate_organization_account(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required"
         )
-    
+
     # Check if organization exists
     existing_org = get_organization_by_id(db, org_id)
     if not existing_org:
@@ -213,7 +214,7 @@ async def deactivate_organization_account(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Organization not found"
         )
-    
+
     try:
         deactivated_org = deactivate_organization(db, org_id, deactivated_by=current_user.id)
         if not deactivated_org:
@@ -221,7 +222,7 @@ async def deactivate_organization_account(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to deactivate organization"
             )
-        
+
         return convert_to_response(deactivated_org)
     except Exception as e:
         raise HTTPException(
@@ -243,7 +244,7 @@ async def get_organization_by_code_endpoint(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Organization not found"
         )
-    
+
     return OrganizationBasic(
         id=organization.id,
         code=organization.code,
@@ -264,5 +265,5 @@ async def get_organization_erp_context(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Organization not found"
         )
-    
+
     return organization.get_erp_context()

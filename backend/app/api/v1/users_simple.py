@@ -1,7 +1,8 @@
+import uuid
+from typing import Any, List
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List, Any
-import uuid
 
 from app.core.database_simple import get_db
 from app.models.user_simple import User
@@ -45,18 +46,18 @@ def get_user(user_id: str, db: Session = Depends(get_db)) -> Any:
         raise HTTPException(status_code=404, detail="User not found")
     return user  # type: ignore[return-value]
 
-@router.put("/users/{user_id}", response_model=UserResponse)  
+@router.put("/users/{user_id}", response_model=UserResponse)
 def update_user(user_id: str, user_update: UserUpdate, db: Session = Depends(get_db)) -> Any:
     """Update user - v19.0 practical approach"""
     user = db.query(User).filter(User.id == user_id).first()  # type: ignore[misc]
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
+
     # Update fields
     update_data = user_update.dict(exclude_unset=True)  # type: ignore[misc]
     for field, value in update_data.items():
         setattr(user, field, value)  # type: ignore[misc]
-    
+
     db.add(user)  # type: ignore[misc]
     db.commit()  # type: ignore[misc]
     db.refresh(user)  # type: ignore[misc]
@@ -68,7 +69,7 @@ def deactivate_user(user_id: str, db: Session = Depends(get_db)) -> Any:
     user = db.query(User).filter(User.id == user_id).first()  # type: ignore[misc]
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
+
     user.is_active = False  # type: ignore[misc]
     db.add(user)  # type: ignore[misc]
     db.commit()  # type: ignore[misc]

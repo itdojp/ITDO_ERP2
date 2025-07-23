@@ -1,6 +1,8 @@
-from sqlalchemy import Column, String, Boolean, DateTime
+from sqlalchemy import Boolean, Column, DateTime, String
 from sqlalchemy.sql import func
+
 from app.core.database_simple import Base
+
 
 class User(Base):  # type: ignore[valid-type,misc]
     """Simple user model - v19.0 practical approach"""
@@ -13,6 +15,6 @@ class User(Base):  # type: ignore[valid-type,misc]
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    
+
     def __repr__(self):  # type: ignore[no-untyped-def]
         return f"<User(id={self.id}, email={self.email})>"

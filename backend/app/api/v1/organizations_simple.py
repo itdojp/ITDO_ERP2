@@ -1,11 +1,16 @@
+import uuid
+from typing import Any, List
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List, Any
-import uuid
 
 from app.core.database_simple import get_db
 from app.models.organization_simple import Organization
-from app.schemas.organization_simple import OrganizationCreate, OrganizationResponse, OrganizationUpdate
+from app.schemas.organization_simple import (
+    OrganizationCreate,
+    OrganizationResponse,
+    OrganizationUpdate,
+)
 
 router = APIRouter()
 
@@ -47,12 +52,12 @@ def update_organization(org_id: str, org_update: OrganizationUpdate, db: Session
     org = db.query(Organization).filter(Organization.id == org_id).first()  # type: ignore[misc]
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
-    
+
     # Update fields
     update_data = org_update.dict(exclude_unset=True)  # type: ignore[misc]
     for field, value in update_data.items():
         setattr(org, field, value)  # type: ignore[misc]
-    
+
     db.add(org)  # type: ignore[misc]
     db.commit()  # type: ignore[misc]
     db.refresh(org)  # type: ignore[misc]
@@ -64,7 +69,7 @@ def deactivate_organization(org_id: str, db: Session = Depends(get_db)) -> Any:
     org = db.query(Organization).filter(Organization.id == org_id).first()  # type: ignore[misc]
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
-    
+
     org.is_active = False  # type: ignore[misc]
     db.add(org)  # type: ignore[misc]
     db.commit()  # type: ignore[misc]
