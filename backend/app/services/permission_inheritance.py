@@ -33,7 +33,7 @@ from app.schemas.permission_inheritance import (
 class PermissionInheritanceService:
     """Service for managing permission inheritance and dependencies."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         """Initialize service with database session."""
         self.db = db
 

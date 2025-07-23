@@ -10,6 +10,7 @@ from app.schemas.user_simple import UserCreate, UserResponse, UserUpdate
 
 router = APIRouter()
 
+
 @router.post("/users", response_model=UserResponse)
 def create_user(user: UserCreate, db: Session = Depends(get_db)) -> Any:
     """Create a new user - v19.0 practical approach"""
@@ -25,18 +26,20 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)) -> Any:
         id=str(uuid.uuid4()),
         email=user.email,
         username=user.username,
-        full_name=user.full_name
+        full_name=user.full_name,
     )
     db.add(db_user)  # type: ignore[misc]
     db.commit()  # type: ignore[misc]
     db.refresh(db_user)  # type: ignore[misc]
     return db_user  # type: ignore[return-value]
 
+
 @router.get("/users", response_model=List[UserResponse])
 def list_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)) -> Any:
     """List users - v19.0 practical approach"""
     users = db.query(User).offset(skip).limit(limit).all()  # type: ignore[misc]
     return users  # type: ignore[return-value]
+
 
 @router.get("/users/{user_id}", response_model=UserResponse)
 def get_user(user_id: str, db: Session = Depends(get_db)) -> Any:
@@ -46,8 +49,16 @@ def get_user(user_id: str, db: Session = Depends(get_db)) -> Any:
         raise HTTPException(status_code=404, detail="User not found")
     return user  # type: ignore[return-value]
 
+<<<<<<< HEAD
+
+@router.put("/users/{user_id}", response_model=UserResponse)
+def update_user(
+    user_id: str, user_update: UserUpdate, db: Session = Depends(get_db)
+) -> Any:
+=======
 @router.put("/users/{user_id}", response_model=UserResponse)
 def update_user(user_id: str, user_update: UserUpdate, db: Session = Depends(get_db)) -> Any:
+>>>>>>> main
     """Update user - v19.0 practical approach"""
     user = db.query(User).filter(User.id == user_id).first()  # type: ignore[misc]
     if not user:
@@ -62,6 +73,7 @@ def update_user(user_id: str, user_update: UserUpdate, db: Session = Depends(get
     db.commit()  # type: ignore[misc]
     db.refresh(user)  # type: ignore[misc]
     return user  # type: ignore[return-value]
+
 
 @router.delete("/users/{user_id}")
 def deactivate_user(user_id: str, db: Session = Depends(get_db)) -> Any:

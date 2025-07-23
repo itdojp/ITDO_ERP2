@@ -33,18 +33,38 @@ from app.schemas.inventory_basic import (
 
 # Warehouse CRUD operations
 def create_warehouse(
+<<<<<<< HEAD
+    db: Session, warehouse_data: WarehouseCreate, created_by: int
+=======
     db: Session,
     warehouse_data: WarehouseCreate,
     created_by: int
+>>>>>>> main
 ) -> Warehouse:
     """Create a new warehouse with validation."""
     # Check if warehouse code exists in organization
-    existing_warehouse = db.query(Warehouse).filter(
-        and_(
-            Warehouse.code == warehouse_data.code,
-            Warehouse.organization_id == warehouse_data.organization_id,
-            Warehouse.deleted_at.is_(None)
+    existing_warehouse = (
+        db.query(Warehouse)
+        .filter(
+            and_(
+                Warehouse.code == warehouse_data.code,
+                Warehouse.organization_id == warehouse_data.organization_id,
+                Warehouse.deleted_at.is_(None),
+            )
         )
+<<<<<<< HEAD
+        .first()
+    )
+
+    if existing_warehouse:
+        raise BusinessLogicError(
+            "Warehouse with this code already exists in the organization"
+        )
+
+    # Create warehouse
+    warehouse_dict = warehouse_data.dict()
+    warehouse_dict["created_by"] = created_by
+=======
     ).first()
 
     if existing_warehouse:
@@ -53,6 +73,7 @@ def create_warehouse(
     # Create warehouse
     warehouse_dict = warehouse_data.dict()
     warehouse_dict['created_by'] = created_by
+>>>>>>> main
 
     warehouse = Warehouse(**warehouse_dict)
 
@@ -65,12 +86,11 @@ def create_warehouse(
 
 def get_warehouse_by_id(db: Session, warehouse_id: int) -> Optional[Warehouse]:
     """Get warehouse by ID."""
-    return db.query(Warehouse).filter(
-        and_(
-            Warehouse.id == warehouse_id,
-            Warehouse.deleted_at.is_(None)
-        )
-    ).first()
+    return (
+        db.query(Warehouse)
+        .filter(and_(Warehouse.id == warehouse_id, Warehouse.deleted_at.is_(None)))
+        .first()
+    )
 
 
 def get_warehouses(
@@ -79,7 +99,7 @@ def get_warehouses(
     limit: int = 100,
     search: Optional[str] = None,
     organization_id: Optional[int] = None,
-    is_active: Optional[bool] = None
+    is_active: Optional[bool] = None,
 ) -> tuple[List[Warehouse], int]:
     """Get warehouses with filtering and pagination."""
     query = db.query(Warehouse).filter(Warehouse.deleted_at.is_(None))
@@ -92,7 +112,7 @@ def get_warehouses(
                 Warehouse.name.ilike(search_term),
                 Warehouse.code.ilike(search_term),
                 Warehouse.description.ilike(search_term),
-                Warehouse.city.ilike(search_term)
+                Warehouse.city.ilike(search_term),
             )
         )
 
@@ -116,10 +136,7 @@ def get_warehouses(
 
 
 def update_warehouse(
-    db: Session,
-    warehouse_id: int,
-    warehouse_data: WarehouseUpdate,
-    updated_by: int
+    db: Session, warehouse_id: int, warehouse_data: WarehouseUpdate, updated_by: int
 ) -> Optional[Warehouse]:
     """Update warehouse information."""
     warehouse = get_warehouse_by_id(db, warehouse_id)
@@ -128,14 +145,18 @@ def update_warehouse(
 
     # Check for code conflicts if updating code
     if warehouse_data.code and warehouse_data.code != warehouse.code:
-        existing_warehouse = db.query(Warehouse).filter(
-            and_(
-                Warehouse.code == warehouse_data.code,
-                Warehouse.organization_id == warehouse.organization_id,
-                Warehouse.id != warehouse_id,
-                Warehouse.deleted_at.is_(None)
+        existing_warehouse = (
+            db.query(Warehouse)
+            .filter(
+                and_(
+                    Warehouse.code == warehouse_data.code,
+                    Warehouse.organization_id == warehouse.organization_id,
+                    Warehouse.id != warehouse_id,
+                    Warehouse.deleted_at.is_(None),
+                )
             )
-        ).first()
+            .first()
+        )
         if existing_warehouse:
             raise BusinessLogicError("Warehouse with this code already exists")
 
@@ -156,18 +177,37 @@ def update_warehouse(
 
 # Inventory Item CRUD operations
 def create_inventory_item(
-    db: Session,
-    item_data: InventoryItemCreate,
-    created_by: int
+    db: Session, item_data: InventoryItemCreate, created_by: int
 ) -> InventoryItem:
     """Create inventory item for product in warehouse."""
     # Check if item already exists for this product/warehouse combination
-    existing_item = db.query(InventoryItem).filter(
-        and_(
-            InventoryItem.product_id == item_data.product_id,
-            InventoryItem.warehouse_id == item_data.warehouse_id,
-            InventoryItem.deleted_at.is_(None)
+    existing_item = (
+        db.query(InventoryItem)
+        .filter(
+            and_(
+                InventoryItem.product_id == item_data.product_id,
+                InventoryItem.warehouse_id == item_data.warehouse_id,
+                InventoryItem.deleted_at.is_(None),
+            )
         )
+<<<<<<< HEAD
+        .first()
+    )
+
+    if existing_item:
+        raise BusinessLogicError(
+            "Inventory item already exists for this product in this warehouse"
+        )
+
+    # Create inventory item
+    item_dict = item_data.dict()
+    item_dict["created_by"] = created_by
+
+    # Calculate available quantity
+    item_dict["quantity_available"] = max(
+        Decimal(0),
+        item_dict.get("quantity_on_hand", 0) - item_dict.get("quantity_reserved", 0),
+=======
     ).first()
 
     if existing_item:
@@ -181,6 +221,7 @@ def create_inventory_item(
     item_dict['quantity_available'] = max(
         Decimal(0),
         item_dict.get('quantity_on_hand', 0) - item_dict.get('quantity_reserved', 0)
+>>>>>>> main
     )
 
     inventory_item = InventoryItem(**item_dict)
@@ -194,12 +235,11 @@ def create_inventory_item(
 
 def get_inventory_item_by_id(db: Session, item_id: int) -> Optional[InventoryItem]:
     """Get inventory item by ID."""
-    return db.query(InventoryItem).filter(
-        and_(
-            InventoryItem.id == item_id,
-            InventoryItem.deleted_at.is_(None)
-        )
-    ).first()
+    return (
+        db.query(InventoryItem)
+        .filter(and_(InventoryItem.id == item_id, InventoryItem.deleted_at.is_(None)))
+        .first()
+    )
 
 
 def get_inventory_items(
@@ -210,7 +250,7 @@ def get_inventory_items(
     product_id: Optional[int] = None,
     organization_id: Optional[int] = None,
     status: Optional[InventoryStatus] = None,
-    low_stock_only: bool = False
+    low_stock_only: bool = False,
 ) -> tuple[List[InventoryItem], int]:
     """Get inventory items with filtering and pagination."""
     query = db.query(InventoryItem).filter(InventoryItem.deleted_at.is_(None))
@@ -232,7 +272,7 @@ def get_inventory_items(
         query = query.filter(
             and_(
                 InventoryItem.minimum_level.isnot(None),
-                InventoryItem.quantity_available <= InventoryItem.minimum_level
+                InventoryItem.quantity_available <= InventoryItem.minimum_level,
             )
         )
 
@@ -249,10 +289,7 @@ def get_inventory_items(
 
 
 def update_inventory_item(
-    db: Session,
-    item_id: int,
-    item_data: InventoryItemUpdate,
-    updated_by: int
+    db: Session, item_id: int, item_data: InventoryItemUpdate, updated_by: int
 ) -> Optional[InventoryItem]:
     """Update inventory item information."""
     item = get_inventory_item_by_id(db, item_id)
@@ -279,9 +316,7 @@ def update_inventory_item(
 
 # Stock Movement CRUD operations
 def create_stock_movement(
-    db: Session,
-    movement_data: StockMovementCreate,
-    performed_by: int
+    db: Session, movement_data: StockMovementCreate, performed_by: int
 ) -> StockMovement:
     """Create stock movement transaction."""
     # Generate transaction number
@@ -294,20 +329,37 @@ def create_stock_movement(
 
     # Create movement
     movement_dict = movement_data.dict()
+<<<<<<< HEAD
+    movement_dict["transaction_number"] = transaction_number
+    movement_dict["performed_by"] = performed_by
+    movement_dict["created_by"] = performed_by
+    movement_dict["quantity_before"] = inventory_item.quantity_on_hand
+=======
     movement_dict['transaction_number'] = transaction_number
     movement_dict['performed_by'] = performed_by
     movement_dict['created_by'] = performed_by
     movement_dict['quantity_before'] = inventory_item.quantity_on_hand
+>>>>>>> main
 
     # Calculate quantity after based on movement type
-    if movement_data.movement_type in [MovementType.IN.value, MovementType.RETURN.value]:
+    if movement_data.movement_type in [
+        MovementType.IN.value,
+        MovementType.RETURN.value,
+    ]:
         new_quantity = inventory_item.quantity_on_hand + movement_data.quantity
-    elif movement_data.movement_type in [MovementType.OUT.value, MovementType.SCRAP.value]:
+    elif movement_data.movement_type in [
+        MovementType.OUT.value,
+        MovementType.SCRAP.value,
+    ]:
         new_quantity = inventory_item.quantity_on_hand - movement_data.quantity
     else:  # ADJUSTMENT, TRANSFER
         new_quantity = inventory_item.quantity_on_hand + movement_data.quantity
 
+<<<<<<< HEAD
+    movement_dict["quantity_after"] = new_quantity
+=======
     movement_dict['quantity_after'] = new_quantity
+>>>>>>> main
 
     # Create movement record
     movement = StockMovement(**movement_dict)
@@ -317,7 +369,13 @@ def create_stock_movement(
 
     # Update cost if provided
     if movement_data.unit_cost and movement_data.movement_type == MovementType.IN.value:
+<<<<<<< HEAD
+        inventory_item.update_average_cost(
+            movement_data.unit_cost, movement_data.quantity
+        )
+=======
         inventory_item.update_average_cost(movement_data.unit_cost, movement_data.quantity)
+>>>>>>> main
 
     # Update dates
     if movement_data.movement_type == MovementType.IN.value:
@@ -345,7 +403,7 @@ def get_stock_movements(
     movement_type: Optional[MovementType] = None,
     organization_id: Optional[int] = None,
     from_date: Optional[datetime] = None,
-    to_date: Optional[datetime] = None
+    to_date: Optional[datetime] = None,
 ) -> tuple[List[StockMovement], int]:
     """Get stock movements with filtering and pagination."""
     query = db.query(StockMovement).filter(StockMovement.deleted_at.is_(None))
@@ -382,9 +440,7 @@ def get_stock_movements(
 
 
 def create_stock_adjustment(
-    db: Session,
-    adjustment_data: StockAdjustmentCreate,
-    performed_by: int
+    db: Session, adjustment_data: StockAdjustmentCreate, performed_by: int
 ) -> StockMovement:
     """Create stock adjustment movement."""
     inventory_item = get_inventory_item_by_id(db, adjustment_data.inventory_item_id)
@@ -403,17 +459,14 @@ def create_stock_adjustment(
         quantity=adjustment_quantity,
         unit_cost=adjustment_data.unit_cost,
         reason=adjustment_data.reason,
-        notes=adjustment_data.notes
+        notes=adjustment_data.notes,
     )
 
     return create_stock_movement(db, movement_data, performed_by)
 
 
 def reserve_stock(
-    db: Session,
-    inventory_item_id: int,
-    quantity: Decimal,
-    reserved_by: int
+    db: Session, inventory_item_id: int, quantity: Decimal, reserved_by: int
 ) -> bool:
     """Reserve stock for order fulfillment."""
     inventory_item = get_inventory_item_by_id(db, inventory_item_id)
@@ -430,10 +483,7 @@ def reserve_stock(
 
 
 def release_reservation(
-    db: Session,
-    inventory_item_id: int,
-    quantity: Decimal,
-    released_by: int
+    db: Session, inventory_item_id: int, quantity: Decimal, released_by: int
 ) -> bool:
     """Release reserved stock."""
     inventory_item = get_inventory_item_by_id(db, inventory_item_id)
@@ -452,7 +502,7 @@ def release_reservation(
 def get_inventory_statistics(
     db: Session,
     organization_id: Optional[int] = None,
-    warehouse_id: Optional[int] = None
+    warehouse_id: Optional[int] = None,
 ) -> Dict[str, Any]:
     """Get comprehensive inventory statistics."""
     query = db.query(InventoryItem).filter(InventoryItem.deleted_at.is_(None))
@@ -465,15 +515,23 @@ def get_inventory_statistics(
 
     # Basic counts
     total_items = query.count()
+<<<<<<< HEAD
+    active_items = query.filter(
+        InventoryItem.status == InventoryStatus.AVAILABLE.value
+    ).count()
+=======
     active_items = query.filter(InventoryItem.status == InventoryStatus.AVAILABLE.value).count()
+>>>>>>> main
 
     # Stock value calculations
     total_value = db.query(func.sum(InventoryItem.total_cost)).filter(
         and_(
             InventoryItem.deleted_at.is_(None),
             InventoryItem.total_cost.isnot(None),
-            InventoryItem.organization_id == organization_id if organization_id else True,
-            InventoryItem.warehouse_id == warehouse_id if warehouse_id else True
+            InventoryItem.organization_id == organization_id
+            if organization_id
+            else True,
+            InventoryItem.warehouse_id == warehouse_id if warehouse_id else True,
         )
     ).scalar() or Decimal(0)
 
@@ -481,7 +539,7 @@ def get_inventory_statistics(
     low_stock_items = query.filter(
         and_(
             InventoryItem.minimum_level.isnot(None),
-            InventoryItem.quantity_available <= InventoryItem.minimum_level
+            InventoryItem.quantity_available <= InventoryItem.minimum_level,
         )
     ).count()
 
@@ -497,12 +555,16 @@ def get_inventory_statistics(
         "total_stock_value": float(total_value),
         "low_stock_items": low_stock_items,
         "by_status": status_counts,
-        "warehouses_count": db.query(Warehouse).filter(
+        "warehouses_count": db.query(Warehouse)
+        .filter(
             and_(
                 Warehouse.deleted_at.is_(None),
-                Warehouse.organization_id == organization_id if organization_id else True
+                Warehouse.organization_id == organization_id
+                if organization_id
+                else True,
             )
-        ).count()
+        )
+        .count(),
     }
 
 
@@ -514,17 +576,26 @@ def generate_transaction_number(db: Session, movement_type: str) -> str:
         MovementType.TRANSFER.value: "TRF",
         MovementType.ADJUSTMENT.value: "ADJ",
         MovementType.RETURN.value: "RET",
-        MovementType.SCRAP.value: "SCR"
+        MovementType.SCRAP.value: "SCR",
     }.get(movement_type, "TXN")
 
     # Get next sequence number
+<<<<<<< HEAD
+    last_movement = (
+        db.query(StockMovement)
+        .filter(StockMovement.transaction_number.like(f"{prefix}-%"))
+        .order_by(desc(StockMovement.id))
+        .first()
+    )
+=======
     last_movement = db.query(StockMovement).filter(
         StockMovement.transaction_number.like(f"{prefix}-%")
     ).order_by(desc(StockMovement.id)).first()
+>>>>>>> main
 
     if last_movement and last_movement.transaction_number:
         try:
-            last_number = int(last_movement.transaction_number.split('-')[1])
+            last_number = int(last_movement.transaction_number.split("-")[1])
             next_number = last_number + 1
         except (IndexError, ValueError):
             next_number = 1
@@ -556,7 +627,7 @@ def convert_warehouse_to_response(warehouse: Warehouse) -> WarehouseResponse:
         is_active=warehouse.is_active,
         full_address=warehouse.full_address,
         created_at=warehouse.created_at,
-        updated_at=warehouse.updated_at
+        updated_at=warehouse.updated_at,
     )
 
 
@@ -589,11 +660,13 @@ def convert_inventory_item_to_response(item: InventoryItem) -> InventoryItemResp
         is_expired=item.is_expired,
         days_until_expiry=item.days_until_expiry,
         created_at=item.created_at,
-        updated_at=item.updated_at
+        updated_at=item.updated_at,
     )
 
 
-def convert_stock_movement_to_response(movement: StockMovement) -> StockMovementResponse:
+def convert_stock_movement_to_response(
+    movement: StockMovement,
+) -> StockMovementResponse:
     """Convert StockMovement model to response schema."""
     return StockMovementResponse(
         id=movement.id,
@@ -620,5 +693,9 @@ def convert_stock_movement_to_response(movement: StockMovement) -> StockMovement
         performed_by=movement.performed_by,
         is_posted=movement.is_posted,
         is_reversed=movement.is_reversed,
+<<<<<<< HEAD
+        created_at=movement.created_at,
+=======
         created_at=movement.created_at
+>>>>>>> main
     )

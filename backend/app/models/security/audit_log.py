@@ -1,4 +1,5 @@
 """Security audit log model."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -17,7 +18,9 @@ class SecurityAuditLog(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     event_type = Column(String(100), nullable=False, index=True)
-    severity = Column(String(20), nullable=False, index=True)  # INFO, WARNING, ERROR, CRITICAL
+    severity = Column(
+        String(20), nullable=False, index=True
+    )  # INFO, WARNING, ERROR, CRITICAL
     user_id = Column(UUID(as_uuid=True), index=True)
     ip_address = Column(String(45))
     user_agent = Column(Text)
@@ -31,7 +34,7 @@ class SecurityAuditLog(Base):
 
     # Composite indexes for common queries
     __table_args__ = (
-        Index('idx_security_audit_user_time', 'user_id', 'created_at'),
-        Index('idx_security_audit_type_time', 'event_type', 'created_at'),
-        Index('idx_security_audit_severity_time', 'severity', 'created_at'),
+        Index("idx_security_audit_user_time", "user_id", "created_at"),
+        Index("idx_security_audit_type_time", "event_type", "created_at"),
+        Index("idx_security_audit_severity_time", "severity", "created_at"),
     )

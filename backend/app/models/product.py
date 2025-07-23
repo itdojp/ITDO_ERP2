@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 
 class ProductStatus(str, Enum):
     """Product status enumeration."""
+
     ACTIVE = "active"
     INACTIVE = "inactive"
     DISCONTINUED = "discontinued"
@@ -26,10 +27,11 @@ class ProductStatus(str, Enum):
 
 class ProductType(str, Enum):
     """Product type enumeration."""
-    PRODUCT = "product"          # Physical product
-    SERVICE = "service"          # Service
-    DIGITAL = "digital"          # Digital product
-    SUBSCRIPTION = "subscription" # Subscription service
+
+    PRODUCT = "product"  # Physical product
+    SERVICE = "service"  # Service
+    DIGITAL = "digital"  # Digital product
+    SUBSCRIPTION = "subscription"  # Subscription service
 
 
 class ProductCategory(SoftDeletableModel):
@@ -38,16 +40,29 @@ class ProductCategory(SoftDeletableModel):
     __tablename__ = "product_categories"
 
     # Basic fields
-    code: Mapped[str] = mapped_column(String(50), nullable=False, unique=True, index=True)
+    code: Mapped[str] = mapped_column(
+        String(50), nullable=False, unique=True, index=True
+    )
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     name_en: Mapped[str | None] = mapped_column(String(200))
     description: Mapped[str | None] = mapped_column(Text)
 
     # Hierarchy
+<<<<<<< HEAD
+    parent_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("product_categories.id")
+    )
+
+    # Organization
+    organization_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("organizations.id"), nullable=False
+    )
+=======
     parent_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("product_categories.id"))
 
     # Organization
     organization_id: Mapped[int] = mapped_column(Integer, ForeignKey("organizations.id"), nullable=False)
+>>>>>>> main
 
     # Status
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -75,7 +90,9 @@ class ProductCategory(SoftDeletableModel):
         return path
 
     def __repr__(self) -> str:
-        return f"<ProductCategory(id={self.id}, code='{self.code}', name='{self.name}')>"
+        return (
+            f"<ProductCategory(id={self.id}, code='{self.code}', name='{self.name}')>"
+        )
 
 
 class Product(SoftDeletableModel):
@@ -84,7 +101,9 @@ class Product(SoftDeletableModel):
     __tablename__ = "products"
 
     # Basic identification
-    code: Mapped[str] = mapped_column(String(100), nullable=False, unique=True, index=True)
+    code: Mapped[str] = mapped_column(
+        String(100), nullable=False, unique=True, index=True
+    )
     name: Mapped[str] = mapped_column(String(300), nullable=False)
     name_en: Mapped[str | None] = mapped_column(String(300))
     description: Mapped[str | None] = mapped_column(Text)
@@ -92,12 +111,23 @@ class Product(SoftDeletableModel):
     # Product details
     sku: Mapped[str | None] = mapped_column(String(100), unique=True, index=True)
     barcode: Mapped[str | None] = mapped_column(String(100), unique=True, index=True)
-    product_type: Mapped[str] = mapped_column(String(20), default=ProductType.PRODUCT.value)
+    product_type: Mapped[str] = mapped_column(
+        String(20), default=ProductType.PRODUCT.value
+    )
     status: Mapped[str] = mapped_column(String(20), default=ProductStatus.ACTIVE.value)
 
     # Categorization
+<<<<<<< HEAD
+    category_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("product_categories.id")
+    )
+    organization_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("organizations.id"), nullable=False
+    )
+=======
     category_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("product_categories.id"))
     organization_id: Mapped[int] = mapped_column(Integer, ForeignKey("organizations.id"), nullable=False)
+>>>>>>> main
 
     # Pricing
     standard_price: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0)
@@ -109,7 +139,7 @@ class Product(SoftDeletableModel):
     unit: Mapped[str] = mapped_column(String(20), default="個")  # Unit of measure
     weight: Mapped[Decimal | None] = mapped_column(Numeric(8, 3))  # kg
     length: Mapped[Decimal | None] = mapped_column(Numeric(8, 2))  # cm
-    width: Mapped[Decimal | None] = mapped_column(Numeric(8, 2))   # cm
+    width: Mapped[Decimal | None] = mapped_column(Numeric(8, 2))  # cm
     height: Mapped[Decimal | None] = mapped_column(Numeric(8, 2))  # cm
 
     # Stock management
@@ -118,7 +148,9 @@ class Product(SoftDeletableModel):
     reorder_point: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
 
     # Tax and accounting
-    tax_rate: Mapped[Decimal] = mapped_column(Numeric(5, 4), default=Decimal('0.1000'))  # 10%
+    tax_rate: Mapped[Decimal] = mapped_column(
+        Numeric(5, 4), default=Decimal("0.1000")
+    )  # 10%
     tax_included: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Status and visibility
@@ -161,9 +193,15 @@ class Product(SoftDeletableModel):
     def is_available(self) -> bool:
         """Check if product is available for sale."""
         return (
+<<<<<<< HEAD
+            self.is_active
+            and self.is_sellable
+            and self.status == ProductStatus.ACTIVE.value
+=======
             self.is_active and
             self.is_sellable and
             self.status == ProductStatus.ACTIVE.value
+>>>>>>> main
         )
 
     @property
@@ -199,12 +237,14 @@ class Product(SoftDeletableModel):
                 "standard_price": float(self.standard_price),
                 "selling_price": float(self.effective_selling_price),
                 "cost_price": float(self.cost_price) if self.cost_price else None,
-                "profit_margin": float(self.profit_margin) if self.profit_margin else None
+                "profit_margin": float(self.profit_margin)
+                if self.profit_margin
+                else None,
             },
             "stock_managed": self.is_stock_managed,
             "unit": self.unit,
             "tax_rate": float(self.tax_rate),
-            "is_active": self.is_active
+            "is_active": self.is_active,
         }
 
     def update_status(self, new_status: ProductStatus, updated_by: int, db) -> None:

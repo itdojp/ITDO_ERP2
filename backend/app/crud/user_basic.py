@@ -13,7 +13,9 @@ from app.models.user import User
 from app.schemas.user import UserCreate, UserERPResponse, UserUpdate
 
 
-def create_user(db: Session, user_data: UserCreate, created_by: Optional[int] = None) -> User:
+def create_user(
+    db: Session, user_data: UserCreate, created_by: Optional[int] = None
+) -> User:
     """Create a new user with basic validation."""
     # Check if user exists
     existing_user = db.query(User).filter(User.email == user_data.email).first()
@@ -27,7 +29,7 @@ def create_user(db: Session, user_data: UserCreate, created_by: Optional[int] = 
         password=user_data.password,
         full_name=user_data.full_name,
         phone=user_data.phone,
-        is_active=user_data.is_active
+        is_active=user_data.is_active,
     )
 
     # Set created_by if provided
@@ -44,22 +46,20 @@ def create_user(db: Session, user_data: UserCreate, created_by: Optional[int] = 
 
 def get_user_by_id(db: Session, user_id: int) -> Optional[User]:
     """Get user by ID."""
-    return db.query(User).filter(
-        and_(
-            User.id == user_id,
-            User.deleted_at.is_(None)
-        )
-    ).first()
+    return (
+        db.query(User)
+        .filter(and_(User.id == user_id, User.deleted_at.is_(None)))
+        .first()
+    )
 
 
 def get_user_by_email(db: Session, email: str) -> Optional[User]:
     """Get user by email."""
-    return db.query(User).filter(
-        and_(
-            User.email == email,
-            User.deleted_at.is_(None)
-        )
-    ).first()
+    return (
+        db.query(User)
+        .filter(and_(User.email == email, User.deleted_at.is_(None)))
+        .first()
+    )
 
 
 def get_users(
@@ -70,7 +70,7 @@ def get_users(
     organization_id: Optional[int] = None,
     is_active: Optional[bool] = None,
     sort_by: str = "full_name",
-    sort_order: str = "asc"
+    sort_order: str = "asc",
 ) -> tuple[List[User], int]:
     """Get users with filtering and pagination."""
     query = db.query(User).filter(User.deleted_at.is_(None))
@@ -79,10 +79,7 @@ def get_users(
     if search:
         search_term = f"%{search}%"
         query = query.filter(
-            or_(
-                User.full_name.ilike(search_term),
-                User.email.ilike(search_term)
-            )
+            or_(User.full_name.ilike(search_term), User.email.ilike(search_term))
         )
 
     # Organization filter (if user has organization relationship)
@@ -112,10 +109,7 @@ def get_users(
 
 
 def update_user(
-    db: Session,
-    user_id: int,
-    user_data: UserUpdate,
-    updated_by: Optional[int] = None
+    db: Session, user_id: int, user_data: UserUpdate, updated_by: Optional[int] = None
 ) -> Optional[User]:
     """Update user information."""
     user = get_user_by_id(db, user_id)
@@ -125,7 +119,11 @@ def update_user(
     # Update fields
     update_dict = user_data.dict(exclude_unset=True)
     if updated_by:
+<<<<<<< HEAD
+        update_dict["updated_by"] = updated_by
+=======
         update_dict['updated_by'] = updated_by
+>>>>>>> main
 
     user.update(db, **update_dict)
     db.commit()
@@ -135,9 +133,7 @@ def update_user(
 
 
 def deactivate_user(
-    db: Session,
-    user_id: int,
-    deactivated_by: Optional[int] = None
+    db: Session, user_id: int, deactivated_by: Optional[int] = None
 ) -> Optional[User]:
     """Deactivate user (soft delete)."""
     user = get_user_by_id(db, user_id)
@@ -157,12 +153,16 @@ def deactivate_user(
 
 def get_active_users_count(db: Session, organization_id: Optional[int] = None) -> int:
     """Get count of active users."""
+<<<<<<< HEAD
+    query = db.query(User).filter(and_(User.deleted_at.is_(None), User.is_active))
+=======
     query = db.query(User).filter(
         and_(
             User.deleted_at.is_(None),
-            User.is_active == True
+            User.is_active
         )
     )
+>>>>>>> main
 
     if organization_id:
         query = query.filter(User.organization_id == organization_id)
@@ -173,18 +173,24 @@ def get_active_users_count(db: Session, organization_id: Optional[int] = None) -
 def get_user_statistics(db: Session) -> Dict[str, Any]:
     """Get basic user statistics."""
     total_users = db.query(User).filter(User.deleted_at.is_(None)).count()
+<<<<<<< HEAD
+    active_users = (
+        db.query(User).filter(and_(User.deleted_at.is_(None), User.is_active)).count()
+    )
+=======
     active_users = db.query(User).filter(
         and_(
             User.deleted_at.is_(None),
-            User.is_active == True
+            User.is_active
         )
     ).count()
+>>>>>>> main
 
     return {
         "total_users": total_users,
         "active_users": active_users,
         "inactive_users": total_users - active_users,
-        "activation_rate": (active_users / total_users * 100) if total_users > 0 else 0
+        "activation_rate": (active_users / total_users * 100) if total_users > 0 else 0,
     }
 
 
@@ -200,5 +206,9 @@ def convert_to_erp_response(user: User) -> UserERPResponse:
         department_id=user.department_id,
         is_erp_user=user.is_erp_user(),
         created_at=user.created_at,
+<<<<<<< HEAD
+        last_login_at=user.last_login_at,
+=======
         last_login_at=user.last_login_at
+>>>>>>> main
     )

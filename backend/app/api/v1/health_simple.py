@@ -4,6 +4,7 @@ from fastapi import APIRouter
 
 router = APIRouter()
 
+
 @router.get("/health", response_model=Dict[str, Any])
 async def health_check() -> Dict[str, Any]:
     """Simple health check endpoint - no complex types"""
@@ -11,5 +12,9 @@ async def health_check() -> Dict[str, Any]:
         "status": "healthy",
         "service": "ITDO ERP API",
         "version": "v19.0-practical",
+<<<<<<< HEAD
+        "mode": "working_over_perfect",
+=======
         "mode": "working_over_perfect"
+>>>>>>> main
     }

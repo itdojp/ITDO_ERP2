@@ -29,7 +29,7 @@ __all__ = ["User", "PasswordHistory"]
 
 class User(SoftDeletableModel):
     """User model with enhanced security and audit features.
-    
+
     v17.0: Enhanced for ERP basic functionality with improved organization
     and department relationships, security tracking, and session management.
     """
@@ -650,7 +650,9 @@ class User(SoftDeletableModel):
             "department_id": self.department_id,
             "is_active": self.is_active,
             "is_superuser": self.is_superuser,
-            "last_login": self.last_login_at.isoformat() if self.last_login_at else None
+            "last_login": self.last_login_at.isoformat()
+            if self.last_login_at
+            else None,
         }
 
     def __repr__(self) -> str:

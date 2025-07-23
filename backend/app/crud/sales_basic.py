@@ -34,38 +34,63 @@ from app.schemas.sales_basic import (
 
 # Customer CRUD operations
 def create_customer(
+<<<<<<< HEAD
+    db: Session, customer_data: CustomerCreate, created_by: int
+=======
     db: Session,
     customer_data: CustomerCreate,
     created_by: int
+>>>>>>> main
 ) -> Customer:
     """Create a new customer with validation."""
     # Check if customer number exists
-    existing_customer = db.query(Customer).filter(
-        and_(
-            Customer.customer_number == customer_data.customer_number,
-            Customer.organization_id == customer_data.organization_id,
-            Customer.deleted_at.is_(None)
+    existing_customer = (
+        db.query(Customer)
+        .filter(
+            and_(
+                Customer.customer_number == customer_data.customer_number,
+                Customer.organization_id == customer_data.organization_id,
+                Customer.deleted_at.is_(None),
+            )
         )
+<<<<<<< HEAD
+        .first()
+    )
+
+    if existing_customer:
+        raise BusinessLogicError(
+            "Customer with this number already exists in the organization"
+        )
+=======
     ).first()
 
     if existing_customer:
         raise BusinessLogicError("Customer with this number already exists in the organization")
+>>>>>>> main
 
     # Check email uniqueness if provided
     if customer_data.email:
-        existing_email = db.query(Customer).filter(
-            and_(
-                Customer.email == customer_data.email,
-                Customer.organization_id == customer_data.organization_id,
-                Customer.deleted_at.is_(None)
+        existing_email = (
+            db.query(Customer)
+            .filter(
+                and_(
+                    Customer.email == customer_data.email,
+                    Customer.organization_id == customer_data.organization_id,
+                    Customer.deleted_at.is_(None),
+                )
             )
-        ).first()
+            .first()
+        )
         if existing_email:
             raise BusinessLogicError("Customer with this email already exists")
 
     # Create customer
     customer_dict = customer_data.dict()
+<<<<<<< HEAD
+    customer_dict["created_by"] = created_by
+=======
     customer_dict['created_by'] = created_by
+>>>>>>> main
 
     customer = Customer(**customer_dict)
 
@@ -78,23 +103,28 @@ def create_customer(
 
 def get_customer_by_id(db: Session, customer_id: int) -> Optional[Customer]:
     """Get customer by ID."""
-    return db.query(Customer).filter(
-        and_(
-            Customer.id == customer_id,
-            Customer.deleted_at.is_(None)
-        )
-    ).first()
+    return (
+        db.query(Customer)
+        .filter(and_(Customer.id == customer_id, Customer.deleted_at.is_(None)))
+        .first()
+    )
 
 
-def get_customer_by_number(db: Session, customer_number: str, organization_id: int) -> Optional[Customer]:
+def get_customer_by_number(
+    db: Session, customer_number: str, organization_id: int
+) -> Optional[Customer]:
     """Get customer by number within organization."""
-    return db.query(Customer).filter(
-        and_(
-            Customer.customer_number == customer_number,
-            Customer.organization_id == organization_id,
-            Customer.deleted_at.is_(None)
+    return (
+        db.query(Customer)
+        .filter(
+            and_(
+                Customer.customer_number == customer_number,
+                Customer.organization_id == organization_id,
+                Customer.deleted_at.is_(None),
+            )
         )
-    ).first()
+        .first()
+    )
 
 
 def get_customers(
@@ -106,7 +136,7 @@ def get_customers(
     status: Optional[CustomerStatus] = None,
     customer_type: Optional[CustomerType] = None,
     sort_by: str = "name",
-    sort_order: str = "asc"
+    sort_order: str = "asc",
 ) -> tuple[List[Customer], int]:
     """Get customers with filtering and pagination."""
     query = db.query(Customer).filter(Customer.deleted_at.is_(None))
@@ -119,7 +149,7 @@ def get_customers(
                 Customer.name.ilike(search_term),
                 Customer.customer_number.ilike(search_term),
                 Customer.email.ilike(search_term),
-                Customer.phone.ilike(search_term)
+                Customer.phone.ilike(search_term),
             )
         )
 
@@ -150,10 +180,7 @@ def get_customers(
 
 
 def update_customer(
-    db: Session,
-    customer_id: int,
-    customer_data: CustomerUpdate,
-    updated_by: int
+    db: Session, customer_id: int, customer_data: CustomerUpdate, updated_by: int
 ) -> Optional[Customer]:
     """Update customer information."""
     customer = get_customer_by_id(db, customer_id)
@@ -161,28 +188,39 @@ def update_customer(
         return None
 
     # Check for number conflicts if updating number
-    if customer_data.customer_number and customer_data.customer_number != customer.customer_number:
-        existing_customer = db.query(Customer).filter(
-            and_(
-                Customer.customer_number == customer_data.customer_number,
-                Customer.organization_id == customer.organization_id,
-                Customer.id != customer_id,
-                Customer.deleted_at.is_(None)
+    if (
+        customer_data.customer_number
+        and customer_data.customer_number != customer.customer_number
+    ):
+        existing_customer = (
+            db.query(Customer)
+            .filter(
+                and_(
+                    Customer.customer_number == customer_data.customer_number,
+                    Customer.organization_id == customer.organization_id,
+                    Customer.id != customer_id,
+                    Customer.deleted_at.is_(None),
+                )
             )
-        ).first()
+            .first()
+        )
         if existing_customer:
             raise BusinessLogicError("Customer with this number already exists")
 
     # Check for email conflicts if updating email
     if customer_data.email and customer_data.email != customer.email:
-        existing_email = db.query(Customer).filter(
-            and_(
-                Customer.email == customer_data.email,
-                Customer.organization_id == customer.organization_id,
-                Customer.id != customer_id,
-                Customer.deleted_at.is_(None)
+        existing_email = (
+            db.query(Customer)
+            .filter(
+                and_(
+                    Customer.email == customer_data.email,
+                    Customer.organization_id == customer.organization_id,
+                    Customer.id != customer_id,
+                    Customer.deleted_at.is_(None),
+                )
             )
-        ).first()
+            .first()
+        )
         if existing_email:
             raise BusinessLogicError("Customer with this email already exists")
 
@@ -202,9 +240,7 @@ def update_customer(
 
 
 def deactivate_customer(
-    db: Session,
-    customer_id: int,
-    deactivated_by: int
+    db: Session, customer_id: int, deactivated_by: int
 ) -> Optional[Customer]:
     """Deactivate customer."""
     customer = get_customer_by_id(db, customer_id)
@@ -223,9 +259,7 @@ def deactivate_customer(
 
 # Sales Order CRUD operations
 def create_sales_order(
-    db: Session,
-    order_data: SalesOrderCreate,
-    created_by: int
+    db: Session, order_data: SalesOrderCreate, created_by: int
 ) -> SalesOrder:
     """Create a new sales order."""
     # Generate order number
@@ -237,6 +271,19 @@ def create_sales_order(
         raise BusinessLogicError("Customer not found")
 
     # Create order
+<<<<<<< HEAD
+    order_dict = order_data.dict(exclude={"order_items"})
+    order_dict["order_number"] = order_number
+    order_dict["created_by"] = created_by
+
+    # Set payment terms from customer if not specified
+    if not order_dict.get("payment_terms"):
+        order_dict["payment_terms"] = customer.payment_terms
+
+    # Set currency from customer if not specified
+    if not order_dict.get("currency"):
+        order_dict["currency"] = customer.currency
+=======
     order_dict = order_data.dict(exclude={'order_items'})
     order_dict['order_number'] = order_number
     order_dict['created_by'] = created_by
@@ -248,6 +295,7 @@ def create_sales_order(
     # Set currency from customer if not specified
     if not order_dict.get('currency'):
         order_dict['currency'] = customer.currency
+>>>>>>> main
 
     sales_order = SalesOrder(**order_dict)
 
@@ -274,23 +322,28 @@ def create_sales_order(
 
 def get_sales_order_by_id(db: Session, order_id: int) -> Optional[SalesOrder]:
     """Get sales order by ID."""
-    return db.query(SalesOrder).filter(
-        and_(
-            SalesOrder.id == order_id,
-            SalesOrder.deleted_at.is_(None)
-        )
-    ).first()
+    return (
+        db.query(SalesOrder)
+        .filter(and_(SalesOrder.id == order_id, SalesOrder.deleted_at.is_(None)))
+        .first()
+    )
 
 
-def get_sales_order_by_number(db: Session, order_number: str, organization_id: int) -> Optional[SalesOrder]:
+def get_sales_order_by_number(
+    db: Session, order_number: str, organization_id: int
+) -> Optional[SalesOrder]:
     """Get sales order by number within organization."""
-    return db.query(SalesOrder).filter(
-        and_(
-            SalesOrder.order_number == order_number,
-            SalesOrder.organization_id == organization_id,
-            SalesOrder.deleted_at.is_(None)
+    return (
+        db.query(SalesOrder)
+        .filter(
+            and_(
+                SalesOrder.order_number == order_number,
+                SalesOrder.organization_id == organization_id,
+                SalesOrder.deleted_at.is_(None),
+            )
         )
-    ).first()
+        .first()
+    )
 
 
 def get_sales_orders(
@@ -305,7 +358,7 @@ def get_sales_orders(
     from_date: Optional[date] = None,
     to_date: Optional[date] = None,
     sort_by: str = "order_date",
-    sort_order: str = "desc"
+    sort_order: str = "desc",
 ) -> tuple[List[SalesOrder], int]:
     """Get sales orders with filtering and pagination."""
     query = db.query(SalesOrder).filter(SalesOrder.deleted_at.is_(None))
@@ -317,7 +370,7 @@ def get_sales_orders(
             or_(
                 SalesOrder.order_number.ilike(search_term),
                 SalesOrder.customer_po_number.ilike(search_term),
-                SalesOrder.notes.ilike(search_term)
+                SalesOrder.notes.ilike(search_term),
             )
         )
 
@@ -357,10 +410,7 @@ def get_sales_orders(
 
 
 def update_sales_order(
-    db: Session,
-    order_id: int,
-    order_data: SalesOrderUpdate,
-    updated_by: int
+    db: Session, order_id: int, order_data: SalesOrderUpdate, updated_by: int
 ) -> Optional[SalesOrder]:
     """Update sales order information."""
     order = get_sales_order_by_id(db, order_id)
@@ -372,7 +422,7 @@ def update_sales_order(
         raise BusinessLogicError("Cannot update completed or cancelled orders")
 
     # Update fields
-    update_dict = order_data.dict(exclude_unset=True, exclude={'order_items'})
+    update_dict = order_data.dict(exclude_unset=True, exclude={"order_items"})
     for key, value in update_dict.items():
         if hasattr(order, key):
             setattr(order, key, value)
@@ -394,10 +444,7 @@ def update_sales_order(
 
 
 def cancel_sales_order(
-    db: Session,
-    order_id: int,
-    cancelled_by: int,
-    reason: Optional[str] = None
+    db: Session, order_id: int, cancelled_by: int, reason: Optional[str] = None
 ) -> Optional[SalesOrder]:
     """Cancel a sales order."""
     order = get_sales_order_by_id(db, order_id)
@@ -427,7 +474,7 @@ def create_sales_order_item(
     sales_order_id: int,
     item_data: SalesOrderItemCreate,
     line_number: int,
-    created_by: int
+    created_by: int,
 ) -> SalesOrderItem:
     """Create a sales order item."""
     # Get product information
@@ -437,14 +484,24 @@ def create_sales_order_item(
 
     # Create item
     item_dict = item_data.dict()
+<<<<<<< HEAD
+    item_dict["sales_order_id"] = sales_order_id
+    item_dict["line_number"] = line_number
+    item_dict["created_by"] = created_by
+=======
     item_dict['sales_order_id'] = sales_order_id
     item_dict['line_number'] = line_number
     item_dict['created_by'] = created_by
+>>>>>>> main
 
     # Get organization_id from the sales order
     sales_order = get_sales_order_by_id(db, sales_order_id)
     if sales_order:
+<<<<<<< HEAD
+        item_dict["organization_id"] = sales_order.organization_id
+=======
         item_dict['organization_id'] = sales_order.organization_id
+>>>>>>> main
 
     order_item = SalesOrderItem(**item_dict)
 
@@ -462,35 +519,55 @@ def create_sales_order_item(
 
 def get_order_items_by_order(db: Session, sales_order_id: int) -> List[SalesOrderItem]:
     """Get all items for a sales order."""
-    return db.query(SalesOrderItem).filter(
-        and_(
-            SalesOrderItem.sales_order_id == sales_order_id,
-            SalesOrderItem.deleted_at.is_(None)
+    return (
+        db.query(SalesOrderItem)
+        .filter(
+            and_(
+                SalesOrderItem.sales_order_id == sales_order_id,
+                SalesOrderItem.deleted_at.is_(None),
+            )
         )
-    ).order_by(SalesOrderItem.line_number).all()
+        .order_by(SalesOrderItem.line_number)
+        .all()
+    )
 
 
 def update_order_item(
-    db: Session,
-    item_id: int,
-    item_data: SalesOrderItemCreate,
-    updated_by: int
+    db: Session, item_id: int, item_data: SalesOrderItemCreate, updated_by: int
 ) -> Optional[SalesOrderItem]:
     """Update sales order item."""
+<<<<<<< HEAD
+    item = (
+        db.query(SalesOrderItem)
+        .filter(and_(SalesOrderItem.id == item_id, SalesOrderItem.deleted_at.is_(None)))
+        .first()
+    )
+=======
     item = db.query(SalesOrderItem).filter(
         and_(
             SalesOrderItem.id == item_id,
             SalesOrderItem.deleted_at.is_(None)
         )
     ).first()
+>>>>>>> main
 
     if not item:
         return None
 
     # Check if order can be updated
     sales_order = get_sales_order_by_id(db, item.sales_order_id)
+<<<<<<< HEAD
+    if sales_order and sales_order.status in [
+        OrderStatus.COMPLETED.value,
+        OrderStatus.CANCELLED.value,
+    ]:
+        raise BusinessLogicError(
+            "Cannot update items for completed or cancelled orders"
+        )
+=======
     if sales_order and sales_order.status in [OrderStatus.COMPLETED.value, OrderStatus.CANCELLED.value]:
         raise BusinessLogicError("Cannot update items for completed or cancelled orders")
+>>>>>>> main
 
     # Update fields
     update_dict = item_data.dict(exclude_unset=True)
@@ -523,16 +600,25 @@ def generate_order_number(db: Session, organization_id: int) -> str:
     prefix = f"SO-{today.strftime('%Y%m%d')}"
 
     # Get next sequence number for today
-    last_order = db.query(SalesOrder).filter(
-        and_(
-            SalesOrder.order_number.like(f"{prefix}-%"),
-            SalesOrder.organization_id == organization_id
+    last_order = (
+        db.query(SalesOrder)
+        .filter(
+            and_(
+                SalesOrder.order_number.like(f"{prefix}-%"),
+                SalesOrder.organization_id == organization_id,
+            )
         )
+<<<<<<< HEAD
+        .order_by(desc(SalesOrder.id))
+        .first()
+    )
+=======
     ).order_by(desc(SalesOrder.id)).first()
+>>>>>>> main
 
     if last_order and last_order.order_number:
         try:
-            last_number = int(last_order.order_number.split('-')[2])
+            last_number = int(last_order.order_number.split("-")[2])
             next_number = last_number + 1
         except (IndexError, ValueError):
             next_number = 1
@@ -545,16 +631,25 @@ def generate_order_number(db: Session, organization_id: int) -> str:
 def generate_customer_number(db: Session, organization_id: int) -> str:
     """Generate unique customer number."""
     # Get next sequence number
-    last_customer = db.query(Customer).filter(
-        and_(
-            Customer.customer_number.like("CU-%"),
-            Customer.organization_id == organization_id
+    last_customer = (
+        db.query(Customer)
+        .filter(
+            and_(
+                Customer.customer_number.like("CU-%"),
+                Customer.organization_id == organization_id,
+            )
         )
+<<<<<<< HEAD
+        .order_by(desc(Customer.id))
+        .first()
+    )
+=======
     ).order_by(desc(Customer.id)).first()
+>>>>>>> main
 
     if last_customer and last_customer.customer_number:
         try:
-            last_number = int(last_customer.customer_number.split('-')[1])
+            last_number = int(last_customer.customer_number.split("-")[1])
             next_number = last_number + 1
         except (IndexError, ValueError):
             next_number = 1
@@ -568,7 +663,7 @@ def get_sales_statistics(
     db: Session,
     organization_id: Optional[int] = None,
     from_date: Optional[date] = None,
-    to_date: Optional[date] = None
+    to_date: Optional[date] = None,
 ) -> Dict[str, Any]:
     """Get comprehensive sales statistics."""
     query = db.query(SalesOrder).filter(SalesOrder.deleted_at.is_(None))
@@ -584,8 +679,17 @@ def get_sales_statistics(
 
     # Basic counts
     total_orders = query.count()
+<<<<<<< HEAD
+    completed_orders = query.filter(
+        SalesOrder.status == OrderStatus.COMPLETED.value
+    ).count()
+    pending_orders = query.filter(
+        SalesOrder.status == OrderStatus.PENDING.value
+    ).count()
+=======
     completed_orders = query.filter(SalesOrder.status == OrderStatus.COMPLETED.value).count()
     pending_orders = query.filter(SalesOrder.status == OrderStatus.PENDING.value).count()
+>>>>>>> main
 
     # Revenue calculations
     total_revenue = db.query(func.sum(SalesOrder.total_amount)).filter(
@@ -594,7 +698,7 @@ def get_sales_statistics(
             SalesOrder.status != OrderStatus.CANCELLED.value,
             SalesOrder.organization_id == organization_id if organization_id else True,
             SalesOrder.order_date >= from_date if from_date else True,
-            SalesOrder.order_date <= to_date if to_date else True
+            SalesOrder.order_date <= to_date if to_date else True,
         )
     ).scalar() or Decimal(0)
 
@@ -611,22 +715,34 @@ def get_sales_statistics(
         payment_status_counts[payment_status.value] = count
 
     # Customer count
-    customer_count = db.query(Customer).filter(
-        and_(
-            Customer.deleted_at.is_(None),
-            Customer.organization_id == organization_id if organization_id else True
+    customer_count = (
+        db.query(Customer)
+        .filter(
+            and_(
+                Customer.deleted_at.is_(None),
+                Customer.organization_id == organization_id
+                if organization_id
+                else True,
+            )
         )
+<<<<<<< HEAD
+        .count()
+    )
+=======
     ).count()
+>>>>>>> main
 
     return {
         "total_orders": total_orders,
         "completed_orders": completed_orders,
         "pending_orders": pending_orders,
         "total_revenue": float(total_revenue),
-        "average_order_value": float(total_revenue / total_orders) if total_orders > 0 else 0,
+        "average_order_value": float(total_revenue / total_orders)
+        if total_orders > 0
+        else 0,
         "by_status": status_counts,
         "by_payment_status": payment_status_counts,
-        "customer_count": customer_count
+        "customer_count": customer_count,
     }
 
 
@@ -674,7 +790,7 @@ def convert_customer_to_response(customer: Customer) -> CustomerResponse:
         contact_person_phone=customer.contact_person_phone,
         is_over_credit_limit=customer.is_over_credit_limit,
         created_at=customer.created_at,
-        updated_at=customer.updated_at
+        updated_at=customer.updated_at,
     )
 
 
@@ -711,5 +827,9 @@ def convert_sales_order_to_response(order: SalesOrder) -> SalesOrderResponse:
         is_overdue=order.is_overdue,
         days_until_due=order.days_until_due,
         created_at=order.created_at,
+<<<<<<< HEAD
+        updated_at=order.updated_at,
+=======
         updated_at=order.updated_at
+>>>>>>> main
     )

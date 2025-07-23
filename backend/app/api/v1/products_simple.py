@@ -15,6 +15,7 @@ from app.schemas.product_simple import (
 
 router = APIRouter()
 
+
 @router.post("/products", response_model=ProductResponse)
 def create_product(product: ProductCreate, db: Session = Depends(get_db)) -> Any:
     """Create a new product - v19.0 practical approach"""
@@ -31,12 +32,13 @@ def create_product(product: ProductCreate, db: Session = Depends(get_db)) -> Any
         cost=product.cost,
         stock_quantity=product.stock_quantity,
         category=product.category,
-        organization_id=product.organization_id
+        organization_id=product.organization_id,
     )
     db.add(db_product)  # type: ignore[misc]
     db.commit()  # type: ignore[misc]
     db.refresh(db_product)  # type: ignore[misc]
     return db_product  # type: ignore[return-value]
+
 
 @router.get("/products", response_model=List[ProductResponse])
 def list_products(
@@ -45,15 +47,19 @@ def list_products(
     search: Optional[str] = Query(None, description="Search in name and code"),
     category: Optional[str] = Query(None, description="Filter by category"),
     organization_id: Optional[str] = Query(None, description="Filter by organization"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> Any:
     """List products - v19.0 practical approach"""
+<<<<<<< HEAD
+    query = db.query(Product).filter(Product.is_active)  # type: ignore[misc]
+=======
     query = db.query(Product).filter(Product.is_active == True)  # type: ignore[misc]
+>>>>>>> main
 
     if search:
         query = query.filter(  # type: ignore[misc]
-            (Product.name.like(f"%{search}%")) |  # type: ignore[misc]
-            (Product.code.like(f"%{search}%"))  # type: ignore[misc]
+            (Product.name.like(f"%{search}%"))  # type: ignore[misc]
+            | (Product.code.like(f"%{search}%"))  # type: ignore[misc]
         )
 
     if category:
@@ -65,6 +71,7 @@ def list_products(
     products = query.offset(skip).limit(limit).all()  # type: ignore[misc]
     return products  # type: ignore[return-value]
 
+
 @router.get("/products/{product_id}", response_model=ProductResponse)
 def get_product(product_id: str, db: Session = Depends(get_db)) -> Any:
     """Get product by ID - v19.0 practical approach"""
@@ -73,8 +80,11 @@ def get_product(product_id: str, db: Session = Depends(get_db)) -> Any:
         raise HTTPException(status_code=404, detail="Product not found")
     return product  # type: ignore[return-value]
 
+
 @router.put("/products/{product_id}", response_model=ProductResponse)
-def update_product(product_id: str, product_update: ProductUpdate, db: Session = Depends(get_db)) -> Any:
+def update_product(
+    product_id: str, product_update: ProductUpdate, db: Session = Depends(get_db)
+) -> Any:
     """Update product - v19.0 practical approach"""
     product = db.query(Product).filter(Product.id == product_id).first()  # type: ignore[misc]
     if not product:
@@ -90,8 +100,11 @@ def update_product(product_id: str, product_update: ProductUpdate, db: Session =
     db.refresh(product)  # type: ignore[misc]
     return product  # type: ignore[return-value]
 
+
 @router.post("/products/{product_id}/adjust-stock")
-def adjust_stock(product_id: str, adjustment: StockAdjustment, db: Session = Depends(get_db)) -> Any:
+def adjust_stock(
+    product_id: str, adjustment: StockAdjustment, db: Session = Depends(get_db)
+) -> Any:
     """Adjust product stock - v19.0 practical approach"""
     product = db.query(Product).filter(Product.id == product_id).first()  # type: ignore[misc]
     if not product:
@@ -112,8 +125,9 @@ def adjust_stock(product_id: str, adjustment: StockAdjustment, db: Session = Dep
         "old_quantity": product.stock_quantity - adjustment.quantity_change,
         "new_quantity": product.stock_quantity,
         "adjustment": adjustment.quantity_change,
-        "reason": adjustment.reason
+        "reason": adjustment.reason,
     }  # type: ignore[return-value]
+
 
 @router.get("/products/{product_id}/stock")
 def get_stock_info(product_id: str, db: Session = Depends(get_db)) -> Any:
@@ -132,8 +146,11 @@ def get_stock_info(product_id: str, db: Session = Depends(get_db)) -> Any:
         "product_name": product.name,
         "current_stock": product.stock_quantity,
         "stock_status": stock_status,
-        "stock_value": (product.cost or 0) * product.stock_quantity if product.cost else 0
+        "stock_value": (product.cost or 0) * product.stock_quantity
+        if product.cost
+        else 0,
     }  # type: ignore[return-value]
+
 
 @router.delete("/products/{product_id}")
 def deactivate_product(product_id: str, db: Session = Depends(get_db)) -> Any:
@@ -147,8 +164,15 @@ def deactivate_product(product_id: str, db: Session = Depends(get_db)) -> Any:
     db.commit()  # type: ignore[misc]
     return {"message": "Product deactivated successfully"}  # type: ignore[return-value]
 
+
 @router.get("/categories")
 def list_categories(db: Session = Depends(get_db)) -> Any:
     """List all unique categories - v19.0 practical approach"""
+<<<<<<< HEAD
+    categories = (
+        db.query(Product.category).distinct().filter(Product.category.isnot(None)).all()
+    )  # type: ignore[misc]
+=======
     categories = db.query(Product.category).distinct().filter(Product.category.isnot(None)).all()  # type: ignore[misc]
+>>>>>>> main
     return [cat[0] for cat in categories if cat[0]]  # type: ignore[return-value]

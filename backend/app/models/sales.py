@@ -28,6 +28,7 @@ if TYPE_CHECKING:
 
 class CustomerStatus(str, Enum):
     """Customer status enumeration."""
+
     ACTIVE = "active"
     INACTIVE = "inactive"
     SUSPENDED = "suspended"
@@ -36,6 +37,7 @@ class CustomerStatus(str, Enum):
 
 class CustomerType(str, Enum):
     """Customer type enumeration."""
+
     INDIVIDUAL = "individual"
     CORPORATE = "corporate"
     GOVERNMENT = "government"
@@ -44,6 +46,7 @@ class CustomerType(str, Enum):
 
 class OrderStatus(str, Enum):
     """Sales order status enumeration."""
+
     DRAFT = "draft"
     PENDING = "pending"
     CONFIRMED = "confirmed"
@@ -57,6 +60,7 @@ class OrderStatus(str, Enum):
 
 class PaymentStatus(str, Enum):
     """Payment status enumeration."""
+
     PENDING = "pending"
     PARTIAL = "partial"
     PAID = "paid"
@@ -66,6 +70,7 @@ class PaymentStatus(str, Enum):
 
 class PaymentMethod(str, Enum):
     """Payment method enumeration."""
+
     CASH = "cash"
     CREDIT_CARD = "credit_card"
     BANK_TRANSFER = "bank_transfer"
@@ -80,13 +85,26 @@ class Customer(SoftDeletableModel):
     __tablename__ = "customers"
 
     # Basic identification
-    customer_number: Mapped[str] = mapped_column(String(50), nullable=False, unique=True, index=True)
+    customer_number: Mapped[str] = mapped_column(
+        String(50), nullable=False, unique=True, index=True
+    )
     name: Mapped[str] = mapped_column(String(300), nullable=False)
     name_en: Mapped[str | None] = mapped_column(String(300))
+<<<<<<< HEAD
+    customer_type: Mapped[str] = mapped_column(
+        String(20), default=CustomerType.CORPORATE.value
+    )
+
+    # Organization
+    organization_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("organizations.id"), nullable=False
+    )
+=======
     customer_type: Mapped[str] = mapped_column(String(20), default=CustomerType.CORPORATE.value)
 
     # Organization
     organization_id: Mapped[int] = mapped_column(Integer, ForeignKey("organizations.id"), nullable=False)
+>>>>>>> main
 
     # Contact information
     email: Mapped[str | None] = mapped_column(String(255))
@@ -199,6 +217,22 @@ class Customer(SoftDeletableModel):
         from sqlalchemy import func
 
         # Get order statistics
+<<<<<<< HEAD
+        stats = (
+            db.query(
+                func.count(SalesOrder.id).label("total_orders"),
+                func.sum(SalesOrder.total_amount).label("total_sales"),
+                func.min(SalesOrder.order_date).label("first_order"),
+                func.max(SalesOrder.order_date).label("last_order"),
+            )
+            .filter(
+                SalesOrder.customer_id == self.id,
+                SalesOrder.deleted_at.is_(None),
+                SalesOrder.status != OrderStatus.CANCELLED.value,
+            )
+            .first()
+        )
+=======
         stats = db.query(
             func.count(SalesOrder.id).label('total_orders'),
             func.sum(SalesOrder.total_amount).label('total_sales'),
@@ -209,6 +243,7 @@ class Customer(SoftDeletableModel):
             SalesOrder.deleted_at.is_(None),
             SalesOrder.status != OrderStatus.CANCELLED.value
         ).first()
+>>>>>>> main
 
         if stats:
             self.total_orders = stats.total_orders or 0
@@ -226,11 +261,25 @@ class SalesOrder(SoftDeletableModel):
     __tablename__ = "sales_orders"
 
     # Order identification
+<<<<<<< HEAD
+    order_number: Mapped[str] = mapped_column(
+        String(50), nullable=False, unique=True, index=True
+    )
+
+    # Customer and organization
+    customer_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("customers.id"), nullable=False
+    )
+    organization_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("organizations.id"), nullable=False
+    )
+=======
     order_number: Mapped[str] = mapped_column(String(50), nullable=False, unique=True, index=True)
 
     # Customer and organization
     customer_id: Mapped[int] = mapped_column(Integer, ForeignKey("customers.id"), nullable=False)
     organization_id: Mapped[int] = mapped_column(Integer, ForeignKey("organizations.id"), nullable=False)
+>>>>>>> main
 
     # Order details
     order_date: Mapped[date] = mapped_column(Date, default=lambda: date.today())
@@ -249,7 +298,9 @@ class SalesOrder(SoftDeletableModel):
     total_amount: Mapped[Decimal] = mapped_column(Numeric(15, 2), default=0)
 
     # Payment information
-    payment_status: Mapped[str] = mapped_column(String(20), default=PaymentStatus.PENDING.value)
+    payment_status: Mapped[str] = mapped_column(
+        String(20), default=PaymentStatus.PENDING.value
+    )
     payment_method: Mapped[str | None] = mapped_column(String(20))
     payment_terms: Mapped[int] = mapped_column(Integer, default=30)  # days
     payment_due_date: Mapped[date | None] = mapped_column(Date)
@@ -276,9 +327,13 @@ class SalesOrder(SoftDeletableModel):
     exchange_rate: Mapped[Decimal] = mapped_column(Numeric(10, 6), default=1.0)
 
     # Relationships
-    customer: Mapped["Customer"] = relationship("Customer", back_populates="sales_orders")
+    customer: Mapped["Customer"] = relationship(
+        "Customer", back_populates="sales_orders"
+    )
     organization: Mapped["Organization"] = relationship("Organization")
-    sales_rep: Mapped[Optional["User"]] = relationship("User", foreign_keys=[sales_rep_id])
+    sales_rep: Mapped[Optional["User"]] = relationship(
+        "User", foreign_keys=[sales_rep_id]
+    )
     order_items: Mapped[list["SalesOrderItem"]] = relationship(
         "SalesOrderItem", back_populates="sales_order", cascade="all, delete-orphan"
     )
@@ -300,7 +355,10 @@ class SalesOrder(SoftDeletableModel):
     @property
     def is_overdue(self) -> bool:
         """Check if payment is overdue."""
-        if self.payment_due_date and self.payment_status not in [PaymentStatus.PAID.value, PaymentStatus.CANCELLED.value]:
+        if self.payment_due_date and self.payment_status not in [
+            PaymentStatus.PAID.value,
+            PaymentStatus.CANCELLED.value,
+        ]:
             return date.today() > self.payment_due_date
         return False
 
@@ -323,15 +381,28 @@ class SalesOrder(SoftDeletableModel):
 
         # Calculate tax (assuming tax is included in item totals)
         # This could be customized based on business rules
+<<<<<<< HEAD
+        self.tax_amount = subtotal * Decimal("0.1")  # 10% tax
+
+        # Calculate total
+        self.total_amount = (
+            self.subtotal_amount
+            + self.tax_amount
+            + self.shipping_amount
+            - self.discount_amount
+        )
+=======
         self.tax_amount = subtotal * Decimal('0.1')  # 10% tax
 
         # Calculate total
         self.total_amount = self.subtotal_amount + self.tax_amount + self.shipping_amount - self.discount_amount
+>>>>>>> main
 
     def set_payment_due_date(self) -> None:
         """Set payment due date based on payment terms."""
         if self.order_date and self.payment_terms:
             from datetime import timedelta
+
             self.payment_due_date = self.order_date + timedelta(days=self.payment_terms)
 
     def __repr__(self) -> str:
@@ -344,9 +415,21 @@ class SalesOrderItem(SoftDeletableModel):
     __tablename__ = "sales_order_items"
 
     # Order and product reference
+<<<<<<< HEAD
+    sales_order_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("sales_orders.id"), nullable=False
+    )
+    product_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("products.id"), nullable=False
+    )
+    organization_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("organizations.id"), nullable=False
+    )
+=======
     sales_order_id: Mapped[int] = mapped_column(Integer, ForeignKey("sales_orders.id"), nullable=False)
     product_id: Mapped[int] = mapped_column(Integer, ForeignKey("products.id"), nullable=False)
     organization_id: Mapped[int] = mapped_column(Integer, ForeignKey("organizations.id"), nullable=False)
+>>>>>>> main
 
     # Line item details
     line_number: Mapped[int] = mapped_column(Integer, default=1)
@@ -364,7 +447,7 @@ class SalesOrderItem(SoftDeletableModel):
     product_description: Mapped[str | None] = mapped_column(Text)
 
     # Tax information
-    tax_rate: Mapped[Decimal] = mapped_column(Numeric(5, 4), default=Decimal('0.1000'))
+    tax_rate: Mapped[Decimal] = mapped_column(Numeric(5, 4), default=Decimal("0.1000"))
     tax_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=0)
 
     # Delivery information
@@ -375,7 +458,9 @@ class SalesOrderItem(SoftDeletableModel):
     notes: Mapped[str | None] = mapped_column(Text)
 
     # Relationships
-    sales_order: Mapped["SalesOrder"] = relationship("SalesOrder", back_populates="order_items")
+    sales_order: Mapped["SalesOrder"] = relationship(
+        "SalesOrder", back_populates="order_items"
+    )
     product: Mapped["Product"] = relationship("Product")
     organization: Mapped["Organization"] = relationship("Organization")
 

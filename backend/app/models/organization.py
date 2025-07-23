@@ -1,9 +1,16 @@
 """Organization model implementation."""
 
+<<<<<<< HEAD
+from typing import TYPE_CHECKING, Any, Optional
+
+from sqlalchemy import Boolean, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
+=======
 from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import Boolean, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+>>>>>>> origin/main
 
 from app.models.base import SoftDeletableModel
 from app.types import OrganizationId
@@ -20,7 +27,7 @@ if TYPE_CHECKING:
 
 class Organization(SoftDeletableModel):
     """Organization model representing a company or business entity.
-    
+
     v17.0: Enhanced for ERP basic functionality with improved hierarchy
     support, business metrics, and multi-tenant capabilities.
     """
@@ -252,6 +259,15 @@ class Organization(SoftDeletableModel):
             current = current.parent
         return path
 
+<<<<<<< HEAD
+    def update(self, db: Session, updated_by: int, **kwargs: Any) -> None:
+        """Update organization attributes."""
+        from datetime import datetime, timezone
+
+        for key, value in kwargs.items():
+            if hasattr(self, key) and key not in ["id", "created_at", "created_by"]:
+                setattr(self, key, value)
+=======
     def get_erp_context(self) -> dict:
         """Get ERP-specific organization context - v17.0."""
         return {
@@ -270,10 +286,11 @@ class Organization(SoftDeletableModel):
             "contact": {
                 "email": self.email,
                 "phone": self.phone,
-                "website": self.website
+                "website": self.website,
             },
-            "address": self.full_address
+            "address": self.full_address,
         }
+>>>>>>> origin/main
 
     def get_display_name(self) -> str:
         """Get display name for ERP UI."""
@@ -286,9 +303,24 @@ class Organization(SoftDeletableModel):
         if self.subsidiaries:
             return False, "Cannot delete organization with subsidiaries"
 
+<<<<<<< HEAD
+        if hasattr(self, "departments") and self.departments.count() > 0:
+=======
         if hasattr(self, 'departments') and self.departments.count() > 0:
+>>>>>>> main
             return False, "Cannot delete organization with departments"
 
+<<<<<<< HEAD
+        if self.fiscal_year_start and (
+            self.fiscal_year_start < 1 or self.fiscal_year_start > 12
+        ):
+            raise ValueError("会計年度開始月は1-12の範囲で入力してください")
+
+    def __str__(self) -> str:
+        """String representation for display."""
+        return f"{self.code} - {self.name}"
+=======
         # Would need to check for ERP data like orders, products, etc.
         # For now, basic validation
         return True, "OK"
+>>>>>>> origin/main
