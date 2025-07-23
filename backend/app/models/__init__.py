@@ -48,6 +48,22 @@ from app.models.hr_extended import (
     Position,
     TrainingRecord,
 )
+
+# CC02 v31.0 Phase 2 - Project Management Models
+from app.models.project_extended import (
+    ProjectDeliverable,
+    ProjectExtended,
+    ProjectIssue,
+    ProjectMilestoneExtended,
+    ProjectPortfolio,
+    ProjectResource,
+    ProjectRisk,
+    ProjectTemplate,
+    TaskComment,
+    TaskDependencyExtended,
+    TaskExtended,
+    TimeEntry,
+)
 from app.models.organization import Organization
 from app.models.password_history import PasswordHistory
 from app.models.permission import Permission
@@ -152,4 +168,17 @@ __all__ = [
     "PerformanceReview",
     "Position",
     "TrainingRecord",
+    # CC02 v31.0 Phase 2 - Project Management Models
+    "ProjectDeliverable",
+    "ProjectExtended",
+    "ProjectIssue",
+    "ProjectMilestoneExtended",
+    "ProjectPortfolio",
+    "ProjectResource",
+    "ProjectRisk",
+    "ProjectTemplate",
+    "TaskComment",
+    "TaskDependencyExtended",
+    "TaskExtended",
+    "TimeEntry",
 ]

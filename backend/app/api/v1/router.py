@@ -30,6 +30,7 @@ from app.api.v1 import (
     pm_automation,
     products_basic,  # ERP v17.0 basic products
     products_simple,  # v19.0 practical products
+    project_v31,  # CC02 v31.0 Phase 2 - Project Management API
     reports,
     # role_permission_ui,  # Temporarily disabled due to syntax errors
     roles,
@@ -116,6 +117,9 @@ api_router.include_router(finance_v31.router, prefix="/finance", tags=["finance-
 
 # CC02 v31.0 Phase 2 - HR Management API
 api_router.include_router(hr_v31.router, prefix="/hr", tags=["hr-v31"])
+
+# CC02 v31.0 Phase 2 - Project Management API
+api_router.include_router(project_v31.router, prefix="/project", tags=["project-v31"])
 
 
 @api_router.get("/ping")
