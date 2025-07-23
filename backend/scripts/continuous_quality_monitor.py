@@ -34,7 +34,7 @@ class QualityMonitor:
         self.log("Running coverage check...")
 
         try:
-            result = subprocess.run(
+            subprocess.run(
                 ["uv", "run", "pytest", "--cov=app", "--cov-report=json", "-q"],
                 capture_output=True,
                 text=True,

@@ -141,6 +141,10 @@ class ExpenseCategoryTree(BaseModel):
         from_attributes = True
 
 
+<<<<<<< HEAD
+# Alias for backward compatibility
+ExpenseCategoryTreeResponse = ExpenseCategoryTree
+=======
 class ExpenseCategoryTreeResponse(BaseModel):
     """Schema for expense category tree response."""
 
@@ -152,6 +156,7 @@ class ExpenseCategoryTreeResponse(BaseModel):
 
     class Config:
         from_attributes = True
+>>>>>>> main
 
 
 class ExpenseCategoryListResponse(BaseModel):

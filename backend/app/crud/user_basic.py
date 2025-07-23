@@ -159,7 +159,7 @@ def get_active_users_count(db: Session, organization_id: Optional[int] = None) -
     query = db.query(User).filter(
         and_(
             User.deleted_at.is_(None),
-            User.is_active == True
+            User.is_active
         )
     )
 >>>>>>> main
@@ -181,7 +181,7 @@ def get_user_statistics(db: Session) -> Dict[str, Any]:
     active_users = db.query(User).filter(
         and_(
             User.deleted_at.is_(None),
-            User.is_active == True
+            User.is_active
         )
     ).count()
 >>>>>>> main

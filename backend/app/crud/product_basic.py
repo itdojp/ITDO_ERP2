@@ -287,20 +287,16 @@ def get_products_by_category(
             and_(
                 Product.category_id.in_(category_ids),
                 Product.deleted_at.is_(None),
-                Product.is_active == True
->>>>>>> main
+                Product.is_active
             )
             .all()
         )
     else:
-        return (
-            db.query(Product)
-            .filter(
-                and_(
-                    Product.category_id == category_id,
-                    Product.deleted_at.is_(None),
-                    Product.is_active,
-                )
+        return db.query(Product).filter(
+            and_(
+                Product.category_id == category_id,
+                Product.deleted_at.is_(None),
+                Product.is_active
             )
             .all()
         )
