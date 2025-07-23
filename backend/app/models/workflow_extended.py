@@ -301,7 +301,7 @@ class WorkflowStep(Base):
 class WorkflowInstance(Base):
     """Workflow Instance - Active execution of a workflow definition."""
 
-    __tablename__ = "workflow_instances"
+    __tablename__ = "workflow_instances_extended"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     organization_id = Column(String, ForeignKey("organizations.id"), nullable=False)
@@ -390,11 +390,11 @@ class WorkflowInstance(Base):
 class WorkflowTask(Base):
     """Workflow Task - Individual tasks within a workflow instance."""
 
-    __tablename__ = "workflow_tasks"
+    __tablename__ = "workflow_tasks_extended"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     organization_id = Column(String, ForeignKey("organizations.id"), nullable=False)
-    instance_id = Column(String, ForeignKey("workflow_instances.id"), nullable=False)
+    instance_id = Column(String, ForeignKey("workflow_instances_extended.id"), nullable=False)
     step_id = Column(String, ForeignKey("workflow_steps.id"), nullable=False)
     
     # Task identification
@@ -483,8 +483,8 @@ class WorkflowActivity(Base):
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     organization_id = Column(String, ForeignKey("organizations.id"), nullable=False)
-    instance_id = Column(String, ForeignKey("workflow_instances.id"), nullable=False)
-    task_id = Column(String, ForeignKey("workflow_tasks.id"))
+    instance_id = Column(String, ForeignKey("workflow_instances_extended.id"), nullable=False)
+    task_id = Column(String, ForeignKey("workflow_tasks_extended.id"))
     
     # Activity details
     activity_type = Column(String(100), nullable=False)
@@ -537,7 +537,7 @@ class WorkflowComment(Base):
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     organization_id = Column(String, ForeignKey("organizations.id"), nullable=False)
-    task_id = Column(String, ForeignKey("workflow_tasks.id"), nullable=False)
+    task_id = Column(String, ForeignKey("workflow_tasks_extended.id"), nullable=False)
     
     # Comment details
     comment_text = Column(Text, nullable=False)
@@ -585,7 +585,7 @@ class WorkflowAttachment(Base):
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     organization_id = Column(String, ForeignKey("organizations.id"), nullable=False)
-    task_id = Column(String, ForeignKey("workflow_tasks.id"), nullable=False)
+    task_id = Column(String, ForeignKey("workflow_tasks_extended.id"), nullable=False)
     
     # File details
     filename = Column(String(500), nullable=False)

@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user, get_db
+from app.core.dependencies import get_current_user, get_db
 from app.core.exceptions import BusinessRuleError, NotFoundError, ValidationError
 from app.crud.finance_v31 import (
     AccountCRUD,

@@ -53,3 +53,15 @@ class ValidationError(Exception):
     """Raised when validation fails."""
 
     pass
+
+
+class BusinessRuleError(Exception):
+    """Raised when business rule validation fails."""
+
+    pass
+
+
+class NotFoundError(Exception):
+    """Raised when a requested resource is not found."""
+
+    pass
