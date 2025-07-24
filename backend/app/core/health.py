@@ -84,7 +84,7 @@ class SystemHealthReport:
 class HealthChecker:
     """Comprehensive health checking service"""
 
-    def __init__(self):
+    def __init__(self) -> dict:
         self.settings = get_settings()
         self.start_time = time.time()
         self.version = getattr(self.settings, "APP_VERSION", "1.0.0")

@@ -8,7 +8,7 @@ api_router = APIRouter()
 
 # APIバージョン情報
 @api_router.get("/version")
-async def get_api_version():
+async def get_api_version() -> None:
     return {
         "version": "2.0.0",
         "name": "ITDO ERP API v25",

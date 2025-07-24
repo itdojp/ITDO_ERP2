@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException
-from typing import List, Optional, Dict, Any
-from pydantic import BaseModel
-from datetime import datetime
 import uuid
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 
 router = APIRouter()
 
@@ -24,7 +25,7 @@ class OrganizationCreate(OrganizationBase):
 organizations_db = {}
 
 @router.post("/organizations", response_model=Organization, status_code=201)
-async def create_organization(org: OrganizationCreate):
+async def create_organization(org: OrganizationCreate) -> dict:
     """組織を作成"""
     org_id = str(uuid.uuid4())
     now = datetime.utcnow()
@@ -54,18 +55,18 @@ async def create_organization(org: OrganizationCreate):
     return new_org
 
 @router.get("/organizations", response_model=List[Organization])
-async def list_organizations():
+async def list_organizations() -> None:
     """全組織を取得"""
     return list(organizations_db.values())
 
 @router.get("/organizations/tree")
-async def get_organization_tree():
+async def get_organization_tree() -> None:
     """組織階層ツリーを取得"""
     roots = [org for org in organizations_db.values() if org["parent_id"] is None]
     return {"tree": roots}
 
 @router.get("/organizations/{org_id}/children")
-async def get_organization_children(org_id: str):
+async def get_organization_children(org_id: str) -> dict:
     """子組織を取得"""
     if org_id not in organizations_db:
         raise HTTPException(status_code=404, detail="組織が見つかりません")
