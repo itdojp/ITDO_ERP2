@@ -1,11 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
 from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
 from app.core.database import get_db
 from app.models.user_simple import User
-from pydantic import BaseModel
 
 router = APIRouter()
+
 
 class UserProfileResponse(BaseModel):
     id: str
@@ -17,6 +20,7 @@ class UserProfileResponse(BaseModel):
     class Config:
         orm_mode = True
 
+
 @router.get("/users/{user_id}/profile", response_model=UserProfileResponse)
 def get_user_profile(user_id: str, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
@@ -24,11 +28,10 @@ def get_user_profile(user_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
+
 @router.put("/users/{user_id}/profile", response_model=UserProfileResponse)
 def update_user_profile(
-    user_id: str,
-    full_name: Optional[str] = None,
-    db: Session = Depends(get_db)
+    user_id: str, full_name: Optional[str] = None, db: Session = Depends(get_db)
 ):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
