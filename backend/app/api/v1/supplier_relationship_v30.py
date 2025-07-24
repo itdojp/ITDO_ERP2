@@ -49,7 +49,56 @@ def create_supplier_relationship(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    """サプライヤー関係作成"""
+    """
+    Create a new supplier relationship record.
+
+    This endpoint creates a comprehensive supplier relationship record including:
+    - Supplier basic information and contact details
+    - Relationship type and partnership level
+    - Contract information and terms
+    - Performance metrics and KPI tracking
+    - Risk assessment and strategic importance
+
+    **Request Body Example:**
+    ```json
+    {
+        "supplier_id": "SUP-001",
+        "relationship_manager_id": "user-123",
+        "relationship_type": "strategic_partner",
+        "partnership_level": "tier_1",
+        "contract_type": "master_service_agreement",
+        "annual_spend_budget": 250000.00,
+        "strategic_importance": "high",
+        "risk_level": "medium",
+        "performance_sla": {
+            "delivery_time": 14,
+            "quality_threshold": 98.5,
+            "response_time": 4
+        }
+    }
+    ```
+
+    **Response Example:**
+    ```json
+    {
+        "id": "rel-456",
+        "supplier_id": "SUP-001",
+        "relationship_manager_id": "user-123",
+        "relationship_type": "strategic_partner",
+        "partnership_level": "tier_1",
+        "status": "active",
+        "overall_score": 4.2,
+        "created_at": "2024-01-15T10:30:00Z",
+        "next_review_date": "2024-04-15"
+    }
+    ```
+
+    **Error Responses:**
+    - `400 Bad Request`: Invalid supplier data or duplicate relationship
+    - `401 Unauthorized`: Authentication required
+    - `403 Forbidden`: Insufficient permissions
+    - `422 Unprocessable Entity`: Validation errors in request data
+    """
     try:
         relationship_crud = SupplierRelationshipCRUD(db)
         return relationship_crud.create(relationship, current_user["sub"])
@@ -65,7 +114,61 @@ def get_supplier_relationship(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    """サプライヤー関係詳細取得"""
+    """
+    Retrieve detailed information about a specific supplier relationship.
+
+    Returns comprehensive supplier relationship data including:
+    - Basic relationship information and status
+    - Performance metrics and historical data
+    - Contract details and terms
+    - Recent activities and communications
+    - Risk assessment and compliance status
+
+    **Path Parameters:**
+    - `relationship_id`: Unique identifier for the supplier relationship
+
+    **Response Example:**
+    ```json
+    {
+        "id": "rel-456",
+        "supplier_id": "SUP-001",
+        "supplier_name": "Tech Solutions Inc.",
+        "relationship_manager": {
+            "id": "user-123",
+            "name": "John Smith",
+            "email": "john.smith@company.com"
+        },
+        "relationship_type": "strategic_partner",
+        "partnership_level": "tier_1",
+        "status": "active",
+        "contract_details": {
+            "contract_type": "master_service_agreement",
+            "start_date": "2024-01-01",
+            "end_date": "2025-12-31",
+            "annual_value": 250000.00
+        },
+        "performance_metrics": {
+            "overall_score": 4.2,
+            "delivery_rating": 4.5,
+            "quality_rating": 4.0,
+            "service_rating": 4.1
+        },
+        "risk_assessment": {
+            "risk_level": "medium",
+            "financial_stability": "good",
+            "compliance_status": "compliant"
+        },
+        "next_review_date": "2024-04-15",
+        "created_at": "2024-01-15T10:30:00Z",
+        "updated_at": "2024-03-01T14:20:00Z"
+    }
+    ```
+
+    **Error Responses:**
+    - `404 Not Found`: Supplier relationship not found
+    - `401 Unauthorized`: Authentication required
+    - `403 Forbidden`: Access denied to this relationship
+    """
     relationship_crud = SupplierRelationshipCRUD(db)
     relationship = relationship_crud.get_by_id(relationship_id)
     if not relationship:
@@ -488,7 +591,85 @@ def get_supplier_performance_analytics(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    """サプライヤーパフォーマンス分析データ取得"""
+    """
+    Generate comprehensive supplier performance analytics and insights.
+
+    This endpoint provides detailed analytics across all supplier relationships including:
+    - Overall performance trends and KPI metrics
+    - Top performing suppliers and improvement areas
+    - Category-wise performance breakdown
+    - Risk analysis and compliance metrics
+    - Benchmark comparisons and recommendations
+
+    **Query Parameters:**
+    - `date_from`: Start date for analytics period (ISO 8601 format)
+    - `date_to`: End date for analytics period (ISO 8601 format)
+
+    **Example Request:**
+    ```
+    GET /supplier-relationships/performance-analytics?date_from=2024-01-01T00:00:00Z&date_to=2024-03-31T23:59:59Z
+    ```
+
+    **Response Example:**
+    ```json
+    {
+        "period_start": "2024-01-01T00:00:00Z",
+        "period_end": "2024-03-31T23:59:59Z",
+        "total_suppliers_reviewed": 25,
+        "performance_summary": {
+            "avg_overall_rating": 4.1,
+            "avg_quality_rating": 4.2,
+            "avg_delivery_rating": 3.9,
+            "avg_service_rating": 4.0
+        },
+        "top_performing_suppliers": [
+            {
+                "supplier_relationship_id": "rel-001",
+                "supplier_name": "Premium Tech Ltd",
+                "avg_rating": 4.8,
+                "review_count": 12,
+                "improvement_trend": "+0.3"
+            }
+        ],
+        "improvement_needed_suppliers": [
+            {
+                "supplier_relationship_id": "rel-015",
+                "supplier_name": "Budget Solutions",
+                "avg_rating": 2.5,
+                "review_count": 8,
+                "critical_areas": ["delivery_time", "quality_control"]
+            }
+        ],
+        "performance_trends": [
+            {
+                "period": "2024-01",
+                "avg_rating": 4.0,
+                "reviews_count": 45,
+                "trend_direction": "stable"
+            }
+        ],
+        "category_performance": {
+            "Manufacturing": 4.2,
+            "IT_Services": 4.5,
+            "Logistics": 3.9,
+            "Consulting": 4.1
+        },
+        "recommendations": [
+            {
+                "type": "performance_improvement",
+                "priority": "high",
+                "description": "Address delivery delays with Supplier XYZ",
+                "affected_suppliers": ["rel-015", "rel-023"]
+            }
+        ]
+    }
+    ```
+
+    **Error Responses:**
+    - `400 Bad Request`: Invalid date range or parameters
+    - `401 Unauthorized`: Authentication required
+    - `422 Unprocessable Entity`: Date validation errors
+    """
 
     from app.models.supplier_relationship_extended import (
         SupplierPerformanceReview,
