@@ -57,7 +57,7 @@ class WarehouseBase(BaseModel):
 
     @field_validator("code")
     @classmethod
-    def validate_code(cls, v):
+    def validate_code(cls, v) -> dict:
         if not v or not v.strip():
             raise ValueError("Warehouse code cannot be empty")
         return v.strip().upper()
@@ -141,7 +141,7 @@ class InventoryItemBase(BaseModel):
 
     @field_validator("status")
     @classmethod
-    def validate_status(cls, v):
+    def validate_status(cls, v) -> dict:
         if v not in [s.value for s in InventoryStatus]:
             raise ValueError("Invalid inventory status")
         return v
@@ -167,7 +167,7 @@ class InventoryItemUpdate(BaseModel):
 
     @field_validator("status")
     @classmethod
-    def validate_status(cls, v):
+    def validate_status(cls, v) -> dict:
         if v and v not in [s.value for s in InventoryStatus]:
             raise ValueError("Invalid inventory status")
         return v
@@ -231,7 +231,7 @@ class StockMovementBase(BaseModel):
 
     @field_validator("movement_type")
     @classmethod
-    def validate_movement_type(cls, v):
+    def validate_movement_type(cls, v) -> dict:
         if v not in [t.value for t in MovementType]:
             raise ValueError("Invalid movement type")
         return v

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from "react";
 
 interface TreeNodeData {
   key: string;
@@ -38,9 +38,9 @@ interface TreeProps {
   searchable?: boolean;
   virtual?: boolean;
   height?: number;
-  showLine?: boolean | { style?: 'solid' | 'dashed' | 'dotted' };
+  showLine?: boolean | { style?: "solid" | "dashed" | "dotted" };
   showIndentGuides?: boolean;
-  size?: 'small' | 'medium' | 'large';
+  size?: "small" | "medium" | "large";
   className?: string;
 }
 
@@ -71,33 +71,41 @@ const Tree: React.FC<TreeProps> = ({
   height = 400,
   showLine = false,
   showIndentGuides = false,
-  size = 'medium',
-  className = ''
+  size = "medium",
+  className = "",
 }) => {
-  const [internalSelectedKeys, setInternalSelectedKeys] = useState<string[]>(defaultSelectedKeys);
-  const [internalCheckedKeys, setInternalCheckedKeys] = useState<string[]>(defaultCheckedKeys);
+  const [internalSelectedKeys, setInternalSelectedKeys] =
+    useState<string[]>(defaultSelectedKeys);
+  const [internalCheckedKeys, setInternalCheckedKeys] =
+    useState<string[]>(defaultCheckedKeys);
   const [internalExpandedKeys, setInternalExpandedKeys] = useState<string[]>(
-    defaultExpandAll ? getAllKeys(treeData) : defaultExpandedKeys
+    defaultExpandAll ? getAllKeys(treeData) : defaultExpandedKeys,
   );
-  const [searchValue, setSearchValue] = useState('');
+  const [searchValue, setSearchValue] = useState("");
   const [loadingKeys, setLoadingKeys] = useState<Set<string>>(new Set());
   const [dragOverKey, setDragOverKey] = useState<string | null>(null);
-  
+
   const treeRef = useRef<HTMLDivElement>(null);
-  
+
   // Controlled vs uncontrolled state management
   const isControlledSelected = controlledSelectedKeys !== undefined;
   const isControlledChecked = controlledCheckedKeys !== undefined;
   const isControlledExpanded = controlledExpandedKeys !== undefined;
-  
-  const selectedKeys = isControlledSelected ? controlledSelectedKeys : internalSelectedKeys;
-  const checkedKeys = isControlledChecked ? controlledCheckedKeys : internalCheckedKeys;
-  const expandedKeys = isControlledExpanded ? controlledExpandedKeys : internalExpandedKeys;
+
+  const selectedKeys = isControlledSelected
+    ? controlledSelectedKeys
+    : internalSelectedKeys;
+  const checkedKeys = isControlledChecked
+    ? controlledCheckedKeys
+    : internalCheckedKeys;
+  const expandedKeys = isControlledExpanded
+    ? controlledExpandedKeys
+    : internalExpandedKeys;
 
   function getAllKeys(nodes: TreeNodeData[]): string[] {
     const keys: string[] = [];
     const traverse = (nodeList: TreeNodeData[]) => {
-      nodeList.forEach(node => {
+      nodeList.forEach((node) => {
         keys.push(node.key);
         if (node.children) {
           traverse(node.children);
@@ -110,69 +118,71 @@ const Tree: React.FC<TreeProps> = ({
 
   const filteredTreeData = useMemo(() => {
     if (!searchValue && !filterTreeNode) return treeData;
-    
+
     const filterNodes = (nodes: TreeNodeData[]): TreeNodeData[] => {
       return nodes.reduce((acc: TreeNodeData[], node) => {
-        const matchesSearch = !searchValue || node.title.toLowerCase().includes(searchValue.toLowerCase());
+        const matchesSearch =
+          !searchValue ||
+          node.title.toLowerCase().includes(searchValue.toLowerCase());
         const matchesFilter = !filterTreeNode || filterTreeNode(node);
-        
+
         if (matchesSearch && matchesFilter) {
           acc.push({
             ...node,
-            children: node.children ? filterNodes(node.children) : undefined
+            children: node.children ? filterNodes(node.children) : undefined,
           });
         } else if (node.children) {
           const filteredChildren = filterNodes(node.children);
           if (filteredChildren.length > 0) {
             acc.push({
               ...node,
-              children: filteredChildren
+              children: filteredChildren,
             });
           }
         }
-        
+
         return acc;
       }, []);
     };
-    
+
     return filterNodes(treeData);
   }, [treeData, searchValue, filterTreeNode]);
 
   const getSizeClasses = () => {
     const sizeMap = {
       small: {
-        node: 'py-1 px-2 text-sm',
-        icon: 'w-3 h-3',
-        indent: 'ml-4'
+        node: "py-1 px-2 text-sm",
+        icon: "w-3 h-3",
+        indent: "ml-4",
       },
       medium: {
-        node: 'py-2 px-3 text-base',
-        icon: 'w-4 h-4',
-        indent: 'ml-6'
+        node: "py-2 px-3 text-base",
+        icon: "w-4 h-4",
+        indent: "ml-6",
       },
       large: {
-        node: 'py-3 px-4 text-lg',
-        icon: 'w-5 h-5',
-        indent: 'ml-8'
-      }
+        node: "py-3 px-4 text-lg",
+        icon: "w-5 h-5",
+        indent: "ml-8",
+      },
     };
     return sizeMap[size];
   };
 
   const handleNodeClick = (node: TreeNodeData, event: React.MouseEvent) => {
     if (node.disabled) return;
-    
+
     if (selectable && onSelect) {
       let newSelectedKeys: string[];
-      
+
       if (multiple) {
         newSelectedKeys = selectedKeys.includes(node.key)
-          ? selectedKeys.filter(key => key !== node.key)
+          ? selectedKeys.filter((key) => key !== node.key)
           : [...selectedKeys, node.key];
       } else {
         newSelectedKeys = [node.key];
       }
-      
+
       if (!isControlledSelected) {
         setInternalSelectedKeys(newSelectedKeys);
       }
@@ -182,16 +192,16 @@ const Tree: React.FC<TreeProps> = ({
 
   const handleNodeCheck = (node: TreeNodeData, checked: boolean) => {
     if (node.disabled || node.disableCheckbox) return;
-    
+
     if (checkable && onCheck) {
       let newCheckedKeys: string[];
-      
+
       if (checked) {
         newCheckedKeys = [...checkedKeys, node.key];
       } else {
-        newCheckedKeys = checkedKeys.filter(key => key !== node.key);
+        newCheckedKeys = checkedKeys.filter((key) => key !== node.key);
       }
-      
+
       if (!isControlledChecked) {
         setInternalCheckedKeys(newCheckedKeys);
       }
@@ -201,25 +211,25 @@ const Tree: React.FC<TreeProps> = ({
 
   const handleNodeExpand = async (node: TreeNodeData, expanded: boolean) => {
     if (node.disabled) return;
-    
+
     let newExpandedKeys: string[];
-    
+
     if (expanded) {
       newExpandedKeys = [...expandedKeys, node.key];
-      
+
       // Handle async data loading
       if (loadData && (!node.children || node.children.length === 0)) {
-        setLoadingKeys(prev => new Set(prev).add(node.key));
+        setLoadingKeys((prev) => new Set(prev).add(node.key));
         try {
           const childNodes = await loadData(node);
           // In a real implementation, you'd update the tree data with the loaded children
-          setLoadingKeys(prev => {
+          setLoadingKeys((prev) => {
             const newSet = new Set(prev);
             newSet.delete(node.key);
             return newSet;
           });
         } catch (error) {
-          setLoadingKeys(prev => {
+          setLoadingKeys((prev) => {
             const newSet = new Set(prev);
             newSet.delete(node.key);
             return newSet;
@@ -227,9 +237,9 @@ const Tree: React.FC<TreeProps> = ({
         }
       }
     } else {
-      newExpandedKeys = expandedKeys.filter(key => key !== node.key);
+      newExpandedKeys = expandedKeys.filter((key) => key !== node.key);
     }
-    
+
     if (!isControlledExpanded) {
       setInternalExpandedKeys(newExpandedKeys);
     }
@@ -243,7 +253,7 @@ const Tree: React.FC<TreeProps> = ({
 
   const handleDragStart = (node: TreeNodeData, event: React.DragEvent) => {
     if (!draggable || node.disabled) return;
-    event.dataTransfer.setData('text/plain', node.key);
+    event.dataTransfer.setData("text/plain", node.key);
   };
 
   const handleDragOver = (node: TreeNodeData, event: React.DragEvent) => {
@@ -260,14 +270,18 @@ const Tree: React.FC<TreeProps> = ({
     if (!draggable) return;
     event.preventDefault();
     setDragOverKey(null);
-    
-    const draggedKey = event.dataTransfer.getData('text/plain');
+
+    const draggedKey = event.dataTransfer.getData("text/plain");
     onDrop?.({ dragNode: { key: draggedKey }, node, dropPosition: 0 });
   };
 
-  const renderExpandIcon = (node: TreeNodeData, isExpanded: boolean, hasChildren: boolean) => {
+  const renderExpandIcon = (
+    node: TreeNodeData,
+    isExpanded: boolean,
+    hasChildren: boolean,
+  ) => {
     const sizeClasses = getSizeClasses();
-    
+
     if (loadingKeys.has(node.key)) {
       return (
         <svg
@@ -293,11 +307,11 @@ const Tree: React.FC<TreeProps> = ({
         </svg>
       );
     }
-    
+
     if (!hasChildren) {
       return <div className={sizeClasses.icon} />;
     }
-    
+
     return (
       <button
         className={`${sizeClasses.icon} flex items-center justify-center hover:bg-gray-100 rounded transition-colors`}
@@ -307,7 +321,7 @@ const Tree: React.FC<TreeProps> = ({
         }}
       >
         <svg
-          className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+          className={`w-3 h-3 transition-transform ${isExpanded ? "rotate-90" : ""}`}
           fill="currentColor"
           viewBox="0 0 20 20"
         >
@@ -321,24 +335,29 @@ const Tree: React.FC<TreeProps> = ({
     );
   };
 
-  const renderNode = (node: TreeNodeData, level: number = 0): React.ReactNode => {
+  const renderNode = (
+    node: TreeNodeData,
+    level: number = 0,
+  ): React.ReactNode => {
     const sizeClasses = getSizeClasses();
     const isExpanded = expandedKeys.includes(node.key);
     const isSelected = selectedKeys.includes(node.key);
     const isChecked = checkedKeys.includes(node.key);
     const hasChildren = node.children && node.children.length > 0;
     const isDragOver = dragOverKey === node.key;
-    
+
     const nodeClasses = [
-      'flex items-center hover:bg-gray-50 transition-colors cursor-pointer',
+      "flex items-center hover:bg-gray-50 transition-colors cursor-pointer",
       sizeClasses.node,
-      isSelected ? 'bg-blue-50 text-blue-600' : '',
-      node.disabled ? 'opacity-50 cursor-not-allowed' : '',
-      isDragOver ? 'bg-blue-100' : ''
-    ].filter(Boolean).join(' ');
-    
+      isSelected ? "bg-blue-50 text-blue-600" : "",
+      node.disabled ? "opacity-50 cursor-not-allowed" : "",
+      isDragOver ? "bg-blue-100" : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+
     const indentStyle = { paddingLeft: `${level * 24}px` };
-    
+
     return (
       <div key={node.key}>
         <div
@@ -353,7 +372,7 @@ const Tree: React.FC<TreeProps> = ({
           draggable={draggable && !node.disabled}
         >
           {renderExpandIcon(node, isExpanded, hasChildren)}
-          
+
           {checkable && !node.disableCheckbox && (
             <input
               type="checkbox"
@@ -364,19 +383,17 @@ const Tree: React.FC<TreeProps> = ({
               onClick={(e) => e.stopPropagation()}
             />
           )}
-          
-          {node.icon && (
-            <span className="mr-2">{node.icon}</span>
-          )}
-          
+
+          {node.icon && <span className="mr-2">{node.icon}</span>}
+
           <span className="flex-1">
             {titleRender ? titleRender(node) : node.title}
           </span>
         </div>
-        
+
         {isExpanded && hasChildren && (
           <div>
-            {node.children!.map(child => renderNode(child, level + 1))}
+            {node.children!.map((child) => renderNode(child, level + 1))}
           </div>
         )}
       </div>
@@ -391,33 +408,35 @@ const Tree: React.FC<TreeProps> = ({
         </div>
       );
     }
-    
+
     if (virtual) {
       // Simplified virtual scrolling - in a real implementation, you'd use a library like react-window
       return (
-        <div 
-          className="overflow-auto" 
+        <div
+          className="overflow-auto"
           style={{ height: `${height}px` }}
           ref={treeRef}
         >
-          {filteredTreeData.map(node => renderNode(node))}
+          {filteredTreeData.map((node) => renderNode(node))}
         </div>
       );
     }
-    
+
     return (
       <div ref={treeRef}>
-        {filteredTreeData.map(node => renderNode(node))}
+        {filteredTreeData.map((node) => renderNode(node))}
       </div>
     );
   };
 
   const treeClasses = [
-    'tree',
-    showLine ? 'tree-show-line' : '',
-    showIndentGuides ? 'tree-indent-guides' : '',
-    className
-  ].filter(Boolean).join(' ');
+    "tree",
+    showLine ? "tree-show-line" : "",
+    showIndentGuides ? "tree-indent-guides" : "",
+    className,
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <div className={treeClasses}>
@@ -432,7 +451,7 @@ const Tree: React.FC<TreeProps> = ({
           />
         </div>
       )}
-      
+
       {renderTree()}
     </div>
   );

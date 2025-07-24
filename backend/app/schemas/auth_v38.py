@@ -49,7 +49,7 @@ class UserRegister(BaseModel):
     full_name: Optional[str] = Field(None, max_length=100)
 
     @validator("password")
-    def validate_password(cls, v):
+    def validate_password(cls, v) -> dict:
         if len(v) < 8:
             raise ValueError("Password must be at least 8 characters long")
         if not any(c.isupper() for c in v):
@@ -120,7 +120,7 @@ class APIKeyCreateRequest(BaseModel):
     expires_at: Optional[datetime] = None
 
     @validator("expires_at")
-    def validate_expires_at(cls, v):
+    def validate_expires_at(cls, v) -> dict:
         if v and v <= datetime.utcnow():
             raise ValueError("Expiration date must be in the future")
         return v
@@ -187,13 +187,13 @@ class PasswordChangeRequest(BaseModel):
     confirm_password: str = Field(..., min_length=8)
 
     @validator("confirm_password")
-    def passwords_match(cls, v, values, **kwargs):
+    def passwords_match(cls, v, values, **kwargs) -> dict:
         if "new_password" in values and v != values["new_password"]:
             raise ValueError("Passwords do not match")
         return v
 
     @validator("new_password")
-    def validate_new_password(cls, v):
+    def validate_new_password(cls, v) -> dict:
         if len(v) < 8:
             raise ValueError("Password must be at least 8 characters long")
         if not any(c.isupper() for c in v):
@@ -217,7 +217,7 @@ class PasswordResetConfirm(BaseModel):
     confirm_password: str = Field(..., min_length=8)
 
     @validator("confirm_password")
-    def passwords_match(cls, v, values, **kwargs):
+    def passwords_match(cls, v, values, **kwargs) -> dict:
         if "new_password" in values and v != values["new_password"]:
             raise ValueError("Passwords do not match")
         return v

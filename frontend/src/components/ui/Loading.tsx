@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from "react";
 
 interface LoadingProps {
   children?: React.ReactNode;
   loading?: boolean;
   spinning?: boolean;
-  size?: 'small' | 'medium' | 'large';
-  type?: 'spinner' | 'dots' | 'bars' | 'pulse' | 'ring' | 'wave' | 'skeleton';
-  color?: 'blue' | 'green' | 'red' | 'yellow' | 'purple' | 'gray';
+  size?: "small" | "medium" | "large";
+  type?: "spinner" | "dots" | "bars" | "pulse" | "ring" | "wave" | "skeleton";
+  color?: "blue" | "green" | "red" | "yellow" | "purple" | "gray";
   overlay?: boolean;
   fullPage?: boolean;
   centered?: boolean;
@@ -21,7 +21,7 @@ interface LoadingProps {
   tip?: string;
   progress?: number | boolean;
   format?: string;
-  state?: 'loading' | 'success' | 'error';
+  state?: "loading" | "success" | "error";
   errorMessage?: string;
   successMessage?: string;
   wrapper?: React.ReactElement;
@@ -40,9 +40,9 @@ const LoadingComponent: React.FC<LoadingProps> = ({
   children,
   loading = true,
   spinning,
-  size = 'medium',
-  type = 'spinner',
-  color = 'blue',
+  size = "medium",
+  type = "spinner",
+  color = "blue",
   overlay = false,
   fullPage = false,
   centered = false,
@@ -56,16 +56,16 @@ const LoadingComponent: React.FC<LoadingProps> = ({
   icon,
   tip,
   progress,
-  format = '{percent}%',
-  state = 'loading',
+  format = "{percent}%",
+  state = "loading",
   errorMessage,
   successMessage,
   wrapper,
-  className = '',
+  className = "",
   onComplete,
   onFinish,
   onTimeout,
-  onRetry
+  onRetry,
 }) => {
   const [visible, setVisible] = useState(delay === 0);
   const [showMinTime, setShowMinTime] = useState(true);
@@ -132,21 +132,21 @@ const LoadingComponent: React.FC<LoadingProps> = ({
 
   const getSizeClasses = () => {
     const sizeMap = {
-      small: 'w-4 h-4',
-      medium: 'w-6 h-6',
-      large: 'w-8 h-8'
+      small: "w-4 h-4",
+      medium: "w-6 h-6",
+      large: "w-8 h-8",
     };
     return sizeMap[size];
   };
 
   const getColorClasses = () => {
     const colorMap = {
-      blue: 'text-blue-500',
-      green: 'text-green-500',
-      red: 'text-red-500',
-      yellow: 'text-yellow-500',
-      purple: 'text-purple-500',
-      gray: 'text-gray-500'
+      blue: "text-blue-500",
+      green: "text-green-500",
+      red: "text-red-500",
+      yellow: "text-yellow-500",
+      purple: "text-purple-500",
+      gray: "text-gray-500",
     };
     return colorMap[color];
   };
@@ -158,7 +158,7 @@ const LoadingComponent: React.FC<LoadingProps> = ({
     const colorClasses = getColorClasses();
 
     switch (type) {
-      case 'spinner':
+      case "spinner":
         return (
           <svg
             className={`${sizeClasses} ${colorClasses} animate-spin`}
@@ -184,40 +184,40 @@ const LoadingComponent: React.FC<LoadingProps> = ({
           </svg>
         );
 
-      case 'dots':
+      case "dots":
         return (
           <div className={`flex space-x-1 ${colorClasses}`}>
-            {[0, 1, 2].map(i => (
+            {[0, 1, 2].map((i) => (
               <div
                 key={i}
-                className={`${size === 'small' ? 'w-2 h-2' : size === 'large' ? 'w-3 h-3' : 'w-2.5 h-2.5'} bg-current rounded-full animate-pulse`}
+                className={`${size === "small" ? "w-2 h-2" : size === "large" ? "w-3 h-3" : "w-2.5 h-2.5"} bg-current rounded-full animate-pulse`}
                 style={{
                   animationDelay: `${i * 200}ms`,
-                  animationDuration: `${duration}ms`
+                  animationDuration: `${duration}ms`,
                 }}
               />
             ))}
           </div>
         );
 
-      case 'bars':
+      case "bars":
         return (
           <div className={`flex items-end space-x-1 ${colorClasses}`}>
-            {[0, 1, 2, 3].map(i => (
+            {[0, 1, 2, 3].map((i) => (
               <div
                 key={i}
-                className={`${size === 'small' ? 'w-1' : size === 'large' ? 'w-2' : 'w-1.5'} bg-current animate-pulse`}
+                className={`${size === "small" ? "w-1" : size === "large" ? "w-2" : "w-1.5"} bg-current animate-pulse`}
                 style={{
                   height: `${12 + (i % 2) * 8}px`,
                   animationDelay: `${i * 150}ms`,
-                  animationDuration: `${duration}ms`
+                  animationDuration: `${duration}ms`,
                 }}
               />
             ))}
           </div>
         );
 
-      case 'pulse':
+      case "pulse":
         return (
           <div
             className={`${sizeClasses} ${colorClasses} bg-current rounded-full animate-ping`}
@@ -225,36 +225,39 @@ const LoadingComponent: React.FC<LoadingProps> = ({
           />
         );
 
-      case 'ring':
+      case "ring":
         return (
           <div className={`${sizeClasses} relative ${colorClasses}`}>
             <div className="absolute inset-0 border-2 border-current border-opacity-20 rounded-full" />
-            <div 
+            <div
               className="absolute inset-0 border-2 border-transparent border-t-current rounded-full animate-spin"
               style={{ animationDuration: `${duration}ms` }}
             />
           </div>
         );
 
-      case 'wave':
+      case "wave":
         return (
           <div className={`flex items-center space-x-1 ${colorClasses}`}>
-            {[0, 1, 2, 3, 4].map(i => (
+            {[0, 1, 2, 3, 4].map((i) => (
               <div
                 key={i}
-                className={`${size === 'small' ? 'w-1 h-6' : size === 'large' ? 'w-2 h-10' : 'w-1.5 h-8'} bg-current rounded-full animate-pulse`}
+                className={`${size === "small" ? "w-1 h-6" : size === "large" ? "w-2 h-10" : "w-1.5 h-8"} bg-current rounded-full animate-pulse`}
                 style={{
                   animationDelay: `${i * 100}ms`,
-                  animationDuration: `${duration}ms`
+                  animationDuration: `${duration}ms`,
                 }}
               />
             ))}
           </div>
         );
 
-      case 'skeleton':
+      case "skeleton":
         return (
-          <div data-testid="skeleton-loader" className="animate-pulse space-y-2">
+          <div
+            data-testid="skeleton-loader"
+            className="animate-pulse space-y-2"
+          >
             <div className="h-4 bg-gray-300 rounded w-3/4" />
             <div className="h-4 bg-gray-300 rounded w-1/2" />
             <div className="h-4 bg-gray-300 rounded w-5/6" />
@@ -270,8 +273,8 @@ const LoadingComponent: React.FC<LoadingProps> = ({
     if (progress === false || progress === undefined) return null;
 
     const isIndeterminate = progress === true;
-    const value = typeof progress === 'number' ? progress : 0;
-    const displayText = format.replace('{percent}', value.toString());
+    const value = typeof progress === "number" ? progress : 0;
+    const displayText = format.replace("{percent}", value.toString());
 
     return (
       <div className="mt-2 w-full">
@@ -281,8 +284,8 @@ const LoadingComponent: React.FC<LoadingProps> = ({
         <div className="w-full bg-gray-200 rounded-full h-2">
           <div
             className={`h-2 rounded-full transition-all duration-300 ${
-              isIndeterminate 
-                ? 'bg-blue-600 animate-pulse w-full' 
+              isIndeterminate
+                ? "bg-blue-600 animate-pulse w-full"
                 : `bg-blue-600`
             }`}
             style={!isIndeterminate ? { width: `${value}%` } : {}}
@@ -298,21 +301,37 @@ const LoadingComponent: React.FC<LoadingProps> = ({
 
   const renderStateContent = () => {
     switch (state) {
-      case 'success':
+      case "success":
         return (
           <div className="flex flex-col items-center text-green-600">
-            <svg className="w-8 h-8 mb-2" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+            <svg
+              className="w-8 h-8 mb-2"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                clipRule="evenodd"
+              />
             </svg>
             {successMessage && <p>{successMessage}</p>}
           </div>
         );
 
-      case 'error':
+      case "error":
         return (
           <div className="flex flex-col items-center text-red-600">
-            <svg className="w-8 h-8 mb-2" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            <svg
+              className="w-8 h-8 mb-2"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                clipRule="evenodd"
+              />
             </svg>
             {errorMessage && <p className="mb-2">{errorMessage}</p>}
             {onRetry && (
@@ -342,18 +361,22 @@ const LoadingComponent: React.FC<LoadingProps> = ({
   if (!shouldShow && !children) return null;
 
   const containerClasses = [
-    'loading-component',
-    inline ? 'inline-flex items-center' : 'flex',
-    centered ? 'justify-center items-center' : '',
-    fullPage ? 'fixed inset-0 z-50' : '',
-    className
-  ].filter(Boolean).join(' ');
+    "loading-component",
+    inline ? "inline-flex items-center" : "flex",
+    centered ? "justify-center items-center" : "",
+    fullPage ? "fixed inset-0 z-50" : "",
+    className,
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   const overlayClasses = [
-    'absolute inset-0 flex items-center justify-center',
-    backdrop ? 'bg-black' : 'bg-white',
-    'transition-opacity'
-  ].filter(Boolean).join(' ');
+    "absolute inset-0 flex items-center justify-center",
+    backdrop ? "bg-black" : "bg-white",
+    "transition-opacity",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   if (children && !fullPage) {
     return (
@@ -362,10 +385,10 @@ const LoadingComponent: React.FC<LoadingProps> = ({
         {shouldShow && (
           <>
             {(overlay || backdrop) && (
-              <div 
+              <div
                 className={overlayClasses}
                 style={{ opacity }}
-                data-testid={backdrop ? 'loading-backdrop' : 'loading-overlay'}
+                data-testid={backdrop ? "loading-backdrop" : "loading-overlay"}
               >
                 {renderStateContent()}
               </div>
@@ -388,17 +411,17 @@ const LoadingComponent: React.FC<LoadingProps> = ({
           {children}
           {shouldShow && renderStateContent()}
         </>
-      )
+      ),
     });
   }
 
   return (
     <div className={containerClasses} data-testid="loading-container">
       {(overlay || backdrop || fullPage) && (
-        <div 
+        <div
           className={overlayClasses}
           style={{ opacity }}
-          data-testid={backdrop ? 'loading-backdrop' : 'loading-overlay'}
+          data-testid={backdrop ? "loading-backdrop" : "loading-overlay"}
         >
           {renderStateContent()}
         </div>

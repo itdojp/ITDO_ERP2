@@ -1358,7 +1358,7 @@ class DocumentService:
 
         return activity
 
-    async def _update_folder_statistics(self, db: Session, folder_id: str):
+    async def _update_folder_statistics(self, db: Session, folder_id: str) -> dict:
         """Update folder statistics (document count, size, etc.)."""
 
         folder = db.query(DocumentFolder).filter(DocumentFolder.id == folder_id).first()

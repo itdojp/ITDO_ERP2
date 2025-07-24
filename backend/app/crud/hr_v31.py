@@ -53,7 +53,7 @@ from app.schemas.hr_v31 import (
 class EmployeeCRUD(CRUDBase[Employee, EmployeeCreate, EmployeeUpdate]):
     """CRUD operations for Employee management."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         super().__init__(Employee)
         self.db = db
 
@@ -241,7 +241,7 @@ class EmployeeCRUD(CRUDBase[Employee, EmployeeCreate, EmployeeUpdate]):
 class PayrollCRUD(CRUDBase[PayrollRecord, PayrollRecordCreate, PayrollRecordUpdate]):
     """CRUD operations for Payroll processing."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         super().__init__(PayrollRecord)
         self.db = db
 
@@ -434,7 +434,7 @@ class PayrollCRUD(CRUDBase[PayrollRecord, PayrollRecordCreate, PayrollRecordUpda
 class LeaveCRUD(CRUDBase[LeaveRequest, LeaveRequestCreate, LeaveRequestUpdate]):
     """CRUD operations for Leave management."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         super().__init__(LeaveRequest)
         self.db = db
 
@@ -632,7 +632,7 @@ class PerformanceCRUD(
 ):
     """CRUD operations for Performance management."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         super().__init__(PerformanceReview)
         self.db = db
 
@@ -830,7 +830,7 @@ class TrainingCRUD(
 ):
     """CRUD operations for Training management."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         super().__init__(TrainingRecord)
         self.db = db
 
@@ -1065,7 +1065,7 @@ class TrainingCRUD(
 class HRAnalyticsCRUD(CRUDBase[HRAnalytics, None, None]):
     """CRUD operations for HR Analytics."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         super().__init__(HRAnalytics)
         self.db = db
 

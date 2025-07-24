@@ -930,7 +930,7 @@ class IntegrationService:
     # Helper Methods
     # =============================================================================
 
-    async def _check_system_health(self, db: Session, system: ExternalSystem):
+    async def _check_system_health(self, db: Session, system: ExternalSystem) -> dict:
         """Check health of external system."""
         try:
             headers = self._prepare_auth_headers(system)

@@ -24,35 +24,28 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.crud.audit_v31 import AuditService
-from app.schemas.audit_v31 import (
+from app.schemas.audit_v31 import (  # Audit Alert schemas; Export schemas; Audit Log Entry schemas; Audit Report schemas; Audit Rule schemas; Session schemas; Compliance schemas
     AlertResolutionRequest,
-    # Audit Alert schemas
     AuditAlertCreateRequest,
     AuditAlertListResponse,
     AuditAlertResponse,
-    # Export schemas
     AuditExportRequest,
     AuditExportResponse,
     AuditLogBulkCreateRequest,
-    # Audit Log Entry schemas
     AuditLogEntryCreateRequest,
     AuditLogEntryResponse,
     AuditLogListResponse,
     AuditLogSearchRequest,
     AuditMetricsResponse,
-    # Audit Report schemas
     AuditReportCreateRequest,
     AuditReportListResponse,
     AuditReportResponse,
-    # Audit Rule schemas
     AuditRuleCreateRequest,
     AuditRuleListResponse,
     AuditRuleResponse,
     AuditRuleTestRequest,
-    # Session schemas
     AuditSessionCreateRequest,
     AuditSessionResponse,
-    # Compliance schemas
     ComplianceAssessmentCreateRequest,
     ComplianceAssessmentResponse,
     ComplianceDashboardResponse,

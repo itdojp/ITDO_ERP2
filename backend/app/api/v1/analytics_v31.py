@@ -21,39 +21,30 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.crud.analytics_v31 import analytics_service
-from app.schemas.analytics_v31 import (
+from app.schemas.analytics_v31 import (  # Alert schemas; Dashboard schemas; Data Point schemas; Data Source schemas; Insight schemas; Metric schemas; Prediction schemas; Analytics schemas; Report schemas
     AlertEvaluationRequest,
     AlertListResponse,
-    # Alert schemas
     AnalyticsAlertCreateRequest,
     AnalyticsAlertResponse,
     AnalyticsAlertUpdateRequest,
-    # Dashboard schemas
     AnalyticsDashboardCreateRequest,
     AnalyticsDashboardResponse,
     AnalyticsDashboardUpdateRequest,
-    # Data Point schemas
     AnalyticsDataPointCreateRequest,
     AnalyticsDataPointResponse,
-    # Data Source schemas
     AnalyticsDataSourceCreateRequest,
     AnalyticsDataSourceResponse,
     AnalyticsDataSourceUpdateRequest,
     AnalyticsHealthResponse,
-    # Insight schemas
     AnalyticsInsightResponse,
-    # Metric schemas
     AnalyticsMetricCreateRequest,
     AnalyticsMetricResponse,
     AnalyticsMetricUpdateRequest,
-    # Prediction schemas
     AnalyticsPredictionCreateRequest,
     AnalyticsPredictionResponse,
     AnalyticsPredictionUpdateRequest,
-    # Analytics schemas
     AnalyticsQueryRequest,
     AnalyticsQueryResponse,
-    # Report schemas
     AnalyticsReportCreateRequest,
     AnalyticsReportResponse,
     AnalyticsReportUpdateRequest,

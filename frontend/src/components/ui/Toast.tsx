@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { cn } from '@/lib/utils';
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { cn } from "@/lib/utils";
 
 export interface ToastAction {
   label: string;
@@ -10,12 +10,18 @@ export interface ToastProps {
   message?: string;
   content?: React.ReactNode;
   title?: string;
-  type?: 'success' | 'error' | 'warning' | 'info';
-  position?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' | 'top-center' | 'bottom-center';
-  size?: 'sm' | 'md' | 'lg';
-  theme?: 'light' | 'dark';
-  priority?: 'low' | 'normal' | 'high' | 'urgent';
-  animationType?: 'slide' | 'fade' | 'bounce' | 'zoom';
+  type?: "success" | "error" | "warning" | "info";
+  position?:
+    | "top-right"
+    | "top-left"
+    | "bottom-right"
+    | "bottom-left"
+    | "top-center"
+    | "bottom-center";
+  size?: "sm" | "md" | "lg";
+  theme?: "light" | "dark";
+  priority?: "low" | "normal" | "high" | "urgent";
+  animationType?: "slide" | "fade" | "bounce" | "zoom";
   duration?: number;
   closable?: boolean;
   persistent?: boolean;
@@ -50,28 +56,28 @@ export interface ToastProps {
   maxQueue?: number;
   group?: string;
   maxWidth?: string;
-  shadow?: 'sm' | 'md' | 'lg' | 'xl';
-  border?: 'thin' | 'thick';
+  shadow?: "sm" | "md" | "lg" | "xl";
+  border?: "thin" | "thick";
   ariaLabel?: string;
-  ariaLive?: 'polite' | 'assertive' | 'off';
+  ariaLive?: "polite" | "assertive" | "off";
   onClose?: () => void;
   onDrag?: (e: React.DragEvent) => void;
   className?: string;
-  'data-testid'?: string;
-  'data-category'?: string;
-  'data-id'?: string;
+  "data-testid"?: string;
+  "data-category"?: string;
+  "data-id"?: string;
 }
 
 export const Toast: React.FC<ToastProps> = ({
   message,
   content,
   title,
-  type = 'info',
-  position = 'top-right',
-  size = 'md',
-  theme = 'light',
-  priority = 'normal',
-  animationType = 'slide',
+  type = "info",
+  position = "top-right",
+  size = "md",
+  theme = "light",
+  priority = "normal",
+  animationType = "slide",
   duration = 4000,
   closable = false,
   persistent = false,
@@ -101,21 +107,21 @@ export const Toast: React.FC<ToastProps> = ({
   action,
   closeButton,
   timestamp,
-  soundUrl = '/toast.mp3',
+  soundUrl = "/toast.mp3",
   stackIndex,
   maxQueue,
   group,
   maxWidth,
-  shadow = 'md',
-  border = 'thin',
+  shadow = "md",
+  border = "thin",
   ariaLabel,
-  ariaLive = 'polite',
+  ariaLive = "polite",
   onClose,
   onDrag,
   className,
-  'data-testid': dataTestId = 'toast-container',
-  'data-category': dataCategory,
-  'data-id': dataId,
+  "data-testid": dataTestId = "toast-container",
+  "data-category": dataCategory,
+  "data-id": dataId,
   ...props
 }) => {
   const [isVisible, setIsVisible] = useState(visible);
@@ -130,56 +136,60 @@ export const Toast: React.FC<ToastProps> = ({
   const remainingTimeRef = useRef<number>(duration);
 
   const sizeClasses = {
-    sm: 'size-sm p-3 text-sm max-w-xs',
-    md: 'size-md p-4 text-base max-w-sm',
-    lg: 'size-lg p-6 text-lg max-w-md'
+    sm: "size-sm p-3 text-sm max-w-xs",
+    md: "size-md p-4 text-base max-w-sm",
+    lg: "size-lg p-6 text-lg max-w-md",
   };
 
   const themeClasses = {
-    light: 'theme-light bg-white border-gray-300 text-gray-900 shadow-lg',
-    dark: 'theme-dark bg-gray-800 border-gray-600 text-white shadow-lg'
+    light: "theme-light bg-white border-gray-300 text-gray-900 shadow-lg",
+    dark: "theme-dark bg-gray-800 border-gray-600 text-white shadow-lg",
   };
 
   const typeClasses = {
-    success: 'type-success border-l-4 border-green-500 bg-green-50 text-green-800',
-    error: 'type-error border-l-4 border-red-500 bg-red-50 text-red-800',
-    warning: 'type-warning border-l-4 border-yellow-500 bg-yellow-50 text-yellow-800',
-    info: 'type-info border-l-4 border-blue-500 bg-blue-50 text-blue-800'
+    success:
+      "type-success border-l-4 border-green-500 bg-green-50 text-green-800",
+    error: "type-error border-l-4 border-red-500 bg-red-50 text-red-800",
+    warning:
+      "type-warning border-l-4 border-yellow-500 bg-yellow-50 text-yellow-800",
+    info: "type-info border-l-4 border-blue-500 bg-blue-50 text-blue-800",
   };
 
   const positionClasses = {
-    'top-right': 'position-top-right fixed top-4 right-4',
-    'top-left': 'position-top-left fixed top-4 left-4',
-    'bottom-right': 'position-bottom-right fixed bottom-4 right-4',
-    'bottom-left': 'position-bottom-left fixed bottom-4 left-4',
-    'top-center': 'position-top-center fixed top-4 left-1/2 transform -translate-x-1/2',
-    'bottom-center': 'position-bottom-center fixed bottom-4 left-1/2 transform -translate-x-1/2'
+    "top-right": "position-top-right fixed top-4 right-4",
+    "top-left": "position-top-left fixed top-4 left-4",
+    "bottom-right": "position-bottom-right fixed bottom-4 right-4",
+    "bottom-left": "position-bottom-left fixed bottom-4 left-4",
+    "top-center":
+      "position-top-center fixed top-4 left-1/2 transform -translate-x-1/2",
+    "bottom-center":
+      "position-bottom-center fixed bottom-4 left-1/2 transform -translate-x-1/2",
   };
 
   const priorityClasses = {
-    low: 'priority-low',
-    normal: 'priority-normal',
-    high: 'priority-high z-50',
-    urgent: 'priority-urgent z-60 ring-2 ring-red-500'
+    low: "priority-low",
+    normal: "priority-normal",
+    high: "priority-high z-50",
+    urgent: "priority-urgent z-60 ring-2 ring-red-500",
   };
 
   const animationClasses = {
-    slide: 'animation-slide',
-    fade: 'animation-fade',
-    bounce: 'animation-bounce',
-    zoom: 'animation-zoom'
+    slide: "animation-slide",
+    fade: "animation-fade",
+    bounce: "animation-bounce",
+    zoom: "animation-zoom",
   };
 
   const shadowClasses = {
-    sm: 'shadow-sm',
-    md: 'shadow-md',
-    lg: 'shadow-lg',
-    xl: 'shadow-xl'
+    sm: "shadow-sm",
+    md: "shadow-md",
+    lg: "shadow-lg",
+    xl: "shadow-xl",
   };
 
   const borderClasses = {
-    thin: 'border-thin border',
-    thick: 'border-thick border-2'
+    thin: "border-thin border",
+    thick: "border-thick border-2",
   };
 
   // Auto close functionality
@@ -229,13 +239,16 @@ export const Toast: React.FC<ToastProps> = ({
     if (!dismissOnClickOutside) return;
 
     const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
         handleClose();
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [dismissOnClickOutside]);
 
   // Escape key handler
@@ -243,13 +256,13 @@ export const Toast: React.FC<ToastProps> = ({
     if (!escapeKeyToDismiss) return;
 
     const handleEscapeKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === "Escape") {
         handleClose();
       }
     };
 
-    document.addEventListener('keydown', handleEscapeKey);
-    return () => document.removeEventListener('keydown', handleEscapeKey);
+    document.addEventListener("keydown", handleEscapeKey);
+    return () => document.removeEventListener("keydown", handleEscapeKey);
   }, [escapeKeyToDismiss]);
 
   const startTimer = useCallback(() => {
@@ -274,7 +287,7 @@ export const Toast: React.FC<ToastProps> = ({
       const elapsed = Date.now() - startTime;
       const remaining = Math.max(0, totalDuration - elapsed);
       const progressPercent = (remaining / totalDuration) * 100;
-      
+
       setProgress(progressPercent);
 
       if (remaining <= 0) {
@@ -295,7 +308,10 @@ export const Toast: React.FC<ToastProps> = ({
 
     if (startTimeRef.current) {
       const elapsed = Date.now() - startTimeRef.current;
-      remainingTimeRef.current = Math.max(0, remainingTimeRef.current - elapsed);
+      remainingTimeRef.current = Math.max(
+        0,
+        remainingTimeRef.current - elapsed,
+      );
     }
 
     setIsPaused(true);
@@ -334,18 +350,21 @@ export const Toast: React.FC<ToastProps> = ({
     }
   }, [pauseOnHover, persistent, isPaused, resumeTimer]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      handleClose();
-    }
-  }, [handleClose]);
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        handleClose();
+      }
+    },
+    [handleClose],
+  );
 
   const handleActionClick = useCallback(() => {
     try {
       action?.onClick();
     } catch (error) {
-      console.error('Toast action failed:', error);
+      console.error("Toast action failed:", error);
     }
   }, [action]);
 
@@ -355,63 +374,90 @@ export const Toast: React.FC<ToastProps> = ({
     }
   }, [clickToDismiss, handleClose]);
 
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    if (!swipeToDismiss) return;
-    
-    const touch = e.touches[0];
-    containerRef.current?.setAttribute('data-start-x', touch.clientX.toString());
-  }, [swipeToDismiss]);
+  const handleTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      if (!swipeToDismiss) return;
 
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (!swipeToDismiss) return;
-    
-    const touch = e.touches[0];
-    const startX = parseFloat(containerRef.current?.getAttribute('data-start-x') || '0');
-    const deltaX = touch.clientX - startX;
-    
-    if (Math.abs(deltaX) > 50) {
-      containerRef.current?.style.setProperty('transform', `translateX(${deltaX}px)`);
-    }
-  }, [swipeToDismiss]);
+      const touch = e.touches[0];
+      containerRef.current?.setAttribute(
+        "data-start-x",
+        touch.clientX.toString(),
+      );
+    },
+    [swipeToDismiss],
+  );
 
-  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (!swipeToDismiss) return;
-    
-    const startX = parseFloat(containerRef.current?.getAttribute('data-start-x') || '0');
-    const endX = e.changedTouches?.[0]?.clientX || 0;
-    const deltaX = endX - startX;
-    
-    if (Math.abs(deltaX) > 100) {
-      handleClose();
-    } else {
-      containerRef.current?.style.setProperty('transform', 'translateX(0)');
-    }
-  }, [swipeToDismiss, handleClose]);
+  const handleTouchMove = useCallback(
+    (e: React.TouchEvent) => {
+      if (!swipeToDismiss) return;
 
-  const getDefaultIcon = () => {    
+      const touch = e.touches[0];
+      const startX = parseFloat(
+        containerRef.current?.getAttribute("data-start-x") || "0",
+      );
+      const deltaX = touch.clientX - startX;
+
+      if (Math.abs(deltaX) > 50) {
+        containerRef.current?.style.setProperty(
+          "transform",
+          `translateX(${deltaX}px)`,
+        );
+      }
+    },
+    [swipeToDismiss],
+  );
+
+  const handleTouchEnd = useCallback(
+    (e: React.TouchEvent) => {
+      if (!swipeToDismiss) return;
+
+      const startX = parseFloat(
+        containerRef.current?.getAttribute("data-start-x") || "0",
+      );
+      const endX = e.changedTouches?.[0]?.clientX || 0;
+      const deltaX = endX - startX;
+
+      if (Math.abs(deltaX) > 100) {
+        handleClose();
+      } else {
+        containerRef.current?.style.setProperty("transform", "translateX(0)");
+      }
+    },
+    [swipeToDismiss, handleClose],
+  );
+
+  const getDefaultIcon = () => {
     switch (type) {
-      case 'success':
+      case "success":
         return (
           <div className="flex-shrink-0 mr-3" data-testid="toast-icon">
-            <div className="w-5 h-5 flex-shrink-0 icon-success text-green-500">✓</div>
+            <div className="w-5 h-5 flex-shrink-0 icon-success text-green-500">
+              ✓
+            </div>
           </div>
         );
-      case 'error':
+      case "error":
         return (
           <div className="flex-shrink-0 mr-3" data-testid="toast-icon">
-            <div className="w-5 h-5 flex-shrink-0 icon-error text-red-500">✕</div>
+            <div className="w-5 h-5 flex-shrink-0 icon-error text-red-500">
+              ✕
+            </div>
           </div>
         );
-      case 'warning':
+      case "warning":
         return (
           <div className="flex-shrink-0 mr-3" data-testid="toast-icon">
-            <div className="w-5 h-5 flex-shrink-0 icon-warning text-yellow-500">⚠</div>
+            <div className="w-5 h-5 flex-shrink-0 icon-warning text-yellow-500">
+              ⚠
+            </div>
           </div>
         );
-      case 'info':
+      case "info":
         return (
           <div className="flex-shrink-0 mr-3" data-testid="toast-icon">
-            <div className="w-5 h-5 flex-shrink-0 icon-info text-blue-500">ℹ</div>
+            <div className="w-5 h-5 flex-shrink-0 icon-info text-blue-500">
+              ℹ
+            </div>
           </div>
         );
       default:
@@ -450,7 +496,7 @@ export const Toast: React.FC<ToastProps> = ({
       <div className="flex-shrink-0 mr-3" data-testid="toast-image">
         <img
           src={image}
-          alt={imageAlt || 'Toast image'}
+          alt={imageAlt || "Toast image"}
           className="w-12 h-12 rounded object-cover"
         />
       </div>
@@ -519,7 +565,9 @@ export const Toast: React.FC<ToastProps> = ({
           </div>
         )}
         {message && (
-          <div className={cn('toast-message', multiline && 'whitespace-pre-wrap')}>
+          <div
+            className={cn("toast-message", multiline && "whitespace-pre-wrap")}
+          >
             {message}
           </div>
         )}
@@ -554,7 +602,7 @@ export const Toast: React.FC<ToastProps> = ({
     <div
       ref={containerRef}
       className={cn(
-        'toast-container relative rounded-lg transition-all duration-200',
+        "toast-container relative rounded-lg transition-all duration-200",
         sizeClasses[size],
         themeClasses[theme],
         typeClasses[type],
@@ -563,17 +611,17 @@ export const Toast: React.FC<ToastProps> = ({
         animationClasses[animationType],
         shadowClasses[shadow],
         borderClasses[border],
-        multiline && 'multiline',
-        rtl && 'rtl',
-        stackable && 'stackable',
-        queueable && 'queueable',
-        inline && 'inline',
-        animate && 'animate-enter',
-        isAnimating && 'animate-exit',
-        !isVisible && 'hidden',
-        loading && 'loading',
-        clickToDismiss && 'cursor-pointer',
-        className
+        multiline && "multiline",
+        rtl && "rtl",
+        stackable && "stackable",
+        queueable && "queueable",
+        inline && "inline",
+        animate && "animate-enter",
+        isAnimating && "animate-exit",
+        !isVisible && "hidden",
+        loading && "loading",
+        clickToDismiss && "cursor-pointer",
+        className,
       )}
       style={containerStyles}
       tabIndex={autoFocus ? 0 : -1}
@@ -596,7 +644,10 @@ export const Toast: React.FC<ToastProps> = ({
       {...props}
     >
       {loading && (
-        <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center rounded-lg" data-testid="toast-loading">
+        <div
+          className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center rounded-lg"
+          data-testid="toast-loading"
+        >
           <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
         </div>
       )}

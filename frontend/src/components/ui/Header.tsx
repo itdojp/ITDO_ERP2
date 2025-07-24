@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { cn } from '@/lib/utils';
+import React, { useState, useEffect, useRef } from "react";
+import { cn } from "@/lib/utils";
 
 export interface NavItem {
   id: string;
@@ -46,9 +46,9 @@ export interface HeaderProps {
   quickActions?: QuickAction[];
   languages?: Language[];
   currentLanguage?: string;
-  variant?: 'default' | 'minimal' | 'transparent';
-  size?: 'sm' | 'md' | 'lg';
-  theme?: 'light' | 'dark';
+  variant?: "default" | "minimal" | "transparent";
+  size?: "sm" | "md" | "lg";
+  theme?: "light" | "dark";
   sticky?: boolean;
   fixed?: boolean;
   showSearch?: boolean;
@@ -73,9 +73,9 @@ export interface HeaderProps {
   onNotificationClick?: () => void;
   onLanguageChange?: (langCode: string) => void;
   className?: string;
-  'data-testid'?: string;
-  'data-category'?: string;
-  'data-id'?: string;
+  "data-testid"?: string;
+  "data-category"?: string;
+  "data-id"?: string;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -88,13 +88,13 @@ export const Header: React.FC<HeaderProps> = ({
   quickActions = [],
   languages = [],
   currentLanguage,
-  variant = 'default',
-  size = 'md',
-  theme = 'light',
+  variant = "default",
+  size = "md",
+  theme = "light",
   sticky = false,
   fixed = false,
   showSearch = false,
-  searchPlaceholder = 'Search...',
+  searchPlaceholder = "Search...",
   showNotifications = false,
   notificationCount = 0,
   showMobileMenu = false,
@@ -115,12 +115,12 @@ export const Header: React.FC<HeaderProps> = ({
   onNotificationClick,
   onLanguageChange,
   className,
-  'data-testid': dataTestId = 'header-container',
-  'data-category': dataCategory,
-  'data-id': dataId,
+  "data-testid": dataTestId = "header-container",
+  "data-category": dataCategory,
+  "data-id": dataId,
   ...props
 }) => {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
@@ -128,20 +128,20 @@ export const Header: React.FC<HeaderProps> = ({
   const headerRef = useRef<HTMLElement>(null);
 
   const sizeClasses = {
-    sm: 'h-12 px-4 text-sm',
-    md: 'h-16 px-6 text-base',
-    lg: 'h-20 px-8 text-lg'
+    sm: "h-12 px-4 text-sm",
+    md: "h-16 px-6 text-base",
+    lg: "h-20 px-8 text-lg",
   };
 
   const variantClasses = {
-    default: 'bg-white',
-    minimal: 'bg-transparent',
-    transparent: 'bg-transparent backdrop-blur-sm'
+    default: "bg-white",
+    minimal: "bg-transparent",
+    transparent: "bg-transparent backdrop-blur-sm",
   };
 
   const themeClasses = {
-    light: 'bg-white text-gray-900 border-gray-200',
-    dark: 'bg-gray-900 text-white border-gray-700'
+    light: "bg-white text-gray-900 border-gray-200",
+    dark: "bg-gray-900 text-white border-gray-700",
   };
 
   // Handle scroll behavior
@@ -152,8 +152,8 @@ export const Header: React.FC<HeaderProps> = ({
       setScrolled(window.scrollY > 10);
     };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, [scrollBehavior]);
 
   // Handle search
@@ -166,25 +166,28 @@ export const Header: React.FC<HeaderProps> = ({
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (headerRef.current && !headerRef.current.contains(event.target as Node)) {
+      if (
+        headerRef.current &&
+        !headerRef.current.contains(event.target as Node)
+      ) {
         setUserMenuOpen(false);
         setLanguageMenuOpen(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const renderNavItems = () => (
     <nav className="hidden md:flex items-center space-x-6">
-      {navItems.map(item => (
+      {navItems.map((item) => (
         <a
           key={item.id}
           href={item.href}
           className={cn(
-            'font-medium transition-colors hover:text-blue-600',
-            item.current ? 'text-blue-600' : 'text-gray-700'
+            "font-medium transition-colors hover:text-blue-600",
+            item.current ? "text-blue-600" : "text-gray-700",
           )}
           onClick={item.onClick}
         >
@@ -205,7 +208,7 @@ export const Header: React.FC<HeaderProps> = ({
           <img
             data-testid="user-avatar"
             src={userAvatar}
-            alt={userName || 'User'}
+            alt={userName || "User"}
             className="w-8 h-8 rounded-full"
           />
         ) : (
@@ -214,14 +217,16 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         )}
         {userName && (
-          <span className="hidden sm:block text-sm font-medium">{userName}</span>
+          <span className="hidden sm:block text-sm font-medium">
+            {userName}
+          </span>
         )}
         <span className="text-gray-400">▼</span>
       </button>
 
       {userMenuOpen && (
         <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border">
-          {userMenu.map(item => (
+          {userMenu.map((item) => (
             <a
               key={item.id}
               href={item.href}
@@ -248,14 +253,15 @@ export const Header: React.FC<HeaderProps> = ({
         className="flex items-center space-x-1 p-2 rounded-md hover:bg-gray-100 transition-colors"
       >
         <span className="text-sm">
-          {languages.find(lang => lang.code === currentLanguage)?.label || 'EN'}
+          {languages.find((lang) => lang.code === currentLanguage)?.label ||
+            "EN"}
         </span>
         <span className="text-gray-400">▼</span>
       </button>
 
       {languageMenuOpen && (
         <div className="absolute right-0 mt-2 w-32 bg-white rounded-md shadow-lg py-1 z-50 border">
-          {languages.map(lang => (
+          {languages.map((lang) => (
             <button
               key={lang.code}
               onClick={() => {
@@ -263,8 +269,10 @@ export const Header: React.FC<HeaderProps> = ({
                 setLanguageMenuOpen(false);
               }}
               className={cn(
-                'block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors',
-                lang.code === currentLanguage ? 'text-blue-600 bg-blue-50' : 'text-gray-700'
+                "block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors",
+                lang.code === currentLanguage
+                  ? "text-blue-600 bg-blue-50"
+                  : "text-gray-700",
               )}
             >
               {lang.label}
@@ -287,7 +295,11 @@ export const Header: React.FC<HeaderProps> = ({
               {item.label}
             </a>
           ) : (
-            <span className={cn(item.current ? 'text-gray-900 font-medium' : 'text-gray-500')}>
+            <span
+              className={cn(
+                item.current ? "text-gray-900 font-medium" : "text-gray-500",
+              )}
+            >
               {item.label}
             </span>
           )}
@@ -301,7 +313,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   const renderQuickActions = () => (
     <div className="flex items-center space-x-2">
-      {quickActions.map(action => (
+      {quickActions.map((action) => (
         <button
           key={action.id}
           onClick={action.onClick}
@@ -319,13 +331,13 @@ export const Header: React.FC<HeaderProps> = ({
       <header
         data-testid="header-loading"
         className={cn(
-          'flex items-center justify-center',
+          "flex items-center justify-center",
           sizeClasses[size],
           variantClasses[variant],
           themeClasses[theme],
-          showBorder && 'border-b',
-          shadow && 'shadow-md',
-          className
+          showBorder && "border-b",
+          shadow && "shadow-md",
+          className,
         )}
       >
         {loadingComponent || (
@@ -351,20 +363,20 @@ export const Header: React.FC<HeaderProps> = ({
       <header
         ref={headerRef}
         className={cn(
-          'flex items-center justify-between transition-all duration-200',
+          "flex items-center justify-between transition-all duration-200",
           sizeClasses[size],
           variantClasses[variant],
           themeClasses[theme],
           `theme-${theme}`,
-          sticky && 'sticky top-0 z-40',
-          fixed && 'fixed top-0 left-0 right-0 z-40',
-          showBorder && 'border-b',
-          shadow && 'shadow-md',
-          scrollBehavior && scrolled && 'shadow-lg',
-          centerContent && 'justify-center',
-          fullWidth && 'w-full',
-          responsive && 'responsive-header',
-          className
+          sticky && "sticky top-0 z-40",
+          fixed && "fixed top-0 left-0 right-0 z-40",
+          showBorder && "border-b",
+          shadow && "shadow-md",
+          scrollBehavior && scrolled && "shadow-lg",
+          centerContent && "justify-center",
+          fullWidth && "w-full",
+          responsive && "responsive-header",
+          className,
         )}
         data-testid={dataTestId}
         data-category={dataCategory}
@@ -381,8 +393,18 @@ export const Header: React.FC<HeaderProps> = ({
               className="md:hidden p-2 rounded-md hover:bg-gray-100"
             >
               <span className="sr-only">Toggle menu</span>
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
               </svg>
             </button>
           )}
@@ -391,11 +413,7 @@ export const Header: React.FC<HeaderProps> = ({
           {logo && <div className="flex-shrink-0">{logo}</div>}
 
           {/* Title */}
-          {title && (
-            <h1 className="text-xl font-bold truncate">
-              {title}
-            </h1>
-          )}
+          {title && <h1 className="text-xl font-bold truncate">{title}</h1>}
 
           {/* Navigation */}
           {!centerContent && renderNavItems()}
@@ -403,9 +421,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Center Section */}
         {centerContent && (
-          <div className="flex items-center space-x-6">
-            {renderNavItems()}
-          </div>
+          <div className="flex items-center space-x-6">{renderNavItems()}</div>
         )}
 
         {/* Right Section */}
@@ -436,7 +452,7 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="text-xl">🔔</span>
               {notificationCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[20px] h-5 flex items-center justify-center">
-                  {notificationCount > 99 ? '99+' : notificationCount}
+                  {notificationCount > 99 ? "99+" : notificationCount}
                 </span>
               )}
             </button>
@@ -455,12 +471,16 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Page Title & Breadcrumbs */}
       {(pageTitle || breadcrumbs.length > 0) && (
-        <div className={cn(
-          'bg-gray-50 border-b px-6 py-4',
-          theme === 'dark' && 'bg-gray-800 border-gray-700'
-        )}>
+        <div
+          className={cn(
+            "bg-gray-50 border-b px-6 py-4",
+            theme === "dark" && "bg-gray-800 border-gray-700",
+          )}
+        >
           {pageTitle && (
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">{pageTitle}</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              {pageTitle}
+            </h2>
           )}
           {breadcrumbs.length > 0 && renderBreadcrumbs()}
         </div>
@@ -471,20 +491,20 @@ export const Header: React.FC<HeaderProps> = ({
         <div
           data-testid="mobile-menu"
           className={cn(
-            'md:hidden border-b bg-white',
-            mobileMenuOpen ? 'block' : 'hidden'
+            "md:hidden border-b bg-white",
+            mobileMenuOpen ? "block" : "hidden",
           )}
         >
           <nav className="px-4 py-2 space-y-2">
-            {navItems.map(item => (
+            {navItems.map((item) => (
               <a
                 key={item.id}
                 href={item.href}
                 className={cn(
-                  'block px-3 py-2 rounded-md text-base font-medium transition-colors',
-                  item.current 
-                    ? 'text-blue-600 bg-blue-50' 
-                    : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
+                  "block px-3 py-2 rounded-md text-base font-medium transition-colors",
+                  item.current
+                    ? "text-blue-600 bg-blue-50"
+                    : "text-gray-700 hover:text-gray-900 hover:bg-gray-50",
                 )}
                 onClick={(e) => {
                   item.onClick?.(e);

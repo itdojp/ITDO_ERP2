@@ -138,7 +138,7 @@ class WorkflowDefinitionCreateRequest(BaseWorkflowSchema):
     created_by: str = Field(..., description="Creator user ID")
 
     @validator("definition_schema")
-    def validate_definition_schema(cls, v):
+    def validate_definition_schema(cls, v) -> dict:
         """Validate workflow definition schema."""
         if not isinstance(v, dict):
             raise ValueError("Definition schema must be a dictionary")

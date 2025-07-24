@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from "react";
 
 interface StepData {
   title: string;
@@ -6,9 +6,9 @@ interface StepData {
   subtitle?: string;
   icon?: React.ReactNode;
   content?: React.ReactNode;
-  status?: 'pending' | 'active' | 'completed' | 'error';
+  status?: "pending" | "active" | "completed" | "error";
   disabled?: boolean;
-  type?: 'navigation' | 'inline';
+  type?: "navigation" | "inline";
 }
 
 interface StepperProps {
@@ -16,15 +16,15 @@ interface StepperProps {
   current: number;
   onChange?: (step: number) => void;
   onStepValidate?: (step: number) => boolean;
-  direction?: 'horizontal' | 'vertical';
-  size?: 'small' | 'medium' | 'large';
+  direction?: "horizontal" | "vertical";
+  size?: "small" | "medium" | "large";
   showProgress?: boolean;
   className?: string;
   dot?: boolean;
-  labelPlacement?: 'horizontal' | 'vertical';
+  labelPlacement?: "horizontal" | "vertical";
   responsive?: boolean;
   alternating?: boolean;
-  connector?: 'solid' | 'dashed' | 'dotted';
+  connector?: "solid" | "dashed" | "dotted";
   animated?: boolean;
   stepRender?: (step: StepData, index: number) => React.ReactNode;
 }
@@ -34,93 +34,98 @@ const Stepper: React.FC<StepperProps> = ({
   current,
   onChange,
   onStepValidate,
-  direction = 'horizontal',
-  size = 'medium',
+  direction = "horizontal",
+  size = "medium",
   showProgress = false,
-  className = '',
+  className = "",
   dot = false,
-  labelPlacement = 'horizontal',
+  labelPlacement = "horizontal",
   responsive = false,
   alternating = false,
-  connector = 'solid',
+  connector = "solid",
   animated = false,
-  stepRender
+  stepRender,
 }) => {
   const stepperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (animated && stepperRef.current) {
-      stepperRef.current.classList.add('animate-fade-in');
+      stepperRef.current.classList.add("animate-fade-in");
     }
   }, [animated]);
 
   const getSizeClasses = () => {
     const sizeMap = {
       small: {
-        step: 'w-6 h-6 text-xs',
-        title: 'text-sm',
-        description: 'text-xs'
+        step: "w-6 h-6 text-xs",
+        title: "text-sm",
+        description: "text-xs",
       },
       medium: {
-        step: 'w-8 h-8 text-sm',
-        title: 'text-base',
-        description: 'text-sm'
+        step: "w-8 h-8 text-sm",
+        title: "text-base",
+        description: "text-sm",
       },
       large: {
-        step: 'w-10 h-10 text-base',
-        title: 'text-lg',
-        description: 'text-base'
-      }
+        step: "w-10 h-10 text-base",
+        title: "text-lg",
+        description: "text-base",
+      },
     };
     return sizeMap[size];
   };
 
   const getStepStatus = (index: number, step: StepData) => {
     if (step.status) return step.status;
-    if (index < current) return 'completed';
-    if (index === current) return 'active';
-    return 'pending';
+    if (index < current) return "completed";
+    if (index === current) return "active";
+    return "pending";
   };
 
   const getStepClasses = (index: number, step: StepData) => {
     const status = getStepStatus(index, step);
     const sizeClasses = getSizeClasses();
-    
+
     const baseClasses = [
-      'rounded-full border-2 flex items-center justify-center font-medium transition-all duration-200',
-      sizeClasses.step
+      "rounded-full border-2 flex items-center justify-center font-medium transition-all duration-200",
+      sizeClasses.step,
     ];
 
     const statusClasses = {
-      completed: 'bg-green-500 border-green-500 text-white',
-      active: 'bg-blue-500 border-blue-500 text-white',
-      error: 'bg-red-500 border-red-500 text-white',
-      pending: 'bg-gray-100 border-gray-300 text-gray-500'
+      completed: "bg-green-500 border-green-500 text-white",
+      active: "bg-blue-500 border-blue-500 text-white",
+      error: "bg-red-500 border-red-500 text-white",
+      pending: "bg-gray-100 border-gray-300 text-gray-500",
     };
 
     if (step.disabled) {
-      baseClasses.push('opacity-50 cursor-not-allowed');
+      baseClasses.push("opacity-50 cursor-not-allowed");
     } else if (onChange && !step.disabled) {
-      baseClasses.push('cursor-pointer hover:scale-105');
+      baseClasses.push("cursor-pointer hover:scale-105");
     }
 
-    return [...baseClasses, statusClasses[status]].join(' ');
+    return [...baseClasses, statusClasses[status]].join(" ");
   };
 
   const getConnectorClasses = () => {
     const connectorMap = {
-      solid: 'border-solid',
-      dashed: 'border-dashed',
-      dotted: 'border-dotted'
+      solid: "border-solid",
+      dashed: "border-dashed",
+      dotted: "border-dotted",
     };
 
-    const baseClasses = ['flex-1 border-t-2 border-gray-300', connectorMap[connector]];
-    
-    if (direction === 'vertical') {
-      return baseClasses.join(' ').replace('border-t-2', 'border-l-2 h-8 w-0 ml-4');
+    const baseClasses = [
+      "flex-1 border-t-2 border-gray-300",
+      connectorMap[connector],
+    ];
+
+    if (direction === "vertical") {
+      return baseClasses
+        .join(" ")
+        .replace("border-t-2", "border-l-2 h-8 w-0 ml-4");
     }
-    
-    return baseClasses.join(' ');
+
+    return baseClasses.join(" ");
   };
 
   const handleStepClick = (index: number, step: StepData) => {
@@ -139,11 +144,11 @@ const Stepper: React.FC<StepperProps> = ({
     if (!onChange) return;
 
     let newIndex = index;
-    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+    if (e.key === "ArrowRight" || e.key === "ArrowDown") {
       newIndex = Math.min(steps.length - 1, index + 1);
-    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+    } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
       newIndex = Math.max(0, index - 1);
-    } else if (e.key === 'Enter' || e.key === ' ') {
+    } else if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       handleStepClick(index, steps[index]);
       return;
@@ -156,7 +161,7 @@ const Stepper: React.FC<StepperProps> = ({
 
   const renderStepIcon = (step: StepData, index: number) => {
     const status = getStepStatus(index, step);
-    
+
     if (step.icon) {
       return step.icon;
     }
@@ -165,7 +170,7 @@ const Stepper: React.FC<StepperProps> = ({
       return <div className="w-3 h-3 rounded-full bg-current" />;
     }
 
-    if (status === 'completed') {
+    if (status === "completed") {
       return (
         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
           <path
@@ -177,7 +182,7 @@ const Stepper: React.FC<StepperProps> = ({
       );
     }
 
-    if (status === 'error') {
+    if (status === "error") {
       return (
         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
           <path
@@ -198,25 +203,33 @@ const Stepper: React.FC<StepperProps> = ({
     }
 
     const sizeClasses = getSizeClasses();
-    const isVerticalLabels = labelPlacement === 'vertical' || direction === 'vertical';
-    const isAlternating = alternating && direction === 'horizontal' && index % 2 === 1;
+    const isVerticalLabels =
+      labelPlacement === "vertical" || direction === "vertical";
+    const isAlternating =
+      alternating && direction === "horizontal" && index % 2 === 1;
 
     return (
-      <div className={`flex ${isVerticalLabels ? 'flex-col items-center' : 'items-center'} ${isAlternating ? 'flex-col-reverse' : ''}`}>
+      <div
+        className={`flex ${isVerticalLabels ? "flex-col items-center" : "items-center"} ${isAlternating ? "flex-col-reverse" : ""}`}
+      >
         <div
           className={getStepClasses(index, step)}
           onClick={() => handleStepClick(index, step)}
           onKeyDown={(e) => handleKeyDown(e, index)}
           tabIndex={onChange && !step.disabled ? 0 : -1}
           role="button"
-          aria-current={index === current ? 'step' : undefined}
+          aria-current={index === current ? "step" : undefined}
           aria-disabled={step.disabled}
         >
           {renderStepIcon(step, index)}
         </div>
-        
-        <div className={`${isVerticalLabels ? 'mt-2 text-center' : 'ml-3'} ${isAlternating ? 'mb-2' : ''}`}>
-          <div className={`font-medium ${sizeClasses.title} ${getStepStatus(index, step) === 'active' ? 'text-blue-600' : 'text-gray-900'}`}>
+
+        <div
+          className={`${isVerticalLabels ? "mt-2 text-center" : "ml-3"} ${isAlternating ? "mb-2" : ""}`}
+        >
+          <div
+            className={`font-medium ${sizeClasses.title} ${getStepStatus(index, step) === "active" ? "text-blue-600" : "text-gray-900"}`}
+          >
             {step.title}
           </div>
           {step.subtitle && (
@@ -229,11 +242,7 @@ const Stepper: React.FC<StepperProps> = ({
               {step.description}
             </div>
           )}
-          {step.content && (
-            <div className="mt-2">
-              {step.content}
-            </div>
-          )}
+          {step.content && <div className="mt-2">{step.content}</div>}
         </div>
       </div>
     );
@@ -241,13 +250,13 @@ const Stepper: React.FC<StepperProps> = ({
 
   const renderConnector = (index: number) => {
     if (index === steps.length - 1) return null;
-    
+
     const isCompleted = index < current;
     const connectorClasses = getConnectorClasses();
-    
+
     return (
-      <div 
-        className={`${connectorClasses} ${isCompleted ? 'border-green-500' : ''}`}
+      <div
+        className={`${connectorClasses} ${isCompleted ? "border-green-500" : ""}`}
       />
     );
   };
@@ -255,12 +264,14 @@ const Stepper: React.FC<StepperProps> = ({
   const progressPercentage = Math.round(((current + 1) / steps.length) * 100);
 
   const containerClasses = [
-    'stepper',
-    direction === 'vertical' ? 'flex flex-col' : 'flex items-center',
-    responsive ? 'responsive' : '',
-    animated ? 'transition-all duration-300' : '',
-    className
-  ].filter(Boolean).join(' ');
+    "stepper",
+    direction === "vertical" ? "flex flex-col" : "flex items-center",
+    responsive ? "responsive" : "",
+    animated ? "transition-all duration-300" : "",
+    className,
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <div ref={stepperRef} className={containerClasses}>
@@ -282,14 +293,20 @@ const Stepper: React.FC<StepperProps> = ({
           </div>
         </div>
       )}
-      
-      <div className={direction === 'vertical' ? 'space-y-4' : 'flex items-center space-x-4 w-full'}>
+
+      <div
+        className={
+          direction === "vertical"
+            ? "space-y-4"
+            : "flex items-center space-x-4 w-full"
+        }
+      >
         {steps.map((step, index) => (
           <React.Fragment key={index}>
-            <div className={direction === 'vertical' ? 'flex items-start' : ''}>
+            <div className={direction === "vertical" ? "flex items-start" : ""}>
               {renderStepContent(step, index)}
             </div>
-            {direction === 'horizontal' && renderConnector(index)}
+            {direction === "horizontal" && renderConnector(index)}
           </React.Fragment>
         ))}
       </div>

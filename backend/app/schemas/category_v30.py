@@ -19,7 +19,7 @@ class CategoryBase(BaseModel):
     description: Optional[str] = Field(None, description="説明")
 
     @validator("category_code")
-    def validate_category_code(cls, v):
+    def validate_category_code(cls, v) -> dict:
         if not re.match(r"^[A-Z0-9_-]+$", v):
             raise ValueError(
                 "Category code must contain only uppercase letters, numbers, underscores, and hyphens"
@@ -107,7 +107,7 @@ class CategoryCreate(CategoryBase):
     new_product_alert_enabled: bool = False
 
     @validator("url_slug")
-    def validate_url_slug(cls, v):
+    def validate_url_slug(cls, v) -> dict:
         if v and not re.match(r"^[a-z0-9-]+$", v):
             raise ValueError(
                 "URL slug must contain only lowercase letters, numbers, and hyphens"
@@ -292,7 +292,7 @@ class CategoryAttributeBase(BaseModel):
     display_name: Optional[str] = Field(None, max_length=150)
 
     @validator("attribute_code")
-    def validate_attribute_code(cls, v):
+    def validate_attribute_code(cls, v) -> dict:
         if not re.match(r"^[A-Za-z0-9_]+$", v):
             raise ValueError(
                 "Attribute code must contain only letters, numbers, and underscores"
@@ -346,7 +346,7 @@ class CategoryAttributeCreate(CategoryAttributeBase):
     shared_across_categories: bool = False
 
     @validator("min_length", "max_length")
-    def validate_length_constraints(cls, v, values, field):
+    def validate_length_constraints(cls, v, values, field) -> dict:
         if field.name == "max_length" and v is not None:
             min_length = values.get("min_length")
             if min_length is not None and v < min_length:
@@ -356,7 +356,7 @@ class CategoryAttributeCreate(CategoryAttributeBase):
         return v
 
     @validator("max_value")
-    def validate_value_constraints(cls, v, values):
+    def validate_value_constraints(cls, v, values) -> dict:
         if v is not None:
             min_value = values.get("min_value")
             if min_value is not None and v < min_value:
@@ -492,7 +492,7 @@ class CategoryPricingRuleCreate(CategoryPricingRuleBase):
     approval_required: bool = False
 
     @validator("maximum_quantity")
-    def validate_quantity_range(cls, v, values):
+    def validate_quantity_range(cls, v, values) -> dict:
         if v is not None:
             min_qty = values.get("minimum_quantity")
             if min_qty is not None and v < min_qty:
@@ -502,7 +502,7 @@ class CategoryPricingRuleCreate(CategoryPricingRuleBase):
         return v
 
     @validator("expiry_date")
-    def validate_date_range(cls, v, values):
+    def validate_date_range(cls, v, values) -> dict:
         if v is not None:
             effective_date = values.get("effective_date")
             if effective_date is not None and v <= effective_date:

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { cn } from '@/lib/utils';
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { cn } from "@/lib/utils";
 
 export interface Collaborator {
   id: string;
@@ -16,8 +16,8 @@ export interface RichTextEditorProps {
   value?: string;
   defaultValue?: string;
   placeholder?: string;
-  size?: 'sm' | 'md' | 'lg';
-  theme?: 'light' | 'dark';
+  size?: "sm" | "md" | "lg";
+  theme?: "light" | "dark";
   disabled?: boolean;
   readonly?: boolean;
   required?: boolean;
@@ -43,35 +43,54 @@ export interface RichTextEditorProps {
   onBlur?: (e: React.FocusEvent<HTMLDivElement>) => void;
   onAutoSave?: (content: string) => void;
   className?: string;
-  'data-testid'?: string;
-  'data-category'?: string;
-  'data-id'?: string;
+  "data-testid"?: string;
+  "data-category"?: string;
+  "data-id"?: string;
 }
 
 const DEFAULT_TOOLBAR = [
-  'bold', 'italic', 'underline', 'strikethrough',
-  'separator',
-  'heading', 'fontsize', 'fontfamily',
-  'separator',
-  'text-color', 'bg-color',
-  'separator',
-  'align-left', 'align-center', 'align-right', 'align-justify',
-  'separator',
-  'bullet-list', 'numbered-list',
-  'separator',
-  'link', 'image', 'table',
-  'separator',
-  'undo', 'redo', 'copy', 'paste', 'clear-format',
-  'separator',
-  'html', 'markdown', 'print', 'fullscreen'
+  "bold",
+  "italic",
+  "underline",
+  "strikethrough",
+  "separator",
+  "heading",
+  "fontsize",
+  "fontfamily",
+  "separator",
+  "text-color",
+  "bg-color",
+  "separator",
+  "align-left",
+  "align-center",
+  "align-right",
+  "align-justify",
+  "separator",
+  "bullet-list",
+  "numbered-list",
+  "separator",
+  "link",
+  "image",
+  "table",
+  "separator",
+  "undo",
+  "redo",
+  "copy",
+  "paste",
+  "clear-format",
+  "separator",
+  "html",
+  "markdown",
+  "print",
+  "fullscreen",
 ];
 
 export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   value,
   defaultValue,
-  placeholder = 'Start typing...',
-  size = 'md',
-  theme = 'light',
+  placeholder = "Start typing...",
+  size = "md",
+  theme = "light",
   disabled = false,
   readonly = false,
   required = false,
@@ -97,12 +116,12 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   onBlur,
   onAutoSave,
   className,
-  'data-testid': dataTestId = 'richtexteditor-container',
-  'data-category': dataCategory,
-  'data-id': dataId,
+  "data-testid": dataTestId = "richtexteditor-container",
+  "data-category": dataCategory,
+  "data-id": dataId,
   ...props
 }) => {
-  const [content, setContent] = useState(value || defaultValue || '');
+  const [content, setContent] = useState(value || defaultValue || "");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showHtmlView, setShowHtmlView] = useState(false);
   const [showLinkDialog, setShowLinkDialog] = useState(false);
@@ -120,21 +139,21 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     alignCenter: false,
     alignRight: false,
     bulletList: false,
-    numberedList: false
+    numberedList: false,
   });
 
   const editorRef = useRef<HTMLDivElement>(null);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout>();
 
   const sizeClasses = {
-    sm: 'size-sm min-h-32',
-    md: 'size-md min-h-48',
-    lg: 'size-lg min-h-64'
+    sm: "size-sm min-h-32",
+    md: "size-md min-h-48",
+    lg: "size-lg min-h-64",
   };
 
   const themeClasses = {
-    light: 'theme-light bg-white border-gray-300 text-gray-900',
-    dark: 'theme-dark bg-gray-800 border-gray-600 text-white'
+    light: "theme-light bg-white border-gray-300 text-gray-900",
+    dark: "theme-dark bg-gray-800 border-gray-600 text-white",
   };
 
   // Update content when value changes
@@ -174,24 +193,24 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
       if (!selection?.rangeCount) return;
 
       setFormatStates({
-        bold: document.queryCommandState('bold'),
-        italic: document.queryCommandState('italic'),
-        underline: document.queryCommandState('underline'),
-        alignLeft: document.queryCommandState('justifyLeft'),
-        alignCenter: document.queryCommandState('justifyCenter'),
-        alignRight: document.queryCommandState('justifyRight'),
-        bulletList: document.queryCommandState('insertUnorderedList'),
-        numberedList: document.queryCommandState('insertOrderedList')
+        bold: document.queryCommandState("bold"),
+        italic: document.queryCommandState("italic"),
+        underline: document.queryCommandState("underline"),
+        alignLeft: document.queryCommandState("justifyLeft"),
+        alignCenter: document.queryCommandState("justifyCenter"),
+        alignRight: document.queryCommandState("justifyRight"),
+        bulletList: document.queryCommandState("insertUnorderedList"),
+        numberedList: document.queryCommandState("insertOrderedList"),
       });
     };
 
     const editor = editorRef.current;
     if (editor) {
-      editor.addEventListener('keyup', updateFormatStates);
-      editor.addEventListener('mouseup', updateFormatStates);
+      editor.addEventListener("keyup", updateFormatStates);
+      editor.addEventListener("mouseup", updateFormatStates);
       return () => {
-        editor.removeEventListener('keyup', updateFormatStates);
-        editor.removeEventListener('mouseup', updateFormatStates);
+        editor.removeEventListener("keyup", updateFormatStates);
+        editor.removeEventListener("mouseup", updateFormatStates);
       };
     }
   }, []);
@@ -200,10 +219,17 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     if (!editorRef.current) return;
 
     const newContent = editorRef.current.innerHTML;
-    
+
     // Check max length
-    if (maxLength && editorRef.current.textContent && editorRef.current.textContent.length > maxLength) {
-      editorRef.current.textContent = editorRef.current.textContent.substring(0, maxLength);
+    if (
+      maxLength &&
+      editorRef.current.textContent &&
+      editorRef.current.textContent.length > maxLength
+    ) {
+      editorRef.current.textContent = editorRef.current.textContent.substring(
+        0,
+        maxLength,
+      );
       return;
     }
 
@@ -211,101 +237,141 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     onChange?.(newContent);
   }, [onChange, maxLength]);
 
-  const executeCommand = useCallback((command: string, value?: string) => {
-    try {
-      document.execCommand(command, false, value);
-      
-      // Update format states after command execution
-      setTimeout(() => {
-        setFormatStates(prev => ({
+  const executeCommand = useCallback(
+    (command: string, value?: string) => {
+      try {
+        document.execCommand(command, false, value);
+
+        // Update format states after command execution
+        setTimeout(() => {
+          setFormatStates((prev) => ({
+            ...prev,
+            [command]: !prev[command as keyof typeof prev],
+          }));
+        }, 0);
+
+        editorRef.current?.focus();
+        handleContentChange();
+      } catch (error) {
+        // Fallback for test environment
+        setFormatStates((prev) => ({
           ...prev,
-          [command]: !prev[command as keyof typeof prev]
+          bold: command === "bold" ? !prev.bold : prev.bold,
+          italic: command === "italic" ? !prev.italic : prev.italic,
+          underline: command === "underline" ? !prev.underline : prev.underline,
+          alignLeft:
+            command === "justifyLeft"
+              ? true
+              : command.includes("justify")
+                ? false
+                : prev.alignLeft,
+          alignCenter:
+            command === "justifyCenter"
+              ? true
+              : command.includes("justify")
+                ? false
+                : prev.alignCenter,
+          alignRight:
+            command === "justifyRight"
+              ? true
+              : command.includes("justify")
+                ? false
+                : prev.alignRight,
+          bulletList:
+            command === "insertUnorderedList"
+              ? !prev.bulletList
+              : prev.bulletList,
+          numberedList:
+            command === "insertOrderedList"
+              ? !prev.numberedList
+              : prev.numberedList,
         }));
-      }, 0);
-      
-      editorRef.current?.focus();
-      handleContentChange();
-    } catch (error) {
-      // Fallback for test environment
-      setFormatStates(prev => ({
-        ...prev,
-        bold: command === 'bold' ? !prev.bold : prev.bold,
-        italic: command === 'italic' ? !prev.italic : prev.italic,
-        underline: command === 'underline' ? !prev.underline : prev.underline,
-        alignLeft: command === 'justifyLeft' ? true : command.includes('justify') ? false : prev.alignLeft,
-        alignCenter: command === 'justifyCenter' ? true : command.includes('justify') ? false : prev.alignCenter,
-        alignRight: command === 'justifyRight' ? true : command.includes('justify') ? false : prev.alignRight,
-        bulletList: command === 'insertUnorderedList' ? !prev.bulletList : prev.bulletList,
-        numberedList: command === 'insertOrderedList' ? !prev.numberedList : prev.numberedList
-      }));
-    }
-  }, [handleContentChange]);
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
-    // Handle keyboard shortcuts
-    if (e.ctrlKey || e.metaKey) {
-      switch (e.key.toLowerCase()) {
-        case 'b':
-          e.preventDefault();
-          executeCommand('bold');
-          break;
-        case 'i':
-          e.preventDefault();
-          executeCommand('italic');
-          break;
-        case 'u':
-          e.preventDefault();
-          executeCommand('underline');
-          break;
-        case 'z':
-          e.preventDefault();
-          if (e.shiftKey) {
-            executeCommand('redo');
-          } else {
-            executeCommand('undo');
-          }
-          break;
       }
-    }
-  }, [executeCommand]);
+    },
+    [handleContentChange],
+  );
 
-  const handlePaste = useCallback((e: React.ClipboardEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    const text = e.clipboardData.getData('text/plain');
-    try {
-      document.execCommand('insertText', false, text);
-    } catch (error) {
-      // Fallback for test environment
-      if (editorRef.current) {
-        editorRef.current.textContent = (editorRef.current.textContent || '') + text;
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      // Handle keyboard shortcuts
+      if (e.ctrlKey || e.metaKey) {
+        switch (e.key.toLowerCase()) {
+          case "b":
+            e.preventDefault();
+            executeCommand("bold");
+            break;
+          case "i":
+            e.preventDefault();
+            executeCommand("italic");
+            break;
+          case "u":
+            e.preventDefault();
+            executeCommand("underline");
+            break;
+          case "z":
+            e.preventDefault();
+            if (e.shiftKey) {
+              executeCommand("redo");
+            } else {
+              executeCommand("undo");
+            }
+            break;
+        }
       }
-    }
-    handleContentChange();
-  }, [handleContentChange]);
+    },
+    [executeCommand],
+  );
 
-  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    if (allowDragDrop) {
+  const handlePaste = useCallback(
+    (e: React.ClipboardEvent<HTMLDivElement>) => {
       e.preventDefault();
-      setIsDragOver(true);
-    }
-  }, [allowDragDrop]);
+      const text = e.clipboardData.getData("text/plain");
+      try {
+        document.execCommand("insertText", false, text);
+      } catch (error) {
+        // Fallback for test environment
+        if (editorRef.current) {
+          editorRef.current.textContent =
+            (editorRef.current.textContent || "") + text;
+        }
+      }
+      handleContentChange();
+    },
+    [handleContentChange],
+  );
+
+  const handleDragOver = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      if (allowDragDrop) {
+        e.preventDefault();
+        setIsDragOver(true);
+      }
+    },
+    [allowDragDrop],
+  );
 
   const handleDragLeave = useCallback(() => {
     setIsDragOver(false);
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    if (allowDragDrop) {
-      e.preventDefault();
-      setIsDragOver(false);
-      // Handle file drop logic here
-    }
-  }, [allowDragDrop]);
+  const handleDrop = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      if (allowDragDrop) {
+        e.preventDefault();
+        setIsDragOver(false);
+        // Handle file drop logic here
+      }
+    },
+    [allowDragDrop],
+  );
 
   const getWordCount = useCallback(() => {
     if (!editorRef.current) return 0;
-    const text = editorRef.current.textContent || '';
-    return text.trim().split(/\s+/).filter(word => word.length > 0).length;
+    const text = editorRef.current.textContent || "";
+    return text
+      .trim()
+      .split(/\s+/)
+      .filter((word) => word.length > 0).length;
   }, []);
 
   const getCharCount = useCallback(() => {
@@ -316,45 +382,54 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   const renderToolbarButton = (tool: string, index: number) => {
     const isActive = (tool: string) => {
       switch (tool) {
-        case 'bold': return formatStates.bold;
-        case 'italic': return formatStates.italic;
-        case 'underline': return formatStates.underline;
-        case 'align-left': return formatStates.alignLeft;
-        case 'align-center': return formatStates.alignCenter;
-        case 'align-right': return formatStates.alignRight;
-        case 'bullet-list': return formatStates.bulletList;
-        case 'numbered-list': return formatStates.numberedList;
-        default: return false;
+        case "bold":
+          return formatStates.bold;
+        case "italic":
+          return formatStates.italic;
+        case "underline":
+          return formatStates.underline;
+        case "align-left":
+          return formatStates.alignLeft;
+        case "align-center":
+          return formatStates.alignCenter;
+        case "align-right":
+          return formatStates.alignRight;
+        case "bullet-list":
+          return formatStates.bulletList;
+        case "numbered-list":
+          return formatStates.numberedList;
+        default:
+          return false;
       }
     };
 
     const handleClick = (command: string, value?: string) => {
       switch (command) {
-        case 'text-color':
+        case "text-color":
           setShowTextColorPicker(!showTextColorPicker);
           break;
-        case 'bg-color':
+        case "bg-color":
           setShowBgColorPicker(!showBgColorPicker);
           break;
-        case 'link':
+        case "link":
           setShowLinkDialog(true);
           break;
-        case 'image':
+        case "image":
           setShowImageDialog(true);
           break;
-        case 'table':
+        case "table":
           setShowTableDialog(true);
           break;
-        case 'markdown':
+        case "markdown":
           setShowMarkdownDialog(true);
           break;
-        case 'html':
+        case "html":
           setShowHtmlView(!showHtmlView);
           break;
-        case 'print':
+        case "print":
           window.print();
           break;
-        case 'fullscreen':
+        case "fullscreen":
           setIsFullscreen(!isFullscreen);
           break;
         default:
@@ -364,44 +439,46 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
     const getToolIcon = (tool: string) => {
       const icons: Record<string, string> = {
-        'bold': 'B',
-        'italic': 'I',
-        'underline': 'U',
-        'strikethrough': 'S',
-        'align-left': '⇤',
-        'align-center': '⟷',
-        'align-right': '⇥',
-        'align-justify': '⟌',
-        'bullet-list': '•',
-        'numbered-list': '1.',
-        'link': '🔗',
-        'image': '🖼️',
-        'table': '⊞',
-        'undo': '↶',
-        'redo': '↷',
-        'copy': '📋',
-        'paste': '📄',
-        'clear-format': '🧹',
-        'text-color': 'A',
-        'bg-color': '⬛',
-        'html': '</>',
-        'markdown': 'MD',
-        'print': '🖨️',
-        'fullscreen': '⛶'
+        bold: "B",
+        italic: "I",
+        underline: "U",
+        strikethrough: "S",
+        "align-left": "⇤",
+        "align-center": "⟷",
+        "align-right": "⇥",
+        "align-justify": "⟌",
+        "bullet-list": "•",
+        "numbered-list": "1.",
+        link: "🔗",
+        image: "🖼️",
+        table: "⊞",
+        undo: "↶",
+        redo: "↷",
+        copy: "📋",
+        paste: "📄",
+        "clear-format": "🧹",
+        "text-color": "A",
+        "bg-color": "⬛",
+        html: "</>",
+        markdown: "MD",
+        print: "🖨️",
+        fullscreen: "⛶",
       };
       return icons[tool] || tool;
     };
 
-    if (tool === 'separator') {
-      return <div key={`separator-${index}`} className="w-px h-6 bg-gray-300 mx-1" />;
+    if (tool === "separator") {
+      return (
+        <div key={`separator-${index}`} className="w-px h-6 bg-gray-300 mx-1" />
+      );
     }
 
-    if (tool === 'heading') {
+    if (tool === "heading") {
       return (
         <select
           key={tool}
           className="px-2 py-1 border border-gray-300 rounded text-sm"
-          onChange={(e) => executeCommand('formatBlock', e.target.value)}
+          onChange={(e) => executeCommand("formatBlock", e.target.value)}
           data-testid="toolbar-heading-select"
         >
           <option value="div">Normal</option>
@@ -415,12 +492,12 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
       );
     }
 
-    if (tool === 'fontsize') {
+    if (tool === "fontsize") {
       return (
         <select
           key={tool}
           className="px-2 py-1 border border-gray-300 rounded text-sm"
-          onChange={(e) => executeCommand('fontSize', e.target.value)}
+          onChange={(e) => executeCommand("fontSize", e.target.value)}
           data-testid="toolbar-fontsize-select"
           defaultValue="3"
         >
@@ -435,12 +512,12 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
       );
     }
 
-    if (tool === 'fontfamily') {
+    if (tool === "fontfamily") {
       return (
         <select
           key={tool}
           className="px-2 py-1 border border-gray-300 rounded text-sm"
-          onChange={(e) => executeCommand('fontName', e.target.value)}
+          onChange={(e) => executeCommand("fontName", e.target.value)}
           data-testid="toolbar-fontfamily-select"
         >
           <option value="Arial">Arial</option>
@@ -453,21 +530,21 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     }
 
     const commandMap: Record<string, string> = {
-      'bold': 'bold',
-      'italic': 'italic',
-      'underline': 'underline',
-      'strikethrough': 'strikeThrough',
-      'align-left': 'justifyLeft',
-      'align-center': 'justifyCenter',
-      'align-right': 'justifyRight',
-      'align-justify': 'justifyFull',
-      'bullet-list': 'insertUnorderedList',
-      'numbered-list': 'insertOrderedList',
-      'undo': 'undo',
-      'redo': 'redo',
-      'copy': 'copy',
-      'paste': 'paste',
-      'clear-format': 'removeFormat'
+      bold: "bold",
+      italic: "italic",
+      underline: "underline",
+      strikethrough: "strikeThrough",
+      "align-left": "justifyLeft",
+      "align-center": "justifyCenter",
+      "align-right": "justifyRight",
+      "align-justify": "justifyFull",
+      "bullet-list": "insertUnorderedList",
+      "numbered-list": "insertOrderedList",
+      undo: "undo",
+      redo: "redo",
+      copy: "copy",
+      paste: "paste",
+      "clear-format": "removeFormat",
     };
 
     return (
@@ -475,8 +552,8 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         key={tool}
         type="button"
         className={cn(
-          'px-3 py-2 text-sm font-medium rounded hover:bg-gray-100 transition-colors',
-          isActive(tool) && 'active bg-blue-100 text-blue-700'
+          "px-3 py-2 text-sm font-medium rounded hover:bg-gray-100 transition-colors",
+          isActive(tool) && "active bg-blue-100 text-blue-700",
         )}
         onClick={() => handleClick(commandMap[tool] || tool)}
         data-testid={`toolbar-${tool}`}
@@ -487,25 +564,38 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   };
 
   const renderToolbar = () => (
-    <div className="flex flex-wrap items-center gap-1 p-2 border-b border-gray-300" data-testid="richtexteditor-toolbar">
+    <div
+      className="flex flex-wrap items-center gap-1 p-2 border-b border-gray-300"
+      data-testid="richtexteditor-toolbar"
+    >
       {toolbar.map((tool, index) => renderToolbarButton(tool, index))}
-      {plugins.map(plugin => (
-        <div key={plugin.name}>
-          {plugin.render()}
-        </div>
+      {plugins.map((plugin) => (
+        <div key={plugin.name}>{plugin.render()}</div>
       ))}
-      
+
       {/* Color Pickers */}
       {showTextColorPicker && (
-        <div className="absolute z-10 bg-white border rounded shadow-lg p-2" data-testid="color-picker-text">
+        <div
+          className="absolute z-10 bg-white border rounded shadow-lg p-2"
+          data-testid="color-picker-text"
+        >
           <div className="grid grid-cols-8 gap-1">
-            {['#000000', '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FFFFFF'].map(color => (
+            {[
+              "#000000",
+              "#FF0000",
+              "#00FF00",
+              "#0000FF",
+              "#FFFF00",
+              "#FF00FF",
+              "#00FFFF",
+              "#FFFFFF",
+            ].map((color) => (
               <button
                 key={color}
                 className="w-6 h-6 border rounded"
                 style={{ backgroundColor: color }}
                 onClick={() => {
-                  executeCommand('foreColor', color);
+                  executeCommand("foreColor", color);
                   setShowTextColorPicker(false);
                 }}
               />
@@ -513,17 +603,29 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           </div>
         </div>
       )}
-      
+
       {showBgColorPicker && (
-        <div className="absolute z-10 bg-white border rounded shadow-lg p-2" data-testid="color-picker-background">
+        <div
+          className="absolute z-10 bg-white border rounded shadow-lg p-2"
+          data-testid="color-picker-background"
+        >
           <div className="grid grid-cols-8 gap-1">
-            {['#FFFFFF', '#FFFF00', '#00FF00', '#00FFFF', '#FF00FF', '#FF0000', '#0000FF', '#000000'].map(color => (
+            {[
+              "#FFFFFF",
+              "#FFFF00",
+              "#00FF00",
+              "#00FFFF",
+              "#FF00FF",
+              "#FF0000",
+              "#0000FF",
+              "#000000",
+            ].map((color) => (
               <button
                 key={color}
                 className="w-6 h-6 border rounded"
                 style={{ backgroundColor: color }}
                 onClick={() => {
-                  executeCommand('backColor', color);
+                  executeCommand("backColor", color);
                   setShowBgColorPicker(false);
                 }}
               />
@@ -538,7 +640,10 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     <>
       {showLinkDialog && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg" data-testid="link-dialog">
+          <div
+            className="bg-white p-6 rounded-lg shadow-lg"
+            data-testid="link-dialog"
+          >
             <h3 className="text-lg font-semibold mb-4">Insert Link</h3>
             <input
               type="url"
@@ -565,7 +670,10 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
       {showImageDialog && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg" data-testid="image-dialog">
+          <div
+            className="bg-white p-6 rounded-lg shadow-lg"
+            data-testid="image-dialog"
+          >
             <h3 className="text-lg font-semibold mb-4">Insert Image</h3>
             <input
               type="url"
@@ -592,11 +700,24 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
       {showTableDialog && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg" data-testid="table-dialog">
+          <div
+            className="bg-white p-6 rounded-lg shadow-lg"
+            data-testid="table-dialog"
+          >
             <h3 className="text-lg font-semibold mb-4">Insert Table</h3>
             <div className="grid grid-cols-2 gap-4 mb-4">
-              <input type="number" placeholder="Rows" min="1" className="px-3 py-2 border border-gray-300 rounded" />
-              <input type="number" placeholder="Columns" min="1" className="px-3 py-2 border border-gray-300 rounded" />
+              <input
+                type="number"
+                placeholder="Rows"
+                min="1"
+                className="px-3 py-2 border border-gray-300 rounded"
+              />
+              <input
+                type="number"
+                placeholder="Columns"
+                min="1"
+                className="px-3 py-2 border border-gray-300 rounded"
+              />
             </div>
             <div className="flex gap-2">
               <button
@@ -618,7 +739,10 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
       {showMarkdownDialog && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-96" data-testid="markdown-dialog">
+          <div
+            className="bg-white p-6 rounded-lg shadow-lg w-96"
+            data-testid="markdown-dialog"
+          >
             <h3 className="text-lg font-semibold mb-4">Markdown</h3>
             <textarea
               className="w-full h-32 px-3 py-2 border border-gray-300 rounded mb-4"
@@ -648,13 +772,19 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     if (!collaborative || collaborators.length === 0) return null;
 
     return (
-      <div className="flex items-center gap-2 p-2 border-b border-gray-300" data-testid="collaborators-list">
+      <div
+        className="flex items-center gap-2 p-2 border-b border-gray-300"
+        data-testid="collaborators-list"
+      >
         <span className="text-sm text-gray-600">Collaborators:</span>
-        {collaborators.map(collaborator => (
+        {collaborators.map((collaborator) => (
           <div
             key={collaborator.id}
             className="flex items-center gap-1 px-2 py-1 rounded-full text-xs"
-            style={{ backgroundColor: `${collaborator.color}20`, color: collaborator.color }}
+            style={{
+              backgroundColor: `${collaborator.color}20`,
+              color: collaborator.color,
+            }}
           >
             <div
               className="w-2 h-2 rounded-full"
@@ -673,9 +803,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     return (
       <div className="flex items-center gap-4 p-2 border-t border-gray-300 text-sm text-gray-600">
         {showWordCount && (
-          <div data-testid="word-count">
-            Words: {getWordCount()}
-          </div>
+          <div data-testid="word-count">Words: {getWordCount()}</div>
         )}
         {showCharCount && (
           <div data-testid="char-count">
@@ -690,7 +818,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   if (loading) {
     return (
       <div
-        className={cn('flex items-center justify-center p-8', className)}
+        className={cn("flex items-center justify-center p-8", className)}
         data-testid="richtexteditor-loading"
       >
         {loadingComponent || (
@@ -706,12 +834,12 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   return (
     <div
       className={cn(
-        'border rounded-lg overflow-hidden',
+        "border rounded-lg overflow-hidden",
         sizeClasses[size],
         themeClasses[theme],
-        error && 'error border-red-500',
-        isFullscreen && 'fullscreen fixed inset-0 z-50',
-        className
+        error && "error border-red-500",
+        isFullscreen && "fullscreen fixed inset-0 z-50",
+        className,
       )}
       data-testid={dataTestId}
       data-category={dataCategory}
@@ -743,9 +871,9 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           <div
             ref={editorRef}
             className={cn(
-              'w-full p-4 border-none outline-none overflow-auto',
+              "w-full p-4 border-none outline-none overflow-auto",
               sizeClasses[size],
-              isDragOver && allowDragDrop && 'drag-over bg-blue-50'
+              isDragOver && allowDragDrop && "drag-over bg-blue-50",
             )}
             contentEditable={!disabled && !readonly}
             suppressContentEditableWarning
@@ -768,7 +896,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
       {renderStats()}
       {renderDialogs()}
 
-      {error && typeof error === 'string' && (
+      {error && typeof error === "string" && (
         <p className="mt-1 text-sm text-red-600">{error}</p>
       )}
 

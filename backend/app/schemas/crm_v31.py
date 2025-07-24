@@ -427,7 +427,7 @@ class OpportunityBase(BaseModel):
     custom_fields: Dict[str, Any] = {}
 
     @validator("expected_close_date")
-    def validate_close_date(cls, v):
+    def validate_close_date(cls, v) -> dict:
         if v < date.today():
             raise ValueError("Expected close date cannot be in the past")
         return v
@@ -631,7 +631,7 @@ class CampaignBase(BaseModel):
     tags: List[str] = []
 
     @validator("end_date")
-    def validate_end_date(cls, v, values):
+    def validate_end_date(cls, v, values) -> dict:
         if "start_date" in values and v and v < values["start_date"]:
             raise ValueError("End date must be after start date")
         return v

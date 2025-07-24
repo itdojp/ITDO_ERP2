@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { cn } from '@/lib/utils';
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { cn } from "@/lib/utils";
 
 export interface CarouselItem {
   id: string;
@@ -24,14 +24,14 @@ export interface CarouselProps {
   items?: CarouselItem[];
   images?: CarouselImage[];
   defaultIndex?: number;
-  variant?: 'default' | 'card' | 'fade';
-  size?: 'sm' | 'md' | 'lg' | 'xl';
-  theme?: 'light' | 'dark';
-  orientation?: 'horizontal' | 'vertical';
-  transition?: 'slide' | 'fade' | 'none';
+  variant?: "default" | "card" | "fade";
+  size?: "sm" | "md" | "lg" | "xl";
+  theme?: "light" | "dark";
+  orientation?: "horizontal" | "vertical";
+  transition?: "slide" | "fade" | "none";
   itemsPerView?: number;
   responsive?: ResponsiveConfig;
-  spacing?: 'none' | 'small' | 'medium' | 'large';
+  spacing?: "none" | "small" | "medium" | "large";
   autoplay?: boolean;
   autoplayInterval?: number;
   pauseOnHover?: boolean;
@@ -57,29 +57,33 @@ export interface CarouselProps {
   slidePadding?: string;
   prevArrow?: React.ReactNode;
   nextArrow?: React.ReactNode;
-  renderDot?: (props: { active: boolean; onClick: () => void; index: number }) => React.ReactNode;
+  renderDot?: (props: {
+    active: boolean;
+    onClick: () => void;
+    index: number;
+  }) => React.ReactNode;
   counterFormat?: (current: number, total: number) => string;
   onSlideChange?: (index: number, item: CarouselItem | CarouselImage) => void;
   onAutoplayStart?: () => void;
   onAutoplayStop?: () => void;
   className?: string;
-  'data-testid'?: string;
-  'data-category'?: string;
-  'data-id'?: string;
+  "data-testid"?: string;
+  "data-category"?: string;
+  "data-id"?: string;
 }
 
 export const Carousel: React.FC<CarouselProps> = ({
   items = [],
   images = [],
   defaultIndex = 0,
-  variant = 'default',
-  size = 'md',
-  theme = 'light',
-  orientation = 'horizontal',
-  transition = 'slide',
+  variant = "default",
+  size = "md",
+  theme = "light",
+  orientation = "horizontal",
+  transition = "slide",
   itemsPerView = 1,
   responsive,
-  spacing = 'medium',
+  spacing = "medium",
   autoplay = false,
   autoplayInterval = 3000,
   pauseOnHover = true,
@@ -111,9 +115,9 @@ export const Carousel: React.FC<CarouselProps> = ({
   onAutoplayStart,
   onAutoplayStop,
   className,
-  'data-testid': dataTestId = 'carousel-container',
-  'data-category': dataCategory,
-  'data-id': dataId,
+  "data-testid": dataTestId = "carousel-container",
+  "data-category": dataCategory,
+  "data-id": dataId,
   ...props
 }) => {
   const [currentIndex, setCurrentIndex] = useState(defaultIndex);
@@ -122,7 +126,7 @@ export const Carousel: React.FC<CarouselProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState(0);
   const [isAutoplayPaused, setIsAutoplayPaused] = useState(false);
-  
+
   const carouselRef = useRef<HTMLDivElement>(null);
   const autoplayRef = useRef<NodeJS.Timeout>();
   const touchStartRef = useRef(0);
@@ -131,34 +135,34 @@ export const Carousel: React.FC<CarouselProps> = ({
   const totalItems = allItems.length;
 
   const sizeClasses = {
-    sm: 'h-48',
-    md: 'h-64',
-    lg: 'h-80',
-    xl: 'h-96'
+    sm: "h-48",
+    md: "h-64",
+    lg: "h-80",
+    xl: "h-96",
   };
 
   const variantClasses = {
-    default: 'rounded-lg',
-    card: 'rounded-xl shadow-lg',
-    fade: 'rounded-lg'
+    default: "rounded-lg",
+    card: "rounded-xl shadow-lg",
+    fade: "rounded-lg",
   };
 
   const themeClasses = {
-    light: 'bg-white border-gray-200',
-    dark: 'bg-gray-900 border-gray-700'
+    light: "bg-white border-gray-200",
+    dark: "bg-gray-900 border-gray-700",
   };
 
   const spacingClasses = {
-    none: 'gap-0',
-    small: 'gap-2',
-    medium: 'gap-4',
-    large: 'gap-6'
+    none: "gap-0",
+    small: "gap-2",
+    medium: "gap-4",
+    large: "gap-6",
   };
 
   const transitionClasses = {
-    slide: 'slide-transition',
-    fade: 'fade-transition',
-    none: 'no-transition'
+    slide: "slide-transition",
+    fade: "fade-transition",
+    none: "no-transition",
   };
 
   // Auto-play functionality
@@ -167,8 +171,10 @@ export const Carousel: React.FC<CarouselProps> = ({
 
     const startAutoplay = () => {
       autoplayRef.current = setInterval(() => {
-        setCurrentIndex(prev => {
-          const nextIndex = infinite ? (prev + 1) % totalItems : Math.min(prev + 1, totalItems - 1);
+        setCurrentIndex((prev) => {
+          const nextIndex = infinite
+            ? (prev + 1) % totalItems
+            : Math.min(prev + 1, totalItems - 1);
           return nextIndex;
         });
       }, autoplayInterval);
@@ -183,7 +189,15 @@ export const Carousel: React.FC<CarouselProps> = ({
         onAutoplayStop?.();
       }
     };
-  }, [autoplay, autoplayInterval, totalItems, infinite, isAutoplayPaused, onAutoplayStart, onAutoplayStop]);
+  }, [
+    autoplay,
+    autoplayInterval,
+    totalItems,
+    infinite,
+    isAutoplayPaused,
+    onAutoplayStart,
+    onAutoplayStop,
+  ]);
 
   // Handle slide change
   useEffect(() => {
@@ -192,13 +206,16 @@ export const Carousel: React.FC<CarouselProps> = ({
     }
   }, [currentIndex, allItems, onSlideChange]);
 
-  const goToSlide = useCallback((index: number) => {
-    if (infinite) {
-      setCurrentIndex(index < 0 ? totalItems - 1 : index % totalItems);
-    } else {
-      setCurrentIndex(Math.max(0, Math.min(index, totalItems - 1)));
-    }
-  }, [infinite, totalItems]);
+  const goToSlide = useCallback(
+    (index: number) => {
+      if (infinite) {
+        setCurrentIndex(index < 0 ? totalItems - 1 : index % totalItems);
+      } else {
+        setCurrentIndex(Math.max(0, Math.min(index, totalItems - 1)));
+      }
+    },
+    [infinite, totalItems],
+  );
 
   const nextSlide = useCallback(() => {
     goToSlide(currentIndex + 1);
@@ -214,31 +231,32 @@ export const Carousel: React.FC<CarouselProps> = ({
 
     const handleKeyDown = (event: KeyboardEvent) => {
       switch (event.key) {
-        case 'ArrowLeft':
+        case "ArrowLeft":
           event.preventDefault();
-          if (orientation === 'horizontal') prevSlide();
+          if (orientation === "horizontal") prevSlide();
           break;
-        case 'ArrowRight':
+        case "ArrowRight":
           event.preventDefault();
-          if (orientation === 'horizontal') nextSlide();
+          if (orientation === "horizontal") nextSlide();
           break;
-        case 'ArrowUp':
+        case "ArrowUp":
           event.preventDefault();
-          if (orientation === 'vertical') prevSlide();
+          if (orientation === "vertical") prevSlide();
           break;
-        case 'ArrowDown':
+        case "ArrowDown":
           event.preventDefault();
-          if (orientation === 'vertical') nextSlide();
+          if (orientation === "vertical") nextSlide();
           break;
-        case 'Escape':
+        case "Escape":
           if (isZoomed) setIsZoomed(false);
           break;
       }
     };
 
     if (carouselRef.current) {
-      carouselRef.current.addEventListener('keydown', handleKeyDown);
-      return () => carouselRef.current?.removeEventListener('keydown', handleKeyDown);
+      carouselRef.current.addEventListener("keydown", handleKeyDown);
+      return () =>
+        carouselRef.current?.removeEventListener("keydown", handleKeyDown);
     }
   }, [keyboardNavigation, orientation, prevSlide, nextSlide, isZoomed]);
 
@@ -254,10 +272,11 @@ export const Carousel: React.FC<CarouselProps> = ({
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
-    if (!swipeable || !e.changedTouches || e.changedTouches.length === 0) return;
+    if (!swipeable || !e.changedTouches || e.changedTouches.length === 0)
+      return;
     const touchEnd = e.changedTouches[0].clientX;
     const diff = touchStartRef.current - touchEnd;
-    
+
     if (Math.abs(diff) > 50) {
       if (diff > 0) {
         nextSlide();
@@ -283,7 +302,7 @@ export const Carousel: React.FC<CarouselProps> = ({
     if (!draggable || !isDragging) return;
     setIsDragging(false);
     const diff = dragStart - e.clientX;
-    
+
     if (Math.abs(diff) > 50) {
       if (diff > 0) {
         nextSlide();
@@ -320,10 +339,10 @@ export const Carousel: React.FC<CarouselProps> = ({
           <img
             src={image.src}
             alt={image.alt}
-            loading={lazyLoad ? 'lazy' : 'eager'}
+            loading={lazyLoad ? "lazy" : "eager"}
             className={cn(
-              'w-full h-full object-cover',
-              zoomable && 'cursor-zoom-in'
+              "w-full h-full object-cover",
+              zoomable && "cursor-zoom-in",
             )}
             onClick={() => handleZoom(index)}
           />
@@ -348,17 +367,20 @@ export const Carousel: React.FC<CarouselProps> = ({
     if (!showThumbnails || images.length === 0) return null;
 
     return (
-      <div data-testid="carousel-thumbnails" className="flex justify-center mt-4 space-x-2">
+      <div
+        data-testid="carousel-thumbnails"
+        className="flex justify-center mt-4 space-x-2"
+      >
         {images.map((image, index) => (
           <button
             key={image.id}
             data-testid={`thumbnail-${index}`}
             onClick={() => goToSlide(index)}
             className={cn(
-              'w-16 h-16 rounded-md overflow-hidden border-2 transition-colors',
+              "w-16 h-16 rounded-md overflow-hidden border-2 transition-colors",
               index === currentIndex
-                ? 'border-blue-500'
-                : 'border-gray-300 hover:border-gray-400'
+                ? "border-blue-500"
+                : "border-gray-300 hover:border-gray-400",
             )}
           >
             <img
@@ -384,7 +406,7 @@ export const Carousel: React.FC<CarouselProps> = ({
                 {renderDot({
                   active: index === currentIndex,
                   onClick: () => goToSlide(index),
-                  index
+                  index,
                 })}
               </div>
             );
@@ -395,10 +417,10 @@ export const Carousel: React.FC<CarouselProps> = ({
               key={index}
               onClick={() => goToSlide(index)}
               className={cn(
-                'w-3 h-3 rounded-full transition-colors',
+                "w-3 h-3 rounded-full transition-colors",
                 index === currentIndex
-                  ? 'bg-blue-500'
-                  : 'bg-gray-300 hover:bg-gray-400'
+                  ? "bg-blue-500"
+                  : "bg-gray-300 hover:bg-gray-400",
               )}
             />
           );
@@ -417,10 +439,10 @@ export const Carousel: React.FC<CarouselProps> = ({
           onClick={prevSlide}
           disabled={!infinite && currentIndex === 0}
           className={cn(
-            'absolute left-4 top-1/2 -translate-y-1/2 z-10',
-            'bg-white bg-opacity-80 hover:bg-opacity-100 rounded-full p-2',
-            'text-gray-800 hover:text-black transition-all',
-            'disabled:opacity-50 disabled:cursor-not-allowed'
+            "absolute left-4 top-1/2 -translate-y-1/2 z-10",
+            "bg-white bg-opacity-80 hover:bg-opacity-100 rounded-full p-2",
+            "text-gray-800 hover:text-black transition-all",
+            "disabled:opacity-50 disabled:cursor-not-allowed",
           )}
         >
           {prevArrow || <span>‹</span>}
@@ -430,10 +452,10 @@ export const Carousel: React.FC<CarouselProps> = ({
           onClick={nextSlide}
           disabled={!infinite && currentIndex === totalItems - 1}
           className={cn(
-            'absolute right-4 top-1/2 -translate-y-1/2 z-10',
-            'bg-white bg-opacity-80 hover:bg-opacity-100 rounded-full p-2',
-            'text-gray-800 hover:text-black transition-all',
-            'disabled:opacity-50 disabled:cursor-not-allowed'
+            "absolute right-4 top-1/2 -translate-y-1/2 z-10",
+            "bg-white bg-opacity-80 hover:bg-opacity-100 rounded-full p-2",
+            "text-gray-800 hover:text-black transition-all",
+            "disabled:opacity-50 disabled:cursor-not-allowed",
           )}
         >
           {nextArrow || <span>›</span>}
@@ -479,7 +501,7 @@ export const Carousel: React.FC<CarouselProps> = ({
         data-testid="carousel-zoom-overlay"
         className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center"
         onClick={() => setIsZoomed(false)}
-        onKeyDown={(e) => e.key === 'Escape' && setIsZoomed(false)}
+        onKeyDown={(e) => e.key === "Escape" && setIsZoomed(false)}
         tabIndex={0}
       >
         <button
@@ -502,11 +524,11 @@ export const Carousel: React.FC<CarouselProps> = ({
       <div
         data-testid="carousel-loading"
         className={cn(
-          'flex items-center justify-center',
+          "flex items-center justify-center",
           sizeClasses[size],
           variantClasses[variant],
           themeClasses[theme],
-          className
+          className,
         )}
       >
         {loadingComponent || (
@@ -524,11 +546,11 @@ export const Carousel: React.FC<CarouselProps> = ({
       <div
         data-testid={dataTestId}
         className={cn(
-          'flex items-center justify-center text-gray-500',
+          "flex items-center justify-center text-gray-500",
           sizeClasses[size],
           variantClasses[variant],
           themeClasses[theme],
-          className
+          className,
         )}
       >
         No items to display
@@ -541,25 +563,27 @@ export const Carousel: React.FC<CarouselProps> = ({
       <div
         ref={carouselRef}
         className={cn(
-          'relative overflow-hidden',
+          "relative overflow-hidden",
           sizeClasses[size],
           variantClasses[variant],
           themeClasses[theme],
           `theme-${theme}`,
-          orientation === 'vertical' && 'vertical-carousel',
-          responsive && 'responsive-carousel',
+          orientation === "vertical" && "vertical-carousel",
+          responsive && "responsive-carousel",
           `spacing-${spacing}`,
           transitionClasses[transition],
-          centered && 'centered-mode',
-          autoHeight && 'auto-height',
-          adaptiveHeight && 'adaptive-height',
-          variableWidth && 'variable-width',
-          className
+          centered && "centered-mode",
+          autoHeight && "auto-height",
+          adaptiveHeight && "adaptive-height",
+          variableWidth && "variable-width",
+          className,
         )}
-        style={{
-          '--slide-duration': `${slideDuration}ms`,
-          '--slide-padding': slidePadding,
-        } as React.CSSProperties}
+        style={
+          {
+            "--slide-duration": `${slideDuration}ms`,
+            "--slide-padding": slidePadding,
+          } as React.CSSProperties
+        }
         data-testid={dataTestId}
         data-category={dataCategory}
         data-id={dataId}
@@ -577,21 +601,22 @@ export const Carousel: React.FC<CarouselProps> = ({
         {/* Slides */}
         <div
           className={cn(
-            'flex transition-transform duration-300',
-            orientation === 'vertical' ? 'flex-col' : 'flex-row'
+            "flex transition-transform duration-300",
+            orientation === "vertical" ? "flex-col" : "flex-row",
           )}
           style={{
-            transform: orientation === 'vertical'
-              ? `translateY(-${currentIndex * 100}%)`
-              : `translateX(-${currentIndex * 100}%)`
+            transform:
+              orientation === "vertical"
+                ? `translateY(-${currentIndex * 100}%)`
+                : `translateX(-${currentIndex * 100}%)`,
           }}
         >
           {allItems.map((item, index) => (
             <div
               key={item.id}
               className={cn(
-                'flex-shrink-0',
-                orientation === 'vertical' ? 'w-full h-full' : 'w-full h-full'
+                "flex-shrink-0",
+                orientation === "vertical" ? "w-full h-full" : "w-full h-full",
               )}
             >
               {renderSlide(item, index)}

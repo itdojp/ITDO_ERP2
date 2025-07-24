@@ -131,7 +131,7 @@ class ProductBase(BaseModel):
     @field_validator('product_type')
 >>>>>>> main
     @classmethod
-    def validate_product_type(cls, v):
+    def validate_product_type(cls, v) -> dict:
         if v not in [t.value for t in ProductType]:
             raise ValueError("Invalid product type")
         return v
@@ -142,7 +142,7 @@ class ProductBase(BaseModel):
     @field_validator('status')
 >>>>>>> main
     @classmethod
-    def validate_status(cls, v):
+    def validate_status(cls, v) -> dict:
         if v not in [s.value for s in ProductStatus]:
             raise ValueError("Invalid product status")
         return v
@@ -153,7 +153,7 @@ class ProductBase(BaseModel):
     @field_validator('code')
 >>>>>>> main
     @classmethod
-    def validate_code(cls, v):
+    def validate_code(cls, v) -> dict:
         if not v or not v.strip():
             raise ValueError("Product code cannot be empty")
         return v.strip().upper()
@@ -204,7 +204,7 @@ class ProductUpdate(BaseModel):
     @field_validator('product_type')
 >>>>>>> main
     @classmethod
-    def validate_product_type(cls, v):
+    def validate_product_type(cls, v) -> dict:
         if v and v not in [t.value for t in ProductType]:
             raise ValueError("Invalid product type")
         return v
@@ -215,7 +215,7 @@ class ProductUpdate(BaseModel):
     @field_validator('status')
 >>>>>>> main
     @classmethod
-    def validate_status(cls, v):
+    def validate_status(cls, v) -> dict:
         if v and v not in [s.value for s in ProductStatus]:
             raise ValueError("Invalid product status")
         return v

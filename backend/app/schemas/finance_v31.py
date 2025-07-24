@@ -115,7 +115,7 @@ class JournalEntryLineBase(BaseModel):
     custom_fields: Dict[str, Any] = {}
 
     @validator("debit_amount", "credit_amount")
-    def validate_amounts(cls, v, values):
+    def validate_amounts(cls, v, values) -> dict:
         """Validate that either debit or credit is specified, not both."""
         if "debit_amount" in values:
             debit = values["debit_amount"]
@@ -167,7 +167,7 @@ class JournalEntryCreate(JournalEntryBase):
     lines: List[JournalEntryLineCreate] = Field(min_items=2)
 
     @validator("lines")
-    def validate_balanced_entry(cls, v):
+    def validate_balanced_entry(cls, v) -> dict:
         """Validate that debits equal credits."""
         total_debits = sum(line.debit_amount for line in v)
         total_credits = sum(line.credit_amount for line in v)

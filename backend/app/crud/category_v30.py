@@ -34,7 +34,7 @@ class InvalidOperationError(Exception):
 
 
 class CategoryCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def get_by_id(self, category_id: str) -> Optional[Category]:
@@ -603,7 +603,7 @@ class CategoryCRUD:
         else:
             root_categories = self.get_by_parent(None)
 
-        def build_tree(categories):
+        def build_tree(categories) -> dict:
             tree = []
             for category in categories:
                 if not include_inactive and not category.is_active:
@@ -643,7 +643,7 @@ class CategoryCRUD:
 
         return slug
 
-    def _update_category_paths(self, category: Category):
+    def _update_category_paths(self, category: Category) -> dict:
         """カテゴリパスを更新"""
         path_parts = []
         path_ids_parts = []
@@ -664,7 +664,7 @@ class CategoryCRUD:
         for descendant in descendants:
             self._update_category_paths(descendant)
 
-    def _update_category_hierarchy(self, category: Category):
+    def _update_category_hierarchy(self, category: Category) -> dict:
         """カテゴリ階層情報を更新"""
         if category.parent_id:
             parent = self.get_by_id(category.parent_id)
@@ -679,7 +679,7 @@ class CategoryCRUD:
         for descendant in descendants:
             self._update_category_hierarchy(descendant)
 
-    def _update_parent_leaf_status(self, parent_id: Optional[str]):
+    def _update_parent_leaf_status(self, parent_id: Optional[str]) -> dict:
         """親カテゴリのis_leafステータスを更新"""
         if not parent_id:
             return
@@ -707,7 +707,7 @@ class CategoryCRUD:
 
 
 class CategoryAttributeCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def get_by_id(self, attribute_id: str) -> Optional[CategoryAttribute]:
@@ -821,7 +821,7 @@ class CategoryAttributeCRUD:
 
 
 class CategoryPricingRuleCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def get_by_id(self, rule_id: str) -> Optional[CategoryPricingRule]:

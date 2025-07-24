@@ -23,26 +23,21 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.schemas.crm_v31 import (
-    # Activity schemas
+from app.schemas.crm_v31 import (  # Activity schemas; Campaign schemas; Contact schemas; Analytics schemas; Customer schemas; Lead schemas; Opportunity schemas; Support ticket schemas
     ActivityCreate,
     ActivityFilterRequest,
     ActivityResponse,
     ActivityUpdate,
     AssignLeadRequest,
     BulkEmailCampaignRequest,
-    # Campaign schemas
     CampaignCreate,
     CampaignResponse,
     CampaignUpdate,
-    # Contact schemas
     ContactCreate,
     ContactResponse,
     ContactUpdate,
     ConvertLeadRequest,
-    # Analytics schemas
     CRMDashboardMetrics,
-    # Customer schemas
     CustomerCreate,
     CustomerFilterRequest,
     CustomerHealthScore,
@@ -50,18 +45,15 @@ from app.schemas.crm_v31 import (
     CustomerUpdate,
     EscalateTicketRequest,
     LeadConversionAnalysis,
-    # Lead schemas
     LeadCreate,
     LeadFilterRequest,
     LeadResponse,
     LeadUpdate,
-    # Opportunity schemas
     OpportunityCreate,
     OpportunityFilterRequest,
     OpportunityResponse,
     OpportunityUpdate,
     SalesForecast,
-    # Support ticket schemas
     SupportTicketCreate,
     SupportTicketResponse,
     SupportTicketUpdate,

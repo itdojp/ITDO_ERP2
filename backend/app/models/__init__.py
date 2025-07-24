@@ -78,6 +78,9 @@ from app.models.expense_category import ExpenseCategory
 # CC02 v31.0 Phase 2 - Finance Management Models
 from app.models.finance_extended import (
     Account,
+)
+from app.models.finance_extended import Budget as FinanceBudget
+from app.models.finance_extended import (
     BudgetLine,
     CostCenter,
     FinanceAuditLog,
@@ -86,9 +89,6 @@ from app.models.finance_extended import (
     JournalEntry,
     JournalEntryLine,
     TaxConfiguration,
-)
-from app.models.finance_extended import (
-    Budget as FinanceBudget,
 )
 
 # CC02 v31.0 Phase 2 - HR Management Models
