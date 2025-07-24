@@ -1,11 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from "react";
 
 interface DrawerProps {
   isOpen: boolean;
   onClose: () => void;
   title?: string;
-  placement?: 'left' | 'right' | 'top' | 'bottom';
-  size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
+  placement?: "left" | "right" | "top" | "bottom";
+  size?: "sm" | "md" | "lg" | "xl" | "full";
   showCloseButton?: boolean;
   closeOnOverlayClick?: boolean;
   closeOnEscape?: boolean;
@@ -23,19 +23,19 @@ export const Drawer: React.FC<DrawerProps> = ({
   isOpen,
   onClose,
   title,
-  placement = 'right',
-  size = 'md',
+  placement = "right",
+  size = "md",
   showCloseButton = true,
   closeOnOverlayClick = true,
   closeOnEscape = true,
   showOverlay = true,
   children,
   footer,
-  className = '',
-  overlayClassName = '',
-  contentClassName = '',
+  className = "",
+  overlayClassName = "",
+  contentClassName = "",
   onOpen,
-  onClosed
+  onClosed,
 }) => {
   const [isAnimating, setIsAnimating] = useState(false);
   const drawerRef = useRef<HTMLDivElement>(null);
@@ -43,42 +43,44 @@ export const Drawer: React.FC<DrawerProps> = ({
   const [mounted, setMounted] = useState(false);
 
   const getSizeClasses = () => {
-    const isHorizontal = placement === 'left' || placement === 'right';
-    const sizeMap = isHorizontal ? {
-      sm: 'w-80',
-      md: 'w-96',
-      lg: 'w-[32rem]',
-      xl: 'w-[40rem]',
-      full: 'w-full'
-    } : {
-      sm: 'h-80',
-      md: 'h-96',
-      lg: 'h-[32rem]',
-      xl: 'h-[40rem]',
-      full: 'h-full'
-    };
+    const isHorizontal = placement === "left" || placement === "right";
+    const sizeMap = isHorizontal
+      ? {
+          sm: "w-80",
+          md: "w-96",
+          lg: "w-[32rem]",
+          xl: "w-[40rem]",
+          full: "w-full",
+        }
+      : {
+          sm: "h-80",
+          md: "h-96",
+          lg: "h-[32rem]",
+          xl: "h-[40rem]",
+          full: "h-full",
+        };
     return sizeMap[size];
   };
 
   const getPlacementClasses = () => {
     const placementMap = {
-      left: 'left-0 top-0 h-full',
-      right: 'right-0 top-0 h-full',
-      top: 'top-0 left-0 w-full',
-      bottom: 'bottom-0 left-0 w-full'
+      left: "left-0 top-0 h-full",
+      right: "right-0 top-0 h-full",
+      top: "top-0 left-0 w-full",
+      bottom: "bottom-0 left-0 w-full",
     };
     return placementMap[placement];
   };
 
   const getTransformClasses = () => {
-    if (!mounted) return '';
-    
+    if (!mounted) return "";
+
     const isVisible = isOpen && !isAnimating;
     const transformMap = {
-      left: isVisible ? 'translate-x-0' : '-translate-x-full',
-      right: isVisible ? 'translate-x-0' : 'translate-x-full',
-      top: isVisible ? 'translate-y-0' : '-translate-y-full',
-      bottom: isVisible ? 'translate-y-0' : 'translate-y-full'
+      left: isVisible ? "translate-x-0" : "-translate-x-full",
+      right: isVisible ? "translate-x-0" : "translate-x-full",
+      top: isVisible ? "translate-y-0" : "-translate-y-full",
+      bottom: isVisible ? "translate-y-0" : "translate-y-full",
     };
     return transformMap[placement];
   };
@@ -91,7 +93,7 @@ export const Drawer: React.FC<DrawerProps> = ({
 
   const handleClose = () => {
     if (isAnimating) return;
-    
+
     setIsAnimating(true);
     setTimeout(() => {
       setIsAnimating(false);
@@ -101,7 +103,7 @@ export const Drawer: React.FC<DrawerProps> = ({
   };
 
   const handleKeyDown = (event: KeyboardEvent) => {
-    if (closeOnEscape && event.key === 'Escape') {
+    if (closeOnEscape && event.key === "Escape") {
       handleClose();
     }
   };
@@ -110,17 +112,17 @@ export const Drawer: React.FC<DrawerProps> = ({
     if (isOpen) {
       setMounted(true);
       onOpen?.();
-      
+
       if (closeOnEscape) {
-        document.addEventListener('keydown', handleKeyDown);
+        document.addEventListener("keydown", handleKeyDown);
       }
-      
-      document.body.style.overflow = 'hidden';
+
+      document.body.style.overflow = "hidden";
 
       const focusableElements = drawerRef.current?.querySelectorAll(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
       );
-      
+
       if (focusableElements && focusableElements.length > 0) {
         (focusableElements[0] as HTMLElement).focus();
       }
@@ -128,13 +130,13 @@ export const Drawer: React.FC<DrawerProps> = ({
       const timer = setTimeout(() => {
         setMounted(false);
       }, 300);
-      
+
       return () => clearTimeout(timer);
     }
 
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'unset';
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "unset";
     };
   }, [isOpen, closeOnEscape, onOpen, onClosed]);
 
@@ -143,13 +145,15 @@ export const Drawer: React.FC<DrawerProps> = ({
       if (!isOpen || !drawerRef.current) return;
 
       const focusableElements = drawerRef.current.querySelectorAll(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
       );
-      
-      const firstElement = focusableElements[0] as HTMLElement;
-      const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
 
-      if (event.key === 'Tab') {
+      const firstElement = focusableElements[0] as HTMLElement;
+      const lastElement = focusableElements[
+        focusableElements.length - 1
+      ] as HTMLElement;
+
+      if (event.key === "Tab") {
         if (event.shiftKey) {
           if (document.activeElement === firstElement) {
             event.preventDefault();
@@ -165,11 +169,11 @@ export const Drawer: React.FC<DrawerProps> = ({
     };
 
     if (isOpen) {
-      document.addEventListener('keydown', handleFocusTrap);
+      document.addEventListener("keydown", handleFocusTrap);
     }
 
     return () => {
-      document.removeEventListener('keydown', handleFocusTrap);
+      document.removeEventListener("keydown", handleFocusTrap);
     };
   }, [isOpen]);
 
@@ -184,13 +188,13 @@ export const Drawer: React.FC<DrawerProps> = ({
           ref={overlayRef}
           className={`
             absolute inset-0 bg-black transition-opacity duration-300
-            ${isOpen && !isAnimating ? 'bg-opacity-50' : 'bg-opacity-0'}
+            ${isOpen && !isAnimating ? "bg-opacity-50" : "bg-opacity-0"}
             ${overlayClassName}
           `}
           onClick={handleOverlayClick}
         />
       )}
-      
+
       <div
         ref={drawerRef}
         className={`
@@ -209,7 +213,10 @@ export const Drawer: React.FC<DrawerProps> = ({
         {(title || showCloseButton) && (
           <div className="flex items-center justify-between p-4 border-b border-gray-200 shrink-0">
             {title && (
-              <h2 id="drawer-title" className="text-lg font-semibold text-gray-900">
+              <h2
+                id="drawer-title"
+                className="text-lg font-semibold text-gray-900"
+              >
                 {title}
               </h2>
             )}
@@ -220,22 +227,28 @@ export const Drawer: React.FC<DrawerProps> = ({
                 type="button"
                 aria-label="Close drawer"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             )}
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto p-4">
-          {children}
-        </div>
+        <div className="flex-1 overflow-y-auto p-4">{children}</div>
 
         {footer && (
-          <div className="border-t border-gray-200 p-4 shrink-0">
-            {footer}
-          </div>
+          <div className="border-t border-gray-200 p-4 shrink-0">{footer}</div>
         )}
       </div>
     </div>
