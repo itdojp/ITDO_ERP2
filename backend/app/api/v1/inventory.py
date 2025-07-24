@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException
-from typing import List, Optional
-from pydantic import BaseModel
-from datetime import datetime
 import uuid
+from datetime import datetime
+from typing import List, Optional
+
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 
 router = APIRouter()
 
@@ -33,7 +34,7 @@ inventory_transactions_db = {}
 inventory_levels_db = {}
 
 @router.post("/inventory/transactions", response_model=InventoryTransaction, status_code=201)
-async def create_inventory_transaction(transaction: InventoryTransactionCreate):
+async def create_inventory_transaction(transaction: InventoryTransactionCreate) -> dict:
     """在庫取引を記録"""
     transaction_id = str(uuid.uuid4())
     now = datetime.utcnow()
@@ -52,7 +53,9 @@ async def create_inventory_transaction(transaction: InventoryTransactionCreate):
     inventory_transactions_db[transaction_id] = new_transaction
 
     # 在庫レベルを更新
-    await update_inventory_level(transaction.product_id, transaction.transaction_type, transaction.quantity)
+    await update_inventory_level(
+        transaction.product_id, transaction.transaction_type, transaction.quantity
+    )
 
     return new_transaction
 
@@ -62,34 +65,37 @@ async def list_inventory_transactions(
     transaction_type: Optional[str] = None,
     skip: int = 0,
     limit: int = 100
-):
+) -> List[dict]:
     """在庫取引一覧を取得"""
     transactions = list(inventory_transactions_db.values())
-    
+
     if product_id:
         transactions = [t for t in transactions if t["product_id"] == product_id]
-    
+
     if transaction_type:
-        transactions = [t for t in transactions if t["transaction_type"] == transaction_type]
-    
+        transactions = [
+            t for t in transactions if t["transaction_type"] == transaction_type
+        ]
+
     return transactions[skip : skip + limit]
 
 @router.get("/inventory/levels", response_model=List[InventoryLevel])
-async def list_inventory_levels():
+async def list_inventory_levels() -> List[dict]:
     """全商品の在庫レベルを取得"""
     return list(inventory_levels_db.values())
 
+
 @router.get("/inventory/levels/{product_id}", response_model=InventoryLevel)
-async def get_inventory_level(product_id: str):
+async def get_inventory_level(product_id: str) -> dict:
     """特定商品の在庫レベルを取得"""
     if product_id not in inventory_levels_db:
         # 在庫レベルが存在しない場合は初期化
         await initialize_inventory_level(product_id)
-    
+
     return inventory_levels_db[product_id]
 
 @router.post("/inventory/adjust/{product_id}")
-async def adjust_inventory(product_id: str, quantity: int, reason: str):
+async def adjust_inventory(product_id: str, quantity: int, reason: str) -> dict:
     """在庫調整"""
     transaction_data = InventoryTransactionCreate(
         product_id=product_id,
@@ -97,10 +103,10 @@ async def adjust_inventory(product_id: str, quantity: int, reason: str):
         quantity=quantity,
         reason=reason
     )
-    
+
     transaction = await create_inventory_transaction(transaction_data)
     level = await get_inventory_level(product_id)
-    
+
     return {
         "transaction": transaction,
         "new_level": level,
@@ -108,18 +114,19 @@ async def adjust_inventory(product_id: str, quantity: int, reason: str):
     }
 
 @router.post("/inventory/reserve/{product_id}")
-async def reserve_inventory(product_id: str, quantity: int, reference_id: str):
+async def reserve_inventory(product_id: str, quantity: int, reference_id: str) -> dict:
     """在庫予約"""
     level = await get_inventory_level(product_id)
-    
+
     if level["available_stock"] < quantity:
         raise HTTPException(status_code=400, detail="利用可能在庫が不足しています")
-    
+
+
     # 予約在庫を増加
     inventory_levels_db[product_id]["reserved_stock"] += quantity
     inventory_levels_db[product_id]["available_stock"] -= quantity
     inventory_levels_db[product_id]["last_updated"] = datetime.utcnow()
-    
+
     # 予約取引を記録
     transaction_data = InventoryTransactionCreate(
         product_id=product_id,
@@ -128,22 +135,22 @@ async def reserve_inventory(product_id: str, quantity: int, reference_id: str):
         reason="在庫予約",
         reference_id=reference_id
     )
-    
+
     transaction = await create_inventory_transaction(transaction_data)
-    
+
     return {
         "transaction": transaction,
         "reserved_quantity": quantity,
         "remaining_available": inventory_levels_db[product_id]["available_stock"]
     }
 
-async def update_inventory_level(product_id: str, transaction_type: str, quantity: int):
+async def update_inventory_level(product_id: str, transaction_type: str, quantity: int) -> None:
     """在庫レベルを更新（内部関数）"""
     if product_id not in inventory_levels_db:
         await initialize_inventory_level(product_id)
-    
+
     level = inventory_levels_db[product_id]
-    
+
     if transaction_type == "in":
         level["current_stock"] += quantity
         level["available_stock"] += quantity
@@ -153,14 +160,14 @@ async def update_inventory_level(product_id: str, transaction_type: str, quantit
     elif transaction_type == "adjustment":
         level["current_stock"] += quantity
         level["available_stock"] += quantity
-    
+
     # 負の在庫は許可しない
     if level["current_stock"] < 0:
         raise HTTPException(status_code=400, detail="在庫数が負になることはできません")
-    
+
     level["last_updated"] = datetime.utcnow()
 
-async def initialize_inventory_level(product_id: str):
+async def initialize_inventory_level(product_id: str) -> None:
     """在庫レベルを初期化（内部関数）"""
     inventory_levels_db[product_id] = {
         "product_id": product_id,

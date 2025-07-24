@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException
-from typing import List, Optional, Dict, Any
-from pydantic import BaseModel
+import uuid
 from datetime import datetime
 from enum import Enum
-import uuid
+from typing import Any, Dict, List, Optional
+
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 
 router = APIRouter()
 
@@ -33,10 +34,10 @@ class RoleCreate(RoleBase):
     pass
 
 # モックデータストア
-roles_db = {}
+roles_db: Dict[str, Dict[str, Any]] = {}
 
 @router.post("/roles", response_model=Role, status_code=201)
-async def create_role(role: RoleCreate):
+async def create_role(role: RoleCreate) -> Dict[str, Any]:
     """ロールを作成"""
     role_id = str(uuid.uuid4())
     now = datetime.utcnow()
@@ -52,12 +53,11 @@ async def create_role(role: RoleCreate):
     return new_role
 
 @router.get("/roles")
-async def list_roles():
+async def list_roles() -> List[Dict[str, Any]]:
     """ロール一覧を取得"""
     return list(roles_db.values())
 
 @router.post("/check-permission")
-async def check_permission(user_id: str, resource: str, permission_type: str):
+async def check_permission(user_id: str, resource: str, permission_type: str) -> Dict[str, Any]:
     """ユーザーの権限チェック"""
     return {"has_permission": True, "user_id": user_id, "resource": resource, "permission_type": permission_type}
-EOF < /dev/null
