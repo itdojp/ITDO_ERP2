@@ -65,6 +65,7 @@ def test_database_connection() -> bool:
     try:
         with SessionLocal() as session:
             from sqlalchemy import text
+
             session.execute(text("SELECT 1"))
             return True
     except Exception:
@@ -76,15 +77,16 @@ def get_database_info() -> dict:
     try:
         with SessionLocal() as session:
             from sqlalchemy import text
+
             result = session.execute(text("SELECT version()")).scalar()
             return {
                 "status": "connected",
                 "version": result,
-                "url_scheme": str(settings.DATABASE_URL).split("://")[0]
+                "url_scheme": str(settings.DATABASE_URL).split("://")[0],
             }
     except Exception as e:
         return {
             "status": "error",
             "error": str(e),
-            "url_scheme": str(settings.DATABASE_URL).split("://")[0]
+            "url_scheme": str(settings.DATABASE_URL).split("://")[0],
         }
