@@ -23,9 +23,6 @@ from sqlalchemy import (
     Column,
     Date,
     DateTime,
-)
-from sqlalchemy import Enum as SQLEnum
-from sqlalchemy import (
     ForeignKey,
     Integer,
     LargeBinary,
@@ -33,6 +30,7 @@ from sqlalchemy import (
     String,
     Text,
 )
+from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
