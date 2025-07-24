@@ -4,14 +4,14 @@ Product and inventory management with no database dependencies
 """
 
 from fastapi import FastAPI
-from app.api.v1.simple_products import router as products_router
+
 from app.api.v1.simple_inventory import router as inventory_router
 
 # Create ERP app with essential business functionality
 app = FastAPI(
     title="ITDO ERP API - Core Business Logic",
     description="Core ERP functionality for product and inventory management",
-    version="v21.0-core-business"
+    version="v21.0-core-business",
 )
 
 # Include core business routers
@@ -20,6 +20,7 @@ app.include_router(inventory_router, prefix="/api/v1", tags=["inventory"])
 
 # Import and include advanced reporting
 from app.api.v1.advanced_reports import router as reports_router
+
 app.include_router(reports_router, prefix="/api/v1", tags=["reports"])
 
 # Import and include advanced product management - CC02 v48.0
@@ -28,22 +29,29 @@ app.include_router(reports_router, prefix="/api/v1", tags=["reports"])
 
 # Import and include product image management
 from app.api.v1.product_image_management import router as image_router
+
 app.include_router(image_router, prefix="/api/v1", tags=["product-images"])
 
 # Import and include product catalog features
 from app.api.v1.product_catalog_features import router as catalog_router
+
 app.include_router(catalog_router, prefix="/api/v1", tags=["product-catalog"])
 
 # Import and include inventory management core - CC02 v48.0 Phase 2
 from app.api.v1.inventory_management_core import router as inventory_core_router
+
 app.include_router(inventory_core_router, prefix="/api/v1", tags=["inventory-core"])
 
 # Import and include products endpoints - CC02 v49.0 TDD Implementation
 from app.api.v1.endpoints.products import router as products_endpoints_router
-app.include_router(products_endpoints_router, prefix="/api/v1", tags=["products-endpoints"])
+
+app.include_router(
+    products_endpoints_router, prefix="/api/v1", tags=["products-endpoints"]
+)
+
 
 @app.get("/")
-async def root():
+async def root() -> None:
     """Root endpoint for core ERP API."""
     return {
         "message": "ITDO ERP API - Core Business Logic",
@@ -61,25 +69,27 @@ async def root():
             "/api/v1/inventory/alerts/",
             "/api/v1/reports/",
             "/health",
-            "/test"
-        ]
+            "/test",
+        ],
     }
 
+
 @app.get("/health")
-async def health_check():
+async def health_check() -> None:
     """Simple health check endpoint."""
     return {
         "status": "healthy",
         "service": "ITDO ERP Core Business API",
         "version": "v21.0-core-business",
-        "mode": "working_over_perfect"
+        "mode": "working_over_perfect",
     }
 
+
 @app.get("/test")
-async def test_endpoint():
+async def test_endpoint() -> None:
     """Basic test endpoint."""
     return {
-        "status": "working", 
+        "status": "working",
         "protocol": "v21.0",
-        "message": "Core ERP business functionality ready"
+        "message": "Core ERP business functionality ready",
     }

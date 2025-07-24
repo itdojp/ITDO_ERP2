@@ -1,10 +1,12 @@
-from fastapi import APIRouter, HTTPException
-from typing import List, Optional
-from pydantic import BaseModel
-from datetime import datetime
 import uuid
+from datetime import datetime
+from typing import List, Optional
+
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 
 router = APIRouter()
+
 
 class ProductBase(BaseModel):
     code: str
@@ -13,8 +15,10 @@ class ProductBase(BaseModel):
     stock: int
     description: Optional[str] = None
 
+
 class ProductCreate(ProductBase):
     pass
+
 
 class ProductUpdate(BaseModel):
     name: Optional[str] = None
@@ -22,16 +26,19 @@ class ProductUpdate(BaseModel):
     stock: Optional[int] = None
     description: Optional[str] = None
 
+
 class Product(ProductBase):
     id: str
     created_at: datetime
     updated_at: datetime
 
+
 # モックデータストア
 products_db = {}
 
+
 @router.post("/products", response_model=Product, status_code=201)
-async def create_product(product: ProductCreate):
+async def create_product(product: ProductCreate) -> dict:
     """商品を新規作成"""
     # 商品コードの重複チェック
     for p in products_db.values():
@@ -49,27 +56,30 @@ async def create_product(product: ProductCreate):
         "stock": product.stock,
         "description": product.description,
         "created_at": now,
-        "updated_at": now
+        "updated_at": now,
     }
 
     products_db[product_id] = new_product
     return new_product
 
+
 @router.get("/products", response_model=List[Product])
-async def list_products(skip: int = 0, limit: int = 100):
+async def list_products(skip: int = 0, limit: int = 100) -> dict:
     """商品一覧を取得"""
     products = list(products_db.values())
     return products[skip : skip + limit]
 
+
 @router.get("/products/{product_id}", response_model=Product)
-async def get_product(product_id: str):
+async def get_product(product_id: str) -> dict:
     """商品詳細を取得"""
     if product_id not in products_db:
         raise HTTPException(status_code=404, detail="商品が見つかりません")
     return products_db[product_id]
 
+
 @router.put("/products/{product_id}", response_model=Product)
-async def update_product(product_id: str, product_update: ProductUpdate):
+async def update_product(product_id: str, product_update: ProductUpdate) -> dict:
     """商品情報を更新"""
     if product_id not in products_db:
         raise HTTPException(status_code=404, detail="商品が見つかりません")
@@ -83,8 +93,9 @@ async def update_product(product_id: str, product_update: ProductUpdate):
     product["updated_at"] = datetime.utcnow()
     return product
 
+
 @router.delete("/products/{product_id}", status_code=204)
-async def delete_product(product_id: str):
+async def delete_product(product_id: str) -> dict:
     """商品を削除"""
     if product_id not in products_db:
         raise HTTPException(status_code=404, detail="商品が見つかりません")
@@ -92,8 +103,9 @@ async def delete_product(product_id: str):
     del products_db[product_id]
     return None
 
+
 @router.post("/products/{product_id}/adjust-stock")
-async def adjust_stock(product_id: str, quantity: int):
+async def adjust_stock(product_id: str, quantity: int) -> dict:
     """在庫数を調整"""
     if product_id not in products_db:
         raise HTTPException(status_code=404, detail="商品が見つかりません")

@@ -19,8 +19,10 @@ from app.core.database import get_redis
 
 Base = declarative_base()
 
+
 class FeatureFlagStrategy(str, Enum):
     """Feature flag rollout strategies"""
+
     ALL_ON = "all_on"
     ALL_OFF = "all_off"
     PERCENTAGE = "percentage"
@@ -32,16 +34,20 @@ class FeatureFlagStrategy(str, Enum):
     CANARY = "canary"
     BLUE_GREEN = "blue_green"
 
+
 class EnvironmentType(str, Enum):
     """Environment types for feature flags"""
+
     DEVELOPMENT = "development"
     STAGING = "staging"
     PRODUCTION = "production"
     TESTING = "testing"
 
+
 @dataclass
 class FeatureFlagRule:
     """Individual rule for feature flag evaluation"""
+
     strategy: FeatureFlagStrategy
     enabled: bool = True
     percentage: Optional[float] = None
@@ -52,9 +58,11 @@ class FeatureFlagRule:
     end_time: Optional[datetime] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
 
+
 @dataclass
 class FeatureFlagContext:
     """Context information for feature flag evaluation"""
+
     user_id: Optional[str] = None
     organization_id: Optional[str] = None
     user_roles: Optional[List[str]] = None
@@ -63,8 +71,10 @@ class FeatureFlagContext:
     user_agent: Optional[str] = None
     custom_attributes: Dict[str, Any] = field(default_factory=dict)
 
+
 class FeatureFlag(Base):
     """Database model for feature flags"""
+
     __tablename__ = "feature_flags"
 
     key = Column(String(255), primary_key=True, index=True)
@@ -79,10 +89,11 @@ class FeatureFlag(Base):
     created_by = Column(String(255))
     updated_by = Column(String(255))
 
+
 class FeatureFlagService:
     """Service for managing and evaluating feature flags"""
 
-    def __init__(self, redis_client: Optional[redis.Redis] = None):
+    def __init__(self, redis_client: Optional[redis.Redis] = None) -> dict:
         self.redis = redis_client or get_redis()
         self.settings = get_settings()
         self.cache_ttl = 300  # 5 minutes default cache
@@ -133,7 +144,7 @@ class FeatureFlagService:
         enabled: bool,
         strategy: FeatureFlagStrategy = FeatureFlagStrategy.ALL_ON,
         rules: Optional[List[FeatureFlagRule]] = None,
-        environments: Optional[Dict[str, Any]] = None
+        environments: Optional[Dict[str, Any]] = None,
     ) -> None:
         """
         Create or update a feature flag
@@ -151,14 +162,12 @@ class FeatureFlagService:
             "strategy": strategy,
             "rules": [self._rule_to_dict(rule) for rule in (rules or [])],
             "environments": environments or {},
-            "updated_at": datetime.now(timezone.utc).isoformat()
+            "updated_at": datetime.now(timezone.utc).isoformat(),
         }
 
         # Store in Redis
         await self.redis.setex(
-            f"{self.flag_prefix}{key}",
-            self.cache_ttl,
-            json.dumps(flag_config)
+            f"{self.flag_prefix}{key}", self.cache_ttl, json.dumps(flag_config)
         )
 
         # Invalidate evaluation cache
@@ -193,15 +202,12 @@ class FeatureFlagService:
         return {
             "config": flag_config,
             "statistics": stats,
-            "last_evaluated": await self._get_last_evaluation_time(key)
+            "last_evaluated": await self._get_last_evaluation_time(key),
         }
 
     # A/B Testing Support
     async def get_variant(
-        self,
-        key: str,
-        context: FeatureFlagContext,
-        variants: List[str] = ["A", "B"]
+        self, key: str, context: FeatureFlagContext, variants: List[str] = ["A", "B"]
     ) -> str:
         """
         Get A/B test variant for user
@@ -262,19 +268,19 @@ class FeatureFlagService:
 
         if not updated:
             # Add new gradual rollout rule
-            rules.append({
-                "strategy": FeatureFlagStrategy.GRADUAL_ROLLOUT,
-                "enabled": True,
-                "percentage": percentage
-            })
+            rules.append(
+                {
+                    "strategy": FeatureFlagStrategy.GRADUAL_ROLLOUT,
+                    "enabled": True,
+                    "percentage": percentage,
+                }
+            )
 
         flag_config["rules"] = rules
         flag_config["updated_at"] = datetime.now(timezone.utc).isoformat()
 
         await self.redis.setex(
-            f"{self.flag_prefix}{key}",
-            self.cache_ttl,
-            json.dumps(flag_config)
+            f"{self.flag_prefix}{key}", self.cache_ttl, json.dumps(flag_config)
         )
 
         await self._invalidate_flag_cache(key)
@@ -288,9 +294,7 @@ class FeatureFlagService:
         return None
 
     async def _evaluate_flag(
-        self,
-        flag_config: Dict[str, Any],
-        context: FeatureFlagContext
+        self, flag_config: Dict[str, Any], context: FeatureFlagContext
     ) -> bool:
         """Evaluate flag based on configuration and context"""
         if not flag_config.get("enabled", False):
@@ -332,9 +336,7 @@ class FeatureFlagService:
         return False
 
     def _evaluate_percentage(
-        self,
-        flag_config: Dict[str, Any],
-        context: FeatureFlagContext
+        self, flag_config: Dict[str, Any], context: FeatureFlagContext
     ) -> bool:
         """Evaluate percentage-based flag"""
         percentage = flag_config.get("percentage", 0.0)
@@ -349,9 +351,7 @@ class FeatureFlagService:
         return (hash_value % 100) < percentage
 
     def _evaluate_user_percentage(
-        self,
-        flag_config: Dict[str, Any],
-        context: FeatureFlagContext
+        self, flag_config: Dict[str, Any], context: FeatureFlagContext
     ) -> bool:
         """Evaluate user percentage-based flag"""
         if not context.user_id:
@@ -367,28 +367,25 @@ class FeatureFlagService:
         return (hash_value % 100) < percentage
 
     def _evaluate_user_list(
-        self,
-        flag_config: Dict[str, Any],
-        context: FeatureFlagContext
+        self, flag_config: Dict[str, Any], context: FeatureFlagContext
     ) -> bool:
         """Evaluate user list-based flag"""
         user_ids = flag_config.get("user_ids", [])
         return context.user_id in user_ids if context.user_id else False
 
     def _evaluate_organization(
-        self,
-        flag_config: Dict[str, Any],
-        context: FeatureFlagContext
+        self, flag_config: Dict[str, Any], context: FeatureFlagContext
     ) -> bool:
         """Evaluate organization-based flag"""
         organization_ids = flag_config.get("organization_ids", [])
-        return (context.organization_id in organization_ids
-                if context.organization_id else False)
+        return (
+            context.organization_id in organization_ids
+            if context.organization_id
+            else False
+        )
 
     def _evaluate_role_based(
-        self,
-        flag_config: Dict[str, Any],
-        context: FeatureFlagContext
+        self, flag_config: Dict[str, Any], context: FeatureFlagContext
     ) -> bool:
         """Evaluate role-based flag"""
         required_roles = flag_config.get("roles", [])
@@ -396,9 +393,7 @@ class FeatureFlagService:
         return bool(set(required_roles) & set(user_roles))
 
     def _evaluate_gradual_rollout(
-        self,
-        flag_config: Dict[str, Any],
-        context: FeatureFlagContext
+        self, flag_config: Dict[str, Any], context: FeatureFlagContext
     ) -> bool:
         """Evaluate gradual rollout flag"""
         return self._evaluate_user_percentage(flag_config, context)
@@ -438,14 +433,12 @@ class FeatureFlagService:
             "roles": rule.roles,
             "start_time": rule.start_time.isoformat() if rule.start_time else None,
             "end_time": rule.end_time.isoformat() if rule.end_time else None,
-            "metadata": rule.metadata
+            "metadata": rule.metadata,
         }
 
     # Caching methods
     async def _get_cached_evaluation(
-        self,
-        key: str,
-        context: FeatureFlagContext
+        self, key: str, context: FeatureFlagContext
     ) -> Optional[bool]:
         """Get cached evaluation result"""
         cache_key = self._get_evaluation_cache_key(key, context)
@@ -453,20 +446,13 @@ class FeatureFlagService:
         return json.loads(cached_result) if cached_result else None
 
     async def _cache_evaluation(
-        self,
-        key: str,
-        context: FeatureFlagContext,
-        result: bool
+        self, key: str, context: FeatureFlagContext, result: bool
     ) -> None:
         """Cache evaluation result"""
         cache_key = self._get_evaluation_cache_key(key, context)
         await self.redis.setex(cache_key, 60, json.dumps(result))  # 1 minute cache
 
-    def _get_evaluation_cache_key(
-        self,
-        key: str,
-        context: FeatureFlagContext
-    ) -> str:
+    def _get_evaluation_cache_key(self, key: str, context: FeatureFlagContext) -> str:
         """Generate cache key for evaluation"""
         context_hash = hashlib.md5(
             f"{context.user_id}:{context.organization_id}:{context.environment}".encode()
@@ -482,10 +468,7 @@ class FeatureFlagService:
 
     # Analytics methods
     async def _log_evaluation(
-        self,
-        key: str,
-        context: FeatureFlagContext,
-        result: bool
+        self, key: str, context: FeatureFlagContext, result: bool
     ) -> None:
         """Log feature flag evaluation for analytics"""
         log_entry = {
@@ -494,7 +477,7 @@ class FeatureFlagService:
             "user_id": context.user_id,
             "organization_id": context.organization_id,
             "environment": context.environment,
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         # Store in analytics queue
@@ -502,17 +485,14 @@ class FeatureFlagService:
         await self.redis.ltrim("ff_analytics", 0, 10000)  # Keep last 10k events
 
     async def _log_variant_assignment(
-        self,
-        key: str,
-        context: FeatureFlagContext,
-        variant: str
+        self, key: str, context: FeatureFlagContext, variant: str
     ) -> None:
         """Log A/B test variant assignment"""
         log_entry = {
             "flag_key": key,
             "variant": variant,
             "user_id": context.user_id,
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         await self.redis.lpush("ff_variants", json.dumps(log_entry))
@@ -537,7 +517,8 @@ class FeatureFlagService:
             "total_evaluations": total_evaluations,
             "enabled_count": enabled_count,
             "enabled_percentage": (enabled_count / total_evaluations * 100)
-                                if total_evaluations > 0 else 0
+            if total_evaluations > 0
+            else 0,
         }
 
     async def _get_last_evaluation_time(self, key: str) -> Optional[str]:
@@ -551,8 +532,10 @@ class FeatureFlagService:
 
         return None
 
+
 # Singleton service instance
 _feature_flag_service: Optional[FeatureFlagService] = None
+
 
 def get_feature_flag_service() -> FeatureFlagService:
     """Get or create feature flag service instance"""
@@ -561,19 +544,16 @@ def get_feature_flag_service() -> FeatureFlagService:
         _feature_flag_service = FeatureFlagService()
     return _feature_flag_service
 
+
 # Convenience functions
-async def is_feature_enabled(
-    flag_key: str,
-    context: FeatureFlagContext
-) -> bool:
+async def is_feature_enabled(flag_key: str, context: FeatureFlagContext) -> bool:
     """Check if a feature flag is enabled"""
     service = get_feature_flag_service()
     return await service.get_flag(flag_key, context)
 
+
 async def get_feature_variant(
-    flag_key: str,
-    context: FeatureFlagContext,
-    variants: List[str] = ["A", "B"]
+    flag_key: str, context: FeatureFlagContext, variants: List[str] = ["A", "B"]
 ) -> str:
     """Get feature variant for A/B testing"""
     service = get_feature_flag_service()

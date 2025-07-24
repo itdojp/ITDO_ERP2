@@ -270,26 +270,34 @@ class Product(SoftDeletableModel):
 
 class ProductPriceHistory(SoftDeletableModel):
     """Product price history for tracking price changes - CC02 v49.0"""
-    
+
     __tablename__ = "product_price_history"
-    
+
     # References
-    product_id: Mapped[int] = mapped_column(Integer, ForeignKey("products.id"), nullable=False)
-    organization_id: Mapped[int] = mapped_column(Integer, ForeignKey("organizations.id"), nullable=False)
-    
+    product_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("products.id"), nullable=False
+    )
+    organization_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("organizations.id"), nullable=False
+    )
+
     # Price data
     old_price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     new_price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
-    price_type: Mapped[str] = mapped_column(String(50), default="standard_price")  # standard_price, selling_price, cost_price
-    
+    price_type: Mapped[str] = mapped_column(
+        String(50), default="standard_price"
+    )  # standard_price, selling_price, cost_price
+
     # Change metadata
-    changed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    changed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
     changed_by: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"))
     change_reason: Mapped[str | None] = mapped_column(String(500))
-    
+
     # Relationships
     product: Mapped["Product"] = relationship("Product")
     organization: Mapped["Organization"] = relationship("Organization")
-    
+
     def __repr__(self) -> str:
         return f"<ProductPriceHistory(product_id={self.product_id}, old_price={self.old_price}, new_price={self.new_price})>"

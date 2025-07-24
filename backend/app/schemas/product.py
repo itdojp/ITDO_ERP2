@@ -3,14 +3,15 @@ Product Schemas - CC02 v49.0 TDD Implementation
 Pydantic schemas for API request/response validation
 """
 
-from typing import List, Optional
-from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
-from decimal import Decimal
+from typing import List, Optional
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ProductCreate(BaseModel):
     """Schema for creating a product"""
+
     name: str = Field(..., min_length=1, max_length=200)
     price: float = Field(..., gt=0)
     sku: str = Field(..., min_length=1, max_length=100)
@@ -21,6 +22,7 @@ class ProductCreate(BaseModel):
 
 class ProductUpdate(BaseModel):
     """Schema for updating a product"""
+
     name: Optional[str] = Field(None, min_length=1, max_length=200)
     price: Optional[float] = Field(None, gt=0)
     category: Optional[str] = Field(None, max_length=100)
@@ -30,8 +32,9 @@ class ProductUpdate(BaseModel):
 
 class ProductResponse(BaseModel):
     """Schema for product API responses"""
+
     model_config = ConfigDict(from_attributes=True)
-    
+
     id: str
     name: str
     price: float
@@ -45,6 +48,7 @@ class ProductResponse(BaseModel):
 
 class ProductListResponse(BaseModel):
     """Schema for paginated product list responses"""
+
     items: List[ProductResponse]
     total: int
     page: int
@@ -54,22 +58,26 @@ class ProductListResponse(BaseModel):
 
 class BulkProductCreate(BaseModel):
     """Schema for bulk product creation"""
+
     products: List[ProductCreate]
 
 
 class BulkProductUpdate(BaseModel):
     """Schema for bulk product updates"""
+
     updates: List[dict]  # List of update objects with id and fields to update
 
 
 class CategoryResponse(BaseModel):
     """Schema for category statistics"""
+
     name: str
     count: int
 
 
 class ProductStatistics(BaseModel):
     """Schema for product statistics"""
+
     total_products: int
     active_products: int
     inactive_products: int
@@ -80,6 +88,7 @@ class ProductStatistics(BaseModel):
 
 class PriceHistoryItem(BaseModel):
     """Schema for price history items"""
+
     price: float
     changed_at: datetime
     changed_by: Optional[str] = None
@@ -87,12 +96,14 @@ class PriceHistoryItem(BaseModel):
 
 class PriceHistoryResponse(BaseModel):
     """Schema for price history response"""
+
     product_id: str
     history: List[PriceHistoryItem]
 
 
 class BulkCreateResponse(BaseModel):
     """Schema for bulk creation response"""
+
     created: int
     failed: int
     details: List[dict]
@@ -100,6 +111,7 @@ class BulkCreateResponse(BaseModel):
 
 class BulkUpdateResponse(BaseModel):
     """Schema for bulk update response"""
+
     updated: int
     failed: int
     details: List[dict]
@@ -107,6 +119,7 @@ class BulkUpdateResponse(BaseModel):
 
 class InventoryResponse(BaseModel):
     """Schema for inventory response"""
+
     total_stock: int
     available_stock: int
     reserved_stock: int

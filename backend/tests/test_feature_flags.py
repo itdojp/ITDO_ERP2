@@ -41,7 +41,7 @@ class TestFeatureFlagService:
             user_roles=["premium_user", "beta_tester"],
             environment="development",
             request_ip="192.168.1.100",
-            custom_attributes={"country": "US", "subscription_tier": "premium"}
+            custom_attributes={"country": "US", "subscription_tier": "premium"},
         )
 
     @pytest.mark.asyncio
@@ -52,7 +52,7 @@ class TestFeatureFlagService:
             "enabled": True,
             "strategy": FeatureFlagStrategy.ALL_ON,
             "rules": [],
-            "environments": {}
+            "environments": {},
         }
         mock_redis.get.return_value = None  # No cache
         service._get_flag_config = AsyncMock(return_value=flag_config)
@@ -72,7 +72,7 @@ class TestFeatureFlagService:
             "enabled": True,
             "strategy": FeatureFlagStrategy.ALL_OFF,
             "rules": [],
-            "environments": {}
+            "environments": {},
         }
         service._get_flag_config = AsyncMock(return_value=flag_config)
         service._cache_evaluation = AsyncMock()
@@ -90,7 +90,7 @@ class TestFeatureFlagService:
             "enabled": False,
             "strategy": FeatureFlagStrategy.ALL_ON,
             "rules": [],
-            "environments": {}
+            "environments": {},
         }
         service._get_flag_config = AsyncMock(return_value=flag_config)
         service._cache_evaluation = AsyncMock()
@@ -118,7 +118,7 @@ class TestFeatureFlagService:
             "strategy": FeatureFlagStrategy.PERCENTAGE,
             "percentage": 50.0,
             "rules": [],
-            "environments": {}
+            "environments": {},
         }
         service._get_flag_config = AsyncMock(return_value=flag_config)
         service._cache_evaluation = AsyncMock()
@@ -141,7 +141,7 @@ class TestFeatureFlagService:
             "strategy": FeatureFlagStrategy.USER_LIST,
             "user_ids": ["user123", "user456"],
             "rules": [],
-            "environments": {}
+            "environments": {},
         }
         service._get_flag_config = AsyncMock(return_value=flag_config)
         service._cache_evaluation = AsyncMock()
@@ -165,7 +165,7 @@ class TestFeatureFlagService:
             "strategy": FeatureFlagStrategy.ORGANIZATION,
             "organization_ids": ["org456", "org789"],
             "rules": [],
-            "environments": {}
+            "environments": {},
         }
         service._get_flag_config = AsyncMock(return_value=flag_config)
         service._cache_evaluation = AsyncMock()
@@ -184,7 +184,7 @@ class TestFeatureFlagService:
             "strategy": FeatureFlagStrategy.ROLE_BASED,
             "roles": ["premium_user", "admin"],
             "rules": [],
-            "environments": {}
+            "environments": {},
         }
         service._get_flag_config = AsyncMock(return_value=flag_config)
         service._cache_evaluation = AsyncMock()
@@ -209,8 +209,8 @@ class TestFeatureFlagService:
             "rules": [],
             "environments": {
                 "development": {"enabled": False},
-                "production": {"enabled": True}
-            }
+                "production": {"enabled": True},
+            },
         }
         service._get_flag_config = AsyncMock(return_value=flag_config)
         service._cache_evaluation = AsyncMock()
@@ -255,12 +255,9 @@ class TestFeatureFlagService:
             "enabled": True,
             "strategy": FeatureFlagStrategy.GRADUAL_ROLLOUT,
             "rules": [
-                {
-                    "strategy": FeatureFlagStrategy.GRADUAL_ROLLOUT,
-                    "percentage": 25.0
-                }
+                {"strategy": FeatureFlagStrategy.GRADUAL_ROLLOUT, "percentage": 25.0}
             ],
-            "environments": {}
+            "environments": {},
         }
         service._get_flag_config = AsyncMock(return_value=flag_config)
         mock_redis = service.redis
@@ -279,7 +276,7 @@ class TestFeatureFlagService:
     async def test_caching(self, service, context, mock_redis):
         """Test evaluation result caching"""
         # Setup cache hit
-        mock_redis.get.return_value = b'true'
+        mock_redis.get.return_value = b"true"
         service._get_cached_evaluation = AsyncMock(return_value=True)
 
         result = await service.get_flag("test_flag", context)
@@ -306,15 +303,12 @@ class TestFeatureFlagService:
         service._invalidate_flag_cache = AsyncMock()
 
         # Create flag
-        rule = FeatureFlagRule(
-            strategy=FeatureFlagStrategy.PERCENTAGE,
-            percentage=50.0
-        )
+        rule = FeatureFlagRule(strategy=FeatureFlagStrategy.PERCENTAGE, percentage=50.0)
         await service.set_flag(
             key="new_flag",
             enabled=True,
             strategy=FeatureFlagStrategy.PERCENTAGE,
-            rules=[rule]
+            rules=[rule],
         )
 
         mock_redis.setex.assert_called()
@@ -331,7 +325,7 @@ class TestFeatureFlagService:
             enabled=True,
             user_ids=["user1", "user2"],
             start_time=datetime(2024, 1, 1, tzinfo=timezone.utc),
-            metadata={"created_by": "admin"}
+            metadata={"created_by": "admin"},
         )
 
         result = service._rule_to_dict(rule)
@@ -384,7 +378,9 @@ class TestConvenienceFunctions:
         """Test is_feature_enabled convenience function"""
         context = FeatureFlagContext(user_id="test_user")
 
-        with pytest.mock.patch('app.core.feature_flags.get_feature_flag_service') as mock_get_service:
+        with pytest.mock.patch(
+            "app.core.feature_flags.get_feature_flag_service"
+        ) as mock_get_service:
             mock_service = AsyncMock()
             mock_service.get_flag.return_value = True
             mock_get_service.return_value = mock_service
@@ -399,7 +395,9 @@ class TestConvenienceFunctions:
         """Test get_feature_variant convenience function"""
         context = FeatureFlagContext(user_id="test_user")
 
-        with pytest.mock.patch('app.core.feature_flags.get_feature_flag_service') as mock_get_service:
+        with pytest.mock.patch(
+            "app.core.feature_flags.get_feature_flag_service"
+        ) as mock_get_service:
             mock_service = AsyncMock()
             mock_service.get_variant.return_value = "B"
             mock_get_service.return_value = mock_service
@@ -407,7 +405,9 @@ class TestConvenienceFunctions:
             result = await get_feature_variant("test_flag", context, ["A", "B"])
 
             assert result == "B"
-            mock_service.get_variant.assert_called_once_with("test_flag", context, ["A", "B"])
+            mock_service.get_variant.assert_called_once_with(
+                "test_flag", context, ["A", "B"]
+            )
 
 
 class TestFeatureFlagIntegration:
@@ -423,10 +423,10 @@ class TestFeatureFlagIntegration:
         context = FeatureFlagContext(
             user_id="integration_test_user",
             organization_id="test_org",
-            environment="testing"
+            environment="testing",
         )
 
-        with pytest.mock.patch.object(service, 'redis') as mock_redis:
+        with pytest.mock.patch.object(service, "redis") as mock_redis:
             mock_redis.get.return_value = None
             mock_redis.setex = AsyncMock()
             mock_redis.delete = AsyncMock()
@@ -436,14 +436,13 @@ class TestFeatureFlagIntegration:
 
             # Create a feature flag
             rule = FeatureFlagRule(
-                strategy=FeatureFlagStrategy.PERCENTAGE,
-                percentage=100.0
+                strategy=FeatureFlagStrategy.PERCENTAGE, percentage=100.0
             )
             await service.set_flag(
                 key="integration_test_flag",
                 enabled=True,
                 strategy=FeatureFlagStrategy.PERCENTAGE,
-                rules=[rule]
+                rules=[rule],
             )
 
             # Mock flag config for evaluation
@@ -451,12 +450,14 @@ class TestFeatureFlagIntegration:
                 "key": "integration_test_flag",
                 "enabled": True,
                 "strategy": FeatureFlagStrategy.PERCENTAGE,
-                "rules": [{
-                    "strategy": FeatureFlagStrategy.PERCENTAGE,
-                    "percentage": 100.0,
-                    "enabled": True
-                }],
-                "environments": {}
+                "rules": [
+                    {
+                        "strategy": FeatureFlagStrategy.PERCENTAGE,
+                        "percentage": 100.0,
+                        "enabled": True,
+                    }
+                ],
+                "environments": {},
             }
             service._get_flag_config = AsyncMock(return_value=flag_config)
 
