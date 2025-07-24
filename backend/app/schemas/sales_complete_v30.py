@@ -1,8 +1,10 @@
-from pydantic import BaseModel, EmailStr, validator, Field
-from typing import Optional, List, Dict, Any
-from datetime import datetime, date
-from decimal import Decimal
 import re
+from datetime import datetime
+from decimal import Decimal
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, EmailStr, Field, validator
+
 
 class CustomerBase(BaseModel):
     customer_code: str = Field(..., min_length=1, max_length=50)
@@ -14,28 +16,31 @@ class CustomerBase(BaseModel):
     customer_group: str = Field(default="standard", max_length=50)
     priority_level: str = Field(default="normal", regex="^(high|normal|low)$")
 
-    @validator('customer_code')
+    @validator("customer_code")
     def code_valid(cls, v):
-        if not re.match(r'^[A-Z0-9_-]+$', v):
-            raise ValueError('Customer code must contain only uppercase letters, numbers, hyphens and underscores')
+        if not re.match(r"^[A-Z0-9_-]+$", v):
+            raise ValueError(
+                "Customer code must contain only uppercase letters, numbers, hyphens and underscores"
+            )
         return v
+
 
 class CustomerCreate(CustomerBase):
     mobile: Optional[str] = None
     website: Optional[str] = None
-    
+
     # 請求先住所
     billing_address_line1: Optional[str] = None
     billing_city: Optional[str] = None
     billing_postal_code: Optional[str] = None
     billing_country: str = "Japan"
-    
+
     # 配送先住所
     shipping_address_line1: Optional[str] = None
     shipping_city: Optional[str] = None
     shipping_postal_code: Optional[str] = None
     shipping_country: str = "Japan"
-    
+
     industry: Optional[str] = None
     credit_limit: Decimal = Field(default=0, ge=0)
     payment_terms: str = Field(default="net_30", max_length=50)
@@ -45,6 +50,7 @@ class CustomerCreate(CustomerBase):
     acquisition_source: Optional[str] = None
     notes: Optional[str] = None
     preferences: Dict[str, Any] = {}
+
 
 class CustomerUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=200)
@@ -59,6 +65,7 @@ class CustomerUpdate(BaseModel):
     is_active: Optional[bool] = None
     is_vip: Optional[bool] = None
     notes: Optional[str] = None
+
 
 class CustomerResponse(CustomerBase):
     id: str
@@ -91,17 +98,20 @@ class CustomerResponse(CustomerBase):
     class Config:
         orm_mode = True
 
+
 class SalesOrderItemBase(BaseModel):
     product_id: str
     quantity: Decimal = Field(..., gt=0)
     unit_price: Decimal = Field(..., ge=0)
     line_discount_percentage: Decimal = Field(default=0, ge=0, le=100)
 
+
 class SalesOrderItemCreate(SalesOrderItemBase):
     product_sku: Optional[str] = None
     product_name: Optional[str] = None
     custom_attributes: Dict[str, Any] = {}
     notes: Optional[str] = None
+
 
 class SalesOrderItemResponse(SalesOrderItemBase):
     id: str
@@ -123,12 +133,14 @@ class SalesOrderItemResponse(SalesOrderItemBase):
     class Config:
         orm_mode = True
 
+
 class SalesOrderBase(BaseModel):
     customer_id: str
     requested_delivery_date: Optional[datetime] = None
     priority: str = Field(default="normal", regex="^(high|normal|low)$")
     payment_terms: Optional[str] = None
     shipping_method: Optional[str] = None
+
 
 class SalesOrderCreate(SalesOrderBase):
     quote_id: Optional[str] = None
@@ -143,8 +155,11 @@ class SalesOrderCreate(SalesOrderBase):
     custom_fields: Dict[str, Any] = {}
     items: List[SalesOrderItemCreate] = []
 
+
 class SalesOrderUpdate(BaseModel):
-    status: Optional[str] = Field(None, regex="^(draft|confirmed|processing|shipped|delivered|cancelled)$")
+    status: Optional[str] = Field(
+        None, regex="^(draft|confirmed|processing|shipped|delivered|cancelled)$"
+    )
     priority: Optional[str] = Field(None, regex="^(high|normal|low)$")
     requested_delivery_date: Optional[datetime] = None
     promised_delivery_date: Optional[datetime] = None
@@ -152,6 +167,7 @@ class SalesOrderUpdate(BaseModel):
     shipping_method: Optional[str] = None
     internal_notes: Optional[str] = None
     customer_notes: Optional[str] = None
+
 
 class SalesOrderResponse(SalesOrderBase):
     id: str
@@ -186,16 +202,19 @@ class SalesOrderResponse(SalesOrderBase):
     class Config:
         orm_mode = True
 
+
 class QuoteItemBase(BaseModel):
     product_id: str
     quantity: Decimal = Field(..., gt=0)
     unit_price: Decimal = Field(..., ge=0)
     line_discount_amount: Decimal = Field(default=0, ge=0)
 
+
 class QuoteItemCreate(QuoteItemBase):
     product_sku: Optional[str] = None
     product_name: Optional[str] = None
     notes: Optional[str] = None
+
 
 class QuoteItemResponse(QuoteItemBase):
     id: str
@@ -211,11 +230,13 @@ class QuoteItemResponse(QuoteItemBase):
     class Config:
         orm_mode = True
 
+
 class QuoteBase(BaseModel):
     customer_id: str
     valid_until: datetime
     win_probability: Decimal = Field(default=0, ge=0, le=100)
     expected_close_date: Optional[datetime] = None
+
 
 class QuoteCreate(QuoteBase):
     description: Optional[str] = None
@@ -223,13 +244,17 @@ class QuoteCreate(QuoteBase):
     internal_notes: Optional[str] = None
     items: List[QuoteItemCreate] = []
 
+
 class QuoteUpdate(BaseModel):
-    status: Optional[str] = Field(None, regex="^(draft|sent|accepted|rejected|expired)$")
+    status: Optional[str] = Field(
+        None, regex="^(draft|sent|accepted|rejected|expired)$"
+    )
     valid_until: Optional[datetime] = None
     win_probability: Optional[Decimal] = Field(None, ge=0, le=100)
     expected_close_date: Optional[datetime] = None
     description: Optional[str] = None
     internal_notes: Optional[str] = None
+
 
 class QuoteResponse(QuoteBase):
     id: str
@@ -251,19 +276,23 @@ class QuoteResponse(QuoteBase):
     class Config:
         orm_mode = True
 
+
 class InvoiceBase(BaseModel):
     sales_order_id: str
     customer_id: str
     due_date: datetime
     payment_terms: Optional[str] = None
 
+
 class InvoiceCreate(InvoiceBase):
     notes: Optional[str] = None
+
 
 class InvoiceUpdate(BaseModel):
     status: Optional[str] = Field(None, regex="^(draft|sent|paid|overdue|cancelled)$")
     due_date: Optional[datetime] = None
     notes: Optional[str] = None
+
 
 class InvoiceResponse(InvoiceBase):
     id: str
@@ -282,16 +311,19 @@ class InvoiceResponse(InvoiceBase):
     class Config:
         orm_mode = True
 
+
 class PaymentBase(BaseModel):
     amount: Decimal = Field(..., gt=0)
     payment_method: str = Field(..., regex="^(cash|check|credit_card|bank_transfer)$")
     reference_number: Optional[str] = None
+
 
 class PaymentCreate(PaymentBase):
     invoice_id: str
     payment_date: datetime = Field(default_factory=datetime.utcnow)
     transaction_id: Optional[str] = None
     notes: Optional[str] = None
+
 
 class PaymentResponse(PaymentBase):
     id: str
@@ -307,13 +339,16 @@ class PaymentResponse(PaymentBase):
     class Config:
         orm_mode = True
 
+
 class ShipmentItemBase(BaseModel):
     sales_order_item_id: str
     product_id: str
     quantity_shipped: Decimal = Field(..., gt=0)
 
+
 class ShipmentItemCreate(ShipmentItemBase):
     serial_numbers: List[str] = []
+
 
 class ShipmentItemResponse(ShipmentItemBase):
     id: str
@@ -325,11 +360,13 @@ class ShipmentItemResponse(ShipmentItemBase):
     class Config:
         orm_mode = True
 
+
 class ShipmentBase(BaseModel):
     sales_order_id: str
     carrier: Optional[str] = None
     shipping_method: Optional[str] = None
     estimated_delivery_date: Optional[datetime] = None
+
 
 class ShipmentCreate(ShipmentBase):
     delivery_address_line1: Optional[str] = None
@@ -339,13 +376,17 @@ class ShipmentCreate(ShipmentBase):
     notes: Optional[str] = None
     items: List[ShipmentItemCreate] = []
 
+
 class ShipmentUpdate(BaseModel):
-    status: Optional[str] = Field(None, regex="^(pending|shipped|in_transit|delivered|returned)$")
+    status: Optional[str] = Field(
+        None, regex="^(pending|shipped|in_transit|delivered|returned)$"
+    )
     tracking_number: Optional[str] = None
     shipped_date: Optional[datetime] = None
     delivered_date: Optional[datetime] = None
     shipping_cost: Optional[Decimal] = Field(None, ge=0)
     notes: Optional[str] = None
+
 
 class ShipmentResponse(ShipmentBase):
     id: str
@@ -366,6 +407,7 @@ class ShipmentResponse(ShipmentBase):
     class Config:
         orm_mode = True
 
+
 class SalesStatsResponse(BaseModel):
     total_customers: int
     active_customers: int
@@ -378,6 +420,7 @@ class SalesStatsResponse(BaseModel):
     by_channel: Dict[str, Decimal]
     top_customers: List[Dict[str, Any]]
 
+
 class SalesAnalyticsResponse(BaseModel):
     period_start: datetime
     period_end: datetime
@@ -389,12 +432,14 @@ class SalesAnalyticsResponse(BaseModel):
     growth_rate: Decimal
     daily_breakdown: List[Dict[str, Any]]
 
+
 class CustomerListResponse(BaseModel):
     total: int
     page: int
     per_page: int
     pages: int
     items: List[CustomerResponse]
+
 
 class SalesOrderListResponse(BaseModel):
     total: int
