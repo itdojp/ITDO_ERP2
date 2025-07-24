@@ -1,8 +1,10 @@
-from pydantic import BaseModel, EmailStr, validator, Field
-from typing import Optional, List, Dict, Any
-from datetime import datetime, date
-from decimal import Decimal
 import re
+from datetime import datetime
+from decimal import Decimal
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, EmailStr, Field, validator
+
 
 class SupplierBase(BaseModel):
     supplier_code: str = Field(..., min_length=1, max_length=50)
@@ -10,32 +12,39 @@ class SupplierBase(BaseModel):
     company_name: Optional[str] = Field(None, max_length=200)
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
-    supplier_type: str = Field(default="vendor", regex="^(vendor|manufacturer|distributor)$")
-    supplier_category: Optional[str] = Field(None, regex="^(raw_materials|finished_goods|services)$")
+    supplier_type: str = Field(
+        default="vendor", regex="^(vendor|manufacturer|distributor)$"
+    )
+    supplier_category: Optional[str] = Field(
+        None, regex="^(raw_materials|finished_goods|services)$"
+    )
     priority_level: str = Field(default="normal", regex="^(critical|high|normal|low)$")
 
-    @validator('supplier_code')
-    def code_valid(cls, v):
-        if not re.match(r'^[A-Z0-9_-]+$', v):
-            raise ValueError('Supplier code must contain only uppercase letters, numbers, hyphens and underscores')
+    @validator("supplier_code")
+    def code_valid(cls, v) -> dict:
+        if not re.match(r"^[A-Z0-9_-]+$", v):
+            raise ValueError(
+                "Supplier code must contain only uppercase letters, numbers, hyphens and underscores"
+            )
         return v
+
 
 class SupplierCreate(SupplierBase):
     mobile: Optional[str] = None
     website: Optional[str] = None
-    
+
     # 請求先住所
     billing_address_line1: Optional[str] = None
     billing_city: Optional[str] = None
     billing_postal_code: Optional[str] = None
     billing_country: str = "Japan"
-    
+
     # 配送先住所
     shipping_address_line1: Optional[str] = None
     shipping_city: Optional[str] = None
     shipping_postal_code: Optional[str] = None
     shipping_country: str = "Japan"
-    
+
     industry: Optional[str] = None
     credit_limit: Decimal = Field(default=0, ge=0)
     payment_terms: str = Field(default="net_30", max_length=50)
@@ -46,12 +55,15 @@ class SupplierCreate(SupplierBase):
     certifications: List[str] = []
     capabilities: List[str] = []
 
+
 class SupplierUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=200)
     company_name: Optional[str] = Field(None, max_length=200)
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
-    supplier_type: Optional[str] = Field(None, regex="^(vendor|manufacturer|distributor)$")
+    supplier_type: Optional[str] = Field(
+        None, regex="^(vendor|manufacturer|distributor)$"
+    )
     priority_level: Optional[str] = Field(None, regex="^(critical|high|normal|low)$")
     credit_limit: Optional[Decimal] = Field(None, ge=0)
     payment_terms: Optional[str] = None
@@ -60,6 +72,7 @@ class SupplierUpdate(BaseModel):
     preferred_supplier: Optional[bool] = None
     certified_supplier: Optional[bool] = None
     notes: Optional[str] = None
+
 
 class SupplierResponse(SupplierBase):
     id: str
@@ -99,10 +112,12 @@ class SupplierResponse(SupplierBase):
     class Config:
         orm_mode = True
 
+
 class PurchaseRequestItemBase(BaseModel):
     product_name: str = Field(..., min_length=1, max_length=300)
     quantity: Decimal = Field(..., gt=0)
     estimated_unit_price: Optional[Decimal] = Field(None, ge=0)
+
 
 class PurchaseRequestItemCreate(PurchaseRequestItemBase):
     product_id: Optional[str] = None
@@ -113,6 +128,7 @@ class PurchaseRequestItemCreate(PurchaseRequestItemBase):
     quality_requirements: Optional[str] = None
     preferred_brand: Optional[str] = None
     notes: Optional[str] = None
+
 
 class PurchaseRequestItemResponse(PurchaseRequestItemBase):
     id: str
@@ -132,9 +148,11 @@ class PurchaseRequestItemResponse(PurchaseRequestItemBase):
     class Config:
         orm_mode = True
 
+
 class PurchaseRequestBase(BaseModel):
     required_date: Optional[datetime] = None
     priority: str = Field(default="normal", regex="^(urgent|high|normal|low)$")
+
 
 class PurchaseRequestCreate(PurchaseRequestBase):
     department_id: Optional[str] = None
@@ -146,14 +164,18 @@ class PurchaseRequestCreate(PurchaseRequestBase):
     internal_notes: Optional[str] = None
     items: List[PurchaseRequestItemCreate] = []
 
+
 class PurchaseRequestUpdate(BaseModel):
-    status: Optional[str] = Field(None, regex="^(draft|submitted|approved|rejected|cancelled)$")
+    status: Optional[str] = Field(
+        None, regex="^(draft|submitted|approved|rejected|cancelled)$"
+    )
     priority: Optional[str] = Field(None, regex="^(urgent|high|normal|low)$")
     required_date: Optional[datetime] = None
     supplier_id: Optional[str] = None
     estimated_total: Optional[Decimal] = Field(None, ge=0)
     justification: Optional[str] = None
     internal_notes: Optional[str] = None
+
 
 class PurchaseRequestResponse(PurchaseRequestBase):
     id: str
@@ -180,11 +202,13 @@ class PurchaseRequestResponse(PurchaseRequestBase):
     class Config:
         orm_mode = True
 
+
 class PurchaseOrderItemBase(BaseModel):
     product_name: str = Field(..., min_length=1, max_length=300)
     quantity: Decimal = Field(..., gt=0)
     unit_price: Decimal = Field(..., ge=0)
     line_discount_percentage: Decimal = Field(default=0, ge=0, le=100)
+
 
 class PurchaseOrderItemCreate(PurchaseOrderItemBase):
     product_id: Optional[str] = None
@@ -192,6 +216,7 @@ class PurchaseOrderItemCreate(PurchaseOrderItemBase):
     product_description: Optional[str] = None
     specification: Optional[str] = None
     notes: Optional[str] = None
+
 
 class PurchaseOrderItemResponse(PurchaseOrderItemBase):
     id: str
@@ -214,10 +239,12 @@ class PurchaseOrderItemResponse(PurchaseOrderItemBase):
     class Config:
         orm_mode = True
 
+
 class PurchaseOrderBase(BaseModel):
     supplier_id: str
     required_delivery_date: Optional[datetime] = None
     payment_terms: Optional[str] = None
+
 
 class PurchaseOrderCreate(PurchaseOrderBase):
     purchase_request_id: Optional[str] = None
@@ -236,8 +263,11 @@ class PurchaseOrderCreate(PurchaseOrderBase):
     cost_center: Optional[str] = None
     items: List[PurchaseOrderItemCreate] = []
 
+
 class PurchaseOrderUpdate(BaseModel):
-    status: Optional[str] = Field(None, regex="^(draft|sent|acknowledged|shipped|received|cancelled)$")
+    status: Optional[str] = Field(
+        None, regex="^(draft|sent|acknowledged|shipped|received|cancelled)$"
+    )
     required_delivery_date: Optional[datetime] = None
     promised_delivery_date: Optional[datetime] = None
     actual_delivery_date: Optional[datetime] = None
@@ -246,6 +276,7 @@ class PurchaseOrderUpdate(BaseModel):
     quality_requirements: Optional[str] = None
     internal_notes: Optional[str] = None
     supplier_notes: Optional[str] = None
+
 
 class PurchaseOrderResponse(PurchaseOrderBase):
     id: str
@@ -284,22 +315,27 @@ class PurchaseOrderResponse(PurchaseOrderBase):
     class Config:
         orm_mode = True
 
+
 class PurchaseReceiptItemBase(BaseModel):
     purchase_order_item_id: str
     product_id: str
     received_quantity: Decimal = Field(..., gt=0)
 
+
 class PurchaseReceiptItemCreate(PurchaseReceiptItemBase):
     accepted_quantity: Optional[Decimal] = Field(None, ge=0)
     rejected_quantity: Optional[Decimal] = Field(None, ge=0)
     damaged_quantity: Optional[Decimal] = Field(None, ge=0)
-    quality_status: str = Field(default="pending", regex="^(pending|passed|failed|conditional)$")
+    quality_status: str = Field(
+        default="pending", regex="^(pending|passed|failed|conditional)$"
+    )
     defect_reason: Optional[str] = None
     warehouse_location: Optional[str] = None
     lot_number: Optional[str] = None
     expiry_date: Optional[datetime] = None
     serial_numbers: List[str] = []
     notes: Optional[str] = None
+
 
 class PurchaseReceiptItemResponse(PurchaseReceiptItemBase):
     id: str
@@ -319,24 +355,34 @@ class PurchaseReceiptItemResponse(PurchaseReceiptItemBase):
     class Config:
         orm_mode = True
 
+
 class PurchaseReceiptBase(BaseModel):
     purchase_order_id: str
+
 
 class PurchaseReceiptCreate(PurchaseReceiptBase):
     receipt_date: datetime = Field(default_factory=datetime.utcnow)
     delivery_note_number: Optional[str] = None
     carrier: Optional[str] = None
-    inspection_status: str = Field(default="pending", regex="^(pending|passed|failed|partial)$")
+    inspection_status: str = Field(
+        default="pending", regex="^(pending|passed|failed|partial)$"
+    )
     inspection_notes: Optional[str] = None
     notes: Optional[str] = None
     items: List[PurchaseReceiptItemCreate] = []
 
+
 class PurchaseReceiptUpdate(BaseModel):
-    status: Optional[str] = Field(None, regex="^(received|inspected|accepted|rejected)$")
-    inspection_status: Optional[str] = Field(None, regex="^(pending|passed|failed|partial)$")
+    status: Optional[str] = Field(
+        None, regex="^(received|inspected|accepted|rejected)$"
+    )
+    inspection_status: Optional[str] = Field(
+        None, regex="^(pending|passed|failed|partial)$"
+    )
     inspection_date: Optional[datetime] = None
     inspection_notes: Optional[str] = None
     notes: Optional[str] = None
+
 
 class PurchaseReceiptResponse(PurchaseReceiptBase):
     id: str
@@ -359,10 +405,12 @@ class PurchaseReceiptResponse(PurchaseReceiptBase):
     class Config:
         orm_mode = True
 
+
 class SupplierProductBase(BaseModel):
     supplier_id: str
     product_id: str
     unit_price: Decimal = Field(..., ge=0)
+
 
 class SupplierProductCreate(SupplierProductBase):
     supplier_product_code: Optional[str] = None
@@ -375,6 +423,7 @@ class SupplierProductCreate(SupplierProductBase):
     preferred_supplier: bool = False
     notes: Optional[str] = None
 
+
 class SupplierProductUpdate(BaseModel):
     unit_price: Optional[Decimal] = Field(None, ge=0)
     minimum_order_quantity: Optional[Decimal] = Field(None, gt=0)
@@ -384,6 +433,7 @@ class SupplierProductUpdate(BaseModel):
     is_active: Optional[bool] = None
     is_discontinued: Optional[bool] = None
     notes: Optional[str] = None
+
 
 class SupplierProductResponse(SupplierProductBase):
     id: str
@@ -406,6 +456,7 @@ class SupplierProductResponse(SupplierProductBase):
     class Config:
         orm_mode = True
 
+
 class PurchaseStatsResponse(BaseModel):
     total_suppliers: int
     active_suppliers: int
@@ -420,6 +471,7 @@ class PurchaseStatsResponse(BaseModel):
     pending_receipts: int
     overdue_orders: int
 
+
 class PurchaseAnalyticsResponse(BaseModel):
     period_start: datetime
     period_end: datetime
@@ -433,6 +485,7 @@ class PurchaseAnalyticsResponse(BaseModel):
     daily_breakdown: List[Dict[str, Any]]
     supplier_performance: List[Dict[str, Any]]
 
+
 class SupplierListResponse(BaseModel):
     total: int
     page: int
@@ -440,12 +493,14 @@ class SupplierListResponse(BaseModel):
     pages: int
     items: List[SupplierResponse]
 
+
 class PurchaseRequestListResponse(BaseModel):
     total: int
     page: int
     per_page: int
     pages: int
     items: List[PurchaseRequestResponse]
+
 
 class PurchaseOrderListResponse(BaseModel):
     total: int
