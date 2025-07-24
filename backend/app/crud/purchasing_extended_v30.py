@@ -45,7 +45,7 @@ class InsufficientBudgetError(Exception):
 
 
 class SupplierCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def get_by_id(self, supplier_id: str) -> Optional[Supplier]:
@@ -155,7 +155,7 @@ class SupplierCRUD:
 
         return supplier
 
-    def update_purchase_stats(self, supplier_id: str, order_amount: Decimal):
+    def update_purchase_stats(self, supplier_id: str, order_amount: Decimal) -> dict:
         """サプライヤーの購買統計を更新"""
         supplier = self.get_by_id(supplier_id)
         if supplier:
@@ -196,7 +196,7 @@ class SupplierCRUD:
 
 
 class PurchaseRequestCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def get_by_id(self, request_id: str) -> Optional[PurchaseRequest]:
@@ -429,7 +429,7 @@ class PurchaseRequestCRUD:
 
 
 class PurchaseOrderCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def get_by_id(self, order_id: str) -> Optional[PurchaseOrder]:
@@ -717,7 +717,7 @@ class PurchaseOrderCRUD:
 
 
 class PurchaseReceiptCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def get_by_id(self, receipt_id: str) -> Optional[PurchaseReceipt]:
@@ -812,7 +812,7 @@ class PurchaseReceiptCRUD:
 
 
 class SupplierProductCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def get_by_id(self, supplier_product_id: str) -> Optional[SupplierProduct]:
