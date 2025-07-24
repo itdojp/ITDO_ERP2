@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 
 interface UserFormProps {
   user?: {
@@ -8,7 +8,7 @@ interface UserFormProps {
     fullName: string;
     role: string;
     department: string;
-    status: 'active' | 'inactive' | 'suspended';
+    status: "active" | "inactive" | "suspended";
     phone?: string;
     address?: string;
     emergencyContact?: string;
@@ -18,64 +18,63 @@ interface UserFormProps {
   isEditing?: boolean;
 }
 
-export const UserForm: React.FC<UserFormProps> = ({ 
-  user, 
-  onSubmit, 
-  onCancel, 
-  isEditing = false 
+export const UserForm: React.FC<UserFormProps> = ({
+  user,
+  onSubmit,
+  onCancel,
+  isEditing = false,
 }) => {
   const [formData, setFormData] = useState({
-    username: user?.username || '',
-    email: user?.email || '',
-    fullName: user?.fullName || '',
-    role: user?.role || '一般ユーザー',
-    department: user?.department || '',
-    status: user?.status || 'active',
-    phone: user?.phone || '',
-    address: user?.address || '',
-    emergencyContact: user?.emergencyContact || '',
-    password: '',
-    confirmPassword: ''
+    username: user?.username || "",
+    email: user?.email || "",
+    fullName: user?.fullName || "",
+    role: user?.role || "一般ユーザー",
+    department: user?.department || "",
+    status: user?.status || "active",
+    phone: user?.phone || "",
+    address: user?.address || "",
+    emergencyContact: user?.emergencyContact || "",
+    password: "",
+    confirmPassword: "",
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const departments = [
-    'システム部',
-    '営業部',
-    '経理部',
-    '総務部',
-    '人事部',
-    'マーケティング部',
-    '開発部',
-    '品質管理部'
+    "システム部",
+    "営業部",
+    "経理部",
+    "総務部",
+    "人事部",
+    "マーケティング部",
+    "開発部",
+    "品質管理部",
   ];
 
-  const roles = [
-    '管理者',
-    'マネージャー',
-    '一般ユーザー',
-    'ゲスト'
-  ];
+  const roles = ["管理者", "マネージャー", "一般ユーザー", "ゲスト"];
 
   const statusOptions = [
-    { value: 'active', label: 'アクティブ' },
-    { value: 'inactive', label: '非アクティブ' },
-    { value: 'suspended', label: '停止中' }
+    { value: "active", label: "アクティブ" },
+    { value: "inactive", label: "非アクティブ" },
+    { value: "suspended", label: "停止中" },
   ];
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >,
+  ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
-    
+
     // エラーをクリア
     if (errors[name]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [name]: ''
+        [name]: "",
       }));
     }
   };
@@ -84,39 +83,40 @@ export const UserForm: React.FC<UserFormProps> = ({
     const newErrors: Record<string, string> = {};
 
     if (!formData.username.trim()) {
-      newErrors.username = 'ユーザー名は必須です';
+      newErrors.username = "ユーザー名は必須です";
     } else if (!/^[a-zA-Z0-9._-]+$/.test(formData.username)) {
-      newErrors.username = 'ユーザー名は英数字とピリオド、ハイフン、アンダースコアのみ使用できます';
+      newErrors.username =
+        "ユーザー名は英数字とピリオド、ハイフン、アンダースコアのみ使用できます";
     }
 
     if (!formData.email.trim()) {
-      newErrors.email = 'メールアドレスは必須です';
+      newErrors.email = "メールアドレスは必須です";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = '有効なメールアドレスを入力してください';
+      newErrors.email = "有効なメールアドレスを入力してください";
     }
 
     if (!formData.fullName.trim()) {
-      newErrors.fullName = '氏名は必須です';
+      newErrors.fullName = "氏名は必須です";
     }
 
     if (!formData.department.trim()) {
-      newErrors.department = '部署は必須です';
+      newErrors.department = "部署は必須です";
     }
 
     if (!isEditing) {
       if (!formData.password) {
-        newErrors.password = 'パスワードは必須です';
+        newErrors.password = "パスワードは必須です";
       } else if (formData.password.length < 8) {
-        newErrors.password = 'パスワードは8文字以上で入力してください';
+        newErrors.password = "パスワードは8文字以上で入力してください";
       }
 
       if (formData.password !== formData.confirmPassword) {
-        newErrors.confirmPassword = 'パスワードが一致しません';
+        newErrors.confirmPassword = "パスワードが一致しません";
       }
     }
 
     if (formData.phone && !/^[\d-+()\\s]+$/.test(formData.phone)) {
-      newErrors.phone = '有効な電話番号を入力してください';
+      newErrors.phone = "有効な電話番号を入力してください";
     }
 
     setErrors(newErrors);
@@ -125,7 +125,7 @@ export const UserForm: React.FC<UserFormProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (validateForm()) {
       const submitData = { ...formData };
       if (isEditing) {
@@ -140,10 +140,12 @@ export const UserForm: React.FC<UserFormProps> = ({
     <div className="bg-white rounded-lg shadow">
       <div className="px-6 py-4 border-b border-gray-200">
         <h2 className="text-xl font-semibold text-gray-900">
-          {isEditing ? 'ユーザー編集' : '新規ユーザー登録'}
+          {isEditing ? "ユーザー編集" : "新規ユーザー登録"}
         </h2>
         <p className="text-sm text-gray-500">
-          {isEditing ? 'ユーザー情報を編集してください' : '新しいユーザーを登録してください'}
+          {isEditing
+            ? "ユーザー情報を編集してください"
+            : "新しいユーザーを登録してください"}
         </p>
       </div>
 
@@ -163,11 +165,13 @@ export const UserForm: React.FC<UserFormProps> = ({
                 onChange={handleChange}
                 disabled={isEditing}
                 className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.username ? 'border-red-300' : 'border-gray-300'
-                } ${isEditing ? 'bg-gray-50' : ''}`}
+                  errors.username ? "border-red-300" : "border-gray-300"
+                } ${isEditing ? "bg-gray-50" : ""}`}
                 placeholder="yamada.taro"
               />
-              {errors.username && <p className="text-red-500 text-sm mt-1">{errors.username}</p>}
+              {errors.username && (
+                <p className="text-red-500 text-sm mt-1">{errors.username}</p>
+              )}
             </div>
 
             <div>
@@ -180,11 +184,13 @@ export const UserForm: React.FC<UserFormProps> = ({
                 value={formData.email}
                 onChange={handleChange}
                 className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.email ? 'border-red-300' : 'border-gray-300'
+                  errors.email ? "border-red-300" : "border-gray-300"
                 }`}
                 placeholder="yamada@example.com"
               />
-              {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+              {errors.email && (
+                <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+              )}
             </div>
 
             <div className="col-span-2">
@@ -197,11 +203,13 @@ export const UserForm: React.FC<UserFormProps> = ({
                 value={formData.fullName}
                 onChange={handleChange}
                 className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.fullName ? 'border-red-300' : 'border-gray-300'
+                  errors.fullName ? "border-red-300" : "border-gray-300"
                 }`}
                 placeholder="山田太郎"
               />
-              {errors.fullName && <p className="text-red-500 text-sm mt-1">{errors.fullName}</p>}
+              {errors.fullName && (
+                <p className="text-red-500 text-sm mt-1">{errors.fullName}</p>
+              )}
             </div>
           </div>
         </div>
@@ -220,8 +228,10 @@ export const UserForm: React.FC<UserFormProps> = ({
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                {roles.map(role => (
-                  <option key={role} value={role}>{role}</option>
+                {roles.map((role) => (
+                  <option key={role} value={role}>
+                    {role}
+                  </option>
                 ))}
               </select>
             </div>
@@ -235,15 +245,19 @@ export const UserForm: React.FC<UserFormProps> = ({
                 value={formData.department}
                 onChange={handleChange}
                 className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.department ? 'border-red-300' : 'border-gray-300'
+                  errors.department ? "border-red-300" : "border-gray-300"
                 }`}
               >
                 <option value="">部署を選択してください</option>
-                {departments.map(dept => (
-                  <option key={dept} value={dept}>{dept}</option>
+                {departments.map((dept) => (
+                  <option key={dept} value={dept}>
+                    {dept}
+                  </option>
                 ))}
               </select>
-              {errors.department && <p className="text-red-500 text-sm mt-1">{errors.department}</p>}
+              {errors.department && (
+                <p className="text-red-500 text-sm mt-1">{errors.department}</p>
+              )}
             </div>
 
             <div>
@@ -256,7 +270,7 @@ export const UserForm: React.FC<UserFormProps> = ({
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                {statusOptions.map(option => (
+                {statusOptions.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
@@ -280,11 +294,13 @@ export const UserForm: React.FC<UserFormProps> = ({
                 value={formData.phone}
                 onChange={handleChange}
                 className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.phone ? 'border-red-300' : 'border-gray-300'
+                  errors.phone ? "border-red-300" : "border-gray-300"
                 }`}
                 placeholder="090-1234-5678"
               />
-              {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
+              {errors.phone && (
+                <p className="text-red-500 text-sm mt-1">{errors.phone}</p>
+              )}
             </div>
 
             <div>
@@ -320,7 +336,9 @@ export const UserForm: React.FC<UserFormProps> = ({
         {/* パスワード設定 */}
         {!isEditing && (
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">パスワード設定</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              パスワード設定
+            </h3>
             <div className="grid grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -332,11 +350,13 @@ export const UserForm: React.FC<UserFormProps> = ({
                   value={formData.password}
                   onChange={handleChange}
                   className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    errors.password ? 'border-red-300' : 'border-gray-300'
+                    errors.password ? "border-red-300" : "border-gray-300"
                   }`}
                   placeholder="8文字以上で入力してください"
                 />
-                {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
+                {errors.password && (
+                  <p className="text-red-500 text-sm mt-1">{errors.password}</p>
+                )}
               </div>
 
               <div>
@@ -349,11 +369,17 @@ export const UserForm: React.FC<UserFormProps> = ({
                   value={formData.confirmPassword}
                   onChange={handleChange}
                   className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    errors.confirmPassword ? 'border-red-300' : 'border-gray-300'
+                    errors.confirmPassword
+                      ? "border-red-300"
+                      : "border-gray-300"
                   }`}
                   placeholder="パスワードを再入力してください"
                 />
-                {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>}
+                {errors.confirmPassword && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.confirmPassword}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -372,7 +398,7 @@ export const UserForm: React.FC<UserFormProps> = ({
             type="submit"
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
-            {isEditing ? '更新' : '登録'}
+            {isEditing ? "更新" : "登録"}
           </button>
         </div>
       </form>
