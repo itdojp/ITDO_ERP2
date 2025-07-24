@@ -1,0 +1,431 @@
+# Database Access Network Policy - Zero Trust Implementation
+# Strict database access controls with comprehensive audit logging
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: database-access-policy
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: database-access-policy
+    security.istio.io/policy: "zero-trust"
+    app.kubernetes.io/component: database-security
+spec:
+  podSelector:
+    matchLabels:
+      app: postgresql
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow connections from backend API only
+  - from:
+    - podSelector:
+        matchLabels:
+          app: itdo-erp-backend-api
+    ports:
+    - protocol: TCP
+      port: 5432
+  # Allow connections from migration jobs
+  - from:
+    - podSelector:
+        matchLabels:
+          job-type: database-migration
+    ports:
+    - protocol: TCP
+      port: 5432
+  # Allow connections from backup jobs
+  - from:
+    - podSelector:
+        matchLabels:
+          app: postgresql-backup
+    ports:
+    - protocol: TCP
+      port: 5432
+  # Allow monitoring from specific pods
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+      podSelector:
+        matchLabels:
+          app: postgres-exporter
+    ports:
+    - protocol: TCP
+      port: 9187  # PostgreSQL exporter port
+  # Emergency admin access (tightly controlled)
+  - from:
+    - podSelector:
+        matchLabels:
+          role: database-admin
+          emergency-access: "true"
+    ports:
+    - protocol: TCP
+      port: 5432
+      
+  egress:
+  # Allow DNS resolution
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # Allow replication to standby databases
+  - to:
+    - podSelector:
+        matchLabels:
+          app: postgresql-standby
+    ports:
+    - protocol: TCP
+      port: 5432
+  # Allow backup to S3 (if using external backup)
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+    # This should be restricted to specific S3 endpoints
+      
+---
+# Redis Access Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: redis-access-policy
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: redis-access-policy
+    security.istio.io/policy: "zero-trust"
+spec:
+  podSelector:
+    matchLabels:
+      app: redis
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow connections from backend API
+  - from:
+    - podSelector:
+        matchLabels:
+          app: itdo-erp-backend-api
+    ports:
+    - protocol: TCP
+      port: 6379
+  # Allow connections from session store
+  - from:
+    - podSelector:
+        matchLabels:
+          component: session-store
+    ports:
+    - protocol: TCP
+      port: 6379
+  # Allow monitoring
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+      podSelector:
+        matchLabels:
+          app: redis-exporter
+    ports:
+    - protocol: TCP
+      port: 9121  # Redis exporter port
+      
+  egress:
+  # Allow DNS resolution only
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # Allow replication to Redis cluster nodes
+  - to:
+    - podSelector:
+        matchLabels:
+          app: redis
+          role: replica
+    ports:
+    - protocol: TCP
+      port: 6379
+    - protocol: TCP
+      port: 16379  # Redis cluster bus
+      
+---
+# Database Connection Pool Policy (Cilium)
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: database-connection-limits
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: database-connection-limits
+spec:
+  description: "Database connection limits and query monitoring"
+  endpointSelector:
+    matchLabels:
+      app: postgresql
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        app: itdo-erp-backend-api
+    toPorts:
+    - ports:
+      - port: "5432"
+        protocol: TCP
+      # Custom rule to limit concurrent connections
+      terminatingTLS:
+        secret:
+          name: "database-tls-cert"
+          namespace: "itdo-erp"
+      # Connection limits (would need custom implementation)
+      rules:
+        kafka:  # Using Kafka rule structure for custom metadata
+        - role: "consume"
+          topic: "database-connections"
+          clientID: "backend-api"
+          
+---
+# Database Query Audit Policy (Calico)
+apiVersion: projectcalico.org/v3
+kind: GlobalNetworkPolicy
+metadata:
+  name: database-query-audit
+  labels:
+    app.kubernetes.io/name: database-query-audit
+spec:
+  order: 150
+  selector: 'app == "postgresql"'
+  types:
+  - Ingress
+  ingress:
+  # Log all database connections
+  - action: Allow
+    source:
+      selector: 'app == "itdo-erp-backend-api"'
+    destination:
+      ports: [5432]
+    metadata:
+      annotations:
+        "audit-log": "enabled"
+        "log-level": "query"
+        "log-statement": "all"
+        "log-line-prefix": "'%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h '"
+  # Block any non-authorized connections
+  - action: Deny
+    destination:
+      ports: [5432]
+    metadata:
+      annotations:
+        "audit-log": "security-violation"
+        "alert": "unauthorized-database-access"
+        
+---
+# Database Encryption in Transit Policy
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: database-ssl-config
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: database-ssl-config
+data:
+  postgresql.conf: |
+    # SSL Configuration
+    ssl = on
+    ssl_cert_file = '/etc/ssl/certs/server.crt'
+    ssl_key_file = '/etc/ssl/private/server.key'
+    ssl_ca_file = '/etc/ssl/certs/ca.crt'
+    ssl_crl_file = '/etc/ssl/certs/server.crl'
+    
+    # Force SSL for all connections
+    ssl_min_protocol_version = 'TLSv1.2'
+    ssl_max_protocol_version = 'TLSv1.3'
+    ssl_ciphers = 'ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384'
+    ssl_prefer_server_ciphers = on
+    
+    # Client certificate authentication
+    ssl_cert_file = 'server.crt'
+    ssl_key_file = 'server.key'
+    ssl_ca_file = 'ca.crt'
+    
+    # Connection limits
+    max_connections = 200
+    superuser_reserved_connections = 3
+    
+    # Logging for security audit
+    log_statement = 'all'
+    log_line_prefix = '%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h '
+    log_connections = on
+    log_disconnections = on
+    log_checkpoints = on
+    log_lock_waits = on
+    log_temp_files = 0
+    
+    # Authentication
+    password_encryption = scram-sha-256
+    
+  pg_hba.conf: |
+    # TYPE  DATABASE        USER            ADDRESS                 METHOD
+    
+    # SSL required for all connections
+    hostssl all             all             10.0.0.0/8              scram-sha-256
+    hostssl all             all             172.16.0.0/12           scram-sha-256
+    hostssl all             all             192.168.0.0/16          scram-sha-256
+    
+    # Certificate-based authentication for replication
+    hostssl replication     replicator      10.0.0.0/8              cert
+    
+    # Local connections (for maintenance)
+    local   all             postgres                                peer
+    local   all             all                                     scram-sha-256
+    
+    # Reject all non-SSL connections
+    host    all             all             0.0.0.0/0               reject
+    
+---
+# Database Network Security ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: database-network-security
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: database-network-security
+data:
+  # PostgreSQL security configuration
+  setup-security.sh: |
+    #!/bin/bash
+    set -e
+    
+    # Create database security roles
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+        -- Create audit role
+        CREATE ROLE audit_role;
+        GRANT SELECT ON ALL TABLES IN SCHEMA public TO audit_role;
+        GRANT SELECT ON ALL SEQUENCES IN SCHEMA public TO audit_role;
+        
+        -- Create application role with limited privileges
+        CREATE ROLE app_role;
+        GRANT CONNECT ON DATABASE itdo_erp TO app_role;
+        GRANT USAGE ON SCHEMA public TO app_role;
+        GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO app_role;
+        GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO app_role;
+        
+        -- Create read-only reporting role
+        CREATE ROLE readonly_role;
+        GRANT CONNECT ON DATABASE itdo_erp TO readonly_role;
+        GRANT USAGE ON SCHEMA public TO readonly_role;
+        GRANT SELECT ON ALL TABLES IN SCHEMA public TO readonly_role;
+        
+        -- Create backup role
+        CREATE ROLE backup_role WITH REPLICATION;
+        GRANT SELECT ON ALL TABLES IN SCHEMA public TO backup_role;
+        
+        -- Enable row level security
+        ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+        ALTER TABLE sensitive_data ENABLE ROW LEVEL SECURITY;
+        
+        -- Create security policies
+        CREATE POLICY user_data_policy ON users
+            USING (user_id = current_setting('app.current_user_id')::uuid);
+            
+        -- Install audit trigger function
+        CREATE OR REPLACE FUNCTION audit_trigger_function()
+        RETURNS TRIGGER AS \$\$
+        BEGIN
+            IF TG_OP = 'INSERT' THEN
+                INSERT INTO audit_log (table_name, operation, new_values, user_name, timestamp)
+                VALUES (TG_TABLE_NAME, TG_OP, row_to_json(NEW), current_user, now());
+                RETURN NEW;
+            ELSIF TG_OP = 'UPDATE' THEN
+                INSERT INTO audit_log (table_name, operation, old_values, new_values, user_name, timestamp)
+                VALUES (TG_TABLE_NAME, TG_OP, row_to_json(OLD), row_to_json(NEW), current_user, now());
+                RETURN NEW;
+            ELSIF TG_OP = 'DELETE' THEN
+                INSERT INTO audit_log (table_name, operation, old_values, user_name, timestamp)
+                VALUES (TG_TABLE_NAME, TG_OP, row_to_json(OLD), current_user, now());
+                RETURN OLD;
+            END IF;
+        END;
+        \$\$ LANGUAGE plpgsql;
+        
+        -- Create audit table
+        CREATE TABLE IF NOT EXISTS audit_log (
+            id SERIAL PRIMARY KEY,
+            table_name TEXT NOT NULL,
+            operation TEXT NOT NULL,
+            old_values JSONB,
+            new_values JSONB,
+            user_name TEXT NOT NULL,
+            timestamp TIMESTAMPTZ DEFAULT now()
+        );
+        
+        -- Apply audit triggers to sensitive tables
+        CREATE TRIGGER users_audit_trigger
+            AFTER INSERT OR UPDATE OR DELETE ON users
+            FOR EACH ROW EXECUTE FUNCTION audit_trigger_function();
+            
+        CREATE TRIGGER financial_data_audit_trigger
+            AFTER INSERT OR UPDATE OR DELETE ON financial_transactions
+            FOR EACH ROW EXECUTE FUNCTION audit_trigger_function();
+    EOSQL
+    
+    echo "Database security setup completed"
+    
+---
+# Database Network Policy for Backup Access
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: database-backup-access
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: database-backup-access
+spec:
+  podSelector:
+    matchLabels:
+      app: postgresql-backup
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow connections from backup scheduler
+  - from:
+    - podSelector:
+        matchLabels:
+          component: backup-scheduler
+    ports:
+    - protocol: TCP
+      port: 8080  # Backup service port
+      
+  egress:
+  # Allow DNS resolution
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # Allow connection to PostgreSQL for backup
+  - to:
+    - podSelector:
+        matchLabels:
+          app: postgresql
+    ports:
+    - protocol: TCP
+      port: 5432
+  # Allow upload to S3/external storage
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+  # Allow connection to monitoring for backup status
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 9090

@@ -1,0 +1,344 @@
+# Strict mTLS Policy for ITDO ERP Zero Trust Architecture
+# Enforces mutual TLS for all service-to-service communication
+
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default-strict-mtls
+  namespace: istio-system
+  labels:
+    app.kubernetes.io/name: default-mtls-policy
+    security.istio.io/policy: strict
+spec:
+  # Apply to all workloads in all namespaces
+  mtls:
+    mode: STRICT  # Enforce strict mTLS globally
+---
+# Namespace-specific Strict mTLS for ITDO ERP
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: itdo-erp-strict-mtls
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: itdo-erp-mtls-policy
+spec:
+  mtls:
+    mode: STRICT
+---
+# Backend API mTLS Policy with JWT Authentication
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: backend-api-mtls
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: backend-api-mtls
+spec:
+  selector:
+    matchLabels:
+      app: itdo-erp-backend-api
+  mtls:
+    mode: STRICT
+  # Port-specific mTLS configuration
+  portLevelMtls:
+    8000:  # Application port
+      mode: STRICT
+    8080:  # Health check port
+      mode: PERMISSIVE  # Allow non-mTLS for health checks from load balancer
+      
+---
+# Frontend Application mTLS Policy
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: frontend-app-mtls
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: frontend-app-mtls
+spec:
+  selector:
+    matchLabels:
+      app: itdo-erp-frontend-app
+  mtls:
+    mode: STRICT
+  portLevelMtls:
+    80:    # Nginx port
+      mode: STRICT
+    8080:  # Health check port
+      mode: PERMISSIVE
+      
+---
+# Database mTLS Policy (Extra Strict)
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: database-mtls
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: database-mtls
+spec:
+  selector:
+    matchLabels:
+      app: postgresql
+  mtls:
+    mode: STRICT
+  portLevelMtls:
+    5432:  # PostgreSQL port
+      mode: STRICT  # No exceptions for database
+      
+---
+# Redis Cache mTLS Policy
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: redis-mtls
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: redis-mtls
+spec:
+  selector:
+    matchLabels:
+      app: redis
+  mtls:
+    mode: STRICT
+  portLevelMtls:
+    6379:  # Redis port
+      mode: STRICT
+      
+---
+# Monitoring Services mTLS Policy
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: monitoring-mtls
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: monitoring-mtls
+spec:
+  mtls:
+    mode: STRICT
+  # Port-level exceptions for monitoring tools
+  portLevelMtls:
+    9090:  # Prometheus
+      mode: PERMISSIVE  # Allow scraping from external
+    3000:  # Grafana
+      mode: PERMISSIVE  # Allow external access
+    9093:  # Alertmanager
+      mode: STRICT
+      
+---
+# External Services mTLS Policy (Egress)
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: egress-mtls
+  namespace: istio-system
+  labels:
+    app.kubernetes.io/name: egress-mtls
+spec:
+  selector:
+    matchLabels:
+      istio: egressgateway
+  mtls:
+    mode: STRICT  # Internal communication to egress gateway is mTLS
+    
+---
+# Request Authentication with JWT for API endpoints
+apiVersion: security.istio.io/v1beta1
+kind: RequestAuthentication
+metadata:
+  name: jwt-authentication
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: jwt-authentication
+spec:
+  selector:
+    matchLabels:
+      app: itdo-erp-backend-api
+  jwtRules:
+  # Keycloak JWT validation
+  - issuer: "https://auth.itdo-erp.com/auth/realms/itdo-erp"
+    jwksUri: "https://auth.itdo-erp.com/auth/realms/itdo-erp/protocol/openid-connect/certs"
+    audiences:
+    - "itdo-erp-api"
+    - "itdo-erp-frontend"
+    fromHeaders:
+    - name: "Authorization"
+      prefix: "Bearer "
+    fromParams:
+    - "access_token"
+    forwardOriginalToken: true
+    outputPayloadToHeader: "X-JWT-Payload"
+    
+  # Internal service JWT for service-to-service calls
+  - issuer: "cluster.local/ns/itdo-erp/sa/itdo-erp-backend-api"
+    jwksUri: "https://kubernetes.default.svc.cluster.local/openid/v1/jwks"
+    audiences:
+    - "itdo-erp-internal"
+    fromHeaders:
+    - name: "X-Internal-Token"
+    outputPayloadToHeader: "X-Internal-JWT-Payload"
+    
+---
+# API Key Authentication for External APIs
+apiVersion: security.istio.io/v1beta1
+kind: RequestAuthentication
+metadata:
+  name: api-key-authentication
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: api-key-authentication
+spec:
+  selector:
+    matchLabels:
+      app: itdo-erp-backend-api
+  # Custom API key validation (would need custom auth service)
+  jwtRules:
+  - issuer: "itdo-erp.com/api-keys"
+    jwksUri: "https://auth.itdo-erp.com/api-keys/jwks"
+    audiences:
+    - "itdo-erp-public-api"
+    fromHeaders:
+    - name: "X-API-Key"
+    outputPayloadToHeader: "X-API-Key-Payload"
+    
+---
+# mTLS Certificate Management ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mtls-certificates-config
+  namespace: istio-system
+  labels:
+    app.kubernetes.io/name: mtls-certificates
+data:
+  # Certificate configuration
+  ca-cert.pem: |
+    -----BEGIN CERTIFICATE-----
+    # This would contain the actual CA certificate
+    # In production, this should be managed by cert-manager or external CA
+    MIIDXTCCAkWgAwIBAgIJAKoK/heBjcOuMA0GCSqGSIb3DQEBCwUAMEUxCzAJBgNV
+    BAYTAkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEwHwYDVQQKDBhJbnRlcm5ldCBX
+    aWRnaXRzIFB0eSBMdGQwHhcNMTcxMTE2MDQwNjM5WhcNMjcxMTE0MDQwNjM5WjBF
+    MQswCQYDVQQGEwJBVTETMBEGA1UECAwKU29tZS1TdGF0ZTEhMB8GA1UECgwYSW50
+    ZXJuZXQgV2lkZ2l0cyBQdHkgTHRkMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIB
+    CgKCAQEAwQhX...
+    -----END CERTIFICATE-----
+  
+  # Certificate Authority Bundle
+  ca-bundle.pem: |
+    -----BEGIN CERTIFICATE-----
+    # Production CA certificates would go here
+    # This should include the full certificate chain
+    -----END CERTIFICATE-----
+    
+  # Trust anchors for external services
+  external-ca-bundle.pem: |
+    -----BEGIN CERTIFICATE-----
+    # External service CA certificates (Google, AWS, etc.)
+    -----END CERTIFICATE-----
+    
+---
+# TLS Configuration Secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: istio-ca-certs
+  namespace: istio-system
+  labels:
+    app.kubernetes.io/name: istio-ca-certs
+type: Opaque
+data:
+  # Base64 encoded certificate data
+  # In production, these should be populated by cert-manager or external CA
+  root-cert.pem: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0t  # Placeholder base64
+  cert-chain.pem: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0t  # Placeholder base64
+  ca-cert.pem: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0t     # Placeholder base64
+  ca-key.pem: LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0t      # Placeholder base64
+  
+---
+# Certificate Signing Request for Application Services
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: itdo-erp-mtls-cert
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: itdo-erp-mtls-cert
+spec:
+  secretName: itdo-erp-mtls-tls
+  duration: 8760h  # 1 year
+  renewBefore: 720h  # 30 days
+  isCA: false
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS1
+    size: 2048
+  usages:
+  - digital signature
+  - key encipherment
+  - server auth
+  - client auth
+  dnsNames:
+  - "itdo-erp-backend-api.itdo-erp.svc.cluster.local"
+  - "itdo-erp-frontend-app.itdo-erp.svc.cluster.local"
+  - "*.itdo-erp.svc.cluster.local"
+  - "*.local"
+  issuerRef:
+    name: itdo-erp-ca-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io
+    
+---
+# Cluster Issuer for Certificate Management
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: itdo-erp-ca-issuer
+  labels:
+    app.kubernetes.io/name: itdo-erp-ca-issuer
+spec:
+  ca:
+    secretName: itdo-erp-ca-key-pair
+    
+---
+# Root CA Secret (would be created separately in production)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: itdo-erp-ca-key-pair
+  namespace: cert-manager
+  labels:
+    app.kubernetes.io/name: itdo-erp-ca-key-pair
+type: kubernetes.io/tls
+data:
+  # These would be the actual CA certificate and key in production
+  tls.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0t  # Base64 encoded CA cert
+  tls.key: LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0t   # Base64 encoded CA key
+  
+---
+# mTLS Verification Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mtls-verification-config
+  namespace: istio-system
+  labels:
+    app.kubernetes.io/name: mtls-verification
+data:
+  verification-mode: "STRICT"
+  require-client-certificate: "true"
+  verify-certificate-spki: "true"
+  verify-certificate-hash: "false"
+  trusted-ca-file: "/etc/ssl/certs/ca-cert.pem"
+  certificate-revocation-list: "/etc/ssl/crl/crl.pem"
+  
+  # OCSP settings
+  ocsp-enabled: "true"
+  ocsp-responder-url: "https://ocsp.itdo-erp.com/"
+  ocsp-cache-duration: "3600"  # 1 hour
+  
+  # Certificate transparency
+  ct-logs-enabled: "true"
+  ct-logs-file: "/etc/ssl/ct-logs.json"

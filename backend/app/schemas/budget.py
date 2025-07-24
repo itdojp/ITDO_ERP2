@@ -8,6 +8,8 @@ from pydantic import BaseModel, Field
 
 from app.schemas.base import BaseResponse
 
+from app.schemas.base import BaseResponse
+
 
 class ExpenseCategoryBase(BaseModel):
     """Base schema for expense categories."""

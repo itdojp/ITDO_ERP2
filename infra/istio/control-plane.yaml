@@ -1,0 +1,323 @@
+# Istio Control Plane Configuration
+# Complete Istiod deployment with security hardening and observability
+
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+metadata:
+  name: itdo-erp-control-plane
+  namespace: istio-system
+  labels:
+    app.kubernetes.io/name: istio-control-plane
+    app.kubernetes.io/version: "1.20.0"
+    app.kubernetes.io/component: control-plane
+spec:
+  # Global configuration
+  values:
+    global:
+      meshID: itdo-erp-mesh
+      network: itdo-erp-network
+      # Enable strict mTLS by default
+      mtls:
+        auto: false
+      # Logging configuration
+      logging:
+        level: "default:info,ads:debug"
+      # Proxy configuration
+      proxy:
+        # Resource requirements for sidecars
+        resources:
+          requests:
+            cpu: "10m"
+            memory: "40Mi"
+          limits:
+            cpu: "100m"
+            memory: "128Mi"
+        # Enable access logs
+        accessLogFile: /dev/stdout
+        # Concurrency settings
+        concurrency: 2
+        # Enable tracing
+        tracer: "jaeger"
+      # Pilot configuration
+      pilot:
+        env:
+          # Enable workload entry autoregistration
+          PILOT_ENABLE_WORKLOAD_ENTRY_AUTO_REGISTRATION: true
+          # Enable cross cluster load balancing
+          PILOT_ENABLE_CROSS_CLUSTER_WORKLOAD_ENTRY: true
+          # Enable distributed tracing
+          PILOT_ENABLE_REQUEST_ID: true
+          # Enable security hardening
+          PILOT_ENABLE_XDS_CACHE: true
+    
+    # Jaeger integration
+    tracing:
+      jaeger:
+        service: jaeger-collector.istio-system
+        port: 14268
+        
+    # Kiali integration  
+    kiali:
+      enabled: true
+      dashboard:
+        auth:
+          strategy: "openid"
+          openid:
+            issuer_uri: "https://auth.itdo-erp.com/auth/realms/itdo-erp"
+            client_id: "kiali"
+
+  # Component configuration
+  components:
+    # Istiod (Control Plane)
+    pilot:
+      enabled: true
+      k8s:
+        deployment:
+          replicas: 2  # HA setup
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "512Mi"
+          limits:
+            cpu: "500m"
+            memory: "2Gi"
+        env:
+          # Enable external certificate management
+          EXTERNAL_CA: false
+          # Enable validation webhook
+          PILOT_ENABLE_VALIDATION: true
+          # Security settings
+          PILOT_ENABLE_INSECURE_CONFIG: false
+          # Enable distributed tracing
+          PILOT_TRACE_SAMPLING: 1.0
+        nodeSelector:
+          kubernetes.io/os: linux
+        tolerations:
+        - key: "kubernetes.io/arch"
+          operator: "Equal"
+          value: "amd64"
+          effect: "NoSchedule"
+        affinity:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                    - istiod
+                topologyKey: kubernetes.io/hostname
+
+    # Ingress Gateway
+    ingressGateways:
+    - name: istio-ingressgateway
+      enabled: true
+      k8s:
+        service:
+          type: LoadBalancer
+          loadBalancerSourceRanges:
+          - "10.0.0.0/8"   # Private networks
+          - "172.16.0.0/12" # Private networks
+          - "192.168.0.0/16" # Private networks
+          annotations:
+            service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+            service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "tcp"
+            service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "arn:aws:acm:us-west-2:123456789012:certificate/12345678-1234-1234-1234-123456789012"
+            service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "https"
+        deployment:
+          replicas: 2  # HA setup
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        nodeSelector:
+          kubernetes.io/os: linux
+        tolerations:
+        - key: "node-role.kubernetes.io/edge"
+          operator: "Equal"
+          value: "true"
+          effect: "NoSchedule"
+
+    # Egress Gateway (for external traffic control)
+    egressGateways:
+    - name: istio-egressgateway
+      enabled: true
+      k8s:
+        deployment:
+          replicas: 2
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "64Mi"
+          limits:
+            cpu: "200m"
+            memory: "256Mi"
+        service:
+          type: ClusterIP
+
+  # Mesh configuration
+  meshConfig:
+    # Default configuration for all workloads
+    defaultConfig:
+      # Enable automatic sidecar injection
+      proxyStatsMatcher:
+        inclusionRegex: ".*outlier_detection.*"
+        exclusionRegex: ".*osconfig.*"
+      # Configure connection timeouts
+      drainDuration: 45s
+      parentShutdownDuration: 60s
+      # Configure proxy concurrency
+      concurrency: 2
+      # Enable tracing
+      tracing:
+        jaeger:
+          address: jaeger-collector.istio-system:14268
+        sampling: 1.0  # 100% sampling for development
+    
+    # Access log configuration
+    accessLogFile: "/dev/stdout"
+    accessLogFormat: |
+      {
+        "timestamp": "%START_TIME%",
+        "method": "%REQ(:METHOD)%",
+        "url": "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%",
+        "protocol": "%PROTOCOL%",
+        "response_code": "%RESPONSE_CODE%",
+        "response_flags": "%RESPONSE_FLAGS%",
+        "bytes_received": "%BYTES_RECEIVED%",
+        "bytes_sent": "%BYTES_SENT%",
+        "duration": "%DURATION%",
+        "upstream_service_time": "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%",
+        "x_forwarded_for": "%REQ(X-FORWARDED-FOR)%",
+        "user_agent": "%REQ(USER-AGENT)%",
+        "request_id": "%REQ(X-REQUEST-ID)%",
+        "authority": "%REQ(:AUTHORITY)%",
+        "upstream_host": "%UPSTREAM_HOST%",
+        "upstream_cluster": "%UPSTREAM_CLUSTER%",
+        "upstream_local_address": "%UPSTREAM_LOCAL_ADDRESS%",
+        "downstream_local_address": "%DOWNSTREAM_LOCAL_ADDRESS%",
+        "downstream_remote_address": "%DOWNSTREAM_REMOTE_ADDRESS%",
+        "requested_server_name": "%REQUESTED_SERVER_NAME%",
+        "route_name": "%ROUTE_NAME%"
+      }
+    
+    # Enable automatic mutual TLS
+    defaultProviders:
+      metrics:
+      - prometheus
+      tracing:
+      - jaeger
+      accessLogging:
+      - envoy
+    
+    # Extension providers
+    extensionProviders:
+    - name: prometheus
+      prometheus:
+        configOverride:
+          disable_host_header_fallback: true
+    - name: jaeger
+      jaeger:
+        service: jaeger-collector.istio-system
+        port: 14268
+    - name: envoy
+      envoyFileAccessLog:
+        path: "/dev/stdout"
+        format: |
+          {
+            "timestamp": "%START_TIME%",
+            "method": "%REQ(:METHOD)%",
+            "url": "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%",
+            "protocol": "%PROTOCOL%",
+            "response_code": "%RESPONSE_CODE%",
+            "response_flags": "%RESPONSE_FLAGS%",
+            "bytes_received": "%BYTES_RECEIVED%",
+            "bytes_sent": "%BYTES_SENT%",
+            "duration": "%DURATION%",
+            "upstream_service_time": "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%",
+            "x_forwarded_for": "%REQ(X-FORWARDED-FOR)%",
+            "user_agent": "%REQ(USER-AGENT)%",
+            "request_id": "%REQ(X-REQUEST-ID)%",
+            "authority": "%REQ(:AUTHORITY)%",
+            "upstream_host": "%UPSTREAM_HOST%",
+            "trace_id": "%REQ(X-TRACE-ID)%"
+          }
+
+    # Trust domain
+    trustDomain: "itdo-erp.local"
+    trustDomainAliases:
+    - "itdo-erp.com"
+    - "api.itdo-erp.com"
+    
+    # Certificate management
+    certificates:
+    - secretName: istio-ca-secret
+      dnsNames:
+      - "*.istio-system.svc.cluster.local"
+      - "*.local"
+    
+    # Service registry
+    serviceSettings:
+    - settings:
+        clusterLocal: false
+      hosts:
+      - "*.local"
+      
+---
+# Istio Gateway for Ingress Traffic
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: itdo-erp-gateway
+  namespace: istio-system
+  labels:
+    app.kubernetes.io/name: istio-gateway
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  # HTTPS (Port 443)
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: itdo-erp-tls-secret
+    hosts:
+    - "api.itdo-erp.com"
+    - "app.itdo-erp.com"
+    - "monitor.itdo-erp.com"
+  # HTTP (Port 80) - Redirect to HTTPS
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "api.itdo-erp.com"
+    - "app.itdo-erp.com"
+    - "monitor.itdo-erp.com"
+    tls:
+      httpsRedirect: true
+      
+---
+# Destination Rule for Global mTLS
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: default-mtls
+  namespace: istio-system
+  labels:
+    app.kubernetes.io/name: istio-default-mtls
+spec:
+  host: "*.local"
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL  # Enforce strict mTLS
+  exportTo:
+  - "*"

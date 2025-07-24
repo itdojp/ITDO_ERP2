@@ -1,0 +1,486 @@
+# Egress Restrictions Network Policy - Zero Trust Implementation
+# Comprehensive egress traffic control with domain allowlisting
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: itdo-erp-egress-restrictions
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: egress-restrictions
+    security.istio.io/policy: "zero-trust"
+    app.kubernetes.io/component: egress-security
+spec:
+  podSelector: {}  # Apply to all pods in itdo-erp namespace
+  policyTypes:
+  - Egress
+  egress:
+  # Allow DNS resolution (required for all)
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # Allow connection to Kubernetes API server
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: TCP
+      port: 443
+  # Allow internal cluster communication
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: itdo-erp
+    ports:
+    - protocol: TCP
+      port: 5432  # PostgreSQL
+    - protocol: TCP
+      port: 6379  # Redis
+    - protocol: TCP
+      port: 8000  # Backend API
+    - protocol: TCP
+      port: 8080  # Various services
+  # Allow communication with Istio system
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: istio-system
+    ports:
+    - protocol: TCP
+      port: 15010  # Pilot
+    - protocol: TCP
+      port: 15011  # Pilot
+    - protocol: TCP
+      port: 15012  # Pilot
+    - protocol: TCP
+      port: 8080   # Istiod
+  # Allow communication with monitoring
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 9090  # Prometheus
+  # Block all other egress traffic (will be overridden by specific policies below)
+      
+---
+# Backend API Egress Policy (Specific)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backend-api-egress-policy
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: backend-api-egress-policy
+spec:
+  podSelector:
+    matchLabels:
+      app: itdo-erp-backend-api
+  policyTypes:
+  - Egress
+  egress:
+  # Allow DNS resolution
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # Allow database connections
+  - to:
+    - podSelector:
+        matchLabels:
+          app: postgresql
+    ports:
+    - protocol: TCP
+      port: 5432
+  # Allow Redis connections
+  - to:
+    - podSelector:
+        matchLabels:
+          app: redis
+    ports:
+    - protocol: TCP
+      port: 6379
+  # Allow Keycloak authentication
+  - to:
+    - podSelector:
+        matchLabels:
+          app: keycloak
+    ports:
+    - protocol: TCP
+      port: 8080
+  # Allow HTTPS to specific external services (will be detailed in Cilium policies)
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+  # Allow Kubernetes API access
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: TCP
+      port: 443
+      
+---
+# Frontend App Egress Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: frontend-app-egress-policy
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: frontend-app-egress-policy
+spec:
+  podSelector:
+    matchLabels:
+      app: itdo-erp-frontend-app
+  policyTypes:
+  - Egress
+  egress:
+  # Allow DNS resolution
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # Allow connection to backend API
+  - to:
+    - podSelector:
+        matchLabels:
+          app: itdo-erp-backend-api
+    ports:
+    - protocol: TCP
+      port: 8000
+  # Frontend typically doesn't need external egress
+  # All external requests should go through backend API
+      
+---
+# Global Egress Domain Allowlist (Cilium)
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: global-egress-allowlist
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: global-egress-allowlist
+spec:
+  description: "Global egress domain allowlist for external services"
+  endpointSelector: {}  # Apply to all endpoints
+  egress:
+  # Allow DNS
+  - toEndpoints:
+    - matchLabels:
+        "k8s:io.kubernetes.pod.namespace": "kube-system"
+        "k8s:k8s-app": "kube-dns"
+    toPorts:
+    - ports:
+      - port: "53"
+        protocol: UDP
+      - port: "53"
+        protocol: TCP
+        
+  # Authentication services
+  - toFQDNs:
+    - matchName: "auth.itdo-erp.com"
+    - matchName: "sso.itdo-erp.com"
+    toPorts:
+    - ports:
+      - port: "443"
+        protocol: TCP
+        rules:
+          http:
+          - method: "GET"
+          - method: "POST"
+            headers:
+            - "Content-Type: application/json"
+            - "Content-Type: application/x-www-form-urlencoded"
+            
+  # Payment processing (backend only)
+  - toFQDNs:
+    - matchName: "api.stripe.com"
+    - matchName: "api.paypal.com"
+    - matchName: "sandbox.paypal.com"
+    toPorts:
+    - ports:
+      - port: "443"
+        protocol: TCP
+        rules:
+          http:
+          - method: "GET"
+          - method: "POST"
+            headers:
+            - "Content-Type: application/json"
+            - "Authorization: Bearer .*"
+  fromEndpoints:
+  - matchLabels:
+      app: itdo-erp-backend-api
+      
+  # Google APIs (for maps, analytics, etc.)
+  - toFQDNs:
+    - matchPattern: "*.googleapis.com"
+    - matchPattern: "*.google.com"
+    toPorts:
+    - ports:
+      - port: "443"
+        protocol: TCP
+        rules:
+          http:
+          - method: "GET"
+          - method: "POST"
+            headers:
+            - "Content-Type: application/json"
+            - "Authorization: Bearer .*"
+            
+  # AWS Services (S3, SES, etc.)
+  - toFQDNs:
+    - matchPattern: "*.amazonaws.com"
+    - matchPattern: "*.s3.amazonaws.com"
+    toPorts:
+    - ports:
+      - port: "443"
+        protocol: TCP
+        rules:
+          http:
+          - method: "GET"
+          - method: "POST"
+          - method: "PUT"
+          - method: "DELETE"
+            headers:
+            - "Authorization: AWS4-HMAC-SHA256 .*"
+            
+  # Container registries for updates
+  - toFQDNs:
+    - matchName: "registry-1.docker.io"
+    - matchName: "gcr.io"
+    - matchName: "quay.io"
+    toPorts:
+    - ports:
+      - port: "443"
+        protocol: TCP
+  fromEndpoints:
+  - matchLabels:
+      component: image-updater
+      
+  # NTP servers
+  - toFQDNs:
+    - matchName: "pool.ntp.org"
+    - matchPattern: "*.pool.ntp.org"
+    toPorts:
+    - ports:
+      - port: "123"
+        protocol: UDP
+        
+---
+# Deny All Egress by Default (Calico Global Policy)
+apiVersion: projectcalico.org/v3
+kind: GlobalNetworkPolicy
+metadata:
+  name: default-deny-egress
+  labels:
+    app.kubernetes.io/name: default-deny-egress
+spec:
+  order: 1000  # Low priority (applied last)
+  # Apply to all workloads except system namespaces
+  selector: 'k8s:io.kubernetes.pod.namespace != "kube-system" && k8s:io.kubernetes.pod.namespace != "istio-system"'
+  types:
+  - Egress
+  egress:
+  # Explicit deny all
+  - action: Deny
+    destination: {}
+    metadata:
+      annotations:
+        "audit-log": "egress-denied"
+        "alert": "unauthorized-egress-attempt"
+        
+---
+# External Service Registry (ServiceEntry for Istio)
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: external-services-allowlist
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: external-services-allowlist
+spec:
+  hosts:
+  # Authentication services
+  - auth.itdo-erp.com
+  - sso.itdo-erp.com
+  # Payment services
+  - api.stripe.com
+  - api.paypal.com
+  # Google services
+  - maps.googleapis.com
+  - analytics.google.com
+  - fonts.googleapis.com
+  - fonts.gstatic.com
+  # AWS services
+  - s3.amazonaws.com
+  - ses.amazonaws.com
+  # CDN services
+  - cloudflare.com
+  - amazonaws.com
+  ports:
+  - number: 443
+    name: https
+    protocol: HTTPS
+  - number: 80
+    name: http
+    protocol: HTTP
+  location: MESH_EXTERNAL
+  resolution: DNS
+  
+---
+# Egress Gateway for External Traffic
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: itdo-erp-egress-gateway
+  namespace: istio-system
+  labels:
+    app.kubernetes.io/name: egress-gateway
+spec:
+  selector:
+    istio: egressgateway
+  servers:
+  - port:
+      number: 443
+      name: tls
+      protocol: TLS
+    hosts:
+    - auth.itdo-erp.com
+    - api.stripe.com
+    - api.paypal.com
+    - "*.googleapis.com"
+    - "*.amazonaws.com"
+    tls:
+      mode: PASSTHROUGH
+      
+---
+# Virtual Service for Egress Traffic
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: itdo-erp-egress-routing
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: egress-routing
+spec:
+  hosts:
+  - auth.itdo-erp.com
+  - api.stripe.com
+  - api.paypal.com
+  gateways:
+  - mesh
+  - istio-system/itdo-erp-egress-gateway
+  tls:
+  - match:
+    - port: 443
+      sniHosts:
+      - auth.itdo-erp.com
+    route:
+    - destination:
+        host: auth.itdo-erp.com
+        port:
+          number: 443
+  - match:
+    - port: 443
+      sniHosts:
+      - api.stripe.com
+    route:
+    - destination:
+        host: api.stripe.com
+        port:
+          number: 443
+    headers:
+      request:
+        add:
+          X-Egress-Source: "itdo-erp-cluster"
+          X-Egress-Timestamp: "%START_TIME(%s)%"
+  - match:
+    - port: 443
+      sniHosts:
+      - api.paypal.com
+    route:
+    - destination:
+        host: api.paypal.com
+        port:
+          number: 443
+    headers:
+      request:
+        add:
+          X-Egress-Source: "itdo-erp-cluster"
+          
+---
+# Egress Traffic Monitoring
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: egress-monitoring-config
+  namespace: istio-system
+  labels:
+    app.kubernetes.io/name: egress-monitoring
+data:
+  egress-rules.yml: |
+    groups:
+    - name: egress-security
+      rules:
+      - alert: UnauthorizedEgressAttempt
+        expr: increase(cilium_policy_verdict_total{verdict="DENIED",direction="egress"}[5m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+          component: network-security
+        annotations:
+          summary: "Unauthorized egress traffic attempt detected"
+          description: "Pod {{ $labels.k8s_pod_name }} in namespace {{ $labels.k8s_pod_namespace }} attempted unauthorized egress traffic"
+          
+      - alert: HighEgressTrafficVolume
+        expr: rate(cilium_datapath_forwarding_bytes_total{direction="egress"}[5m]) > 100000000  # 100MB/s
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High egress traffic volume detected"
+          description: "Egress traffic rate is {{ $value }} bytes/second from {{ $labels.source }}"
+          
+      - alert: EgressToUnknownDestination
+        expr: increase(istio_requests_total{destination_service_name="unknown"}[5m]) > 10
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Traffic to unknown external destination"
+          description: "{{ $value }} requests to unknown external destination in the last 5 minutes"
+          
+  istio-egress.yml: |
+    groups:
+    - name: istio-egress
+      rules:
+      - alert: EgressGatewayDown
+        expr: up{job="istio-proxy",cluster="egress-gateway"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Istio egress gateway is down"
+          description: "Egress gateway has been down for more than 1 minute"
+          
+      - alert: EgressCertificateExpiring
+        expr: (istio_cert_expiry_timestamp - time()) / 86400 < 30
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Egress gateway certificate expiring soon"
+          description: "Certificate expires in {{ $value }} days"
