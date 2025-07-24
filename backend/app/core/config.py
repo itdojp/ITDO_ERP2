@@ -24,7 +24,40 @@ class Settings(BaseSettings):
             return [i.strip() for i in v.split(",")]
         elif isinstance(v, (list, str)):
             return v
-        raise ValueError(v)
+
+        # Handle string values
+        if isinstance(v, str):
+            v_stripped = v.strip()
+            if not v_stripped:
+                return default_origins
+
+            # Handle comma-separated values FIRST (before JSON)
+            if "," in v_stripped and not v_stripped.startswith("["):
+                origins = [
+                    origin.strip() for origin in v_stripped.split(",") if origin.strip()
+                ]
+                return origins if origins else default_origins
+
+            # Try JSON parsing for array format
+            if v_stripped.startswith("["):
+                try:
+                    parsed = json.loads(v_stripped)
+                    if isinstance(parsed, list):
+                        return parsed
+                except json.JSONDecodeError:
+                    pass
+
+            # Single value
+            return [v_stripped]
+
+        # For any other type, return default
+        return default_origins
+
+    @property
+    def cors_origins_list(self) -> List[str]:
+        """CORS origins as a list for use in middleware."""
+        # The validator ensures BACKEND_CORS_ORIGINS is always a list
+        return self.BACKEND_CORS_ORIGINS
 
     # データベース設定
     POSTGRES_SERVER: str = Field(default="localhost", description="PostgreSQL server")
@@ -77,6 +110,10 @@ class Settings(BaseSettings):
 
     # 開発環境フラグ
     DEBUG: bool = False
+    ENVIRONMENT: str = "development"
+    TESTING: bool = False
+    LOG_LEVEL: str = "INFO"
+    API_V1_PREFIX: str = "/api/v1"
 
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
 

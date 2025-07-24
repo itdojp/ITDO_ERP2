@@ -1,5 +1,7 @@
 """Unit tests for User model."""
 
+from datetime import timezone
+
 import pytest
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -180,6 +182,16 @@ class TestUserModel:
             full_name="Original Name",
         )
         db_session.commit()
+
+        # Record original time with timezone handling
+        original_updated_at = user.updated_at
+        if original_updated_at.tzinfo is None:
+            original_updated_at = original_updated_at.replace(tzinfo=timezone.utc)
+
+        # Add slight delay to ensure different timestamp
+        import time
+
+        time.sleep(0.01)
 
         # When: Updating user
         user.update(db_session, full_name="Updated Name")

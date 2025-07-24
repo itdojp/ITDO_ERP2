@@ -100,3 +100,37 @@ class UserBasic(BaseModel):
         """Pydantic configuration."""
 
         from_attributes = True
+
+
+class UserERPContext(BaseModel):
+    """ERP-specific user context - v17.0."""
+
+    user_id: int = Field(..., description="User ID")
+    full_name: str = Field(..., description="Full name")
+    email: str = Field(..., description="Email address")
+    organization_id: int | None = Field(None, description="Primary organization ID")
+    department_id: int | None = Field(None, description="Department ID")
+    is_active: bool = Field(..., description="Active status")
+    is_superuser: bool = Field(..., description="Superuser status")
+    last_login: str | None = Field(None, description="Last login timestamp")
+
+    class Config:
+        from_attributes = True
+
+
+class UserERPResponse(BaseModel):
+    """ERP user response with organizational context."""
+
+    id: int = Field(..., description="User ID")
+    email: str = Field(..., description="Email address")
+    full_name: str = Field(..., description="Full name")
+    display_name: str = Field(..., description="Display name for UI")
+    is_active: bool = Field(..., description="Active status")
+    organization_id: int | None = Field(None, description="Primary organization")
+    department_id: int | None = Field(None, description="Department")
+    is_erp_user: bool = Field(..., description="Has ERP access")
+    created_at: datetime = Field(..., description="Creation timestamp")
+    last_login_at: datetime | None = Field(None, description="Last login")
+
+    class Config:
+        from_attributes = True

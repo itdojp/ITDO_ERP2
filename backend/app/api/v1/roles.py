@@ -590,6 +590,6 @@ def get_user_roles(
         )
 
     service = RoleService(db)
-    user_role_responses = service.get_user_roles(user_id)
+    user_role_responses = service.get_user_roles(user_id, organization_id, active_only)
 
     return user_role_responses  # Already UserRoleResponse objects

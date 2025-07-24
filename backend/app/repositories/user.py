@@ -14,7 +14,7 @@ from app.types import UserId
 class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
     """Repository for User model with specialized queries."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         """Initialize repository with User model."""
         super().__init__(User, db)
 
@@ -116,12 +116,13 @@ class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
 
     def get_locked_users(self) -> list[User]:
         """Get all locked users."""
+        now_utc = datetime.now(timezone.utc)
         return list(
             self.db.scalars(
                 select(User).where(
                     and_(
                         User.locked_until.is_not(None),
-                        User.locked_until > datetime.now(timezone.utc),
+                        User.locked_until > now_utc,
                     )
                 )
             )

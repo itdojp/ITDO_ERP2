@@ -67,7 +67,6 @@ class BaseFactory(ABC):
     @abstractmethod
     def _get_default_attributes(cls) -> dict[str, Any]:
         """Get default attributes for creating instances."""
-        pass
 
     @classmethod
     def _get_update_attributes(cls) -> dict[str, Any]:
@@ -86,6 +85,7 @@ from tests.factories.organization import OrganizationFactory, create_test_organi
 from tests.factories.role import (
     PermissionFactory,
     RoleFactory,
+    UserRoleFactory,
     create_test_role,
     create_test_user_role,
 )
@@ -97,6 +97,7 @@ __all__ = [
     "OrganizationFactory",
     "DepartmentFactory",
     "RoleFactory",
+    "UserRoleFactory",
     "PermissionFactory",
     "UserFactory",
     "create_test_user",

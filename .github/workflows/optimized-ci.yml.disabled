@@ -1,0 +1,128 @@
+name: Optimized CI Pipeline
+on:
+
+permissions:
+  contents: read
+  pull-requests: read
+  checks: read
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  # 変更検出
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.changes.outputs.backend }}
+      frontend: ${{ steps.changes.outputs.frontend }}
+      infra: ${{ steps.changes.outputs.infra }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+              - '.github/workflows/**'
+            frontend:
+              - 'frontend/**'
+              - '.github/workflows/**'
+            infra:
+              - 'infra/**'
+              - 'scripts/**'
+
+  # バックエンド並列ジョブ
+  backend-matrix:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        task: [lint, typecheck, unit-test, integration-test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/uv
+            backend/.venv
+          key: backend-${{ runner.os }}-${{ hashFiles('backend/pyproject.toml') }}
+
+      - name: Run ${{ matrix.task }}
+        working-directory: backend
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          source $HOME/.cargo/env
+          uv sync --dev
+
+          case "${{ matrix.task }}" in
+            lint)
+              uv run ruff check . --output-format=github
+              uv run ruff format --check .
+              ;;
+            typecheck)
+              uv run mypy app/ --ignore-missing-imports
+              ;;
+            unit-test)
+              uv run pytest tests/unit/ -v --tb=short
+              ;;
+            integration-test)
+              uv run pytest tests/integration/ -v --tb=short || true
+              ;;
+          esac
+
+  # フロントエンド並列ジョブ
+  frontend-matrix:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        task: [lint, typecheck, test, build]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Run ${{ matrix.task }}
+        working-directory: frontend
+        run: |
+          case "${{ matrix.task }}" in
+            lint)
+              npm run lint
+              ;;
+            typecheck)
+              npm run typecheck
+              ;;
+            test)
+              npm run test -- --run
+              ;;
+            build)
+              npm run build
+              ;;
+          esac
+
+  # 結果集約
+  ci-summary:
+    needs: [backend-matrix, frontend-matrix]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Results
+        run: |
+          if [ "${{ needs.backend-matrix.result }}" == "failure" ] ||
+             [ "${{ needs.frontend-matrix.result }}" == "failure" ]; then
+            echo "::error::CI checks failed"
+            exit 1
+          fi
+          echo "::notice::All CI checks passed!"

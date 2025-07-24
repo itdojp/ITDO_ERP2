@@ -1,4 +1,4 @@
-"""Pytest configuration and fixtures."""
+"""Simplified pytest configuration for authentication tests."""
 
 import os
 
@@ -225,22 +225,24 @@ def client(db_session: Session) -> Generator[TestClient]:
 @pytest.fixture
 def test_user(db_session: Session) -> User:
     """Create a basic test user."""
+    unique_id = str(uuid.uuid4())[:8]
     return UserFactory.create_with_password(
         db_session,
         password="TestPassword123!",
-        email="testuser@example.com",
-        full_name="Test User",
+        email=f"testuser_{unique_id}@example.com",
+        full_name=f"Test User {unique_id}",
     )
 
 
 @pytest.fixture
-def test_admin(db_session: Session) -> User:
+def test_admin(db_session: Session):
     """Create a test admin user."""
+    unique_id = str(uuid.uuid4())[:8]
     return UserFactory.create_with_password(
         db_session,
         password="AdminPassword123!",
-        email="admin@example.com",
-        full_name="Admin User",
+        email=f"admin_{unique_id}@example.com",
+        full_name=f"Admin User {unique_id}",
         is_superuser=True,
     )
 
@@ -303,8 +305,12 @@ def manager_token(test_manager: User) -> str:
 @pytest.fixture
 def test_organization(db_session: Session) -> Organization:
     """Create a test organization."""
+    unique_id = str(uuid.uuid4())[:8]
     return OrganizationFactory.create(
-        db_session, name="テスト株式会社", code="TEST-ORG", industry="IT"
+        db_session,
+        name=f"Test Organization {unique_id}",
+        code=f"TEST-ORG-{unique_id}",
+        industry="IT",
     )
 
 
@@ -315,16 +321,15 @@ def test_organization_tree(db_session: Session) -> dict[str, Any]:
         db_session, depth=2, children_per_level=2
     )
 
-
-# Department Fixtures
+    return create_access_token({"sub": str(test_user.id)})
 
 
 @pytest.fixture
-def test_department(db_session: Session, test_organization: Organization) -> Department:
-    """Create a test department."""
-    return DepartmentFactory.create_with_organization(
-        db_session, test_organization, name="テスト部門", code="TEST-DEPT"
-    )
+def admin_token(test_admin):
+    """Create a token for the test admin."""
+    from app.core.security import create_access_token
+
+    return create_access_token({"sub": str(test_admin.id)})
 
 
 @pytest.fixture
@@ -403,9 +408,3 @@ def setup_test_environment() -> None:
 def create_auth_headers(token: str) -> dict[str, str]:
     """Create authorization headers with bearer token."""
     return {"Authorization": f"Bearer {token}"}
-
-
-@pytest.fixture
-def auth_headers():
-    """Provide auth headers helper function."""
-    return create_auth_headers

@@ -20,7 +20,13 @@ from app.api.v1 import (
     user_profile,
     users,
     users_extended,
+    workflows,
 )
+from app.api.v1.endpoints import feature_flags
+from app.api.v1.endpoints.monitoring.performance import router as performance_router
+
+# New CC02 v35.0 API modules
+from app.api.v1.endpoints.security.audit import router as security_audit_router
 from app.core.database import get_db
 
 api_router = APIRouter()
@@ -30,9 +36,21 @@ api_router.include_router(health.router)
 api_router.include_router(auth.router)
 api_router.include_router(audit.router, prefix="/audit", tags=["audit"])
 api_router.include_router(users.router)
+api_router.include_router(users_basic.router)  # ERP v17.0 basic user API
 api_router.include_router(users_extended.router)
 api_router.include_router(user_profile.router, tags=["user-profile"])
 api_router.include_router(organizations.router)
+api_router.include_router(
+    organizations_basic.router
+)  # ERP v17.0 basic organization API
+api_router.include_router(
+    organizations_simple.router, prefix="/simple", tags=["organizations-simple"]
+)  # v19.0 practical
+api_router.include_router(products_basic.router)  # ERP v17.0 basic product API
+api_router.include_router(
+    products_simple.router, prefix="/simple", tags=["products-simple"]
+)  # v19.0 practical
+api_router.include_router(inventory_basic.router)  # ERP v17.0 basic inventory API
 api_router.include_router(departments.router)
 api_router.include_router(roles.router)
 api_router.include_router(

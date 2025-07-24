@@ -181,6 +181,42 @@ class UserRoleInfo(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+    @classmethod
+    def from_user_role_model(cls, user_role: Any) -> "UserRoleInfo":
+        """Create UserRoleInfo from UserRole model instance."""
+        # Extract assigned_by user info if available
+        assigned_by = None
+        if user_role.assigned_by_user:
+            assigned_by = UserBasic.model_validate(user_role.assigned_by_user)
+
+        # Extract approved_by user info if available
+        approved_by = None
+        if user_role.approved_by_user:
+            approved_by = UserBasic.model_validate(user_role.approved_by_user)
+
+        return cls(
+            id=user_role.id,
+            user_id=user_role.user_id,
+            role=RoleBasic.model_validate(user_role.role),
+            organization=OrganizationBasic.model_validate(user_role.organization),
+            department=DepartmentBasic.model_validate(user_role.department)
+            if user_role.department
+            else None,
+            assigned_by=assigned_by,
+            assigned_at=user_role.assigned_at,
+            valid_from=user_role.valid_from,
+            expires_at=user_role.expires_at,
+            is_active=user_role.is_active,
+            is_primary=user_role.is_primary,
+            is_expired=user_role.is_expired,
+            is_valid=user_role.is_valid,
+            days_until_expiry=user_role.days_until_expiry,
+            notes=user_role.notes,
+            approval_status=user_role.approval_status,
+            approved_by=approved_by,
+            approved_at=user_role.approved_at,
+        )
+
 
 class UserRoleResponse(UserRoleInfo, AuditInfo):
     """Full user role response schema."""

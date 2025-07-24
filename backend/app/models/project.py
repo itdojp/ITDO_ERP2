@@ -1,7 +1,9 @@
 """Project model implementation (stub for type checking)."""
 
+from __future__ import annotations
+
 from datetime import date
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, List
 
 from sqlalchemy import Date, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -10,8 +12,8 @@ from app.models.base import SoftDeletableModel
 from app.types import DepartmentId, OrganizationId, UserId
 
 if TYPE_CHECKING:
-    from app.models.department import Department
-    from app.models.organization import Organization
+    from app.models.department import Department  # noqa: F401
+    from app.models.organization import Organization  # noqa: F401
     from app.models.task import Task
     from app.models.user import User
 
@@ -48,14 +50,12 @@ class Project(SoftDeletableModel):
     actual_cost: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     # Relationships
-    organization: Mapped["Organization"] = relationship("Organization", lazy="joined")
-    department: Mapped[Optional["Department"]] = relationship(
-        "Department", lazy="joined"
-    )
+    organization = relationship("Organization", lazy="select")
+    department = relationship("Department", lazy="select")
     owner: Mapped["User"] = relationship("User", foreign_keys=[owner_id], lazy="joined")
 
     # Task relationship
-    tasks: Mapped[list["Task"]] = relationship(
+    tasks: Mapped[List["Task"]] = relationship(
         "Task", back_populates="project", cascade="all, delete-orphan"
     )
 

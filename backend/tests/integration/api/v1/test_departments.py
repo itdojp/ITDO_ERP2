@@ -82,6 +82,12 @@ class TestDepartmentAPI(
             headers=self.get_auth_headers(admin_token),
         )
 
+        # Debug output for 409 conflicts
+        if response.status_code != 201:
+            print(f"Status: {response.status_code}")
+            print(f"Response: {response.json()}")
+            print(f"Payload: {payload}")
+
         assert response.status_code == 201
         data = response.json()
         assert "id" in data

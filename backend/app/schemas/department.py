@@ -163,6 +163,8 @@ class DepartmentResponse(
     is_parent_department: bool = False
     current_headcount: int = 0
     is_over_headcount: bool = False
+    path: str | None = None
+    depth: int = 0
 
     model_config = ConfigDict(from_attributes=True)
 

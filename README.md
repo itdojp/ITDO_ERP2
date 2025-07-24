@@ -93,6 +93,18 @@ For efficient Claude Code usage and cost optimization:
    - Keep sessions focused and specific
    - Regular cache cleanup for optimal performance
 
+## Claude Code Optimization
+
+For efficient Claude Code usage and cost optimization:
+
+1. **Monitoring Script**: Run `./scripts/claude-usage-monitor.sh` for usage analysis
+2. **Optimization Guide**: See [Claude Code Optimization Guide](docs/CLAUDE_CODE_OPTIMIZATION_GUIDE.md)
+3. **Configuration**: `.claudeignore` and `.gitignore` are optimized for minimal token usage
+4. **Best Practices**: 
+   - Use `/compact` every 2-4 hours
+   - Keep sessions focused and specific
+   - Regular cache cleanup for optimal performance
+
 ## Documentation
 
 - [Claude Code Usage Guide](docs/claude-code-usage-guide.md) - Claude Code使用方法
@@ -104,4 +116,4 @@ For efficient Claude Code usage and cost optimization:
 
 ## License
 
-Proprietary
+ProprietaryCC03 system active Fri Jul 18 10:16:41 PM JST 2025

@@ -12,15 +12,10 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from app.types import UserId
 
-if TYPE_CHECKING:
-    pass
-
 
 # Create base class for all models using SQLAlchemy 2.0 style
 class Base(DeclarativeBase):
     """Base class for all models."""
-
-    pass
 
 
 # Type variable for model types
@@ -32,7 +27,9 @@ class BaseModel(Base):
 
     __abstract__ = True
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, index=True, autoincrement=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

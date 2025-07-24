@@ -1,0 +1,190 @@
+name: Claude PM Automation System
+
+on:
+  issues:
+    types: [opened, edited, reopened]
+  issue_comment:
+    types: [created]
+  pull_request:
+    types: [opened, synchronize, reopened]
+  schedule:
+    # 毎時間実行（進捗監視）
+    - cron: '0 * * * *'
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  claude-project-manager:
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'issues' && contains(github.event.issue.labels.*.name, 'claude-code-task')) ||
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude-pm')) ||
+      (github.event_name == 'pull_request') ||
+      (github.event_name == 'schedule')
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Claude PM Analysis
+        uses: grll/claude-code-action@beta
+        with:
+          use_oauth: true
+          claude_access_token: ${{ secrets.CLAUDE_ACCESS_TOKEN }}
+          claude_refresh_token: ${{ secrets.CLAUDE_REFRESH_TOKEN }}
+          claude_expires_at: ${{ secrets.CLAUDE_EXPIRES_AT }}
+          timeout: 300 # 5分間
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PM_MODE: ${{ github.event_name }}
+          
+  task-assignment:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issues' && github.event.action == 'opened'
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Auto Task Assignment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // タスクの自動割当ロジック
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: 'cc01,cc02,cc03',
+              state: 'open'
+            });
+            
+            // エージェント別のワークロード計算
+            const workload = {
+              cc01: issues.filter(i => i.labels.some(l => l.name === 'cc01')).length,
+              cc02: issues.filter(i => i.labels.some(l => l.name === 'cc02')).length,
+              cc03: issues.filter(i => i.labels.some(l => l.name === 'cc03')).length
+            };
+            
+            // 最小ワークロードのエージェントを選択
+            const minAgent = Object.keys(workload).reduce((a, b) => 
+              workload[a] < workload[b] ? a : b
+            );
+            
+            // ラベル追加
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: [minAgent, 'auto-assigned']
+            });
+            
+            // 割当コメント
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `🤖 自動割当: ${minAgent.toUpperCase()} に割り当てました\n\n現在のワークロード:\n- CC01: ${workload.cc01}件\n- CC02: ${workload.cc02}件\n- CC03: ${workload.cc03}件`
+            });
+
+  progress-monitoring:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Check Stalled Issues
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // 段階的停滞検出システム
+            function getStallThreshold(issue) {
+              const labels = issue.labels.map(l => l.name);
+              
+              // ポーリング遅延(15分)を考慮した早期発見設定
+              if (labels.includes('urgent') || labels.includes('critical')) {
+                return 0.5; // 30分 (実応答45分以内)
+              } else if (labels.includes('feature') || labels.includes('large-task')) {
+                return 6; // 6時間 (実応答6時間15分以内)  
+              } else if (labels.includes('planning') || labels.includes('design')) {
+                return 12; // 12時間 (実応答12時間15分以内)
+              } else {
+                return 2; // デフォルト2時間 (実応答2時間15分以内)
+              }
+            }
+            
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: 'claude-code-task',
+              state: 'open',
+              sort: 'updated',
+              direction: 'asc'
+            });
+            
+            for (const issue of issues) {
+              const updatedAt = new Date(issue.updated_at);
+              const thresholdHours = getStallThreshold(issue);
+              const thresholdTime = new Date(Date.now() - thresholdHours * 60 * 60 * 1000);
+              
+              if (updatedAt < thresholdTime) {
+                const hoursSinceUpdate = Math.floor((Date.now() - updatedAt.getTime()) / (1000 * 60 * 60));
+                const urgencyLevel = hoursSinceUpdate >= thresholdHours * 2 ? '🚨 URGENT' : '⚠️ 注意';
+                
+                // タスクタイプ別のメッセージ
+                const taskType = issue.labels.some(l => ['urgent', 'critical'].includes(l.name)) ? '緊急タスク' :
+                               issue.labels.some(l => ['feature', 'large-task'].includes(l.name)) ? '大規模タスク' :
+                               issue.labels.some(l => ['planning', 'design'].includes(l.name)) ? '計画・設計タスク' : '通常タスク';
+                
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  body: `${urgencyLevel} **早期発見: ${taskType}**\n\n📊 **検出状況:**\n- 最終更新: ${hoursSinceUpdate}時間前\n- 検出基準: ${thresholdHours}時間\n- 実応答時間: 最大+15分 (ポーリング遅延)\n\n🤝 **プロアクティブサポート:**\n- 順調に進んでいますか？\n- 何かサポートできることはありますか？\n- ブロッカーがあれば早めにお知らせください\n- 進捗の簡単な報告をお願いします\n\n💡 **返信例:** "順調です" / "○○で困っています" / "あと○時間で完了予定"\n\n---\n🤖 早期発見&サポートシステム`
+                });
+              }
+            }
+
+  ci-failure-support:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.action == 'synchronize'
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Wait for CI completion
+        run: sleep 60
+        
+      - name: Check CI Status and Provide Support
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // CI状態チェック
+            const { data: checks } = await github.rest.checks.listForRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.payload.pull_request.head.sha
+            });
+            
+            const failedChecks = checks.check_runs.filter(
+              check => check.conclusion === 'failure'
+            );
+            
+            if (failedChecks.length > 0) {
+              const failureDetails = failedChecks.map(check => 
+                `- **${check.name}**: [詳細](${check.html_url})`
+              ).join('\n');
+              
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body: `🔧 **CI失敗を検出しました**\n\n### 失敗したチェック\n${failureDetails}\n\n### 推奨アクション\n1. エラーログを確認\n2. ローカルでテスト実行\n3. 修正をプッシュ\n\n### よくある解決方法\n- **型エラー**: \`npm run typecheck\`\n- **テスト失敗**: \`npm test\` または \`uv run pytest\`\n- **Lint違反**: \`npm run lint:fix\`\n\n---\n🤖 PM自動化システム`
+              });
+            }
