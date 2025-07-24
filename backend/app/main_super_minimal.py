@@ -62,6 +62,10 @@ app.include_router(products_core_router, prefix="/api/v1", tags=["core-products"
 from app.api.v1.endpoints.inventory_core import router as inventory_core_router
 app.include_router(inventory_core_router, prefix="/api/v1", tags=["core-inventory"])
 
+# Import and include core sales endpoints - CC02 v50.0 Phase 3
+from app.api.v1.endpoints.sales_core import router as sales_core_router
+app.include_router(sales_core_router, prefix="/api/v1", tags=["core-sales"])
+
 @app.get("/")
 async def root():
     """Root endpoint for core ERP API."""
