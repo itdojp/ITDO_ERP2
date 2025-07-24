@@ -16,7 +16,7 @@ app = FastAPI(
 
 # Include core business routers
 # app.include_router(products_router, prefix="/api/v1", tags=["products"])  # Temporarily disabled for TDD
-app.include_router(inventory_router, prefix="/api/v1", tags=["inventory"])
+# app.include_router(inventory_router, prefix="/api/v1", tags=["inventory"])  # Temporarily disabled for TDD
 
 # Import and include advanced reporting
 from app.api.v1.advanced_reports import router as reports_router
@@ -35,12 +35,16 @@ from app.api.v1.product_catalog_features import router as catalog_router
 app.include_router(catalog_router, prefix="/api/v1", tags=["product-catalog"])
 
 # Import and include inventory management core - CC02 v48.0 Phase 2
-from app.api.v1.inventory_management_core import router as inventory_core_router
-app.include_router(inventory_core_router, prefix="/api/v1", tags=["inventory-core"])
+# from app.api.v1.inventory_management_core import router as inventory_core_router
+# app.include_router(inventory_core_router, prefix="/api/v1", tags=["inventory-core"])  # Temporarily disabled for TDD
 
 # Import and include products endpoints - CC02 v49.0 TDD Implementation
 from app.api.v1.endpoints.products import router as products_endpoints_router
 app.include_router(products_endpoints_router, prefix="/api/v1", tags=["products-endpoints"])
+
+# Import and include inventory endpoints - CC02 v49.0 Phase 2
+from app.api.v1.endpoints.inventory import router as inventory_endpoints_router
+app.include_router(inventory_endpoints_router, prefix="/api/v1", tags=["inventory-endpoints"])
 
 @app.get("/")
 async def root():

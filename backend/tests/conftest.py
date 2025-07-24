@@ -292,11 +292,29 @@ def setup_sync_test_data():
     products_store.clear()
     price_history_store.clear()
     
+    # Clear inventory data
+    try:
+        from app.api.v1.endpoints.inventory import inventory_store, movements_store, transfers_store
+        inventory_store.clear()
+        movements_store.clear()
+        transfers_store.clear()
+    except ImportError:
+        pass  # Inventory module not available yet
+    
     yield
     
     # Cleanup
     products_store.clear()
     price_history_store.clear()
+    
+    # Cleanup inventory data
+    try:
+        from app.api.v1.endpoints.inventory import inventory_store, movements_store, transfers_store
+        inventory_store.clear()
+        movements_store.clear()
+        transfers_store.clear()
+    except ImportError:
+        pass
 
 # Sync TestClient for TDD tests
 @pytest.fixture
