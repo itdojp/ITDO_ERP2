@@ -433,7 +433,9 @@ class ProductCRUD:
             "errors": errors,
         }
 
-    def _record_price_history(self, product: Product, reason: str, user_id: str = None) -> dict:
+    def _record_price_history(
+        self, product: Product, reason: str, user_id: str = None
+    ) -> dict:
         """価格履歴を記録"""
         price_history = ProductPriceHistory(
             id=str(uuid.uuid4()),

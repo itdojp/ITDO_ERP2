@@ -5,7 +5,14 @@ interface BadgeProps {
   count?: number;
   max?: number;
   showZero?: boolean;
-  variant?: "primary" | "secondary" | "success" | "warning" | "danger" | "info" | "default";
+  variant?:
+    | "primary"
+    | "secondary"
+    | "success"
+    | "warning"
+    | "danger"
+    | "info"
+    | "default";
   size?: "sm" | "md" | "lg";
   color?: string;
   outlined?: boolean;
@@ -106,12 +113,12 @@ const BadgeComponent = forwardRef<HTMLSpanElement, BadgeProps>(
       if (color) return `bg-${color}-500 text-white`;
       if (theme === "dark") return "bg-gray-800 text-white";
 
-      const baseClasses = outlined ? 'border-2 bg-transparent' : '';
-      
+      const baseClasses = outlined ? "border-2 bg-transparent" : "";
+
       const variantMap = {
-        default: outlined 
+        default: outlined
           ? `${baseClasses} border-gray-300 text-gray-700 hover:bg-gray-50`
-          : 'bg-gray-100 text-gray-800 hover:bg-gray-200',
+          : "bg-gray-100 text-gray-800 hover:bg-gray-200",
         primary: outlined
           ? `${baseClasses} border-blue-500 text-blue-500 hover:bg-blue-50`
           : "bg-blue-500 text-white hover:bg-blue-600",
@@ -138,9 +145,9 @@ const BadgeComponent = forwardRef<HTMLSpanElement, BadgeProps>(
     const getSizeClasses = () => {
       if (dot) {
         const dotSizeMap = {
-          sm: 'w-2 h-2',
-          md: 'w-3 h-3',
-          lg: 'w-4 h-4'
+          sm: "w-2 h-2",
+          md: "w-3 h-3",
+          lg: "w-4 h-4",
         };
         return dotSizeMap[size];
       }
@@ -155,11 +162,11 @@ const BadgeComponent = forwardRef<HTMLSpanElement, BadgeProps>(
 
     const getShapeClasses = () => {
       if (dot) return "rounded-full";
-      
+
       const shapeMap = {
         rounded: "rounded-md",
         pill: "rounded-full",
-        square: "rounded-none"
+        square: "rounded-none",
       };
       return shapeMap[shape];
     };
@@ -245,8 +252,8 @@ const BadgeComponent = forwardRef<HTMLSpanElement, BadgeProps>(
 
     const handleKeyDown = (event: React.KeyboardEvent) => {
       if (disabled) return;
-      
-      if (event.key === 'Enter' || event.key === ' ') {
+
+      if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
         onClick?.(event as any as React.MouseEvent<HTMLSpanElement>);
       }
@@ -265,7 +272,10 @@ const BadgeComponent = forwardRef<HTMLSpanElement, BadgeProps>(
           style={style}
           title={title}
           role={role}
-          aria-label={ariaLabel || (typeof children === 'string' ? children : 'Badge indicator')}
+          aria-label={
+            ariaLabel ||
+            (typeof children === "string" ? children : "Badge indicator")
+          }
         />
       );
     }
@@ -282,9 +292,14 @@ const BadgeComponent = forwardRef<HTMLSpanElement, BadgeProps>(
 
     const isClickable = !!(onClick || href);
     const hasRemoveButton = closable || removable;
-    const Element = href && !disabled ? 'a' : 
-                    (isClickable && hasRemoveButton) ? 'div' :
-                    isClickable ? 'button' : 'span';
+    const Element =
+      href && !disabled
+        ? "a"
+        : isClickable && hasRemoveButton
+          ? "div"
+          : isClickable
+            ? "button"
+            : "span";
 
     const badgeClasses = `
       inline-flex items-center justify-center gap-1 font-medium leading-none transition-colors duration-200
@@ -299,9 +314,9 @@ const BadgeComponent = forwardRef<HTMLSpanElement, BadgeProps>(
       ${border || ""}
       ${pulse ? "animate-pulse" : ""}
       ${isAnimating ? "animate-bounce" : ""}
-      ${animated ? 'transition-all duration-300 ease-in-out' : ''}
-      ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
-      ${isClickable && !disabled ? 'cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500' : ''}
+      ${animated ? "transition-all duration-300 ease-in-out" : ""}
+      ${disabled ? "opacity-50 cursor-not-allowed" : ""}
+      ${isClickable && !disabled ? "cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" : ""}
       ${className}
     `;
 
@@ -310,34 +325,34 @@ const BadgeComponent = forwardRef<HTMLSpanElement, BadgeProps>(
       style,
       title,
       role,
-      'aria-label': ariaLabel,
+      "aria-label": ariaLabel,
       onClick: handleClick,
-      onKeyDown: handleKeyDown
+      onKeyDown: handleKeyDown,
     };
 
-    if (Element === 'a') {
+    if (Element === "a") {
       elementProps.href = href;
-      elementProps.role = 'link';
+      elementProps.role = "link";
     } else if (isClickable) {
-      if (Element === 'button') {
-        elementProps.type = 'button';
+      if (Element === "button") {
+        elementProps.type = "button";
       }
-      elementProps.role = elementProps.role || 'button';
+      elementProps.role = elementProps.role || "button";
       elementProps.tabIndex = disabled ? -1 : 0;
     }
 
     if (disabled) {
-      elementProps['aria-disabled'] = 'true';
+      elementProps["aria-disabled"] = "true";
     }
 
-    const renderIcon = (position: 'left' | 'right') => {
+    const renderIcon = (position: "left" | "right") => {
       if (!icon || iconPosition !== position) return null;
       return <span className="flex-shrink-0">{icon}</span>;
     };
 
     const renderRemoveButton = () => {
       if (!hasRemoveButton) return null;
-      
+
       return (
         <button
           onClick={handleRemove}
@@ -346,8 +361,18 @@ const BadgeComponent = forwardRef<HTMLSpanElement, BadgeProps>(
           type="button"
           tabIndex={0}
         >
-          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          <svg
+            className="w-3 h-3"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
           </svg>
         </button>
       );
@@ -388,9 +413,9 @@ const BadgeComponent = forwardRef<HTMLSpanElement, BadgeProps>(
           </svg>
         )}
 
-        {renderIcon('left')}
+        {renderIcon("left")}
         <span className="truncate">{displayContent}</span>
-        {renderIcon('right')}
+        {renderIcon("right")}
         {renderRemoveButton()}
       </Element>
     );
