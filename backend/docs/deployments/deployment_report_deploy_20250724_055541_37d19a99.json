@@ -1,0 +1,74 @@
+{
+  "deployment_summary": {
+    "deployment_id": "deploy_20250724_055541_37d19a99",
+    "environment": "staging",
+    "status": "failed",
+    "started_at": "2025-07-24T05:55:41.382800",
+    "completed_at": null,
+    "total_duration": 0
+  },
+  "quality_gates": {
+    "passed": false,
+    "gates": {
+      "test_coverage": {
+        "percentage": 0,
+        "status": "failed",
+        "error": "Coverage data not available"
+      },
+      "type_safety": {
+        "error_count": 833,
+        "output": "app/models/security/audit_log.py:13:24: error: Class cannot subclass \"Base\"\n(has type \"Any\")  [misc]\n    class SecurityAuditLog(Base):\n                           ^~~~\napp/schemas/user_simple.py:21: error: Invalid \"type: ignore\" comment  [syntax]\n            orm_mode = True  # type: ignore[misc] - practical approach\n            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\napp/schemas/product_simple.py:31: error: Invalid \"type: ignore\" comment \n[syntax]\n            orm_mode = True  # type: ignore[misc] - practical approach\n            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\napp/schemas/organization_simple.py:21: error: Invalid \"type: ignore\" comment \n[syntax]\n            orm_mode = True  # type: ignore[misc] - practical approach\n            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\napp/schemas/organization_basic.py:36:5: error: Function is missing a type\nannotation  [no-untyped-def]\n        def validate_email(cls, v):\n        ^\napp/schemas/o",
+        "status": "success"
+      },
+      "security_scan": {
+        "score": 8.3,
+        "vulnerabilities": [
+          {
+            "severity": "medium",
+            "type": "hardcoded_password",
+            "file": "app/config.py",
+            "line": 25
+          }
+        ],
+        "scan_duration": 2.0,
+        "status": "success"
+      },
+      "performance": {
+        "avg_response_time": 185.58312953545322,
+        "max_response_time": 270.25445109257885,
+        "min_response_time": 96.50139434722777,
+        "test_count": 10,
+        "status": "success"
+      },
+      "complexity": {
+        "avg_complexity": 24.692307692307693,
+        "max_complexity": 163,
+        "files_analyzed": 156,
+        "status": "success"
+      }
+    },
+    "duration": 24.158902645111084,
+    "failed_gates": [
+      "test_coverage",
+      "type_safety",
+      "complexity"
+    ]
+  },
+  "deployment_stages": {
+    "quality_gates": {
+      "status": "failed",
+      "duration": 24.158902645111084,
+      "timestamp": "2025-07-24T05:56:05.541759"
+    }
+  },
+  "rollback_info": {
+    "rollback_plan_generated": false,
+    "rollback_executed": false,
+    "rollback_success": null
+  },
+  "artifacts": [],
+  "recommendations": [
+    "Address deployment failure: Quality gates failed",
+    "Fix failed quality gates: test_coverage, type_safety, complexity"
+  ]
+}
