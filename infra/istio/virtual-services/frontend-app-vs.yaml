@@ -1,0 +1,332 @@
+# Frontend Application Virtual Service Configuration
+# Progressive web app delivery with performance optimization
+
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: itdo-erp-frontend-app
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: frontend-app-vs
+    app.kubernetes.io/component: frontend
+spec:
+  hosts:
+  - "app.itdo-erp.com"
+  - "www.itdo-erp.com"
+  gateways:
+  - itdo-erp-api-gateway
+  http:
+  # Static Assets (High Cache, CDN)
+  - match:
+    - uri:
+        prefix: "/static/"
+    - uri:
+        prefix: "/assets/"
+    - uri:
+        prefix: "/images/"
+    - uri:
+        prefix: "/fonts/"
+    - uri:
+        prefix: "/css/"
+    - uri:
+        prefix: "/js/"
+    route:
+    - destination:
+        host: itdo-erp-frontend-app.itdo-erp.svc.cluster.local
+        port:
+          number: 80
+        subset: stable
+    timeout: 30s
+    headers:
+      request:
+        add:
+          X-Service-Route: "static-assets"
+      response:
+        add:
+          Cache-Control: "public, max-age=31536000, immutable"  # 1 year cache
+          X-Content-Type-Options: "nosniff"
+          X-Frame-Options: "DENY"
+          Vary: "Accept-Encoding"
+          
+  # Service Worker (Special Caching)
+  - match:
+    - uri:
+        exact: "/sw.js"
+    - uri:
+        exact: "/service-worker.js"
+    - uri:
+        prefix: "/workbox-"
+    route:
+    - destination:
+        host: itdo-erp-frontend-app.itdo-erp.svc.cluster.local
+        port:
+          number: 80
+        subset: stable
+    timeout: 10s
+    headers:
+      response:
+        add:
+          Cache-Control: "no-cache, must-revalidate"  # No cache for SW
+          Content-Type: "application/javascript"
+          Service-Worker-Allowed: "/"
+          
+  # API Proxy Routes (to backend)
+  - match:
+    - uri:
+        prefix: "/api/"
+    rewrite:
+      uri: "/api/"  # Keep API prefix
+    route:
+    - destination:
+        host: itdo-erp-backend-api.itdo-erp.svc.cluster.local
+        port:
+          number: 8000
+        subset: stable
+      weight: 90
+    - destination:
+        host: itdo-erp-backend-api.itdo-erp.svc.cluster.local
+        port:
+          number: 8000
+        subset: canary
+      weight: 10
+    timeout: 30s
+    retries:
+      attempts: 3
+      perTryTimeout: 10s
+      retryOn: 5xx,reset,connect-failure,refused-stream
+    corsPolicy:
+      allowOrigins:
+      - exact: "https://app.itdo-erp.com"
+      - exact: "https://www.itdo-erp.com"
+      allowMethods:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - PATCH
+      - OPTIONS
+      allowHeaders:
+      - "Authorization"
+      - "Content-Type"
+      - "X-Requested-With"
+      - "Accept"
+      allowCredentials: true
+      maxAge: 3600s
+    headers:
+      request:
+        add:
+          X-Service-Route: "api-proxy"
+          X-Forwarded-Proto: "https"
+          X-Original-Host: "%REQ(:AUTHORITY)%"
+      response:
+        add:
+          X-Proxy-Source: "frontend-gateway"
+          
+  # Health Check for Frontend
+  - match:
+    - uri:
+        prefix: "/health"
+    route:
+    - destination:
+        host: itdo-erp-frontend-app.itdo-erp.svc.cluster.local
+        port:
+          number: 80
+        subset: stable
+    timeout: 5s
+    headers:
+      response:
+        add:
+          Cache-Control: "no-cache, no-store"
+          
+  # Manifest and PWA Files
+  - match:
+    - uri:
+        exact: "/manifest.json"
+    - uri:
+        exact: "/robots.txt"
+    - uri:
+        exact: "/sitemap.xml"
+    - uri:
+        exact: "/favicon.ico"
+    - uri:
+        prefix: "/icons/"
+    route:
+    - destination:
+        host: itdo-erp-frontend-app.itdo-erp.svc.cluster.local
+        port:
+          number: 80
+        subset: stable
+    timeout: 10s
+    headers:
+      response:
+        add:
+          Cache-Control: "public, max-age=86400"  # 24 hours cache
+          Content-Security-Policy: "default-src 'self'"
+          
+  # SPA Routes (React Router) - Catch All
+  - match:
+    - uri:
+        prefix: "/"
+    route:
+    - destination:
+        host: itdo-erp-frontend-app.itdo-erp.svc.cluster.local
+        port:
+          number: 80
+        subset: stable
+      weight: 95
+    - destination:
+        host: itdo-erp-frontend-app.itdo-erp.svc.cluster.local
+        port:
+          number: 80
+        subset: canary
+      weight: 5   # 5% canary for new frontend features
+    timeout: 15s
+    retries:
+      attempts: 2
+      perTryTimeout: 5s
+    fault:
+      delay:
+        percentage:
+          value: 0.1  # 0.1% of requests
+        fixedDelay: 50ms  # Small delay for resilience testing
+    headers:
+      request:
+        add:
+          X-Service-Route: "spa-app"
+          X-User-Agent: "%REQ(USER-AGENT)%"
+      response:
+        add:
+          X-Content-Type-Options: "nosniff"
+          X-Frame-Options: "SAMEORIGIN"
+          X-XSS-Protection: "1; mode=block"
+          Referrer-Policy: "strict-origin-when-cross-origin"
+          Content-Security-Policy: "default-src 'self' https://api.itdo-erp.com; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://api.itdo-erp.com wss://api.itdo-erp.com"
+          Permissions-Policy: "geolocation=(), microphone=(), camera=()"
+          
+---
+# Destination Rule for Frontend Application
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: itdo-erp-frontend-app
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: frontend-app-dr
+spec:
+  host: itdo-erp-frontend-app.itdo-erp.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+    connectionPool:
+      tcp:
+        maxConnections: 200  # Higher for static content
+        connectTimeout: 5s
+      http:
+        http1MaxPendingRequests: 100
+        http2MaxRequests: 200
+        maxRequestsPerConnection: 20
+        maxRetries: 2
+        idleTimeout: 30s
+        h2UpgradePolicy: UPGRADE
+    loadBalancer:
+      simple: ROUND_ROBIN  # Good for static content
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+  subsets:
+  - name: stable
+    labels:
+      version: stable
+    trafficPolicy:
+      circuitBreaker:
+        maxConnections: 200
+        maxPendingRequests: 100
+        maxRetries: 2
+        consecutiveErrors: 5
+        
+  - name: canary
+    labels:
+      version: canary
+    trafficPolicy:
+      circuitBreaker:
+        maxConnections: 50
+        maxPendingRequests: 25
+        maxRetries: 1
+        consecutiveErrors: 3
+        
+---
+# Monitoring Virtual Service
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: itdo-erp-monitoring
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: monitoring-vs
+spec:
+  hosts:
+  - "monitor.itdo-erp.com"
+  - "grafana.itdo-erp.com"
+  - "prometheus.itdo-erp.com"
+  gateways:
+  - itdo-erp-api-gateway
+  http:
+  # Grafana Dashboard
+  - match:
+    - headers:
+        ":authority":
+          exact: "grafana.itdo-erp.com"
+    route:
+    - destination:
+        host: grafana.monitoring.svc.cluster.local
+        port:
+          number: 3000
+    timeout: 30s
+    headers:
+      request:
+        add:
+          X-Service-Route: "grafana"
+      response:
+        add:
+          X-Frame-Options: "SAMEORIGIN"
+          Cache-Control: "no-cache, no-store"
+          
+  # Prometheus Metrics
+  - match:
+    - headers:
+        ":authority":
+          exact: "prometheus.itdo-erp.com"
+    route:
+    - destination:
+        host: prometheus-server.monitoring.svc.cluster.local
+        port:
+          number: 9090
+    timeout: 60s  # Longer timeout for query operations
+    headers:
+      request:
+        add:
+          X-Service-Route: "prometheus"
+      response:
+        add:
+          Cache-Control: "no-cache, no-store"
+          
+  # General Monitoring Dashboard
+  - match:
+    - uri:
+        prefix: "/"
+    route:
+    - destination:
+        host: grafana.monitoring.svc.cluster.local
+        port:
+          number: 3000
+    timeout: 30s
+    headers:
+      request:
+        add:
+          X-Service-Route: "monitoring-default"
+      response:
+        add:
+          X-Robots-Tag: "noindex, nofollow"
+          Cache-Control: "no-cache, no-store"

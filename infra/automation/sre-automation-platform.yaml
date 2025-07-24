@@ -1,0 +1,987 @@
+# SRE Automation Platform
+# Advanced Site Reliability Engineering automation with self-healing capabilities
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sre-automation
+  labels:
+    name: sre-automation
+    sre.itdo-erp.com/system: "true"
+    automation-level: "advanced"
+
+---
+# Self-Healing Controller
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: self-healing-controller
+  namespace: sre-automation
+  labels:
+    app.kubernetes.io/name: self-healing-controller
+    sre.component: "self-healing"
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: self-healing-controller
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: self-healing-controller
+        sre.component: "self-healing"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: sre-automation-controller
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        fsGroup: 65534
+      containers:
+      - name: controller
+        image: itdo-erp/self-healing-controller:v1.3.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http-metrics
+          containerPort: 8080
+        - name: webhook
+          containerPort: 9443
+        command:
+        - /manager
+        args:
+        - --config=/config/self-healing-config.yaml
+        - --policies=/config/healing-policies.yaml
+        - --metrics-bind-address=:8080
+        - --health-probe-bind-address=:8081
+        - --leader-elect
+        - --prometheus-url=http://prometheus-server.monitoring.svc.cluster.local:9090
+        - --alertmanager-url=http://alertmanager.monitoring.svc.cluster.local:9093
+        env:
+        - name: CLUSTER_NAME
+          value: "itdo-erp-production"
+        - name: HEALING_MODE
+          value: "active"  # active, dry-run, disabled
+        - name: MAX_HEALING_ACTIONS_PER_HOUR
+          value: "10"
+        - name: NOTIFICATION_WEBHOOK
+          valueFrom:
+            secretKeyRef:
+              name: notification-secrets
+              key: slack-webhook-url
+        - name: JAEGER_AGENT_HOST
+          value: "jaeger-agent.monitoring.svc.cluster.local"
+        volumeMounts:
+        - name: config
+          mountPath: /config
+          readOnly: true
+        - name: policies
+          mountPath: /policies
+          readOnly: true
+        - name: webhook-certs
+          mountPath: /tmp/k8s-webhook-server/serving-certs
+          readOnly: true
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 500m
+            memory: 512Mi
+      - name: policy-engine
+        image: itdo-erp/policy-engine:v1.1.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: grpc
+          containerPort: 9090
+        command:
+        - /policy-engine
+        args:
+        - --config=/config/policy-engine-config.yaml
+        - --rules-directory=/policies/rules
+        - --templates-directory=/policies/templates
+        - --grpc-port=9090
+        env:
+        - name: REGO_POLICIES_PATH
+          value: "/policies/rego"
+        - name: DECISION_LOG_LEVEL
+          value: "INFO"
+        volumeMounts:
+        - name: policies
+          mountPath: /policies
+          readOnly: true
+        - name: rego-policies
+          mountPath: /policies/rego
+          readOnly: true
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 250m
+            memory: 256Mi
+      volumes:
+      - name: config
+        configMap:
+          name: sre-automation-config
+      - name: policies
+        configMap:
+          name: healing-policies
+      - name: rego-policies
+        configMap:
+          name: rego-policies
+      - name: webhook-certs
+        secret:
+          secretName: webhook-server-certs
+
+---
+# Chaos Engineering Controller
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chaos-engineering-controller
+  namespace: sre-automation
+  labels:
+    app.kubernetes.io/name: chaos-engineering-controller
+    sre.component: "chaos-engineering"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: chaos-engineering-controller
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: chaos-engineering-controller
+    spec:
+      serviceAccountName: chaos-engineering-controller
+      containers:
+      - name: chaos-controller
+        image: chaos-mesh/chaos-mesh:v2.6.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8080
+        - name: grpc
+          containerPort: 10909
+        command:
+        - /usr/local/bin/chaos-controller-manager
+        args:
+        - --webhook-port=9443
+        - --metrics-addr=:8080
+        - --leader-elect=true
+        - --chaos-experiments-config=/config/chaos-experiments.yaml
+        - --safety-mode=true
+        - --max-concurrent-experiments=5
+        env:
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: TZ
+          value: UTC
+        volumeMounts:
+        - name: chaos-config
+          mountPath: /config
+          readOnly: true
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 250m
+            memory: 256Mi
+      volumes:
+      - name: chaos-config
+        configMap:
+          name: chaos-engineering-config
+
+---
+# Auto-Scaling Controller with ML Predictions
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: intelligent-autoscaler
+  namespace: sre-automation
+  labels:
+    app.kubernetes.io/name: intelligent-autoscaler
+    sre.component: "auto-scaling"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: intelligent-autoscaler
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: intelligent-autoscaler
+    spec:
+      serviceAccountName: intelligent-autoscaler
+      containers:
+      - name: autoscaler
+        image: itdo-erp/intelligent-autoscaler:v1.2.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8080
+        command:
+        - /autoscaler
+        args:
+        - --config=/config/autoscaler-config.yaml
+        - --ml-models=/models
+        - --prometheus-url=http://prometheus-server.monitoring.svc.cluster.local:9090
+        - --prediction-horizon=30m
+        - --scaling-policies=/config/scaling-policies.yaml
+        env:
+        - name: FORECASTER_URL
+          value: "http://time-series-forecaster.aiops.svc.cluster.local:8080"
+        - name: SCALING_MODE
+          value: "predictive"  # reactive, predictive, hybrid
+        - name: MIN_SCALE_INTERVAL
+          value: "2m"
+        - name: MAX_SCALE_INTERVAL
+          value: "10m"
+        volumeMounts:
+        - name: autoscaler-config
+          mountPath: /config
+          readOnly: true
+        - name: ml-models
+          mountPath: /models
+          readOnly: true
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 500m
+            memory: 512Mi
+      volumes:
+      - name: autoscaler-config
+        configMap:
+          name: intelligent-autoscaler-config
+      - name: ml-models
+        persistentVolumeClaim:
+          claimName: ml-models-pvc
+
+---
+# SLI/SLO Monitoring Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: slo-monitoring-service
+  namespace: sre-automation
+  labels:
+    app.kubernetes.io/name: slo-monitoring-service
+    sre.component: "slo-monitoring"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: slo-monitoring-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: slo-monitoring-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+    spec:
+      containers:
+      - name: slo-monitor
+        image: itdo-erp/slo-monitoring:v1.1.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8080
+        command:
+        - /slo-monitor
+        args:
+        - --config=/config/slo-config.yaml
+        - --prometheus-url=http://prometheus-server.monitoring.svc.cluster.local:9090
+        - --alertmanager-url=http://alertmanager.monitoring.svc.cluster.local:9093
+        - --error-budget-policy=/config/error-budget-policy.yaml
+        env:
+        - name: SLO_WINDOW
+          value: "30d"
+        - name: BURN_RATE_ALERTS
+          value: "true"
+        - name: ERROR_BUDGET_ALERTS
+          value: "true"
+        volumeMounts:
+        - name: slo-config
+          mountPath: /config
+          readOnly: true
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 250m
+            memory: 256Mi
+      volumes:
+      - name: slo-config
+        configMap:
+          name: slo-monitoring-config
+
+---
+# Automated Incident Response System
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: incident-response-automation
+  namespace: sre-automation
+  labels:
+    app.kubernetes.io/name: incident-response-automation
+    sre.component: "incident-response"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: incident-response-automation
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: incident-response-automation
+    spec:
+      serviceAccountName: incident-response-automation
+      containers:
+      - name: incident-responder
+        image: itdo-erp/incident-response-automation:v1.4.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8080
+        - name: webhook
+          containerPort: 9000
+        command:
+        - /incident-responder
+        args:
+        - --config=/config/incident-response-config.yaml
+        - --runbooks=/runbooks
+        - --webhook-port=9000
+        - --api-port=8080
+        env:
+        - name: PAGERDUTY_INTEGRATION_KEY
+          valueFrom:
+            secretKeyRef:
+              name: notification-secrets
+              key: pagerduty-integration-key
+        - name: SLACK_BOT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: notification-secrets
+              key: slack-bot-token
+        - name: JIRA_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: integration-secrets
+              key: jira-api-token
+        volumeMounts:
+        - name: incident-config
+          mountPath: /config
+          readOnly: true
+        - name: runbooks
+          mountPath: /runbooks
+          readOnly: true
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 250m
+            memory: 256Mi
+      volumes:
+      - name: incident-config
+        configMap:
+          name: incident-response-config
+      - name: runbooks
+        configMap:
+          name: automated-runbooks
+
+---
+# Capacity Planning Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: capacity-planning-service
+  namespace: sre-automation
+  labels:
+    app.kubernetes.io/name: capacity-planning-service
+    sre.component: "capacity-planning"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: capacity-planning-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: capacity-planning-service
+    spec:
+      containers:
+      - name: capacity-planner
+        image: itdo-erp/capacity-planner:v1.0.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8080
+        command:
+        - /capacity-planner
+        args:
+        - --config=/config/capacity-config.yaml
+        - --prometheus-url=http://prometheus-server.monitoring.svc.cluster.local:9090
+        - --forecaster-url=http://time-series-forecaster.aiops.svc.cluster.local:8080
+        - --planning-horizon=90d
+        env:
+        - name: CLOUD_PROVIDER
+          value: "aws"
+        - name: COST_OPTIMIZATION
+          value: "true"
+        - name: SUSTAINABILITY_METRICS
+          value: "true"
+        volumeMounts:
+        - name: capacity-config
+          mountPath: /config
+          readOnly: true
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 2Gi
+          requests:
+            cpu: 500m
+            memory: 1Gi
+      volumes:
+      - name: capacity-config
+        configMap:
+          name: capacity-planning-config
+
+---
+# Configuration ConfigMaps
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sre-automation-config
+  namespace: sre-automation
+data:
+  self-healing-config.yaml: |
+    self_healing:
+      enabled: true
+      mode: "active"  # active, dry-run, disabled
+      
+      global_settings:
+        max_actions_per_hour: 10
+        max_actions_per_resource: 3
+        cooldown_period: "5m"
+        safety_checks: true
+        
+      monitoring:
+        prometheus_url: "http://prometheus-server.monitoring.svc.cluster.local:9090"
+        alertmanager_url: "http://alertmanager.monitoring.svc.cluster.local:9093"
+        metrics_interval: "30s"
+        
+      healing_triggers:
+        - name: "pod_crash_loop"
+          condition: "rate(kube_pod_container_status_restarts_total[5m]) > 0.1"
+          actions:
+            - "restart_pod"
+            - "scale_deployment"
+          severity: "high"
+          
+        - name: "high_memory_usage"
+          condition: "container_memory_usage_bytes / container_spec_memory_limit_bytes > 0.9"
+          actions:
+            - "restart_pod"
+            - "horizontal_scale"
+          severity: "medium"
+          
+        - name: "disk_space_low"
+          condition: "node_filesystem_free_bytes / node_filesystem_size_bytes < 0.1"
+          actions:
+            - "cleanup_logs"
+            - "expand_volume"
+          severity: "high"
+          
+        - name: "service_unavailable"
+          condition: "up{job=\"itdo-erp-backend\"} == 0"
+          actions:
+            - "restart_service"
+            - "failover_to_backup"
+          severity: "critical"
+          
+      notification:
+        channels:
+          - type: "slack"
+            webhook_url: "${NOTIFICATION_WEBHOOK}"
+            events: ["action_taken", "action_failed", "policy_violation"]
+            
+          - type: "pagerduty"
+            integration_key: "${PAGERDUTY_INTEGRATION_KEY}"
+            events: ["critical_action", "healing_failed"]
+
+  healing-policies.yaml: |
+    policies:
+      - name: "pod_restart_policy"
+        description: "Policy for pod restart healing actions"
+        rules:
+          - if: "pod.status == 'CrashLoopBackOff'"
+            then:
+              - action: "restart_pod"
+                max_attempts: 3
+                backoff: "exponential"
+                
+          - if: "pod.restart_count > 5 and pod.age < '1h'"
+            then:
+              - action: "recreate_pod"
+                notify: true
+                
+      - name: "scaling_policy"
+        description: "Auto-scaling policies based on metrics"
+        rules:
+          - if: "cpu_usage > 80% for 5m"
+            then:
+              - action: "scale_up"
+                factor: 1.5
+                max_replicas: 20
+                
+          - if: "cpu_usage < 20% for 30m and replicas > min_replicas"
+            then:
+              - action: "scale_down"
+                factor: 0.8
+                min_replicas: 2
+                
+      - name: "node_recovery_policy"
+        description: "Node-level healing policies"
+        rules:
+          - if: "node.status == 'NotReady' for 5m"
+            then:
+              - action: "cordon_node"
+              - action: "drain_node"
+              - action: "restart_node"
+                approval_required: true
+                
+      - name: "database_healing_policy"
+        description: "Database-specific healing actions"
+        rules:
+          - if: "database.connections > max_connections * 0.9"
+            then:
+              - action: "kill_idle_connections"
+              - action: "alert_dba"
+                
+          - if: "database.replication_lag > 60s"
+            then:
+              - action: "restart_replica"
+              - action: "promote_backup_replica"
+                approval_required: true
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rego-policies
+  namespace: sre-automation
+data:
+  healing_authorization.rego: |
+    package healing.authorization
+    
+    import future.keywords.if
+    import future.keywords.in
+    
+    default allow = false
+    
+    # Allow healing actions during business hours with safety checks
+    allow if {
+      input.action.type in ["restart_pod", "scale_deployment"]
+      business_hours
+      safety_checks_passed
+    }
+    
+    # Allow critical healing actions anytime
+    allow if {
+      input.action.severity == "critical"
+      emergency_approval
+    }
+    
+    # Deny destructive actions without explicit approval
+    deny if {
+      input.action.type in ["delete_node", "delete_database"]
+      not input.approval.explicit
+    }
+    
+    business_hours if {
+      time.now_ns() >= time.parse_ns("15:04", "09:00")
+      time.now_ns() <= time.parse_ns("15:04", "17:00")
+    }
+    
+    safety_checks_passed if {
+      input.resource.health_check == true
+      input.resource.backup_available == true
+    }
+    
+    emergency_approval if {
+      input.approval.emergency == true
+      input.approval.authorized_by in data.emergency_contacts
+    }
+
+  scaling_policies.rego: |
+    package scaling.policies
+    
+    import future.keywords.if
+    
+    # Scaling decision based on multiple metrics
+    scale_up if {
+      cpu_threshold_exceeded
+      memory_threshold_exceeded
+      request_rate_high
+    }
+    
+    scale_down if {
+      cpu_under_utilized
+      memory_under_utilized  
+      request_rate_low
+      not peak_hours
+    }
+    
+    cpu_threshold_exceeded if {
+      input.metrics.cpu_usage > 75
+    }
+    
+    memory_threshold_exceeded if {
+      input.metrics.memory_usage > 80
+    }
+    
+    request_rate_high if {
+      input.metrics.request_rate > input.thresholds.request_rate_high
+    }
+    
+    peak_hours if {
+      hour := time.now_ns() / 1000000000 / 3600 % 24
+      hour >= 9
+      hour <= 17
+    }
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: chaos-engineering-config
+  namespace: sre-automation
+data:
+  chaos-experiments.yaml: |
+    chaos_experiments:
+      schedule:
+        - name: "pod_failure_test"
+          type: "PodChaos"
+          schedule: "0 2 * * 1"  # Monday 2 AM
+          spec:
+            selector:
+              namespaces: ["itdo-erp"]
+              labelSelectors:
+                app: "itdo-erp-backend-api"
+            mode: "one"
+            action: "pod-failure"
+            duration: "5m"
+          safety:
+            enabled: true
+            max_unavailable: "25%"
+            
+        - name: "network_partition_test"
+          type: "NetworkChaos"
+          schedule: "0 3 * * 2"  # Tuesday 3 AM
+          spec:
+            selector:
+              namespaces: ["itdo-erp"]
+            mode: "all"
+            action: "partition"
+            direction: "to"
+            target:
+              selector:
+                namespaces: ["itdo-erp"]
+                labelSelectors:
+                  app: "postgresql"
+            duration: "2m"
+            
+        - name: "cpu_stress_test"
+          type: "StressChaos"
+          schedule: "0 1 * * 3"  # Wednesday 1 AM
+          spec:
+            selector:
+              namespaces: ["itdo-erp"]
+            mode: "one"
+            stressors:
+              cpu:
+                workers: 2
+                load: 80
+            duration: "10m"
+            
+      blast_radius:
+        max_affected_pods: 2
+        max_affected_services: 1
+        excluded_namespaces: ["kube-system", "monitoring", "sre-automation"]
+        
+      observability:
+        metrics_enabled: true
+        dashboards:
+          - name: "chaos_engineering_overview"
+            grafana_dashboard_id: 12345
+        alerts:
+          - name: "chaos_experiment_failed"
+            condition: "chaos_mesh_experiment_failed > 0"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: slo-monitoring-config
+  namespace: sre-automation
+data:
+  slo-config.yaml: |
+    slos:
+      - name: "api_availability"
+        description: "API availability SLO"
+        sli_query: "sum(rate(http_requests_total{job=\"itdo-erp-backend\",code!~\"5..\"}[5m])) / sum(rate(http_requests_total{job=\"itdo-erp-backend\"}[5m]))"
+        objective: 0.999  # 99.9%
+        window: "30d"
+        error_budget_policy: "default"
+        
+      - name: "api_latency"
+        description: "API latency SLO"
+        sli_query: "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=\"itdo-erp-backend\"}[5m]))"
+        objective: 0.2  # 200ms
+        window: "30d"
+        comparison: "lt"  # less than
+        
+      - name: "database_availability"
+        description: "Database availability SLO"
+        sli_query: "up{job=\"postgresql\"}"
+        objective: 0.9999  # 99.99%
+        window: "30d"
+        
+    error_budget_policies:
+      - name: "default"
+        burn_rate_alerts:
+          - severity: "critical"
+            for: "2m"
+            factor: 14.4  # 1% in 1 hour
+          - severity: "high"
+            for: "15m" 
+            factor: 6     # 5% in 6 hours
+          - severity: "medium"
+            for: "1h"
+            factor: 1     # 10% in 3 days
+            
+    dashboards:
+      slo_overview:
+        panels:
+          - title: "Error Budget Burn Rate"
+            query: "slo_error_budget_burn_rate"
+          - title: "SLI vs SLO"
+            query: "sli_value / slo_target"
+          - title: "Error Budget Remaining"
+            query: "slo_error_budget_remaining"
+
+  error-budget-policy.yaml: |
+    error_budget_policies:
+      development:
+        budget_allocation: 0.1  # 10% error budget
+        burn_rate_threshold: 2.0
+        notification_policy: "low_urgency"
+        
+      staging:
+        budget_allocation: 0.05  # 5% error budget  
+        burn_rate_threshold: 1.5
+        notification_policy: "medium_urgency"
+        
+      production:
+        budget_allocation: 0.01  # 1% error budget
+        burn_rate_threshold: 1.0
+        notification_policy: "high_urgency"
+        
+    notification_policies:
+      low_urgency:
+        channels: ["slack"]
+        frequency: "daily"
+        
+      medium_urgency:
+        channels: ["slack", "email"]
+        frequency: "hourly"
+        
+      high_urgency:
+        channels: ["slack", "email", "pagerduty"]
+        frequency: "immediate"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: incident-response-config
+  namespace: sre-automation
+data:
+  incident-response-config.yaml: |
+    incident_response:
+      severity_mapping:
+        critical:
+          response_time: "5m"
+          escalation_time: "15m"
+          auto_actions: true
+          
+        high:
+          response_time: "15m"
+          escalation_time: "1h"
+          auto_actions: false
+          
+        medium:
+          response_time: "1h"
+          escalation_time: "4h"
+          auto_actions: false
+          
+      automated_actions:
+        - trigger: "service_down"
+          conditions:
+            - "up{job=\"itdo-erp-backend\"} == 0 for 5m"
+          actions:
+            - type: "restart_service"
+              max_attempts: 3
+            - type: "scale_up"
+              factor: 2
+            - type: "notify"
+              channels: ["slack", "pagerduty"]
+              
+        - trigger: "high_error_rate"
+          conditions:
+            - "rate(http_requests_total{code=~\"5..\"}[5m]) / rate(http_requests_total[5m]) > 0.1 for 2m"
+          actions:
+            - type: "circuit_breaker"
+              enable: true
+            - type: "rollback"
+              to_last_stable: true
+            - type: "notify"
+              channels: ["slack"]
+              
+      escalation_policies:
+        - name: "primary_oncall"
+          steps:
+            - targets: ["sre-team"]
+              delay: "0m"
+            - targets: ["engineering-manager"]  
+              delay: "15m"
+            - targets: ["cto"]
+              delay: "30m"
+              
+      integrations:
+        pagerduty:
+          service_id: "PSERVICE1"
+          escalation_policy: "primary_oncall"
+          
+        slack:
+          incident_channel: "#incidents"
+          notification_channel: "#sre-alerts"
+          
+        jira:
+          project_key: "INC"
+          issue_type: "Incident"
+          auto_create: true
+
+---
+# Services
+apiVersion: v1
+kind: Service
+metadata:
+  name: self-healing-controller
+  namespace: sre-automation
+spec:
+  selector:
+    app.kubernetes.io/name: self-healing-controller
+  ports:
+  - name: http-metrics
+    port: 8080
+    targetPort: 8080
+  - name: webhook
+    port: 9443
+    targetPort: 9443
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: slo-monitoring-service
+  namespace: sre-automation
+spec:
+  selector:
+    app.kubernetes.io/name: slo-monitoring-service
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: http
+
+---
+# Service Accounts and RBAC
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sre-automation-controller
+  namespace: sre-automation
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: sre-automation-controller
+rules:
+- apiGroups: ["*"]
+  resources: ["*"]
+  verbs: ["*"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: sre-automation-controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: sre-automation-controller
+subjects:
+- kind: ServiceAccount
+  name: sre-automation-controller
+  namespace: sre-automation
+
+---
+# Additional service accounts for other components
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: chaos-engineering-controller
+  namespace: sre-automation
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: intelligent-autoscaler
+  namespace: sre-automation
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: incident-response-automation
+  namespace: sre-automation

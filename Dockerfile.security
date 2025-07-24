@@ -1,0 +1,352 @@
+# Security Scanning Dockerfile for ITDO ERP
+# Consolidates multiple security tools for comprehensive scanning
+
+FROM python:3.13-slim as base
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    wget \
+    git \
+    unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js for frontend scanning
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs
+
+# Stage 1: Python security tools
+FROM base as python-security
+
+# Install Python security scanning tools
+RUN pip install --no-cache-dir \
+    safety==2.3.5 \
+    bandit==1.7.5 \
+    semgrep==1.45.0 \
+    pip-audit==2.6.1 \
+    cyclonedx-bom==4.0.4
+
+# Stage 2: Node.js security tools
+FROM python-security as nodejs-security
+
+# Install Node.js security scanning tools
+RUN npm install -g \
+    npm-audit-ci@6.0.0 \
+    retire@4.0.0 \
+    eslint@8.53.0 \
+    @microsoft/eslint-formatter-sarif@3.0.0
+
+# Stage 3: Container and infrastructure security tools
+FROM nodejs-security as container-security
+
+# Install Trivy for container scanning
+RUN wget -qO- https://github.com/aquasecurity/trivy/releases/download/v0.47.0/trivy_0.47.0_Linux-64bit.tar.gz | \
+    tar xz -C /usr/local/bin trivy
+
+# Install Hadolint for Dockerfile linting
+RUN wget -O /usr/local/bin/hadolint https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Linux-x86_64 \
+    && chmod +x /usr/local/bin/hadolint
+
+# Install Docker Bench for security
+RUN git clone https://github.com/docker/docker-bench-security.git /opt/docker-bench-security
+
+# Stage 4: Infrastructure as Code security
+FROM container-security as iac-security
+
+# Install Checkov for IaC scanning
+RUN pip install --no-cache-dir checkov==3.0.25
+
+# Install tfsec for Terraform scanning
+RUN wget -O /usr/local/bin/tfsec https://github.com/aquasecurity/tfsec/releases/download/v1.28.4/tfsec-linux-amd64 \
+    && chmod +x /usr/local/bin/tfsec
+
+# Install kube-score for Kubernetes manifest analysis
+RUN wget -O /tmp/kube-score.tar.gz https://github.com/zegl/kube-score/releases/download/v1.16.1/kube-score_1.16.1_linux_amd64.tar.gz \
+    && tar xzf /tmp/kube-score.tar.gz -C /usr/local/bin \
+    && rm /tmp/kube-score.tar.gz
+
+# Final stage: Security scanning orchestrator
+FROM iac-security as security-scanner
+
+# Create scanner user
+RUN groupadd -r scanner && useradd -r -g scanner scanner
+
+# Create directories
+RUN mkdir -p /workspace /reports /scripts \
+    && chown -R scanner:scanner /reports /scripts
+
+# Copy scanning scripts
+COPY <<'EOF' /scripts/scan.sh
+#!/bin/bash
+set -e
+
+WORKSPACE=${WORKSPACE:-/workspace}
+REPORTS=${REPORTS:-/reports}
+SCAN_TARGET=${SCAN_TARGET:-all}
+
+echo "🔒 Starting ITDO ERP Security Scan"
+echo "Target: $SCAN_TARGET"
+echo "Workspace: $WORKSPACE"
+echo "Reports: $REPORTS"
+
+mkdir -p "$REPORTS"/{python,nodejs,containers,iac,summary}
+
+# Function to run scan with error handling
+run_scan() {
+    local name=$1
+    local command=$2
+    local output_file=$3
+    
+    echo "🔍 Running $name scan..."
+    if eval "$command" > "$output_file" 2>&1; then
+        echo "✅ $name scan completed successfully"
+        return 0
+    else
+        echo "❌ $name scan failed (exit code: $?)"
+        echo "Check $output_file for details"
+        return 1
+    fi
+}
+
+# Python Security Scans
+if [[ "$SCAN_TARGET" == "all" || "$SCAN_TARGET" == "python" || "$SCAN_TARGET" == "backend" ]]; then
+    echo "📍 Scanning Python backend..."
+    
+    cd "$WORKSPACE/backend" || exit 1
+    
+    # Safety - dependency vulnerability scan
+    run_scan "Safety (Python dependencies)" \
+        "safety check --json" \
+        "$REPORTS/python/safety-report.json"
+    
+    # Bandit - Python code security scan
+    run_scan "Bandit (Python static analysis)" \
+        "bandit -r app/ -f json" \
+        "$REPORTS/python/bandit-report.json"
+    
+    # Semgrep - multi-language static analysis
+    run_scan "Semgrep (Python)" \
+        "semgrep --config=auto app/ --json" \
+        "$REPORTS/python/semgrep-report.json"
+    
+    # pip-audit - Python dependency audit
+    run_scan "pip-audit (Python dependencies)" \
+        "pip-audit --format=json --requirement=requirements.txt" \
+        "$REPORTS/python/pip-audit-report.json"
+    
+    # Generate SBOM
+    run_scan "CycloneDX SBOM (Python)" \
+        "cyclonedx-py -o $REPORTS/python/sbom.json ." \
+        "$REPORTS/python/sbom-generation.log"
+fi
+
+# Node.js Security Scans  
+if [[ "$SCAN_TARGET" == "all" || "$SCAN_TARGET" == "nodejs" || "$SCAN_TARGET" == "frontend" ]]; then
+    echo "📍 Scanning Node.js frontend..."
+    
+    cd "$WORKSPACE/frontend" || exit 1
+    
+    # npm audit - dependency vulnerability scan
+    run_scan "npm audit (Node.js dependencies)" \
+        "npm audit --json" \
+        "$REPORTS/nodejs/npm-audit-report.json"
+    
+    # Retire.js - JavaScript library vulnerability scan
+    run_scan "Retire.js (JavaScript libraries)" \
+        "retire --outputformat json --outputpath $REPORTS/nodejs/retire-report.json ." \
+        "$REPORTS/nodejs/retire.log"
+    
+    # ESLint security scan
+    if [[ -f .eslintrc.js || -f .eslintrc.json ]]; then
+        run_scan "ESLint (JavaScript/TypeScript)" \
+            "eslint src/ --ext .js,.jsx,.ts,.tsx --format @microsoft/eslint-formatter-sarif" \
+            "$REPORTS/nodejs/eslint-report.sarif"
+    fi
+fi
+
+# Container Security Scans
+if [[ "$SCAN_TARGET" == "all" || "$SCAN_TARGET" == "containers" ]]; then
+    echo "📍 Scanning containers and Dockerfiles..."
+    
+    cd "$WORKSPACE" || exit 1
+    
+    # Hadolint - Dockerfile linting
+    for dockerfile in backend/Dockerfile frontend/Dockerfile Dockerfile.security; do
+        if [[ -f "$dockerfile" ]]; then
+            run_scan "Hadolint ($dockerfile)" \
+                "hadolint $dockerfile --format json" \
+                "$REPORTS/containers/hadolint-$(basename $dockerfile).json"
+        fi
+    done
+    
+    # Trivy - filesystem vulnerability scan
+    run_scan "Trivy (Filesystem scan)" \
+        "trivy fs --format json --output $REPORTS/containers/trivy-fs-report.json ." \
+        "$REPORTS/containers/trivy-fs.log"
+    
+    # Docker Compose security check
+    if [[ -f docker-compose.yml || -f docker-compose.multistage.yml ]]; then
+        run_scan "Trivy (Docker Compose)" \
+            "trivy config --format json docker-compose*.yml" \
+            "$REPORTS/containers/trivy-compose-report.json"
+    fi
+fi
+
+# Infrastructure as Code Scans
+if [[ "$SCAN_TARGET" == "all" || "$SCAN_TARGET" == "iac" ]]; then
+    echo "📍 Scanning Infrastructure as Code..."
+    
+    cd "$WORKSPACE" || exit 1
+    
+    # Checkov - IaC security scanning
+    run_scan "Checkov (IaC scan)" \
+        "checkov -d . --framework kubernetes,dockerfile,docker_compose --output json" \
+        "$REPORTS/iac/checkov-report.json"
+    
+    # Kubernetes manifest scanning
+    if [[ -d helm/ ]]; then
+        run_scan "Trivy (Kubernetes manifests)" \
+            "trivy config --format json helm/" \
+            "$REPORTS/iac/trivy-k8s-report.json"
+            
+        # kube-score analysis
+        for chart in helm/*/; do
+            if [[ -d "$chart" ]]; then
+                chart_name=$(basename "$chart")
+                run_scan "kube-score ($chart_name)" \
+                    "kube-score score $chart --output-format json" \
+                    "$REPORTS/iac/kube-score-$chart_name.json"
+            fi
+        done
+    fi
+fi
+
+# Generate summary report
+echo "📊 Generating security scan summary..."
+cat > "$REPORTS/summary/scan-summary.json" << EOL
+{
+  "scan_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "scan_target": "$SCAN_TARGET",
+  "workspace": "$WORKSPACE",
+  "tools_used": [
+    "safety", "bandit", "semgrep", "pip-audit",
+    "npm-audit", "retire.js", "eslint",
+    "hadolint", "trivy", "checkov", "kube-score"
+  ],
+  "reports_generated": $(find "$REPORTS" -name "*.json" | wc -l),
+  "scan_status": "completed"
+}
+EOL
+
+# Create HTML summary (if possible)
+if command -v python3 &> /dev/null; then
+    cat > /tmp/generate_summary.py << 'PYTHON'
+import json
+import os
+import glob
+from datetime import datetime
+
+def generate_html_summary(reports_dir):
+    html = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>ITDO ERP Security Scan Report</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 40px; }
+            .header { background: #f4f4f4; padding: 20px; border-radius: 5px; }
+            .section { margin: 20px 0; }
+            .tool-result { background: #f9f9f9; padding: 10px; margin: 10px 0; border-left: 4px solid #007cba; }
+            .success { border-left-color: #28a745; }
+            .warning { border-left-color: #ffc107; }
+            .error { border-left-color: #dc3545; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+            th { background-color: #f2f2f2; }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h1>🔒 ITDO ERP Security Scan Report</h1>
+            <p><strong>Generated:</strong> """ + datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC") + """</p>
+        </div>
+    """
+    
+    # Count findings by category
+    categories = ['python', 'nodejs', 'containers', 'iac']
+    for category in categories:
+        html += f'<div class="section"><h2>{category.title()} Security Scan</h2>'
+        category_files = glob.glob(os.path.join(reports_dir, category, "*.json"))
+        if category_files:
+            html += f'<p>Found {len(category_files)} report files:</p><ul>'
+            for file in category_files:
+                filename = os.path.basename(file)
+                html += f'<li>{filename}</li>'
+            html += '</ul>'
+        else:
+            html += '<p>No reports generated for this category.</p>'
+        html += '</div>'
+    
+    html += """
+    </body>
+    </html>
+    """
+    return html
+
+if __name__ == "__main__":
+    reports_dir = os.environ.get("REPORTS", "/reports")
+    html_content = generate_html_summary(reports_dir)
+    
+    with open(f"{reports_dir}/summary/security-report.html", "w") as f:
+        f.write(html_content)
+    
+    print("HTML summary report generated successfully")
+PYTHON
+
+    python3 /tmp/generate_summary.py
+fi
+
+echo "✅ Security scanning completed!"
+echo "📁 Reports available in: $REPORTS"
+echo "📊 Summary: $REPORTS/summary/"
+
+# List generated reports
+echo "Generated reports:"
+find "$REPORTS" -type f -name "*.json" -o -name "*.html" | sort
+EOF
+
+# Make script executable
+RUN chmod +x /scripts/scan.sh
+
+# Create entrypoint script
+COPY <<'EOF' /scripts/entrypoint.sh
+#!/bin/bash
+set -e
+
+# Switch to scanner user
+exec gosu scanner /scripts/scan.sh "$@"
+EOF
+
+RUN chmod +x /scripts/entrypoint.sh
+
+# Install gosu for user switching
+RUN apt-get update && apt-get install -y --no-install-recommends gosu \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /workspace
+
+# Default environment variables
+ENV WORKSPACE=/workspace
+ENV REPORTS=/reports
+ENV SCAN_TARGET=all
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
+    CMD test -d "$REPORTS" || exit 1
+
+# Set entrypoint
+ENTRYPOINT ["/scripts/entrypoint.sh"]
+
+# Default command
+CMD ["/scripts/scan.sh"]

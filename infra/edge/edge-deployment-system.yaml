@@ -1,0 +1,1081 @@
+# Edge Computing Deployment System
+# Global edge infrastructure with CDN integration and intelligent routing
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: edge-computing
+  labels:
+    name: edge-computing
+    edge.itdo-erp.com/system: "true"
+    global-distribution: "enabled"
+
+---
+# Edge Location Manager
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edge-location-manager
+  namespace: edge-computing
+  labels:
+    app.kubernetes.io/name: edge-location-manager
+    edge.component: "location-management"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: edge-location-manager
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: edge-location-manager
+        edge.component: "location-management"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+    spec:
+      serviceAccountName: edge-controller
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        fsGroup: 65534
+      containers:
+      - name: location-manager
+        image: itdo-erp/edge-location-manager:v1.2.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http-api
+          containerPort: 8080
+        - name: grpc-api
+          containerPort: 9090
+        command:
+        - /edge-manager
+        args:
+        - --config=/config/edge-config.yaml
+        - --regions=/config/edge-regions.yaml
+        - --prometheus-url=http://prometheus-server.monitoring.svc.cluster.local:9090
+        - --api-port=8080
+        - --grpc-port=9090
+        - --health-check-port=8081
+        env:
+        - name: CLOUD_PROVIDER
+          value: "multi-cloud"
+        - name: EDGE_LOCATIONS
+          value: "us-east-1,us-west-2,eu-west-1,eu-central-1,ap-southeast-1,ap-northeast-1"
+        - name: DEPLOYMENT_STRATEGY
+          value: "intelligent"  # blue-green, canary, intelligent
+        - name: LATENCY_OPTIMIZATION
+          value: "enabled"
+        - name: COST_OPTIMIZATION
+          value: "enabled"
+        - name: CLOUDFLARE_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: cdn-credentials
+              key: cloudflare-api-token
+        - name: FASTLY_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: cdn-credentials
+              key: fastly-api-token
+        volumeMounts:
+        - name: config
+          mountPath: /config
+          readOnly: true
+        - name: edge-cache
+          mountPath: /cache
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8081
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8081
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 500m
+            memory: 512Mi
+      - name: traffic-router
+        image: itdo-erp/intelligent-traffic-router:v1.1.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: router-api
+          containerPort: 8081
+        command:
+        - /traffic-router
+        args:
+        - --config=/config/routing-config.yaml
+        - --geo-database=/geo/GeoLite2-City.mmdb
+        - --latency-map=/config/latency-map.json
+        - --api-port=8081
+        env:
+        - name: ROUTING_ALGORITHM
+          value: "ml-optimized"  # round-robin, latency-based, ml-optimized
+        - name: HEALTH_CHECK_INTERVAL
+          value: "30s"
+        - name: FAILOVER_MODE
+          value: "automatic"
+        volumeMounts:
+        - name: config
+          mountPath: /config
+          readOnly: true
+        - name: geo-database
+          mountPath: /geo
+          readOnly: true
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 250m
+            memory: 256Mi
+      volumes:
+      - name: config
+        configMap:
+          name: edge-computing-config
+      - name: geo-database
+        configMap:
+          name: geo-location-database
+      - name: edge-cache
+        emptyDir: {}
+
+---
+# Edge Application Deployer
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edge-app-deployer
+  namespace: edge-computing
+  labels:
+    app.kubernetes.io/name: edge-app-deployer
+    edge.component: "application-deployment"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: edge-app-deployer
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: edge-app-deployer
+    spec:
+      serviceAccountName: edge-controller
+      containers:
+      - name: app-deployer
+        image: itdo-erp/edge-app-deployer:v1.3.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8080
+        command:
+        - /app-deployer
+        args:
+        - --config=/config/deployment-config.yaml
+        - --applications=/config/edge-applications.yaml
+        - --clusters=/config/edge-clusters.yaml
+        - --deployment-templates=/templates
+        env:
+        - name: ARGOCD_SERVER
+          value: "argocd-server.argocd.svc.cluster.local:443"
+        - name: ARGOCD_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: argocd-credentials
+              key: auth-token
+        - name: KUBECTL_CONFIG_PATH
+          value: "/kubeconfig"
+        - name: EDGE_REGISTRY
+          value: "edge-registry.itdo-erp.com"
+        volumeMounts:
+        - name: deployment-config
+          mountPath: /config
+          readOnly: true
+        - name: deployment-templates
+          mountPath: /templates
+          readOnly: true
+        - name: kubeconfig
+          mountPath: /kubeconfig
+          readOnly: true
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 500m
+            memory: 512Mi
+      volumes:
+      - name: deployment-config
+        configMap:
+          name: edge-deployment-config
+      - name: deployment-templates
+        configMap:
+          name: edge-app-templates
+      - name: kubeconfig
+        secret:
+          secretName: edge-clusters-kubeconfig
+
+---
+# CDN Integration Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cdn-integration-service
+  namespace: edge-computing
+  labels:
+    app.kubernetes.io/name: cdn-integration-service
+    edge.component: "cdn-integration"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cdn-integration-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cdn-integration-service
+    spec:
+      containers:
+      - name: cdn-integrator
+        image: itdo-erp/cdn-integration:v1.4.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8080
+        command:
+        - /cdn-integrator
+        args:
+        - --config=/config/cdn-config.yaml
+        - --providers=/config/cdn-providers.yaml
+        - --cache-policies=/config/cache-policies.yaml
+        - --purge-automation=true
+        env:
+        - name: CDN_PROVIDERS
+          value: "cloudflare,fastly,aws-cloudfront"
+        - name: CACHE_OPTIMIZATION
+          value: "intelligent"
+        - name: PURGE_STRATEGY
+          value: "selective"  # all, selective, tagged
+        - name: PREFETCH_ENABLED
+          value: "true"
+        - name: COMPRESSION_ENABLED
+          value: "true"
+        - name: WEBP_CONVERSION
+          value: "true"
+        - name: HTTP2_PUSH
+          value: "true"
+        volumeMounts:
+        - name: cdn-config
+          mountPath: /config
+          readOnly: true
+        - name: ssl-certificates
+          mountPath: /ssl
+          readOnly: true
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 250m
+            memory: 256Mi
+      volumes:
+      - name: cdn-config
+        configMap:
+          name: cdn-integration-config
+      - name: ssl-certificates
+        secret:
+          secretName: edge-ssl-certificates
+
+---
+# Edge Caching Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edge-caching-service
+  namespace: edge-computing
+  labels:
+    app.kubernetes.io/name: edge-caching-service
+    edge.component: "caching"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: edge-caching-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: edge-caching-service
+    spec:
+      containers:
+      - name: edge-cache
+        image: redis:7-alpine
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: redis
+          containerPort: 6379
+        command:
+        - redis-server
+        - /config/redis.conf
+        env:
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: edge-cache-credentials
+              key: redis-password
+        volumeMounts:
+        - name: redis-config
+          mountPath: /config
+          readOnly: true
+        - name: redis-data
+          mountPath: /data
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 2Gi
+          requests:
+            cpu: 500m
+            memory: 1Gi
+      - name: cache-manager
+        image: itdo-erp/edge-cache-manager:v1.1.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8080
+        command:
+        - /cache-manager
+        args:
+        - --redis-url=redis://localhost:6379
+        - --cache-policies=/config/cache-policies.yaml
+        - --ttl-optimization=true
+        - --compression=true
+        - --api-port=8080
+        env:
+        - name: CACHE_SIZE_LIMIT
+          value: "1GB"
+        - name: EVICTION_POLICY
+          value: "allkeys-lru"
+        - name: WARMING_ENABLED
+          value: "true"
+        volumeMounts:
+        - name: cache-config
+          mountPath: /config
+          readOnly: true
+        resources:
+          limits:
+            cpu: 200m
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+      volumes:
+      - name: redis-config
+        configMap:
+          name: edge-cache-config
+      - name: cache-config
+        configMap:
+          name: cache-policies-config
+      - name: redis-data
+        persistentVolumeClaim:
+          claimName: edge-cache-pvc
+
+---
+# Edge Functions Runtime
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edge-functions-runtime
+  namespace: edge-computing
+  labels:
+    app.kubernetes.io/name: edge-functions-runtime
+    edge.component: "serverless-functions"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: edge-functions-runtime
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: edge-functions-runtime
+    spec:
+      containers:
+      - name: functions-runtime
+        image: itdo-erp/edge-functions-runtime:v1.0.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8080
+        - name: grpc
+          containerPort: 9090
+        command:
+        - /functions-runtime
+        args:
+        - --config=/config/functions-config.yaml
+        - --functions-dir=/functions
+        - --runtime=nodejs,python,go
+        - --cold-start-optimization=true
+        - --api-port=8080
+        - --grpc-port=9090
+        env:
+        - name: FUNCTION_TIMEOUT
+          value: "30s"
+        - name: MAX_CONCURRENCY
+          value: "100"
+        - name: MEMORY_LIMIT
+          value: "256Mi"
+        - name: CPU_LIMIT
+          value: "200m"
+        - name: AUTO_SCALING
+          value: "true"
+        volumeMounts:
+        - name: functions-config
+          mountPath: /config
+          readOnly: true
+        - name: functions-code
+          mountPath: /functions
+          readOnly: true
+        - name: runtime-cache
+          mountPath: /cache
+        resources:
+          limits:
+            cpu: 2000m
+            memory: 2Gi
+          requests:
+            cpu: 1000m
+            memory: 1Gi
+      volumes:
+      - name: functions-config
+        configMap:
+          name: edge-functions-config
+      - name: functions-code
+        configMap:
+          name: edge-functions-code
+      - name: runtime-cache
+        emptyDir: {}
+
+---
+# Edge Performance Monitor
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edge-performance-monitor
+  namespace: edge-computing
+  labels:
+    app.kubernetes.io/name: edge-performance-monitor
+    edge.component: "performance-monitoring"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: edge-performance-monitor
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: edge-performance-monitor
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+    spec:
+      containers:
+      - name: performance-monitor
+        image: itdo-erp/edge-performance-monitor:v1.2.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http-metrics
+          containerPort: 8080
+        command:
+        - /performance-monitor
+        args:
+        - --config=/config/monitoring-config.yaml
+        - --edge-locations=/config/edge-locations.yaml
+        - --latency-targets=/config/latency-targets.yaml
+        - --prometheus-url=http://prometheus-server.monitoring.svc.cluster.local:9090
+        - --metrics-port=8080
+        env:
+        - name: MONITORING_INTERVAL
+          value: "30s"
+        - name: LATENCY_THRESHOLD
+          value: "100ms"
+        - name: AVAILABILITY_THRESHOLD
+          value: "99.9"
+        - name: ERROR_RATE_THRESHOLD
+          value: "1.0"
+        - name: SYNTHETIC_MONITORING
+          value: "enabled"
+        - name: RUM_ANALYTICS
+          value: "enabled"
+        volumeMounts:
+        - name: monitoring-config
+          mountPath: /config
+          readOnly: true
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 250m
+            memory: 256Mi
+      volumes:
+      - name: monitoring-config
+        configMap:
+          name: edge-monitoring-config
+
+---
+# Configuration ConfigMaps
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: edge-computing-config
+  namespace: edge-computing
+data:
+  edge-config.yaml: |
+    edge_computing:
+      global_settings:
+        enable_intelligent_routing: true
+        enable_auto_scaling: true
+        enable_cost_optimization: true
+        enable_performance_optimization: true
+        
+      regions:
+        us_east_1:
+          provider: "aws"
+          cluster_endpoint: "https://eks.us-east-1.amazonaws.com"
+          latency_target: "50ms"
+          capacity: "high"
+          features: ["compute", "storage", "cache"]
+          
+        us_west_2:
+          provider: "aws"
+          cluster_endpoint: "https://eks.us-west-2.amazonaws.com"
+          latency_target: "60ms"
+          capacity: "high"
+          features: ["compute", "storage", "cache"]
+          
+        eu_west_1:
+          provider: "aws"
+          cluster_endpoint: "https://eks.eu-west-1.amazonaws.com"
+          latency_target: "70ms"
+          capacity: "medium"
+          features: ["compute", "cache"]
+          
+        ap_southeast_1:
+          provider: "aws"
+          cluster_endpoint: "https://eks.ap-southeast-1.amazonaws.com"
+          latency_target: "80ms"
+          capacity: "medium"
+          features: ["compute", "cache"]
+          
+      traffic_management:
+        routing_algorithm: "intelligent"
+        health_check_interval: "30s"
+        failover_timeout: "10s"
+        load_balancing_method: "least_latency"
+        sticky_sessions: false
+        
+      caching:
+        default_ttl: "3600s"
+        max_cache_size: "10GB"
+        compression: true
+        prefetch_enabled: true
+        cache_warming: true
+        
+      security:
+        waf_enabled: true
+        ddos_protection: true
+        rate_limiting: true
+        ssl_termination: true
+        certificate_management: "automatic"
+
+  edge-regions.yaml: |
+    regions:
+      - name: "us-east-1"
+        display_name: "US East (N. Virginia)"
+        coordinates: [38.9072, -77.0369]
+        timezone: "America/New_York"
+        capacity_tier: "tier1"
+        services: ["api", "static", "dynamic", "websocket"]
+        
+      - name: "us-west-2" 
+        display_name: "US West (Oregon)"
+        coordinates: [45.5152, -122.6784]
+        timezone: "America/Los_Angeles"
+        capacity_tier: "tier1"
+        services: ["api", "static", "dynamic"]
+        
+      - name: "eu-west-1"
+        display_name: "Europe (Ireland)"
+        coordinates: [53.3498, -6.2603]
+        timezone: "Europe/Dublin"
+        capacity_tier: "tier2"
+        services: ["api", "static"]
+        
+      - name: "ap-southeast-1"
+        display_name: "Asia Pacific (Singapore)"
+        coordinates: [1.3521, 103.8198]
+        timezone: "Asia/Singapore"
+        capacity_tier: "tier2"
+        services: ["api", "static"]
+
+  routing-config.yaml: |
+    routing:
+      algorithms:
+        intelligent:
+          factors:
+            - name: "latency"
+              weight: 0.4
+              threshold: "100ms"
+            - name: "availability"
+              weight: 0.3
+              threshold: "99%"
+            - name: "capacity"
+              weight: 0.2
+              threshold: "80%"
+            - name: "cost"
+              weight: 0.1
+              
+      health_checks:
+        interval: "30s"
+        timeout: "10s"
+        healthy_threshold: 2
+        unhealthy_threshold: 3
+        endpoints:
+          - path: "/health"
+            expected_status: 200
+          - path: "/api/v1/health"
+            expected_status: 200
+            
+      failover:
+        mode: "automatic"
+        max_attempts: 3
+        backoff_strategy: "exponential"
+        fallback_region: "us-east-1"
+        
+      load_balancing:
+        method: "weighted_round_robin"
+        session_affinity: false
+        connection_draining: "30s"
+
+  latency-map.json: |
+    {
+      "latency_matrix": {
+        "us-east-1": {
+          "us-west-2": 70,
+          "eu-west-1": 120,
+          "ap-southeast-1": 180
+        },
+        "us-west-2": {
+          "us-east-1": 70,
+          "eu-west-1": 150,
+          "ap-southeast-1": 140
+        },
+        "eu-west-1": {
+          "us-east-1": 120,
+          "us-west-2": 150,
+          "ap-southeast-1": 160
+        },
+        "ap-southeast-1": {
+          "us-east-1": 180,
+          "us-west-2": 140,
+          "eu-west-1": 160
+        }
+      },
+      "client_latency_targets": {
+        "north_america": {
+          "primary": "us-east-1",
+          "secondary": "us-west-2",
+          "target_latency": "50ms"
+        },
+        "europe": {
+          "primary": "eu-west-1",
+          "secondary": "us-east-1",
+          "target_latency": "60ms"
+        },
+        "asia_pacific": {
+          "primary": "ap-southeast-1",
+          "secondary": "us-west-2", 
+          "target_latency": "70ms"
+        }
+      }
+    }
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: edge-deployment-config
+  namespace: edge-computing
+data:
+  deployment-config.yaml: |
+    deployment:
+      strategy: "intelligent"
+      rollout_strategy: "canary"
+      canary_percentage: 10
+      canary_duration: "10m"
+      
+      applications:
+        frontend:
+          type: "static"
+          cdn_enabled: true
+          compression: true
+          minification: true
+          image_optimization: true
+          caching_policy: "aggressive"
+          
+        api_gateway:
+          type: "dynamic"
+          auto_scaling: true
+          min_replicas: 2
+          max_replicas: 20
+          target_cpu: 70
+          target_memory: 80
+          
+        edge_functions:
+          type: "serverless"
+          runtime: ["nodejs16", "python39", "go118"]
+          cold_start_optimization: true
+          concurrency_limit: 100
+          
+      health_checks:
+        enabled: true
+        path: "/health"
+        interval: "30s"
+        timeout: "10s"
+        initial_delay: "60s"
+        
+      monitoring:
+        metrics_enabled: true
+        tracing_enabled: true
+        logging_level: "info"
+        custom_metrics: ["business_kpis", "user_experience"]
+
+  edge-applications.yaml: |
+    applications:
+      - name: "itdo-erp-frontend"
+        type: "static"
+        source:
+          type: "git"
+          repository: "https://github.com/itdo-erp/frontend"
+          branch: "main"
+        build:
+          command: "npm run build:edge"
+          output_directory: "dist/"
+        deployment:
+          regions: ["us-east-1", "us-west-2", "eu-west-1", "ap-southeast-1"]
+          cdn_integration: true
+          compression: true
+          
+      - name: "itdo-erp-api-edge"
+        type: "dynamic"
+        source:
+          type: "container"
+          image: "itdo-erp/api-edge:latest"
+        deployment:
+          regions: ["us-east-1", "us-west-2", "eu-west-1"]
+          replicas: 3
+          auto_scaling: true
+          
+      - name: "edge-auth-function"
+        type: "serverless"
+        source:
+          type: "inline"
+          runtime: "nodejs16"
+          code: |
+            exports.handler = async (event, context) => {
+              const token = event.headers['authorization'];
+              // JWT validation logic
+              return {
+                statusCode: token ? 200 : 401,
+                body: JSON.stringify({ authorized: !!token })
+              };
+            };
+        deployment:
+          regions: "all"
+          memory: "256MB"
+          timeout: "30s"
+
+  edge-clusters.yaml: |
+    clusters:
+      - name: "edge-us-east-1"
+        region: "us-east-1"
+        provider: "eks"
+        endpoint: "https://ABC123.gr7.us-east-1.eks.amazonaws.com"
+        context: "arn:aws:eks:us-east-1:123456789012:cluster/edge-us-east-1"
+        capacity:
+          nodes: 5
+          cpu: "20 cores"
+          memory: "80GB"
+          
+      - name: "edge-us-west-2"
+        region: "us-west-2"
+        provider: "eks"
+        endpoint: "https://DEF456.gr7.us-west-2.eks.amazonaws.com"
+        context: "arn:aws:eks:us-west-2:123456789012:cluster/edge-us-west-2"
+        capacity:
+          nodes: 3
+          cpu: "12 cores"
+          memory: "48GB"
+          
+      - name: "edge-eu-west-1"
+        region: "eu-west-1"
+        provider: "eks"
+        endpoint: "https://GHI789.gr7.eu-west-1.eks.amazonaws.com"
+        context: "arn:aws:eks:eu-west-1:123456789012:cluster/edge-eu-west-1"
+        capacity:
+          nodes: 3
+          cpu: "12 cores"
+          memory: "48GB"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cdn-integration-config
+  namespace: edge-computing
+data:
+  cdn-config.yaml: |
+    cdn_providers:
+      cloudflare:
+        enabled: true
+        zone_id: "abc123def456ghi789"
+        api_endpoint: "https://api.cloudflare.com/client/v4"
+        features:
+          - "ddos_protection"
+          - "waf"
+          - "rate_limiting"
+          - "image_optimization"
+          - "minification"
+          
+      fastly:
+        enabled: true
+        service_id: "xyz789abc123def456"
+        api_endpoint: "https://api.fastly.com"
+        features:
+          - "edge_compute"
+          - "image_optimization"
+          - "streaming"
+          
+      aws_cloudfront:
+        enabled: true
+        distribution_id: "E1234567890ABC"
+        api_endpoint: "https://cloudfront.amazonaws.com/2020-05-31"
+        features:
+          - "lambda_edge"
+          - "field_level_encryption"
+          - "realtime_logs"
+
+  cdn-providers.yaml: |
+    providers:
+      - name: "cloudflare"
+        priority: 1
+        regions: "global"
+        capabilities:
+          - "static_content"
+          - "dynamic_acceleration"
+          - "security"
+          - "analytics"
+        configuration:
+          ssl_mode: "strict"
+          minification:
+            html: true
+            css: true
+            js: true
+          security_level: "medium"
+          
+      - name: "fastly"
+        priority: 2
+        regions: "global"
+        capabilities:
+          - "edge_computing"
+          - "video_streaming"
+          - "api_acceleration"
+        configuration:
+          vcl_version: "4.0"
+          gzip_enabled: true
+          
+      - name: "aws_cloudfront"
+        priority: 3
+        regions: ["us", "eu", "ap"]
+        capabilities:
+          - "lambda_edge"
+          - "security_headers"
+          - "geo_blocking"
+        configuration:
+          price_class: "PriceClass_All"
+          viewer_protocol_policy: "redirect-to-https"
+
+  cache-policies.yaml: |
+    cache_policies:
+      static_assets:
+        path_patterns: ["*.css", "*.js", "*.png", "*.jpg", "*.gif", "*.svg", "*.woff2"]
+        ttl: "31536000"  # 1 year
+        browser_cache: "31536000"
+        compression: true
+        
+      api_responses:
+        path_patterns: ["/api/v1/*"]
+        ttl: "300"  # 5 minutes
+        browser_cache: "0"
+        compression: true
+        vary_headers: ["Authorization", "Accept-Language"]
+        
+      html_pages:
+        path_patterns: ["*.html", "/", "/app/*"]
+        ttl: "3600"  # 1 hour
+        browser_cache: "300"  # 5 minutes
+        compression: true
+        
+      user_content:
+        path_patterns: ["/uploads/*", "/media/*"]
+        ttl: "86400"  # 24 hours
+        browser_cache: "86400"
+        compression: false  # Don't compress images/videos
+
+---
+# Services
+apiVersion: v1
+kind: Service
+metadata:
+  name: edge-location-manager
+  namespace: edge-computing
+spec:
+  selector:
+    app.kubernetes.io/name: edge-location-manager
+  ports:
+  - name: http-api
+    port: 8080
+    targetPort: 8080
+  - name: grpc-api
+    port: 9090
+    targetPort: 9090
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cdn-integration-service
+  namespace: edge-computing
+spec:
+  selector:
+    app.kubernetes.io/name: cdn-integration-service
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: http
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: edge-functions-runtime
+  namespace: edge-computing
+spec:
+  selector:
+    app.kubernetes.io/name: edge-functions-runtime
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+  - name: grpc
+    port: 9090
+    targetPort: 9090
+  type: LoadBalancer
+
+---
+# Persistent Volume Claims
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: edge-cache-pvc
+  namespace: edge-computing
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: gp3-fast
+
+---
+# Service Account and RBAC
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: edge-controller
+  namespace: edge-computing
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: edge-controller
+rules:
+- apiGroups: [""]
+  resources: ["*"]
+  verbs: ["*"]
+- apiGroups: ["apps", "extensions"]
+  resources: ["*"]
+  verbs: ["*"]
+- apiGroups: ["networking.k8s.io"]
+  resources: ["*"]
+  verbs: ["*"]
+- apiGroups: ["argoproj.io"]
+  resources: ["applications"]
+  verbs: ["*"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: edge-controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: edge-controller
+subjects:
+- kind: ServiceAccount
+  name: edge-controller
+  namespace: edge-computing
+
+---
+# Secrets
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cdn-credentials
+  namespace: edge-computing
+type: Opaque
+data:
+  cloudflare-api-token: Y2xvdWRmbGFyZS1hcGktdG9rZW4taGVyZQ==
+  fastly-api-token: ZmFzdGx5LWFwaS10b2tlbi1oZXJl
+  aws-access-key-id: YXdzLWFjY2Vzcy1rZXktaWQtaGVyZQ==
+  aws-secret-access-key: YXdzLXNlY3JldC1hY2Nlc3Mta2V5LWhlcmU=
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: edge-cache-credentials
+  namespace: edge-computing
+type: Opaque
+data:
+  redis-password: ZWRnZS1yZWRpcy1wYXNzd29yZA==
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: edge-ssl-certificates
+  namespace: edge-computing
+type: kubernetes.io/tls
+data:
+  tls.crt: LS0tLS1CRUdJTi
+  tls.key: LS0tLS1CRUdJTi

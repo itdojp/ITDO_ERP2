@@ -1,0 +1,153 @@
+name: Reusable Backend Test Workflow
+
+on:
+  workflow_call:
+    inputs:
+      test-type:
+        description: 'Type of tests to run (unit, integration, security, all)'
+        required: false
+        default: 'all'
+        type: string
+      python-version:
+        description: 'Python version to use'
+        required: false
+        default: '3.13'
+        type: string
+      cache-key-suffix:
+        description: 'Additional suffix for cache key'
+        required: false
+        default: ''
+        type: string
+    outputs:
+      coverage-file:
+        description: 'Path to coverage file'
+        value: ${{ jobs.test.outputs.coverage-file }}
+      test-result:
+        description: 'Test execution result'
+        value: ${{ jobs.test.outputs.result }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    
+    outputs:
+      coverage-file: ${{ steps.coverage.outputs.file }}
+      result: ${{ steps.test-run.outputs.result }}
+    
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_PASSWORD: itdo_password
+          POSTGRES_USER: itdo_user
+          POSTGRES_DB: itdo_erp_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    # Optimized caching strategy
+    - name: Cache UV dependencies
+      uses: actions/cache@v4
+      with:
+        path: /tmp/.uv-cache
+        key: uv-${{ runner.os }}-${{ inputs.python-version }}-${{ hashFiles('backend/uv.lock') }}${{ inputs.cache-key-suffix }}
+        restore-keys: |
+          uv-${{ runner.os }}-${{ inputs.python-version }}-
+          uv-${{ runner.os }}-
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: "latest"
+        enable-cache: true
+    
+    - name: Set up Python ${{ inputs.python-version }}
+      run: uv python install ${{ inputs.python-version }}
+    
+    - name: Install dependencies
+      run: |
+        uv sync --dev --locked
+    
+    - name: Run tests
+      id: test-run
+      env:
+        DATABASE_URL: sqlite:///test.db
+        REDIS_URL: redis://localhost:6379
+        SECRET_KEY: test-secret-key
+        PYTHONPATH: /home/runner/work/ITDO_ERP2/ITDO_ERP2/backend
+        CI: true
+        GITHUB_ACTIONS: true
+      run: |
+        case "${{ inputs.test-type }}" in
+          unit)
+            echo "Running unit tests..."
+            uv run pytest tests/unit/ tests/test_main.py \
+              -v --tb=short --cov=app --cov-report=xml \
+              --cov-report=term-missing --maxfail=5
+            echo "result=success" >> $GITHUB_OUTPUT
+            ;;
+          integration)
+            echo "Running integration tests..."
+            uv run pytest tests/integration/ \
+              -v --tb=short --maxfail=5 \
+              --cov=app --cov-report=xml --cov-append
+            echo "result=success" >> $GITHUB_OUTPUT
+            ;;
+          security)
+            echo "Running security tests..."
+            uv run pytest tests/security/ \
+              -v --tb=short --maxfail=5
+            echo "result=success" >> $GITHUB_OUTPUT
+            ;;
+          all)
+            echo "Running all tests..."
+            uv run pytest tests/ \
+              -v --tb=short --maxfail=10 \
+              --cov=app --cov-report=xml --cov-report=term-missing
+            echo "result=success" >> $GITHUB_OUTPUT
+            ;;
+          *)
+            echo "Unknown test type: ${{ inputs.test-type }}"
+            echo "result=error" >> $GITHUB_OUTPUT
+            exit 1
+            ;;
+        esac
+    
+    - name: Set coverage output
+      id: coverage
+      run: |
+        if [ -f coverage.xml ]; then
+          echo "file=./backend/coverage.xml" >> $GITHUB_OUTPUT
+        else
+          echo "file=" >> $GITHUB_OUTPUT
+        fi
+    
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: backend-test-results-${{ inputs.test-type }}-${{ github.run_id }}
+        path: |
+          backend/coverage.xml
+          backend/.coverage
+        retention-days: 7

@@ -1,0 +1,30 @@
+{{- if and .Values.monitoring.enabled .Values.monitoring.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "backend-api.fullname" . }}
+  namespace: {{ .Values.monitoring.serviceMonitor.namespace }}
+  labels:
+    {{- include "backend-api.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "backend-api.selectorLabels" . | nindent 6 }}
+  endpoints:
+  - port: http
+    interval: {{ .Values.monitoring.serviceMonitor.interval }}
+    path: {{ .Values.monitoring.serviceMonitor.path }}
+    scheme: http
+    metricRelabelings:
+    - sourceLabels: [__name__]
+      regex: 'http_request_duration_seconds.*'
+      targetLabel: __name__
+      replacement: 'backend_api_${1}'
+    - sourceLabels: [__name__]
+      regex: 'http_requests_total.*'
+      targetLabel: __name__
+      replacement: 'backend_api_${1}'
+  namespaceSelector:
+    matchNames:
+    - {{ .Release.Namespace }}
+{{- end }}

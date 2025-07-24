@@ -43,6 +43,7 @@ from app.api.v1 import (  # permission_inheritance,  # Temporarily disabled due 
     users_extended,
     workflows,
 )
+from app.api.v1.endpoints import feature_flags
 from app.api.v1.endpoints.monitoring.performance import router as performance_router
 
 # New CC02 v35.0 API modules
@@ -124,6 +125,11 @@ api_router.include_router(
     applications.router, prefix="/applications", tags=["workflow"]
 )
 api_router.include_router(reports.router, prefix="/reports", tags=["analytics"])
+
+# Feature Flags API
+api_router.include_router(
+    feature_flags.router, prefix="/feature-flags", tags=["feature-flags"]
+)
 
 # CC02 v35.0 - Security and Monitoring APIs
 api_router.include_router(
