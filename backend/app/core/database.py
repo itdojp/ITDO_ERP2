@@ -62,6 +62,40 @@ async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
         finally:
             await session.close()
 
+# Additional async database dependency for TDD tests
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    """Get async database session for FastAPI dependency injection."""
+    # For TDD tests, use in-memory SQLite
+    if "test" in str(settings.DATABASE_URL) or str(settings.DATABASE_URL).startswith("sqlite"):
+        from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+        from sqlalchemy.pool import StaticPool
+        
+        test_engine = create_async_engine(
+            "sqlite+aiosqlite:///:memory:",
+            connect_args={"check_same_thread": False},
+            poolclass=StaticPool,
+            echo=False
+        )
+        
+        TestAsyncSessionLocal = async_sessionmaker(
+            test_engine,
+            class_=AsyncSession,
+            expire_on_commit=False
+        )
+        
+        async with TestAsyncSessionLocal() as session:
+            try:
+                yield session
+            except Exception:
+                await session.rollback()
+                raise
+            finally:
+                await session.close()
+    else:
+        # Use existing async session for production
+        async for session in get_async_session():
+            yield session
+
 
 def test_database_connection() -> bool:
     """Test database connectivity for health checks."""

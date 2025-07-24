@@ -229,3 +229,96 @@ def client():
 def create_auth_headers(token: str) -> dict[str, str]:
     """Create authorization headers for API requests."""
     return {"Authorization": f"Bearer {token}"}
+
+
+# Additional fixtures for CC02 v49.0 TDD Implementation
+import asyncio
+from typing import AsyncIterator
+from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+
+# Test database URL for async tests
+TEST_ASYNC_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
+
+# Create test async engine
+test_async_engine = create_async_engine(
+    TEST_ASYNC_DATABASE_URL,
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+    echo=False
+)
+
+# Create async test session factory
+AsyncTestSessionLocal = async_sessionmaker(
+    test_async_engine,
+    class_=AsyncSession,
+    expire_on_commit=False
+)
+
+@pytest.fixture(scope="session")
+def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
+    """Create an instance of the default event loop for the test session."""
+    loop = asyncio.get_event_loop_policy().new_event_loop()
+    yield loop
+    loop.close()
+
+@pytest.fixture
+async def async_db() -> AsyncIterator[AsyncSession]:
+    """Create an async test database session."""
+    async with AsyncTestSessionLocal() as session:
+        yield session
+
+@pytest.fixture
+async def async_client(async_db: AsyncSession) -> AsyncIterator[AsyncClient]:
+    """Create an async test client with database override."""
+    from app.main_super_minimal import app
+    from app.core.database import get_db
+    
+    def override_get_db():
+        return async_db
+    
+    app.dependency_overrides[get_db] = override_get_db
+    
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        yield ac
+    
+    app.dependency_overrides.clear()
+
+@pytest.fixture(autouse=True)
+def setup_sync_test_data():
+    """Setup and cleanup test data for each test."""
+    # Setup - clear any existing data
+    from app.api.v1.endpoints.products import products_store, price_history_store
+    products_store.clear()
+    price_history_store.clear()
+    
+    yield
+    
+    # Cleanup
+    products_store.clear()
+    price_history_store.clear()
+
+# Sync TestClient for TDD tests
+@pytest.fixture
+def sync_test_client():
+    """Create a sync test client for TDD tests."""
+    from app.main_super_minimal import app
+    from fastapi.testclient import TestClient
+    
+    # Override the database dependency to return a mock
+    def override_get_db():
+        return None  # We'll use in-memory storage for TDD
+    
+    from app.core.database import get_db
+    app.dependency_overrides[get_db] = override_get_db
+    
+    with TestClient(app) as test_client:
+        yield test_client
+    
+    app.dependency_overrides.clear()
+
+# Alias fixtures for backward compatibility with TDD tests
+@pytest.fixture
+def api_client(sync_test_client):
+    """Alias for sync test client for TDD test compatibility."""
+    return sync_test_client
