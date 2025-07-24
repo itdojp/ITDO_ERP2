@@ -301,6 +301,14 @@ def setup_sync_test_data():
     except ImportError:
         pass  # Inventory module not available yet
     
+    # Clear customer data
+    try:
+        from app.api.v1.endpoints.customers import customers_store, customer_contacts_store
+        customers_store.clear()
+        customer_contacts_store.clear()
+    except ImportError:
+        pass  # Customer module not available yet
+    
     yield
     
     # Cleanup
@@ -313,6 +321,14 @@ def setup_sync_test_data():
         inventory_store.clear()
         movements_store.clear()
         transfers_store.clear()
+    except ImportError:
+        pass
+    
+    # Cleanup customer data
+    try:
+        from app.api.v1.endpoints.customers import customers_store, customer_contacts_store
+        customers_store.clear()
+        customer_contacts_store.clear()
     except ImportError:
         pass
 
