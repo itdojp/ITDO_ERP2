@@ -22,6 +22,7 @@ async def comprehensive_health_check(
     including database, cache, external dependencies, and system resources.
     """
     from datetime import datetime, timezone
+
     from app.core.monitoring import health_checker, setup_health_checks
 
     # Setup health checks if not already done
@@ -35,8 +36,9 @@ async def comprehensive_health_check(
         # Use enhanced health checker if available
         try:
             from app.core.health import HealthStatus, get_health_checker
+
             health_checker_enhanced = get_health_checker()
-            
+
             if detailed:
                 # Run comprehensive health check with detailed metrics
                 health_report = await health_checker_enhanced.check_system_health(
@@ -65,24 +67,29 @@ async def comprehensive_health_check(
                                     "unit": metric.unit,
                                     "threshold_warning": metric.threshold_warning,
                                     "threshold_critical": metric.threshold_critical,
-                                    "description": metric.description
+                                    "description": metric.description,
                                 }
                                 for metric in comp.metrics
-                            ] if hasattr(comp, 'metrics') else [],
-                            "error": comp.error if hasattr(comp, 'error') else None
+                            ]
+                            if hasattr(comp, "metrics")
+                            else [],
+                            "error": comp.error if hasattr(comp, "error") else None,
                         }
                         for comp in health_report.components
                     ],
                     "performance_metrics": health_report.performance_metrics,
                     "alerts": health_report.alerts,
                     "recommendations": health_report.recommendations,
-                    "summary": health_report.summary if hasattr(health_report, 'summary') else None,
-                    "overall_healthy": health_report.overall_status == HealthStatus.HEALTHY
+                    "summary": health_report.summary
+                    if hasattr(health_report, "summary")
+                    else None,
+                    "overall_healthy": health_report.overall_status
+                    == HealthStatus.HEALTHY,
                 }
         except ImportError:
             # Fall back to basic health checker
             pass
-        
+
         # Use basic health checker as fallback
         health_results = await health_checker.run_checks()
 
@@ -102,7 +109,7 @@ async def comprehensive_health_check(
             "status": "unhealthy",
             "error": f"Health check system failure: {str(e)}",
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "fallback_mode": True
+            "fallback_mode": True,
         }
 
 
@@ -110,12 +117,13 @@ async def comprehensive_health_check(
 async def simple_health_check(db: Session = Depends(get_db)) -> dict[str, Any]:
     """Simple health check for basic monitoring."""
     from datetime import datetime, timezone
+
     from app.core.monitoring import health_checker
-    
+
     try:
         # Use health checker for consistent protocol
         health_results = await health_checker.run_checks()
-        
+
         return {
             "status": "healthy" if health_results["healthy"] else "unhealthy",
             "timestamp": health_results["timestamp"],
@@ -143,23 +151,25 @@ async def liveness_probe() -> dict[str, str]:
 async def readiness_probe(db: Session = Depends(get_db)) -> dict[str, Any]:
     """Kubernetes readiness probe - checks if app can serve traffic."""
     from datetime import datetime, timezone
-    
+
     try:
         # Quick essential health checks for readiness
         ready_checks = {
             "database": False,
             "redis": False,
-            "application": True  # Application is running if we reached this point
+            "application": True,  # Application is running if we reached this point
         }
 
         # Test database connectivity
         from sqlalchemy import text
+
         db.execute(text("SELECT 1"))
         ready_checks["database"] = True
 
         # Test Redis connectivity
         try:
             from app.core.database import get_redis
+
             redis_client = get_redis()
             await redis_client.ping()
             ready_checks["redis"] = True
@@ -173,14 +183,14 @@ async def readiness_probe(db: Session = Depends(get_db)) -> dict[str, Any]:
         if not is_ready:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Service dependencies not ready"
+                detail="Service dependencies not ready",
             )
 
         return {
             "status": "ready",
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "checks": ready_checks,
-            "ready": is_ready
+            "ready": is_ready,
         }
 
     except HTTPException:
@@ -188,7 +198,7 @@ async def readiness_probe(db: Session = Depends(get_db)) -> dict[str, Any]:
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"Readiness check failed: {str(e)}"
+            detail=f"Readiness check failed: {str(e)}",
         )
 
 
@@ -198,6 +208,7 @@ async def database_health(db: Session = Depends(get_db)) -> dict[str, Any]:
 
     try:
         import time
+
         from sqlalchemy import text
 
         start_time = time.time()
@@ -232,48 +243,55 @@ async def database_health(db: Session = Depends(get_db)) -> dict[str, Any]:
 async def health_metrics(db: Session = Depends(get_db)) -> dict[str, Any]:
     """Get detailed health metrics for monitoring systems."""
     from datetime import datetime, timezone
-    
+
     try:
         # Try enhanced health checker first
         from app.core.health import HealthStatus, get_health_checker
+
         health_checker_enhanced = get_health_checker()
-        health_report = await health_checker_enhanced.check_system_health(include_detailed=True)
+        health_report = await health_checker_enhanced.check_system_health(
+            include_detailed=True
+        )
         metrics = health_report.performance_metrics or {}
-        
+
         return {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "uptime_seconds": health_report.uptime_seconds,
             "metrics": metrics,
             "component_count": len(health_report.components),
-            "healthy_components": len([
-                comp for comp in health_report.components 
-                if comp.status == HealthStatus.HEALTHY
-            ]),
-            "status": health_report.overall_status.value
+            "healthy_components": len(
+                [
+                    comp
+                    for comp in health_report.components
+                    if comp.status == HealthStatus.HEALTHY
+                ]
+            ),
+            "status": health_report.overall_status.value,
         }
     except ImportError:
         # Fallback to basic metrics
         from app.core.monitoring import get_metrics
+
         try:
             metrics_data = get_metrics()
             return {
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "metrics": metrics_data,
                 "status": "healthy",
-                "metrics_available": True
+                "metrics_available": True,
             }
         except Exception as e:
             return {
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "error": str(e),
                 "status": "error",
-                "metrics_available": False
+                "metrics_available": False,
             }
     except Exception as e:
         return {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "error": str(e),
-            "status": "error"
+            "status": "error",
         }
 
 
@@ -283,6 +301,7 @@ async def system_health() -> dict[str, Any]:
 
     try:
         import shutil
+
         import psutil
 
         # Disk space check
@@ -336,8 +355,10 @@ async def startup_health() -> dict[str, Any]:
 
         # Check database session factory
         from app.core.database import SessionLocal
+
         with SessionLocal() as session:
             from sqlalchemy import text
+
             session.execute(text("SELECT 1"))
             status_checks["database_session_factory"] = True
 
@@ -365,6 +386,7 @@ async def agent_health() -> dict[str, Any]:
     try:
         import datetime
         import time
+
         import psutil
 
         start_time = time.time()
