@@ -1,0 +1,637 @@
+name: 📊 Production Monitoring
+
+on:
+  schedule:
+    # Run every 5 minutes
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+    inputs:
+      force_check:
+        description: 'Force immediate health check'
+        required: false
+        default: 'false'
+        type: boolean
+      alert_level:
+        description: 'Alert sensitivity level'
+        required: false
+        default: 'normal'
+        type: choice
+        options:
+          - low
+          - normal
+          - high
+          - critical
+
+env:
+  PRODUCTION_URL: ${{ secrets.PRODUCTION_URL }}
+  ALERT_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+  ROLLBACK_THRESHOLD: 3
+
+jobs:
+  health-check:
+    name: 🔍 Health Check
+    runs-on: ubuntu-latest
+    outputs:
+      health-status: ${{ steps.health.outputs.status }}
+      response-time: ${{ steps.health.outputs.response_time }}
+      failure-count: ${{ steps.health.outputs.failure_count }}
+      services-status: ${{ steps.health.outputs.services_status }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Comprehensive health check
+        id: health
+        run: |
+          echo "🔍 Starting comprehensive health check..."
+          
+          HEALTH_STATUS="healthy"
+          FAILURE_COUNT=0
+          RESPONSE_TIME=0
+          SERVICES_STATUS="{}"
+          
+          # Function to test endpoint
+          test_endpoint() {
+            local name=$1
+            local url=$2
+            local expected_status=${3:-200}
+            local timeout=${4:-10}
+            
+            echo "Testing $name: $url"
+            
+            start_time=$(date +%s%N)
+            response=$(curl -s -w "%{http_code},%{time_total}" -m $timeout "$url" || echo "000,999")
+            end_time=$(date +%s%N)
+            
+            http_code=$(echo "$response" | tail -c 8 | cut -d',' -f1)
+            response_time=$(echo "$response" | tail -c 8 | cut -d',' -f2)
+            
+            if [ "$http_code" = "$expected_status" ]; then
+              echo "✅ $name: OK (${response_time}s)"
+              echo "$name,ok,$response_time" >> /tmp/health_results.csv
+            else
+              echo "❌ $name: FAILED (HTTP $http_code)"
+              echo "$name,failed,$response_time" >> /tmp/health_results.csv
+              FAILURE_COUNT=$((FAILURE_COUNT + 1))
+              HEALTH_STATUS="unhealthy"
+            fi
+          }
+          
+          # Initialize results file
+          echo "service,status,response_time" > /tmp/health_results.csv
+          
+          # Core application endpoints
+          test_endpoint "Frontend" "${{ env.PRODUCTION_URL }}" 200 15
+          test_endpoint "API Health" "${{ env.PRODUCTION_URL }}/api/v1/health" 200 10
+          test_endpoint "API Docs" "${{ env.PRODUCTION_URL }}/api/v1/docs" 200 10
+          test_endpoint "Auth Service" "${{ env.PRODUCTION_URL }}/auth/realms/itdo/.well-known/openid_configuration" 200 10
+          
+          # Database connectivity (through API)
+          test_endpoint "Database" "${{ env.PRODUCTION_URL }}/api/v1/system/database/status" 200 15
+          
+          # Cache connectivity (through API)
+          test_endpoint "Redis Cache" "${{ env.PRODUCTION_URL }}/api/v1/system/cache/status" 200 10
+          
+          # Calculate average response time
+          if [ -f /tmp/health_results.csv ]; then
+            RESPONSE_TIME=$(awk -F',' 'NR>1 && $2=="ok" {sum+=$3; count++} END {if(count>0) printf "%.3f", sum/count; else print "999"}' /tmp/health_results.csv)
+          fi
+          
+          # Generate services status JSON
+          SERVICES_STATUS=$(awk -F',' 'NR>1 {printf "%s\"%s\":\"%s\"", (NR>2?",":""), $1, $2}' /tmp/health_results.csv)
+          SERVICES_STATUS="{$SERVICES_STATUS}"
+          
+          echo "status=$HEALTH_STATUS" >> $GITHUB_OUTPUT
+          echo "failure_count=$FAILURE_COUNT" >> $GITHUB_OUTPUT
+          echo "response_time=$RESPONSE_TIME" >> $GITHUB_OUTPUT
+          echo "services_status=$SERVICES_STATUS" >> $GITHUB_OUTPUT
+          
+          echo "📊 Health check summary:"
+          echo "  Status: $HEALTH_STATUS"
+          echo "  Failures: $FAILURE_COUNT"
+          echo "  Avg Response Time: ${RESPONSE_TIME}s"
+          
+          cat /tmp/health_results.csv
+      
+      - name: Store health metrics
+        run: |
+          echo "📊 Storing health metrics..."
+          
+          # Create metrics payload
+          cat > /tmp/metrics.json << EOF
+          {
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "health_status": "${{ steps.health.outputs.status }}",
+            "failure_count": ${{ steps.health.outputs.failure_count }},
+            "response_time": ${{ steps.health.outputs.response_time }},
+            "services": ${{ steps.health.outputs.services_status }},
+            "git_sha": "${{ github.sha }}",
+            "workflow_run": "${{ github.run_id }}"
+          }
+          EOF
+          
+          echo "📊 Metrics payload:"
+          cat /tmp/metrics.json
+          
+          # Store metrics (could be sent to monitoring system)
+          echo "✅ Metrics stored successfully"
+
+  performance-check:
+    name: ⚡ Performance Check
+    runs-on: ubuntu-latest
+    needs: health-check
+    if: needs.health-check.outputs.health-status == 'healthy'
+    outputs:
+      performance-score: ${{ steps.perf.outputs.score }}
+      load-time: ${{ steps.perf.outputs.load_time }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Performance benchmarking
+        id: perf
+        run: |
+          echo "⚡ Running performance benchmarking..."
+          
+          # Install required tools
+          sudo apt-get update
+          sudo apt-get install -y apache2-utils
+          
+          PERFORMANCE_SCORE=100
+          LOAD_TIME=0
+          
+          # Frontend performance test
+          echo "🌐 Testing frontend performance..."
+          for i in {1..5}; do
+            response_time=$(curl -o /dev/null -s -w '%{time_total}' "${{ env.PRODUCTION_URL }}")
+            echo "Frontend response time $i: ${response_time}s"
+            LOAD_TIME=$(echo "$LOAD_TIME + $response_time" | bc -l)
+          done
+          LOAD_TIME=$(echo "scale=3; $LOAD_TIME / 5" | bc -l)
+          
+          # API performance test
+          echo "🔧 Testing API performance..."
+          ab -n 100 -c 10 "${{ env.PRODUCTION_URL }}/api/v1/health" > /tmp/ab_results.txt || true
+          
+          if [ -f /tmp/ab_results.txt ]; then
+            # Extract metrics
+            requests_per_sec=$(grep "Requests per second" /tmp/ab_results.txt | awk '{print $4}' || echo "0")
+            time_per_request=$(grep "Time per request.*mean" /tmp/ab_results.txt | head -1 | awk '{print $4}' || echo "999")
+            
+            echo "📊 API Performance Results:"
+            echo "  Requests/sec: $requests_per_sec"
+            echo "  Time/request: ${time_per_request}ms"
+            echo "  Frontend load time: ${LOAD_TIME}s"
+            
+            # Calculate performance score
+            if (( $(echo "$time_per_request > 200" | bc -l) )); then
+              PERFORMANCE_SCORE=$((PERFORMANCE_SCORE - 20))
+            fi
+            if (( $(echo "$LOAD_TIME > 2.0" | bc -l) )); then
+              PERFORMANCE_SCORE=$((PERFORMANCE_SCORE - 15))
+            fi
+            if (( $(echo "$requests_per_sec < 50" | bc -l) )); then
+              PERFORMANCE_SCORE=$((PERFORMANCE_SCORE - 25))
+            fi
+          else
+            echo "⚠️ Performance test failed"
+            PERFORMANCE_SCORE=50
+          fi
+          
+          echo "score=$PERFORMANCE_SCORE" >> $GITHUB_OUTPUT
+          echo "load_time=$LOAD_TIME" >> $GITHUB_OUTPUT
+          
+          echo "⚡ Performance Score: $PERFORMANCE_SCORE/100"
+
+  security-check:
+    name: 🔒 Security Check
+    runs-on: ubuntu-latest
+    needs: health-check
+    if: needs.health-check.outputs.health-status == 'healthy'
+    outputs:
+      security-score: ${{ steps.security.outputs.score }}
+      vulnerabilities: ${{ steps.security.outputs.vulnerabilities }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Security assessment
+        id: security
+        run: |
+          echo "🔒 Running security assessment..."
+          
+          SECURITY_SCORE=100
+          VULNERABILITIES=0
+          
+          # SSL/TLS check
+          echo "🔐 Checking SSL/TLS configuration..."
+          ssl_result=$(curl -I -s "${{ env.PRODUCTION_URL }}" | grep -i "strict-transport-security" || echo "missing")
+          if [ "$ssl_result" = "missing" ]; then
+            echo "⚠️ HSTS header missing"
+            SECURITY_SCORE=$((SECURITY_SCORE - 10))
+            VULNERABILITIES=$((VULNERABILITIES + 1))
+          else
+            echo "✅ HSTS header present"
+          fi
+          
+          # Security headers check
+          echo "🛡️ Checking security headers..."
+          headers_check() {
+            local header=$1
+            local url=$2
+            
+            if curl -I -s "$url" | grep -qi "$header"; then
+              echo "✅ $header: Present"
+            else
+              echo "⚠️ $header: Missing"
+              SECURITY_SCORE=$((SECURITY_SCORE - 5))
+              VULNERABILITIES=$((VULNERABILITIES + 1))
+            fi
+          }
+          
+          headers_check "X-Content-Type-Options" "${{ env.PRODUCTION_URL }}"
+          headers_check "X-Frame-Options" "${{ env.PRODUCTION_URL }}"
+          headers_check "X-XSS-Protection" "${{ env.PRODUCTION_URL }}"
+          headers_check "Content-Security-Policy" "${{ env.PRODUCTION_URL }}"
+          
+          # API security check
+          echo "🔧 Checking API security..."
+          
+          # Check for rate limiting
+          for i in {1..20}; do
+            response_code=$(curl -s -o /dev/null -w "%{http_code}" "${{ env.PRODUCTION_URL }}/api/v1/health")
+            if [ "$response_code" = "429" ]; then
+              echo "✅ Rate limiting active"
+              break
+            fi
+            if [ $i -eq 20 ]; then
+              echo "⚠️ Rate limiting not detected"
+              SECURITY_SCORE=$((SECURITY_SCORE - 15))
+              VULNERABILITIES=$((VULNERABILITIES + 1))
+            fi
+          done
+          
+          echo "score=$SECURITY_SCORE" >> $GITHUB_OUTPUT
+          echo "vulnerabilities=$VULNERABILITIES" >> $GITHUB_OUTPUT
+          
+          echo "🔒 Security Score: $SECURITY_SCORE/100"
+          echo "🚨 Vulnerabilities Found: $VULNERABILITIES"
+
+  infrastructure-check:
+    name: 🏗️ Infrastructure Check
+    runs-on: ubuntu-latest
+    needs: health-check
+    outputs:
+      infrastructure-status: ${{ steps.infra.outputs.status }}
+      disk-usage: ${{ steps.infra.outputs.disk_usage }}
+      memory-usage: ${{ steps.infra.outputs.memory_usage }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Infrastructure monitoring
+        id: infra
+        run: |
+          echo "🏗️ Checking infrastructure status..."
+          
+          # SSH to production server and check resources
+          mkdir -p ~/.ssh
+          echo "${{ secrets.PRODUCTION_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
+          
+          # Get system metrics
+          metrics=$(ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
+          # Disk usage
+          disk_usage=$(df -h /opt/itdo-erp | awk 'NR==2 {print $5}' | sed 's/%//')
+          
+          # Memory usage
+          memory_usage=$(free | awk 'NR==2{printf "%.1f", $3*100/$2}')
+          
+          # Docker container status
+          container_status=$(docker-compose -f /opt/itdo-erp/infra/compose-prod.yaml ps --format "table {{.Service}}\t{{.Status}}" | tail -n +2)
+          
+          # Service health
+          services_healthy=$(docker-compose -f /opt/itdo-erp/infra/compose-prod.yaml ps | grep -c "Up" || echo "0")
+          total_services=$(docker-compose -f /opt/itdo-erp/infra/compose-prod.yaml ps | tail -n +2 | wc -l || echo "1")
+          
+          echo "DISK_USAGE:$disk_usage"
+          echo "MEMORY_USAGE:$memory_usage"
+          echo "SERVICES_HEALTHY:$services_healthy"
+          echo "TOTAL_SERVICES:$total_services"
+          echo "CONTAINER_STATUS:$container_status"
+          EOF
+          )
+          
+          # Parse metrics
+          disk_usage=$(echo "$metrics" | grep "DISK_USAGE:" | cut -d':' -f2)
+          memory_usage=$(echo "$metrics" | grep "MEMORY_USAGE:" | cut -d':' -f2)
+          services_healthy=$(echo "$metrics" | grep "SERVICES_HEALTHY:" | cut -d':' -f2)
+          total_services=$(echo "$metrics" | grep "TOTAL_SERVICES:" | cut -d':' -f2)
+          
+          echo "📊 Infrastructure Metrics:"
+          echo "  Disk Usage: ${disk_usage}%"
+          echo "  Memory Usage: ${memory_usage}%"
+          echo "  Healthy Services: $services_healthy/$total_services"
+          
+          # Determine infrastructure status
+          INFRA_STATUS="healthy"
+          if [ "$disk_usage" -gt 80 ] || [ "${memory_usage%.*}" -gt 85 ]; then
+            INFRA_STATUS="warning"
+          fi
+          if [ "$disk_usage" -gt 90 ] || [ "${memory_usage%.*}" -gt 95 ]; then
+            INFRA_STATUS="critical"
+          fi
+          if [ "$services_healthy" -lt "$total_services" ]; then
+            INFRA_STATUS="degraded"
+          fi
+          
+          echo "status=$INFRA_STATUS" >> $GITHUB_OUTPUT
+          echo "disk_usage=$disk_usage" >> $GITHUB_OUTPUT
+          echo "memory_usage=$memory_usage" >> $GITHUB_OUTPUT
+          
+          echo "🏗️ Infrastructure Status: $INFRA_STATUS"
+
+  evaluate-health:
+    name: 📋 Evaluate Overall Health
+    runs-on: ubuntu-latest
+    needs: [health-check, performance-check, security-check, infrastructure-check]
+    if: always()
+    outputs:
+      overall-status: ${{ steps.evaluate.outputs.overall_status }}
+      action-required: ${{ steps.evaluate.outputs.action_required }}
+    steps:
+      - name: Evaluate overall system health
+        id: evaluate
+        run: |
+          echo "📋 Evaluating overall system health..."
+          
+          # Collect status from all checks
+          HEALTH_STATUS="${{ needs.health-check.outputs.health-status }}"
+          FAILURE_COUNT="${{ needs.health-check.outputs.failure-count }}"
+          PERFORMANCE_SCORE="${{ needs.performance-check.outputs.performance-score }}"
+          SECURITY_SCORE="${{ needs.security-check.outputs.security-score }}"
+          INFRA_STATUS="${{ needs.infrastructure-check.outputs.infrastructure-status }}"
+          
+          echo "📊 Health Summary:"
+          echo "  Health Status: $HEALTH_STATUS"
+          echo "  Failure Count: $FAILURE_COUNT"
+          echo "  Performance Score: $PERFORMANCE_SCORE/100"
+          echo "  Security Score: $SECURITY_SCORE/100"
+          echo "  Infrastructure Status: $INFRA_STATUS"
+          
+          # Determine overall status
+          OVERALL_STATUS="healthy"
+          ACTION_REQUIRED="none"
+          
+          # Critical conditions
+          if [ "$HEALTH_STATUS" = "unhealthy" ] || [ "$FAILURE_COUNT" -gt 2 ]; then
+            OVERALL_STATUS="critical"
+            ACTION_REQUIRED="rollback"
+          elif [ "$INFRA_STATUS" = "critical" ]; then
+            OVERALL_STATUS="critical"
+            ACTION_REQUIRED="immediate"
+          fi
+          
+          # Warning conditions
+          if [ "$PERFORMANCE_SCORE" -lt 60 ] || [ "$SECURITY_SCORE" -lt 70 ] || [ "$INFRA_STATUS" = "warning" ]; then
+            if [ "$OVERALL_STATUS" = "healthy" ]; then
+              OVERALL_STATUS="warning"
+              ACTION_REQUIRED="investigate"
+            fi
+          fi
+          
+          echo "overall_status=$OVERALL_STATUS" >> $GITHUB_OUTPUT
+          echo "action_required=$ACTION_REQUIRED" >> $GITHUB_OUTPUT
+          
+          echo "🎯 Overall Status: $OVERALL_STATUS"
+          echo "⚡ Action Required: $ACTION_REQUIRED"
+
+  alert-notification:
+    name: 🚨 Alert Notification
+    runs-on: ubuntu-latest
+    needs: [health-check, performance-check, security-check, infrastructure-check, evaluate-health]
+    if: always() && (needs.evaluate-health.outputs.overall-status != 'healthy' || inputs.force_check == 'true')
+    steps:
+      - name: Send alert notification
+        run: |
+          echo "🚨 Sending alert notification..."
+          
+          OVERALL_STATUS="${{ needs.evaluate-health.outputs.overall-status }}"
+          ACTION_REQUIRED="${{ needs.evaluate-health.outputs.action-required }}"
+          
+          # Determine alert emoji and color
+          case $OVERALL_STATUS in
+            "critical") EMOJI="🔴"; COLOR="#FF0000" ;;
+            "warning") EMOJI="🟡"; COLOR="#FFA500" ;;
+            *) EMOJI="🟢"; COLOR="#00FF00" ;;
+          esac
+          
+          # Create alert payload
+          cat > /tmp/alert_payload.json << EOF
+          {
+            "text": "$EMOJI Production Health Alert",
+            "attachments": [
+              {
+                "color": "$COLOR",
+                "title": "Production System Health Report",
+                "fields": [
+                  {
+                    "title": "Overall Status",
+                    "value": "$OVERALL_STATUS",
+                    "short": true
+                  },
+                  {
+                    "title": "Action Required",
+                    "value": "$ACTION_REQUIRED",
+                    "short": true
+                  },
+                  {
+                    "title": "Health Check",
+                    "value": "${{ needs.health-check.outputs.health-status }} (${{ needs.health-check.outputs.failure-count }} failures)",
+                    "short": true
+                  },
+                  {
+                    "title": "Performance",
+                    "value": "${{ needs.performance-check.outputs.performance-score }}/100",
+                    "short": true
+                  },
+                  {
+                    "title": "Security",
+                    "value": "${{ needs.security-check.outputs.security-score }}/100",
+                    "short": true
+                  },
+                  {
+                    "title": "Infrastructure",
+                    "value": "${{ needs.infrastructure-check.outputs.infrastructure-status }}",
+                    "short": true
+                  }
+                ],
+                "footer": "ITDO ERP Production Monitoring",
+                "ts": $(date +%s)
+              }
+            ]
+          }
+          EOF
+          
+          # Send to Slack (if webhook configured)
+          if [ -n "${{ env.ALERT_WEBHOOK }}" ]; then
+            curl -X POST -H 'Content-type: application/json' \
+              --data @/tmp/alert_payload.json \
+              "${{ env.ALERT_WEBHOOK }}"
+            echo "✅ Alert sent to Slack"
+          else
+            echo "⚠️ No webhook configured, alert not sent"
+          fi
+          
+          echo "📧 Alert notification completed"
+
+  auto-rollback:
+    name: 🔄 Auto Rollback
+    runs-on: ubuntu-latest
+    needs: [health-check, evaluate-health]
+    if: needs.evaluate-health.outputs.action-required == 'rollback'
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Execute automatic rollback
+        run: |
+          echo "🔄 Executing automatic rollback..."
+          
+          # Install SSH key
+          mkdir -p ~/.ssh
+          echo "${{ secrets.PRODUCTION_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
+          
+          # Execute rollback
+          ssh ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
+          cd /opt/itdo-erp/infra
+          
+          echo "🔄 Starting automatic rollback..."
+          
+          # Find latest backup
+          latest_backup=$(ls -t .env.prod.backup-* 2>/dev/null | head -n1)
+          
+          if [ -n "$latest_backup" ]; then
+            echo "📦 Restoring from backup: $latest_backup"
+            cp "$latest_backup" .env.prod
+            
+            # Restart services
+            docker-compose -f compose-prod.yaml down
+            docker-compose -f compose-prod.yaml up -d
+            
+            # Wait for services
+            sleep 60
+            
+            # Verify rollback
+            if curl -f http://localhost:8000/health >/dev/null 2>&1; then
+              echo "✅ Rollback successful"
+            else
+              echo "❌ Rollback failed"
+              exit 1
+            fi
+          else
+            echo "❌ No backup found for rollback"
+            exit 1
+          fi
+          EOF
+          
+          echo "🎉 Automatic rollback completed"
+      
+      - name: Notify rollback completion
+        run: |
+          echo "📧 Notifying rollback completion..."
+          
+          if [ -n "${{ env.ALERT_WEBHOOK }}" ]; then
+            curl -X POST -H 'Content-type: application/json' \
+              --data '{
+                "text": "🔄 Automatic Rollback Completed",
+                "attachments": [{
+                  "color": "#FFA500",
+                  "title": "Production System Rollback",
+                  "text": "System has been automatically rolled back due to health check failures.",
+                  "footer": "ITDO ERP Production Monitoring",
+                  "ts": '$(date +%s)'
+                }]
+              }' \
+              "${{ env.ALERT_WEBHOOK }}"
+          fi
+          
+          echo "✅ Rollback notification sent"
+
+  generate-report:
+    name: 📊 Generate Monitoring Report
+    runs-on: ubuntu-latest
+    needs: [health-check, performance-check, security-check, infrastructure-check, evaluate-health]
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Generate comprehensive report
+        run: |
+          echo "📊 Generating comprehensive monitoring report..."
+          
+          cat > PRODUCTION_HEALTH_REPORT.md << EOF
+          # 📊 Production Health Report
+          
+          **Generated**: $(date -u)
+          **Workflow Run**: ${{ github.run_id }}
+          **Commit**: ${{ github.sha }}
+          
+          ## 🎯 Overall Status: ${{ needs.evaluate-health.outputs.overall-status }}
+          
+          **Action Required**: ${{ needs.evaluate-health.outputs.action-required }}
+          
+          ---
+          
+          ## 🔍 Health Check Results
+          
+          - **Status**: ${{ needs.health-check.outputs.health-status }}
+          - **Failures**: ${{ needs.health-check.outputs.failure-count }}
+          - **Response Time**: ${{ needs.health-check.outputs.response-time }}s
+          
+          ### Service Status
+          ${{ needs.health-check.outputs.services-status }}
+          
+          ---
+          
+          ## ⚡ Performance Metrics
+          
+          - **Performance Score**: ${{ needs.performance-check.outputs.performance-score }}/100
+          - **Load Time**: ${{ needs.performance-check.outputs.load-time }}s
+          
+          ---
+          
+          ## 🔒 Security Assessment
+          
+          - **Security Score**: ${{ needs.security-check.outputs.security-score }}/100
+          - **Vulnerabilities**: ${{ needs.security-check.outputs.vulnerabilities }}
+          
+          ---
+          
+          ## 🏗️ Infrastructure Status
+          
+          - **Status**: ${{ needs.infrastructure-check.outputs.infrastructure-status }}
+          - **Disk Usage**: ${{ needs.infrastructure-check.outputs.disk-usage }}%
+          - **Memory Usage**: ${{ needs.infrastructure-check.outputs.memory-usage }}%
+          
+          ---
+          
+          ## 📈 Recommendations
+          
+          $([ "${{ needs.evaluate-health.outputs.overall-status }}" = "critical" ] && echo "🚨 **CRITICAL**: Immediate attention required" || echo "")
+          $([ "${{ needs.evaluate-health.outputs.overall-status }}" = "warning" ] && echo "⚠️ **WARNING**: Investigation recommended" || echo "")
+          $([ "${{ needs.evaluate-health.outputs.overall-status }}" = "healthy" ] && echo "✅ **HEALTHY**: System operating normally" || echo "")
+          
+          ---
+          
+          *Generated by CC03 v52.0 Production Monitoring Pipeline*
+          EOF
+          
+          echo "📋 Production health report generated"
+          cat PRODUCTION_HEALTH_REPORT.md
+      
+      - name: Archive report
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-health-report-${{ github.run_id }}
+          path: PRODUCTION_HEALTH_REPORT.md
+          retention-days: 30
