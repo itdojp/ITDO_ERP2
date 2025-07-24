@@ -497,7 +497,6 @@ def setup_test_environment() -> None:
     """Set up test environment variables."""
     # Environment variables are already set at module level
     # This fixture ensures they remain set for each test
-    pass
 
 
 # Utility Functions for Tests

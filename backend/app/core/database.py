@@ -3,9 +3,12 @@ from typing import AsyncGenerator
 
 from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
 from app.core.config import settings
+
+# Create declarative base for models
+Base = declarative_base()
 
 # Sync engine and session
 engine = create_engine(str(settings.DATABASE_URL))
@@ -65,6 +68,7 @@ def test_database_connection() -> bool:
     try:
         with SessionLocal() as session:
             from sqlalchemy import text
+
             session.execute(text("SELECT 1"))
             return True
     except Exception:
@@ -76,15 +80,16 @@ def get_database_info() -> dict:
     try:
         with SessionLocal() as session:
             from sqlalchemy import text
+
             result = session.execute(text("SELECT version()")).scalar()
             return {
                 "status": "connected",
                 "version": result,
-                "url_scheme": str(settings.DATABASE_URL).split("://")[0]
+                "url_scheme": str(settings.DATABASE_URL).split("://")[0],
             }
     except Exception as e:
         return {
             "status": "error",
             "error": str(e),
-            "url_scheme": str(settings.DATABASE_URL).split("://")[0]
+            "url_scheme": str(settings.DATABASE_URL).split("://")[0],
         }
