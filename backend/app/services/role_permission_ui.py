@@ -23,7 +23,7 @@ from app.schemas.role_permission_ui import (
 class RolePermissionUIService:
     """Role permission UI management service."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         """Initialize service with database session."""
         self.db = db
         self._permission_definitions = self._initialize_permission_definitions()
@@ -237,7 +237,6 @@ class RolePermissionUIService:
                 raise PermissionDenied("一括権限更新を行う権限がありません")
 
             # TODO: Implement proper permission check
-            pass
 
         results = []
         for role_id, permissions in role_permissions.items():

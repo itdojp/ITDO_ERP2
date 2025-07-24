@@ -1,7 +1,7 @@
-import { ReactNode } from 'react'
+import { ReactNode } from "react";
 
 interface LayoutProps {
-  children: ReactNode
+  children: ReactNode;
 }
 
 export function Layout({ children }: LayoutProps) {
@@ -16,9 +16,7 @@ export function Layout({ children }: LayoutProps) {
           </div>
         </div>
       </header>
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        {children}
-      </main>
+      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">{children}</main>
     </div>
-  )
+  );
 }
