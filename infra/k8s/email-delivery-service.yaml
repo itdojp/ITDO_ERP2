@@ -1,0 +1,914 @@
+# ITDO ERP v2 - Email Delivery Service Integration
+# CC03 v48.0 Business-Aligned Infrastructure
+
+# Email Service Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: email-service
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: email-service
+    app.kubernetes.io/component: notification
+    app.kubernetes.io/version: "1.0"
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: email-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: email-service
+        app.kubernetes.io/component: notification
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+      containers:
+      - name: email-service
+        image: itdo/email-service:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 9090
+          name: metrics
+        env:
+        # SMTP Configuration
+        - name: SMTP_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: email-config
+              key: SMTP_HOST
+        - name: SMTP_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: email-config
+              key: SMTP_PORT
+        - name: SMTP_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: email-secrets
+              key: SMTP_USERNAME
+        - name: SMTP_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: email-secrets
+              key: SMTP_PASSWORD
+        - name: SMTP_ENCRYPTION
+          valueFrom:
+            configMapKeyRef:
+              name: email-config
+              key: SMTP_ENCRYPTION
+        
+        # Email Settings
+        - name: FROM_EMAIL
+          valueFrom:
+            configMapKeyRef:
+              name: email-config
+              key: FROM_EMAIL
+        - name: FROM_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: email-config
+              key: FROM_NAME
+        - name: REPLY_TO_EMAIL
+          valueFrom:
+            configMapKeyRef:
+              name: email-config
+              key: REPLY_TO_EMAIL
+        
+        # Queue Configuration
+        - name: RABBITMQ_URL
+          value: "amqp://itdo-erp:rabbitmq_password_2025@rabbitmq-service.itdo-erp-data.svc.cluster.local:5672/itdo-erp-prod"
+        - name: EMAIL_QUEUE_NAME
+          value: "email.queue"
+        - name: QUEUE_PREFETCH_COUNT
+          value: "10"
+        
+        # Redis Configuration
+        - name: REDIS_URL
+          value: "redis://redis-cluster-service.itdo-erp-data.svc.cluster.local:6379"
+        - name: REDIS_KEY_PREFIX
+          value: "email:"
+        
+        # Template Configuration
+        - name: TEMPLATE_CACHE_TTL
+          value: "3600"
+        - name: TEMPLATE_ENGINE
+          value: "jinja2"
+        
+        # Rate Limiting
+        - name: RATE_LIMIT_PER_MINUTE
+          value: "100"
+        - name: RATE_LIMIT_PER_HOUR
+          value: "1000"
+        - name: MAX_RETRY_ATTEMPTS
+          value: "3"
+        - name: RETRY_DELAY_SECONDS
+          value: "60"
+        
+        # Security Settings
+        - name: ALLOWED_DOMAINS
+          valueFrom:
+            configMapKeyRef:
+              name: email-config
+              key: ALLOWED_DOMAINS
+        - name: DKIM_ENABLED
+          value: "true"
+        - name: DKIM_SELECTOR
+          value: "itdo-erp"
+        - name: DKIM_PRIVATE_KEY_PATH
+          value: "/etc/email/dkim/private.key"
+        
+        # Monitoring
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: METRICS_ENABLED
+          value: "true"
+        - name: HEALTH_CHECK_INTERVAL
+          value: "30"
+        
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "125m"
+          limits:
+            memory: "512Mi"
+            cpu: "250m"
+        
+        volumeMounts:
+        - name: email-templates
+          mountPath: /app/templates
+        - name: dkim-keys
+          mountPath: /etc/email/dkim
+        - name: tmp
+          mountPath: /tmp
+        
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1001
+          capabilities:
+            drop:
+            - ALL
+      
+      volumes:
+      - name: email-templates
+        configMap:
+          name: email-templates
+      - name: dkim-keys
+        secret:
+          secretName: email-dkim-keys
+      - name: tmp
+        emptyDir: {}
+
+---
+# Email Service Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: email-config
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: email-service
+    app.kubernetes.io/component: config
+data:
+  # SMTP Configuration
+  SMTP_HOST: "smtp.gmail.com"
+  SMTP_PORT: "587"
+  SMTP_ENCRYPTION: "tls"
+  
+  # Email Settings
+  FROM_EMAIL: "noreply@itdo-erp.com"
+  FROM_NAME: "ITDO ERP システム"
+  REPLY_TO_EMAIL: "support@itdo-erp.com"
+  
+  # Domain Settings
+  ALLOWED_DOMAINS: "itdo-erp.com,itdo.jp"
+  
+  # Business Settings
+  COMPANY_NAME: "株式会社ITDO"
+  COMPANY_URL: "https://itdo-erp.com"
+  SUPPORT_URL: "https://support.itdo-erp.com"
+  PRIVACY_URL: "https://itdo-erp.com/privacy"
+  TERMS_URL: "https://itdo-erp.com/terms"
+
+---
+# Email Service Secrets
+apiVersion: v1
+kind: Secret
+metadata:
+  name: email-secrets
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: email-service
+    app.kubernetes.io/component: secrets
+type: Opaque
+data:
+  SMTP_USERNAME: bm9yZXBseUBpdGRvLWVycC5jb20=  # noreply@itdo-erp.com
+  SMTP_PASSWORD: ZW1haWxfc2VydmljZV9wYXNzd29yZF8yMDI1  # email_service_password_2025
+  SENDGRID_API_KEY: U0cuYWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXo=  # SG.abcdefghijklmnopqrstuvwxyz
+  AWS_SES_ACCESS_KEY: QUtJQUlPU0ZPRE5ON0VYQU1QTEU=  # AKIAIOSFODNN7EXAMPLE
+  AWS_SES_SECRET_KEY: d0phbHJYVXRuRkVNSS9LN01ERU5HL2JQeFJmaUNZRVhBTVBMRUtFWQ==  # wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+
+---
+# DKIM Keys Secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: email-dkim-keys
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: email-service
+    app.kubernetes.io/component: dkim
+type: Opaque
+data:
+  private.key: LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQ==  # Base64 encoded DKIM private key
+  public.key: LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0=  # Base64 encoded DKIM public key
+
+---
+# Email Templates ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: email-templates
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: email-service
+    app.kubernetes.io/component: templates
+data:
+  # Welcome Email Template
+  welcome.html: |
+    <!DOCTYPE html>
+    <html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>ITDO ERP へようこそ</title>
+        <style>
+            body { font-family: 'Hiragino Kaku Gothic ProN', 'ヒラギノ角ゴ ProN W3', Meiryo, メイリオ, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: #2563eb; color: white; padding: 20px; text-align: center; }
+            .content { padding: 30px 20px; background: #f9fafb; }
+            .footer { padding: 20px; text-align: center; font-size: 12px; color: #666; }
+            .button { background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; margin: 20px 0; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>ITDO ERP システム</h1>
+            </div>
+            <div class="content">
+                <h2>{{ user_name }}様、ようこそ！</h2>
+                <p>ITDO ERP システムにご登録いただき、ありがとうございます。</p>
+                <p>あなたのアカウントが正常に作成されました。以下のリンクからログインしてください。</p>
+                <a href="{{ login_url }}" class="button">ログイン</a>
+                <p><strong>ログイン情報：</strong></p>
+                <ul>
+                    <li>ユーザー名: {{ username }}</li>
+                    <li>メールアドレス: {{ email }}</li>
+                </ul>
+                <p>何かご質問がございましたら、サポートチームまでお気軽にお問い合わせください。</p>
+            </div>
+            <div class="footer">
+                <p>© 2025 株式会社ITDO. All rights reserved.</p>
+                <p><a href="{{ privacy_url }}">プライバシーポリシー</a> | <a href="{{ terms_url }}">利用規約</a></p>
+            </div>
+        </div>
+    </body>
+    </html>
+
+  # Order Confirmation Template
+  order_confirmation.html: |
+    <!DOCTYPE html>
+    <html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>ご注文確認</title>
+        <style>
+            body { font-family: 'Hiragino Kaku Gothic ProN', 'ヒラギノ角ゴ ProN W3', Meiryo, メイリオ, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: #059669; color: white; padding: 20px; text-align: center; }
+            .content { padding: 30px 20px; background: #f9fafb; }
+            .footer { padding: 20px; text-align: center; font-size: 12px; color: #666; }
+            .order-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+            .order-table th, .order-table td { padding: 12px; border: 1px solid #ddd; text-align: left; }
+            .order-table th { background: #f3f4f6; }
+            .total { font-weight: bold; font-size: 18px; color: #059669; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>ご注文ありがとうございます</h1>
+            </div>
+            <div class="content">
+                <h2>{{ customer_name }}様</h2>
+                <p>ご注文を承りました。以下が注文の詳細です。</p>
+                
+                <p><strong>注文番号:</strong> {{ order_number }}</p>
+                <p><strong>注文日時:</strong> {{ order_date }}</p>
+                
+                <table class="order-table">
+                    <thead>
+                        <tr>
+                            <th>商品名</th>
+                            <th>数量</th>
+                            <th>単価</th>
+                            <th>小計</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in order_items %}
+                        <tr>
+                            <td>{{ item.product_name }}</td>
+                            <td>{{ item.quantity }}</td>
+                            <td>¥{{ item.unit_price | number_format }}</td>
+                            <td>¥{{ item.subtotal | number_format }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                
+                <p class="total">合計金額: ¥{{ total_amount | number_format }}</p>
+                
+                <p><strong>配送先住所:</strong><br>
+                {{ shipping_address }}</p>
+                
+                <p>商品の準備が整い次第、発送いたします。追跡番号は別途ご連絡いたします。</p>
+            </div>
+            <div class="footer">
+                <p>© 2025 株式会社ITDO. All rights reserved.</p>
+                <p>お問い合わせ: <a href="mailto:support@itdo-erp.com">support@itdo-erp.com</a></p>
+            </div>
+        </div>
+    </body>
+    </html>
+
+  # Password Reset Template
+  password_reset.html: |
+    <!DOCTYPE html>
+    <html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>パスワードリセット</title>
+        <style>
+            body { font-family: 'Hiragino Kaku Gothic ProN', 'ヒラギノ角ゴ ProN W3', Meiryo, メイリオ, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: #dc2626; color: white; padding: 20px; text-align: center; }
+            .content { padding: 30px 20px; background: #f9fafb; }
+            .footer { padding: 20px; text-align: center; font-size: 12px; color: #666; }
+            .button { background: #dc2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; margin: 20px 0; }
+            .warning { background: #fef3c7; border: 1px solid #f59e0b; padding: 15px; border-radius: 4px; margin: 20px 0; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>パスワードリセット</h1>
+            </div>
+            <div class="content">
+                <h2>{{ user_name }}様</h2>
+                <p>パスワードリセットのリクエストを受け付けました。</p>
+                
+                <div class="warning">
+                    <strong>重要:</strong> このリンクは{{ expiry_hours }}時間で無効になります。
+                </div>
+                
+                <p>以下のリンクをクリックして、新しいパスワードを設定してください。</p>
+                <a href="{{ reset_url }}" class="button">パスワードをリセット</a>
+                
+                <p>もしこのリクエストに心当たりがない場合は、このメールを無視してください。</p>
+                
+                <p><strong>セキュリティのため:</strong></p>
+                <ul>
+                    <li>このリンクは一度のみ使用可能です</li>
+                    <li>リクエスト時刻: {{ request_time }}</li>
+                    <li>IPアドレス: {{ ip_address }}</li>
+                </ul>
+            </div>
+            <div class="footer">
+                <p>© 2025 株式会社ITDO. All rights reserved.</p>
+                <p>セキュリティに関する問題: <a href="mailto:security@itdo-erp.com">security@itdo-erp.com</a></p>
+            </div>
+        </div>
+    </body>
+    </html>
+
+  # Inventory Alert Template
+  inventory_alert.html: |
+    <!DOCTYPE html>
+    <html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>在庫アラート</title>
+        <style>
+            body { font-family: 'Hiragino Kaku Gothic ProN', 'ヒラギノ角ゴ ProN W3', Meiryo, メイリオ, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: #f59e0b; color: white; padding: 20px; text-align: center; }
+            .content { padding: 30px 20px; background: #f9fafb; }
+            .footer { padding: 20px; text-align: center; font-size: 12px; color: #666; }
+            .alert { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; }
+            .product-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+            .product-table th, .product-table td { padding: 12px; border: 1px solid #ddd; text-align: left; }
+            .product-table th { background: #f3f4f6; }
+            .low-stock { color: #dc2626; font-weight: bold; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>⚠️ 在庫アラート</h1>
+            </div>
+            <div class="content">
+                <div class="alert">
+                    <strong>在庫不足の商品があります</strong><br>
+                    以下の商品の在庫が最低水準を下回っています。早急に補充をご検討ください。
+                </div>
+                
+                <table class="product-table">
+                    <thead>
+                        <tr>
+                            <th>商品コード</th>
+                            <th>商品名</th>
+                            <th>現在在庫</th>
+                            <th>最低水準</th>
+                            <th>状態</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in low_stock_products %}
+                        <tr>
+                            <td>{{ product.code }}</td>
+                            <td>{{ product.name }}</td>
+                            <td class="low-stock">{{ product.current_stock }}</td>
+                            <td>{{ product.min_stock }}</td>
+                            <td class="low-stock">在庫不足</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                
+                <p><strong>アラート日時:</strong> {{ alert_timestamp }}</p>
+                <p><strong>対象店舗:</strong> {{ store_name }}</p>
+                
+                <p>在庫管理システムで詳細をご確認ください。</p>
+            </div>
+            <div class="footer">
+                <p>© 2025 株式会社ITDO. All rights reserved.</p>
+                <p>このアラートを停止するには: <a href="{{ unsubscribe_url }}">配信停止</a></p>
+            </div>
+        </div>
+    </body>
+    </html>
+
+---
+# Email Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: email-service
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: email-service
+    app.kubernetes.io/component: notification
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  - port: 9090
+    targetPort: 9090
+    protocol: TCP
+    name: metrics
+  selector:
+    app.kubernetes.io/name: email-service
+
+---
+# Email Queue Worker Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: email-queue-worker
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: email-queue-worker
+    app.kubernetes.io/component: queue-processor
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: email-queue-worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: email-queue-worker
+        app.kubernetes.io/component: queue-processor
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+      containers:
+      - name: email-worker
+        image: itdo/email-queue-worker:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 9090
+          name: metrics
+        env:
+        # Queue Configuration
+        - name: RABBITMQ_URL
+          value: "amqp://itdo-erp:rabbitmq_password_2025@rabbitmq-service.itdo-erp-data.svc.cluster.local:5672/itdo-erp-prod"
+        - name: EMAIL_QUEUE_NAME
+          value: "email.queue"
+        - name: WORKER_CONCURRENCY
+          value: "5"
+        - name: PREFETCH_COUNT
+          value: "10"
+        
+        # Email Service Configuration
+        - name: EMAIL_SERVICE_URL
+          value: "http://email-service:8080"
+        - name: MAX_RETRY_ATTEMPTS
+          value: "3"
+        - name: RETRY_DELAY_SECONDS
+          value: "60"
+        - name: BATCH_SIZE
+          value: "10"
+        - name: PROCESSING_TIMEOUT
+          value: "300"
+        
+        # Monitoring
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: METRICS_ENABLED
+          value: "true"
+        
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        
+        livenessProbe:
+          httpGet:
+            path: /metrics
+            port: 9090
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+        
+        readinessProbe:
+          httpGet:
+            path: /metrics
+            port: 9090
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+        
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1001
+          capabilities:
+            drop:
+            - ALL
+      
+      volumes:
+      - name: tmp
+        emptyDir: {}
+
+---
+# Email Queue Worker Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: email-queue-worker-service
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: email-queue-worker
+spec:
+  type: ClusterIP
+  ports:
+  - port: 9090
+    targetPort: 9090
+    name: metrics
+  selector:
+    app.kubernetes.io/name: email-queue-worker
+
+---
+# Email Analytics Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: email-analytics
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: email-analytics
+    app.kubernetes.io/component: analytics
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: email-analytics
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: email-analytics
+        app.kubernetes.io/component: analytics
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+      containers:
+      - name: email-analytics
+        image: itdo/email-analytics:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 9090
+          name: metrics
+        env:
+        # Database Configuration
+        - name: POSTGRES_URL
+          valueFrom:
+            secretKeyRef:
+              name: itdo-erp-secrets
+              key: DATABASE_URL
+        - name: REDIS_URL
+          value: "redis://redis-cluster-service.itdo-erp-data.svc.cluster.local:6379"
+        
+        # Analytics Configuration
+        - name: ANALYTICS_RETENTION_DAYS
+          value: "90"
+        - name: REPORT_GENERATION_SCHEDULE
+          value: "0 6 * * *"  # Daily at 6 AM
+        - name: BATCH_PROCESSING_SIZE
+          value: "1000"
+        
+        # Webhook Configuration
+        - name: WEBHOOK_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: email-secrets
+              key: WEBHOOK_SECRET
+        
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "125m"
+          limits:
+            memory: "512Mi"
+            cpu: "250m"
+        
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+        
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+        
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1001
+          capabilities:
+            drop:
+            - ALL
+      
+      volumes:
+      - name: tmp
+        emptyDir: {}
+
+---
+# Email Analytics Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: email-analytics-service
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: email-analytics
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: http
+  - port: 9090
+    targetPort: 9090
+    name: metrics
+  selector:
+    app.kubernetes.io/name: email-analytics
+
+---
+# HPA for Email Service
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: email-service-hpa
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: email-service
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: email-service
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+---
+# HPA for Email Queue Worker
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: email-queue-worker-hpa
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: email-queue-worker
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: email-queue-worker
+  minReplicas: 5
+  maxReplicas: 20
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 30
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 20
+        periodSeconds: 60
+
+---
+# PodDisruptionBudget for Email Services
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: email-service-pdb
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: email-service
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: email-service
+
+---
+# PodDisruptionBudget for Email Queue Workers
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: email-queue-worker-pdb
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: email-queue-worker
+spec:
+  minAvailable: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: email-queue-worker
+
+---
+# Email Service Monitor for Prometheus
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: email-service-monitor
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: email-service
+    app.kubernetes.io/component: monitoring
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: email-service
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+    honorLabels: true
+
+---
+# Email Queue Monitor for Prometheus
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: email-queue-worker-monitor
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: email-queue-worker
+    app.kubernetes.io/component: monitoring
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: email-queue-worker
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+    honorLabels: true
