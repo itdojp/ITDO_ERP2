@@ -32,7 +32,7 @@ class OrganizationBase(BaseModel):
     country: str = "Japan"
 
     @validator("code")
-    def code_valid(cls, v):
+    def code_valid(cls, v) -> dict:
         if not re.match(r"^[A-Z0-9_-]+$", v):
             raise ValueError(
                 "Code must contain only uppercase letters, numbers, hyphens and underscores"
@@ -40,13 +40,13 @@ class OrganizationBase(BaseModel):
         return v
 
     @validator("phone", "fax")
-    def phone_valid(cls, v):
+    def phone_valid(cls, v) -> dict:
         if v and not re.match(r"^\+?[\d\s\-\(\)]+$", v):
             raise ValueError("Invalid phone number format")
         return v
 
     @validator("postal_code")
-    def postal_code_valid(cls, v):
+    def postal_code_valid(cls, v) -> dict:
         if v and not re.match(r"^\d{3}-?\d{4}$", v):
             raise ValueError("Invalid Japanese postal code format")
         return v

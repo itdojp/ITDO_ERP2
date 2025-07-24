@@ -30,7 +30,7 @@ class DuplicateError(Exception):
 
 
 class OrganizationCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def get_by_id(self, org_id: str) -> Optional[Organization]:
@@ -269,7 +269,7 @@ class OrganizationCRUD:
 
 
 class DepartmentCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def get_by_id(self, dept_id: str) -> Optional[Department]:
@@ -378,7 +378,7 @@ class DepartmentCRUD:
 
 
 class AddressCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def get_by_organization(self, org_id: str) -> List[OrganizationAddress]:
@@ -426,7 +426,7 @@ class AddressCRUD:
 
 
 class ContactCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def get_by_organization(self, org_id: str) -> List[OrganizationContact]:
