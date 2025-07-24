@@ -1,21 +1,30 @@
-from pydantic import BaseModel, EmailStr, validator, Field
-from typing import Optional, List, Dict, Any
-from datetime import datetime, date
-from decimal import Decimal
 import re
+from datetime import date, datetime
+from decimal import Decimal
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, EmailStr, Field, validator
+
 
 class CRMCustomerBase(BaseModel):
     customer_code: str = Field(..., min_length=1, max_length=50)
     full_name: str = Field(..., min_length=1, max_length=200)
     primary_email: EmailStr
-    customer_type: str = Field(default="individual", regex="^(individual|business|partner)$")
-    lead_status: str = Field(default="new", regex="^(new|contacted|qualified|opportunity|customer|lost)$")
+    customer_type: str = Field(
+        default="individual", regex="^(individual|business|partner)$"
+    )
+    lead_status: str = Field(
+        default="new", regex="^(new|contacted|qualified|opportunity|customer|lost)$"
+    )
 
-    @validator('customer_code')
+    @validator("customer_code")
     def code_valid(cls, v):
-        if not re.match(r'^[A-Z0-9_-]+$', v):
-            raise ValueError('Customer code must contain only uppercase letters, numbers, hyphens and underscores')
+        if not re.match(r"^[A-Z0-9_-]+$", v):
+            raise ValueError(
+                "Customer code must contain only uppercase letters, numbers, hyphens and underscores"
+            )
         return v
+
 
 class CRMCustomerCreate(CRMCustomerBase):
     first_name: Optional[str] = None
@@ -23,7 +32,7 @@ class CRMCustomerCreate(CRMCustomerBase):
     company_name: Optional[str] = None
     job_title: Optional[str] = None
     department: Optional[str] = None
-    
+
     # 連絡先情報
     secondary_email: Optional[EmailStr] = None
     primary_phone: Optional[str] = None
@@ -31,46 +40,56 @@ class CRMCustomerCreate(CRMCustomerBase):
     mobile_phone: Optional[str] = None
     website: Optional[str] = None
     linkedin_profile: Optional[str] = None
-    
+
     # 住所情報
     billing_address_line1: Optional[str] = None
     billing_city: Optional[str] = None
     billing_postal_code: Optional[str] = None
     billing_country: str = "Japan"
-    
+
     mailing_address_line1: Optional[str] = None
     mailing_city: Optional[str] = None
     mailing_postal_code: Optional[str] = None
     mailing_country: str = "Japan"
-    
+
     # 顧客分類
     customer_segment: Optional[str] = None
     industry: Optional[str] = None
-    company_size: Optional[str] = Field(None, regex="^(startup|small|medium|large|enterprise)$")
+    company_size: Optional[str] = Field(
+        None, regex="^(startup|small|medium|large|enterprise)$"
+    )
     annual_revenue: Optional[Decimal] = Field(None, ge=0)
-    
+
     # CRM情報
     lead_source: Optional[str] = None
-    customer_stage: str = Field(default="prospect", regex="^(prospect|lead|opportunity|customer|advocate)$")
-    lifecycle_stage: str = Field(default="subscriber", regex="^(subscriber|lead|mql|sql|opportunity|customer|evangelist)$")
+    customer_stage: str = Field(
+        default="prospect", regex="^(prospect|lead|opportunity|customer|advocate)$"
+    )
+    lifecycle_stage: str = Field(
+        default="subscriber",
+        regex="^(subscriber|lead|mql|sql|opportunity|customer|evangelist)$",
+    )
     assigned_sales_rep: Optional[str] = None
     assigned_account_manager: Optional[str] = None
-    
+
     # コミュニケーション設定
     email_opt_in: bool = True
     sms_opt_in: bool = False
     phone_opt_in: bool = True
     marketing_opt_in: bool = True
-    preferred_contact_method: str = Field(default="email", regex="^(email|phone|sms|none)$")
+    preferred_contact_method: str = Field(
+        default="email", regex="^(email|phone|sms|none)$"
+    )
     preferred_contact_time: Optional[str] = None
     time_zone: str = "Asia/Tokyo"
-    
+
     # 属性
     tags: List[str] = []
     custom_fields: Dict[str, Any] = {}
     social_profiles: Dict[str, str] = {}
     notes: Optional[str] = None
     description: Optional[str] = None
+
 
 class CRMCustomerUpdate(BaseModel):
     full_name: Optional[str] = Field(None, min_length=1, max_length=200)
@@ -80,9 +99,15 @@ class CRMCustomerUpdate(BaseModel):
     customer_type: Optional[str] = Field(None, regex="^(individual|business|partner)$")
     customer_segment: Optional[str] = None
     industry: Optional[str] = None
-    lead_status: Optional[str] = Field(None, regex="^(new|contacted|qualified|opportunity|customer|lost)$")
-    customer_stage: Optional[str] = Field(None, regex="^(prospect|lead|opportunity|customer|advocate)$")
-    lifecycle_stage: Optional[str] = Field(None, regex="^(subscriber|lead|mql|sql|opportunity|customer|evangelist)$")
+    lead_status: Optional[str] = Field(
+        None, regex="^(new|contacted|qualified|opportunity|customer|lost)$"
+    )
+    customer_stage: Optional[str] = Field(
+        None, regex="^(prospect|lead|opportunity|customer|advocate)$"
+    )
+    lifecycle_stage: Optional[str] = Field(
+        None, regex="^(subscriber|lead|mql|sql|opportunity|customer|evangelist)$"
+    )
     lead_score: Optional[int] = Field(None, ge=0, le=100)
     engagement_score: Optional[int] = Field(None, ge=0, le=100)
     assigned_sales_rep: Optional[str] = None
@@ -93,9 +118,12 @@ class CRMCustomerUpdate(BaseModel):
     do_not_contact: Optional[bool] = None
     email_opt_in: Optional[bool] = None
     marketing_opt_in: Optional[bool] = None
-    preferred_contact_method: Optional[str] = Field(None, regex="^(email|phone|sms|none)$")
+    preferred_contact_method: Optional[str] = Field(
+        None, regex="^(email|phone|sms|none)$"
+    )
     tags: Optional[List[str]] = None
     notes: Optional[str] = None
+
 
 class CRMCustomerResponse(CRMCustomerBase):
     id: str
@@ -149,10 +177,12 @@ class CRMCustomerResponse(CRMCustomerBase):
     class Config:
         orm_mode = True
 
+
 class CustomerInteractionBase(BaseModel):
     interaction_type: str = Field(..., regex="^(call|email|meeting|demo|webinar|chat)$")
     subject: Optional[str] = Field(None, max_length=300)
     description: Optional[str] = None
+
 
 class CustomerInteractionCreate(CustomerInteractionBase):
     customer_id: str
@@ -162,12 +192,15 @@ class CustomerInteractionCreate(CustomerInteractionBase):
     interaction_date: datetime = Field(default_factory=datetime.utcnow)
     duration_minutes: Optional[int] = Field(None, ge=0)
     scheduled_follow_up: Optional[datetime] = None
-    status: str = Field(default="completed", regex="^(scheduled|completed|cancelled|no_show)$")
+    status: str = Field(
+        default="completed", regex="^(scheduled|completed|cancelled|no_show)$"
+    )
     satisfaction_rating: Optional[int] = Field(None, ge=1, le=5)
     lead_quality_score: Optional[int] = Field(None, ge=1, le=10)
     channel: Optional[str] = None
     campaign_id: Optional[str] = None
     custom_fields: Dict[str, Any] = {}
+
 
 class CustomerInteractionUpdate(BaseModel):
     subject: Optional[str] = Field(None, max_length=300)
@@ -175,9 +208,12 @@ class CustomerInteractionUpdate(BaseModel):
     outcome: Optional[str] = None
     next_steps: Optional[str] = None
     scheduled_follow_up: Optional[datetime] = None
-    status: Optional[str] = Field(None, regex="^(scheduled|completed|cancelled|no_show)$")
+    status: Optional[str] = Field(
+        None, regex="^(scheduled|completed|cancelled|no_show)$"
+    )
     satisfaction_rating: Optional[int] = Field(None, ge=1, le=5)
     lead_quality_score: Optional[int] = Field(None, ge=1, le=10)
+
 
 class CustomerInteractionResponse(CustomerInteractionBase):
     id: str
@@ -201,16 +237,21 @@ class CustomerInteractionResponse(CustomerInteractionBase):
     class Config:
         orm_mode = True
 
+
 class SalesOpportunityBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=300)
     amount: Optional[Decimal] = Field(None, ge=0)
     probability: int = Field(default=0, ge=0, le=100)
 
+
 class SalesOpportunityCreate(SalesOpportunityBase):
     customer_id: str
     description: Optional[str] = None
     currency: str = "JPY"
-    stage: str = Field(default="prospecting", regex="^(prospecting|qualification|proposal|negotiation|closed_won|closed_lost)$")
+    stage: str = Field(
+        default="prospecting",
+        regex="^(prospecting|qualification|proposal|negotiation|closed_won|closed_lost)$",
+    )
     expected_close_date: Optional[date] = None
     product_category: Optional[str] = None
     solution_type: Optional[str] = None
@@ -226,12 +267,16 @@ class SalesOpportunityCreate(SalesOpportunityBase):
     tags: List[str] = []
     custom_fields: Dict[str, Any] = {}
 
+
 class SalesOpportunityUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=300)
     description: Optional[str] = None
     amount: Optional[Decimal] = Field(None, ge=0)
     probability: Optional[int] = Field(None, ge=0, le=100)
-    stage: Optional[str] = Field(None, regex="^(prospecting|qualification|proposal|negotiation|closed_won|closed_lost)$")
+    stage: Optional[str] = Field(
+        None,
+        regex="^(prospecting|qualification|proposal|negotiation|closed_won|closed_lost)$",
+    )
     status: Optional[str] = Field(None, regex="^(open|won|lost|on_hold)$")
     expected_close_date: Optional[date] = None
     actual_close_date: Optional[date] = None
@@ -248,6 +293,7 @@ class SalesOpportunityUpdate(BaseModel):
     loss_reason_detail: Optional[str] = None
     next_action: Optional[str] = None
     next_action_date: Optional[date] = None
+
 
 class SalesOpportunityResponse(SalesOpportunityBase):
     id: str
@@ -288,19 +334,24 @@ class SalesOpportunityResponse(SalesOpportunityBase):
     class Config:
         orm_mode = True
 
+
 class OpportunityActivityBase(BaseModel):
     activity_type: str = Field(..., regex="^(call|email|meeting|proposal_sent|demo)$")
     subject: Optional[str] = Field(None, max_length=300)
     description: Optional[str] = None
 
+
 class OpportunityActivityCreate(OpportunityActivityBase):
     opportunity_id: str
     activity_date: datetime = Field(default_factory=datetime.utcnow)
     due_date: Optional[datetime] = None
-    status: str = Field(default="completed", regex="^(planned|in_progress|completed|cancelled)$")
+    status: str = Field(
+        default="completed", regex="^(planned|in_progress|completed|cancelled)$"
+    )
     priority: str = Field(default="normal", regex="^(low|normal|high|urgent)$")
     outcome: Optional[str] = None
     outcome_notes: Optional[str] = None
+
 
 class OpportunityActivityResponse(OpportunityActivityBase):
     id: str
@@ -318,23 +369,32 @@ class OpportunityActivityResponse(OpportunityActivityBase):
     class Config:
         orm_mode = True
 
+
 class CustomerActivityBase(BaseModel):
-    activity_type: str = Field(..., regex="^(task|note|call|email|meeting|webpage_visit|form_submit)$")
+    activity_type: str = Field(
+        ..., regex="^(task|note|call|email|meeting|webpage_visit|form_submit)$"
+    )
     subject: Optional[str] = Field(None, max_length=300)
     description: Optional[str] = None
 
+
 class CustomerActivityCreate(CustomerActivityBase):
     customer_id: str
-    activity_category: Optional[str] = Field(None, regex="^(sales|marketing|support|system)$")
+    activity_category: Optional[str] = Field(
+        None, regex="^(sales|marketing|support|system)$"
+    )
     activity_date: datetime = Field(default_factory=datetime.utcnow)
     due_date: Optional[datetime] = None
-    status: str = Field(default="completed", regex="^(planned|in_progress|completed|cancelled|overdue)$")
+    status: str = Field(
+        default="completed", regex="^(planned|in_progress|completed|cancelled|overdue)$"
+    )
     priority: str = Field(default="normal", regex="^(low|normal|high|urgent)$")
     page_url: Optional[str] = None
     referrer_url: Optional[str] = None
     source: Optional[str] = None
     campaign_id: Optional[str] = None
     custom_fields: Dict[str, Any] = {}
+
 
 class CustomerActivityResponse(CustomerActivityBase):
     id: str
@@ -356,9 +416,11 @@ class CustomerActivityResponse(CustomerActivityBase):
     class Config:
         orm_mode = True
 
+
 class CustomerSegmentBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
     description: Optional[str] = None
+
 
 class CustomerSegmentCreate(CustomerSegmentBase):
     segment_type: str = Field(default="static", regex="^(static|dynamic)$")
@@ -366,12 +428,14 @@ class CustomerSegmentCreate(CustomerSegmentBase):
     color: str = Field(default="#007bff", regex="^#[0-9A-Fa-f]{6}$")
     is_active: bool = True
 
+
 class CustomerSegmentUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=200)
     description: Optional[str] = None
     criteria: Optional[Dict[str, Any]] = None
     color: Optional[str] = Field(None, regex="^#[0-9A-Fa-f]{6}$")
     is_active: Optional[bool] = None
+
 
 class CustomerSegmentResponse(CustomerSegmentBase):
     id: str
@@ -390,13 +454,17 @@ class CustomerSegmentResponse(CustomerSegmentBase):
     class Config:
         orm_mode = True
 
+
 class MarketingCampaignBase(BaseModel):
     campaign_code: str = Field(..., min_length=1, max_length=50)
     name: str = Field(..., min_length=1, max_length=200)
     description: Optional[str] = None
 
+
 class MarketingCampaignCreate(MarketingCampaignBase):
-    campaign_type: Optional[str] = Field(None, regex="^(email|social_media|ppc|content|event|webinar)$")
+    campaign_type: Optional[str] = Field(
+        None, regex="^(email|social_media|ppc|content|event|webinar)$"
+    )
     channel: Optional[str] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
@@ -406,10 +474,13 @@ class MarketingCampaignCreate(MarketingCampaignBase):
     owned_by: Optional[str] = None
     tags: List[str] = []
 
+
 class MarketingCampaignUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=200)
     description: Optional[str] = None
-    status: Optional[str] = Field(None, regex="^(draft|active|paused|completed|cancelled)$")
+    status: Optional[str] = Field(
+        None, regex="^(draft|active|paused|completed|cancelled)$"
+    )
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     budget: Optional[Decimal] = Field(None, ge=0)
@@ -422,6 +493,7 @@ class MarketingCampaignUpdate(BaseModel):
     opportunities_created: Optional[int] = Field(None, ge=0)
     customers_acquired: Optional[int] = Field(None, ge=0)
     revenue_generated: Optional[Decimal] = Field(None, ge=0)
+
 
 class MarketingCampaignResponse(MarketingCampaignBase):
     id: str
@@ -454,6 +526,7 @@ class MarketingCampaignResponse(MarketingCampaignBase):
     class Config:
         orm_mode = True
 
+
 class CRMStatsResponse(BaseModel):
     total_customers: int
     active_customers: int
@@ -469,6 +542,7 @@ class CRMStatsResponse(BaseModel):
     by_source: Dict[str, int]
     by_segment: Dict[str, Decimal]
     top_performers: List[Dict[str, Any]]
+
 
 class CRMAnalyticsResponse(BaseModel):
     period_start: datetime
@@ -488,6 +562,7 @@ class CRMAnalyticsResponse(BaseModel):
     daily_breakdown: List[Dict[str, Any]]
     performance_by_rep: List[Dict[str, Any]]
 
+
 class CRMCustomerListResponse(BaseModel):
     total: int
     page: int
@@ -495,12 +570,14 @@ class CRMCustomerListResponse(BaseModel):
     pages: int
     items: List[CRMCustomerResponse]
 
+
 class SalesOpportunityListResponse(BaseModel):
     total: int
     page: int
     per_page: int
     pages: int
     items: List[SalesOpportunityResponse]
+
 
 class CustomerInteractionListResponse(BaseModel):
     total: int
