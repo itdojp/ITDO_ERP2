@@ -15,13 +15,13 @@ import uuid
 import asyncio
 import json
 
-# Import database and models (TDD - models will be created later)
+# Import database and models (TDD implementation complete)
 from app.core.database import get_db
-# from app.models.product import Product, ProductPriceHistory, ProductCategory
-# from app.schemas.product import (
-#     ProductCreate, ProductUpdate, ProductResponse, ProductListResponse,
-#     BulkProductCreate, BulkProductUpdate, ProductStatistics, PriceHistoryResponse
-# )
+from app.models.product import Product, ProductPriceHistory, ProductCategory
+from app.schemas.product import (
+    ProductCreate, ProductUpdate, ProductResponse, ProductListResponse,
+    BulkProductCreate, BulkProductUpdate, ProductStatistics, PriceHistoryResponse
+)
 
 router = APIRouter(prefix="/products", tags=["Products"])
 
@@ -144,6 +144,43 @@ async def create_product(
     }]
     
     return ProductCreateResponse(**product)
+
+@router.get("/statistics", response_model=StatisticsResponse)
+async def get_product_statistics(
+    db: AsyncSession = Depends(get_db)
+) -> StatisticsResponse:
+    """Get product statistics"""
+    
+    all_products = list(products_store.values())
+    total_products = len(all_products)
+    active_products = len([p for p in all_products if p["is_active"]])
+    inactive_products = total_products - active_products
+    
+    # Category breakdown
+    category_counts = {}
+    for product in all_products:
+        if product.get("category"):
+            category = product["category"]
+            category_counts[category] = category_counts.get(category, 0) + 1
+    
+    categories = [
+        CategoryResponse(name=name, count=count)
+        for name, count in sorted(category_counts.items())
+    ]
+    
+    # Price statistics
+    active_prices = [p["price"] for p in all_products if p["is_active"]]
+    average_price = sum(active_prices) / len(active_prices) if active_prices else 0
+    total_value = sum(active_prices)
+    
+    return StatisticsResponse(
+        total_products=total_products,
+        active_products=active_products,
+        inactive_products=inactive_products,
+        categories=categories,
+        average_price=round(average_price, 2),
+        total_value=round(total_value, 2)
+    )
 
 @router.get("/{product_id}", response_model=ProductCreateResponse)
 async def get_product(
@@ -425,43 +462,6 @@ async def get_product_categories(
     ]
     
     return categories
-
-@router.get("/statistics", response_model=StatisticsResponse)
-async def get_product_statistics(
-    db: AsyncSession = Depends(get_db)
-) -> StatisticsResponse:
-    """Get product statistics"""
-    
-    all_products = list(products_store.values())
-    total_products = len(all_products)
-    active_products = len([p for p in all_products if p["is_active"]])
-    inactive_products = total_products - active_products
-    
-    # Category breakdown
-    category_counts = {}
-    for product in all_products:
-        if product.get("category"):
-            category = product["category"]
-            category_counts[category] = category_counts.get(category, 0) + 1
-    
-    categories = [
-        CategoryResponse(name=name, count=count)
-        for name, count in sorted(category_counts.items())
-    ]
-    
-    # Price statistics
-    active_prices = [p["price"] for p in all_products if p["is_active"]]
-    average_price = sum(active_prices) / len(active_prices) if active_prices else 0
-    total_value = sum(active_prices)
-    
-    return StatisticsResponse(
-        total_products=total_products,
-        active_products=active_products,
-        inactive_products=inactive_products,
-        categories=categories,
-        average_price=round(average_price, 2),
-        total_value=round(total_value, 2)
-    )
 
 @router.get("/{product_id}/price-history", response_model=PriceHistoryResponse)
 async def get_product_price_history(

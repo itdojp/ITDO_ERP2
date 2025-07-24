@@ -191,6 +191,11 @@ class TestProductsAPI:
             api_client.post("/api/v1/products", json=product)
         
         response = api_client.get("/api/v1/products/statistics")
+        
+        # Debug if not 200
+        if response.status_code != 200:
+            print(f"Statistics endpoint status: {response.status_code}")
+            print(f"Response: {response.text}")
         assert response.status_code == 200
         data = response.json()
         assert "total_products" in data
