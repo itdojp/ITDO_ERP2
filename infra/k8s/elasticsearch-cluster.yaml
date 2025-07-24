@@ -1,0 +1,879 @@
+# ITDO ERP v2 - Elasticsearch Search Infrastructure
+# CC03 v48.0 Business-Aligned Infrastructure
+
+# Elasticsearch Master Nodes
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: elasticsearch-master
+  namespace: itdo-erp-data
+  labels:
+    app.kubernetes.io/name: elasticsearch
+    app.kubernetes.io/component: master
+    app.kubernetes.io/version: "8.8.0"
+spec:
+  serviceName: elasticsearch-master-service
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: elasticsearch
+      app.kubernetes.io/component: master
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: elasticsearch
+        app.kubernetes.io/component: master
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9200"
+        prometheus.io/path: "/_prometheus/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      initContainers:
+      - name: increase-vm-max-map
+        image: busybox:1.35
+        command: ["sysctl", "-w", "vm.max_map_count=262144"]
+        securityContext:
+          privileged: true
+      - name: increase-fd-ulimit
+        image: busybox:1.35
+        command: ["sh", "-c", "ulimit -n 65536"]
+        securityContext:
+          privileged: true
+      containers:
+      - name: elasticsearch
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.8.0
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 9200
+          name: http
+        - containerPort: 9300
+          name: transport
+        env:
+        - name: node.name
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: cluster.name
+          value: "itdo-erp-search"
+        - name: discovery.seed_hosts
+          value: "elasticsearch-master-service"
+        - name: cluster.initial_master_nodes
+          value: "elasticsearch-master-0,elasticsearch-master-1,elasticsearch-master-2"
+        - name: node.roles
+          value: "master"
+        - name: ES_JAVA_OPTS
+          value: "-Xms2g -Xmx2g"
+        - name: xpack.security.enabled
+          value: "true"
+        - name: xpack.security.transport.ssl.enabled
+          value: "true"
+        - name: xpack.security.transport.ssl.verification_mode
+          value: "certificate"
+        - name: xpack.security.transport.ssl.keystore.path
+          value: "/usr/share/elasticsearch/config/certs/elastic-certificates.p12"
+        - name: xpack.security.transport.ssl.truststore.path
+          value: "/usr/share/elasticsearch/config/certs/elastic-certificates.p12"
+        - name: xpack.security.http.ssl.enabled
+          value: "false"
+        - name: ELASTIC_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: elasticsearch-secret
+              key: ELASTIC_PASSWORD
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+          limits:
+            memory: "3Gi"
+            cpu: "2000m"
+        volumeMounts:
+        - name: elasticsearch-data
+          mountPath: /usr/share/elasticsearch/data
+        - name: elasticsearch-config
+          mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
+          subPath: elasticsearch.yml
+        - name: elasticsearch-certs
+          mountPath: /usr/share/elasticsearch/config/certs
+        livenessProbe:
+          httpGet:
+            path: /_cluster/health
+            port: 9200
+            httpHeaders:
+            - name: Authorization
+              value: "Basic ZWxhc3RpYzplbGFzdGljX3Bhc3N3b3JkXzIwMjU="
+          initialDelaySeconds: 90
+          periodSeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /_cluster/health?wait_for_status=yellow&timeout=5s
+            port: 9200
+            httpHeaders:
+            - name: Authorization
+              value: "Basic ZWxhc3RpYzplbGFzdGljX3Bhc3N3b3JkXzIwMjU="
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 10
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: elasticsearch-config
+        configMap:
+          name: elasticsearch-config
+      - name: elasticsearch-certs
+        secret:
+          secretName: elasticsearch-certs
+  volumeClaimTemplates:
+  - metadata:
+      name: elasticsearch-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: "fast-ssd"
+      resources:
+        requests:
+          storage: 50Gi
+
+---
+# Elasticsearch Data Nodes
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: elasticsearch-data
+  namespace: itdo-erp-data
+  labels:
+    app.kubernetes.io/name: elasticsearch
+    app.kubernetes.io/component: data
+    app.kubernetes.io/version: "8.8.0"
+spec:
+  serviceName: elasticsearch-data-service
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: elasticsearch
+      app.kubernetes.io/component: data
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: elasticsearch
+        app.kubernetes.io/component: data
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9200"
+        prometheus.io/path: "/_prometheus/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      initContainers:
+      - name: increase-vm-max-map
+        image: busybox:1.35
+        command: ["sysctl", "-w", "vm.max_map_count=262144"]
+        securityContext:
+          privileged: true
+      containers:
+      - name: elasticsearch
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.8.0
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 9200
+          name: http
+        - containerPort: 9300
+          name: transport
+        env:
+        - name: node.name
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: cluster.name
+          value: "itdo-erp-search"
+        - name: discovery.seed_hosts
+          value: "elasticsearch-master-service"
+        - name: cluster.initial_master_nodes
+          value: "elasticsearch-master-0,elasticsearch-master-1,elasticsearch-master-2"
+        - name: node.roles
+          value: "data,data_content,data_hot,data_warm,data_cold,ingest"
+        - name: ES_JAVA_OPTS
+          value: "-Xms4g -Xmx4g"
+        - name: xpack.security.enabled
+          value: "true"
+        - name: xpack.security.transport.ssl.enabled
+          value: "true"
+        - name: xpack.security.transport.ssl.verification_mode
+          value: "certificate"
+        - name: xpack.security.transport.ssl.keystore.path
+          value: "/usr/share/elasticsearch/config/certs/elastic-certificates.p12"
+        - name: xpack.security.transport.ssl.truststore.path
+          value: "/usr/share/elasticsearch/config/certs/elastic-certificates.p12"
+        - name: xpack.security.http.ssl.enabled
+          value: "false"
+        - name: ELASTIC_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: elasticsearch-secret
+              key: ELASTIC_PASSWORD
+        resources:
+          requests:
+            memory: "4Gi"
+            cpu: "2000m"
+          limits:
+            memory: "6Gi"
+            cpu: "4000m"
+        volumeMounts:
+        - name: elasticsearch-data
+          mountPath: /usr/share/elasticsearch/data
+        - name: elasticsearch-config
+          mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
+          subPath: elasticsearch.yml
+        - name: elasticsearch-certs
+          mountPath: /usr/share/elasticsearch/config/certs
+        livenessProbe:
+          httpGet:
+            path: /_cluster/health
+            port: 9200
+            httpHeaders:
+            - name: Authorization
+              value: "Basic ZWxhc3RpYzplbGFzdGljX3Bhc3N3b3JkXzIwMjU="
+          initialDelaySeconds: 90
+          periodSeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /_cluster/health?wait_for_status=yellow&timeout=5s
+            port: 9200
+            httpHeaders:
+            - name: Authorization
+              value: "Basic ZWxhc3RpYzplbGFzdGljX3Bhc3N3b3JkXzIwMjU="
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 10
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: elasticsearch-config
+        configMap:
+          name: elasticsearch-config
+      - name: elasticsearch-certs
+        secret:
+          secretName: elasticsearch-certs
+  volumeClaimTemplates:
+  - metadata:
+      name: elasticsearch-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: "fast-ssd"
+      resources:
+        requests:
+          storage: 200Gi
+
+---
+# Elasticsearch Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: elasticsearch-config
+  namespace: itdo-erp-data
+  labels:
+    app.kubernetes.io/name: elasticsearch
+data:
+  elasticsearch.yml: |
+    # Cluster settings
+    cluster.name: itdo-erp-search
+    network.host: 0.0.0.0
+    http.port: 9200
+    transport.port: 9300
+    
+    # Discovery settings
+    discovery.seed_hosts: ["elasticsearch-master-service"]
+    cluster.initial_master_nodes: ["elasticsearch-master-0", "elasticsearch-master-1", "elasticsearch-master-2"]
+    
+    # Path settings
+    path.data: /usr/share/elasticsearch/data
+    path.logs: /usr/share/elasticsearch/logs
+    
+    # Memory settings
+    bootstrap.memory_lock: false
+    
+    # Security settings
+    xpack.security.enabled: true
+    xpack.security.transport.ssl.enabled: true
+    xpack.security.transport.ssl.verification_mode: certificate
+    xpack.security.transport.ssl.keystore.path: certs/elastic-certificates.p12
+    xpack.security.transport.ssl.truststore.path: certs/elastic-certificates.p12
+    xpack.security.http.ssl.enabled: false
+    
+    # Monitoring settings
+    xpack.monitoring.collection.enabled: true
+    xpack.monitoring.elasticsearch.collection.enabled: false
+    
+    # Performance settings
+    indices.memory.index_buffer_size: 20%
+    indices.memory.min_index_buffer_size: 48mb
+    indices.fielddata.cache.size: 30%
+    indices.breaker.fielddata.limit: 40%
+    indices.breaker.request.limit: 60%
+    indices.breaker.total.limit: 95%
+    
+    # Thread pool settings
+    thread_pool.write.queue_size: 1000
+    thread_pool.search.queue_size: 1000
+    thread_pool.get.queue_size: 1000
+    
+    # Indexing settings
+    action.auto_create_index: true
+    action.destructive_requires_name: true
+    
+    # Cluster settings
+    cluster.routing.allocation.disk.threshold_enabled: true
+    cluster.routing.allocation.disk.watermark.low: 85%
+    cluster.routing.allocation.disk.watermark.high: 90%
+    cluster.routing.allocation.disk.watermark.flood_stage: 95%
+    
+    # Japanese text analysis
+    analysis:
+      analyzer:
+        japanese:
+          type: custom
+          tokenizer: kuromoji_tokenizer
+          char_filter:
+            - icu_normalizer
+          filter:
+            - kuromoji_baseform
+            - kuromoji_part_of_speech
+            - cjk_width
+            - ja_stop
+            - kuromoji_stemmer
+            - lowercase
+        japanese_search:
+          type: custom
+          tokenizer: kuromoji_tokenizer
+          char_filter:
+            - icu_normalizer
+          filter:
+            - kuromoji_baseform
+            - kuromoji_part_of_speech
+            - cjk_width
+            - ja_stop
+            - kuromoji_stemmer
+            - lowercase
+
+---
+# Elasticsearch Secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: elasticsearch-secret
+  namespace: itdo-erp-data
+  labels:
+    app.kubernetes.io/name: elasticsearch
+type: Opaque
+data:
+  ELASTIC_PASSWORD: ZWxhc3RpY19wYXNzd29yZF8yMDI1  # elastic_password_2025
+  KIBANA_PASSWORD: a2liYW5hX3Bhc3N3b3JkXzIwMjU=  # kibana_password_2025
+
+---
+# Elasticsearch Certificates Secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: elasticsearch-certs
+  namespace: itdo-erp-data
+  labels:
+    app.kubernetes.io/name: elasticsearch
+type: Opaque
+data:
+  elastic-certificates.p12: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0t  # Base64 encoded certificate
+
+---
+# Elasticsearch Master Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch-master-service
+  namespace: itdo-erp-data
+  labels:
+    app.kubernetes.io/name: elasticsearch
+    app.kubernetes.io/component: master
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - port: 9200
+    targetPort: 9200
+    name: http
+  - port: 9300
+    targetPort: 9300
+    name: transport
+  selector:
+    app.kubernetes.io/name: elasticsearch
+    app.kubernetes.io/component: master
+
+---
+# Elasticsearch Data Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch-data-service
+  namespace: itdo-erp-data
+  labels:
+    app.kubernetes.io/name: elasticsearch
+    app.kubernetes.io/component: data
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - port: 9200
+    targetPort: 9200
+    name: http
+  - port: 9300
+    targetPort: 9300
+    name: transport
+  selector:
+    app.kubernetes.io/name: elasticsearch
+    app.kubernetes.io/component: data
+
+---
+# Elasticsearch Client Service (Load Balancer)
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch-service
+  namespace: itdo-erp-data
+  labels:
+    app.kubernetes.io/name: elasticsearch
+    app.kubernetes.io/component: client
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+    service.beta.kubernetes.io/aws-load-balancer-internal: "true"
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 9200
+    targetPort: 9200
+    name: http
+  selector:
+    app.kubernetes.io/name: elasticsearch
+
+---
+# Kibana for Elasticsearch Management
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kibana
+  namespace: itdo-erp-data
+  labels:
+    app.kubernetes.io/name: kibana
+    app.kubernetes.io/component: visualization
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kibana
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kibana
+        app.kubernetes.io/component: visualization
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: kibana
+        image: docker.elastic.co/kibana/kibana:8.8.0
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5601
+          name: http
+        env:
+        - name: ELASTICSEARCH_HOSTS
+          value: "http://elasticsearch-service:9200"
+        - name: ELASTICSEARCH_USERNAME
+          value: "elastic"
+        - name: ELASTICSEARCH_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: elasticsearch-secret
+              key: ELASTIC_PASSWORD
+        - name: SERVER_HOST
+          value: "0.0.0.0"
+        - name: SERVER_PORT
+          value: "5601"
+        - name: SERVER_BASEPATH
+          value: "/kibana"
+        - name: SERVER_REWRITEBASEPATH
+          value: "true"
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        volumeMounts:
+        - name: kibana-config
+          mountPath: /usr/share/kibana/config/kibana.yml
+          subPath: kibana.yml
+        livenessProbe:
+          httpGet:
+            path: /kibana/api/status
+            port: 5601
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /kibana/api/status
+            port: 5601
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 10
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: kibana-config
+        configMap:
+          name: kibana-config
+
+---
+# Kibana Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kibana-config
+  namespace: itdo-erp-data
+  labels:
+    app.kubernetes.io/name: kibana
+data:
+  kibana.yml: |
+    server.host: 0.0.0.0
+    server.port: 5601
+    server.basePath: /kibana
+    server.rewriteBasePath: true
+    
+    elasticsearch.hosts: ["http://elasticsearch-service:9200"]
+    elasticsearch.username: "elastic"
+    elasticsearch.password: "${ELASTICSEARCH_PASSWORD}"
+    
+    # Security settings
+    elasticsearch.ssl.verificationMode: none
+    server.ssl.enabled: false
+    
+    # Monitoring
+    monitoring.ui.container.elasticsearch.enabled: true
+    
+    # Japanese language support
+    i18n.locale: "ja-JP"
+
+---
+# Kibana Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: kibana-service
+  namespace: itdo-erp-data
+  labels:
+    app.kubernetes.io/name: kibana
+spec:
+  type: ClusterIP
+  ports:
+  - port: 5601
+    targetPort: 5601
+    name: http
+  selector:
+    app.kubernetes.io/name: kibana
+
+---
+# ERP Search Service (Application Layer)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: erp-search-service
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: erp-search-service
+    app.kubernetes.io/component: search-api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: erp-search-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: erp-search-service
+        app.kubernetes.io/component: search-api
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+      containers:
+      - name: erp-search-service
+        image: itdo/erp-search-service:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 9090
+          name: metrics
+        env:
+        - name: ELASTICSEARCH_URL
+          value: "http://elasticsearch-service.itdo-erp-data.svc.cluster.local:9200"
+        - name: ELASTICSEARCH_USERNAME
+          value: "elastic"
+        - name: ELASTICSEARCH_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: elasticsearch-secret
+              key: ELASTIC_PASSWORD
+        - name: REDIS_URL
+          value: "redis://redis-cluster-service.itdo-erp-data.svc.cluster.local:6379"
+        - name: POSTGRES_URL
+          valueFrom:
+            secretKeyRef:
+              name: itdo-erp-secrets
+              key: DATABASE_URL
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: SEARCH_CACHE_TTL
+          value: "300"
+        - name: MAX_SEARCH_RESULTS
+          value: "1000"
+        - name: INDEXING_BATCH_SIZE
+          value: "100"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1001
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: tmp
+        emptyDir: {}
+
+---
+# ERP Search Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: erp-search-service
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: erp-search-service
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: http
+  - port: 9090
+    targetPort: 9090
+    name: metrics
+  selector:
+    app.kubernetes.io/name: erp-search-service
+
+---
+# Elasticsearch Data Indexing CronJob
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: elasticsearch-indexing
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: elasticsearch-indexing
+    app.kubernetes.io/component: data-sync
+spec:
+  schedule: "*/15 * * * *"  # Every 15 minutes
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: elasticsearch-indexing
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: data-indexer
+            image: itdo/erp-search-indexer:latest
+            command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Starting Elasticsearch data indexing..."
+              
+              # Index products
+              echo "Indexing products..."
+              python /app/indexers/product_indexer.py
+              
+              # Index customers
+              echo "Indexing customers..."
+              python /app/indexers/customer_indexer.py
+              
+              # Index orders
+              echo "Indexing orders..."
+              python /app/indexers/order_indexer.py
+              
+              # Index inventory
+              echo "Indexing inventory..."
+              python /app/indexers/inventory_indexer.py
+              
+              echo "Indexing completed successfully"
+            env:
+            - name: ELASTICSEARCH_URL
+              value: "http://elasticsearch-service.itdo-erp-data.svc.cluster.local:9200"
+            - name: ELASTICSEARCH_USERNAME
+              value: "elastic"
+            - name: ELASTICSEARCH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: elasticsearch-secret
+                  key: ELASTIC_PASSWORD
+            - name: POSTGRES_URL
+              valueFrom:
+                secretKeyRef:
+                  name: itdo-erp-secrets
+                  key: DATABASE_URL
+            - name: REDIS_URL
+              value: "redis://redis-cluster-service.itdo-erp-data.svc.cluster.local:6379"
+            - name: BATCH_SIZE
+              value: "1000"
+            - name: INDEX_PREFIX
+              value: "itdo-erp"
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "100m"
+              limits:
+                memory: "512Mi"
+                cpu: "500m"
+
+---
+# HPA for Elasticsearch Services
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: erp-search-service-hpa
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: erp-search-service
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: erp-search-service
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+---
+# Kibana Ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kibana-ingress
+  namespace: itdo-erp-data
+  labels:
+    app.kubernetes.io/name: kibana
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/auth-type: basic
+    nginx.ingress.kubernetes.io/auth-secret: kibana-auth
+    nginx.ingress.kubernetes.io/auth-realm: 'Kibana Authentication'
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+spec:
+  tls:
+  - hosts:
+    - search.itdo-erp.com
+    secretName: kibana-tls
+  rules:
+  - host: search.itdo-erp.com
+    http:
+      paths:
+      - path: /kibana
+        pathType: Prefix
+        backend:
+          service:
+            name: kibana-service
+            port:
+              number: 5601
+
+---
+# Kibana Basic Auth
+apiVersion: v1
+kind: Secret
+metadata:
+  name: kibana-auth
+  namespace: itdo-erp-data
+type: Opaque
+data:
+  auth: YWRtaW46JGFwcjEkSDZ1bjM5emQkWkNVQi5OMXBuUmtaRWxMakNlMzZhMQ==  # admin:admin

@@ -1,0 +1,974 @@
+# ITDO ERP v2 - Message Queue System (RabbitMQ + Redis Streams)
+# CC03 v48.0 Business-Aligned Infrastructure
+
+# RabbitMQ StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: rabbitmq
+  namespace: itdo-erp-data
+  labels:
+    app.kubernetes.io/name: rabbitmq
+    app.kubernetes.io/component: message-broker
+    app.kubernetes.io/version: "3.12"
+spec:
+  serviceName: rabbitmq-service
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: rabbitmq
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: rabbitmq
+        app.kubernetes.io/component: message-broker
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "15692"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        fsGroup: 999
+      containers:
+      - name: rabbitmq
+        image: rabbitmq:3.12-management-alpine
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5672
+          name: amqp
+        - containerPort: 15672
+          name: management
+        - containerPort: 15692
+          name: metrics
+        - containerPort: 25672
+          name: clustering
+        env:
+        - name: RABBITMQ_DEFAULT_USER
+          valueFrom:
+            secretKeyRef:
+              name: rabbitmq-secret
+              key: RABBITMQ_DEFAULT_USER
+        - name: RABBITMQ_DEFAULT_PASS
+          valueFrom:
+            secretKeyRef:
+              name: rabbitmq-secret
+              key: RABBITMQ_DEFAULT_PASS
+        - name: RABBITMQ_ERLANG_COOKIE
+          valueFrom:
+            secretKeyRef:
+              name: rabbitmq-secret
+              key: RABBITMQ_ERLANG_COOKIE
+        - name: RABBITMQ_USE_LONGNAME
+          value: "true"
+        - name: RABBITMQ_NODENAME
+          value: "rabbit@$(hostname).rabbitmq-service.itdo-erp-data.svc.cluster.local"
+        - name: K8S_SERVICE_NAME
+          value: "rabbitmq-service"
+        - name: RABBITMQ_CONFIG_FILE
+          value: "/etc/rabbitmq/rabbitmq.conf"
+        - name: RABBITMQ_ENABLED_PLUGINS_FILE
+          value: "/etc/rabbitmq/enabled_plugins"
+        - name: RABBITMQ_LOGS
+          value: "-"
+        - name: RABBITMQ_SASL_LOGS
+          value: "-"
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        volumeMounts:
+        - name: rabbitmq-data
+          mountPath: /var/lib/rabbitmq
+        - name: rabbitmq-config
+          mountPath: /etc/rabbitmq
+        livenessProbe:
+          exec:
+            command:
+            - rabbitmq-diagnostics
+            - -q
+            - ping
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - rabbitmq-diagnostics
+            - -q
+            - check_port_connectivity
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          timeoutSeconds: 5
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          runAsUser: 999
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: rabbitmq-config
+        configMap:
+          name: rabbitmq-config
+  volumeClaimTemplates:
+  - metadata:
+      name: rabbitmq-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: "fast-ssd"
+      resources:
+        requests:
+          storage: 20Gi
+
+---
+# RabbitMQ Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rabbitmq-config
+  namespace: itdo-erp-data
+  labels:
+    app.kubernetes.io/name: rabbitmq
+data:
+  enabled_plugins: |
+    [rabbitmq_management,rabbitmq_peer_discovery_k8s,rabbitmq_prometheus,rabbitmq_shovel,rabbitmq_shovel_management,rabbitmq_stream,rabbitmq_stream_management].
+  
+  rabbitmq.conf: |
+    ## Cluster formation
+    cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
+    cluster_formation.k8s.host = kubernetes.default.svc.cluster.local
+    cluster_formation.k8s.address_type = hostname
+    cluster_formation.k8s.service_name = rabbitmq-service
+    cluster_formation.k8s.hostname_suffix = .rabbitmq-service.itdo-erp-data.svc.cluster.local
+    cluster_formation.node_cleanup.interval = 30
+    cluster_formation.node_cleanup.only_log_warning = true
+    cluster_partition_handling = autoheal
+    
+    ## Queue settings
+    queue_master_locator = min-masters
+    
+    ## Memory management
+    vm_memory_high_watermark.relative = 0.6
+    vm_memory_high_watermark_paging_ratio = 0.5
+    disk_free_limit.relative = 2.0
+    
+    ## Connection settings
+    heartbeat = 60
+    frame_max = 131072
+    channel_max = 2047
+    connection_max = 1000
+    
+    ## Management settings
+    management.tcp.port = 15672
+    management.tcp.ip = 0.0.0.0
+    management.load_definitions = /etc/rabbitmq/definitions.json
+    
+    ## Prometheus metrics
+    prometheus.tcp.port = 15692
+    prometheus.return_per_object_metrics = true
+    
+    ## Logging
+    log.console = true
+    log.console.level = info
+    log.file = false
+    
+    ## Security
+    auth_mechanisms.1 = PLAIN
+    auth_mechanisms.2 = AMQPLAIN
+    reverse_dns_lookups = false
+    
+    ## Stream settings
+    stream.tcp.port = 5552
+    stream.advertised_host = $(hostname).rabbitmq-service.itdo-erp-data.svc.cluster.local
+    
+    ## Performance tuning
+    collect_statistics = coarse
+    collect_statistics_interval = 5000
+    
+    ## TLS/SSL (disabled for internal cluster communication)
+    ssl_options.verify = verify_none
+    ssl_options.fail_if_no_peer_cert = false
+
+  definitions.json: |
+    {
+      "rabbit_version": "3.12.0",
+      "rabbitmq_version": "3.12.0",
+      "users": [
+        {
+          "name": "admin",
+          "password_hash": "3d0VhLOLpEbTvPAnNgdNGmz20FvLgN8U8PpBGOjlqkPfhBMy",
+          "tags": "administrator"
+        },
+        {
+          "name": "itdo-erp",
+          "password_hash": "gR8EHNhEqSO2yF5WW6qYBcK4A5B5K7A5W5A5A5A5A5A5A5A5",
+          "tags": ""
+        }
+      ],
+      "vhosts": [
+        {
+          "name": "/"
+        },
+        {
+          "name": "itdo-erp-prod"
+        }
+      ],
+      "permissions": [
+        {
+          "user": "admin",
+          "vhost": "/",
+          "configure": ".*",
+          "write": ".*",
+          "read": ".*"
+        },
+        {
+          "user": "admin",
+          "vhost": "itdo-erp-prod",
+          "configure": ".*",
+          "write": ".*",
+          "read": ".*"
+        },
+        {
+          "user": "itdo-erp",
+          "vhost": "itdo-erp-prod",
+          "configure": ".*",
+          "write": ".*",
+          "read": ".*"
+        }
+      ],
+      "policies": [
+        {
+          "vhost": "itdo-erp-prod",
+          "name": "ha-all",
+          "pattern": ".*",
+          "apply-to": "all",
+          "definition": {
+            "ha-mode": "all",
+            "ha-sync-mode": "automatic"
+          },
+          "priority": 0
+        }
+      ],
+      "exchanges": [
+        {
+          "name": "itdo.erp.events",
+          "vhost": "itdo-erp-prod",
+          "type": "topic",
+          "durable": true,
+          "auto_delete": false,
+          "internal": false,
+          "arguments": {}
+        },
+        {
+          "name": "itdo.erp.commands",
+          "vhost": "itdo-erp-prod",
+          "type": "direct",
+          "durable": true,
+          "auto_delete": false,
+          "internal": false,
+          "arguments": {}
+        },
+        {
+          "name": "itdo.erp.deadletter",
+          "vhost": "itdo-erp-prod",
+          "type": "direct",
+          "durable": true,
+          "auto_delete": false,
+          "internal": false,
+          "arguments": {}
+        }
+      ],
+      "queues": [
+        {
+          "name": "inventory.updates",
+          "vhost": "itdo-erp-prod",
+          "durable": true,
+          "auto_delete": false,
+          "arguments": {
+            "x-message-ttl": 3600000,
+            "x-dead-letter-exchange": "itdo.erp.deadletter",
+            "x-max-retries": 3
+          }
+        },
+        {
+          "name": "order.processing",
+          "vhost": "itdo-erp-prod",
+          "durable": true,
+          "auto_delete": false,
+          "arguments": {
+            "x-message-ttl": 1800000,
+            "x-dead-letter-exchange": "itdo.erp.deadletter",
+            "x-max-retries": 5
+          }
+        },
+        {
+          "name": "notifications",
+          "vhost": "itdo-erp-prod",
+          "durable": true,
+          "auto_delete": false,
+          "arguments": {
+            "x-message-ttl": 600000,
+            "x-dead-letter-exchange": "itdo.erp.deadletter",
+            "x-max-retries": 3
+          }
+        },
+        {
+          "name": "email.queue",
+          "vhost": "itdo-erp-prod",
+          "durable": true,
+          "auto_delete": false,
+          "arguments": {
+            "x-message-ttl": 7200000,
+            "x-dead-letter-exchange": "itdo.erp.deadletter",
+            "x-max-retries": 5
+          }
+        },
+        {
+          "name": "file.processing",
+          "vhost": "itdo-erp-prod",
+          "durable": true,
+          "auto_delete": false,
+          "arguments": {
+            "x-message-ttl": 3600000,
+            "x-dead-letter-exchange": "itdo.erp.deadletter",
+            "x-max-retries": 3
+          }
+        }
+      ],
+      "bindings": [
+        {
+          "source": "itdo.erp.events",
+          "vhost": "itdo-erp-prod",
+          "destination": "inventory.updates",
+          "destination_type": "queue",
+          "routing_key": "inventory.#",
+          "arguments": {}
+        },
+        {
+          "source": "itdo.erp.events",
+          "vhost": "itdo-erp-prod",
+          "destination": "order.processing",
+          "destination_type": "queue",
+          "routing_key": "order.#",
+          "arguments": {}
+        },
+        {
+          "source": "itdo.erp.commands",
+          "vhost": "itdo-erp-prod",
+          "destination": "notifications",
+          "destination_type": "queue",
+          "routing_key": "notify",
+          "arguments": {}
+        },
+        {
+          "source": "itdo.erp.commands",
+          "vhost": "itdo-erp-prod",
+          "destination": "email.queue",
+          "destination_type": "queue",
+          "routing_key": "email",
+          "arguments": {}
+        },
+        {
+          "source": "itdo.erp.commands",
+          "vhost": "itdo-erp-prod",
+          "destination": "file.processing",
+          "destination_type": "queue",
+          "routing_key": "file.process",
+          "arguments": {}
+        }
+      ]
+    }
+
+---
+# RabbitMQ Secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rabbitmq-secret
+  namespace: itdo-erp-data
+  labels:
+    app.kubernetes.io/name: rabbitmq
+type: Opaque
+data:
+  RABBITMQ_DEFAULT_USER: YWRtaW4=  # admin
+  RABBITMQ_DEFAULT_PASS: cmFiYml0bXFfcGFzc3dvcmRfMjAyNQ==  # rabbitmq_password_2025
+  RABBITMQ_ERLANG_COOKIE: aXRkb19lcnBfcmFiYml0bXFfY29va2llXzIwMjU=  # itdo_erp_rabbitmq_cookie_2025
+
+---
+# RabbitMQ Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq-service
+  namespace: itdo-erp-data
+  labels:
+    app.kubernetes.io/name: rabbitmq
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - port: 5672
+    targetPort: 5672
+    name: amqp
+  - port: 15672
+    targetPort: 15672
+    name: management
+  - port: 15692
+    targetPort: 15692
+    name: metrics
+  - port: 25672
+    targetPort: 25672
+    name: clustering
+  - port: 5552
+    targetPort: 5552
+    name: stream
+  selector:
+    app.kubernetes.io/name: rabbitmq
+
+---
+# RabbitMQ Load Balancer Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq-lb-service
+  namespace: itdo-erp-data
+  labels:
+    app.kubernetes.io/name: rabbitmq
+    app.kubernetes.io/component: load-balancer
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+    service.beta.kubernetes.io/aws-load-balancer-internal: "true"
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 5672
+    targetPort: 5672
+    name: amqp
+  - port: 15672
+    targetPort: 15672
+    name: management
+  selector:
+    app.kubernetes.io/name: rabbitmq
+
+---
+# Message Queue Worker Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: message-queue-worker
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: message-queue-worker
+    app.kubernetes.io/component: queue-processor
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: message-queue-worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: message-queue-worker
+        app.kubernetes.io/component: queue-processor
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+      containers:
+      - name: queue-worker
+        image: itdo/message-queue-worker:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 9090
+          name: metrics
+        env:
+        - name: RABBITMQ_URL
+          value: "amqp://itdo-erp:rabbitmq_password_2025@rabbitmq-service.itdo-erp-data.svc.cluster.local:5672/itdo-erp-prod"
+        - name: REDIS_URL
+          value: "redis://redis-cluster-service.itdo-erp-data.svc.cluster.local:6379"
+        - name: POSTGRES_URL
+          valueFrom:
+            secretKeyRef:
+              name: itdo-erp-secrets
+              key: DATABASE_URL
+        - name: WORKER_TYPE
+          value: "all"
+        - name: WORKER_CONCURRENCY
+          value: "10"
+        - name: MAX_RETRIES
+          value: "3"
+        - name: RETRY_DELAY
+          value: "60"
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: HEALTH_CHECK_INTERVAL
+          value: "30"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "125m"
+          limits:
+            memory: "512Mi"
+            cpu: "250m"
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1001
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: tmp
+        emptyDir: {}
+
+---
+# Message Queue Worker Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: message-queue-worker-service
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: message-queue-worker
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: http
+  - port: 9090
+    targetPort: 9090
+    name: metrics
+  selector:
+    app.kubernetes.io/name: message-queue-worker
+
+---
+# Redis Stream Consumer Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-stream-consumer
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: redis-stream-consumer
+    app.kubernetes.io/component: stream-processor
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: redis-stream-consumer
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: redis-stream-consumer
+        app.kubernetes.io/component: stream-processor
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+      containers:
+      - name: stream-consumer
+        image: itdo/redis-stream-consumer:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 9090
+          name: metrics
+        env:
+        - name: REDIS_URL
+          value: "redis://redis-cluster-service.itdo-erp-data.svc.cluster.local:6379"
+        - name: STREAM_NAMES
+          value: "inventory:updates,order:events,user:actions,system:logs"
+        - name: CONSUMER_GROUP
+          value: "erp-processors"
+        - name: CONSUMER_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: BATCH_SIZE
+          value: "10"
+        - name: READ_TIMEOUT
+          value: "5000"
+        - name: MAX_RETRY_COUNT
+          value: "3"
+        - name: LOG_LEVEL
+          value: "INFO"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1001
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: tmp
+        emptyDir: {}
+
+---
+# Redis Stream Consumer Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-stream-consumer-service
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: redis-stream-consumer
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: http
+  - port: 9090
+    targetPort: 9090
+    name: metrics
+  selector:
+    app.kubernetes.io/name: redis-stream-consumer
+
+---
+# Message Queue API Gateway
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: message-queue-api
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: message-queue-api
+    app.kubernetes.io/component: api-gateway
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: message-queue-api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: message-queue-api
+        app.kubernetes.io/component: api-gateway
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+      containers:
+      - name: message-api
+        image: itdo/message-queue-api:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 9090
+          name: metrics
+        env:
+        - name: RABBITMQ_URL
+          value: "amqp://itdo-erp:rabbitmq_password_2025@rabbitmq-service.itdo-erp-data.svc.cluster.local:5672/itdo-erp-prod"
+        - name: REDIS_URL
+          value: "redis://redis-cluster-service.itdo-erp-data.svc.cluster.local:6379"
+        - name: MAX_MESSAGE_SIZE
+          value: "1048576"  # 1MB
+        - name: MESSAGE_TTL
+          value: "3600"  # 1 hour
+        - name: RATE_LIMIT_PER_MINUTE
+          value: "1000"
+        - name: ENABLE_MESSAGE_PERSISTENCE
+          value: "true"
+        - name: LOG_LEVEL
+          value: "INFO"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "125m"
+          limits:
+            memory: "512Mi"
+            cpu: "250m"
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1001
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: tmp
+        emptyDir: {}
+
+---
+# Message Queue API Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: message-queue-api-service
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: message-queue-api
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: http
+  - port: 9090
+    targetPort: 9090
+    name: metrics
+  selector:
+    app.kubernetes.io/name: message-queue-api
+
+---
+# RabbitMQ Management Ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rabbitmq-management-ingress
+  namespace: itdo-erp-data
+  labels:
+    app.kubernetes.io/name: rabbitmq
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/auth-type: basic
+    nginx.ingress.kubernetes.io/auth-secret: rabbitmq-management-auth
+    nginx.ingress.kubernetes.io/auth-realm: 'RabbitMQ Management'
+spec:
+  tls:
+  - hosts:
+    - mq.itdo-erp.com
+    secretName: rabbitmq-management-tls
+  rules:
+  - host: mq.itdo-erp.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: rabbitmq-lb-service
+            port:
+              number: 15672
+
+---
+# RabbitMQ Management Basic Auth
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rabbitmq-management-auth
+  namespace: itdo-erp-data
+type: Opaque
+data:
+  auth: YWRtaW46JGFwcjEkSDZ1bjM5emQkWkNVQi5OMXBuUmtaRWxMakNlMzZhMQ==  # admin:admin
+
+---
+# HPA for Message Queue Services
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: message-queue-worker-hpa
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: message-queue-worker
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: message-queue-worker
+  minReplicas: 5
+  maxReplicas: 20
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 30
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 10
+        periodSeconds: 60
+
+---
+# HPA for Redis Stream Consumer
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: redis-stream-consumer-hpa
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: redis-stream-consumer
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: redis-stream-consumer
+  minReplicas: 3
+  maxReplicas: 15
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+---
+# HPA for Message Queue API
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: message-queue-api-hpa
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: message-queue-api
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: message-queue-api
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+---
+# PodDisruptionBudget for RabbitMQ
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: rabbitmq-pdb
+  namespace: itdo-erp-data
+  labels:
+    app.kubernetes.io/name: rabbitmq
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: rabbitmq
+
+---
+# PodDisruptionBudget for Message Queue Workers
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: message-queue-worker-pdb
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: message-queue-worker
+spec:
+  minAvailable: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: message-queue-worker
