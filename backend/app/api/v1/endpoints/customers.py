@@ -328,15 +328,33 @@ async def get_customer_orders(
     size: int = Query(50, ge=1, le=1000),
     db: AsyncSession = Depends(get_db)
 ) -> CustomerOrdersResponse:
-    """Get customer orders (placeholder for future Order integration)"""
+    """Get customer orders (integrated with Order API)"""
     
     if customer_id not in customers_store:
         raise HTTPException(status_code=404, detail="Customer not found")
     
-    # Placeholder response - will be integrated with Order API later
+    # Import orders_store to avoid circular imports
+    from app.api.v1.endpoints.orders import orders_store, order_items_store
+    
+    # Filter orders by customer
+    customer_orders = [o for o in orders_store.values() if o["customer_id"] == customer_id]
+    
+    # Convert to simplified format for customer response
+    order_items = []
+    for order in customer_orders:
+        items = order_items_store.get(order["id"], [])
+        order_summary = {
+            "id": order["id"],
+            "total_amount": order["total_amount"],
+            "status": order.get("status", "pending"),
+            "order_date": order["order_date"].isoformat() if isinstance(order["order_date"], datetime) else order["order_date"],
+            "items_count": len(items)
+        }
+        order_items.append(order_summary)
+    
     return CustomerOrdersResponse(
-        items=[],  # Empty for now, will be populated with actual orders
-        total=0
+        items=order_items,
+        total=len(order_items)
     )
 
 # Health check endpoint for performance testing
