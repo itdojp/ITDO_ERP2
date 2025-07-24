@@ -1,6 +1,11 @@
 name: Type Safety Quality Gate
 
 on:
+
+permissions:
+  contents: read
+  pull-requests: read
+  checks: read
   pull_request:
     branches: [ main, develop ]
     paths:

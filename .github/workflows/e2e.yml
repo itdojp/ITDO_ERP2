@@ -1,6 +1,11 @@
 name: E2E Tests
 
 on:
+
+permissions:
+  contents: read
+  pull-requests: read
+  checks: read
   push:
     branches: [ main, develop ]
   pull_request:

@@ -28,7 +28,7 @@ from app.schemas.audit_log_extended import (
 class AuditLogService:
     """Service for managing audit logs."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         """Initialize audit log service."""
         self.db = db
 

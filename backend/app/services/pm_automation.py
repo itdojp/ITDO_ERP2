@@ -26,7 +26,7 @@ class PMAutomationService:
     - Performance analytics
     """
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         """Initialize PM automation service."""
         self.db = db
         self.task_service = TaskService()

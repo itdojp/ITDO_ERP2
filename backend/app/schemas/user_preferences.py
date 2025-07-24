@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field
 
 
 class UserPreferencesBase(BaseModel):
@@ -21,7 +21,7 @@ class UserPreferencesBase(BaseModel):
     date_format: str = Field(default="YYYY-MM-DD", description="Date display format")
     time_format: str = Field(default="24h", description="Time display format")
 
-    @validator("language")
+    @field_validator("language")
     def validate_language(cls, v: str) -> str:
         """Validate language code."""
         supported_languages = ["en", "ja", "es", "fr", "de", "zh", "ko"]
@@ -29,7 +29,7 @@ class UserPreferencesBase(BaseModel):
             raise ValueError("サポートされていない言語です")
         return v
 
-    @validator("timezone")
+    @field_validator("timezone")
     def validate_timezone(cls, v: str) -> str:
         """Validate timezone."""
         import pytz
@@ -40,7 +40,7 @@ class UserPreferencesBase(BaseModel):
             raise ValueError("無効なタイムゾーンです")
         return v
 
-    @validator("theme")
+    @field_validator("theme")
     def validate_theme(cls, v: str) -> str:
         """Validate theme."""
         supported_themes = ["light", "dark", "auto"]
@@ -48,7 +48,7 @@ class UserPreferencesBase(BaseModel):
             raise ValueError("サポートされていないテーマです")
         return v
 
-    @validator("date_format")
+    @field_validator("date_format")
     def validate_date_format(cls, v: str) -> str:
         """Validate date format."""
         supported_formats = [
@@ -62,7 +62,7 @@ class UserPreferencesBase(BaseModel):
             raise ValueError("サポートされていない日付フォーマットです")
         return v
 
-    @validator("time_format")
+    @field_validator("time_format")
     def validate_time_format(cls, v: str) -> str:
         """Validate time format."""
         supported_formats = ["12h", "24h"]
@@ -73,8 +73,6 @@ class UserPreferencesBase(BaseModel):
 
 class UserPreferencesCreate(UserPreferencesBase):
     """Schema for creating user preferences."""
-
-    pass
 
 
 class UserPreferencesUpdate(BaseModel):
@@ -88,7 +86,7 @@ class UserPreferencesUpdate(BaseModel):
     date_format: Optional[str] = None
     time_format: Optional[str] = None
 
-    @validator("language")
+    @field_validator("language")
     def validate_language(cls, v: Optional[str]) -> Optional[str]:
         """Validate language code."""
         if v is not None:
@@ -97,7 +95,7 @@ class UserPreferencesUpdate(BaseModel):
                 raise ValueError("サポートされていない言語です")
         return v
 
-    @validator("timezone")
+    @field_validator("timezone")
     def validate_timezone(cls, v: Optional[str]) -> Optional[str]:
         """Validate timezone."""
         if v is not None:
@@ -109,7 +107,7 @@ class UserPreferencesUpdate(BaseModel):
                 raise ValueError("無効なタイムゾーンです")
         return v
 
-    @validator("theme")
+    @field_validator("theme")
     def validate_theme(cls, v: Optional[str]) -> Optional[str]:
         """Validate theme."""
         if v is not None:
@@ -118,7 +116,7 @@ class UserPreferencesUpdate(BaseModel):
                 raise ValueError("サポートされていないテーマです")
         return v
 
-    @validator("date_format")
+    @field_validator("date_format")
     def validate_date_format(cls, v: Optional[str]) -> Optional[str]:
         """Validate date format."""
         if v is not None:
@@ -133,7 +131,7 @@ class UserPreferencesUpdate(BaseModel):
                 raise ValueError("サポートされていない日付フォーマットです")
         return v
 
-    @validator("time_format")
+    @field_validator("time_format")
     def validate_time_format(cls, v: Optional[str]) -> Optional[str]:
         """Validate time format."""
         if v is not None:

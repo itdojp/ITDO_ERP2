@@ -1,0 +1,16 @@
+{
+  "model_type": "security_risk_predictor",
+  "is_trained": true,
+  "feature_names": [
+    "total_vulnerabilities",
+    "critical_vulnerabilities",
+    "high_vulnerabilities"
+  ],
+  "weights": {
+    "total_vulnerabilities": 0.12328434111319198,
+    "critical_vulnerabilities": -0.1600432504817107,
+    "high_vulnerabilities": -0.04541900890716184
+  },
+  "bias": 49.999999999999645,
+  "training_data_size": 5497
+}
