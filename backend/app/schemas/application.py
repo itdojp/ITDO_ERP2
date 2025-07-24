@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field
 
 from app.models.workflow import ApplicationStatus, ApplicationType, ApprovalStatus
 
@@ -33,8 +33,8 @@ class ApplicationCreate(ApplicationBase):
         None, description="Application form data"
     )
 
-    @validator("priority")
-    def validate_priority(cls, v):
+    @field_validator("priority")
+    def validate_priority(cls, v) -> dict:
         """Validate priority value."""
         valid_priorities = ["LOW", "MEDIUM", "HIGH", "URGENT"]
         if v not in valid_priorities:
@@ -50,8 +50,8 @@ class ApplicationUpdate(BaseModel):
     priority: Optional[str] = Field(None)
     form_data: Optional[Dict[str, Any]] = Field(None)
 
-    @validator("priority")
-    def validate_priority(cls, v):
+    @field_validator("priority")
+    def validate_priority(cls, v) -> dict:
         """Validate priority value."""
         if v is not None:
             valid_priorities = ["LOW", "MEDIUM", "HIGH", "URGENT"]
@@ -122,8 +122,8 @@ class ApplicationSearchParams(BaseModel):
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
 
-    @validator("priority")
-    def validate_priority(cls, v):
+    @field_validator("priority")
+    def validate_priority(cls, v) -> dict:
         """Validate priority value."""
         if v is not None:
             valid_priorities = ["LOW", "MEDIUM", "HIGH", "URGENT"]
@@ -131,8 +131,8 @@ class ApplicationSearchParams(BaseModel):
                 raise ValueError(f"Priority must be one of {valid_priorities}")
         return v
 
-    @validator("end_date")
-    def validate_end_date(cls, v, values):
+    @field_validator("end_date")
+    def validate_end_date(cls, v, values) -> dict:
         """Validate end_date is after start_date."""
         if (
             v is not None
@@ -188,8 +188,8 @@ class BulkApprovalRequest(BaseModel):
     application_ids: List[int] = Field(..., min_items=1, max_items=100)
     comments: Optional[str] = Field(None, max_length=1000)
 
-    @validator("application_ids")
-    def validate_application_ids(cls, v):
+    @field_validator("application_ids")
+    def validate_application_ids(cls, v) -> dict:
         """Validate application IDs are positive integers."""
         for app_id in v:
             if app_id <= 0:
@@ -205,8 +205,8 @@ class BulkRejectionRequest(BaseModel):
         ..., min_length=1, max_length=1000, description="Rejection reason"
     )
 
-    @validator("application_ids")
-    def validate_application_ids(cls, v):
+    @field_validator("application_ids")
+    def validate_application_ids(cls, v) -> dict:
         """Validate application IDs are positive integers."""
         for app_id in v:
             if app_id <= 0:
@@ -222,8 +222,8 @@ class BulkOperationResponse(BaseModel):
     total_requested: int
     success_rate: float
 
-    @validator("success_rate", pre=True, always=True)
-    def calculate_success_rate(cls, v, values):
+    @field_validator("success_rate", pre=True, always=True)
+    def calculate_success_rate(cls, v, values) -> dict:
         """Calculate success rate based on processed and total."""
         if "total_requested" in values and values["total_requested"] > 0:
             processed = values.get("processed_count", 0)
@@ -312,8 +312,8 @@ class ApplicationFormField(BaseModel):
     )
     options: Optional[List[str]] = Field(None, description="Options for select fields")
 
-    @validator("type")
-    def validate_field_type(cls, v):
+    @field_validator("type")
+    def validate_field_type(cls, v) -> dict:
         """Validate field type."""
         valid_types = [
             "text",
@@ -377,16 +377,16 @@ class NotificationRequest(BaseModel):
     recipients: List[int] = Field(..., min_items=1, max_items=50)
     notification_type: str = Field(default="INFO")
 
-    @validator("recipients")
-    def validate_recipients(cls, v):
+    @field_validator("recipients")
+    def validate_recipients(cls, v) -> dict:
         """Validate recipient IDs are positive integers."""
         for recipient_id in v:
             if recipient_id <= 0:
                 raise ValueError("All recipient IDs must be positive integers")
         return v
 
-    @validator("notification_type")
-    def validate_notification_type(cls, v):
+    @field_validator("notification_type")
+    def validate_notification_type(cls, v) -> dict:
         """Validate notification type."""
         valid_types = ["INFO", "WARNING", "SUCCESS", "ERROR"]
         if v not in valid_types:
@@ -402,8 +402,8 @@ class ClarificationRequest(BaseModel):
     )
     priority: str = Field(default="MEDIUM", description="Urgency of clarification")
 
-    @validator("priority")
-    def validate_priority(cls, v):
+    @field_validator("priority")
+    def validate_priority(cls, v) -> dict:
         """Validate priority value."""
         valid_priorities = ["LOW", "MEDIUM", "HIGH", "URGENT"]
         if v not in valid_priorities:
@@ -425,16 +425,16 @@ class ExportRequest(BaseModel):
         default=False, description="Include detailed information"
     )
 
-    @validator("format")
-    def validate_format(cls, v):
+    @field_validator("format")
+    def validate_format(cls, v) -> dict:
         """Validate export format."""
         valid_formats = ["csv", "excel", "pdf"]
         if v not in valid_formats:
             raise ValueError(f"Format must be one of {valid_formats}")
         return v
 
-    @validator("end_date")
-    def validate_end_date(cls, v, values):
+    @field_validator("end_date")
+    def validate_end_date(cls, v, values) -> dict:
         """Validate end_date is after start_date."""
         if (
             v is not None
