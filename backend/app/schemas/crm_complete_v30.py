@@ -18,7 +18,7 @@ class CRMCustomerBase(BaseModel):
     )
 
     @validator("customer_code")
-    def code_valid(cls, v):
+    def code_valid(cls, v) -> dict:
         if not re.match(r"^[A-Z0-9_-]+$", v):
             raise ValueError(
                 "Customer code must contain only uppercase letters, numbers, hyphens and underscores"
