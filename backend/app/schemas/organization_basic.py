@@ -38,14 +38,14 @@ class OrganizationCreate(BaseModel):
 
     @field_validator("email")
     @classmethod
-    def validate_email(cls, v):
+    def validate_email(cls, v) -> dict:
         if v and "@" not in v:
             raise ValueError("Invalid email format")
         return v
 
     @field_validator("code")
     @classmethod
-    def validate_code(cls, v):
+    def validate_code(cls, v) -> dict:
         if not v or not v.strip():
             raise ValueError("Organization code cannot be empty")
         return v.strip().upper()
@@ -67,7 +67,7 @@ class OrganizationUpdate(BaseModel):
 
     @field_validator("email")
     @classmethod
-    def validate_email(cls, v):
+    def validate_email(cls, v) -> dict:
         if v and "@" not in v:
             raise ValueError("Invalid email format")
         return v

@@ -15,7 +15,7 @@ from app.models.expense import Expense, ExpenseStatus
 
 
 class FinancialReportsService:
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: AsyncSession) -> dict:
         self.db = db
 
     async def generate_budget_performance_report(

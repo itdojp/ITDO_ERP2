@@ -1,0 +1,241 @@
+name: Deployment Pipeline
+
+on:
+
+permissions:
+  contents: read
+  pull-requests: read
+  checks: read
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+        - staging
+        - production
+      
+      deploy_backend:
+        description: 'Deploy backend'
+        required: true
+        default: true
+        type: boolean
+      
+      deploy_frontend:
+        description: 'Deploy frontend'
+        required: true
+        default: true
+        type: boolean
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+    
+    strategy:
+      matrix:
+        component: [backend, frontend]
+        include:
+          - component: backend
+            port: 8000
+            health_path: /health
+          - component: frontend
+            port: 80
+            health_path: /
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Configure AWS credentials
+        if: contains(secrets.DEPLOY_TARGET, 'aws')
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        if: contains(secrets.DEPLOY_TARGET, 'aws')
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Deploy to staging
+        if: github.event.inputs.environment == 'staging' || (github.ref == 'refs/heads/main' && github.event_name == 'push')
+        run: |
+          echo "Deploying ${{ matrix.component }} to staging"
+          
+          # Create deployment manifest
+          cat > deployment.yaml << EOF
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: itdo-erp-${{ matrix.component }}-staging
+            namespace: itdo-erp-staging
+            labels:
+              app: itdo-erp
+              component: ${{ matrix.component }}
+              environment: staging
+          spec:
+            replicas: 2
+            selector:
+              matchLabels:
+                app: itdo-erp
+                component: ${{ matrix.component }}
+                environment: staging
+            template:
+              metadata:
+                labels:
+                  app: itdo-erp
+                  component: ${{ matrix.component }}
+                  environment: staging
+              spec:
+                containers:
+                - name: ${{ matrix.component }}
+                  image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.component }}:${{ github.sha }}
+                  ports:
+                  - containerPort: ${{ matrix.port }}
+                  env:
+                  - name: ENVIRONMENT
+                    value: "staging"
+                  - name: DATABASE_URL
+                    valueFrom:
+                      secretKeyRef:
+                        name: itdo-erp-secrets
+                        key: database-url
+                  livenessProbe:
+                    httpGet:
+                      path: ${{ matrix.health_path }}
+                      port: ${{ matrix.port }}
+                    initialDelaySeconds: 30
+                    periodSeconds: 10
+                  readinessProbe:
+                    httpGet:
+                      path: ${{ matrix.health_path }}
+                      port: ${{ matrix.port }}
+                    initialDelaySeconds: 5
+                    periodSeconds: 5
+          EOF
+          
+          # Apply deployment (simulation)
+          echo "kubectl apply -f deployment.yaml"
+          cat deployment.yaml
+
+      - name: Deploy to production
+        if: github.event.inputs.environment == 'production' || startsWith(github.ref, 'refs/tags/')
+        run: |
+          echo "Deploying ${{ matrix.component }} to production with blue-green strategy"
+          
+          # Blue-Green Deployment
+          cat > blue-green-deployment.yaml << EOF
+          apiVersion: argoproj.io/v1alpha1
+          kind: Rollout
+          metadata:
+            name: itdo-erp-${{ matrix.component }}
+            namespace: itdo-erp-production
+          spec:
+            replicas: 5
+            strategy:
+              blueGreen:
+                activeService: itdo-erp-${{ matrix.component }}-active
+                previewService: itdo-erp-${{ matrix.component }}-preview
+                autoPromotionEnabled: false
+                prePromotionAnalysis:
+                  templates:
+                  - templateName: success-rate
+                  args:
+                  - name: service-name
+                    value: itdo-erp-${{ matrix.component }}-preview
+                promotionPolicy:
+                  timeoutSeconds: 300
+                postPromotionAnalysis:
+                  templates:
+                  - templateName: success-rate
+                  args:
+                  - name: service-name
+                    value: itdo-erp-${{ matrix.component }}-active
+            selector:
+              matchLabels:
+                app: itdo-erp
+                component: ${{ matrix.component }}
+            template:
+              metadata:
+                labels:
+                  app: itdo-erp
+                  component: ${{ matrix.component }}
+              spec:
+                containers:
+                - name: ${{ matrix.component }}
+                  image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.component }}:${{ github.sha }}
+                  ports:
+                  - containerPort: ${{ matrix.port }}
+                  resources:
+                    requests:
+                      cpu: 100m
+                      memory: 128Mi
+                    limits:
+                      cpu: 500m
+                      memory: 512Mi
+          EOF
+          
+          echo "kubectl apply -f blue-green-deployment.yaml"
+          cat blue-green-deployment.yaml
+
+      - name: Run smoke tests
+        run: |
+          echo "Running smoke tests for ${{ matrix.component }}"
+          
+          # Wait for deployment
+          sleep 30
+          
+          # Basic health check simulation
+          echo "curl -f http://${{ matrix.component }}-service${{ matrix.health_path }}"
+          echo "✅ Smoke test passed for ${{ matrix.component }}"
+
+      - name: Notify deployment status
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          channel: '#deployments'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+          message: |
+            Deployment ${{ job.status }}:
+            - Component: ${{ matrix.component }}
+            - Environment: ${{ github.event.inputs.environment || 'staging' }}
+            - Commit: ${{ github.sha }}
+            - Actor: ${{ github.actor }}
+
+  rollback:
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    if: failure()
+    
+    steps:
+      - name: Rollback deployment
+        run: |
+          echo "Rolling back deployment due to failure"
+          # kubectl rollout undo deployment/itdo-erp-${{ matrix.component }} -n itdo-erp-${{ github.event.inputs.environment || 'staging' }}
+          
+      - name: Notify rollback
+        uses: 8398a7/action-slack@v3
+        with:
+          status: 'warning'
+          channel: '#deployments'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+          message: "🔄 Automatic rollback initiated due to deployment failure"

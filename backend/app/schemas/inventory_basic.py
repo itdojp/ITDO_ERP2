@@ -29,6 +29,7 @@ class WarehouseBase(BaseModel):
     # Contact information
     phone: Optional[str] = Field(None, max_length=20, description="Phone number")
     email: Optional[str] = Field(None, max_length=255, description="Email address")
+<<<<<<< HEAD
     manager_name: Optional[str] = Field(
         None, max_length=100, description="Manager name"
     )
@@ -41,6 +42,14 @@ class WarehouseBase(BaseModel):
     temperature_controlled: bool = Field(
         False, description="Temperature controlled facility"
     )
+=======
+    manager_name: Optional[str] = Field(None, max_length=100, description="Manager name")
+
+    # Specifications
+    total_area: Optional[Decimal] = Field(None, ge=0, description="Total area in m²")
+    storage_capacity: Optional[Decimal] = Field(None, ge=0, description="Storage capacity")
+    temperature_controlled: bool = Field(False, description="Temperature controlled facility")
+>>>>>>> main
 
     # Status
     is_default: bool = Field(False, description="Default warehouse")
@@ -48,7 +57,7 @@ class WarehouseBase(BaseModel):
 
     @field_validator("code")
     @classmethod
-    def validate_code(cls, v):
+    def validate_code(cls, v) -> dict:
         if not v or not v.strip():
             raise ValueError("Warehouse code cannot be empty")
         return v.strip().upper()
@@ -57,7 +66,6 @@ class WarehouseBase(BaseModel):
 class WarehouseCreate(WarehouseBase):
     """Warehouse creation schema."""
 
-    pass
 
 
 class WarehouseUpdate(BaseModel):
@@ -133,7 +141,7 @@ class InventoryItemBase(BaseModel):
 
     @field_validator("status")
     @classmethod
-    def validate_status(cls, v):
+    def validate_status(cls, v) -> dict:
         if v not in [s.value for s in InventoryStatus]:
             raise ValueError("Invalid inventory status")
         return v
@@ -142,7 +150,6 @@ class InventoryItemBase(BaseModel):
 class InventoryItemCreate(InventoryItemBase):
     """Inventory item creation schema."""
 
-    pass
 
 
 class InventoryItemUpdate(BaseModel):
@@ -160,7 +167,7 @@ class InventoryItemUpdate(BaseModel):
 
     @field_validator("status")
     @classmethod
-    def validate_status(cls, v):
+    def validate_status(cls, v) -> dict:
         if v and v not in [s.value for s in InventoryStatus]:
             raise ValueError("Invalid inventory status")
         return v
@@ -224,7 +231,7 @@ class StockMovementBase(BaseModel):
 
     @field_validator("movement_type")
     @classmethod
-    def validate_movement_type(cls, v):
+    def validate_movement_type(cls, v) -> dict:
         if v not in [t.value for t in MovementType]:
             raise ValueError("Invalid movement type")
         return v
@@ -233,7 +240,6 @@ class StockMovementBase(BaseModel):
 class StockMovementCreate(StockMovementBase):
     """Stock movement creation schema."""
 
-    pass
 
 
 class StockMovementResponse(StockMovementBase):

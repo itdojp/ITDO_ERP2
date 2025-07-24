@@ -9,7 +9,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 
-def get_db():  # type: ignore[no-untyped-def] - practical approach
+def get_db() -> None:  # type: ignore[no-untyped-def] - practical approach
     """Get database session - simple and working"""
     db = SessionLocal()
     try:
@@ -18,7 +18,7 @@ def get_db():  # type: ignore[no-untyped-def] - practical approach
         db.close()
 
 
-def test_connection():  # type: ignore[no-untyped-def]
+def test_connection() -> None:  # type: ignore[no-untyped-def]
     """Test database connection - practical check"""
     try:
         db = SessionLocal()

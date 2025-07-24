@@ -135,7 +135,7 @@ class PermissionMatrix:
         },
     }
 
-    def __init__(self):
+    def __init__(self) -> dict:
         """Initialize permission matrix."""
         self._permission_cache: Dict[str, Set[str]] = {}
         self._build_permission_cache()
