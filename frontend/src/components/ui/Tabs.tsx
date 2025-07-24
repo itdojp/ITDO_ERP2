@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from "react";
 
 export interface Tab {
   id: string;
@@ -15,9 +15,9 @@ interface TabsProps {
   activeTab?: string;
   onTabChange?: (tabId: string) => void;
   onTabClose?: (tabId: string) => void;
-  variant?: 'default' | 'pills' | 'underline' | 'bordered';
-  orientation?: 'horizontal' | 'vertical';
-  size?: 'sm' | 'md' | 'lg';
+  variant?: "default" | "pills" | "underline" | "bordered";
+  orientation?: "horizontal" | "vertical";
+  size?: "sm" | "md" | "lg";
   className?: string;
   tabListClassName?: string;
   tabClassName?: string;
@@ -33,34 +33,39 @@ export const Tabs: React.FC<TabsProps> = ({
   activeTab,
   onTabChange,
   onTabClose,
-  variant = 'default',
-  orientation = 'horizontal',
-  size = 'md',
-  className = '',
-  tabListClassName = '',
-  tabClassName = '',
-  contentClassName = '',
+  variant = "default",
+  orientation = "horizontal",
+  size = "md",
+  className = "",
+  tabListClassName = "",
+  tabClassName = "",
+  contentClassName = "",
   allowCloseTabs = false,
   scrollable = false,
   centered = false,
-  lazy = false
+  lazy = false,
 }) => {
   const [internalActiveTab, setInternalActiveTab] = useState(() => {
-    return activeTab || tabs.find(tab => !tab.disabled)?.id || tabs[0]?.id || '';
+    return (
+      activeTab || tabs.find((tab) => !tab.disabled)?.id || tabs[0]?.id || ""
+    );
   });
 
   const tabListRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
-  const [renderedTabs, setRenderedTabs] = useState<Set<string>>(new Set([internalActiveTab]));
+  const [renderedTabs, setRenderedTabs] = useState<Set<string>>(
+    new Set([internalActiveTab]),
+  );
 
-  const currentActiveTab = activeTab !== undefined ? activeTab : internalActiveTab;
+  const currentActiveTab =
+    activeTab !== undefined ? activeTab : internalActiveTab;
 
   const getSizeClasses = () => {
     const sizeMap = {
-      sm: 'text-sm px-3 py-1.5',
-      md: 'text-sm px-4 py-2',
-      lg: 'text-base px-6 py-3'
+      sm: "text-sm px-3 py-1.5",
+      md: "text-sm px-4 py-2",
+      lg: "text-base px-6 py-3",
     };
     return sizeMap[size];
   };
@@ -69,47 +74,47 @@ export const Tabs: React.FC<TabsProps> = ({
     const baseClasses = `
       inline-flex items-center gap-2 font-medium transition-all duration-200
       ${getSizeClasses()}
-      ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+      ${isDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
     `;
 
     switch (variant) {
-      case 'pills':
+      case "pills":
         return `${baseClasses} rounded-lg ${
-          isActive 
-            ? 'bg-blue-100 text-blue-700' 
-            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+          isActive
+            ? "bg-blue-100 text-blue-700"
+            : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
         }`;
-      case 'underline':
+      case "underline":
         return `${baseClasses} border-b-2 ${
-          isActive 
-            ? 'border-blue-500 text-blue-600' 
-            : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+          isActive
+            ? "border-blue-500 text-blue-600"
+            : "border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300"
         }`;
-      case 'bordered':
+      case "bordered":
         return `${baseClasses} border border-gray-300 ${
-          isActive 
-            ? 'bg-white border-blue-500 text-blue-600 -mb-px' 
-            : 'bg-gray-50 text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+          isActive
+            ? "bg-white border-blue-500 text-blue-600 -mb-px"
+            : "bg-gray-50 text-gray-600 hover:text-gray-900 hover:bg-gray-100"
         }`;
       default:
         return `${baseClasses} ${
-          isActive 
-            ? 'text-blue-600 bg-blue-50' 
-            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+          isActive
+            ? "text-blue-600 bg-blue-50"
+            : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
         }`;
     }
   };
 
   const handleTabClick = (tabId: string, disabled?: boolean) => {
     if (disabled) return;
-    
+
     if (activeTab === undefined) {
       setInternalActiveTab(tabId);
     }
     onTabChange?.(tabId);
-    
+
     if (lazy) {
-      setRenderedTabs(prev => new Set([...prev, tabId]));
+      setRenderedTabs((prev) => new Set([...prev, tabId]));
     }
   };
 
@@ -119,48 +124,52 @@ export const Tabs: React.FC<TabsProps> = ({
   };
 
   const handleKeyDown = (event: React.KeyboardEvent, tabId: string) => {
-    const enabledTabs = tabs.filter(tab => !tab.disabled);
-    const currentIndex = enabledTabs.findIndex(tab => tab.id === currentActiveTab);
-    
+    const enabledTabs = tabs.filter((tab) => !tab.disabled);
+    const currentIndex = enabledTabs.findIndex(
+      (tab) => tab.id === currentActiveTab,
+    );
+
     switch (event.key) {
-      case 'ArrowRight':
-      case 'ArrowDown':
+      case "ArrowRight":
+      case "ArrowDown":
         event.preventDefault();
         const nextIndex = (currentIndex + 1) % enabledTabs.length;
         handleTabClick(enabledTabs[nextIndex].id);
         break;
-      case 'ArrowLeft':
-      case 'ArrowUp':
+      case "ArrowLeft":
+      case "ArrowUp":
         event.preventDefault();
-        const prevIndex = currentIndex > 0 ? currentIndex - 1 : enabledTabs.length - 1;
+        const prevIndex =
+          currentIndex > 0 ? currentIndex - 1 : enabledTabs.length - 1;
         handleTabClick(enabledTabs[prevIndex].id);
         break;
-      case 'Home':
+      case "Home":
         event.preventDefault();
         handleTabClick(enabledTabs[0].id);
         break;
-      case 'End':
+      case "End":
         event.preventDefault();
         handleTabClick(enabledTabs[enabledTabs.length - 1].id);
         break;
-      case 'Enter':
-      case ' ':
+      case "Enter":
+      case " ":
         event.preventDefault();
         handleTabClick(tabId);
         break;
     }
   };
 
-  const scrollTabs = (direction: 'left' | 'right') => {
+  const scrollTabs = (direction: "left" | "right") => {
     const container = tabListRef.current;
     if (!container) return;
 
     const scrollAmount = 200;
-    const newScrollLeft = direction === 'left' 
-      ? container.scrollLeft - scrollAmount
-      : container.scrollLeft + scrollAmount;
-    
-    container.scrollTo({ left: newScrollLeft, behavior: 'smooth' });
+    const newScrollLeft =
+      direction === "left"
+        ? container.scrollLeft - scrollAmount
+        : container.scrollLeft + scrollAmount;
+
+    container.scrollTo({ left: newScrollLeft, behavior: "smooth" });
   };
 
   const updateScrollButtons = () => {
@@ -169,7 +178,7 @@ export const Tabs: React.FC<TabsProps> = ({
 
     setCanScrollLeft(container.scrollLeft > 0);
     setCanScrollRight(
-      container.scrollLeft < container.scrollWidth - container.clientWidth - 1
+      container.scrollLeft < container.scrollWidth - container.clientWidth - 1,
     );
   };
 
@@ -180,70 +189,92 @@ export const Tabs: React.FC<TabsProps> = ({
     if (!container) return;
 
     updateScrollButtons();
-    
+
     const handleScroll = () => updateScrollButtons();
-    container.addEventListener('scroll', handleScroll);
-    
+    container.addEventListener("scroll", handleScroll);
+
     const resizeObserver = new ResizeObserver(() => updateScrollButtons());
     resizeObserver.observe(container);
 
     return () => {
-      container.removeEventListener('scroll', handleScroll);
+      container.removeEventListener("scroll", handleScroll);
       resizeObserver.disconnect();
     };
   }, [scrollable, tabs]);
 
   useEffect(() => {
     if (lazy && currentActiveTab) {
-      setRenderedTabs(prev => new Set([...prev, currentActiveTab]));
+      setRenderedTabs((prev) => new Set([...prev, currentActiveTab]));
     }
   }, [currentActiveTab, lazy]);
 
-  const activeTabContent = tabs.find(tab => tab.id === currentActiveTab);
+  const activeTabContent = tabs.find((tab) => tab.id === currentActiveTab);
 
   const tabListClasses = `
-    ${orientation === 'horizontal' ? 'flex' : 'flex flex-col'}
-    ${scrollable && orientation === 'horizontal' ? 'overflow-x-auto scrollbar-hide' : ''}
-    ${centered ? 'justify-center' : ''}
-    ${variant === 'bordered' ? 'border-b border-gray-300' : ''}
+    ${orientation === "horizontal" ? "flex" : "flex flex-col"}
+    ${scrollable && orientation === "horizontal" ? "overflow-x-auto scrollbar-hide" : ""}
+    ${centered ? "justify-center" : ""}
+    ${variant === "bordered" ? "border-b border-gray-300" : ""}
     ${tabListClassName}
   `;
 
   const containerClasses = `
-    ${orientation === 'horizontal' ? 'flex flex-col' : 'flex gap-6'}
+    ${orientation === "horizontal" ? "flex flex-col" : "flex gap-6"}
     ${className}
   `;
 
   return (
     <div className={containerClasses}>
-      <div className={`relative ${orientation === 'horizontal' ? '' : 'w-48 flex-shrink-0'}`}>
-        {scrollable && orientation === 'horizontal' && (
+      <div
+        className={`relative ${orientation === "horizontal" ? "" : "w-48 flex-shrink-0"}`}
+      >
+        {scrollable && orientation === "horizontal" && (
           <>
             {canScrollLeft && (
               <button
-                onClick={() => scrollTabs('left')}
+                onClick={() => scrollTabs("left")}
                 className="absolute left-0 top-0 z-10 h-full bg-white shadow-md px-2 flex items-center"
                 aria-label="Scroll tabs left"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
                 </svg>
               </button>
             )}
             {canScrollRight && (
               <button
-                onClick={() => scrollTabs('right')}
+                onClick={() => scrollTabs("right")}
                 className="absolute right-0 top-0 z-10 h-full bg-white shadow-md px-2 flex items-center"
                 aria-label="Scroll tabs right"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
                 </svg>
               </button>
             )}
           </>
         )}
-        
+
         <div
           ref={tabListRef}
           role="tablist"
@@ -252,7 +283,7 @@ export const Tabs: React.FC<TabsProps> = ({
         >
           {tabs.map((tab, index) => {
             const isActive = tab.id === currentActiveTab;
-            
+
             return (
               <button
                 key={tab.id}
@@ -264,7 +295,7 @@ export const Tabs: React.FC<TabsProps> = ({
                 disabled={tab.disabled}
                 className={`
                   ${getVariantClasses(isActive, tab.disabled || false)}
-                  ${variant === 'bordered' && index > 0 ? 'ml-0' : ''}
+                  ${variant === "bordered" && index > 0 ? "ml-0" : ""}
                   ${tabClassName}
                 `}
                 onClick={() => handleTabClick(tab.id, tab.disabled)}
@@ -283,8 +314,18 @@ export const Tabs: React.FC<TabsProps> = ({
                     className="ml-2 text-gray-400 hover:text-gray-600 transition-colors"
                     aria-label={`Close ${tab.label} tab`}
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
                     </svg>
                   </button>
                 )}
@@ -298,9 +339,9 @@ export const Tabs: React.FC<TabsProps> = ({
         {tabs.map((tab) => {
           const isActive = tab.id === currentActiveTab;
           const shouldRender = !lazy || renderedTabs.has(tab.id);
-          
+
           if (!shouldRender) return null;
-          
+
           return (
             <div
               key={tab.id}
@@ -308,7 +349,7 @@ export const Tabs: React.FC<TabsProps> = ({
               tabIndex={0}
               aria-labelledby={`tab-${tab.id}`}
               id={`tabpanel-${tab.id}`}
-              className={isActive ? 'block' : 'hidden'}
+              className={isActive ? "block" : "hidden"}
             >
               {tab.content}
             </div>

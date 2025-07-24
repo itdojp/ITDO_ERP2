@@ -1,28 +1,37 @@
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import or_, and_, func
-from typing import Optional, List, Dict, Any
-from datetime import datetime
 import uuid
+from datetime import datetime
 from decimal import Decimal
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy import func, or_
+from sqlalchemy.orm import Session, joinedload
 
 from app.models.product_extended import (
-    Product, ProductCategory, ProductVariant, ProductImage, 
-    Supplier, InventoryMovement, ProductPriceHistory
+    InventoryMovement,
+    Product,
+    ProductCategory,
+    ProductPriceHistory,
+    Supplier,
 )
 from app.schemas.product_complete_v30 import (
-    ProductCreate, ProductUpdate, ProductCategoryCreate, ProductCategoryUpdate,
-    SupplierCreate, SupplierUpdate, ProductVariantCreate, ProductImageCreate,
-    InventoryMovementCreate
+    InventoryMovementCreate,
+    ProductCategoryCreate,
+    ProductCreate,
+    ProductUpdate,
+    SupplierCreate,
 )
+
 
 class NotFoundError(Exception):
     pass
 
+
 class DuplicateError(Exception):
     pass
 
+
 class ProductCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def get_by_id(self, product_id: str) -> Optional[Product]:
@@ -42,7 +51,7 @@ class ProductCRUD:
         limit: int = 100,
         filters: Optional[Dict[str, Any]] = None,
         sort_by: str = "created_at",
-        sort_desc: bool = True
+        sort_desc: bool = True,
     ) -> tuple[List[Product], int]:
         query = self.db.query(Product)
 
@@ -55,7 +64,9 @@ class ProductCRUD:
             if filters.get("brand"):
                 query = query.filter(Product.brand == filters["brand"])
             if filters.get("product_status"):
-                query = query.filter(Product.product_status == filters["product_status"])
+                query = query.filter(
+                    Product.product_status == filters["product_status"]
+                )
             if filters.get("product_type"):
                 query = query.filter(Product.product_type == filters["product_type"])
             if filters.get("is_sellable") is not None:
@@ -71,7 +82,7 @@ class ProductCRUD:
                         Product.name.ilike(search),
                         Product.sku.ilike(search),
                         Product.description.ilike(search),
-                        Product.brand.ilike(search)
+                        Product.brand.ilike(search),
                     )
                 )
             if filters.get("price_min"):
@@ -93,7 +104,9 @@ class ProductCRUD:
 
         # available_quantity を計算
         for product in products:
-            product.available_quantity = max(0, product.stock_quantity - product.reserved_quantity)
+            product.available_quantity = max(
+                0, product.stock_quantity - product.reserved_quantity
+            )
 
         return products, total
 
@@ -104,14 +117,20 @@ class ProductCRUD:
 
         # バーコード重複チェック
         if product_in.barcode:
-            existing = self.db.query(Product).filter(Product.barcode == product_in.barcode).first()
+            existing = (
+                self.db.query(Product)
+                .filter(Product.barcode == product_in.barcode)
+                .first()
+            )
             if existing:
                 raise DuplicateError("Barcode already exists")
 
         # 体積計算
         volume = None
         if product_in.length and product_in.width and product_in.height:
-            volume = product_in.length * product_in.width * product_in.height / 1000  # cm³ to L
+            volume = (
+                product_in.length * product_in.width * product_in.height / 1000
+            )  # cm³ to L
 
         db_product = Product(
             id=str(uuid.uuid4()),
@@ -152,7 +171,7 @@ class ProductCRUD:
             tax_category=product_in.tax_category,
             tax_rate=product_in.tax_rate,
             attributes=product_in.attributes,
-            specifications=product_in.specifications
+            specifications=product_in.specifications,
         )
 
         self.db.add(db_product)
@@ -171,20 +190,18 @@ class ProductCRUD:
 
         # 価格変更チェック
         price_changed = False
-        old_prices = {
-            'cost_price': product.cost_price,
-            'selling_price': product.selling_price,
-            'list_price': product.list_price
-        }
 
         update_data = product_in.dict(exclude_unset=True)
         for field, value in update_data.items():
-            if field in ['cost_price', 'selling_price', 'list_price'] and getattr(product, field) != value:
+            if (
+                field in ["cost_price", "selling_price", "list_price"]
+                and getattr(product, field) != value
+            ):
                 price_changed = True
             setattr(product, field, value)
 
         # 体積再計算
-        if any(field in update_data for field in ['length', 'width', 'height']):
+        if any(field in update_data for field in ["length", "width", "height"]):
             if product.length and product.width and product.height:
                 product.volume = product.length * product.width * product.height / 1000
 
@@ -215,7 +232,9 @@ class ProductCRUD:
         self.db.commit()
         return True
 
-    def adjust_inventory(self, product_id: str, movement: InventoryMovementCreate, user_id: str) -> bool:
+    def adjust_inventory(
+        self, product_id: str, movement: InventoryMovementCreate, user_id: str
+    ) -> bool:
         product = self.get_by_id(product_id)
         if not product:
             raise NotFoundError(f"Product {product_id} not found")
@@ -225,7 +244,7 @@ class ProductCRUD:
 
         # 在庫移動記録
         stock_before = product.stock_quantity
-        
+
         if movement.movement_type == "in":
             product.stock_quantity += movement.quantity
         elif movement.movement_type == "out":
@@ -234,7 +253,7 @@ class ProductCRUD:
             product.stock_quantity -= movement.quantity
         elif movement.movement_type == "adjustment":
             product.stock_quantity = movement.quantity
-        
+
         stock_after = product.stock_quantity
         total_cost = None
         if movement.unit_cost:
@@ -258,7 +277,7 @@ class ProductCRUD:
             warehouse_to=movement.warehouse_to,
             location=movement.location,
             created_by=user_id,
-            movement_date=movement.movement_date
+            movement_date=movement.movement_date,
         )
 
         self.db.add(inventory_movement)
@@ -270,15 +289,21 @@ class ProductCRUD:
     def get_statistics(self) -> Dict[str, Any]:
         """商品統計情報を取得"""
         total_products = self.db.query(func.count(Product.id)).scalar()
-        active_products = self.db.query(func.count(Product.id)).filter(
-            Product.product_status == "active"
-        ).scalar()
-        inactive_products = self.db.query(func.count(Product.id)).filter(
-            Product.product_status == "inactive"
-        ).scalar()
-        discontinued_products = self.db.query(func.count(Product.id)).filter(
-            Product.product_status == "discontinued"
-        ).scalar()
+        active_products = (
+            self.db.query(func.count(Product.id))
+            .filter(Product.product_status == "active")
+            .scalar()
+        )
+        inactive_products = (
+            self.db.query(func.count(Product.id))
+            .filter(Product.product_status == "inactive")
+            .scalar()
+        )
+        discontinued_products = (
+            self.db.query(func.count(Product.id))
+            .filter(Product.product_status == "discontinued")
+            .scalar()
+        )
 
         # カテゴリ別統計
         category_stats = {}
@@ -313,22 +338,24 @@ class ProductCRUD:
             supplier_stats[supplier or "未設定"] = count or 0
 
         # 在庫状況
-        low_stock_count = self.db.query(func.count(Product.id)).filter(
-            Product.stock_quantity <= Product.reorder_point,
-            Product.track_inventory == True
-        ).scalar()
-        
-        out_of_stock_count = self.db.query(func.count(Product.id)).filter(
-            Product.stock_quantity <= 0,
-            Product.track_inventory == True
-        ).scalar()
+        low_stock_count = (
+            self.db.query(func.count(Product.id))
+            .filter(
+                Product.stock_quantity <= Product.reorder_point, Product.track_inventory
+            )
+            .scalar()
+        )
+
+        out_of_stock_count = (
+            self.db.query(func.count(Product.id))
+            .filter(Product.stock_quantity <= 0, Product.track_inventory)
+            .scalar()
+        )
 
         # 在庫総額
-        inventory_value = (
-            self.db.query(func.sum(Product.stock_quantity * Product.cost_price))
-            .filter(Product.cost_price.isnot(None))
-            .scalar() or Decimal('0')
-        )
+        inventory_value = self.db.query(
+            func.sum(Product.stock_quantity * Product.cost_price)
+        ).filter(Product.cost_price.isnot(None)).scalar() or Decimal("0")
 
         return {
             "total_products": total_products or 0,
@@ -340,12 +367,18 @@ class ProductCRUD:
             "by_supplier": supplier_stats,
             "low_stock_count": low_stock_count or 0,
             "out_of_stock_count": out_of_stock_count or 0,
-            "total_inventory_value": inventory_value
+            "total_inventory_value": inventory_value,
         }
 
-    def bulk_update_prices(self, product_ids: List[str], price_type: str, 
-                          adjustment_type: str, adjustment_value: Decimal, 
-                          reason: str, user_id: str) -> Dict[str, Any]:
+    def bulk_update_prices(
+        self,
+        product_ids: List[str],
+        price_type: str,
+        adjustment_type: str,
+        adjustment_value: Decimal,
+        reason: str,
+        user_id: str,
+    ) -> Dict[str, Any]:
         """一括価格更新"""
         updated_products = []
         errors = []
@@ -354,12 +387,16 @@ class ProductCRUD:
             try:
                 product = self.get_by_id(product_id)
                 if not product:
-                    errors.append({"product_id": product_id, "error": "Product not found"})
+                    errors.append(
+                        {"product_id": product_id, "error": "Product not found"}
+                    )
                     continue
 
                 current_price = getattr(product, price_type)
                 if current_price is None:
-                    errors.append({"product_id": product_id, "error": f"{price_type} not set"})
+                    errors.append(
+                        {"product_id": product_id, "error": f"{price_type} not set"}
+                    )
                     continue
 
                 if adjustment_type == "amount":
@@ -368,15 +405,20 @@ class ProductCRUD:
                     new_price = current_price * (1 + adjustment_value / 100)
 
                 if new_price < 0:
-                    errors.append({"product_id": product_id, "error": "Negative price not allowed"})
+                    errors.append(
+                        {
+                            "product_id": product_id,
+                            "error": "Negative price not allowed",
+                        }
+                    )
                     continue
 
                 setattr(product, price_type, new_price)
                 product.updated_at = datetime.utcnow()
-                
+
                 # 価格履歴記録
                 self._record_price_history(product, reason, user_id)
-                
+
                 updated_products.append(product_id)
 
             except Exception as e:
@@ -388,10 +430,10 @@ class ProductCRUD:
             "success_count": len(updated_products),
             "error_count": len(errors),
             "updated_products": updated_products,
-            "errors": errors
+            "errors": errors,
         }
 
-    def _record_price_history(self, product: Product, reason: str, user_id: str = None):
+    def _record_price_history(self, product: Product, reason: str, user_id: str = None) -> dict:
         """価格履歴を記録"""
         price_history = ProductPriceHistory(
             id=str(uuid.uuid4()),
@@ -401,27 +443,33 @@ class ProductCRUD:
             list_price=product.list_price,
             change_reason=reason,
             changed_by=user_id,
-            effective_from=datetime.utcnow()
+            effective_from=datetime.utcnow(),
         )
         self.db.add(price_history)
 
 
 class ProductCategoryCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def get_by_id(self, category_id: str) -> Optional[ProductCategory]:
-        return self.db.query(ProductCategory).filter(ProductCategory.id == category_id).first()
+        return (
+            self.db.query(ProductCategory)
+            .filter(ProductCategory.id == category_id)
+            .first()
+        )
 
     def get_by_code(self, code: str) -> Optional[ProductCategory]:
-        return self.db.query(ProductCategory).filter(ProductCategory.code == code).first()
+        return (
+            self.db.query(ProductCategory).filter(ProductCategory.code == code).first()
+        )
 
     def get_multi(
         self,
         skip: int = 0,
         limit: int = 100,
         parent_id: Optional[str] = None,
-        is_active: Optional[bool] = None
+        is_active: Optional[bool] = None,
     ) -> tuple[List[ProductCategory], int]:
         query = self.db.query(ProductCategory)
 
@@ -431,7 +479,9 @@ class ProductCategoryCRUD:
             query = query.filter(ProductCategory.is_active == is_active)
 
         total = query.count()
-        categories = query.offset(skip).limit(limit).order_by(ProductCategory.name).all()
+        categories = (
+            query.offset(skip).limit(limit).order_by(ProductCategory.name).all()
+        )
 
         return categories, total
 
@@ -443,7 +493,7 @@ class ProductCategoryCRUD:
         parent = None
         level = 0
         path = f"/{category_in.code}"
-        
+
         if category_in.parent_id:
             parent = self.get_by_id(category_in.parent_id)
             if not parent:
@@ -461,7 +511,7 @@ class ProductCategoryCRUD:
             path=path,
             tax_rate=category_in.tax_rate,
             commission_rate=category_in.commission_rate,
-            metadata_json=category_in.metadata_json
+            metadata_json=category_in.metadata_json,
         )
 
         self.db.add(db_category)
@@ -472,7 +522,7 @@ class ProductCategoryCRUD:
 
 
 class SupplierCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def get_by_id(self, supplier_id: str) -> Optional[Supplier]:
@@ -482,10 +532,7 @@ class SupplierCRUD:
         return self.db.query(Supplier).filter(Supplier.code == code).first()
 
     def get_multi(
-        self,
-        skip: int = 0,
-        limit: int = 100,
-        filters: Optional[Dict[str, Any]] = None
+        self, skip: int = 0, limit: int = 100, filters: Optional[Dict[str, Any]] = None
     ) -> tuple[List[Supplier], int]:
         query = self.db.query(Supplier)
 
@@ -499,10 +546,7 @@ class SupplierCRUD:
             if filters.get("search"):
                 search = f"%{filters['search']}%"
                 query = query.filter(
-                    or_(
-                        Supplier.name.ilike(search),
-                        Supplier.code.ilike(search)
-                    )
+                    or_(Supplier.name.ilike(search), Supplier.code.ilike(search))
                 )
 
         total = query.count()
@@ -533,7 +577,7 @@ class SupplierCRUD:
             credit_limit=supplier_in.credit_limit,
             tax_id=supplier_in.tax_id,
             notes=supplier_in.notes,
-            metadata_json=supplier_in.metadata_json
+            metadata_json=supplier_in.metadata_json,
         )
 
         self.db.add(db_supplier)
