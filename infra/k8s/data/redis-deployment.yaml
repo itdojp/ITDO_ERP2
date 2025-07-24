@@ -1,0 +1,215 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: itdo-erp-data
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/component: cache
+    app.kubernetes.io/version: "7"
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: redis
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: redis
+        app.kubernetes.io/component: cache
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999  # redis user
+        fsGroup: 999
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 6379
+          name: redis
+        env:
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: itdo-erp-secrets
+              key: REDIS_PASSWORD
+        command:
+        - redis-server
+        - /etc/redis/redis.conf
+        - --requirepass
+        - $(REDIS_PASSWORD)
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
+        volumeMounts:
+        - name: redis-data
+          mountPath: /data
+        - name: redis-config
+          mountPath: /etc/redis
+          readOnly: true
+        livenessProbe:
+          exec:
+            command:
+            - redis-cli
+            - --no-auth-warning
+            - -a
+            - $(REDIS_PASSWORD)
+            - ping
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+            - redis-cli
+            - --no-auth-warning
+            - -a
+            - $(REDIS_PASSWORD)
+            - ping
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          runAsUser: 999
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: redis-data
+        persistentVolumeClaim:
+          claimName: redis-data-pvc
+      - name: redis-config
+        configMap:
+          name: redis-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-service
+  namespace: itdo-erp-data
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/component: cache
+spec:
+  type: ClusterIP
+  ports:
+  - port: 6379
+    targetPort: 6379
+    name: redis
+  selector:
+    app.kubernetes.io/name: redis
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-data-pvc
+  namespace: itdo-erp-data
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/component: storage
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: "fast-ssd"
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-config
+  namespace: itdo-erp-data
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/component: config
+data:
+  redis.conf: |
+    # Redis configuration for ITDO ERP v2
+    
+    # Network
+    bind 0.0.0.0
+    port 6379
+    tcp-backlog 511
+    tcp-keepalive 300
+    
+    # General
+    daemonize no
+    pidfile /var/run/redis_6379.pid
+    loglevel notice
+    logfile ""
+    databases 16
+    
+    # Snapshotting
+    save 900 1
+    save 300 10
+    save 60 10000
+    stop-writes-on-bgsave-error yes
+    rdbcompression yes
+    rdbchecksum yes
+    dbfilename dump.rdb
+    dir /data
+    
+    # Security
+    # requirepass is set via command line
+    
+    # Memory management
+    maxmemory 256mb
+    maxmemory-policy allkeys-lru
+    maxmemory-samples 5
+    
+    # Lazy freeing
+    lazyfree-lazy-eviction no
+    lazyfree-lazy-expire no
+    lazyfree-lazy-server-del no
+    replica-lazy-flush no
+    
+    # Append only file
+    appendonly yes
+    appendfilename "appendonly.aof"
+    appendfsync everysec
+    no-appendfsync-on-rewrite no
+    auto-aof-rewrite-percentage 100
+    auto-aof-rewrite-min-size 64mb
+    aof-load-truncated yes
+    aof-use-rdb-preamble yes
+    
+    # Lua scripting
+    lua-time-limit 5000
+    
+    # Slow log
+    slowlog-log-slower-than 10000
+    slowlog-max-len 128
+    
+    # Client output buffer limits
+    client-output-buffer-limit normal 0 0 0
+    client-output-buffer-limit replica 256mb 64mb 60
+    client-output-buffer-limit pubsub 32mb 8mb 60
+    
+    # Client query buffer limit
+    client-query-buffer-limit 1gb
+    
+    # Protocol max bulk length
+    proto-max-bulk-len 512mb
+    
+    # Frequency of rehashing
+    hz 10
+    
+    # Enable active rehashing
+    activerehashing yes
+    
+    # Jemalloc background thread
+    jemalloc-bg-thread yes
