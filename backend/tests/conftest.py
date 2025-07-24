@@ -317,6 +317,13 @@ def setup_sync_test_data():
     except ImportError:
         pass  # Order module not available yet
     
+    # Clear core products data
+    try:
+        from app.api.v1.endpoints.products_core import products_store
+        products_store.clear()
+    except ImportError:
+        pass  # Core products module not available yet
+    
     yield
     
     # Cleanup
@@ -345,6 +352,13 @@ def setup_sync_test_data():
         from app.api.v1.endpoints.orders import orders_store, order_items_store
         orders_store.clear()
         order_items_store.clear()
+    except ImportError:
+        pass
+    
+    # Cleanup core products data
+    try:
+        from app.api.v1.endpoints.products_core import products_store
+        products_store.clear()
     except ImportError:
         pass
 
