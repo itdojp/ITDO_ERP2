@@ -1,0 +1,407 @@
+# ITDO ERP v2 - PostgreSQL High Availability Cluster
+# CC03 v48.0 Business-Aligned Infrastructure
+
+# PostgreSQL Primary Instance
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgresql-primary
+  namespace: itdo-erp-data
+  labels:
+    app.kubernetes.io/name: postgresql
+    app.kubernetes.io/component: database
+    app.kubernetes.io/instance: primary
+spec:
+  serviceName: postgresql-primary-service
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: postgresql
+      app.kubernetes.io/instance: primary
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: postgresql
+        app.kubernetes.io/component: database
+        app.kubernetes.io/instance: primary
+    spec:
+      securityContext:
+        fsGroup: 999
+      containers:
+      - name: postgresql
+        image: postgres:15-alpine
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5432
+          name: postgresql
+        env:
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_DB
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_REPLICATION_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_REPLICATION_USER
+        - name: POSTGRES_REPLICATION_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_REPLICATION_PASSWORD
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        volumeMounts:
+        - name: postgresql-data
+          mountPath: /var/lib/postgresql/data
+        - name: postgresql-config
+          mountPath: /etc/postgresql/postgresql.conf
+          subPath: postgresql.conf
+        - name: postgresql-config
+          mountPath: /etc/postgresql/pg_hba.conf
+          subPath: pg_hba.conf
+        - name: postgresql-archive
+          mountPath: /var/lib/postgresql/archive
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - $(POSTGRES_USER)
+            - -d
+            - $(POSTGRES_DB)
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - $(POSTGRES_USER)
+            - -d
+            - $(POSTGRES_DB)
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: postgresql-config
+        configMap:
+          name: postgres-config
+      - name: postgresql-archive
+        emptyDir: {}
+  volumeClaimTemplates:
+  - metadata:
+      name: postgresql-data
+    spec:
+      accessModes: ["ReadWriteOnce"]  
+      storageClassName: "fast-ssd"
+      resources:
+        requests:
+          storage: 100Gi
+
+---
+# PostgreSQL Replica Instance
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgresql-replica
+  namespace: itdo-erp-data
+  labels:
+    app.kubernetes.io/name: postgresql
+    app.kubernetes.io/component: database
+    app.kubernetes.io/instance: replica
+spec:
+  serviceName: postgresql-replica-service
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: postgresql
+      app.kubernetes.io/instance: replica
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: postgresql
+        app.kubernetes.io/component: database
+        app.kubernetes.io/instance: replica
+    spec:
+      securityContext:
+        fsGroup: 999
+      initContainers:
+      - name: setup-replica
+        image: postgres:15-alpine
+        command:
+        - /bin/bash
+        - -c
+        - |
+          if [ ! -s "$PGDATA/PG_VERSION" ]; then
+            echo "Setting up PostgreSQL replica..."
+            pg_basebackup -h postgresql-primary-service -D $PGDATA -U $POSTGRES_REPLICATION_USER -W -v -P
+            echo "standby_mode = 'on'" >> $PGDATA/recovery.conf
+            echo "primary_conninfo = 'host=postgresql-primary-service port=5432 user=$POSTGRES_REPLICATION_USER'" >> $PGDATA/recovery.conf
+            echo "trigger_file = '/tmp/promote_replica'" >> $PGDATA/recovery.conf
+          fi
+        env:
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        - name: POSTGRES_REPLICATION_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_REPLICATION_USER
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_REPLICATION_PASSWORD
+        volumeMounts:
+        - name: postgresql-data
+          mountPath: /var/lib/postgresql/data
+      containers:
+      - name: postgresql
+        image: postgres:15-alpine
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5432
+          name: postgresql
+        env:
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_DB
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_PASSWORD
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        volumeMounts:
+        - name: postgresql-data
+          mountPath: /var/lib/postgresql/data
+        - name: postgresql-config
+          mountPath: /etc/postgresql/postgresql.conf
+          subPath: postgresql.conf
+        - name: postgresql-config
+          mountPath: /etc/postgresql/pg_hba.conf
+          subPath: pg_hba.conf
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - $(POSTGRES_USER)
+            - -d
+            - $(POSTGRES_DB)
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - $(POSTGRES_USER)
+            - -d
+            - $(POSTGRES_DB)
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: postgresql-config
+        configMap:
+          name: postgres-config
+  volumeClaimTemplates:
+  - metadata:
+      name: postgresql-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: "fast-ssd"
+      resources:
+        requests:
+          storage: 100Gi
+
+---
+# PostgreSQL Primary Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgresql-primary-service
+  namespace: itdo-erp-data
+  labels:
+    app.kubernetes.io/name: postgresql
+    app.kubernetes.io/component: database
+    app.kubernetes.io/instance: primary
+spec:
+  type: ClusterIP
+  ports:
+  - port: 5432
+    targetPort: 5432
+    name: postgresql
+  selector:
+    app.kubernetes.io/name: postgresql
+    app.kubernetes.io/instance: primary
+
+---
+# PostgreSQL Replica Service (Read-only)
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgresql-replica-service
+  namespace: itdo-erp-data
+  labels:
+    app.kubernetes.io/name: postgresql
+    app.kubernetes.io/component: database
+    app.kubernetes.io/instance: replica
+spec:
+  type: ClusterIP
+  ports:
+  - port: 5432
+    targetPort: 5432
+    name: postgresql
+  selector:
+    app.kubernetes.io/name: postgresql
+    app.kubernetes.io/instance: replica
+
+---
+# PostgreSQL Cluster Service (Load Balancer for reads)
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgresql-cluster-service
+  namespace: itdo-erp-data
+  labels:
+    app.kubernetes.io/name: postgresql
+    app.kubernetes.io/component: database
+    app.kubernetes.io/instance: cluster
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+    service.beta.kubernetes.io/aws-load-balancer-internal: "true"
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 5432
+    targetPort: 5432
+    name: postgresql
+  selector:
+    app.kubernetes.io/name: postgresql
+    app.kubernetes.io/instance: primary
+
+---
+# PostgreSQL Backup CronJob
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgresql-backup
+  namespace: itdo-erp-data
+  labels:
+    app.kubernetes.io/name: postgresql
+    app.kubernetes.io/component: backup
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: postgresql-backup
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: postgres-backup
+            image: postgres:15-alpine
+            command:
+            - /bin/bash
+            - -c
+            - |
+              BACKUP_FILE="/backup/itdo_erp_prod_$(date +%Y%m%d_%H%M%S).sql"
+              echo "Starting backup to $BACKUP_FILE"
+              pg_dump -h postgresql-primary-service -U $POSTGRES_USER -d $POSTGRES_DB > $BACKUP_FILE
+              if [ $? -eq 0 ]; then
+                echo "Backup completed successfully"
+                # Compress backup
+                gzip $BACKUP_FILE
+                # Clean old backups (keep 30 days)
+                find /backup -name "*.sql.gz" -mtime +30 -delete
+                echo "Backup cleanup completed"
+              else
+                echo "Backup failed"
+                exit 1
+              fi
+            env:
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_DB
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_USER
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD
+            volumeMounts:
+            - name: backup-storage
+              mountPath: /backup
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "100m"
+              limits:
+                memory: "512Mi"
+                cpu: "500m"
+          volumes:
+          - name: backup-storage
+            persistentVolumeClaim:
+              claimName: postgresql-backup-pvc
+
+---
+# PostgreSQL Backup PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgresql-backup-pvc
+  namespace: itdo-erp-data
+  labels:
+    app.kubernetes.io/name: postgresql
+    app.kubernetes.io/component: backup
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: "standard"
+  resources:
+    requests:
+      storage: 500Gi

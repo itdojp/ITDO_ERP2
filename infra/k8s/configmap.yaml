@@ -1,0 +1,254 @@
+# ITDO ERP v2 - Production Configuration Maps
+# CC03 v48.0 Business-Aligned Infrastructure
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: itdo-erp-config
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: itdo-erp
+    app.kubernetes.io/component: config
+data:
+  # Database Settings
+  POSTGRES_HOST: "postgresql-cluster-service.itdo-erp-data.svc.cluster.local"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: "itdo_erp_prod"
+  REDIS_HOST: "redis-cluster-service.itdo-erp-data.svc.cluster.local"
+  REDIS_PORT: "6379"
+  
+  # Application Settings
+  ENVIRONMENT: "production"
+  LOG_LEVEL: "INFO"
+  DEBUG: "false"
+  
+  # API Settings
+  API_VERSION: "v1"
+  API_PREFIX: "/api/v1"
+  API_DOCS_URL: "/docs"
+  
+  # Security Settings
+  ALLOWED_HOSTS: "itdo-erp.com,*.itdo-erp.com"
+  CORS_ORIGINS: "https://itdo-erp.com"
+  SESSION_COOKIE_SECURE: "true"
+  CSRF_COOKIE_SECURE: "true"
+  
+  # Performance Settings
+  WORKER_PROCESSES: "4"
+  MAX_CONNECTIONS: "1000"
+  CONNECTION_TIMEOUT: "30"
+  
+  # Business Settings
+  DEFAULT_CURRENCY: "JPY"
+  DEFAULT_LANGUAGE: "ja"
+  DEFAULT_TIMEZONE: "Asia/Tokyo"
+  
+  # File Storage
+  STORAGE_TYPE: "s3"
+  STORAGE_BUCKET: "itdo-erp-prod-files"
+  
+  # Monitoring
+  METRICS_ENABLED: "true"
+  METRICS_PORT: "9090"
+  HEALTH_CHECK_PATH: "/health"
+  
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: nginx
+    app.kubernetes.io/component: frontend
+data:
+  nginx.conf: |
+    events {
+        worker_connections 1024;
+    }
+    
+    http {
+        include       /etc/nginx/mime.types;
+        default_type  application/octet-stream;
+        
+        # Logging
+        log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                       '$status $body_bytes_sent "$http_referer" '
+                       '"$http_user_agent" "$http_x_forwarded_for"';
+        
+        access_log /var/log/nginx/access.log main;
+        error_log /var/log/nginx/error.log warn;
+        
+        # Performance
+        sendfile on;
+        tcp_nopush on;
+        tcp_nodelay on;
+        keepalive_timeout 65;
+        types_hash_max_size 2048;
+        client_max_body_size 20M;
+        
+        # Gzip compression
+        gzip on;
+        gzip_vary on;
+        gzip_min_length 1024;
+        gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
+        
+        # Rate limiting
+        limit_req_zone $binary_remote_addr zone=api:10m rate=100r/m;
+        limit_req_zone $binary_remote_addr zone=login:10m rate=10r/m;
+        
+        upstream backend {
+            server itdo-erp-backend-service.itdo-erp-prod.svc.cluster.local:8000;
+            keepalive 32;
+        }
+        
+        server {
+            listen 8080;
+            server_name _;
+            
+            # Security headers
+            add_header X-Frame-Options "SAMEORIGIN" always;
+            add_header X-Content-Type-Options "nosniff" always;
+            add_header X-XSS-Protection "1; mode=block" always;
+            add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+            add_header Content-Security-Policy "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self' data:; connect-src 'self' https://itdo-erp.com;" always;
+            
+            # Static files
+            location / {
+                root /usr/share/nginx/html;
+                try_files $uri $uri/ /index.html;
+                
+                # Cache static assets
+                location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+                    expires 1y;
+                    add_header Cache-Control "public, immutable";
+                }
+            }
+            
+            # API proxy with rate limiting
+            location /api/ {
+                limit_req zone=api burst=20 nodelay;
+                
+                proxy_pass http://backend/api/;
+                proxy_http_version 1.1;
+                proxy_set_header Upgrade $http_upgrade;
+                proxy_set_header Connection 'upgrade';
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+                proxy_cache_bypass $http_upgrade;
+                
+                proxy_connect_timeout 30s;
+                proxy_send_timeout 30s;
+                proxy_read_timeout 30s;
+            }
+            
+            # Login endpoint with stricter rate limiting
+            location /api/v1/auth/login {
+                limit_req zone=login burst=5 nodelay;
+                
+                proxy_pass http://backend/api/v1/auth/login;
+                proxy_http_version 1.1;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+            }
+            
+            # Health check
+            location /health {
+                access_log off;
+                return 200 '{"status":"healthy","service":"itdo-erp-frontend"}';
+                add_header Content-Type application/json;
+            }
+            
+            # Metrics for monitoring
+            location /nginx_status {
+                stub_status on;
+                access_log off;
+                allow 10.0.0.0/8;
+                allow 172.16.0.0/12;
+                allow 192.168.0.0/16;
+                deny all;
+            }
+        }
+    }
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  namespace: itdo-erp-data
+  labels:
+    app.kubernetes.io/name: postgresql
+    app.kubernetes.io/component: database
+data:
+  postgresql.conf: |
+    # PostgreSQL Configuration for ITDO ERP Production
+    
+    # Connection Settings
+    listen_addresses = '*'
+    port = 5432
+    max_connections = 200
+    
+    # Memory Settings
+    shared_buffers = 512MB
+    effective_cache_size = 2GB
+    work_mem = 16MB
+    maintenance_work_mem = 256MB
+    
+    # WAL Settings (for replication)
+    wal_level = replica
+    max_wal_senders = 3
+    max_replication_slots = 3
+    archive_mode = on
+    archive_command = 'test ! -f /var/lib/postgresql/archive/%f && cp %p /var/lib/postgresql/archive/%f'
+    
+    # Checkpoint Settings
+    checkpoint_completion_target = 0.9
+    checkpoint_timeout = 10min
+    max_wal_size = 2GB
+    min_wal_size = 1GB
+    
+    # Query Planner
+    random_page_cost = 1.1
+    effective_io_concurrency = 200
+    
+    # Logging
+    log_destination = 'stderr'
+    logging_collector = on
+    log_directory = '/var/log/postgresql'
+    log_filename = 'postgresql-%Y-%m-%d.log'
+    log_rotation_age = 1d
+    log_min_duration_statement = 1000
+    log_checkpoints = on
+    log_connections = on
+    log_disconnections = on
+    log_lock_waits = on
+    
+    # Autovacuum
+    autovacuum = on
+    autovacuum_max_workers = 3
+    autovacuum_naptime = 1min
+    
+  pg_hba.conf: |
+    # PostgreSQL Client Authentication Configuration
+    
+    # TYPE  DATABASE        USER            ADDRESS                 METHOD
+    
+    # "local" is for Unix domain socket connections only
+    local   all             all                                     trust
+    
+    # IPv4 local connections:
+    host    all             all             127.0.0.1/32            md5
+    
+    # IPv6 local connections:
+    host    all             all             ::1/128                 md5
+    
+    # Kubernetes cluster connections
+    host    all             all             10.0.0.0/8              md5
+    
+    # Replication connections
+    host    replication     postgres        10.0.0.0/8              md5
