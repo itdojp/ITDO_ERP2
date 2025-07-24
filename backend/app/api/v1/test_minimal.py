@@ -9,6 +9,6 @@ async def test_endpoint() -> None:
     return {"status": "working", "protocol": "v21.0"}
 =======
 @router.get("/test")
-async def test_endpoint():
+async def test_endpoint() -> None:
     return {"status": "working", "protocol": "v21.0"}
 >>>>>>> origin/main

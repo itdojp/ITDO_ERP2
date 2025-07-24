@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 
 interface Product {
   id: string;
@@ -9,11 +9,11 @@ interface Product {
 }
 
 const mockProducts: Product[] = [
-  { id: '1', code: 'P001', name: 'ノートPC', price: 120000, stock: 15 },
-  { id: '2', code: 'P002', name: 'マウス', price: 3000, stock: 50 },
-  { id: '3', code: 'P003', name: 'キーボード', price: 8000, stock: 30 },
-  { id: '4', code: 'P004', name: 'モニター', price: 35000, stock: 20 },
-  { id: '5', code: 'P005', name: 'USBケーブル', price: 1000, stock: 100 },
+  { id: "1", code: "P001", name: "ノートPC", price: 120000, stock: 15 },
+  { id: "2", code: "P002", name: "マウス", price: 3000, stock: 50 },
+  { id: "3", code: "P003", name: "キーボード", price: 8000, stock: 30 },
+  { id: "4", code: "P004", name: "モニター", price: 35000, stock: 20 },
+  { id: "5", code: "P005", name: "USBケーブル", price: 1000, stock: 100 },
 ];
 
 export const ProductList: React.FC = () => {
@@ -77,9 +77,7 @@ export const ProductList: React.FC = () => {
       </div>
 
       <div className="mt-6 flex justify-between items-center">
-        <p className="text-sm text-gray-700">
-          全{products.length}件を表示中
-        </p>
+        <p className="text-sm text-gray-700">全{products.length}件を表示中</p>
         <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
           商品を追加
         </button>

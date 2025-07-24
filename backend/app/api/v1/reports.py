@@ -21,7 +21,7 @@ class Report(ReportBase):
 reports_db = {}
 
 @router.get("/reports/sales-summary")
-async def get_sales_summary(start_date: Optional[date] = None, end_date: Optional[date] = None):
+async def get_sales_summary(start_date: Optional[date] = None, end_date: Optional[date] = None) -> dict:
     """売上サマリーレポート"""
     return {
         "total_sales": 150000.0,
@@ -32,7 +32,7 @@ async def get_sales_summary(start_date: Optional[date] = None, end_date: Optiona
     }
 
 @router.get("/reports/inventory-status")
-async def get_inventory_status():
+async def get_inventory_status() -> None:
     """在庫状況レポート"""
     return {
         "total_products": 150,
@@ -43,7 +43,7 @@ async def get_inventory_status():
     }
 
 @router.post("/reports/custom", response_model=Report)
-async def create_custom_report(report: ReportBase):
+async def create_custom_report(report: ReportBase) -> dict:
     """カスタムレポート作成"""
     report_id = str(uuid.uuid4())
     

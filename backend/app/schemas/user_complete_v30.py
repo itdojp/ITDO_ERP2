@@ -15,7 +15,7 @@ class UserBase(BaseModel):
     employee_id: Optional[str] = None
 
     @validator("username")
-    def username_valid(cls, v):
+    def username_valid(cls, v) -> dict:
         if not re.match(r"^[a-zA-Z0-9_-]+$", v):
             raise ValueError(
                 "Username must contain only letters, numbers, hyphens and underscores"
@@ -23,7 +23,7 @@ class UserBase(BaseModel):
         return v
 
     @validator("phone_number")
-    def phone_valid(cls, v):
+    def phone_valid(cls, v) -> dict:
         if v and not re.match(r"^\+?1?\d{9,15}$", v):
             raise ValueError("Invalid phone number format")
         return v
@@ -34,13 +34,13 @@ class UserCreate(UserBase):
     confirm_password: str
 
     @validator("confirm_password")
-    def passwords_match(cls, v, values):
+    def passwords_match(cls, v, values) -> dict:
         if "password" in values and v != values["password"]:
             raise ValueError("Passwords do not match")
         return v
 
     @validator("password")
-    def password_strength(cls, v):
+    def password_strength(cls, v) -> dict:
         if not re.search(r"[A-Z]", v):
             raise ValueError("Password must contain at least one uppercase letter")
         if not re.search(r"[a-z]", v):
@@ -118,7 +118,7 @@ class PasswordReset(BaseModel):
     confirm_password: str
 
     @validator("confirm_password")
-    def passwords_match(cls, v, values):
+    def passwords_match(cls, v, values) -> dict:
         if "new_password" in values and v != values["new_password"]:
             raise ValueError("Passwords do not match")
         return v
