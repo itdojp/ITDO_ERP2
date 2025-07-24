@@ -1,0 +1,269 @@
+# Default values for backend-api
+# This is a YAML-formatted file.
+
+replicaCount: 3
+
+image:
+  repository: ghcr.io/itdo-erp/backend-api
+  pullPolicy: IfNotPresent
+  tag: "2.1.0"
+
+imagePullSecrets:
+- name: ghcr-secret
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8000"
+  prometheus.io/path: "/metrics"
+
+podSecurityContext:
+  fsGroup: 2000
+  runAsNonRoot: true
+  runAsUser: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8000
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+  - host: api.itdo-erp.com
+    paths:
+    - path: /
+      pathType: Prefix
+  tls:
+  - secretName: backend-api-tls
+    hosts:
+    - api.itdo-erp.com
+
+resources:
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+  requests:
+    cpu: 1000m
+    memory: 2Gi
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app.kubernetes.io/name
+            operator: In
+            values:
+            - backend-api
+        topologyKey: kubernetes.io/hostname
+
+# Environment configuration
+config:
+  environment: production
+  logLevel: INFO
+  debugMode: false
+  workers: 4
+  maxConnections: 1000
+  
+# Database configuration
+database:
+  host: postgres-postgresql
+  port: 5432
+  name: itdo_erp
+  sslMode: require
+  poolSize: 20
+  maxOverflow: 30
+
+# Redis configuration  
+redis:
+  host: redis-master
+  port: 6379
+  database: 0
+  maxConnections: 100
+
+# External secrets
+externalSecrets:
+  enabled: true
+  secretStore: vault-backend
+  refreshInterval: 15s
+  secrets:
+  - name: database-password
+    key: itdo-erp/database
+    property: password
+  - name: jwt-secret
+    key: itdo-erp/auth
+    property: jwt-secret
+  - name: encryption-key
+    key: itdo-erp/app
+    property: encryption-key
+
+# Comprehensive Health Checks
+startupCheck:
+  enabled: true
+  path: /api/v1/health/startup
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 30  # Allow 5 minutes for startup
+
+healthCheck:
+  enabled: true
+  path: /api/v1/health/live
+  initialDelaySeconds: 0  # Startup probe handles initial delay
+  periodSeconds: 30
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+
+readinessCheck:
+  enabled: true
+  path: /api/v1/health/ready
+  initialDelaySeconds: 0  # Startup probe handles initial delay
+  periodSeconds: 10
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+
+# Monitoring
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    namespace: monitoring
+    interval: 30s
+    path: /metrics
+  prometheusRule:
+    enabled: true
+    namespace: monitoring
+
+# Network policies
+networkPolicy:
+  enabled: true
+  ingress:
+    enabled: true
+    from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+  egress:
+    enabled: true
+    to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: postgresql
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: redis
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+# Volume mounts for temporary files
+volumeMounts:
+- name: tmp
+  mountPath: /tmp
+- name: var-run
+  mountPath: /var/run
+
+volumes:
+- name: tmp
+  emptyDir: {}
+- name: var-run
+  emptyDir: {}
+
+# Dependencies
+postgresql:
+  enabled: false  # Use external managed PostgreSQL
+
+redis:
+  enabled: false  # Use external managed Redis
+
+# Development overrides
+dev:
+  replicaCount: 1
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+  autoscaling:
+    enabled: false
+  ingress:
+    hosts:
+    - host: api.dev.itdo-erp.com
+      paths:
+      - path: /
+        pathType: Prefix
+  database:
+    sslMode: disable
+  config:
+    logLevel: DEBUG
+    debugMode: true
+
+# Staging overrides
+staging:
+  replicaCount: 2
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+  autoscaling:
+    maxReplicas: 5
+  ingress:
+    hosts:
+    - host: api.staging.itdo-erp.com
+      paths:
+      - path: /
+        pathType: Prefix

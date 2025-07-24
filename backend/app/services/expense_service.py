@@ -26,7 +26,7 @@ from app.schemas.expense import (
 
 
 class ExpenseService:
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: AsyncSession) -> dict:
         self.db = db
 
     async def create_expense(

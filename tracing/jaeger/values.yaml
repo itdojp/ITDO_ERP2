@@ -1,0 +1,338 @@
+# Jaeger Configuration for ITDO ERP Distributed Tracing
+provisionDataStore:
+  cassandra: false
+  elasticsearch: true
+
+# Storage configuration
+storage:
+  type: elasticsearch
+  elasticsearch:
+    scheme: https
+    server-urls: https://elasticsearch.logging.svc.cluster.local:9200
+    username: elastic
+    password: elastic-production-password
+    tls:
+      enabled: true
+      skipHostVerify: true
+    createIndexTemplates: true
+    version: 8
+    
+    # Index configuration
+    indexPrefix: jaeger
+    
+    # Performance settings
+    numShards: 1
+    numReplicas: 1
+    prioritySpanTemplate: 100
+    priorityServiceTemplate: 100
+    priorityDependenciesTemplate: 100
+    
+    # Retention settings
+    esIndexCleaner:
+      enabled: true
+      numberOfDays: 30
+      schedule: "55 23 * * *"
+
+# Agent configuration (deprecated, using OpenTelemetry Collector instead)
+agent:
+  enabled: false
+
+# Collector configuration  
+collector:
+  enabled: true
+  image: jaegertracing/jaeger-collector:1.51.0
+  
+  # Replicas
+  replicaCount: 2
+  
+  # Resources
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+  
+  # Service configuration
+  service:
+    type: ClusterIP
+    grpc:
+      port: 14250
+    http:
+      port: 14268
+    admin:
+      port: 14269
+      
+  # Health checks
+  livenessProbe:
+    httpGet:
+      path: /
+      port: admin
+    initialDelaySeconds: 30
+    periodSeconds: 15
+    timeoutSeconds: 10
+    failureThreshold: 5
+    
+  readinessProbe:
+    httpGet:
+      path: /
+      port: admin
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 10
+    failureThreshold: 3
+  
+  # Environment variables
+  env:
+    - name: SPAN_STORAGE_TYPE
+      value: elasticsearch
+    - name: ES_SERVER_URLS
+      value: https://elasticsearch.logging.svc.cluster.local:9200
+    - name: ES_USERNAME
+      value: elastic
+    - name: ES_PASSWORD
+      value: elastic-production-password
+    - name: ES_TLS_ENABLED
+      value: "true"
+    - name: ES_TLS_SKIP_HOST_VERIFY
+      value: "true"
+    - name: ES_INDEX_PREFIX
+      value: jaeger
+    - name: ES_NUM_SHARDS
+      value: "1"
+    - name: ES_NUM_REPLICAS
+      value: "1"
+    - name: COLLECTOR_ZIPKIN_HOST_PORT
+      value: ":9411"
+    - name: COLLECTOR_OTLP_ENABLED
+      value: "true"
+    - name: COLLECTOR_OTLP_GRPC_HOST_PORT
+      value: ":4317"
+    - name: COLLECTOR_OTLP_HTTP_HOST_PORT
+      value: ":4318"
+      
+  # Command line arguments
+  cmdlineParams:
+    - --collector.grpc-server.host-port=:14250
+    - --collector.http-server.host-port=:14268
+    - --admin.http.host-port=:14269
+    - --collector.zipkin.host-port=:9411
+    - --collector.otlp.enabled=true
+    - --collector.otlp.grpc.host-port=:4317
+    - --collector.otlp.http.host-port=:4318
+    - --es.server-urls=https://elasticsearch.logging.svc.cluster.local:9200
+    - --es.username=elastic
+    - --es.password=elastic-production-password
+    - --es.tls.enabled=true
+    - --es.tls.skip-host-verify=true
+    
+  # Pod annotations for monitoring
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "14269"
+    prometheus.io/path: "/metrics"
+    
+  # Security context
+  securityContext:
+    runAsUser: 10001
+    runAsGroup: 10001
+    runAsNonRoot: true
+    fsGroup: 10001
+    
+  # Node selector and affinity
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  
+  # Additional services
+  otlp:
+    grpc:
+      name: jaeger-collector-otlp-grpc
+      port: 4317
+      protocol: TCP
+    http:
+      name: jaeger-collector-otlp-http
+      port: 4318
+      protocol: TCP
+      
+  zipkin:
+    name: jaeger-collector-zipkin
+    port: 9411
+    protocol: TCP
+
+# Query (UI) configuration
+query:
+  enabled: true
+  image: jaegertracing/jaeger-query:1.51.0
+  
+  # Replicas
+  replicaCount: 2
+  
+  # Resources
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 16686
+    targetPort: 16686
+    
+  # Health checks  
+  livenessProbe:
+    httpGet:
+      path: /
+      port: 16686
+    initialDelaySeconds: 30
+    periodSeconds: 15
+    timeoutSeconds: 10
+    failureThreshold: 5
+    
+  readinessProbe:
+    httpGet:
+      path: /
+      port: 16686
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 10
+    failureThreshold: 3
+  
+  # Environment variables
+  env:
+    - name: SPAN_STORAGE_TYPE
+      value: elasticsearch
+    - name: ES_SERVER_URLS
+      value: https://elasticsearch.logging.svc.cluster.local:9200
+    - name: ES_USERNAME
+      value: elastic
+    - name: ES_PASSWORD
+      value: elastic-production-password
+    - name: ES_TLS_ENABLED
+      value: "true"
+    - name: ES_TLS_SKIP_HOST_VERIFY
+      value: "true"
+    - name: ES_INDEX_PREFIX
+      value: jaeger
+    - name: QUERY_BASE_PATH
+      value: /
+      
+  # Command line parameters
+  cmdlineParams:
+    - --query.static-files=/go/jaeger-ui/
+    - --query.ui-config=/etc/jaeger/ui/ui-config.json
+    - --es.server-urls=https://elasticsearch.logging.svc.cluster.local:9200
+    - --es.username=elastic
+    - --es.password=elastic-production-password
+    - --es.tls.enabled=true
+    - --es.tls.skip-host-verify=true
+    
+  # UI Configuration
+  config:
+    ui:
+      archiveEnabled: true
+      dependenciesMenuEnabled: true
+      
+  # Ingress configuration
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    annotations:
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/auth-type: basic
+      nginx.ingress.kubernetes.io/auth-secret: jaeger-basic-auth
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    hosts:
+      - host: jaeger.itdo-erp.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: jaeger-tls
+        hosts:
+          - jaeger.itdo-erp.com
+          
+  # Pod annotations
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "16687"
+    prometheus.io/path: "/metrics"
+    
+  # Security context
+  securityContext:
+    runAsUser: 10001
+    runAsGroup: 10001
+    runAsNonRoot: true
+    fsGroup: 10001
+
+# Elasticsearch index cleaner
+esIndexCleaner:
+  enabled: true
+  image: jaegertracing/jaeger-es-index-cleaner:1.51.0
+  schedule: "55 23 * * *"
+  numberOfDays: 30
+  
+  # Resources
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+      
+  # Environment variables
+  env:
+    - name: ES_SERVER_URLS
+      value: https://elasticsearch.logging.svc.cluster.local:9200
+    - name: ES_USERNAME
+      value: elastic
+    - name: ES_PASSWORD
+      value: elastic-production-password
+    - name: ES_TLS_ENABLED
+      value: "true"
+    - name: ES_TLS_SKIP_HOST_VERIFY
+      value: "true"
+    - name: ES_INDEX_PREFIX
+      value: jaeger
+
+# Spark dependencies (disabled for cost optimization)
+spark:
+  enabled: false
+  
+esRollover:
+  enabled: false
+
+# Elasticsearch lookup (disabled, using direct connection)  
+esLookback:
+  enabled: false
+
+# Hotrod example application (disabled)
+hotrod:
+  enabled: false
+
+# Global settings
+nameOverride: ""
+fullnameOverride: ""
+
+# Network policies
+networkPolicy:
+  enabled: true
+
+# Pod disruption budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Service monitor for Prometheus
+serviceMonitor:
+  enabled: true
+  namespace: monitoring
+  labels: {}
+  interval: 30s
+  scrapeTimeout: 10s

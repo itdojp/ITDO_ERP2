@@ -1,0 +1,423 @@
+# Harbor Container Registry Configuration for ITDO ERP Development Environment
+# Provides secure, efficient container image management
+
+# Expose settings
+expose:
+  type: ingress
+  tls:
+    enabled: true
+    certSource: secret
+    secret:
+      secretName: harbor-tls
+      notarySecretName: notary-tls
+  ingress:
+    hosts:
+      core: registry.itdo-erp.com
+      notary: notary.itdo-erp.com
+    className: nginx
+    annotations:
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/proxy-body-size: "0"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+
+# External URL configuration
+externalURL: https://registry.itdo-erp.com
+
+# Persistence settings
+persistence:
+  enabled: true
+  resourcePolicy: "keep"
+  persistentVolumeClaim:
+    registry:
+      existingClaim: ""
+      storageClass: "gp3"
+      subPath: ""
+      accessMode: ReadWriteOnce
+      size: 100Gi
+      annotations: {}
+    jobservice:
+      existingClaim: ""
+      storageClass: "gp3" 
+      subPath: ""
+      accessMode: ReadWriteOnce
+      size: 10Gi
+      annotations: {}
+    # If external database is used, chartmuseum can be disabled
+    chartmuseum:
+      existingClaim: ""
+      storageClass: "gp3"
+      subPath: ""
+      accessMode: ReadWriteOnce
+      size: 5Gi
+      annotations: {}
+    redis:
+      existingClaim: ""
+      storageClass: "gp3"
+      subPath: ""
+      accessMode: ReadWriteOnce
+      size: 5Gi
+      annotations: {}
+    trivy:
+      existingClaim: ""
+      storageClass: "gp3"
+      subPath: ""
+      accessMode: ReadWriteOnce
+      size: 5Gi
+      annotations: {}
+
+# Log level
+logLevel: info
+
+# Harbor admin password (change in production)
+harborAdminPassword: "Harbor12345!"
+
+# Secret key for encryption
+secretKey: "not-a-secure-key-change-me"
+
+# Database configuration
+database:
+  type: internal
+  internal:
+    image:
+      repository: goharbor/harbor-db
+      tag: v2.9.0
+    password: "changeit"
+    shmSizeLimit: 512Mi
+    resources:
+      requests:
+        memory: 256Mi
+        cpu: 250m
+      limits:
+        memory: 512Mi
+        cpu: 500m
+  # external:
+  #   host: "postgresql.database.svc.cluster.local"
+  #   port: "5432"
+  #   username: "harbor"
+  #   password: "harbor-password"
+  #   coreDatabase: "harbor_core"
+  #   notaryServerDatabase: "harbor_notary_server"
+  #   notarySignerDatabase: "harbor_notary_signer"
+
+# Redis configuration
+redis:
+  type: internal
+  internal:
+    image:
+      repository: goharbor/redis-photon
+      tag: v2.9.0
+    resources:
+      requests:
+        memory: 256Mi
+        cpu: 100m
+      limits:
+        memory: 512Mi
+        cpu: 200m
+  # external:
+  #   addr: "redis.cache.svc.cluster.local:6379"
+  #   sentinelMasterSet: ""
+  #   password: ""
+  #   db: "0"
+
+# Core service configuration
+core:
+  image:
+    repository: goharbor/harbor-core
+    tag: v2.9.0
+  replicas: 2
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 250m
+    limits:
+      memory: 512Mi
+      cpu: 500m
+  
+  # Configure authentication
+  config:
+    # Authentication mode: db_auth, ldap_auth, uaa_auth, oidc_auth
+    authMode: "db_auth"
+    
+    # Project creation restriction
+    projectCreationRestriction: "adminonly"
+    
+    # Self registration
+    selfRegistration: false
+    
+    # Token expiration (minutes)
+    tokenExpiration: 30
+    
+    # Scan all policy
+    scanAllPolicy:
+      type: "none"
+    
+    # Robot token duration (days)  
+    robotTokenDuration: 30
+
+  # OIDC integration with Keycloak
+  oidc:
+    enabled: true
+    name: "Keycloak"
+    endpoint: "https://auth.itdo-erp.com/auth/realms/itdo-erp"
+    clientId: "harbor"
+    clientSecret: "harbor-client-secret"
+    groupsClaim: "groups"
+    scope: "openid,email,profile,groups"
+    autoOnboard: true
+    userClaim: "preferred_username"
+    verifyCert: true
+
+# JobService configuration
+jobservice:
+  image:
+    repository: goharbor/harbor-jobservice
+    tag: v2.9.0
+  replicas: 2
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 250m
+    limits:
+      memory: 512Mi
+      cpu: 500m
+
+# Registry configuration
+registry:
+  image:
+    repository: goharbor/registry-photon
+    tag: v2.9.0
+  replicas: 2
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 250m
+    limits:
+      memory: 512Mi
+      cpu: 500m
+  
+  # Registry storage configuration
+  storage:
+    # For S3-compatible storage
+    # s3:
+    #   region: ap-northeast-1
+    #   bucket: itdo-erp-harbor-registry
+    #   accesskey: ""
+    #   secretkey: ""
+    #   secure: true
+    
+    # For filesystem storage (development)
+    filesystem:
+      rootdirectory: /storage
+      
+  middleware:
+    enabled: false
+    type: cloudFront
+    cloudFront:
+      baseurl: https://d1234567890.cloudfront.net
+      keypairid: ABCDEFGHIJKLMNOPQR
+      duration: 3000s
+      ipfilterdtype: none
+
+# Trivy (Vulnerability Scanner) configuration
+trivy:
+  enabled: true
+  image:
+    repository: goharbor/trivy-adapter-photon
+    tag: v2.9.0
+  replicas: 1
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  
+  # Vulnerability database update
+  dbUpdate: true
+  
+# ChartMuseum (Helm charts) configuration
+chartmuseum:
+  enabled: true
+  image:
+    repository: goharbor/chartmuseum-photon
+    tag: v2.9.0
+  replicas: 1
+  resources:
+    requests:
+      memory: 128Mi
+      cpu: 100m
+    limits:
+      memory: 256Mi
+      cpu: 200m
+
+# Notary (Image signing) configuration
+notary:
+  enabled: true
+  server:
+    image:
+      repository: goharbor/notary-server-photon
+      tag: v2.9.0
+    replicas: 1
+    resources:
+      requests:
+        memory: 128Mi
+        cpu: 100m
+      limits:
+        memory: 256Mi
+        cpu: 200m
+  signer:
+    image:
+      repository: goharbor/notary-signer-photon
+      tag: v2.9.0
+    replicas: 1
+    resources:
+      requests:
+        memory: 128Mi
+        cpu: 100m
+      limits:
+        memory: 256Mi
+        cpu: 200m
+
+# Portal (Web UI) configuration
+portal:
+  image:
+    repository: goharbor/harbor-portal
+    tag: v2.9.0
+  replicas: 2
+  resources:
+    requests:
+      memory: 128Mi
+      cpu: 100m
+    limits:
+      memory: 256Mi
+      cpu: 200m
+
+# Metrics configuration
+metrics:
+  enabled: true
+  core:
+    path: /metrics
+    port: 8001
+  registry:
+    path: /metrics
+    port: 8001
+  jobservice:
+    path: /metrics
+    port: 8001
+
+# Network policy
+networkPolicy:
+  enabled: true
+  
+# Pod Security Policy
+podSecurityPolicy:
+  enabled: false
+
+# Service Account
+serviceAccount:
+  create: true
+  
+# Image pull secrets
+imagePullSecrets: []
+
+# Update strategy
+updateStrategy:
+  type: RollingUpdate
+
+# Node selector and tolerations
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# Priority class
+priorityClassName: ""
+
+# Additional environment variables
+extraEnvVars: []
+
+# Cache configuration
+cache:
+  enabled: true
+  expireHours: 24
+
+# Proxy configuration
+proxy:
+  httpProxy: ""
+  httpsProxy: ""
+  noProxy: "127.0.0.1,localhost,.local,.internal"
+  components:
+    - core
+    - jobservice
+    - trivy
+
+# Internal TLS configuration
+internalTLS:
+  enabled: true
+  certSource: "auto"
+  
+# Garbage collection
+gc:
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  retainHistoryLimit: 10
+
+# Image replication
+replication:
+  enabled: true
+  
+# Quota management
+quota:
+  updateProvider: db
+
+# Configure Harbor for development environment
+devMode:
+  enabled: true
+
+# Security scanner integration
+scanner:
+  trivy:
+    enabled: true
+    
+# Backup configuration
+backup:
+  enabled: false
+  # schedule: "0 3 * * 0"  # Weekly backup
+  # retention: 4  # Keep 4 backups
+  
+# High Availability configuration
+ha:
+  enabled: false
+
+# Monitoring integration
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    namespace: monitoring
+    interval: 30s
+    scrapeTimeout: 10s
+    labels: {}
+
+# Resource quotas by project
+projectQuota:
+  enabled: true
+  defaultQuota:
+    storage: "10Gi"
+    
+# Webhook integration
+webhook:
+  enabled: true
+  url: "https://api.itdo-erp.com/webhooks/registry"
+  
+# Tag retention policy
+tagRetention:
+  enabled: true
+  schedule: "0 3 * * *"  # Daily at 3 AM
+  
+# Global settings
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+  storageClass: "gp3"

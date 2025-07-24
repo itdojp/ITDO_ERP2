@@ -1,0 +1,145 @@
+# Istio System Namespace Configuration
+# Complete namespace setup with security policies and resource quotas
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: istio-system
+  labels:
+    name: istio-system
+    istio-injection: disabled  # Istio system components should not be injected
+    security.istio.io/tlsMode: istio
+    app.kubernetes.io/name: istio-system
+    app.kubernetes.io/version: "1.20.0"
+    app.kubernetes.io/managed-by: helm
+  annotations:
+    description: "Istio service mesh control plane namespace"
+    security-policy: "strict"
+    network-policy: "enabled"
+---
+# Resource Quota for Istio System
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: istio-system-quota
+  namespace: istio-system
+  labels:
+    app.kubernetes.io/name: istio-system
+spec:
+  hard:
+    requests.cpu: "4"
+    requests.memory: 8Gi
+    limits.cpu: "8"
+    limits.memory: 16Gi
+    pods: "50"
+    services: "20"
+    configmaps: "100"
+    secrets: "50"
+    persistentvolumeclaims: "10"
+---
+# Limit Range for Istio System
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: istio-system-limits
+  namespace: istio-system
+  labels:
+    app.kubernetes.io/name: istio-system
+spec:
+  limits:
+  - default:
+      cpu: "500m"
+      memory: "512Mi"
+    defaultRequest:
+      cpu: "100m"
+      memory: "128Mi"
+    type: Container
+  - default:
+      storage: "10Gi"
+    type: PersistentVolumeClaim
+---
+# Network Policy for Istio System (Ingress)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: istio-system-ingress
+  namespace: istio-system
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: istio-system
+    - namespaceSelector:
+        matchLabels:
+          istio-injection: enabled
+  egress:
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          istio-injection: enabled
+---
+# Service Account for Istio Control Plane
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: istio-control-plane
+  namespace: istio-system
+  labels:
+    app.kubernetes.io/name: istio-control-plane
+  annotations:
+    description: "Service account for Istio control plane components"
+automountServiceAccountToken: true
+---
+# RBAC Configuration for Istio Control Plane
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: istio-control-plane
+  labels:
+    app.kubernetes.io/name: istio-control-plane
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services", "endpoints", "namespaces", "secrets", "configmaps"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["networking.istio.io"]
+  resources: ["*"]
+  verbs: ["*"]
+- apiGroups: ["security.istio.io"]
+  resources: ["*"]
+  verbs: ["*"]
+- apiGroups: ["networking.k8s.io"]
+  resources: ["networkpolicies"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: istio-control-plane
+  labels:
+    app.kubernetes.io/name: istio-control-plane
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: istio-control-plane
+subjects:
+- kind: ServiceAccount
+  name: istio-control-plane
+  namespace: istio-system

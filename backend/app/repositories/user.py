@@ -14,7 +14,7 @@ from app.types import UserId
 class UserRepository(BaseRepository[User, UserCreate, UserUpdate]):
     """Repository for User model with specialized queries."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         """Initialize repository with User model."""
         super().__init__(User, db)
 

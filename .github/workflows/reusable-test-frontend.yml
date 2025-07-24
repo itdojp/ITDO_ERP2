@@ -1,0 +1,129 @@
+name: Reusable Frontend Test Workflow
+
+on:
+  workflow_call:
+    inputs:
+      test-type:
+        description: 'Type of tests to run (unit, integration, e2e, all)'
+        required: false
+        default: 'unit'
+        type: string
+      node-version:
+        description: 'Node.js version to use'
+        required: false
+        default: '18'
+        type: string
+      browser:
+        description: 'Browser for E2E tests'
+        required: false
+        default: 'chromium'
+        type: string
+      cache-key-suffix:
+        description: 'Additional suffix for cache key'
+        required: false
+        default: ''
+        type: string
+    outputs:
+      coverage-file:
+        description: 'Path to coverage file'
+        value: ${{ jobs.test.outputs.coverage-file }}
+      test-result:
+        description: 'Test execution result'
+        value: ${{ jobs.test.outputs.result }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+    
+    outputs:
+      coverage-file: ${{ steps.coverage.outputs.file }}
+      result: ${{ steps.test-run.outputs.result }}
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    # Optimized Node.js setup with caching
+    - name: Setup Node.js ${{ inputs.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+    
+    # Enhanced caching for node_modules
+    - name: Cache node_modules
+      uses: actions/cache@v4
+      with:
+        path: frontend/node_modules
+        key: npm-${{ runner.os }}-${{ inputs.node-version }}-${{ hashFiles('frontend/package-lock.json') }}${{ inputs.cache-key-suffix }}
+        restore-keys: |
+          npm-${{ runner.os }}-${{ inputs.node-version }}-
+          npm-${{ runner.os }}-
+    
+    - name: Install dependencies
+      run: |
+        npm ci --prefer-offline --no-audit --no-fund
+    
+    # Install Playwright browsers if needed for E2E tests
+    - name: Install Playwright browsers
+      if: inputs.test-type == 'e2e' || inputs.test-type == 'all'
+      run: |
+        npx playwright install ${{ inputs.browser }} --with-deps
+    
+    - name: Run tests
+      id: test-run
+      env:
+        CI: true
+        NODE_ENV: test
+      run: |
+        case "${{ inputs.test-type }}" in
+          unit)
+            echo "Running unit tests..."
+            npm run test -- --coverage --watchAll=false --maxWorkers=2
+            echo "result=success" >> $GITHUB_OUTPUT
+            ;;
+          integration)
+            echo "Running integration tests..."
+            npm run test:integration -- --coverage --watchAll=false --maxWorkers=2
+            echo "result=success" >> $GITHUB_OUTPUT
+            ;;
+          e2e)
+            echo "Running E2E tests..."
+            npm run test:e2e -- --project=${{ inputs.browser }} --max-failures=3
+            echo "result=success" >> $GITHUB_OUTPUT
+            ;;
+          all)
+            echo "Running all tests..."
+            npm run test -- --coverage --watchAll=false --maxWorkers=2
+            npm run test:e2e -- --project=${{ inputs.browser }} --max-failures=3
+            echo "result=success" >> $GITHUB_OUTPUT
+            ;;
+          *)
+            echo "Unknown test type: ${{ inputs.test-type }}"
+            echo "result=error" >> $GITHUB_OUTPUT
+            exit 1
+            ;;
+        esac
+    
+    - name: Set coverage output
+      id: coverage
+      run: |
+        if [ -f coverage/coverage-final.json ]; then
+          echo "file=./frontend/coverage/coverage-final.json" >> $GITHUB_OUTPUT
+        else
+          echo "file=" >> $GITHUB_OUTPUT
+        fi
+    
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: frontend-test-results-${{ inputs.test-type }}-${{ github.run_id }}
+        path: |
+          frontend/coverage/
+          frontend/test-results/
+          frontend/playwright-report/
+        retention-days: 7

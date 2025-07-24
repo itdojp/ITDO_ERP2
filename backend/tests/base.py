@@ -25,31 +25,26 @@ class BaseAPITestCase(
     @abstractmethod
     def endpoint_prefix(self) -> str:
         """API endpoint prefix (e.g., '/api/v1/organizations')."""
-        pass
 
     @property
     @abstractmethod
     def factory_class(self) -> type[BaseFactory]:
         """Factory class for creating test instances."""
-        pass
 
     @property
     @abstractmethod
     def create_schema_class(self) -> type[CreateSchemaType]:
         """Schema class for create operations."""
-        pass
 
     @property
     @abstractmethod
     def update_schema_class(self) -> type[UpdateSchemaType]:
         """Schema class for update operations."""
-        pass
 
     @property
     @abstractmethod
     def response_schema_class(self) -> type[ResponseSchemaType]:
         """Schema class for API responses."""
-        pass
 
     def get_auth_headers(self, token: str) -> dict[str, str]:
         """Get authorization headers with bearer token."""
@@ -306,13 +301,11 @@ class BaseServiceTestCase(ABC, Generic[T]):
     @abstractmethod
     def service_class(self) -> type:
         """Service class to test."""
-        pass
 
     @property
     @abstractmethod
     def factory_class(self) -> type[BaseFactory]:
         """Factory class for creating test instances."""
-        pass
 
     def create_service(self, db_session: Session) -> Any:
         """Create service instance with database session."""
@@ -330,19 +323,16 @@ class BaseRepositoryTestCase(ABC, Generic[T]):
     @abstractmethod
     def repository_class(self) -> type:
         """Repository class to test."""
-        pass
 
     @property
     @abstractmethod
     def model_class(self) -> type[T]:
         """Model class for the repository."""
-        pass
 
     @property
     @abstractmethod
     def factory_class(self) -> type[BaseFactory]:
         """Factory class for creating test instances."""
-        pass
 
     def create_repository(self, db_session: Session) -> Any:
         """Create repository instance with database session."""
@@ -375,14 +365,12 @@ class HierarchyTestMixin:
         """Test tree endpoint for hierarchical data."""
         # This will be implemented based on specific requirements
         # Each hierarchical API will override this method
-        pass
 
     def test_parent_child_relationship(
         self, client: TestClient, db_session: Session, admin_token: str
     ) -> None:
         """Test parent-child relationships."""
         # This will be implemented based on specific requirements
-        pass
 
 
 class BulkOperationTestMixin:

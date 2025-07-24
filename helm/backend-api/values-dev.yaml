@@ -1,0 +1,53 @@
+# Development environment overrides
+replicaCount: 1
+
+image:
+  tag: "dev-latest"
+  pullPolicy: Always
+
+config:
+  environment: development
+  logLevel: DEBUG
+  debugMode: true
+  workers: 1
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 1Gi
+  requests:
+    cpu: 250m
+    memory: 512Mi
+
+autoscaling:
+  enabled: false
+
+ingress:
+  hosts:
+  - host: api.dev.itdo-erp.com
+    paths:
+    - path: /
+      pathType: Prefix
+  tls:
+  - secretName: backend-api-dev-tls
+    hosts:
+    - api.dev.itdo-erp.com
+
+database:
+  host: postgres-dev
+  sslMode: disable
+  poolSize: 5
+
+redis:
+  host: redis-dev
+
+# Disable production features in dev
+podDisruptionBudget:
+  enabled: false
+
+networkPolicy:
+  enabled: false
+
+monitoring:
+  prometheusRule:
+    enabled: false

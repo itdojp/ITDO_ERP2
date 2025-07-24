@@ -28,7 +28,6 @@ class ProductCategoryBase(BaseModel):
 class ProductCategoryCreate(ProductCategoryBase):
     """Product category creation schema."""
 
-    pass
 
 
 class ProductCategoryUpdate(BaseModel):
@@ -100,6 +99,7 @@ class ProductBase(BaseModel):
         None, max_length=200, description="Manufacturer"
     )
     brand: Optional[str] = Field(None, max_length=200, description="Brand")
+<<<<<<< HEAD
     model_number: Optional[str] = Field(
         None, max_length=100, description="Model number"
     )
@@ -112,28 +112,48 @@ class ProductBase(BaseModel):
     thumbnail_url: Optional[str] = Field(
         None, max_length=500, description="Thumbnail URL"
     )
+=======
+    model_number: Optional[str] = Field(None, max_length=100, description="Model number")
+    warranty_period: Optional[int] = Field(None, ge=0, description="Warranty period in months")
+
+    # Media
+    image_url: Optional[str] = Field(None, max_length=500, description="Image URL")
+    thumbnail_url: Optional[str] = Field(None, max_length=500, description="Thumbnail URL")
+>>>>>>> main
 
     # Notes
     notes: Optional[str] = Field(None, description="Public notes")
     internal_notes: Optional[str] = Field(None, description="Internal notes")
 
+<<<<<<< HEAD
     @field_validator("product_type")
+=======
+    @field_validator('product_type')
+>>>>>>> main
     @classmethod
-    def validate_product_type(cls, v):
+    def validate_product_type(cls, v) -> dict:
         if v not in [t.value for t in ProductType]:
             raise ValueError("Invalid product type")
         return v
 
+<<<<<<< HEAD
     @field_validator("status")
+=======
+    @field_validator('status')
+>>>>>>> main
     @classmethod
-    def validate_status(cls, v):
+    def validate_status(cls, v) -> dict:
         if v not in [s.value for s in ProductStatus]:
             raise ValueError("Invalid product status")
         return v
 
+<<<<<<< HEAD
     @field_validator("code")
+=======
+    @field_validator('code')
+>>>>>>> main
     @classmethod
-    def validate_code(cls, v):
+    def validate_code(cls, v) -> dict:
         if not v or not v.strip():
             raise ValueError("Product code cannot be empty")
         return v.strip().upper()
@@ -142,7 +162,6 @@ class ProductBase(BaseModel):
 class ProductCreate(ProductBase):
     """Product creation schema."""
 
-    pass
 
 
 class ProductUpdate(BaseModel):
@@ -179,16 +198,24 @@ class ProductUpdate(BaseModel):
     notes: Optional[str] = None
     internal_notes: Optional[str] = None
 
+<<<<<<< HEAD
     @field_validator("product_type")
+=======
+    @field_validator('product_type')
+>>>>>>> main
     @classmethod
-    def validate_product_type(cls, v):
+    def validate_product_type(cls, v) -> dict:
         if v and v not in [t.value for t in ProductType]:
             raise ValueError("Invalid product type")
         return v
 
+<<<<<<< HEAD
     @field_validator("status")
+=======
+    @field_validator('status')
+>>>>>>> main
     @classmethod
-    def validate_status(cls, v):
+    def validate_status(cls, v) -> dict:
         if v and v not in [s.value for s in ProductStatus]:
             raise ValueError("Invalid product status")
         return v

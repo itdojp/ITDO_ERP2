@@ -1,9 +1,9 @@
 """Organization model implementation."""
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from sqlalchemy import Boolean, ForeignKey, Integer, String, Text
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
 
 from app.models.base import SoftDeletableModel
 from app.types import OrganizationId
@@ -12,123 +12,28 @@ if TYPE_CHECKING:
     from app.models.department import Department
     from app.models.role import Role
     from app.models.user import User
-    from app.models.user_organization import (
-        OrganizationInvitation,
-        UserOrganization,
-    )
 
 
 class Organization(SoftDeletableModel):
-    """Organization model representing a company or business entity.
-
-    v17.0: Enhanced for ERP basic functionality with improved hierarchy
-    support, business metrics, and multi-tenant capabilities.
-    """
+    """Organization model for multi-tenant support."""
 
     __tablename__ = "organizations"
 
-    # Basic fields
-    code: Mapped[str] = mapped_column(
-        String(50),
-        unique=True,
-        nullable=False,
-        index=True,
-        comment="Unique organization code",
-    )
-    name: Mapped[str] = mapped_column(
-        String(200), nullable=False, comment="Organization name"
-    )
-    name_kana: Mapped[str | None] = mapped_column(
-        String(200), nullable=True, comment="Organization name in Katakana"
-    )
-    name_en: Mapped[str | None] = mapped_column(
-        String(200), nullable=True, comment="Organization name in English"
-    )
-
-    # Contact information
-    phone: Mapped[str | None] = mapped_column(
-        String(20), nullable=True, comment="Main phone number"
-    )
-    fax: Mapped[str | None] = mapped_column(
-        String(20), nullable=True, comment="Fax number"
-    )
-    email: Mapped[str | None] = mapped_column(
-        String(255), nullable=True, comment="Main email address"
-    )
-    website: Mapped[str | None] = mapped_column(
-        String(255), nullable=True, comment="Website URL"
-    )
-
-    # Address information
-    postal_code: Mapped[str | None] = mapped_column(
-        String(10), nullable=True, comment="Postal/Zip code"
-    )
-    prefecture: Mapped[str | None] = mapped_column(
-        String(50), nullable=True, comment="Prefecture/State"
-    )
-    city: Mapped[str | None] = mapped_column(String(100), nullable=True, comment="City")
-    address_line1: Mapped[str | None] = mapped_column(
-        String(255), nullable=True, comment="Address line 1"
-    )
-    address_line2: Mapped[str | None] = mapped_column(
-        String(255), nullable=True, comment="Address line 2"
-    )
-
-    # Business information
-    business_type: Mapped[str | None] = mapped_column(
-        String(100), nullable=True, comment="Type of business"
-    )
-    industry: Mapped[str | None] = mapped_column(
-        String(100), nullable=True, comment="Industry category"
-    )
-    capital: Mapped[int | None] = mapped_column(
-        Integer, nullable=True, comment="Capital amount in JPY"
-    )
-    employee_count: Mapped[int | None] = mapped_column(
-        Integer, nullable=True, comment="Number of employees"
-    )
-    fiscal_year_start: Mapped[int | None] = mapped_column(
-        Integer, nullable=True, comment="Fiscal year start month (1-12)"
-    )
-    fiscal_year_end: Mapped[str | None] = mapped_column(
-        String(5), nullable=True, comment="Fiscal year end (MM-DD)"
-    )
-
-    # Hierarchy
-    parent_id: Mapped[OrganizationId | None] = mapped_column(
-        Integer,
-        ForeignKey("organizations.id"),
-        nullable=True,
-        comment="Parent organization ID for subsidiaries",
-    )
-
-    # Status
-    is_active: Mapped[bool] = mapped_column(
-        Boolean,
-        default=True,
-        nullable=False,
-        comment="Whether the organization is active",
-    )
-
-    # Settings (JSON)
-    settings: Mapped[str | None] = mapped_column(
-        Text, nullable=True, comment="Organization-specific settings in JSON format"
-    )
-
-    # Additional information
-    description: Mapped[str | None] = mapped_column(
-        Text, nullable=True, comment="Organization description"
-    )
-    logo_url: Mapped[str | None] = mapped_column(
-        String(255), nullable=True, comment="URL to organization logo"
+    id: Mapped[OrganizationId] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    code: Mapped[str] = mapped_column(String(20), unique=True, nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    parent_id: Mapped[Optional[OrganizationId]] = mapped_column(
+        ForeignKey("organizations.id"), nullable=True
     )
 
     # Relationships
     parent: Mapped[Optional["Organization"]] = relationship(
-        "Organization", remote_side="Organization.id", lazy="joined"
+        "Organization", remote_side=[id], back_populates="children"
     )
-    subsidiaries: Mapped[list["Organization"]] = relationship(
-        "Organization", back_populates="parent", lazy="select"
+    children: Mapped[list["Organization"]] = relationship(
+        "Organization", back_populates="parent"
     )
     departments: Mapped[list["Department"]] = relationship(
         "Department",
@@ -136,53 +41,15 @@ class Organization(SoftDeletableModel):
         lazy="dynamic",
         cascade="all, delete-orphan",
     )
-    users: Mapped[list["User"]] = relationship(
-        "User",
-        secondary="user_roles",
-        primaryjoin="Organization.id == UserRole.organization_id",
-        secondaryjoin="UserRole.user_id == User.id",
-        viewonly=True,
-        lazy="dynamic",
-    )
+    users: Mapped[list["User"]] = relationship("User", back_populates="organization")
     roles: Mapped[list["Role"]] = relationship(
         "Role",
         back_populates="organization",
         lazy="dynamic",
         cascade="all, delete-orphan",
     )
-    creator: Mapped[Optional["User"]] = relationship(
-        "User", foreign_keys="Organization.created_by", lazy="select"
-    )
 
-    def update(self, db, updated_by: int, **kwargs) -> None:
-        """Update organization with audit tracking."""
-        from datetime import UTC, datetime
-
-        for key, value in kwargs.items():
-            if hasattr(self, key):
-                setattr(self, key, value)
-        self.updated_by = updated_by
-        self.updated_at = datetime.now(UTC)
-        db.commit()
-
-    def validate(self) -> None:
-        """Validate organization data."""
-        if not self.code or len(self.code.strip()) == 0:
-            raise ValueError("Organization code is required")
-        if not self.name or len(self.name.strip()) == 0:
-            raise ValueError("Organization name is required")
-        if self.email and "@" not in self.email:
-            raise ValueError("Invalid email format")
-        if self.fiscal_year_start and (
-            self.fiscal_year_start < 1 or self.fiscal_year_start > 12
-        ):
-            raise ValueError("Fiscal year start must be between 1 and 12")
-
-    def __str__(self) -> str:
-        """String representation of organization."""
-        return f"{self.code} - {self.name}"
-
-    # Multi-tenant user relationships
+    # Multi-tenant user relationships - extended functionality from HEAD
     user_memberships: Mapped[list["UserOrganization"]] = relationship(
         "UserOrganization",
         foreign_keys="UserOrganization.organization_id",
@@ -196,7 +63,7 @@ class Organization(SoftDeletableModel):
         cascade="all, delete-orphan",
     )
 
-    # Creator relationship for backward compatibility
+    # Creator relationship for auditing
     creator: Mapped[Optional["User"]] = relationship(
         "User", foreign_keys="Organization.created_by", lazy="joined"
     )
@@ -205,90 +72,77 @@ class Organization(SoftDeletableModel):
     )
 
     def __repr__(self) -> str:
-        """String representation."""
-        return f"<Organization(id={self.id}, code='{self.code}', name='{self.name}')>"
+        return f"<Organization(id={self.id}, name='{self.name}', code='{self.code}')>"
 
     @property
-    def full_address(self) -> str | None:
-        """Get full formatted address."""
-        parts = []
-        if self.postal_code:
-            parts.append(f"〒{self.postal_code}")
-        if self.prefecture:
-            parts.append(self.prefecture)
-        if self.city:
-            parts.append(self.city)
-        if self.address_line1:
-            parts.append(self.address_line1)
-        if self.address_line2:
-            parts.append(self.address_line2)
+    def full_path(self) -> str:
+        """Get the full hierarchical path of the organization."""
+        path = [self.name]
+        current = self
+        while current.parent:
+            path.insert(0, current.parent.name)
+            current = current.parent
+        return " > ".join(path)
 
-        return " ".join(parts) if parts else None
+    def get_ancestors(self) -> list["Organization"]:
+        """Get all ancestor organizations."""
+        ancestors = []
+        current = self
+        while current.parent:
+            ancestors.append(current.parent)
+            current = current.parent
+        return ancestors
 
-    @property
-    def is_subsidiary(self) -> bool:
-        """Check if this is a subsidiary organization."""
-        return self.parent_id is not None
+    def get_descendants(self) -> list["Organization"]:
+        """Get all descendant organizations."""
+        descendants = []
+        for child in self.children:
+            descendants.append(child)
+            descendants.extend(child.get_descendants())
+        return descendants
 
-    @property
-    def is_parent(self) -> bool:
-        """Check if this organization has subsidiaries."""
-        return len(self.subsidiaries) > 0
-
-    def get_all_subsidiaries(self) -> list["Organization"]:
-        """Get all subsidiaries recursively."""
-        result = []
-        for subsidiary in self.subsidiaries:
-            result.append(subsidiary)
-            result.extend(subsidiary.get_all_subsidiaries())
-        return result
-
-    def get_hierarchy_path(self) -> list["Organization"]:
-        """Get the full hierarchy path from root to this organization."""
-        path = [self]
+    def get_path_to_root(self) -> list["Organization"]:
+        """Get path from this organization to root."""
+        path = []
         current = self
         while current.parent:
             path.insert(0, current.parent)
             current = current.parent
         return path
 
+    def update(self, db: Session, updated_by: int, **kwargs: Any) -> None:
+        """Update organization attributes."""
+        from datetime import datetime, timezone
+
+        for key, value in kwargs.items():
+            if hasattr(self, key) and key not in ["id", "created_at", "created_by"]:
+                setattr(self, key, value)
+
+        self.updated_by = updated_by
+        self.updated_at = datetime.now(timezone.utc)
+        db.add(self)
+        db.flush()
+
+    def validate(self) -> None:
+        """Validate organization data."""
+        if not self.code or len(self.code.strip()) == 0:
+            raise ValueError("組織コードは必須です")
+
+        if not self.name or len(self.name.strip()) == 0:
+            raise ValueError("組織名は必須です")
+
+    def __str__(self) -> str:
+        """String representation for display."""
+        return f"{self.code} - {self.name}"
+
     def get_erp_context(self) -> dict:
-        """Get ERP-specific organization context - v17.0."""
+        """Get ERP-specific organization context."""
         return {
             "organization_id": self.id,
             "code": self.code,
             "name": self.name,
-            "name_en": self.name_en,
-            "is_active": self.is_active,
             "parent_id": self.parent_id,
-            "is_subsidiary": self.is_subsidiary,
-            "is_parent": self.is_parent,
-            "industry": self.industry,
-            "business_type": self.business_type,
-            "employee_count": self.employee_count,
-            "fiscal_year_start": self.fiscal_year_start,
-            "contact": {
-                "email": self.email,
-                "phone": self.phone,
-                "website": self.website,
-            },
-            "address": self.full_address,
+            "is_active": self.is_active,
+            "hierarchy_level": len(self.get_path_to_root()),
+            "full_path": self.full_path,
         }
-
-    def get_display_name(self) -> str:
-        """Get display name for ERP UI."""
-        if self.name_en:
-            return f"{self.name} ({self.name_en})"
-        return self.name
-
-    def can_be_deleted(self) -> tuple[bool, str]:
-        """Check if organization can be safely deleted."""
-        if self.subsidiaries:
-            return False, "Cannot delete organization with subsidiaries"
-
-        if hasattr(self, "departments") and self.departments.count() > 0:
-            return False, "Cannot delete organization with departments"
-
-        # Would need to check for ERP data like orders, products, etc.
-        # For now, basic validation
-        return True, "OK"

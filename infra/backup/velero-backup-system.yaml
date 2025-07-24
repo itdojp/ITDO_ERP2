@@ -1,0 +1,608 @@
+# Velero Backup System Configuration
+# Enterprise-grade backup automation with encryption and multi-region support
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: velero
+  labels:
+    name: velero
+    backup.itdo-erp.com/system: "true"
+    security.istio.io/policy: "strict"
+---
+# Velero Server Configuration
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: velero
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: velero
+    app.kubernetes.io/component: backup-controller
+spec:
+  replicas: 2  # High availability
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: velero
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: velero
+        app.kubernetes.io/component: backup-controller
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8085"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: velero
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
+      containers:
+      - name: velero
+        image: velero/velero:v1.12.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: metrics
+          containerPort: 8085
+        - name: monitoring
+          containerPort: 8086
+        command:
+        - /velero
+        args:
+        - server
+        - --log-level=info
+        - --log-format=json
+        - --metrics-bind-address=:8085
+        - --profiler-bind-address=:8086
+        - --default-volumes-to-restic=true
+        - --uploader-type=restic
+        - --backup-sync-period=60m
+        - --store-validation-frequency=60m
+        - --garbage-collection-frequency=60m
+        - --default-backup-storage-location=primary
+        - --default-volume-snapshot-locations=primary
+        - --restore-resource-priorities=namespaces,secrets,configmaps,persistentvolumes,persistentvolumeclaims,serviceaccounts,customresourcedefinitions
+        env:
+        - name: VELERO_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: LD_LIBRARY_PATH
+          value: /plugins
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /credentials/cloud
+        - name: AWS_SHARED_CREDENTIALS_FILE
+          value: /credentials/cloud
+        - name: AZURE_CREDENTIALS_FILE
+          value: /credentials/cloud
+        volumeMounts:
+        - name: plugins
+          mountPath: /plugins
+        - name: cloud-credentials
+          mountPath: /credentials
+          readOnly: true
+        - name: scratch
+          mountPath: /scratch
+        - name: certs
+          mountPath: /etc/ssl/certs
+          readOnly: true
+        livenessProbe:
+          httpGet:
+            path: /metrics
+            port: 8085
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 5
+        readinessProbe:
+          httpGet:
+            path: /metrics
+            port: 8085
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 512Mi
+          requests:
+            cpu: 500m
+            memory: 128Mi
+      volumes:
+      - name: plugins
+        emptyDir: {}
+      - name: cloud-credentials
+        secret:
+          secretName: cloud-credentials
+      - name: scratch
+        emptyDir: {}
+      - name: certs
+        configMap:
+          name: velero-server-config
+          
+---
+# Velero ServiceAccount and RBAC
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: velero
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: velero
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: velero
+  labels:
+    app.kubernetes.io/name: velero
+rules:
+- apiGroups: [""]
+  resources: ["*"]
+  verbs: ["*"]
+- apiGroups: ["apps"]
+  resources: ["*"]
+  verbs: ["*"]
+- apiGroups: ["extensions"]
+  resources: ["*"]
+  verbs: ["*"]
+- apiGroups: ["networking.k8s.io"]
+  resources: ["*"]
+  verbs: ["*"]
+- apiGroups: ["storage.k8s.io"]
+  resources: ["*"]
+  verbs: ["*"]
+- apiGroups: ["apiextensions.k8s.io"]
+  resources: ["*"]
+  verbs: ["*"]
+- apiGroups: ["velero.io"]
+  resources: ["*"]
+  verbs: ["*"]
+- apiGroups: ["snapshot.storage.k8s.io"]
+  resources: ["*"]
+  verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: velero
+  labels:
+    app.kubernetes.io/name: velero
+subjects:
+- kind: ServiceAccount
+  name: velero
+  namespace: velero
+roleRef:
+  kind: ClusterRole
+  name: velero
+  apiGroup: rbac.authorization.k8s.io
+  
+---
+# Backup Storage Location (S3 Compatible)
+apiVersion: velero.io/v1
+kind: BackupStorageLocation
+metadata:
+  name: primary
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: backup-storage-primary
+spec:
+  provider: aws
+  default: true
+  objectStorage:
+    bucket: itdo-erp-backups-primary
+    prefix: "cluster-backups"
+    caCert: ""
+  config:
+    region: us-east-1
+    s3ForcePathStyle: "true"
+    s3Url: https://s3.amazonaws.com
+    checksumAlgorithm: ""
+    enableSharedConfig: "true"
+    # Server-side encryption
+    serverSideEncryption: "AES256"
+    # Access point for VPC-only access
+    useAccelerateEndpoint: "false"
+    # Backup retention
+    retentionPeriod: "720h"  # 30 days
+    
+---
+# Secondary Backup Storage Location (Multi-region)
+apiVersion: velero.io/v1
+kind: BackupStorageLocation
+metadata:
+  name: secondary
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: backup-storage-secondary
+spec:
+  provider: aws
+  default: false
+  objectStorage:
+    bucket: itdo-erp-backups-secondary
+    prefix: "cluster-backups-dr"
+  config:
+    region: us-west-2
+    s3ForcePathStyle: "true"
+    s3Url: https://s3.us-west-2.amazonaws.com
+    serverSideEncryption: "AES256"
+    retentionPeriod: "2160h"  # 90 days for DR
+    
+---
+# Volume Snapshot Location
+apiVersion: velero.io/v1
+kind: VolumeSnapshotLocation
+metadata:
+  name: primary
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: volume-snapshot-primary
+spec:
+  provider: aws
+  config:
+    region: us-east-1
+    # EBS-specific configuration
+    profile: "default"
+    enableSharedConfig: "true"
+    
+---
+# Production Database Backup Schedule
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: itdo-erp-database-backup
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: database-backup-schedule
+    backup.type: "database"
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  template:
+    metadata:
+      labels:
+        backup.type: database
+        backup.schedule: daily
+    spec:
+      includedNamespaces:
+      - itdo-erp
+      includedResources:
+      - persistentvolumes
+      - persistentvolumeclaims
+      - secrets
+      - configmaps
+      labelSelector:
+        matchLabels:
+          app: postgresql
+      snapshotVolumes: true
+      defaultVolumesToRestic: false  # Use volume snapshots for database
+      storageLocation: primary
+      volumeSnapshotLocations:
+      - primary
+      ttl: 720h0m0s  # 30 days retention
+      hooks:
+        resources:
+        - name: postgresql-backup-hook
+          includedNamespaces:
+          - itdo-erp
+          labelSelector:
+            matchLabels:
+              app: postgresql
+          pre:
+          - exec:
+              container: postgresql
+              command:
+              - /bin/bash
+              - -c
+              - |
+                echo "Starting database backup preparation..."
+                pg_dumpall -c -U postgres > /tmp/backup.sql
+                echo "Database dump completed"
+              onError: Fail
+              timeout: 600s
+          post:
+          - exec:
+              container: postgresql
+              command:
+              - /bin/bash
+              - -c
+              - |
+                echo "Database backup post-hook completed"
+                rm -f /tmp/backup.sql
+              onError: Continue
+              
+---
+# Application State Backup Schedule
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: itdo-erp-application-backup
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: application-backup-schedule
+    backup.type: "application"
+spec:
+  schedule: "0 */6 * * *"  # Every 6 hours
+  template:
+    metadata:
+      labels:
+        backup.type: application
+        backup.schedule: six-hourly
+    spec:
+      includedNamespaces:
+      - itdo-erp
+      - istio-system
+      - monitoring
+      excludedResources:
+      - events
+      - events.events.k8s.io
+      - backups.velero.io
+      - restores.velero.io
+      - resticrepositories.velero.io
+      snapshotVolumes: true
+      defaultVolumesToRestic: true
+      storageLocation: primary
+      ttl: 168h0m0s  # 7 days retention
+      
+---
+# Critical System Backup Schedule  
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: itdo-erp-system-backup
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: system-backup-schedule
+    backup.type: "system"
+spec:
+  schedule: "0 1 * * 0"  # Weekly on Sunday at 1 AM
+  template:
+    metadata:
+      labels:
+        backup.type: system
+        backup.schedule: weekly
+    spec:
+      includedNamespaces:
+      - kube-system
+      - velero
+      - cert-manager
+      - ingress-nginx
+      includedResources:
+      - secrets
+      - configmaps
+      - persistentvolumes
+      - persistentvolumeclaims
+      - customresourcedefinitions
+      snapshotVolumes: true
+      storageLocation: secondary  # Use secondary location for system backups
+      ttl: 2160h0m0s  # 90 days retention
+      
+---
+# Configuration Backup Schedule (Secrets, ConfigMaps)
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: itdo-erp-config-backup
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: config-backup-schedule
+    backup.type: "configuration"
+spec:
+  schedule: "0 */4 * * *"  # Every 4 hours
+  template:
+    metadata:
+      labels:
+        backup.type: configuration
+        backup.schedule: four-hourly
+    spec:
+      includedResources:
+      - secrets
+      - configmaps
+      - certificates.cert-manager.io
+      - issuers.cert-manager.io
+      - clusterissuers.cert-manager.io
+      excludedNamespaces:
+      - kube-public
+      - kube-node-lease
+      storageLocation: primary
+      ttl: 720h0m0s  # 30 days retention
+      
+---
+# Restic Repository Secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: velero-restic-credentials
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: restic-credentials
+type: Opaque
+data:
+  # Base64 encoded repository password
+  repository-password: aXRkby1lcnAtcmVzaWMtcGFzc3dvcmQtMjAyNA==
+  
+---
+# Cloud Provider Credentials Secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cloud-credentials
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: cloud-credentials
+type: Opaque
+data:
+  # AWS credentials (base64 encoded)
+  cloud: |
+    W2RlZmF1bHRdCmF3c19hY2Nlc3Nfa2V5X2lkID0gWU9VUl9BQ0NFU1NfS0VZX0lECmF3c19zZWNyZXRfYWNjZXNzX2tleSA9IFlPVVJfU0VDUkVUX0FDQ0VTU19LRVkKcmVnaW9uID0gdXMtZWFzdC0x
+    
+---
+# Velero Server Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: velero-server-config
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: velero-server-config
+data:
+  # Custom CA certificates if needed
+  ca-bundle.crt: |
+    -----BEGIN CERTIFICATE-----
+    # Custom CA certificates for backup storage access
+    -----END CERTIFICATE-----
+    
+  # Backup configuration
+  backup-config.yaml: |
+    # Global backup configuration
+    default_backup_ttl: 720h
+    default_volume_snapshot_ttl: 720h
+    
+    # Backup storage encryption
+    encryption:
+      enabled: true
+      kms_key_id: "arn:aws:kms:us-east-1:123456789012:key/12345678-1234-1234-1234-123456789012"
+      
+    # Backup verification
+    verification:
+      enabled: true
+      schedule: "0 3 * * *"  # Daily verification at 3 AM
+      
+    # Notification settings
+    notifications:
+      slack:
+        webhook_url: "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+        channel: "#backup-alerts"
+      email:
+        smtp_server: "smtp.gmail.com:587"
+        from: "backup-system@itdo-erp.com"
+        to: ["devops@itdo-erp.com", "admin@itdo-erp.com"]
+        
+---
+# Backup Monitoring Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: velero-metrics
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: velero-metrics
+    monitoring: "true"
+spec:
+  selector:
+    app.kubernetes.io/name: velero
+  ports:
+  - name: metrics
+    port: 8085
+    targetPort: 8085
+    protocol: TCP
+  - name: profiler
+    port: 8086
+    targetPort: 8086
+    protocol: TCP
+  type: ClusterIP
+  
+---
+# ServiceMonitor for Prometheus
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: velero-metrics
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: velero-metrics
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: velero-metrics
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+    scheme: http
+    
+---
+# Backup Health Check CronJob
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: backup-health-check
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: backup-health-check
+spec:
+  schedule: "0 */2 * * *"  # Every 2 hours
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: backup-health-check-job
+        spec:
+          serviceAccountName: velero
+          containers:
+          - name: health-check
+            image: velero/velero:v1.12.0
+            command:
+            - /bin/bash
+            - -c
+            - |
+              # Check backup status
+              echo "Checking backup health..."
+              
+              # Get latest backups
+              LATEST_BACKUP=$(velero backup get --output json | jq -r '.items | sort_by(.metadata.creationTimestamp) | last | .metadata.name')
+              
+              if [ "$LATEST_BACKUP" != "null" ]; then
+                BACKUP_STATUS=$(velero backup describe $LATEST_BACKUP --output json | jq -r '.status.phase')
+                
+                if [ "$BACKUP_STATUS" = "Completed" ]; then
+                  echo "✅ Latest backup $LATEST_BACKUP completed successfully"
+                  exit 0
+                else
+                  echo "❌ Latest backup $LATEST_BACKUP status: $BACKUP_STATUS"
+                  
+                  # Send alert
+                  curl -X POST -H 'Content-type: application/json' \
+                    --data "{\"text\":\"🚨 Backup Health Check Failed: Latest backup $LATEST_BACKUP has status $BACKUP_STATUS\"}" \
+                    $SLACK_WEBHOOK_URL
+                  exit 1
+                fi
+              else
+                echo "❌ No backups found"
+                exit 1
+              fi
+            env:
+            - name: SLACK_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: notification-secrets
+                  key: slack-webhook-url
+            volumeMounts:
+            - name: velero-config
+              mountPath: /etc/velero
+              readOnly: true
+          volumes:
+          - name: velero-config
+            configMap:
+              name: velero-server-config
+          restartPolicy: OnFailure
+          
+---
+# Notification Secrets
+apiVersion: v1
+kind: Secret
+metadata:
+  name: notification-secrets
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: notification-secrets
+type: Opaque
+data:
+  slack-webhook-url: aHR0cHM6Ly9ob29rcy5zbGFjay5jb20vc2VydmljZXMvWU9VUi9TTEFDSy9XRUJIT09L
+  smtp-password: eW91ci1zbXRwLXBhc3N3b3Jk

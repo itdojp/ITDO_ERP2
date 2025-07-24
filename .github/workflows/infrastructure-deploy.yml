@@ -1,0 +1,477 @@
+# Infrastructure Deployment Pipeline for ITDO ERP
+name: Infrastructure Deployment
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'helm/**'
+      - 'scripts/deploy-*.sh'
+      - 'monitoring/**'
+      - 'logging/**'
+      - 'tracing/**'
+      - 'registry/**'
+      - '.github/workflows/infrastructure-deploy.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'helm/**'
+      - 'scripts/deploy-*.sh'
+      - 'monitoring/**'
+      - 'logging/**'
+      - 'tracing/**'
+      - 'registry/**'
+  workflow_dispatch:
+    inputs:
+      deploy_component:
+        description: 'Component to deploy'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+        - all
+        - monitoring
+        - logging
+        - tracing
+        - registry
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'development'
+        type: choice
+        options:
+        - development
+        - staging
+        - production
+
+env:
+  KUBERNETES_NAMESPACE: infrastructure
+
+jobs:
+  # Validate Infrastructure Code
+  validate:
+    name: 🔍 Validate Infrastructure
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'latest'
+          
+      - name: Validate Helm charts
+        run: |
+          for chart in helm/*/; do
+            if [ -f "$chart/Chart.yaml" ]; then
+              echo "Validating $chart"
+              helm lint "$chart"
+              helm template test "$chart" --debug --dry-run
+            fi
+          done
+          
+      - name: Validate shell scripts
+        run: |
+          for script in scripts/deploy-*.sh; do
+            if [ -f "$script" ]; then
+              echo "Validating $script"
+              shellcheck "$script"
+            fi
+          done
+          
+      - name: Validate YAML files
+        uses: ibiqlik/action-yamllint@v3
+        with:
+          config_file: .yamllint.yml
+          file_or_dir: |
+            monitoring/
+            logging/
+            tracing/
+            registry/
+          strict: true
+
+  # Security scan for infrastructure
+  security-scan:
+    name: 🔒 Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Run Trivy config scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-config-results.sarif'
+          
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-config-results.sarif'
+          
+      - name: Run Checkov
+        id: checkov
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: .
+          framework: kubernetes,dockerfile
+          output_format: sarif
+          output_file_path: checkov-results.sarif
+          
+      - name: Upload Checkov scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: checkov-results.sarif
+
+  # Deploy Monitoring Infrastructure
+  deploy-monitoring:
+    name: 📊 Deploy Monitoring
+    runs-on: ubuntu-latest
+    needs: [validate, security-scan]
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.deploy_component == 'all' || github.event.inputs.deploy_component == 'monitoring'))
+    environment: ${{ github.event.inputs.environment || 'development' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+          
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'latest'
+          
+      - name: Configure kubectl
+        run: |
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > kubeconfig
+          export KUBECONFIG=kubeconfig
+          kubectl config current-context
+          
+      - name: Deploy monitoring infrastructure
+        run: |
+          export KUBECONFIG=kubeconfig
+          chmod +x scripts/deploy-monitoring.sh
+          ./scripts/deploy-monitoring.sh
+          
+      - name: Verify monitoring deployment
+        run: |
+          export KUBECONFIG=kubeconfig
+          kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=prometheus --timeout=600s -n monitoring
+          kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=grafana --timeout=600s -n monitoring
+
+  # Deploy Logging Infrastructure
+  deploy-logging:
+    name: 📝 Deploy Logging
+    runs-on: ubuntu-latest
+    needs: [validate, security-scan]
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.deploy_component == 'all' || github.event.inputs.deploy_component == 'logging'))
+    environment: ${{ github.event.inputs.environment || 'development' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+          
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'latest'
+          
+      - name: Configure kubectl
+        run: |
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > kubeconfig
+          export KUBECONFIG=kubeconfig
+          
+      - name: Deploy logging infrastructure
+        run: |
+          export KUBECONFIG=kubeconfig
+          chmod +x scripts/deploy-logging.sh
+          ./scripts/deploy-logging.sh
+          
+      - name: Verify logging deployment
+        run: |
+          export KUBECONFIG=kubeconfig
+          kubectl wait --for=condition=ready pod -l app=elasticsearch-master --timeout=900s -n logging
+          kubectl wait --for=condition=ready pod -l app=kibana --timeout=600s -n logging
+          kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=fluent-bit --timeout=300s -n logging
+
+  # Deploy Tracing Infrastructure
+  deploy-tracing:
+    name: 🔍 Deploy Tracing
+    runs-on: ubuntu-latest
+    needs: [validate, security-scan, deploy-logging]
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.deploy_component == 'all' || github.event.inputs.deploy_component == 'tracing'))
+    environment: ${{ github.event.inputs.environment || 'development' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+          
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'latest'
+          
+      - name: Configure kubectl
+        run: |
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > kubeconfig
+          export KUBECONFIG=kubeconfig
+          
+      - name: Deploy tracing infrastructure
+        run: |
+          export KUBECONFIG=kubeconfig
+          chmod +x scripts/deploy-tracing.sh
+          ./scripts/deploy-tracing.sh
+          
+      - name: Verify tracing deployment
+        run: |
+          export KUBECONFIG=kubeconfig
+          kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=jaeger --timeout=600s -n tracing
+          kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=otel-collector --timeout=300s -n tracing
+
+  # Deploy Registry Infrastructure
+  deploy-registry:
+    name: 🐳 Deploy Registry
+    runs-on: ubuntu-latest
+    needs: [validate, security-scan]
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.deploy_component == 'all' || github.event.inputs.deploy_component == 'registry'))
+    environment: ${{ github.event.inputs.environment || 'development' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+          
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'latest'
+          
+      - name: Configure kubectl
+        run: |
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > kubeconfig
+          export KUBECONFIG=kubeconfig
+          
+      - name: Deploy registry infrastructure
+        run: |
+          export KUBECONFIG=kubeconfig
+          chmod +x scripts/deploy-registry.sh
+          ./scripts/deploy-registry.sh harbor  # Deploy Harbor by default
+          
+      - name: Verify registry deployment
+        run: |
+          export KUBECONFIG=kubeconfig
+          kubectl wait --for=condition=ready pod -l app=harbor --timeout=900s -n registry
+
+  # Integration Testing
+  integration-test:
+    name: 🧪 Integration Test
+    runs-on: ubuntu-latest
+    needs: [deploy-monitoring, deploy-logging, deploy-tracing, deploy-registry]
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+          
+      - name: Configure kubectl
+        run: |
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > kubeconfig
+          export KUBECONFIG=kubeconfig
+          
+      - name: Test infrastructure endpoints
+        run: |
+          export KUBECONFIG=kubeconfig
+          
+          # Test Prometheus
+          kubectl port-forward -n monitoring svc/kube-prometheus-stack-prometheus 9090:9090 &
+          sleep 10
+          curl -f http://localhost:9090/-/ready || exit 1
+          
+          # Test Grafana
+          kubectl port-forward -n monitoring svc/kube-prometheus-stack-grafana 3000:80 &
+          sleep 10
+          curl -f http://localhost:3000/api/health || exit 1
+          
+          # Test Elasticsearch
+          kubectl port-forward -n logging svc/elasticsearch 9200:9200 &
+          sleep 10
+          curl -f -k -u elastic:elastic-production-password https://localhost:9200/_cluster/health || exit 1
+          
+          # Test Jaeger
+          kubectl port-forward -n tracing svc/jaeger-query 16686:16686 &
+          sleep 10
+          curl -f http://localhost:16686/ || exit 1
+          
+          # Test Harbor
+          kubectl port-forward -n registry svc/harbor-core 8080:80 &
+          sleep 10
+          curl -f http://localhost:8080/api/v2.0/systeminfo || exit 1
+          
+      - name: Test log ingestion pipeline
+        run: |
+          export KUBECONFIG=kubeconfig
+          
+          # Create test log entry
+          kubectl run test-logger --image=busybox --restart=Never --rm -i --tty \
+            -- sh -c "echo 'Test log entry from CI/CD pipeline' && sleep 5" || true
+            
+          # Wait for log processing
+          sleep 30
+          
+          # Verify log appears in Elasticsearch
+          kubectl port-forward -n logging svc/elasticsearch 9200:9200 &
+          sleep 10
+          
+          LOG_COUNT=$(curl -s -k -u elastic:elastic-production-password \
+            "https://localhost:9200/_search?q=test-logger" | \
+            jq '.hits.total.value' || echo "0")
+          
+          if [ "$LOG_COUNT" -gt 0 ]; then
+            echo "✅ Log ingestion pipeline working"
+          else
+            echo "❌ Log ingestion pipeline not working"
+            exit 1
+          fi
+
+  # Cleanup and Notification
+  notify:
+    name: 📢 Notify Deployment
+    runs-on: ubuntu-latest
+    needs: [integration-test]
+    if: always()
+    
+    steps:
+      - name: Notify success
+        if: needs.integration-test.result == 'success'
+        uses: 8398a7/action-slack@v3
+        with:
+          status: success
+          channel: '#infrastructure'
+          text: |
+            ✅ Infrastructure deployment completed successfully
+            
+            Deployed components:
+            • Monitoring (Prometheus + Grafana)
+            • Logging (ELK Stack + Fluent Bit)
+            • Tracing (Jaeger + OpenTelemetry)
+            • Container Registry (Harbor)
+            
+            Environment: ${{ github.event.inputs.environment || 'development' }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          
+      - name: Notify failure
+        if: needs.integration-test.result == 'failure' || needs.integration-test.result == 'cancelled'
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          channel: '#infrastructure'
+          text: |
+            ❌ Infrastructure deployment failed
+            
+            Please check the GitHub Actions logs for details.
+            Environment: ${{ github.event.inputs.environment || 'development' }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          
+      - name: Create GitHub issue on failure
+        if: needs.integration-test.result == 'failure' && github.event_name == 'push'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Infrastructure deployment failed - ${context.sha.substring(0, 7)}`,
+              body: `
+              Infrastructure deployment pipeline failed.
+              
+              **Commit:** ${context.sha}
+              **Workflow:** ${context.workflow}
+              **Run ID:** ${context.runId}
+              
+              Please check the [workflow run](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) for details.
+              `,
+              labels: ['infrastructure', 'bug', 'ci/cd']
+            })
+
+  # Performance Baseline Testing
+  performance-baseline:
+    name: ⚡ Performance Baseline
+    runs-on: ubuntu-latest
+    needs: [integration-test]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+          
+      - name: Configure kubectl
+        run: |
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > kubeconfig
+          export KUBECONFIG=kubeconfig
+          
+      - name: Run infrastructure performance tests
+        run: |
+          export KUBECONFIG=kubeconfig
+          
+          # Install k6 for load testing
+          curl https://github.com/grafana/k6/releases/download/v0.47.0/k6-v0.47.0-linux-amd64.tar.gz -L | tar xvz --strip-components 1
+          sudo mv k6 /usr/local/bin/
+          
+          # Test Prometheus query performance
+          kubectl port-forward -n monitoring svc/kube-prometheus-stack-prometheus 9090:9090 &
+          sleep 10
+          
+          k6 run -e BASE_URL=http://localhost:9090 - <<EOF
+          import http from 'k6/http';
+          import { check } from 'k6';
+          
+          export let options = {
+            duration: '30s',
+            vus: 5,
+          };
+          
+          export default function () {
+            let response = http.get(\`\${__ENV.BASE_URL}/api/v1/query?query=up\`);
+            check(response, {
+              'status is 200': (r) => r.status === 200,
+              'response time < 500ms': (r) => r.timings.duration < 500,
+            });
+          }
+          EOF

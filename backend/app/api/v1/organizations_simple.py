@@ -38,7 +38,7 @@ def list_organizations(
     """List organizations - v19.0 practical approach"""
     orgs = (
         db.query(Organization)
-        .filter(Organization.is_active == True)
+        .filter(Organization.is_active)
         .offset(skip)
         .limit(limit)
         .all()
