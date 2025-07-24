@@ -11,7 +11,7 @@ from app.types import UserId
 class ProjectService:
     """Service for managing projects (stub implementation)."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         """Initialize service with database session."""
         self.db = db
 
@@ -79,7 +79,7 @@ class ProjectService:
 class ProjectRepositoryLocal:
     """Local project repository stub for service."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def get_member_count(self, project_id: int) -> int:
