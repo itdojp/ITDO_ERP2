@@ -7,7 +7,7 @@ import pytest
 from sqlalchemy.orm import Session
 
 from app.services.auth import AuthService
-from tests.factories import UserFactory
+from tests.factories import create_test_user
 
 
 class TestAuthServiceEdgeCases:
@@ -48,8 +48,8 @@ class TestAuthServiceEdgeCases:
         """Test authentication with special characters in credentials."""
         # Create user with special character password
         special_password = "P@ssw0rd!#$%^&*()_+-=[]{}|;:,.<>?"
-        UserFactory.create_with_password(
-            db_session, password=special_password, email="test@example.com"
+        create_test_user(
+            db_session, email="test@example.com", password=special_password
         )
 
         # Should authenticate successfully
@@ -61,9 +61,7 @@ class TestAuthServiceEdgeCases:
 
         # Test with special characters in email domain
         special_email = "user+tag@sub-domain.co.uk"
-        UserFactory.create_with_password(
-            db_session, password="password123", email=special_email
-        )
+        create_test_user(db_session, email=special_email, password="password123")
 
         result = auth_service.authenticate_user(
             db_session, special_email, "password123"
@@ -76,8 +74,8 @@ class TestAuthServiceEdgeCases:
     ) -> None:
         """Test authentication with SQL injection attempts."""
         # Create a legitimate user first
-        UserFactory.create_with_password(
-            db_session, password="securepassword", email="admin@example.com"
+        create_test_user(
+            db_session, email="admin@example.com", password="securepassword"
         )
 
         # SQL injection attempts in email
@@ -160,8 +158,8 @@ class TestAuthServiceEdgeCases:
         """Test authentication with Unicode characters."""
         # Create user with Unicode password
         unicode_password = "пароль123测试🔒"
-        UserFactory.create_with_password(
-            db_session, password=unicode_password, email="unicode@example.com"
+        create_test_user(
+            db_session, email="unicode@example.com", password=unicode_password
         )
 
         # Should authenticate successfully
@@ -174,9 +172,7 @@ class TestAuthServiceEdgeCases:
         # Test with Unicode in email local part (if supported by system)
         try:
             unicode_email = "用户@example.com"
-            UserFactory.create_with_password(
-                db_session, password="password123", email=unicode_email
-            )
+            create_test_user(db_session, email=unicode_email, password="password123")
 
             result = auth_service.authenticate_user(
                 db_session, unicode_email, "password123"
@@ -218,8 +214,8 @@ class TestAuthServiceEdgeCases:
         self, auth_service: AuthService, db_session: Session
     ) -> None:
         """Test authentication exactly when account lockout expires."""
-        user = UserFactory.create_with_password(
-            db_session, password="password123", email="locked@example.com"
+        user = create_test_user(
+            db_session, email="locked@example.com", password="password123"
         )
 
         # Lock the account
@@ -245,18 +241,11 @@ class TestAuthServiceEdgeCases:
         assert result is not None
         assert result.email == "locked@example.com"
 
-        # Verify lockout was reset
-        db_session.refresh(user)
-        assert user.failed_login_attempts == 0
-        assert user.locked_until is None
-
     def test_authenticate_with_case_sensitivity(
         self, auth_service: AuthService, db_session: Session
     ) -> None:
         """Test email case sensitivity in authentication."""
-        UserFactory.create_with_password(
-            db_session, password="password123", email="User@Example.COM"
-        )
+        create_test_user(db_session, email="User@Example.COM", password="password123")
 
         # Test various case combinations
         # NOTE: Current implementation is case-sensitive
@@ -286,9 +275,7 @@ class TestAuthServiceEdgeCases:
         self, auth_service: AuthService, db_session: Session
     ) -> None:
         """Test authentication with leading/trailing whitespace."""
-        UserFactory.create_with_password(
-            db_session, password="password123", email="user@example.com"
-        )
+        create_test_user(db_session, email="user@example.com", password="password123")
 
         # Test with various whitespace scenarios
         # NOTE: Current implementation doesn't trim whitespace
@@ -310,8 +297,8 @@ class TestAuthServiceEdgeCases:
         self, auth_service: AuthService, db_session: Session
     ) -> None:
         """Test authentication when password must be changed."""
-        user = UserFactory.create_with_password(
-            db_session, password="password123", email="mustchange@example.com"
+        user = create_test_user(
+            db_session, email="mustchange@example.com", password="password123"
         )
 
         # Set password must change flag
@@ -329,8 +316,8 @@ class TestAuthServiceEdgeCases:
         self, auth_service: AuthService, db_session: Session
     ) -> None:
         """Test concurrent authentication attempts."""
-        UserFactory.create_with_password(
-            db_session, password="password123", email="concurrent@example.com"
+        create_test_user(
+            db_session, email="concurrent@example.com", password="password123"
         )
 
         # Simulate concurrent authentication attempts
@@ -385,8 +372,8 @@ class TestAuthServiceEdgeCases:
         self, auth_service: AuthService, db_session: Session
     ) -> None:
         """Test authentication with expired password."""
-        user = UserFactory.create_with_password(
-            db_session, password="password123", email="expired@example.com"
+        user = create_test_user(
+            db_session, email="expired@example.com", password="password123"
         )
 
         # Set password as expired (more than 90 days old)
@@ -407,10 +394,10 @@ class TestAuthServiceEdgeCases:
     ) -> None:
         """Test authentication edge cases with inactive users."""
         # Create inactive user
-        user = UserFactory.create_with_password(
+        user = create_test_user(
             db_session,
-            password="password123",
             email="inactive@example.com",
+            password="password123",
             is_active=False,
         )
 

@@ -16,7 +16,7 @@ from app.schemas.user_preferences import (
 class UserPreferencesService:
     """User preferences management service."""
 
-    def __init__(self, db: Session) -> dict:
+    def __init__(self, db: Session):
         """Initialize service with database session."""
         self.db = db
 

@@ -14,7 +14,7 @@ from app.types import CreateSchemaType, ModelType, SearchParams, UpdateSchemaTyp
 class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     """Base repository providing CRUD operations with type safety."""
 
-    def __init__(self, model: type[ModelType], db: Session) -> dict:
+    def __init__(self, model: type[ModelType], db: Session):
         """Initialize repository with model class and database session."""
         self.model = model
         self.db = db

@@ -19,16 +19,25 @@ class ExpenseCategory(SoftDeletableModel):
 
     # Basic fields
     code: Mapped[str] = mapped_column(
-        String(50), nullable=False, index=True, comment="Expense category code"
+        String(50),
+        nullable=False,
+        index=True,
+        comment="Expense category code"
     )
     name: Mapped[str] = mapped_column(
-        String(200), nullable=False, comment="Expense category name"
+        String(200),
+        nullable=False,
+        comment="Expense category name"
     )
     name_en: Mapped[str | None] = mapped_column(
-        String(200), nullable=True, comment="Expense category name in English"
+        String(200),
+        nullable=True,
+        comment="Expense category name in English"
     )
     description: Mapped[str | None] = mapped_column(
-        Text, nullable=True, comment="Expense category description"
+        Text,
+        nullable=True,
+        comment="Expense category description"
     )
 
     # Foreign keys
@@ -36,47 +45,68 @@ class ExpenseCategory(SoftDeletableModel):
         Integer,
         ForeignKey("organizations.id"),
         nullable=False,
-        comment="Organization ID for multi-tenant support",
+        comment="Organization ID for multi-tenant support"
     )
     parent_id: Mapped[int | None] = mapped_column(
         Integer,
         ForeignKey("expense_categories.id"),
         nullable=True,
-        comment="Parent category ID for hierarchical structure",
+        comment="Parent category ID for hierarchical structure"
     )
 
     # Category details
     category_type: Mapped[str] = mapped_column(
-        String(50), nullable=False, comment="Category type: fixed/variable/capital"
+        String(50),
+        nullable=False,
+        comment="Category type: fixed/variable/capital"
     )
     is_active: Mapped[bool] = mapped_column(
-        Boolean, default=True, comment="Active status"
+        Boolean,
+        default=True,
+        comment="Active status"
     )
     is_taxable: Mapped[bool] = mapped_column(
-        Boolean, default=True, comment="Whether this category is subject to tax"
+        Boolean,
+        default=True,
+        comment="Whether this category is subject to tax"
     )
     requires_receipt: Mapped[bool] = mapped_column(
-        Boolean, default=True, comment="Whether receipt is required for this category"
+        Boolean,
+        default=True,
+        comment="Whether receipt is required for this category"
     )
     sort_order: Mapped[int] = mapped_column(
-        Integer, default=0, comment="Sort order for display"
+        Integer,
+        default=0,
+        comment="Sort order for display"
     )
 
     # Approval settings
     approval_required: Mapped[bool] = mapped_column(
-        Boolean, default=True, comment="Whether approval is required for this category"
+        Boolean,
+        default=True,
+        comment="Whether approval is required for this category"
     )
     approval_limit: Mapped[float | None] = mapped_column(
-        Integer, nullable=True, comment="Amount threshold for approval requirement"
+        Integer,
+        nullable=True,
+        comment="Amount threshold for approval requirement"
     )
 
     # Relationships
-    organization: Mapped["Organization"] = relationship("Organization", lazy="select")
+    organization: Mapped["Organization"] = relationship(
+        "Organization",
+        lazy="select"
+    )
     parent: Mapped["ExpenseCategory | None"] = relationship(
-        "ExpenseCategory", remote_side="ExpenseCategory.id", back_populates="children"
+        "ExpenseCategory",
+        remote_side="ExpenseCategory.id",
+        back_populates="children"
     )
     children: Mapped[List["ExpenseCategory"]] = relationship(
-        "ExpenseCategory", back_populates="parent", cascade="all, delete-orphan"
+        "ExpenseCategory",
+        back_populates="parent",
+        cascade="all, delete-orphan"
     )
 
     # Computed properties
@@ -138,9 +168,7 @@ class ExpenseCategory(SoftDeletableModel):
 
     def __repr__(self) -> str:
         """Developer representation."""
-        return (
-            f"<ExpenseCategory(id={self.id}, code='{self.code}', name='{self.name}')>"
-        )
+        return f"<ExpenseCategory(id={self.id}, code='{self.code}', name='{self.name}')>"
 
 
 # Create default expense categories for new organizations

@@ -29,7 +29,7 @@ from app.schemas.multi_tenant import (
 class MultiTenantService:
     """Service for managing multi-tenant user organization relationships."""
 
-    def __init__(self, db: Session) -> dict:
+    def __init__(self, db: Session):
         self.db = db
 
     def add_user_to_organization(

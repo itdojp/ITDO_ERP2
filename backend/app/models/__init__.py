@@ -23,37 +23,10 @@ from app.models.analytics_extended import (
     AnalyticsReportExecution,
 )
 from app.models.audit import AuditLog
-
-# CC02 v31.0 Phase 2 - Audit Log System Models
-from app.models.audit_extended import (
-    AuditAlert,
-    AuditCompliance,
-    AuditConfiguration,
-    AuditDataRetention,
-    AuditLogEntry,
-    AuditMetrics,
-    AuditReport,
-    AuditRule,
-    AuditSession,
-)
-from app.models.budget import Budget, BudgetItem
-
-# CC02 v31.0 Phase 2 - CRM Management Models
-from app.models.crm_extended import (
-    CampaignExtended,
-    ContactExtended,
-    CRMActivity,
-    CRMAnalytics,
-    CustomerExtended,
-    LeadExtended,
-    OpportunityExtended,
-    SupportTicket,
-)
 from app.models.cross_tenant_permissions import (
     CrossTenantAuditLog,
     CrossTenantPermissionRule,
 )
-from app.models.customer import Customer, CustomerActivity, CustomerContact, Opportunity
 from app.models.department import Department
 
 # CC02 v31.0 Phase 2 - Document Management Models

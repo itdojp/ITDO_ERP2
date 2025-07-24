@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.common import AuditInfo, SoftDeleteInfo
 from app.schemas.department import DepartmentBasic
@@ -43,13 +43,6 @@ class RolePermissions(BaseModel):
     permissions: dict[str, Any] = Field(
         default_factory=dict, description="Role permissions"
     )
-
-    @field_validator("permissions")
-    @classmethod
-    def validate_permissions(cls, v: dict[str, Any]) -> dict[str, Any]:
-        """Validate permissions structure."""
-        # Add custom validation logic here
-        return v
 
 
 class RoleDisplay(BaseModel):
@@ -175,7 +168,6 @@ class UserRoleInfo(BaseModel):
     department: DepartmentBasic | None = None
     assigned_by: UserBasic | None = None
     assigned_at: datetime
-    valid_from: datetime
     expires_at: datetime | None = None
     is_active: bool
     is_primary: bool

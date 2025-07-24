@@ -64,6 +64,34 @@ GitHub Actionsによる包括的な品質保証：
 - **型安全性**: SQLAlchemy 2.0 + 厳格な型チェック
 - **セキュリティ**: ゼロ既知脆弱性を維持
 - **パフォーマンス**: API応答時間 <200ms
+- **Code Quality**: 新規エラー 0個/週（必須）
+
+## 📋 プロジェクト規定
+
+**全開発者必読**:
+- [PROJECT_STANDARDS.md](PROJECT_STANDARDS.md) - プロジェクト品質規定
+- [AGENT_MANDATORY_CHECKLIST.md](AGENT_MANDATORY_CHECKLIST.md) - 必須チェックリスト
+
+### 🚨 Code Quality必須コマンド
+```bash
+# 作業前後に必ず実行
+./scripts/claude-code-quality-check.sh
+
+# コミット前に必ず実行
+uv run pre-commit run --all-files
+```
+
+## Claude Code Optimization
+
+For efficient Claude Code usage and cost optimization:
+
+1. **Monitoring Script**: Run `./scripts/claude-usage-monitor.sh` for usage analysis
+2. **Optimization Guide**: See [Claude Code Optimization Guide](docs/CLAUDE_CODE_OPTIMIZATION_GUIDE.md)
+3. **Configuration**: `.claudeignore` and `.gitignore` are optimized for minimal token usage
+4. **Best Practices**: 
+   - Use `/compact` every 2-4 hours
+   - Keep sessions focused and specific
+   - Regular cache cleanup for optimal performance
 
 ## Claude Code Optimization
 

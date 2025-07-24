@@ -525,6 +525,7 @@ class TestAuthServiceEdgeCases:
             # Token should be expired now (test might need adjustment)
             # We can't easily test this without mocking token verification
             # This is more of a placeholder for the concept
+            pass
 
     def test_authentication_at_system_limits(
         self, auth_service, db_session: Session

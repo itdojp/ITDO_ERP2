@@ -105,7 +105,6 @@ class TestDepartmentAPI(
     ) -> None:
         """Test successful update operation."""
         # Database session isolation issue resolved
-        pytest.skip("Temporarily disabled due to database session isolation issue")
 
     def test_create_endpoint_forbidden(
         self, client: TestClient, test_organization: Organization, user_token: str
@@ -145,7 +144,6 @@ class TestDepartmentAPI(
     ) -> None:
         """Test successful delete operation."""
         # Database session isolation issue resolved
-        pytest.skip("Temporarily disabled due to database session isolation issue")
 
     def test_delete_endpoint_not_found(
         self, client: TestClient, test_organization: Organization, admin_token: str
@@ -166,7 +164,6 @@ class TestDepartmentAPI(
     ) -> None:
         """Test update operation with insufficient permissions."""
         # Database session isolation issue resolved
-        pytest.skip("Temporarily disabled due to database session isolation issue")
 
     def test_delete_endpoint_forbidden(
         self,
@@ -177,7 +174,6 @@ class TestDepartmentAPI(
     ) -> None:
         """Test delete operation with insufficient permissions."""
         # Database session isolation issue resolved
-        pytest.skip("Temporarily disabled due to database session isolation issue")
 
     def test_list_endpoint_success(
         self,
@@ -229,7 +225,6 @@ class TestDepartmentAPI(
     ) -> None:
         """Test list endpoint with pagination."""
         # Database session isolation issue resolved
-        pytest.skip("Temporarily disabled due to database session isolation issue")
 
     # Department-specific test methods
 

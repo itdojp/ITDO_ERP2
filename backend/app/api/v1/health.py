@@ -2,28 +2,20 @@
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.monitoring import health_checker, setup_health_checks
 
 router = APIRouter(prefix="/health", tags=["health"])
 
 
 @router.get("/", response_model=dict[str, Any])
 async def comprehensive_health_check(
-    detailed: bool = Query(False, description="Include detailed system metrics"),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
-    """
-    Comprehensive health check with all system components.
-
-    This endpoint provides a complete health assessment of the ITDO ERP system,
-    including database, cache, external dependencies, and system resources.
-    """
-    from datetime import datetime, timezone
-
-    from app.core.monitoring import health_checker, setup_health_checks
+    """Comprehensive health check with all system components."""
 
     # Setup health checks if not already done
     try:
@@ -32,113 +24,17 @@ async def comprehensive_health_check(
         # Health checks might already be setup
         pass
 
-    try:
-        # Use enhanced health checker if available
-        try:
-            from app.core.health import HealthStatus, get_health_checker
+    # Run all health checks
+    health_results = await health_checker.run_checks()
 
-            health_checker_enhanced = get_health_checker()
-
-            if detailed:
-                # Run comprehensive health check with detailed metrics
-                health_report = await health_checker_enhanced.check_system_health(
-                    include_detailed=detailed
-                )
-
-                return {
-                    "status": health_report.overall_status.value,
-                    "timestamp": health_report.timestamp.isoformat(),
-                    "version": health_report.version,
-                    "environment": health_report.environment,
-                    "uptime_seconds": health_report.uptime_seconds,
-                    "components": [
-                        {
-                            "component": comp.component,
-                            "type": comp.component_type.value,
-                            "status": comp.status.value,
-                            "response_time_ms": comp.response_time_ms,
-                            "timestamp": comp.timestamp.isoformat(),
-                            "message": comp.message,
-                            "details": comp.details,
-                            "metrics": [
-                                {
-                                    "name": metric.name,
-                                    "value": metric.value,
-                                    "unit": metric.unit,
-                                    "threshold_warning": metric.threshold_warning,
-                                    "threshold_critical": metric.threshold_critical,
-                                    "description": metric.description,
-                                }
-                                for metric in comp.metrics
-                            ]
-                            if hasattr(comp, "metrics")
-                            else [],
-                            "error": comp.error if hasattr(comp, "error") else None,
-                        }
-                        for comp in health_report.components
-                    ],
-                    "performance_metrics": health_report.performance_metrics,
-                    "alerts": health_report.alerts,
-                    "recommendations": health_report.recommendations,
-                    "summary": health_report.summary
-                    if hasattr(health_report, "summary")
-                    else None,
-                    "overall_healthy": health_report.overall_status
-                    == HealthStatus.HEALTHY,
-                }
-        except ImportError:
-            # Fall back to basic health checker
-            pass
-
-        # Use basic health checker as fallback
-        health_results = await health_checker.run_checks()
-
-        return {
-            "status": "healthy" if health_results["healthy"] else "unhealthy",
-            "timestamp": health_results["timestamp"],
-            "version": "2.1.0",
-            "service": "ITDO ERP API",
-            "protocol": "v17.0",
-            "checks": health_results["checks"],
-            "overall_healthy": health_results["healthy"],
-        }
-
-    except Exception as e:
-        # If health check system fails, return minimal status
-        return {
-            "status": "unhealthy",
-            "error": f"Health check system failure: {str(e)}",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "fallback_mode": True,
-        }
-
-
-@router.get("/simple")
-async def simple_health_check(db: Session = Depends(get_db)) -> dict[str, Any]:
-    """Simple health check for basic monitoring."""
-    from datetime import datetime, timezone
-
-    from app.core.monitoring import health_checker
-
-    try:
-        # Use health checker for consistent protocol
-        health_results = await health_checker.run_checks()
-
-        return {
-            "status": "healthy" if health_results["healthy"] else "unhealthy",
-            "timestamp": health_results["timestamp"],
-            "protocol": "v17.0",
-            "checks": health_results["checks"],
-            "overall_healthy": health_results["healthy"],
-        }
-    except Exception as e:
-        return {
-            "status": "error",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "protocol": "v17.0",
-            "error": str(e),
-            "overall_healthy": False,
-        }
+    # Return results
+    return {
+        "status": "healthy" if health_results["healthy"] else "unhealthy",
+        "timestamp": health_results["timestamp"],
+        "version": "2.0.0",
+        "checks": health_results["checks"],
+        "overall_healthy": health_results["healthy"],
+    }
 
 
 @router.get("/live", response_model=dict[str, str])
@@ -150,55 +46,23 @@ async def liveness_probe() -> dict[str, str]:
 @router.get("/ready", response_model=dict[str, Any])
 async def readiness_probe(db: Session = Depends(get_db)) -> dict[str, Any]:
     """Kubernetes readiness probe - checks if app can serve traffic."""
-    from datetime import datetime, timezone
 
     try:
-        # Quick essential health checks for readiness
-        ready_checks = {
-            "database": False,
-            "redis": False,
-            "application": True,  # Application is running if we reached this point
-        }
-
         # Test database connectivity
         from sqlalchemy import text
 
         db.execute(text("SELECT 1"))
-        ready_checks["database"] = True
-
-        # Test Redis connectivity
-        try:
-            from app.core.database import get_redis
-
-            redis_client = get_redis()
-            await redis_client.ping()
-            ready_checks["redis"] = True
-        except:
-            # Redis failure is not critical for readiness
-            pass
-
-        # Service is ready if essential services are available
-        is_ready = ready_checks["database"] and ready_checks["application"]
-
-        if not is_ready:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Service dependencies not ready",
-            )
 
         return {
             "status": "ready",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "checks": ready_checks,
-            "ready": is_ready,
+            "database": "connected",
+            "timestamp": health_checker.last_check_time.get("database", "never"),
         }
 
-    except HTTPException:
-        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"Readiness check failed: {str(e)}",
+            detail=f"Service not ready: {str(e)}",
         )
 
 
@@ -239,60 +103,24 @@ async def database_health(db: Session = Depends(get_db)) -> dict[str, Any]:
         return {"status": "unhealthy", "error": str(e), "error_type": type(e).__name__}
 
 
-@router.get("/metrics", response_model=dict[str, Any])
-async def health_metrics(db: Session = Depends(get_db)) -> dict[str, Any]:
-    """Get detailed health metrics for monitoring systems."""
-    from datetime import datetime, timezone
+@router.get("/metrics-endpoint", response_model=dict[str, str])
+async def metrics_endpoint_health() -> dict[str, str]:
+    """Check if metrics collection is working."""
 
     try:
-        # Try enhanced health checker first
-        from app.core.health import HealthStatus, get_health_checker
-
-        health_checker_enhanced = get_health_checker()
-        health_report = await health_checker_enhanced.check_system_health(
-            include_detailed=True
-        )
-        metrics = health_report.performance_metrics or {}
-
-        return {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "uptime_seconds": health_report.uptime_seconds,
-            "metrics": metrics,
-            "component_count": len(health_report.components),
-            "healthy_components": len(
-                [
-                    comp
-                    for comp in health_report.components
-                    if comp.status == HealthStatus.HEALTHY
-                ]
-            ),
-            "status": health_report.overall_status.value,
-        }
-    except ImportError:
-        # Fallback to basic metrics
         from app.core.monitoring import get_metrics
 
-        try:
-            metrics_data = get_metrics()
-            return {
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-                "metrics": metrics_data,
-                "status": "healthy",
-                "metrics_available": True,
-            }
-        except Exception as e:
-            return {
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-                "error": str(e),
-                "status": "error",
-                "metrics_available": False,
-            }
-    except Exception as e:
+        # Try to generate metrics
+        metrics_data = get_metrics()
+
         return {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "error": str(e),
-            "status": "error",
+            "status": "healthy",
+            "metrics_available": "yes",
+            "sample_metrics_length": str(len(metrics_data)),
         }
+
+    except Exception as e:
+        return {"status": "unhealthy", "error": str(e), "metrics_available": "no"}
 
 
 @router.get("/system", response_model=dict[str, Any])
@@ -338,7 +166,6 @@ async def system_health() -> dict[str, Any]:
 @router.get("/startup", response_model=dict[str, Any])
 async def startup_health() -> dict[str, Any]:
     """Check if all startup components are properly initialized."""
-    from app.core.monitoring import health_checker
 
     status_checks = {
         "monitoring_initialized": False,
@@ -387,14 +214,14 @@ async def agent_health() -> dict[str, Any]:
         import datetime
         import time
 
-        import psutil
-
         start_time = time.time()
 
         # Simulate agent responsiveness test
         response_time = time.time() - start_time
 
         # Check system resources for agent performance
+        import psutil
+
         memory = psutil.virtual_memory()
         cpu_percent = psutil.cpu_percent(interval=0.1)
 

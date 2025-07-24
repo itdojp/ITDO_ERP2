@@ -64,7 +64,7 @@ class Department(SoftDeletableModel):
     path: Mapped[str] = mapped_column(
         String(1000),
         nullable=False,
-        default="/",
+        default="",
         index=True,
         comment="Materialized path for efficient hierarchy queries",
     )
@@ -150,16 +150,7 @@ class Department(SoftDeletableModel):
         lazy="joined",
     )
     sub_departments: Mapped[list["Department"]] = relationship(
-        "Department", back_populates="parent", lazy="select", cascade="all, delete"
-    )
-
-    # Alias for compatibility with tests
-    children: Mapped[list["Department"]] = relationship(
-        "Department",
-        back_populates="parent",
-        lazy="select",
-        cascade="all, delete",
-        overlaps="sub_departments",
+        "Department", back_populates="parent", lazy="select"
     )
     manager: Mapped[Optional["User"]] = relationship(
         "User", foreign_keys=[manager_id], lazy="joined"

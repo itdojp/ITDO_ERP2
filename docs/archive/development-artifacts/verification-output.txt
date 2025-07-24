@@ -1,0 +1,158 @@
+[0;34mITDO ERP System - Environment Verification[0m
+[0;34m===========================================[0m
+
+[0;34m========================================[0m
+[0;34m1. Basic Tools Check[0m
+[0;34m========================================[0m
+
+[0;34m[CHECK] Checking uv installation[0m
+[0;32m✅ uv 0.7.19 is installed[0m
+[0;34m[CHECK] Checking Node.js installation[0m
+[0;32m✅ Node.js v20.19.3 is installed (>= 18.0.0)[0m
+[0;34m[CHECK] Checking npm installation[0m
+[0;32m✅ npm 10.8.2 is installed[0m
+[0;34m[CHECK] Checking container runtime[0m
+[0;32m✅ Podman 4.9.3 is installed[0m
+[0;34m[CHECK] Checking Git installation[0m
+[0;32m✅ Git 2.43.0 is installed[0m
+
+[0;34m========================================[0m
+[0;34m2. Project Structure Check[0m
+[0;34m========================================[0m
+
+[0;34m[CHECK] Checking directory: backend/app[0m
+[0;32m✅ Directory backend/app exists[0m
+[0;34m[CHECK] Checking directory: frontend/src[0m
+[0;32m✅ Directory frontend/src exists[0m
+[0;34m[CHECK] Checking directory: infra[0m
+[0;32m✅ Directory infra exists[0m
+[0;34m[CHECK] Checking directory: scripts[0m
+[0;32m✅ Directory scripts exists[0m
+[0;34m[CHECK] Checking directory: .github/workflows[0m
+[0;32m✅ Directory .github/workflows exists[0m
+[0;34m[CHECK] Checking directory: .claude[0m
+[0;32m✅ Directory .claude exists[0m
+[0;34m[CHECK] Checking directory: docs[0m
+[0;32m✅ Directory docs exists[0m
+[0;34m[CHECK] Checking file: CLAUDE.md[0m
+[0;32m✅ File CLAUDE.md exists[0m
+[0;34m[CHECK] Checking file: complete-development-docs.md[0m
+[0;32m✅ File complete-development-docs.md exists[0m
+[0;34m[CHECK] Checking file: pyproject.toml[0m
+[0;31m❌ File pyproject.toml is missing[0m
+[0;34m[CHECK] Checking file: Makefile[0m
+[0;32m✅ File Makefile exists[0m
+[0;34m[CHECK] Checking file: .gitignore[0m
+[0;32m✅ File .gitignore exists[0m
+[0;34m[CHECK] Checking file: backend/requirements.txt[0m
+[0;32m✅ File backend/requirements.txt exists[0m
+[0;34m[CHECK] Checking file: frontend/package.json[0m
+[0;32m✅ File frontend/package.json exists[0m
+[0;34m[CHECK] Checking file: infra/compose-data.yaml[0m
+[0;32m✅ File infra/compose-data.yaml exists[0m
+
+[0;34m========================================[0m
+[0;34m3. Claude Configuration Check[0m
+[0;34m========================================[0m
+
+[0;34m[CHECK] Checking CLAUDE.md content[0m
+[0;32m✅ CLAUDE.md contains required reading files section[0m
+[0;34m[CHECK] Checking .claude/PROJECT_CONTEXT.md[0m
+[0;32m✅ .claude/PROJECT_CONTEXT.md exists[0m
+[0;34m[CHECK] Checking .claude/DEVELOPMENT_WORKFLOW.md[0m
+[0;32m✅ .claude/DEVELOPMENT_WORKFLOW.md exists[0m
+[0;34m[CHECK] Checking .claude/CODING_STANDARDS.md[0m
+[0;32m✅ .claude/CODING_STANDARDS.md exists[0m
+[0;34m[CHECK] Checking .claude/TECHNICAL_CONSTRAINTS.md[0m
+[0;32m✅ .claude/TECHNICAL_CONSTRAINTS.md exists[0m
+
+[0;34m========================================[0m
+[0;34m4. Data Layer Services Check[0m
+[0;34m========================================[0m
+
+[0;34m[CHECK] Checking PostgreSQL port (5432)[0m
+[0;32m✅ PostgreSQL is accessible on port 5432[0m
+[0;34m[CHECK] Checking Redis port (6379)[0m
+[0;32m✅ Redis is accessible on port 6379[0m
+[0;34m[CHECK] Checking Keycloak port (8080)[0m
+[1;33m⚠️  Keycloak is not running. Run 'make start-data' to start[0m
+
+[0;34m========================================[0m
+[0;34m5. Python Environment Check[0m
+[0;34m========================================[0m
+
+[0;34m[CHECK] Checking Python virtual environment[0m
+[0;32m✅ Python virtual environment exists[0m
+[0;34m[CHECK] Checking Python dependencies[0m
+[0;32m✅ requirements.txt exists[0m
+
+[0;34m========================================[0m
+[0;34m6. Node Environment Check[0m
+[0;34m========================================[0m
+
+[0;34m[CHECK] Checking node_modules[0m
+[0;32m✅ node_modules exists[0m
+[0;34m[CHECK] Checking package-lock.json[0m
+[0;32m✅ package-lock.json exists[0m
+
+[0;34m========================================[0m
+[0;34m7. GitHub Actions Check[0m
+[0;34m========================================[0m
+
+[0;34m[CHECK] Checking workflow: .github/workflows/ci.yml[0m
+[0;32m✅ .github/workflows/ci.yml is valid YAML[0m
+[0;34m[CHECK] Checking workflow: .github/workflows/security-scan.yml[0m
+[0;32m✅ .github/workflows/security-scan.yml is valid YAML[0m
+[0;34m[CHECK] Checking workflow: .github/workflows/typecheck.yml[0m
+[0;32m✅ .github/workflows/typecheck.yml is valid YAML[0m
+[0;34m[CHECK] Checking workflow: .github/workflows/auto-review-request.yml[0m
+[0;31m❌ .github/workflows/auto-review-request.yml has invalid YAML syntax[0m
+
+[0;34m========================================[0m
+[0;34m8. Test Configuration Check[0m
+[0;34m========================================[0m
+
+[0;34m[CHECK] Checking test script[0m
+[0;31m❌ test.sh is missing or not executable[0m
+[0;34m[CHECK] Checking pre-commit configuration[0m
+[0;31m❌ .pre-commit-config.yaml is missing[0m
+[0;34m[CHECK] Checking Makefile[0m
+
+[0;34m========================================[0m
+[0;34m9. Security Configuration Check[0m
+[0;34m========================================[0m
+
+[0;34m[CHECK] Checking .gitignore[0m
+[0;34m[CHECK] Checking secrets baseline[0m
+[1;33m⚠️  .secrets.baseline is missing (run 'detect-secrets scan > .secrets.baseline')[0m
+
+[0;34m========================================[0m
+[0;34m10. Port Availability Check[0m
+[0;34m========================================[0m
+
+[0;34m[CHECK] Checking port 3000 (Frontend Dev Server)[0m
+[0;32m✅ Port 3000 is available[0m
+[0;34m[CHECK] Checking port 8000 (Backend Dev Server)[0m
+[1;33m⚠️  Port 8000 is in use[0m
+[0;34m[CHECK] Checking port 5432 (PostgreSQL)[0m
+[1;33m⚠️  Port 5432 is in use[0m
+[0;34m[CHECK] Checking port 6379 (Redis)[0m
+[1;33m⚠️  Port 6379 is in use[0m
+[0;34m[CHECK] Checking port 8080 (Keycloak)[0m
+[1;33m⚠️  Port 8080 is in use[0m
+[0;34m[CHECK] Checking port 5050 (PgAdmin)[0m
+[0;32m✅ Port 5050 is available[0m
+
+[0;34m========================================[0m
+[0;34mVerification Summary[0m
+[0;34m========================================[0m
+
+Total Checks: [0;34m47[0m
+Passed: [0;32m35[0m
+Failed: [0;31m4[0m
+Success Rate: [0;34m74%[0m
+
+[1;33m⚠️  Some checks failed. Please review the errors above.[0m
+[1;33mRun 'make setup-dev' to fix most issues automatically.[0m
+
+[0;34mReport saved to: test-reports/environment-verification-20250705-170148.txt[0m

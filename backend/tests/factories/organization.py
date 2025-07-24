@@ -49,16 +49,6 @@ class OrganizationFactory(BaseFactory):
         }
 
     @classmethod
-    def build_dict(cls, **kwargs: Any) -> dict[str, Any]:
-        """Build a dictionary of attributes for API payload creation."""
-        defaults = cls._get_default_attributes()
-        defaults.update(kwargs)
-        # For API payload, convert settings from JSON string to dict
-        if "settings" in defaults and isinstance(defaults["settings"], str):
-            defaults["settings"] = json.loads(defaults["settings"])
-        return defaults
-
-    @classmethod
     def build(cls, **kwargs: Any) -> Any:
         """Build a model instance without saving to database."""
         attributes = cls.build_dict(**kwargs)

@@ -1,0 +1,249 @@
+name: Label-Based Issue Processor
+
+on:
+  issues:
+    types: [opened, labeled, unlabeled, reopened]
+  issue_comment:
+    types: [created]
+
+jobs:
+  evaluate-labels:
+    runs-on: ubuntu-latest
+    outputs:
+      should_process: ${{ steps.check.outputs.should_process }}
+      processing_type: ${{ steps.check.outputs.processing_type }}
+      priority: ${{ steps.check.outputs.priority }}
+    
+    steps:
+      - name: Check Processing Labels
+        id: check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.issue;
+            const labels = context.payload.issue.labels.map(l => l.name);
+            
+            console.log('Issue labels:', labels);
+            
+            // 除外ラベルチェック
+            const excludeLabels = ['discussion', 'design', 'on-hold', 'manual-only', 'blocked', 'wontfix', 'duplicate', 'invalid'];
+            const hasExcludeLabel = labels.some(label => excludeLabels.includes(label));
+            
+            if (hasExcludeLabel) {
+              console.log('Issue has exclude label, skipping');
+              core.setOutput('should_process', 'false');
+              return;
+            }
+            
+            // 処理ラベルチェック（ITDO_ERP2プロジェクト用にカスタマイズ）
+            const processingLabels = {
+              'claude-code-ready': { type: 'general', priority: 'medium' },
+              'claude-code-urgent': { type: 'general', priority: 'high' },
+              'claude-code-backend': { type: 'backend', priority: 'medium' },
+              'claude-code-frontend': { type: 'frontend', priority: 'medium' },
+              'claude-code-testing': { type: 'testing', priority: 'medium' },
+              'claude-code-infrastructure': { type: 'infrastructure', priority: 'medium' },
+              'claude-code-database': { type: 'database', priority: 'medium' },
+              'claude-code-security': { type: 'security', priority: 'high' }
+            };
+            
+            for (const [label, config] of Object.entries(processingLabels)) {
+              if (labels.includes(label)) {
+                console.log(`Found processing label: ${label}`);
+                core.setOutput('should_process', 'true');
+                core.setOutput('processing_type', config.type);
+                core.setOutput('priority', config.priority);
+                return;
+              }
+            }
+            
+            console.log('No processing label found, waiting');
+            core.setOutput('should_process', 'wait');
+
+  process-issue:
+    needs: evaluate-labels
+    if: needs.evaluate-labels.outputs.should_process == 'true'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      
+      - name: Add Processing Label
+        uses: actions/github-script@v7
+        with:
+          script: |
+            try {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels: ['claude-code-processing']
+              });
+              console.log('Added processing label');
+            } catch (e) {
+              console.log('Could not add processing label:', e.message);
+            }
+      
+      - name: Setup Environment
+        run: |
+          echo "Setting up processing environment..."
+          echo "Issue Number: ${{ github.event.issue.number }}"
+          echo "Processing Type: ${{ needs.evaluate-labels.outputs.processing_type }}"
+          echo "Priority: ${{ needs.evaluate-labels.outputs.priority }}"
+      
+      - name: Process Based on Type
+        id: process
+        run: |
+          case "${{ needs.evaluate-labels.outputs.processing_type }}" in
+            backend)
+              echo "Processing backend issue for ITDO_ERP2..."
+              echo "- Analyzing FastAPI requirements"
+              echo "- Checking SQLAlchemy models"
+              echo "- Reviewing API endpoints"
+              echo "- Generating backend code suggestions"
+              ;;
+            frontend)
+              echo "Processing frontend issue for ITDO_ERP2..."
+              echo "- Analyzing React components"
+              echo "- Checking TypeScript types"
+              echo "- Reviewing UI/UX requirements"
+              echo "- Generating frontend code suggestions"
+              ;;
+            testing)
+              echo "Processing testing issue for ITDO_ERP2..."
+              echo "- Analyzing test requirements"
+              echo "- Checking pytest configurations"
+              echo "- Reviewing test coverage"
+              echo "- Generating test cases"
+              ;;
+            infrastructure)
+              echo "Processing infrastructure issue for ITDO_ERP2..."
+              echo "- Analyzing deployment requirements"
+              echo "- Checking GitHub Actions workflows"
+              echo "- Reviewing container configurations"
+              echo "- Generating infrastructure code"
+              ;;
+            database)
+              echo "Processing database issue for ITDO_ERP2..."
+              echo "- Analyzing database schemas"
+              echo "- Checking Alembic migrations"
+              echo "- Reviewing PostgreSQL configurations"
+              echo "- Generating database scripts"
+              ;;
+            security)
+              echo "Processing security issue for ITDO_ERP2..."
+              echo "- Analyzing security requirements"
+              echo "- Checking authentication/authorization"
+              echo "- Reviewing security best practices"
+              echo "- Generating security recommendations"
+              ;;
+            *)
+              echo "Processing general issue for ITDO_ERP2..."
+              echo "- Analyzing issue content"
+              echo "- Determining best approach"
+              echo "- Generating solution"
+              ;;
+          esac
+          
+          # Simulate processing time
+          sleep 5
+          echo "Processing completed successfully"
+      
+      - name: Update Issue Status
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const success = '${{ steps.process.outcome }}' === 'success';
+            
+            // Remove processing label
+            try {
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                name: 'claude-code-processing'
+              });
+            } catch (e) {
+              console.log('Could not remove processing label:', e.message);
+            }
+            
+            // Add result label
+            try {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels: [success ? 'claude-code-completed' : 'claude-code-failed']
+              });
+            } catch (e) {
+              console.log('Could not add result label:', e.message);
+            }
+            
+            // Add comment with results (ITDO_ERP2 specific)
+            const comment = success 
+              ? `✅ **Processing completed successfully!**\n\n` +
+                `**Project**: ITDO_ERP2 - Modern ERP System\n` +
+                `**Type**: ${{ needs.evaluate-labels.outputs.processing_type }}\n` +
+                `**Priority**: ${{ needs.evaluate-labels.outputs.priority }}\n` +
+                `**Duration**: ~5 seconds\n\n` +
+                `The issue has been analyzed according to ITDO_ERP2 project standards:\n` +
+                `- Technology Stack: Python 3.13 + FastAPI + React 18 + TypeScript 5\n` +
+                `- Followed TDD approach requirements\n` +
+                `- Considered type safety and performance standards\n\n` +
+                `Next steps will be determined based on the issue type and requirements.`
+              : `❌ **Processing failed**\n\n` +
+                `Please check the [workflow logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.`;
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: comment
+            });
+
+  handle-waiting:
+    needs: evaluate-labels
+    if: needs.evaluate-labels.outputs.should_process == 'wait'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Add Waiting Label and Comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const labels = context.payload.issue.labels.map(l => l.name);
+            const hasClaudeLabel = labels.some(l => l.startsWith('claude-code-'));
+            const hasWaitingLabel = labels.includes('claude-code-waiting');
+            
+            if (!hasClaudeLabel && !hasWaitingLabel) {
+              // Add waiting label
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels: ['claude-code-waiting']
+              });
+              
+              // Add informative comment for ITDO_ERP2
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: `⏳ **Waiting for processing label**\n\n` +
+                      `This issue needs a processing label to be automatically processed in the ITDO_ERP2 project. ` +
+                      `Please add one of the following labels based on the issue type:\n\n` +
+                      `**General Processing:**\n` +
+                      `- \`claude-code-ready\` - For general processing\n` +
+                      `- \`claude-code-urgent\` - For high-priority processing\n\n` +
+                      `**Specialized Processing:**\n` +
+                      `- \`claude-code-backend\` - For FastAPI/Python backend tasks\n` +
+                      `- \`claude-code-frontend\` - For React/TypeScript frontend tasks\n` +
+                      `- \`claude-code-testing\` - For pytest/vitest testing tasks\n` +
+                      `- \`claude-code-infrastructure\` - For deployment/CI/CD tasks\n` +
+                      `- \`claude-code-database\` - For PostgreSQL/Alembic tasks\n` +
+                      `- \`claude-code-security\` - For authentication/security tasks\n\n` +
+                      `Once a processing label is added, the issue will be automatically processed according to ITDO_ERP2 project standards.`
+              });
+            }

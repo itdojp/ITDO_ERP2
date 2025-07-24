@@ -157,6 +157,8 @@ class TestUserPrivacyService:
             assert can_view is True
 
         # Mock different organization
+        from unittest import mock
+
         with mock.patch(
             "app.services.user_privacy.UserPrivacyService._users_in_same_organization",
             return_value=False,
@@ -189,6 +191,8 @@ class TestUserPrivacyService:
             assert can_view is True
 
         # Mock different department
+        from unittest import mock
+
         with mock.patch(
             "app.services.user_privacy.UserPrivacyService._users_in_same_department",
             return_value=False,

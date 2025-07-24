@@ -50,6 +50,7 @@ class DepartmentFactory(BaseFactory):
             "path": "",
             "is_active": True,
             # CRITICAL: Materialized path fields for hierarchy
+            "path": "/",  # Default root path
             "depth": 0,  # Default root depth
         }
 
