@@ -1,0 +1,70 @@
+name: Pre-Check Before CI
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  auto-fix:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Setup Tools
+        run: |
+          # Backend tools
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+          # Frontend tools
+          curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+          sudo apt-get install -y nodejs
+
+      - name: Auto-fix Backend Issues
+        working-directory: backend
+        run: |
+          uv sync --dev
+
+          # Ruff自動修正
+          uv run ruff check . --fix --unsafe-fixes || true
+          uv run ruff format . || true
+
+          # isort
+          uv run isort . || true
+
+          # 基本的な型アノテーション追加
+          find app -name "*.py" -type f -exec sed -i 's/def \([a-z_]*\)():/def \1() -> None:/' {} \;
+          find app -name "*.py" -type f -exec sed -i 's/def \([a-z_]*\)(\([^)]*\)):/def \1(\2) -> dict:/' {} \;
+
+      - name: Auto-fix Frontend Issues
+        working-directory: frontend
+        run: |
+          npm ci
+
+          # ESLint自動修正
+          npm run lint:fix || true
+
+          # Prettier
+          npx prettier --write "src/**/*.{ts,tsx,js,jsx}" || true
+
+          # 未使用importの削除
+          npx organize-imports-cli "src/**/*.{ts,tsx}" || true
+
+      - name: Commit Fixes
+        run: |
+          git config --global user.name "CC03 Bot"
+          git config --global user.email "cc03@itdo.jp"
+
+          if [[ -n $(git status -s) ]]; then
+            git add -A
+            git commit -m "fix: Auto-fix linting and formatting issues [CC03]"
+            git push
+            echo "::notice::自動修正を適用しました"
+          else
+            echo "::notice::修正の必要はありませんでした"
+          fi

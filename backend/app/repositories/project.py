@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 class ProjectRepository:
     """Project repository stub."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def get_member_count(self, project_id: int) -> int:
