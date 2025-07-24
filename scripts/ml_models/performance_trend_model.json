@@ -1,0 +1,12 @@
+{
+  "model_type": "performance_trend_predictor",
+  "is_trained": true,
+  "feature_names": [
+    "performance_score"
+  ],
+  "weights": {
+    "performance_score": -0.03020427657307256
+  },
+  "bias": 49.999999999999645,
+  "training_data_size": 5497
+}

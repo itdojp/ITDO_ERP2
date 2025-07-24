@@ -26,7 +26,7 @@ from app.schemas.report import (
 class ReportService:
     """Service for report management and execution operations."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     async def create_report(self, report_data: ReportCreate) -> Dict[str, Any]:
@@ -334,7 +334,7 @@ class ReportService:
 
         return None
 
-    async def download_report(self, execution_id: int, format: str):
+    async def download_report(self, execution_id: int, format: str) -> dict:
         """Download report in specified format."""
         execution = self.db.query(ReportExecution).get(execution_id)
         if not execution or execution.status != ExecutionStatus.COMPLETED:
