@@ -1,23 +1,27 @@
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import or_, and_, func
-from typing import Optional, List, Dict, Any
-from datetime import datetime, timedelta
 import uuid
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
+
 from passlib.context import CryptContext
+from sqlalchemy import func, or_
+from sqlalchemy.orm import Session
 
 from app.models.user_extended import User, UserActivity
 from app.schemas.user_complete_v30 import UserCreate, UserUpdate
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+
 class DuplicateError(Exception):
     pass
+
 
 class NotFoundError(Exception):
     pass
 
+
 class UserCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def get_by_id(self, user_id: str) -> Optional[User]:
@@ -35,7 +39,7 @@ class UserCRUD:
         limit: int = 100,
         filters: Optional[Dict[str, Any]] = None,
         sort_by: str = "created_at",
-        sort_desc: bool = True
+        sort_desc: bool = True,
     ) -> tuple[List[User], int]:
         query = self.db.query(User)
 
@@ -51,7 +55,7 @@ class UserCRUD:
                     or_(
                         User.email.ilike(search),
                         User.username.ilike(search),
-                        User.full_name.ilike(search)
+                        User.full_name.ilike(search),
                     )
                 )
 
@@ -90,7 +94,7 @@ class UserCRUD:
             department=user_in.department,
             position=user_in.position,
             employee_id=user_in.employee_id,
-            password_changed_at=datetime.utcnow()
+            password_changed_at=datetime.utcnow(),
         )
 
         self.db.add(db_user)
@@ -131,7 +135,7 @@ class UserCRUD:
         user.updated_at = datetime.utcnow()
 
         self.db.commit()
-        
+
         # アクティビティログ
         self.log_activity(user_id, "user_deleted", {"user_id": user_id})
 
@@ -153,7 +157,9 @@ class UserCRUD:
         self.db.commit()
 
         # アクティビティログ
-        self.log_activity(user.id, "user_login", {"login_time": user.last_login_at.isoformat()})
+        self.log_activity(
+            user.id, "user_login", {"login_time": user.last_login_at.isoformat()}
+        )
 
         return user
 
@@ -169,7 +175,11 @@ class UserCRUD:
         self.db.commit()
 
         # アクティビティログ
-        self.log_activity(user_id, "password_reset", {"reset_time": user.password_changed_at.isoformat()})
+        self.log_activity(
+            user_id,
+            "password_reset",
+            {"reset_time": user.password_changed_at.isoformat()},
+        )
 
         return True
 
@@ -184,7 +194,9 @@ class UserCRUD:
         self.db.commit()
 
         # アクティビティログ
-        self.log_activity(user_id, "user_verified", {"verified_at": user.updated_at.isoformat()})
+        self.log_activity(
+            user_id, "user_verified", {"verified_at": user.updated_at.isoformat()}
+        )
 
         return True
 
@@ -203,8 +215,12 @@ class UserCRUD:
         month_ago = current_time - timedelta(days=30)
 
         total_users = self.db.query(func.count(User.id)).scalar()
-        active_users = self.db.query(func.count(User.id)).filter(User.is_active == True).scalar()
-        verified_users = self.db.query(func.count(User.id)).filter(User.is_verified == True).scalar()
+        active_users = (
+            self.db.query(func.count(User.id)).filter(User.is_active).scalar()
+        )
+        verified_users = (
+            self.db.query(func.count(User.id)).filter(User.is_verified).scalar()
+        )
         new_users_this_month = (
             self.db.query(func.count(User.id))
             .filter(User.created_at >= month_ago)
@@ -226,16 +242,15 @@ class UserCRUD:
             "active_users": active_users or 0,
             "verified_users": verified_users or 0,
             "new_users_this_month": new_users_this_month or 0,
-            "departments": departments
+            "departments": departments,
         }
 
-    def log_activity(self, user_id: str, action: str, details: Dict[str, Any], ip_address: str = None):
+    def log_activity(
+        self, user_id: str, action: str, details: Dict[str, Any], ip_address: str = None
+    ):
         """ユーザーアクティビティをログに記録"""
         activity = UserActivity(
-            user_id=user_id,
-            action=action,
-            details=details,
-            ip_address=ip_address
+            user_id=user_id, action=action, details=details, ip_address=ip_address
         )
         self.db.add(activity)
         # コミットは呼び出し元で行う

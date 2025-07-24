@@ -127,7 +127,9 @@ api_router.include_router(
 api_router.include_router(reports.router, prefix="/reports", tags=["analytics"])
 
 # Feature Flags API
-api_router.include_router(feature_flags.router, prefix="/feature-flags", tags=["feature-flags"])
+api_router.include_router(
+    feature_flags.router, prefix="/feature-flags", tags=["feature-flags"]
+)
 
 # CC02 v35.0 - Security and Monitoring APIs
 api_router.include_router(

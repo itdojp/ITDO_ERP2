@@ -23,6 +23,7 @@ Base = declarative_base()
 
 class CostCategory(str, Enum):
     """Cost categorization for better tracking"""
+
     INFRASTRUCTURE = "infrastructure"
     COMPUTE = "compute"
     STORAGE = "storage"
@@ -41,8 +42,9 @@ class CostCategory(str, Enum):
 
 class CostMetricType(str, Enum):
     """Types of cost metrics"""
+
     ABSOLUTE = "absolute"  # Fixed cost in currency
-    RATE = "rate"         # Cost per unit (CPU hour, GB, etc.)
+    RATE = "rate"  # Cost per unit (CPU hour, GB, etc.)
     PERCENTAGE = "percentage"  # Percentage of total
     BUDGET_UTILIZATION = "budget_utilization"  # % of budget used
     EFFICIENCY = "efficiency"  # Cost per unit of value
@@ -50,6 +52,7 @@ class CostMetricType(str, Enum):
 
 class TimeGranularity(str, Enum):
     """Time granularity for cost aggregation"""
+
     HOURLY = "hourly"
     DAILY = "daily"
     WEEKLY = "weekly"
@@ -60,6 +63,7 @@ class TimeGranularity(str, Enum):
 
 class AlertSeverity(str, Enum):
     """Cost alert severity levels"""
+
     INFO = "info"
     WARNING = "warning"
     CRITICAL = "critical"
@@ -69,6 +73,7 @@ class AlertSeverity(str, Enum):
 @dataclass
 class CostMetric:
     """Individual cost metric"""
+
     name: str
     value: Decimal
     category: CostCategory
@@ -83,6 +88,7 @@ class CostMetric:
 @dataclass
 class CostBudget:
     """Cost budget definition"""
+
     id: str
     name: str
     category: CostCategory
@@ -100,6 +106,7 @@ class CostBudget:
 @dataclass
 class CostAlert:
     """Cost monitoring alert"""
+
     id: str
     budget_id: str
     severity: AlertSeverity
@@ -118,6 +125,7 @@ class CostAlert:
 @dataclass
 class CostOptimizationRecommendation:
     """Cost optimization recommendation"""
+
     id: str
     title: str
     description: str
@@ -134,6 +142,7 @@ class CostOptimizationRecommendation:
 
 class CostRecord(Base):
     """Database model for cost records"""
+
     __tablename__ = "cost_records"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
@@ -149,13 +158,14 @@ class CostRecord(Base):
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
 
     __table_args__ = (
-        Index('idx_cost_records_category_timestamp', 'category', 'timestamp'),
-        Index('idx_cost_records_metric_timestamp', 'metric_name', 'timestamp'),
+        Index("idx_cost_records_category_timestamp", "category", "timestamp"),
+        Index("idx_cost_records_metric_timestamp", "metric_name", "timestamp"),
     )
 
 
 class CostBudgetRecord(Base):
     """Database model for cost budgets"""
+
     __tablename__ = "cost_budgets"
 
     id = Column(String(36), primary_key=True)
@@ -177,6 +187,7 @@ class CostBudgetRecord(Base):
 
 class CostAlertRecord(Base):
     """Database model for cost alerts"""
+
     __tablename__ = "cost_alerts"
 
     id = Column(String(36), primary_key=True)
@@ -198,21 +209,21 @@ class CostAlertRecord(Base):
 class CostMonitoringService:
     """Comprehensive cost monitoring and optimization service"""
 
-    def __init__(self, redis_client: Optional[redis.Redis] = None):
+    def __init__(self, redis_client: Optional[redis.Redis] = None) -> dict:
         self.redis = redis_client or get_redis()
         self.settings = get_settings()
         self.cache_ttl = 300  # 5 minutes
         self.cost_prefix = "cost_monitor:"
 
         # Default currency and precision
-        self.default_currency = getattr(self.settings, 'DEFAULT_CURRENCY', 'USD')
+        self.default_currency = getattr(self.settings, "DEFAULT_CURRENCY", "USD")
         self.decimal_places = 4
 
         # Cost thresholds for automatic recommendations
         self.optimization_thresholds = {
-            CostCategory.COMPUTE: Decimal('100.00'),  # $100/month
-            CostCategory.STORAGE: Decimal('50.00'),   # $50/month
-            CostCategory.DATABASE: Decimal('200.00'), # $200/month
+            CostCategory.COMPUTE: Decimal("100.00"),  # $100/month
+            CostCategory.STORAGE: Decimal("50.00"),  # $50/month
+            CostCategory.DATABASE: Decimal("200.00"),  # $200/month
         }
 
     async def record_cost(self, metric: CostMetric) -> str:
@@ -240,21 +251,21 @@ class CostMonitoringService:
                 "unit": metric.unit,
                 "timestamp": metric.timestamp.isoformat(),
                 "tags": json.dumps(metric.tags),
-                "metadata": json.dumps(metric.metadata)
+                "metadata": json.dumps(metric.metadata),
             }
 
             # Store in Redis for real-time access
             await self.redis.setex(
                 f"{self.cost_prefix}record:{record_id}",
                 self.cache_ttl,
-                json.dumps(record_data)
+                json.dumps(record_data),
             )
 
             # Store in time-series format for aggregation
             timestamp_key = metric.timestamp.strftime("%Y-%m-%d-%H")
             await self.redis.zadd(
                 f"{self.cost_prefix}timeseries:{metric.category.value}:{timestamp_key}",
-                {record_id: float(metric.value)}
+                {record_id: float(metric.value)},
             )
 
             # Update category totals
@@ -276,7 +287,7 @@ class CostMonitoringService:
         self,
         category: Optional[CostCategory] = None,
         time_range: Optional[Tuple[datetime, datetime]] = None,
-        granularity: TimeGranularity = TimeGranularity.DAILY
+        granularity: TimeGranularity = TimeGranularity.DAILY,
     ) -> Dict[str, Any]:
         """
         Get comprehensive cost summary
@@ -306,7 +317,9 @@ class CostMonitoringService:
             summary = await self._build_cost_summary(category, time_range, granularity)
 
             # Cache the summary
-            await self.redis.setex(cache_key, self.cache_ttl, json.dumps(summary, default=str))
+            await self.redis.setex(
+                cache_key, self.cache_ttl, json.dumps(summary, default=str)
+            )
 
             return summary
 
@@ -324,7 +337,7 @@ class CostMonitoringService:
         end_date: datetime,
         alert_thresholds: List[Tuple[float, AlertSeverity]],
         owner: Optional[str] = None,
-        description: Optional[str] = None
+        description: Optional[str] = None,
     ) -> str:
         """
         Create a cost budget
@@ -356,7 +369,7 @@ class CostMonitoringService:
             end_date=end_date,
             alert_thresholds=alert_thresholds,
             owner=owner,
-            description=description
+            description=description,
         )
 
         # Store budget
@@ -373,13 +386,13 @@ class CostMonitoringService:
             "owner": budget.owner,
             "description": budget.description,
             "active": True,
-            "created_at": datetime.now(timezone.utc).isoformat()
+            "created_at": datetime.now(timezone.utc).isoformat(),
         }
 
         await self.redis.setex(
             f"{self.cost_prefix}budget:{budget_id}",
             86400,  # 24 hours
-            json.dumps(budget_data)
+            json.dumps(budget_data),
         )
 
         return budget_id
@@ -405,10 +418,14 @@ class CostMonitoringService:
         end_date = datetime.fromisoformat(budget["end_date"])
         category = CostCategory(budget["category"])
 
-        current_spend = await self._calculate_category_spend(category, start_date, end_date)
+        current_spend = await self._calculate_category_spend(
+            category, start_date, end_date
+        )
         budget_amount = Decimal(str(budget["amount"]))
 
-        utilization_percentage = float((current_spend / budget_amount) * 100) if budget_amount > 0 else 0
+        utilization_percentage = (
+            float((current_spend / budget_amount) * 100) if budget_amount > 0 else 0
+        )
 
         return {
             "budget_id": budget_id,
@@ -422,14 +439,16 @@ class CostMonitoringService:
             "start_date": budget["start_date"],
             "end_date": budget["end_date"],
             "days_remaining": (end_date - datetime.now(timezone.utc)).days,
-            "projected_spend": float(await self._project_spend(category, start_date, end_date)),
-            "on_track": utilization_percentage <= 100.0
+            "projected_spend": float(
+                await self._project_spend(category, start_date, end_date)
+            ),
+            "on_track": utilization_percentage <= 100.0,
         }
 
     async def get_optimization_recommendations(
         self,
         category: Optional[CostCategory] = None,
-        min_savings: Optional[Decimal] = None
+        min_savings: Optional[Decimal] = None,
     ) -> List[Dict[str, Any]]:
         """
         Get cost optimization recommendations
@@ -457,13 +476,19 @@ class CostMonitoringService:
                     if category and recommendation["category"] != category.value:
                         continue
 
-                    if min_savings and Decimal(str(recommendation["potential_savings"])) < min_savings:
+                    if (
+                        min_savings
+                        and Decimal(str(recommendation["potential_savings"]))
+                        < min_savings
+                    ):
                         continue
 
                     recommendations.append(recommendation)
 
             # Sort by potential savings (descending)
-            recommendations.sort(key=lambda x: float(x["potential_savings"]), reverse=True)
+            recommendations.sort(
+                key=lambda x: float(x["potential_savings"]), reverse=True
+            )
 
             return recommendations
 
@@ -472,9 +497,7 @@ class CostMonitoringService:
             return []
 
     async def get_cost_alerts(
-        self,
-        severity: Optional[AlertSeverity] = None,
-        resolved: Optional[bool] = None
+        self, severity: Optional[AlertSeverity] = None, resolved: Optional[bool] = None
     ) -> List[Dict[str, Any]]:
         """
         Get cost monitoring alerts
@@ -527,23 +550,23 @@ class CostMonitoringService:
             # Daily total
             await self.redis.incrbyfloat(
                 f"{self.cost_prefix}total:daily:{metric.category.value}:{today}",
-                float(metric.value)
+                float(metric.value),
             )
 
             # Monthly total
             await self.redis.incrbyfloat(
                 f"{self.cost_prefix}total:monthly:{metric.category.value}:{month}",
-                float(metric.value)
+                float(metric.value),
             )
 
             # Set expiration for cleanup
             await self.redis.expire(
                 f"{self.cost_prefix}total:daily:{metric.category.value}:{today}",
-                86400 * 32  # 32 days
+                86400 * 32,  # 32 days
             )
             await self.redis.expire(
                 f"{self.cost_prefix}total:monthly:{metric.category.value}:{month}",
-                86400 * 365  # 1 year
+                86400 * 365,  # 1 year
             )
 
         except Exception as e:
@@ -562,7 +585,9 @@ class CostMonitoringService:
                     continue
 
                 budget = json.loads(budget_data)
-                if budget["category"] != metric.category.value or not budget.get("active", True):
+                if budget["category"] != metric.category.value or not budget.get(
+                    "active", True
+                ):
                     continue
 
                 # Check if we're within the budget period
@@ -580,7 +605,10 @@ class CostMonitoringService:
                 for threshold_pct, severity in budget["alert_thresholds"]:
                     if utilization_pct >= threshold_pct:
                         await self._create_budget_alert(
-                            budget, utilization_pct, threshold_pct, AlertSeverity(severity)
+                            budget,
+                            utilization_pct,
+                            threshold_pct,
+                            AlertSeverity(severity),
                         )
                         break
 
@@ -592,7 +620,7 @@ class CostMonitoringService:
         budget: Dict[str, Any],
         utilization_pct: float,
         threshold_pct: float,
-        severity: AlertSeverity
+        severity: AlertSeverity,
     ) -> None:
         """Create a budget alert"""
         alert_id = str(uuid.uuid4())
@@ -609,13 +637,13 @@ class CostMonitoringService:
             "threshold_percentage": threshold_pct,
             "resolved": False,
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "tags": {"category": budget["category"]}
+            "tags": {"category": budget["category"]},
         }
 
         await self.redis.setex(
             f"{self.cost_prefix}alert:{alert_id}",
             86400 * 7,  # 7 days
-            json.dumps(alert_data)
+            json.dumps(alert_data),
         )
 
     async def _check_optimization_opportunities(self, metric: CostMetric) -> None:
@@ -623,14 +651,18 @@ class CostMonitoringService:
         try:
             # Get monthly spend for this category
             month = metric.timestamp.strftime("%Y-%m")
-            monthly_key = f"{self.cost_prefix}total:monthly:{metric.category.value}:{month}"
+            monthly_key = (
+                f"{self.cost_prefix}total:monthly:{metric.category.value}:{month}"
+            )
             monthly_spend = await self.redis.get(monthly_key)
 
             if not monthly_spend:
                 return
 
             monthly_amount = Decimal(str(monthly_spend))
-            threshold = self.optimization_thresholds.get(metric.category, Decimal('50.00'))
+            threshold = self.optimization_thresholds.get(
+                metric.category, Decimal("50.00")
+            )
 
             if monthly_amount > threshold:
                 recommendations = await self._generate_optimization_recommendations(
@@ -650,97 +682,105 @@ class CostMonitoringService:
                         "impact_level": recommendation["impact_level"],
                         "implementation_steps": recommendation["implementation_steps"],
                         "timestamp": datetime.now(timezone.utc).isoformat(),
-                        "status": "pending"
+                        "status": "pending",
                     }
 
                     await self.redis.setex(
                         f"{self.cost_prefix}recommendation:{rec_id}",
                         86400 * 30,  # 30 days
-                        json.dumps(rec_data)
+                        json.dumps(rec_data),
                     )
 
         except Exception as e:
             print(f"Error checking optimization opportunities: {str(e)}")
 
     async def _generate_optimization_recommendations(
-        self,
-        category: CostCategory,
-        current_spend: Decimal
+        self, category: CostCategory, current_spend: Decimal
     ) -> List[Dict[str, Any]]:
         """Generate optimization recommendations for a category"""
         recommendations = []
 
         if category == CostCategory.COMPUTE:
-            recommendations.extend([
-                {
-                    "title": "Right-size Compute Instances",
-                    "description": "Review compute instance utilization and downsize underutilized resources",
-                    "potential_savings": current_spend * Decimal('0.20'),  # 20% savings
-                    "confidence_score": 0.8,
-                    "effort_level": "medium",
-                    "impact_level": "high",
-                    "implementation_steps": [
-                        "Analyze CPU and memory utilization over the past 30 days",
-                        "Identify instances with <20% average utilization",
-                        "Create rightsizing recommendations",
-                        "Schedule maintenance window for instance resizing",
-                        "Monitor performance after changes"
-                    ]
-                },
-                {
-                    "title": "Implement Auto-Scaling",
-                    "description": "Set up automatic scaling to optimize resource usage based on demand",
-                    "potential_savings": current_spend * Decimal('0.15'),  # 15% savings
-                    "confidence_score": 0.7,
-                    "effort_level": "high",
-                    "impact_level": "high",
-                    "implementation_steps": [
-                        "Configure horizontal pod autoscaling (HPA)",
-                        "Set up cluster autoscaling",
-                        "Define scaling policies based on metrics",
-                        "Test scaling behavior under load",
-                        "Monitor scaling events and optimize thresholds"
-                    ]
-                }
-            ])
+            recommendations.extend(
+                [
+                    {
+                        "title": "Right-size Compute Instances",
+                        "description": "Review compute instance utilization and downsize underutilized resources",
+                        "potential_savings": current_spend
+                        * Decimal("0.20"),  # 20% savings
+                        "confidence_score": 0.8,
+                        "effort_level": "medium",
+                        "impact_level": "high",
+                        "implementation_steps": [
+                            "Analyze CPU and memory utilization over the past 30 days",
+                            "Identify instances with <20% average utilization",
+                            "Create rightsizing recommendations",
+                            "Schedule maintenance window for instance resizing",
+                            "Monitor performance after changes",
+                        ],
+                    },
+                    {
+                        "title": "Implement Auto-Scaling",
+                        "description": "Set up automatic scaling to optimize resource usage based on demand",
+                        "potential_savings": current_spend
+                        * Decimal("0.15"),  # 15% savings
+                        "confidence_score": 0.7,
+                        "effort_level": "high",
+                        "impact_level": "high",
+                        "implementation_steps": [
+                            "Configure horizontal pod autoscaling (HPA)",
+                            "Set up cluster autoscaling",
+                            "Define scaling policies based on metrics",
+                            "Test scaling behavior under load",
+                            "Monitor scaling events and optimize thresholds",
+                        ],
+                    },
+                ]
+            )
 
         elif category == CostCategory.STORAGE:
-            recommendations.extend([
-                {
-                    "title": "Implement Storage Tiering",
-                    "description": "Move infrequently accessed data to lower-cost storage tiers",
-                    "potential_savings": current_spend * Decimal('0.30'),  # 30% savings
-                    "confidence_score": 0.9,
-                    "effort_level": "low",
-                    "impact_level": "medium",
-                    "implementation_steps": [
-                        "Analyze storage access patterns",
-                        "Identify data older than 90 days",
-                        "Configure lifecycle policies",
-                        "Migrate cold data to archive storage",
-                        "Monitor access patterns and adjust policies"
-                    ]
-                }
-            ])
+            recommendations.extend(
+                [
+                    {
+                        "title": "Implement Storage Tiering",
+                        "description": "Move infrequently accessed data to lower-cost storage tiers",
+                        "potential_savings": current_spend
+                        * Decimal("0.30"),  # 30% savings
+                        "confidence_score": 0.9,
+                        "effort_level": "low",
+                        "impact_level": "medium",
+                        "implementation_steps": [
+                            "Analyze storage access patterns",
+                            "Identify data older than 90 days",
+                            "Configure lifecycle policies",
+                            "Migrate cold data to archive storage",
+                            "Monitor access patterns and adjust policies",
+                        ],
+                    }
+                ]
+            )
 
         elif category == CostCategory.DATABASE:
-            recommendations.extend([
-                {
-                    "title": "Optimize Database Configuration",
-                    "description": "Review database sizing and configuration for cost optimization",
-                    "potential_savings": current_spend * Decimal('0.25'),  # 25% savings
-                    "confidence_score": 0.6,
-                    "effort_level": "medium",
-                    "impact_level": "medium",
-                    "implementation_steps": [
-                        "Analyze database performance metrics",
-                        "Review connection pooling settings",
-                        "Optimize query performance",
-                        "Consider read replicas for read-heavy workloads",
-                        "Implement database connection scaling"
-                    ]
-                }
-            ])
+            recommendations.extend(
+                [
+                    {
+                        "title": "Optimize Database Configuration",
+                        "description": "Review database sizing and configuration for cost optimization",
+                        "potential_savings": current_spend
+                        * Decimal("0.25"),  # 25% savings
+                        "confidence_score": 0.6,
+                        "effort_level": "medium",
+                        "impact_level": "medium",
+                        "implementation_steps": [
+                            "Analyze database performance metrics",
+                            "Review connection pooling settings",
+                            "Optimize query performance",
+                            "Consider read replicas for read-heavy workloads",
+                            "Implement database connection scaling",
+                        ],
+                    }
+                ]
+            )
 
         return recommendations
 
@@ -748,7 +788,7 @@ class CostMonitoringService:
         self,
         category: Optional[CostCategory],
         time_range: Tuple[datetime, datetime],
-        granularity: TimeGranularity
+        granularity: TimeGranularity,
     ) -> str:
         """Generate cache key for cost summary"""
         cat_str = category.value if category else "all"
@@ -760,7 +800,7 @@ class CostMonitoringService:
         self,
         category: Optional[CostCategory],
         time_range: Tuple[datetime, datetime],
-        granularity: TimeGranularity
+        granularity: TimeGranularity,
     ) -> Dict[str, Any]:
         """Build cost summary from stored data"""
         # This would typically query the database
@@ -773,11 +813,11 @@ class CostMonitoringService:
             "period": {
                 "start": start_date.isoformat(),
                 "end": end_date.isoformat(),
-                "granularity": granularity.value
+                "granularity": granularity.value,
             },
             "categories": {},
             "trends": {},
-            "top_cost_drivers": []
+            "top_cost_drivers": [],
         }
 
         # Calculate totals by category
@@ -791,13 +831,10 @@ class CostMonitoringService:
         return summary
 
     async def _calculate_category_spend(
-        self,
-        category: CostCategory,
-        start_date: datetime,
-        end_date: datetime
+        self, category: CostCategory, start_date: datetime, end_date: datetime
     ) -> Decimal:
         """Calculate total spend for a category in date range"""
-        total = Decimal('0.00')
+        total = Decimal("0.00")
 
         # Iterate through each day in the range
         current_date = start_date.date()
@@ -815,16 +852,15 @@ class CostMonitoringService:
         return total
 
     async def _project_spend(
-        self,
-        category: CostCategory,
-        start_date: datetime,
-        end_date: datetime
+        self, category: CostCategory, start_date: datetime, end_date: datetime
     ) -> Decimal:
         """Project future spend based on current trends"""
-        current_spend = await self._calculate_category_spend(category, start_date, datetime.now(timezone.utc))
+        current_spend = await self._calculate_category_spend(
+            category, start_date, datetime.now(timezone.utc)
+        )
 
         if current_spend <= 0:
-            return Decimal('0.00')
+            return Decimal("0.00")
 
         # Simple linear projection
         days_elapsed = (datetime.now(timezone.utc) - start_date).days
@@ -841,6 +877,7 @@ class CostMonitoringService:
 
 # Singleton service instance
 _cost_monitoring_service: Optional[CostMonitoringService] = None
+
 
 def get_cost_monitoring_service() -> CostMonitoringService:
     """Get or create cost monitoring service instance"""

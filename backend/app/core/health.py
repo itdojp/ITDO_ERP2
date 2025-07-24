@@ -19,6 +19,7 @@ from app.core.database import get_db, get_redis
 
 class HealthStatus(str, Enum):
     """Health check status levels"""
+
     HEALTHY = "healthy"
     DEGRADED = "degraded"
     UNHEALTHY = "unhealthy"
@@ -27,6 +28,7 @@ class HealthStatus(str, Enum):
 
 class ComponentType(str, Enum):
     """System component types"""
+
     DATABASE = "database"
     CACHE = "cache"
     EXTERNAL_API = "external_api"
@@ -42,6 +44,7 @@ class ComponentType(str, Enum):
 @dataclass
 class HealthMetric:
     """Individual health metric"""
+
     name: str
     value: Union[str, int, float, bool]
     unit: Optional[str] = None
@@ -53,6 +56,7 @@ class HealthMetric:
 @dataclass
 class HealthCheckResult:
     """Result of a single health check"""
+
     component: str
     component_type: ComponentType
     status: HealthStatus
@@ -67,6 +71,7 @@ class HealthCheckResult:
 @dataclass
 class SystemHealthReport:
     """Complete system health report"""
+
     overall_status: HealthStatus
     timestamp: datetime
     uptime_seconds: float
@@ -79,13 +84,15 @@ class SystemHealthReport:
 class HealthChecker:
     """Comprehensive health checking service"""
 
-    def __init__(self):
+    def __init__(self) -> dict:
         self.settings = get_settings()
         self.start_time = time.time()
-        self.version = getattr(self.settings, 'APP_VERSION', '1.0.0')
-        self.environment = getattr(self.settings, 'ENVIRONMENT', 'development')
+        self.version = getattr(self.settings, "APP_VERSION", "1.0.0")
+        self.environment = getattr(self.settings, "ENVIRONMENT", "development")
 
-    async def check_system_health(self, include_detailed: bool = False) -> SystemHealthReport:
+    async def check_system_health(
+        self, include_detailed: bool = False
+    ) -> SystemHealthReport:
         """
         Perform comprehensive system health check
 
@@ -102,48 +109,56 @@ class HealthChecker:
         try:
             components.append(await self._check_database())
         except Exception as e:
-            components.append(HealthCheckResult(
-                component="database",
-                component_type=ComponentType.DATABASE,
-                status=HealthStatus.UNHEALTHY,
-                response_time_ms=0,
-                timestamp=datetime.now(timezone.utc),
-                error=str(e)
-            ))
+            components.append(
+                HealthCheckResult(
+                    component="database",
+                    component_type=ComponentType.DATABASE,
+                    status=HealthStatus.UNHEALTHY,
+                    response_time_ms=0,
+                    timestamp=datetime.now(timezone.utc),
+                    error=str(e),
+                )
+            )
 
         try:
             components.append(await self._check_redis())
         except Exception as e:
-            components.append(HealthCheckResult(
-                component="redis",
-                component_type=ComponentType.CACHE,
-                status=HealthStatus.UNHEALTHY,
-                response_time_ms=0,
-                timestamp=datetime.now(timezone.utc),
-                error=str(e)
-            ))
+            components.append(
+                HealthCheckResult(
+                    component="redis",
+                    component_type=ComponentType.CACHE,
+                    status=HealthStatus.UNHEALTHY,
+                    response_time_ms=0,
+                    timestamp=datetime.now(timezone.utc),
+                    error=str(e),
+                )
+            )
 
         # System resource checks
         if include_detailed:
-            components.extend([
-                await self._check_memory(),
-                await self._check_cpu(),
-                await self._check_disk(),
-                await self._check_network()
-            ])
+            components.extend(
+                [
+                    await self._check_memory(),
+                    await self._check_cpu(),
+                    await self._check_disk(),
+                    await self._check_network(),
+                ]
+            )
 
         # External dependency checks
         try:
             components.append(await self._check_external_dependencies())
         except Exception as e:
-            components.append(HealthCheckResult(
-                component="external_dependencies",
-                component_type=ComponentType.DEPENDENCY,
-                status=HealthStatus.UNKNOWN,
-                response_time_ms=0,
-                timestamp=datetime.now(timezone.utc),
-                error=str(e)
-            ))
+            components.append(
+                HealthCheckResult(
+                    component="external_dependencies",
+                    component_type=ComponentType.DEPENDENCY,
+                    status=HealthStatus.UNKNOWN,
+                    response_time_ms=0,
+                    timestamp=datetime.now(timezone.utc),
+                    error=str(e),
+                )
+            )
 
         # Application-specific checks
         components.append(await self._check_application_health())
@@ -166,8 +181,8 @@ class HealthChecker:
             summary={
                 **summary,
                 "total_check_time_ms": round(total_time, 2),
-                "checks_performed": len(components)
-            }
+                "checks_performed": len(components),
+            },
         )
 
     async def _check_database(self) -> HealthCheckResult:
@@ -180,22 +195,26 @@ class HealthChecker:
             db = next(db_gen)
 
             # Basic connectivity test
-            result = db.execute(text("SELECT 1 as test, version() as version")).fetchone()
+            result = db.execute(
+                text("SELECT 1 as test, version() as version")
+            ).fetchone()
 
             # Connection pool stats
             pool_info = {}
-            if hasattr(db.bind.pool, 'status'):
+            if hasattr(db.bind.pool, "status"):
                 pool = db.bind.pool
                 pool_info = {
-                    "pool_size": getattr(pool, 'size', 0),
-                    "checked_in": getattr(pool, 'checkedin', 0),
-                    "checked_out": getattr(pool, 'checkedout', 0),
-                    "invalid": getattr(pool, 'invalid', 0)
+                    "pool_size": getattr(pool, "size", 0),
+                    "checked_in": getattr(pool, "checkedin", 0),
+                    "checked_out": getattr(pool, "checkedout", 0),
+                    "invalid": getattr(pool, "invalid", 0),
                 }
 
             # Performance test - simple query
             perf_start = time.time()
-            db.execute(text("SELECT COUNT(*) FROM information_schema.tables")).fetchone()
+            db.execute(
+                text("SELECT COUNT(*) FROM information_schema.tables")
+            ).fetchone()
             query_time_ms = (time.time() - perf_start) * 1000
 
             response_time_ms = (time.time() - start_time) * 1000
@@ -223,7 +242,7 @@ class HealthChecker:
                 details={
                     "version": str(result[1]) if result else "unknown",
                     "connection_pool": pool_info,
-                    "query_performance_ms": round(query_time_ms, 2)
+                    "query_performance_ms": round(query_time_ms, 2),
                 },
                 metrics=[
                     HealthMetric(
@@ -232,9 +251,9 @@ class HealthChecker:
                         unit="ms",
                         threshold_warning=500,
                         threshold_critical=1000,
-                        description="Database query response time"
+                        description="Database query response time",
                     )
-                ]
+                ],
             )
 
         except Exception as e:
@@ -246,7 +265,7 @@ class HealthChecker:
                 response_time_ms=round(response_time_ms, 2),
                 timestamp=datetime.now(timezone.utc),
                 message="Database connection failed",
-                error=str(e)
+                error=str(e),
             )
 
     async def _check_redis(self) -> HealthCheckResult:
@@ -269,7 +288,7 @@ class HealthChecker:
 
             # Get Redis info
             info = await redis_client.info()
-            memory_info = await redis_client.info('memory')
+            memory_info = await redis_client.info("memory")
 
             response_time_ms = (time.time() - start_time) * 1000
 
@@ -292,12 +311,12 @@ class HealthChecker:
                 timestamp=datetime.now(timezone.utc),
                 message=message,
                 details={
-                    "redis_version": info.get('redis_version'),
-                    "connected_clients": info.get('connected_clients'),
-                    "used_memory_human": memory_info.get('used_memory_human'),
-                    "keyspace_hits": info.get('keyspace_hits'),
-                    "keyspace_misses": info.get('keyspace_misses'),
-                    "cache_operation_ms": round(cache_operation_ms, 2)
+                    "redis_version": info.get("redis_version"),
+                    "connected_clients": info.get("connected_clients"),
+                    "used_memory_human": memory_info.get("used_memory_human"),
+                    "keyspace_hits": info.get("keyspace_hits"),
+                    "keyspace_misses": info.get("keyspace_misses"),
+                    "cache_operation_ms": round(cache_operation_ms, 2),
                 },
                 metrics=[
                     HealthMetric(
@@ -306,15 +325,15 @@ class HealthChecker:
                         unit="ms",
                         threshold_warning=50,
                         threshold_critical=100,
-                        description="Redis operation response time"
+                        description="Redis operation response time",
                     ),
                     HealthMetric(
                         name="memory_usage",
-                        value=memory_info.get('used_memory', 0),
+                        value=memory_info.get("used_memory", 0),
                         unit="bytes",
-                        description="Redis memory usage"
-                    )
-                ]
+                        description="Redis memory usage",
+                    ),
+                ],
             )
 
         except Exception as e:
@@ -326,7 +345,7 @@ class HealthChecker:
                 response_time_ms=round(response_time_ms, 2),
                 timestamp=datetime.now(timezone.utc),
                 message="Redis connection failed",
-                error=str(e)
+                error=str(e),
             )
 
     async def _check_memory(self) -> HealthCheckResult:
@@ -362,7 +381,7 @@ class HealthChecker:
                     "available_gb": round(memory.available / (1024**3), 2),
                     "used_gb": round(memory.used / (1024**3), 2),
                     "swap_total_gb": round(swap.total / (1024**3), 2),
-                    "swap_used_gb": round(swap.used / (1024**3), 2)
+                    "swap_used_gb": round(swap.used / (1024**3), 2),
                 },
                 metrics=[
                     HealthMetric(
@@ -371,7 +390,7 @@ class HealthChecker:
                         unit="%",
                         threshold_warning=80,
                         threshold_critical=90,
-                        description="System memory usage percentage"
+                        description="System memory usage percentage",
                     ),
                     HealthMetric(
                         name="swap_usage_percent",
@@ -379,9 +398,9 @@ class HealthChecker:
                         unit="%",
                         threshold_warning=50,
                         threshold_critical=80,
-                        description="Swap memory usage percentage"
-                    )
-                ]
+                        description="Swap memory usage percentage",
+                    ),
+                ],
             )
 
         except Exception as e:
@@ -393,7 +412,7 @@ class HealthChecker:
                 response_time_ms=round(response_time_ms, 2),
                 timestamp=datetime.now(timezone.utc),
                 message="Memory check failed",
-                error=str(e)
+                error=str(e),
             )
 
     async def _check_cpu(self) -> HealthCheckResult:
@@ -404,7 +423,9 @@ class HealthChecker:
             # Get CPU usage over a short interval
             cpu_percent = psutil.cpu_percent(interval=0.1)
             cpu_count = psutil.cpu_count()
-            load_avg = psutil.getloadavg() if hasattr(psutil, 'getloadavg') else (0, 0, 0)
+            load_avg = (
+                psutil.getloadavg() if hasattr(psutil, "getloadavg") else (0, 0, 0)
+            )
 
             # Determine status
             if cpu_percent > 90:
@@ -430,7 +451,7 @@ class HealthChecker:
                     "cpu_count": cpu_count,
                     "load_avg_1min": round(load_avg[0], 2),
                     "load_avg_5min": round(load_avg[1], 2),
-                    "load_avg_15min": round(load_avg[2], 2)
+                    "load_avg_15min": round(load_avg[2], 2),
                 },
                 metrics=[
                     HealthMetric(
@@ -439,7 +460,7 @@ class HealthChecker:
                         unit="%",
                         threshold_warning=80,
                         threshold_critical=90,
-                        description="CPU usage percentage"
+                        description="CPU usage percentage",
                     ),
                     HealthMetric(
                         name="load_average_1min",
@@ -447,9 +468,9 @@ class HealthChecker:
                         unit="load",
                         threshold_warning=cpu_count * 0.8,
                         threshold_critical=cpu_count * 1.0,
-                        description="1-minute load average"
-                    )
-                ]
+                        description="1-minute load average",
+                    ),
+                ],
             )
 
         except Exception as e:
@@ -461,7 +482,7 @@ class HealthChecker:
                 response_time_ms=round(response_time_ms, 2),
                 timestamp=datetime.now(timezone.utc),
                 message="CPU check failed",
-                error=str(e)
+                error=str(e),
             )
 
     async def _check_disk(self) -> HealthCheckResult:
@@ -469,7 +490,7 @@ class HealthChecker:
         start_time = time.time()
 
         try:
-            disk_usage = psutil.disk_usage('/')
+            disk_usage = psutil.disk_usage("/")
             disk_io = psutil.disk_io_counters()
 
             usage_percent = (disk_usage.used / disk_usage.total) * 100
@@ -499,7 +520,7 @@ class HealthChecker:
                     "used_gb": round(disk_usage.used / (1024**3), 2),
                     "free_gb": round(disk_usage.free / (1024**3), 2),
                     "read_bytes": disk_io.read_bytes if disk_io else 0,
-                    "write_bytes": disk_io.write_bytes if disk_io else 0
+                    "write_bytes": disk_io.write_bytes if disk_io else 0,
                 },
                 metrics=[
                     HealthMetric(
@@ -508,9 +529,9 @@ class HealthChecker:
                         unit="%",
                         threshold_warning=85,
                         threshold_critical=95,
-                        description="Disk space usage percentage"
+                        description="Disk space usage percentage",
                     )
-                ]
+                ],
             )
 
         except Exception as e:
@@ -522,7 +543,7 @@ class HealthChecker:
                 response_time_ms=round(response_time_ms, 2),
                 timestamp=datetime.now(timezone.utc),
                 message="Disk check failed",
-                error=str(e)
+                error=str(e),
             )
 
     async def _check_network(self) -> HealthCheckResult:
@@ -533,7 +554,7 @@ class HealthChecker:
             # Test external connectivity
             async with httpx.AsyncClient(timeout=5.0) as client:
                 try:
-                    response = await client.get('https://httpbin.org/get')
+                    response = await client.get("https://httpbin.org/get")
                     external_connectivity = response.status_code == 200
                 except:
                     external_connectivity = False
@@ -562,15 +583,15 @@ class HealthChecker:
                     "bytes_sent": net_io.bytes_sent if net_io else 0,
                     "bytes_recv": net_io.bytes_recv if net_io else 0,
                     "packets_sent": net_io.packets_sent if net_io else 0,
-                    "packets_recv": net_io.packets_recv if net_io else 0
+                    "packets_recv": net_io.packets_recv if net_io else 0,
                 },
                 metrics=[
                     HealthMetric(
                         name="external_connectivity",
                         value=external_connectivity,
-                        description="External internet connectivity status"
+                        description="External internet connectivity status",
                     )
-                ]
+                ],
             )
 
         except Exception as e:
@@ -582,7 +603,7 @@ class HealthChecker:
                 response_time_ms=round(response_time_ms, 2),
                 timestamp=datetime.now(timezone.utc),
                 message="Network check failed",
-                error=str(e)
+                error=str(e),
             )
 
     async def _check_external_dependencies(self) -> HealthCheckResult:
@@ -593,10 +614,12 @@ class HealthChecker:
             dependencies_status = []
 
             # Test Keycloak if configured
-            if hasattr(self.settings, 'KEYCLOAK_URL') and self.settings.KEYCLOAK_URL:
+            if hasattr(self.settings, "KEYCLOAK_URL") and self.settings.KEYCLOAK_URL:
                 try:
                     async with httpx.AsyncClient(timeout=10.0) as client:
-                        response = await client.get(f"{self.settings.KEYCLOAK_URL}/auth/realms/master")
+                        response = await client.get(
+                            f"{self.settings.KEYCLOAK_URL}/auth/realms/master"
+                        )
                         keycloak_ok = response.status_code == 200
                         dependencies_status.append(("keycloak", keycloak_ok))
                 except:
@@ -605,11 +628,15 @@ class HealthChecker:
             # Add other external dependencies here
             # Example: payment gateway, email service, etc.
 
-            failed_dependencies = [name for name, status in dependencies_status if not status]
+            failed_dependencies = [
+                name for name, status in dependencies_status if not status
+            ]
 
             if failed_dependencies:
                 status = HealthStatus.DEGRADED
-                message = f"Some dependencies unavailable: {', '.join(failed_dependencies)}"
+                message = (
+                    f"Some dependencies unavailable: {', '.join(failed_dependencies)}"
+                )
             elif not dependencies_status:
                 status = HealthStatus.HEALTHY
                 message = "No external dependencies configured"
@@ -629,8 +656,8 @@ class HealthChecker:
                 details={
                     "dependencies": dict(dependencies_status),
                     "total_dependencies": len(dependencies_status),
-                    "failed_dependencies": failed_dependencies
-                }
+                    "failed_dependencies": failed_dependencies,
+                },
             )
 
         except Exception as e:
@@ -642,7 +669,7 @@ class HealthChecker:
                 response_time_ms=round(response_time_ms, 2),
                 timestamp=datetime.now(timezone.utc),
                 message="Dependencies check failed",
-                error=str(e)
+                error=str(e),
             )
 
     async def _check_application_health(self) -> HealthCheckResult:
@@ -654,6 +681,7 @@ class HealthChecker:
             feature_flags_ok = True
             try:
                 from app.core.feature_flags import get_feature_flag_service
+
                 ff_service = get_feature_flag_service()
                 await ff_service.list_flags()  # Simple test call
             except:
@@ -687,16 +715,16 @@ class HealthChecker:
                     "checks": app_checks,
                     "uptime_seconds": time.time() - self.start_time,
                     "version": self.version,
-                    "environment": self.environment
+                    "environment": self.environment,
                 },
                 metrics=[
                     HealthMetric(
                         name="uptime_seconds",
                         value=round(time.time() - self.start_time, 1),
                         unit="seconds",
-                        description="Application uptime"
+                        description="Application uptime",
                     )
-                ]
+                ],
             )
 
         except Exception as e:
@@ -708,10 +736,12 @@ class HealthChecker:
                 response_time_ms=round(response_time_ms, 2),
                 timestamp=datetime.now(timezone.utc),
                 message="Application health check failed",
-                error=str(e)
+                error=str(e),
             )
 
-    def _calculate_overall_status(self, components: List[HealthCheckResult]) -> HealthStatus:
+    def _calculate_overall_status(
+        self, components: List[HealthCheckResult]
+    ) -> HealthStatus:
         """Calculate overall system status from component statuses"""
         if not components:
             return HealthStatus.UNKNOWN
@@ -753,13 +783,18 @@ class HealthChecker:
             "status_distribution": status_counts,
             "average_response_time_ms": round(total_response_time / len(components), 2),
             "component_types": component_types,
-            "critical_issues": [c.component for c in components if c.status == HealthStatus.UNHEALTHY],
-            "warnings": [c.component for c in components if c.status == HealthStatus.DEGRADED]
+            "critical_issues": [
+                c.component for c in components if c.status == HealthStatus.UNHEALTHY
+            ],
+            "warnings": [
+                c.component for c in components if c.status == HealthStatus.DEGRADED
+            ],
         }
 
 
 # Singleton instance
 _health_checker: Optional[HealthChecker] = None
+
 
 def get_health_checker() -> HealthChecker:
     """Get or create health checker instance"""
