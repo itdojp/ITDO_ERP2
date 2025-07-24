@@ -40,7 +40,7 @@ class InsufficientStockError(Exception):
 
 
 class WarehouseCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def get_by_id(self, warehouse_id: str) -> Optional[Warehouse]:
@@ -153,7 +153,7 @@ class WarehouseCRUD:
 
 
 class InventoryItemCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def get_by_id(self, item_id: str) -> Optional[InventoryItem]:
@@ -441,7 +441,7 @@ class InventoryItemCRUD:
 
 
 class CycleCountCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def get_by_id(self, count_id: str) -> Optional[CycleCount]:
@@ -483,7 +483,7 @@ class CycleCountCRUD:
 
         return db_count
 
-    def _generate_count_items(self, cycle_count: CycleCount):
+    def _generate_count_items(self, cycle_count: CycleCount) -> dict:
         """棚卸対象アイテムの自動生成"""
         query = self.db.query(InventoryItem).filter(
             InventoryItem.warehouse_id == cycle_count.warehouse_id,
@@ -555,10 +555,10 @@ class CycleCountCRUD:
 
 
 class StockAlertCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
-    def create_low_stock_alerts(self):
+    def create_low_stock_alerts(self) -> dict:
         """低在庫アラート自動生成"""
         # 在庫レベルが発注点以下の商品を取得
         low_stock_items = (

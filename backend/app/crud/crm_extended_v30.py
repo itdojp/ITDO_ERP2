@@ -45,7 +45,7 @@ class InvalidStageError(Exception):
 
 
 class CRMCustomerCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def get_by_id(self, customer_id: str) -> Optional[CRMCustomer]:
@@ -260,7 +260,7 @@ class CRMCustomerCRUD:
 
         return customer
 
-    def update_activity_timestamp(self, customer_id: str):
+    def update_activity_timestamp(self, customer_id: str) -> dict:
         """顧客の最終活動日時を更新"""
         customer = self.get_by_id(customer_id)
         if customer:
@@ -283,7 +283,7 @@ class CRMCustomerCRUD:
             customer.updated_at = datetime.utcnow()
             self.db.commit()
 
-    def add_to_segment(self, customer_id: str, segment_id: str, user_id: str):
+    def add_to_segment(self, customer_id: str, segment_id: str, user_id: str) -> dict:
         """顧客をセグメントに追加"""
         # Check if already exists
         existing = (
@@ -302,7 +302,7 @@ class CRMCustomerCRUD:
             self.db.execute(stmt)
             self.db.commit()
 
-    def remove_from_segment(self, customer_id: str, segment_id: str):
+    def remove_from_segment(self, customer_id: str, segment_id: str) -> dict:
         """顧客をセグメントから削除"""
         stmt = customer_segment_members.delete().where(
             and_(
@@ -315,7 +315,7 @@ class CRMCustomerCRUD:
 
 
 class CustomerInteractionCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def get_by_id(self, interaction_id: str) -> Optional[CustomerInteraction]:
@@ -399,7 +399,7 @@ class CustomerInteractionCRUD:
 
 
 class SalesOpportunityCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def get_by_id(self, opportunity_id: str) -> Optional[SalesOpportunity]:
@@ -658,7 +658,7 @@ class SalesOpportunityCRUD:
 
 
 class OpportunityActivityCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def create(
@@ -697,7 +697,7 @@ class OpportunityActivityCRUD:
 
 
 class CustomerActivityCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def create(
@@ -734,7 +734,7 @@ class CustomerActivityCRUD:
 
 
 class CustomerSegmentCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def get_by_id(self, segment_id: str) -> Optional[CustomerSegment]:
@@ -789,7 +789,7 @@ class CustomerSegmentCRUD:
 
         return segment
 
-    def calculate_segment_metrics(self, segment_id: str):
+    def calculate_segment_metrics(self, segment_id: str) -> dict:
         """セグメントのメトリクス再計算"""
         segment = self.get_by_id(segment_id)
         if not segment:
@@ -815,7 +815,7 @@ class CustomerSegmentCRUD:
 
 
 class MarketingCampaignCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def get_by_id(self, campaign_id: str) -> Optional[MarketingCampaign]:

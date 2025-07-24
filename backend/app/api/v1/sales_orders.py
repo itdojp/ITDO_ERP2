@@ -68,7 +68,7 @@ order_counter = 1000
 
 
 @router.post("/sales-orders", response_model=SalesOrder, status_code=201)
-async def create_sales_order(order: SalesOrderCreate):
+async def create_sales_order(order: SalesOrderCreate) -> dict:
     """売上オーダーを作成"""
     global order_counter
     order_counter += 1
@@ -145,7 +145,7 @@ async def list_sales_orders(
 
 
 @router.get("/sales-orders/{order_id}", response_model=SalesOrder)
-async def get_sales_order(order_id: str):
+async def get_sales_order(order_id: str) -> dict:
     """売上オーダー詳細を取得"""
     if order_id not in sales_orders_db:
         raise HTTPException(status_code=404, detail="売上オーダーが見つかりません")
@@ -153,7 +153,7 @@ async def get_sales_order(order_id: str):
 
 
 @router.put("/sales-orders/{order_id}", response_model=SalesOrder)
-async def update_sales_order(order_id: str, order_update: SalesOrderUpdate):
+async def update_sales_order(order_id: str, order_update: SalesOrderUpdate) -> dict:
     """売上オーダーを更新"""
     if order_id not in sales_orders_db:
         raise HTTPException(status_code=404, detail="売上オーダーが見つかりません")
@@ -169,7 +169,7 @@ async def update_sales_order(order_id: str, order_update: SalesOrderUpdate):
 
 
 @router.post("/sales-orders/{order_id}/confirm")
-async def confirm_sales_order(order_id: str):
+async def confirm_sales_order(order_id: str) -> dict:
     """売上オーダーを確定"""
     if order_id not in sales_orders_db:
         raise HTTPException(status_code=404, detail="売上オーダーが見つかりません")
@@ -191,7 +191,7 @@ async def confirm_sales_order(order_id: str):
 
 
 @router.post("/sales-orders/{order_id}/ship")
-async def ship_sales_order(order_id: str, tracking_number: Optional[str] = None):
+async def ship_sales_order(order_id: str, tracking_number: Optional[str] = None) -> dict:
     """売上オーダーを出荷"""
     if order_id not in sales_orders_db:
         raise HTTPException(status_code=404, detail="売上オーダーが見つかりません")
@@ -219,7 +219,7 @@ async def ship_sales_order(order_id: str, tracking_number: Optional[str] = None)
 
 
 @router.post("/sales-orders/{order_id}/cancel")
-async def cancel_sales_order(order_id: str, reason: Optional[str] = None):
+async def cancel_sales_order(order_id: str, reason: Optional[str] = None) -> dict:
     """売上オーダーをキャンセル"""
     if order_id not in sales_orders_db:
         raise HTTPException(status_code=404, detail="売上オーダーが見つかりません")
@@ -248,7 +248,7 @@ async def cancel_sales_order(order_id: str, reason: Optional[str] = None):
 
 
 @router.get("/sales-orders/{order_id}/summary")
-async def get_order_summary(order_id: str):
+async def get_order_summary(order_id: str) -> dict:
     """売上オーダーのサマリーを取得"""
     if order_id not in sales_orders_db:
         raise HTTPException(status_code=404, detail="売上オーダーが見つかりません")

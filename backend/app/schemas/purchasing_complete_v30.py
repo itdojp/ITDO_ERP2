@@ -21,7 +21,7 @@ class SupplierBase(BaseModel):
     priority_level: str = Field(default="normal", regex="^(critical|high|normal|low)$")
 
     @validator("supplier_code")
-    def code_valid(cls, v):
+    def code_valid(cls, v) -> dict:
         if not re.match(r"^[A-Z0-9_-]+$", v):
             raise ValueError(
                 "Supplier code must contain only uppercase letters, numbers, hyphens and underscores"

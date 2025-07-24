@@ -38,7 +38,7 @@ products_db = {}
 
 
 @router.post("/products", response_model=Product, status_code=201)
-async def create_product(product: ProductCreate):
+async def create_product(product: ProductCreate) -> dict:
     """商品を新規作成"""
     # 商品コードの重複チェック
     for p in products_db.values():
@@ -64,14 +64,14 @@ async def create_product(product: ProductCreate):
 
 
 @router.get("/products", response_model=List[Product])
-async def list_products(skip: int = 0, limit: int = 100):
+async def list_products(skip: int = 0, limit: int = 100) -> dict:
     """商品一覧を取得"""
     products = list(products_db.values())
     return products[skip : skip + limit]
 
 
 @router.get("/products/{product_id}", response_model=Product)
-async def get_product(product_id: str):
+async def get_product(product_id: str) -> dict:
     """商品詳細を取得"""
     if product_id not in products_db:
         raise HTTPException(status_code=404, detail="商品が見つかりません")
@@ -79,7 +79,7 @@ async def get_product(product_id: str):
 
 
 @router.put("/products/{product_id}", response_model=Product)
-async def update_product(product_id: str, product_update: ProductUpdate):
+async def update_product(product_id: str, product_update: ProductUpdate) -> dict:
     """商品情報を更新"""
     if product_id not in products_db:
         raise HTTPException(status_code=404, detail="商品が見つかりません")
@@ -95,7 +95,7 @@ async def update_product(product_id: str, product_update: ProductUpdate):
 
 
 @router.delete("/products/{product_id}", status_code=204)
-async def delete_product(product_id: str):
+async def delete_product(product_id: str) -> dict:
     """商品を削除"""
     if product_id not in products_db:
         raise HTTPException(status_code=404, detail="商品が見つかりません")
@@ -105,7 +105,7 @@ async def delete_product(product_id: str):
 
 
 @router.post("/products/{product_id}/adjust-stock")
-async def adjust_stock(product_id: str, quantity: int):
+async def adjust_stock(product_id: str, quantity: int) -> dict:
     """在庫数を調整"""
     if product_id not in products_db:
         raise HTTPException(status_code=404, detail="商品が見つかりません")

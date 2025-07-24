@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo } from "react";
 
 interface PaginationProps {
   currentPage: number;
@@ -9,8 +9,8 @@ interface PaginationProps {
   onPageSizeChange?: (pageSize: number) => void;
   showPageSizeSelect?: boolean;
   pageSizeOptions?: number[];
-  variant?: 'default' | 'simple' | 'compact';
-  size?: 'sm' | 'md' | 'lg';
+  variant?: "default" | "simple" | "compact";
+  size?: "sm" | "md" | "lg";
   showFirstLast?: boolean;
   showPrevNext?: boolean;
   showPageNumbers?: boolean;
@@ -44,39 +44,39 @@ export const Pagination: React.FC<PaginationProps> = ({
   onPageSizeChange,
   showPageSizeSelect = false,
   pageSizeOptions = [10, 25, 50, 100],
-  variant = 'default',
-  size = 'md',
+  variant = "default",
+  size = "md",
   showFirstLast = true,
   showPrevNext = true,
   showPageNumbers = true,
   showInfo = false,
   maxVisiblePages = 7,
-  className = '',
-  buttonClassName = '',
-  activeButtonClassName = '',
-  infoClassName = '',
+  className = "",
+  buttonClassName = "",
+  activeButtonClassName = "",
+  infoClassName = "",
   disabled = false,
-  labels = {}
+  labels = {},
 }) => {
   const defaultLabels = {
-    first: 'First',
-    previous: 'Previous',
-    next: 'Next',
-    last: 'Last',
-    page: 'Page',
-    of: 'of',
-    items: 'items',
-    showing: 'Showing',
-    to: 'to',
-    resultsPerPage: 'Results per page',
-    ...labels
+    first: "First",
+    previous: "Previous",
+    next: "Next",
+    last: "Last",
+    page: "Page",
+    of: "of",
+    items: "items",
+    showing: "Showing",
+    to: "to",
+    resultsPerPage: "Results per page",
+    ...labels,
   };
 
   const getSizeClasses = () => {
     const sizeMap = {
-      sm: 'px-2 py-1 text-xs',
-      md: 'px-3 py-2 text-sm',
-      lg: 'px-4 py-3 text-base'
+      sm: "px-2 py-1 text-xs",
+      md: "px-3 py-2 text-sm",
+      lg: "px-4 py-3 text-base",
     };
     return sizeMap[size];
   };
@@ -85,20 +85,21 @@ export const Pagination: React.FC<PaginationProps> = ({
     const baseClasses = `
       inline-flex items-center justify-center border transition-colors duration-200
       ${getSizeClasses()}
-      ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+      ${isDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
       ${buttonClassName}
     `;
 
     if (isActive) {
       return `${baseClasses} ${
-        activeButtonClassName || 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700'
+        activeButtonClassName ||
+        "bg-blue-600 border-blue-600 text-white hover:bg-blue-700"
       }`;
     }
 
     switch (variant) {
-      case 'simple':
+      case "simple":
         return `${baseClasses} bg-white border-gray-300 text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`;
-      case 'compact':
+      case "compact":
         return `${baseClasses} bg-transparent border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500`;
       default:
         return `${baseClasses} bg-white border-gray-300 text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`;
@@ -112,7 +113,7 @@ export const Pagination: React.FC<PaginationProps> = ({
 
     const halfVisible = Math.floor(maxVisiblePages / 2);
     let startPage = Math.max(currentPage - halfVisible, 1);
-    let endPage = Math.min(startPage + maxVisiblePages - 1, totalPages);
+    const endPage = Math.min(startPage + maxVisiblePages - 1, totalPages);
 
     if (endPage - startPage + 1 < maxVisiblePages) {
       startPage = Math.max(endPage - maxVisiblePages + 1, 1);
@@ -123,7 +124,7 @@ export const Pagination: React.FC<PaginationProps> = ({
     if (startPage > 1) {
       pages.push(1);
       if (startPage > 2) {
-        pages.push('...');
+        pages.push("...");
       }
     }
 
@@ -133,7 +134,7 @@ export const Pagination: React.FC<PaginationProps> = ({
 
     if (endPage < totalPages) {
       if (endPage < totalPages - 1) {
-        pages.push('...');
+        pages.push("...");
       }
       pages.push(totalPages);
     }
@@ -149,14 +150,14 @@ export const Pagination: React.FC<PaginationProps> = ({
   };
 
   const handleKeyDown = (event: React.KeyboardEvent, page: number) => {
-    if (event.key === 'Enter' || event.key === ' ') {
+    if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       handlePageChange(page);
     }
   };
 
   const renderPageButton = (page: number | string, key: string) => {
-    if (page === '...') {
+    if (page === "...") {
       return (
         <span
           key={key}
@@ -179,7 +180,7 @@ export const Pagination: React.FC<PaginationProps> = ({
         onClick={() => handlePageChange(pageNum)}
         onKeyDown={(e) => handleKeyDown(e, pageNum)}
         disabled={isDisabled}
-        aria-current={isActive ? 'page' : undefined}
+        aria-current={isActive ? "page" : undefined}
         aria-label={`${defaultLabels.page} ${pageNum}`}
         type="button"
       >
@@ -193,7 +194,7 @@ export const Pagination: React.FC<PaginationProps> = ({
     disabled: boolean,
     label: string,
     icon?: React.ReactNode,
-    ariaLabel?: string
+    ariaLabel?: string,
   ) => {
     return (
       <button
@@ -205,7 +206,7 @@ export const Pagination: React.FC<PaginationProps> = ({
       >
         <span className="flex items-center gap-1">
           {icon}
-          {variant !== 'compact' && <span>{label}</span>}
+          {variant !== "compact" && <span>{label}</span>}
         </span>
       </button>
     );
@@ -219,7 +220,8 @@ export const Pagination: React.FC<PaginationProps> = ({
 
     return (
       <div className={`text-sm text-gray-700 ${infoClassName}`}>
-        {defaultLabels.showing} {startItem} {defaultLabels.to} {endItem} {defaultLabels.of} {totalItems} {defaultLabels.items}
+        {defaultLabels.showing} {startItem} {defaultLabels.to} {endItem}{" "}
+        {defaultLabels.of} {totalItems} {defaultLabels.items}
       </div>
     );
   };
@@ -254,82 +256,124 @@ export const Pagination: React.FC<PaginationProps> = ({
   }
 
   const firstIcon = (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+    <svg
+      className="w-4 h-4"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M11 19l-7-7 7-7m8 14l-7-7 7-7"
+      />
     </svg>
   );
 
   const previousIcon = (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+    <svg
+      className="w-4 h-4"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M15 19l-7-7 7-7"
+      />
     </svg>
   );
 
   const nextIcon = (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+    <svg
+      className="w-4 h-4"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M9 5l7 7-7 7"
+      />
     </svg>
   );
 
   const lastIcon = (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+    <svg
+      className="w-4 h-4"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M13 5l7 7-7 7M5 5l7 7-7 7"
+      />
     </svg>
   );
 
   return (
-    <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 ${className}`}>
+    <div
+      className={`flex flex-col sm:flex-row items-center justify-between gap-4 ${className}`}
+    >
       <div className="flex items-center gap-4">
         {renderInfo()}
         {renderPageSizeSelect()}
       </div>
-      
-      <nav className="flex items-center gap-1" aria-label="Pagination navigation">
+
+      <nav
+        className="flex items-center gap-1"
+        aria-label="Pagination navigation"
+      >
         {totalPages > 1 && (
           <>
-            {showFirstLast && (
+            {showFirstLast &&
               renderNavigationButton(
                 () => handlePageChange(1),
                 disabled || currentPage === 1,
                 defaultLabels.first,
-                variant === 'compact' ? firstIcon : undefined,
-                `Go to first page`
-              )
-            )}
+                variant === "compact" ? firstIcon : undefined,
+                `Go to first page`,
+              )}
 
-            {showPrevNext && (
+            {showPrevNext &&
               renderNavigationButton(
                 () => handlePageChange(currentPage - 1),
                 disabled || currentPage === 1,
                 defaultLabels.previous,
-                variant === 'compact' ? previousIcon : undefined,
-                `Go to previous page`
-              )
-            )}
+                variant === "compact" ? previousIcon : undefined,
+                `Go to previous page`,
+              )}
 
-            {showPageNumbers && getVisiblePages.map((page, index) => 
-              renderPageButton(page, `page-${index}`)
-            )}
+            {showPageNumbers &&
+              getVisiblePages.map((page, index) =>
+                renderPageButton(page, `page-${index}`),
+              )}
 
-            {showPrevNext && (
+            {showPrevNext &&
               renderNavigationButton(
                 () => handlePageChange(currentPage + 1),
                 disabled || currentPage === totalPages,
                 defaultLabels.next,
-                variant === 'compact' ? nextIcon : undefined,
-                `Go to next page`
-              )
-            )}
+                variant === "compact" ? nextIcon : undefined,
+                `Go to next page`,
+              )}
 
-            {showFirstLast && (
+            {showFirstLast &&
               renderNavigationButton(
                 () => handlePageChange(totalPages),
                 disabled || currentPage === totalPages,
                 defaultLabels.last,
-                variant === 'compact' ? lastIcon : undefined,
-                `Go to last page`
-              )
-            )}
+                variant === "compact" ? lastIcon : undefined,
+                `Go to last page`,
+              )}
           </>
         )}
       </nav>
