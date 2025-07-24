@@ -15,7 +15,7 @@ from app.models.expense import Expense, ExpenseStatus
 
 
 class FinancialReportsService:
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: AsyncSession) -> dict:
         self.db = db
 
     async def generate_budget_performance_report(
@@ -66,9 +66,10 @@ class FinancialReportsService:
             budget_amount = float(budget.total_amount or 0)
             # Calculate actual expenses for this budget category
             actual_expenses = [
-                exp for exp in expenses
-                if hasattr(exp, 'expense_category_id') and
-                getattr(exp, 'expense_category_id', None) == budget.id
+                exp
+                for exp in expenses
+                if hasattr(exp, "expense_category_id")
+                and getattr(exp, "expense_category_id", None) == budget.id
             ]
             actual_amount = sum(float(exp.amount) for exp in actual_expenses)
 
@@ -77,17 +78,20 @@ class FinancialReportsService:
                 (variance / budget_amount * 100) if budget_amount > 0 else 0
             )
 
-            budget_breakdown.append({
-                "budget_code": budget.code,
-                "budget_name": budget.name,
-                "budget_amount": budget_amount,
-                "actual_amount": actual_amount,
-                "variance": variance,
-                "variance_percentage": variance_percentage,
-                "status": "under_budget" if variance > 0 else "over_budget",
-                "utilization_rate": (actual_amount / budget_amount * 100)
-                if budget_amount > 0 else 0,
-            })
+            budget_breakdown.append(
+                {
+                    "budget_code": budget.code,
+                    "budget_name": budget.name,
+                    "budget_amount": budget_amount,
+                    "actual_amount": actual_amount,
+                    "variance": variance,
+                    "variance_percentage": variance_percentage,
+                    "status": "under_budget" if variance > 0 else "over_budget",
+                    "utilization_rate": (actual_amount / budget_amount * 100)
+                    if budget_amount > 0
+                    else 0,
+                }
+            )
 
         report = {
             "report_type": "budget_performance",
@@ -128,14 +132,18 @@ class FinancialReportsService:
     ) -> Dict:
         """Generate expense summary report."""
         # Build query for expenses
-        query = select(Expense).where(
-            and_(
-                Expense.organization_id == organization_id,
-                Expense.deleted_at.is_(None),
+        query = (
+            select(Expense)
+            .where(
+                and_(
+                    Expense.organization_id == organization_id,
+                    Expense.deleted_at.is_(None),
+                )
             )
-        ).options(
-            selectinload(Expense.employee),
-            selectinload(Expense.expense_category),
+            .options(
+                selectinload(Expense.employee),
+                selectinload(Expense.expense_category),
+            )
         )
 
         if date_from:
@@ -206,16 +214,20 @@ class FinancialReportsService:
         budgets = budgets_result.scalars().all()
 
         # Get monthly expense data
-        expenses_query = select(Expense).where(
-            and_(
-                Expense.organization_id == organization_id,
-                extract("year", Expense.expense_date) == year,
-                extract("month", Expense.expense_date) == month,
-                Expense.deleted_at.is_(None),
+        expenses_query = (
+            select(Expense)
+            .where(
+                and_(
+                    Expense.organization_id == organization_id,
+                    extract("year", Expense.expense_date) == year,
+                    extract("month", Expense.expense_date) == month,
+                    Expense.deleted_at.is_(None),
+                )
             )
-        ).options(
-            selectinload(Expense.employee),
-            selectinload(Expense.expense_category),
+            .options(
+                selectinload(Expense.employee),
+                selectinload(Expense.expense_category),
+            )
         )
         expenses_result = await self.db.execute(expenses_query)
         expenses = expenses_result.scalars().all()
@@ -253,7 +265,8 @@ class FinancialReportsService:
                     "expense_number": expense.expense_number,
                     "employee_name": expense.employee.full_name,
                     "category": expense.expense_category.name
-                    if expense.expense_category else "Uncategorized",
+                    if expense.expense_category
+                    else "Uncategorized",
                     "amount": float(expense.amount),
                     "date": expense.expense_date.isoformat(),
                     "status": expense.status.value,
@@ -294,20 +307,19 @@ class FinancialReportsService:
         # Monthly breakdown
         monthly_data = []
         for month in range(1, 13):
-            month_expenses = [
-                e for e in expenses
-                if e.expense_date.month == month
-            ]
+            month_expenses = [e for e in expenses if e.expense_date.month == month]
             monthly_amount = sum(float(e.amount) for e in month_expenses)
             monthly_budget = sum(float(b.total_amount or 0) for b in budgets) / 12
 
-            monthly_data.append({
-                "month": month,
-                "budget": monthly_budget,
-                "actual": monthly_amount,
-                "variance": monthly_budget - monthly_amount,
-                "expense_count": len(month_expenses),
-            })
+            monthly_data.append(
+                {
+                    "month": month,
+                    "budget": monthly_budget,
+                    "actual": monthly_amount,
+                    "variance": monthly_budget - monthly_amount,
+                    "expense_count": len(month_expenses),
+                }
+            )
 
         total_budget = sum(float(budget.total_amount or 0) for budget in budgets)
         total_actual = sum(float(expense.amount) for expense in expenses)
@@ -323,7 +335,8 @@ class FinancialReportsService:
                 "overall_variance": total_budget - total_actual,
                 "overall_variance_percentage": (
                     ((total_budget - total_actual) / total_budget * 100)
-                    if total_budget > 0 else 0
+                    if total_budget > 0
+                    else 0
                 ),
                 "total_expenses": len(expenses),
                 "budget_count": len(budgets),
@@ -351,13 +364,15 @@ class FinancialReportsService:
             budget_amount = float(budget.total_amount or 0)
             # Calculate related expenses
             actual_amount = sum(
-                float(exp.amount) for exp in expenses
+                float(exp.amount)
+                for exp in expenses
                 # Simplified: assume relationship exists
             )
 
             variance_percentage = (
                 ((budget_amount - actual_amount) / budget_amount * 100)
-                if budget_amount > 0 else 0
+                if budget_amount > 0
+                else 0
             )
 
             budget_info = {
@@ -407,14 +422,17 @@ class FinancialReportsService:
             year_budget = sum(float(b.total_amount or 0) for b in year_budgets)
             year_actual = sum(float(e.amount) for e in year_expenses)
 
-            trend_data.append({
-                "year": year,
-                "budget": year_budget,
-                "actual": year_actual,
-                "variance": year_budget - year_actual,
-                "utilization_rate": (year_actual / year_budget * 100)
-                if year_budget > 0 else 0,
-            })
+            trend_data.append(
+                {
+                    "year": year,
+                    "budget": year_budget,
+                    "actual": year_actual,
+                    "variance": year_budget - year_actual,
+                    "utilization_rate": (year_actual / year_budget * 100)
+                    if year_budget > 0
+                    else 0,
+                }
+            )
 
         return {"historical_trends": trend_data}
 
@@ -435,12 +453,14 @@ class FinancialReportsService:
 
             employee_data[employee_id]["expense_count"] += 1
             employee_data[employee_id]["total_amount"] += float(expense.amount)
-            employee_data[employee_id]["expenses"].append({
-                "expense_id": expense.id,
-                "amount": float(expense.amount),
-                "date": expense.expense_date.isoformat(),
-                "status": expense.status.value,
-            })
+            employee_data[employee_id]["expenses"].append(
+                {
+                    "expense_id": expense.id,
+                    "amount": float(expense.amount),
+                    "date": expense.expense_date.isoformat(),
+                    "status": expense.status.value,
+                }
+            )
 
         return list(employee_data.values())
 
@@ -452,7 +472,8 @@ class FinancialReportsService:
             category_id = expense.expense_category_id
             category_name = (
                 expense.expense_category.name
-                if expense.expense_category else "Uncategorized"
+                if expense.expense_category
+                else "Uncategorized"
             )
 
             if category_id not in category_data:
@@ -504,12 +525,14 @@ class FinancialReportsService:
 
             month_total = sum(float(e.amount) for e in month_expenses)
 
-            previous_data.append({
-                "year": target_year,
-                "month": target_month,
-                "total_amount": month_total,
-                "expense_count": len(month_expenses),
-            })
+            previous_data.append(
+                {
+                    "year": target_year,
+                    "month": target_month,
+                    "total_amount": month_total,
+                    "expense_count": len(month_expenses),
+                }
+            )
 
         return previous_data
 
@@ -522,7 +545,8 @@ class FinancialReportsService:
         for expense in expenses:
             category_name = (
                 expense.expense_category.name
-                if expense.expense_category else "Uncategorized"
+                if expense.expense_category
+                else "Uncategorized"
             )
 
             if category_name not in category_totals:
@@ -566,11 +590,13 @@ class FinancialReportsService:
 
             month_total = sum(float(e.amount) for e in month_expenses)
 
-            monthly_trends.append({
-                "month": month,
-                "amount": month_total,
-                "expense_count": len(month_expenses),
-            })
+            monthly_trends.append(
+                {
+                    "month": month,
+                    "amount": month_total,
+                    "expense_count": len(month_expenses),
+                }
+            )
 
         # Calculate trend indicators
         total_so_far = sum(month["amount"] for month in monthly_trends)
@@ -592,4 +618,3 @@ class FinancialReportsService:
                 "months_with_data": months_with_data,
             },
         }
-

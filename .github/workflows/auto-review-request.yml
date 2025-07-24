@@ -5,6 +5,11 @@ name: Auto Review Request
 # This workflow handles additional labeling and PR management tasks
 
 on:
+
+permissions:
+  contents: read
+  pull-requests: read
+  checks: read
   pull_request:
     types: [opened, ready_for_review]
 
