@@ -36,7 +36,7 @@ class ExportData:
 class UserService:
     """User management service class with type-safe operations."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         """Initialize service with database session."""
         self.db = db
         self.repository = UserRepository(db)
