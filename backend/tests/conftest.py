@@ -9,7 +9,7 @@ from typing import Any, Dict
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, inspect, text
+from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -27,15 +27,15 @@ if not os.environ.get("REFRESH_TOKEN_EXPIRE_DAYS"):
 if not os.environ.get("BCRYPT_ROUNDS"):
     os.environ["BCRYPT_ROUNDS"] = "4"
 
-# Import base first
-from app.models.base import Base
-
 # Import all models to ensure proper registration
 import app.models  # This will import all models via __init__.py
 
 # Now import app components
 from app.core import database
-from tests.factories import UserFactory, OrganizationFactory
+
+# Import base first
+from app.models.base import Base
+from tests.factories import OrganizationFactory, UserFactory
 
 # Database configuration based on test type
 SQLALCHEMY_DATABASE_URL = os.getenv(
@@ -120,7 +120,6 @@ def test_role_system(
     db_session: Session, test_organization, test_permissions
 ) -> Dict[str, Any]:
     """Create a test role system with hierarchy."""
-    from app.models.role import Role
     from tests.factories import RoleFactory
 
     # Create roles
