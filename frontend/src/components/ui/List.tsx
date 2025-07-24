@@ -1,10 +1,16 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { cn } from '@/lib/utils';
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+} from "react";
+import { cn } from "@/lib/utils";
 
 export interface ListAction<T = any> {
   label: string;
   onClick: (item: T) => void;
-  variant?: 'default' | 'primary' | 'danger';
+  variant?: "default" | "primary" | "danger";
   icon?: React.ReactNode;
 }
 
@@ -12,8 +18,8 @@ export interface ListProps<T = any> {
   items: T[];
   renderItem: (item: T, index: number) => React.ReactNode;
   className?: string;
-  variant?: 'default' | 'bordered' | 'divided' | 'flush';
-  size?: 'sm' | 'md' | 'lg';
+  variant?: "default" | "bordered" | "divided" | "flush";
+  size?: "sm" | "md" | "lg";
   hoverable?: boolean;
   selectable?: boolean;
   multiple?: boolean;
@@ -37,7 +43,7 @@ export interface ListProps<T = any> {
   searchFunction?: (item: T, query: string) => boolean;
   sortable?: boolean;
   sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: "asc" | "desc";
   sortFunction?: (a: T, b: T) => number;
   paginated?: boolean;
   pageSize?: number;
@@ -52,17 +58,17 @@ export interface ListProps<T = any> {
   onItemClick?: (item: T, index: number) => void;
   getItemKey?: (item: T) => string | number;
   getItemDisabled?: (item: T) => boolean;
-  'data-testid'?: string;
-  'data-category'?: string;
-  'data-id'?: string;
+  "data-testid"?: string;
+  "data-category"?: string;
+  "data-id"?: string;
 }
 
 export const List = <T extends any>({
   items,
   renderItem,
   className,
-  variant = 'default',
-  size = 'md',
+  variant = "default",
+  size = "md",
   hoverable = false,
   selectable = false,
   multiple = false,
@@ -70,7 +76,7 @@ export const List = <T extends any>({
   onSelect,
   loading = false,
   loadingComponent,
-  emptyText = 'No items to display',
+  emptyText = "No items to display",
   emptyComponent,
   virtual = false,
   itemHeight = 50,
@@ -82,11 +88,11 @@ export const List = <T extends any>({
   draggable = false,
   onReorder,
   searchable = false,
-  searchPlaceholder = 'Search...',
+  searchPlaceholder = "Search...",
   searchFunction,
   sortable = false,
   sortBy,
-  sortOrder = 'asc',
+  sortOrder = "asc",
   sortFunction,
   paginated = false,
   pageSize = 10,
@@ -101,13 +107,14 @@ export const List = <T extends any>({
   onItemClick,
   getItemKey,
   getItemDisabled,
-  'data-testid': dataTestId = 'list-container',
-  'data-category': dataCategory,
-  'data-id': dataId,
+  "data-testid": dataTestId = "list-container",
+  "data-category": dataCategory,
+  "data-id": dataId,
   ...props
 }: ListProps<T>) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [internalSelectedItems, setInternalSelectedItems] = useState<T[]>(selectedItems);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [internalSelectedItems, setInternalSelectedItems] =
+    useState<T[]>(selectedItems);
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const [draggedItem, setDraggedItem] = useState<T | null>(null);
   const [currentPageInternal, setCurrentPageInternal] = useState(currentPage);
@@ -115,31 +122,32 @@ export const List = <T extends any>({
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
   const sizeClasses = {
-    sm: 'py-1 px-2 text-sm',
-    md: 'py-2 px-3',
-    lg: 'py-3 px-4 text-lg'
+    sm: "py-1 px-2 text-sm",
+    md: "py-2 px-3",
+    lg: "py-3 px-4 text-lg",
   };
 
   const variantClasses = {
-    default: '',
-    bordered: 'border border-gray-200 rounded-md',
-    divided: 'divide-y divide-gray-200',
-    flush: ''
+    default: "",
+    bordered: "border border-gray-200 rounded-md",
+    divided: "divide-y divide-gray-200",
+    flush: "",
   };
 
   // Filter items based on search
   const filteredItems = useMemo(() => {
     if (!searchable || !searchQuery) return items;
-    
-    return items.filter(item => {
+
+    return items.filter((item) => {
       if (searchFunction) {
         return searchFunction(item, searchQuery);
       }
-      
-      const searchableText = typeof item === 'object' && item !== null 
-        ? Object.values(item).join(' ').toLowerCase()
-        : String(item).toLowerCase();
-      
+
+      const searchableText =
+        typeof item === "object" && item !== null
+          ? Object.values(item).join(" ").toLowerCase()
+          : String(item).toLowerCase();
+
       return searchableText.includes(searchQuery.toLowerCase());
     });
   }, [items, searchQuery, searchable, searchFunction]);
@@ -147,22 +155,22 @@ export const List = <T extends any>({
   // Sort items
   const sortedItems = useMemo(() => {
     if (!sortable) return filteredItems;
-    
+
     return [...filteredItems].sort((a, b) => {
       if (sortFunction) {
         return sortFunction(a, b);
       }
-      
-      if (sortBy && typeof a === 'object' && typeof b === 'object') {
+
+      if (sortBy && typeof a === "object" && typeof b === "object") {
         const aValue = (a as any)[sortBy];
         const bValue = (b as any)[sortBy];
-        
-        if (sortOrder === 'desc') {
+
+        if (sortOrder === "desc") {
           return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
         }
         return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
       }
-      
+
       return 0;
     });
   }, [filteredItems, sortable, sortFunction, sortBy, sortOrder]);
@@ -170,45 +178,51 @@ export const List = <T extends any>({
   // Group items
   const groupedItems = useMemo(() => {
     if (!groupBy) return [{ group: null, items: sortedItems }];
-    
-    const groups = sortedItems.reduce((acc, item) => {
-      const groupValue = typeof item === 'object' && item !== null 
-        ? (item as any)[groupBy] 
-        : 'default';
-      
-      if (!acc[groupValue]) {
-        acc[groupValue] = [];
-      }
-      acc[groupValue].push(item);
-      return acc;
-    }, {} as Record<string, T[]>);
-    
+
+    const groups = sortedItems.reduce(
+      (acc, item) => {
+        const groupValue =
+          typeof item === "object" && item !== null
+            ? (item as any)[groupBy]
+            : "default";
+
+        if (!acc[groupValue]) {
+          acc[groupValue] = [];
+        }
+        acc[groupValue].push(item);
+        return acc;
+      },
+      {} as Record<string, T[]>,
+    );
+
     return Object.entries(groups).map(([group, items]) => ({ group, items }));
   }, [sortedItems, groupBy]);
 
   // Paginate items
   const paginatedItems = useMemo(() => {
     if (!paginated) return groupedItems;
-    
+
     const startIndex = (currentPageInternal - 1) * pageSize;
     const endIndex = startIndex + pageSize;
-    
-    return groupedItems.map(group => ({
+
+    return groupedItems.map((group) => ({
       ...group,
-      items: group.items.slice(startIndex, endIndex)
+      items: group.items.slice(startIndex, endIndex),
     }));
   }, [groupedItems, paginated, currentPageInternal, pageSize]);
 
   // Virtual scrolling
   const [virtualStart, setVirtualStart] = useState(0);
-  const [virtualEnd, setVirtualEnd] = useState(Math.ceil(containerHeight / itemHeight));
+  const [virtualEnd, setVirtualEnd] = useState(
+    Math.ceil(containerHeight / itemHeight),
+  );
 
   const virtualItems = useMemo(() => {
     if (!virtual) return paginatedItems;
-    
-    return paginatedItems.map(group => ({
+
+    return paginatedItems.map((group) => ({
       ...group,
-      items: group.items.slice(virtualStart, virtualEnd)
+      items: group.items.slice(virtualStart, virtualEnd),
     }));
   }, [paginatedItems, virtual, virtualStart, virtualEnd]);
 
@@ -218,11 +232,16 @@ export const List = <T extends any>({
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loadingMore && onLoadMore) {
+        if (
+          entries[0].isIntersecting &&
+          hasMore &&
+          !loadingMore &&
+          onLoadMore
+        ) {
           onLoadMore();
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     observer.observe(loadMoreRef.current);
@@ -235,17 +254,17 @@ export const List = <T extends any>({
 
     const handleKeyDown = (e: KeyboardEvent) => {
       const totalItems = sortedItems.length;
-      
+
       switch (e.key) {
-        case 'ArrowDown':
+        case "ArrowDown":
           e.preventDefault();
-          setFocusedIndex(prev => Math.min(prev + 1, totalItems - 1));
+          setFocusedIndex((prev) => Math.min(prev + 1, totalItems - 1));
           break;
-        case 'ArrowUp':
+        case "ArrowUp":
           e.preventDefault();
-          setFocusedIndex(prev => Math.max(prev - 1, 0));
+          setFocusedIndex((prev) => Math.max(prev - 1, 0));
           break;
-        case 'Enter':
+        case "Enter":
           if (focusedIndex >= 0 && onItemClick) {
             onItemClick(sortedItems[focusedIndex], focusedIndex);
           }
@@ -253,67 +272,84 @@ export const List = <T extends any>({
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [keyboardNavigation, sortedItems, focusedIndex, onItemClick]);
 
-  const handleItemClick = useCallback((item: T, index: number) => {
-    if (getItemDisabled?.(item)) return;
-    
-    if (selectable) {
-      const isSelected = internalSelectedItems.some(selected => 
-        getItemKey ? getItemKey(selected) === getItemKey(item) : selected === item
-      );
-      
-      let newSelection: T[];
-      if (multiple) {
-        newSelection = isSelected
-          ? internalSelectedItems.filter(selected => 
-              getItemKey ? getItemKey(selected) !== getItemKey(item) : selected !== item
-            )
-          : [...internalSelectedItems, item];
-      } else {
-        newSelection = isSelected ? [] : [item];
+  const handleItemClick = useCallback(
+    (item: T, index: number) => {
+      if (getItemDisabled?.(item)) return;
+
+      if (selectable) {
+        const isSelected = internalSelectedItems.some((selected) =>
+          getItemKey
+            ? getItemKey(selected) === getItemKey(item)
+            : selected === item,
+        );
+
+        let newSelection: T[];
+        if (multiple) {
+          newSelection = isSelected
+            ? internalSelectedItems.filter((selected) =>
+                getItemKey
+                  ? getItemKey(selected) !== getItemKey(item)
+                  : selected !== item,
+              )
+            : [...internalSelectedItems, item];
+        } else {
+          newSelection = isSelected ? [] : [item];
+        }
+
+        setInternalSelectedItems(newSelection);
+        onSelect?.(newSelection);
       }
-      
-      setInternalSelectedItems(newSelection);
-      onSelect?.(newSelection);
-    }
-    
-    onItemClick?.(item, index);
-  }, [selectable, multiple, internalSelectedItems, getItemKey, getItemDisabled, onSelect, onItemClick]);
+
+      onItemClick?.(item, index);
+    },
+    [
+      selectable,
+      multiple,
+      internalSelectedItems,
+      getItemKey,
+      getItemDisabled,
+      onSelect,
+      onItemClick,
+    ],
+  );
 
   const handleDragStart = (e: React.DragEvent, item: T) => {
     setDraggedItem(item);
-    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.effectAllowed = "move";
   };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
+    e.dataTransfer.dropEffect = "move";
   };
 
   const handleDrop = (e: React.DragEvent, targetItem: T) => {
     e.preventDefault();
-    
+
     if (!draggedItem || !onReorder) return;
-    
+
     const draggedIndex = items.indexOf(draggedItem);
     const targetIndex = items.indexOf(targetItem);
-    
+
     if (draggedIndex === targetIndex) return;
-    
+
     const newItems = [...items];
     newItems.splice(draggedIndex, 1);
     newItems.splice(targetIndex, 0, draggedItem);
-    
+
     onReorder(newItems);
     setDraggedItem(null);
   };
 
   const isItemSelected = (item: T) => {
-    return internalSelectedItems.some(selected => 
-      getItemKey ? getItemKey(selected) === getItemKey(item) : selected === item
+    return internalSelectedItems.some((selected) =>
+      getItemKey
+        ? getItemKey(selected) === getItemKey(item)
+        : selected === item,
     );
   };
 
@@ -321,19 +357,19 @@ export const List = <T extends any>({
     const isSelected = isItemSelected(item);
     const isDisabled = getItemDisabled?.(item) || false;
     const isFocused = keyboardNavigation && focusedIndex === globalIndex;
-    
+
     return (
       <li
         key={getItemKey ? getItemKey(item) : index}
         className={cn(
-          'relative flex items-center justify-between',
+          "relative flex items-center justify-between",
           sizeClasses[size],
-          hoverable && !isDisabled && 'hover:bg-gray-50 cursor-pointer',
-          selectable && !isDisabled && 'cursor-pointer',
-          isSelected && 'bg-blue-50 border-l-4 border-blue-500',
-          isDisabled && 'opacity-50 cursor-not-allowed',
-          isFocused && 'ring-2 ring-blue-500',
-          variant === 'flush' && 'border-0'
+          hoverable && !isDisabled && "hover:bg-gray-50 cursor-pointer",
+          selectable && !isDisabled && "cursor-pointer",
+          isSelected && "bg-blue-50 border-l-4 border-blue-500",
+          isDisabled && "opacity-50 cursor-not-allowed",
+          isFocused && "ring-2 ring-blue-500",
+          variant === "flush" && "border-0",
         )}
         onClick={() => handleItemClick(item, globalIndex)}
         draggable={draggable && !isDisabled}
@@ -341,10 +377,8 @@ export const List = <T extends any>({
         onDragOver={handleDragOver}
         onDrop={(e) => handleDrop(e, item)}
       >
-        <div className="flex-1">
-          {renderItem(item, globalIndex)}
-        </div>
-        
+        <div className="flex-1">{renderItem(item, globalIndex)}</div>
+
         {actions && actions.length > 0 && (
           <div className="flex gap-2 ml-4">
             {actions.map((action, actionIndex) => (
@@ -355,12 +389,12 @@ export const List = <T extends any>({
                   action.onClick(item);
                 }}
                 className={cn(
-                  'px-2 py-1 text-xs rounded transition-colors',
-                  action.variant === 'danger' 
-                    ? 'text-red-600 hover:bg-red-50'
-                    : action.variant === 'primary'
-                    ? 'text-blue-600 hover:bg-blue-50'
-                    : 'text-gray-600 hover:bg-gray-50'
+                  "px-2 py-1 text-xs rounded transition-colors",
+                  action.variant === "danger"
+                    ? "text-red-600 hover:bg-red-50"
+                    : action.variant === "primary"
+                      ? "text-blue-600 hover:bg-blue-50"
+                      : "text-gray-600 hover:bg-gray-50",
                 )}
               >
                 {action.icon && <span className="mr-1">{action.icon}</span>}
@@ -375,7 +409,10 @@ export const List = <T extends any>({
 
   if (loading) {
     return (
-      <div data-testid="list-loading" className="flex items-center justify-center py-8">
+      <div
+        data-testid="list-loading"
+        className="flex items-center justify-center py-8"
+      >
         {loadingComponent || (
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
@@ -395,19 +432,15 @@ export const List = <T extends any>({
   }
 
   return (
-    <div 
-      className={cn('w-full', className)}
+    <div
+      className={cn("w-full", className)}
       data-testid={dataTestId}
       data-category={dataCategory}
       data-id={dataId}
       {...props}
     >
-      {header && (
-        <div className="mb-4">
-          {header}
-        </div>
-      )}
-      
+      {header && <div className="mb-4">{header}</div>}
+
       {searchable && (
         <div className="mb-4">
           <input
@@ -419,19 +452,13 @@ export const List = <T extends any>({
           />
         </div>
       )}
-      
+
       <div
-        className={cn(virtual && 'overflow-auto')}
+        className={cn(virtual && "overflow-auto")}
         style={virtual ? { height: containerHeight } : undefined}
-        data-testid={virtual ? 'virtual-list' : undefined}
+        data-testid={virtual ? "virtual-list" : undefined}
       >
-        <ul
-          ref={listRef}
-          className={cn(
-            'list-none',
-            variantClasses[variant]
-          )}
-        >
+        <ul ref={listRef} className={cn("list-none", variantClasses[variant])}>
           {virtualItems.map((group, groupIndex) => (
             <React.Fragment key={groupIndex}>
               {group.group && renderGroup && (
@@ -447,7 +474,7 @@ export const List = <T extends any>({
           ))}
         </ul>
       </div>
-      
+
       {infiniteScroll && hasMore && (
         <div
           ref={loadMoreRef}
@@ -464,7 +491,7 @@ export const List = <T extends any>({
           )}
         </div>
       )}
-      
+
       {paginated && (
         <div className="flex items-center justify-between mt-4">
           <button
@@ -478,30 +505,32 @@ export const List = <T extends any>({
           >
             Previous
           </button>
-          
+
           <span className="text-sm text-gray-500">
-            Page {currentPageInternal} of {Math.ceil(sortedItems.length / pageSize)}
+            Page {currentPageInternal} of{" "}
+            {Math.ceil(sortedItems.length / pageSize)}
           </span>
-          
+
           <button
             onClick={() => {
-              const newPage = Math.min(Math.ceil(sortedItems.length / pageSize), currentPageInternal + 1);
+              const newPage = Math.min(
+                Math.ceil(sortedItems.length / pageSize),
+                currentPageInternal + 1,
+              );
               setCurrentPageInternal(newPage);
               onPageChange?.(newPage);
             }}
-            disabled={currentPageInternal >= Math.ceil(sortedItems.length / pageSize)}
+            disabled={
+              currentPageInternal >= Math.ceil(sortedItems.length / pageSize)
+            }
             className="px-3 py-1 bg-gray-100 rounded disabled:opacity-50"
           >
             Next
           </button>
         </div>
       )}
-      
-      {footer && (
-        <div className="mt-4">
-          {footer}
-        </div>
-      )}
+
+      {footer && <div className="mt-4">{footer}</div>}
     </div>
   );
 };

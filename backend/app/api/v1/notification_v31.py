@@ -14,67 +14,55 @@ Comprehensive notification system with 10 main endpoints:
 10. System Health & Status
 """
 
-from datetime import datetime, date
-from typing import Any, Dict, List, Optional
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query, WebSocket, WebSocketDisconnect
-from sqlalchemy.orm import Session
 import asyncio
 import json
+from datetime import date, datetime
+from typing import Any, Dict, List, Optional
+
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    HTTPException,
+    Query,
+    WebSocket,
+    WebSocketDisconnect,
+)
+from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.crud.notification_v31 import NotificationService
-from app.schemas.notification_v31 import (
-    # Notification schemas
-    NotificationCreateRequest,
-    NotificationUpdateRequest,
-    NotificationResponse,
-    NotificationListResponse,
-    
-    # Template schemas
-    NotificationTemplateCreateRequest,
-    NotificationTemplateResponse,
-    TemplateGenerationRequest,
-    
-    # Delivery schemas
-    NotificationDeliveryResponse,
-    
-    # Preference schemas
-    NotificationPreferenceUpdateRequest,
-    NotificationPreferenceResponse,
-    
-    # Subscription schemas
-    NotificationSubscriptionCreateRequest,
-    NotificationSubscriptionResponse,
-    
-    # Event schemas
-    NotificationEventCreateRequest,
-    NotificationEventResponse,
-    
-    # Analytics schemas
-    NotificationAnalyticsRequest,
-    NotificationAnalyticsResponse,
-    
-    # Interaction schemas
-    NotificationInteractionRequest,
-    
-    # Health schemas
-    NotificationSystemHealthResponse,
-    
-    # Bulk operation schemas
+from app.models.notification_extended import (
+    DeliveryStatus,
+    NotificationChannel,
+    NotificationPriority,
+    NotificationStatus,
+    NotificationType,
+    SubscriptionStatus,
+)
+from app.schemas.notification_v31 import (  # Notification schemas; Template schemas; Delivery schemas; Preference schemas; Subscription schemas; Event schemas; Analytics schemas; Interaction schemas; Health schemas; Bulk operation schemas; WebSocket schemas
     BulkNotificationRequest,
     BulkNotificationResponse,
-    
-    # WebSocket schemas
+    NotificationAnalyticsRequest,
+    NotificationAnalyticsResponse,
+    NotificationCreateRequest,
+    NotificationDeliveryResponse,
+    NotificationEventCreateRequest,
+    NotificationEventResponse,
+    NotificationInteractionRequest,
+    NotificationListResponse,
+    NotificationPreferenceResponse,
+    NotificationPreferenceUpdateRequest,
+    NotificationResponse,
+    NotificationSubscriptionCreateRequest,
+    NotificationSubscriptionResponse,
+    NotificationSystemHealthResponse,
+    NotificationTemplateCreateRequest,
+    NotificationTemplateResponse,
+    NotificationUpdateRequest,
+    TemplateGenerationRequest,
     WebSocketNotificationMessage,
     WebSocketSubscriptionRequest,
-)
-from app.models.notification_extended import (
-    NotificationType,
-    NotificationChannel,
-    NotificationStatus,
-    NotificationPriority,
-    SubscriptionStatus,
-    DeliveryStatus,
 )
 
 router = APIRouter()
@@ -84,24 +72,24 @@ notification_service = NotificationService()
 class NotificationConnectionManager:
     """Manages WebSocket connections for real-time notifications."""
     
-    def __init__(self):
+    def __init__(self) -> dict:
         self.active_connections: Dict[str, List[WebSocket]] = {}
     
-    async def connect(self, websocket: WebSocket, user_id: str):
+    async def connect(self, websocket: WebSocket, user_id: str) -> dict:
         """Connect a WebSocket for a user."""
         await websocket.accept()
         if user_id not in self.active_connections:
             self.active_connections[user_id] = []
         self.active_connections[user_id].append(websocket)
     
-    def disconnect(self, websocket: WebSocket, user_id: str):
+    def disconnect(self, websocket: WebSocket, user_id: str) -> dict:
         """Disconnect a WebSocket for a user."""
         if user_id in self.active_connections:
             self.active_connections[user_id].remove(websocket)
             if not self.active_connections[user_id]:
                 del self.active_connections[user_id]
     
-    async def send_notification(self, user_id: str, notification: dict):
+    async def send_notification(self, user_id: str, notification: dict) -> dict:
         """Send notification to all user's WebSocket connections."""
         if user_id in self.active_connections:
             message = {

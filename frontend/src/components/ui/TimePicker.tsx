@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { createPortal } from 'react-dom';
-import { cn } from '@/lib/utils';
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
+import { cn } from "@/lib/utils";
 
 export interface TimeValue {
   hours: number;
@@ -16,11 +16,11 @@ export interface TimeRange {
 export interface TimePickerProps {
   value?: TimeValue | TimeRange | null;
   defaultValue?: TimeValue | TimeRange | null;
-  mode?: 'single' | 'range';
-  format?: '12' | '24';
+  mode?: "single" | "range";
+  format?: "12" | "24";
   placeholder?: string;
-  size?: 'sm' | 'md' | 'lg';
-  theme?: 'light' | 'dark';
+  size?: "sm" | "md" | "lg";
+  theme?: "light" | "dark";
   disabled?: boolean;
   readonly?: boolean;
   required?: boolean;
@@ -38,7 +38,7 @@ export interface TimePickerProps {
   warning?: boolean;
   label?: string;
   helperText?: string;
-  position?: 'bottom' | 'top' | 'left' | 'right';
+  position?: "bottom" | "top" | "left" | "right";
   hourStep?: number;
   minuteStep?: number;
   secondStep?: number;
@@ -54,19 +54,19 @@ export interface TimePickerProps {
   onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
   onError?: (error: string) => void;
   className?: string;
-  'data-testid'?: string;
-  'data-category'?: string;
-  'data-id'?: string;
+  "data-testid"?: string;
+  "data-category"?: string;
+  "data-id"?: string;
 }
 
 export const TimePicker: React.FC<TimePickerProps> = ({
   value,
   defaultValue,
-  mode = 'single',
-  format = '24',
-  placeholder = 'Select time',
-  size = 'md',
-  theme = 'light',
+  mode = "single",
+  format = "24",
+  placeholder = "Select time",
+  size = "md",
+  theme = "light",
   disabled = false,
   readonly = false,
   required = false,
@@ -84,7 +84,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({
   warning = false,
   label,
   helperText,
-  position = 'bottom',
+  position = "bottom",
   hourStep = 1,
   minuteStep = 1,
   secondStep = 1,
@@ -100,14 +100,16 @@ export const TimePicker: React.FC<TimePickerProps> = ({
   onBlur,
   onError,
   className,
-  'data-testid': dataTestId = 'timepicker-container',
-  'data-category': dataCategory,
-  'data-id': dataId,
+  "data-testid": dataTestId = "timepicker-container",
+  "data-category": dataCategory,
+  "data-id": dataId,
   ...props
 }) => {
   const [isOpen, setIsOpen] = useState(inline);
-  const [internalValue, setInternalValue] = useState<TimeValue | TimeRange | null>(value || defaultValue || null);
-  const [inputValue, setInputValue] = useState('');
+  const [internalValue, setInternalValue] = useState<
+    TimeValue | TimeRange | null
+  >(value || defaultValue || null);
+  const [inputValue, setInputValue] = useState("");
   const [rangeStart, setRangeStart] = useState<TimeValue | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -115,90 +117,99 @@ export const TimePicker: React.FC<TimePickerProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const sizeClasses = {
-    sm: 'size-sm text-sm px-3 py-1.5',
-    md: 'size-md text-base px-4 py-2',
-    lg: 'size-lg text-lg px-5 py-3'
+    sm: "size-sm text-sm px-3 py-1.5",
+    md: "size-md text-base px-4 py-2",
+    lg: "size-lg text-lg px-5 py-3",
   };
 
   const themeClasses = {
-    light: 'theme-light bg-white border-gray-300 text-gray-900',
-    dark: 'theme-dark bg-gray-800 border-gray-600 text-white'
+    light: "theme-light bg-white border-gray-300 text-gray-900",
+    dark: "theme-dark bg-gray-800 border-gray-600 text-white",
   };
 
   // Format time for display
-  const formatTime = useCallback((time: TimeValue | null): string => {
-    if (!time) return '';
-    
-    if (customFormat) {
-      return customFormat(time.hours, time.minutes, time.seconds);
-    }
+  const formatTime = useCallback(
+    (time: TimeValue | null): string => {
+      if (!time) return "";
 
-    let hours = time.hours;
-    let ampm = '';
-    
-    if (format === '12') {
-      ampm = hours >= 12 ? 'PM' : 'AM';
-      hours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
-    }
-    
-    const h = format === '12' ? hours.toString() : hours.toString().padStart(2, '0');
-    const m = time.minutes.toString().padStart(2, '0');
-    const s = showSeconds && time.seconds ? time.seconds.toString().padStart(2, '0') : '';
-    
-    let timeStr = `${h}:${m}`;
-    if (showSeconds && s) {
-      timeStr += `:${s}`;
-    }
-    if (format === '12') {
-      timeStr += ` ${ampm}`;
-    }
-    
-    return timeStr;
-  }, [format, showSeconds, customFormat]);
+      if (customFormat) {
+        return customFormat(time.hours, time.minutes, time.seconds);
+      }
+
+      let hours = time.hours;
+      let ampm = "";
+
+      if (format === "12") {
+        ampm = hours >= 12 ? "PM" : "AM";
+        hours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+      }
+
+      const h =
+        format === "12" ? hours.toString() : hours.toString().padStart(2, "0");
+      const m = time.minutes.toString().padStart(2, "0");
+      const s =
+        showSeconds && time.seconds
+          ? time.seconds.toString().padStart(2, "0")
+          : "";
+
+      let timeStr = `${h}:${m}`;
+      if (showSeconds && s) {
+        timeStr += `:${s}`;
+      }
+      if (format === "12") {
+        timeStr += ` ${ampm}`;
+      }
+
+      return timeStr;
+    },
+    [format, showSeconds, customFormat],
+  );
 
   // Parse time from string
   const parseTime = (timeStr: string): TimeValue | null => {
     if (!timeStr) return null;
-    
-    const timeRegex = showSeconds 
+
+    const timeRegex = showSeconds
       ? /^(\d{1,2}):(\d{2}):(\d{2})(\s*(AM|PM))?$/i
       : /^(\d{1,2}):(\d{2})(\s*(AM|PM))?$/i;
-      
+
     const match = timeStr.match(timeRegex);
     if (!match) return null;
-    
+
     let hours = parseInt(match[1], 10);
     const minutes = parseInt(match[2], 10);
-    const seconds = showSeconds ? parseInt(match[3] || '0', 10) : 0;
+    const seconds = showSeconds ? parseInt(match[3] || "0", 10) : 0;
     const ampm = match[showSeconds ? 5 : 4];
-    
+
     if (minutes > 59 || (showSeconds && seconds > 59)) return null;
-    
-    if (format === '12') {
+
+    if (format === "12") {
       if (hours > 12 || hours < 1) return null;
-      if (ampm?.toUpperCase() === 'PM' && hours !== 12) {
+      if (ampm?.toUpperCase() === "PM" && hours !== 12) {
         hours += 12;
-      } else if (ampm?.toUpperCase() === 'AM' && hours === 12) {
+      } else if (ampm?.toUpperCase() === "AM" && hours === 12) {
         hours = 0;
       }
     } else {
       if (hours > 23) return null;
     }
-    
+
     return { hours, minutes, seconds: showSeconds ? seconds : undefined };
   };
 
   // Update input value when internal value changes
   useEffect(() => {
-    if (mode === 'single') {
+    if (mode === "single") {
       const singleValue = internalValue as TimeValue | null;
-      setInputValue(singleValue ? formatTime(singleValue) : '');
-    } else if (mode === 'range') {
+      setInputValue(singleValue ? formatTime(singleValue) : "");
+    } else if (mode === "range") {
       const rangeValue = internalValue as TimeRange | null;
       if (rangeValue?.start && rangeValue?.end) {
-        setInputValue(`${formatTime(rangeValue.start)} - ${formatTime(rangeValue.end)}`);
+        setInputValue(
+          `${formatTime(rangeValue.start)} - ${formatTime(rangeValue.end)}`,
+        );
       } else {
-        setInputValue('');
+        setInputValue("");
       }
     }
   }, [internalValue, formatTime, mode]);
@@ -208,25 +219,39 @@ export const TimePicker: React.FC<TimePickerProps> = ({
     if (inline) return;
 
     const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
 
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [isOpen, inline]);
 
   const isTimeDisabled = (time: TimeValue): boolean => {
-    if (minTime && (time.hours < minTime.hours || (time.hours === minTime.hours && time.minutes < minTime.minutes))) {
+    if (
+      minTime &&
+      (time.hours < minTime.hours ||
+        (time.hours === minTime.hours && time.minutes < minTime.minutes))
+    ) {
       return true;
     }
-    if (maxTime && (time.hours > maxTime.hours || (time.hours === maxTime.hours && time.minutes > maxTime.minutes))) {
+    if (
+      maxTime &&
+      (time.hours > maxTime.hours ||
+        (time.hours === maxTime.hours && time.minutes > maxTime.minutes))
+    ) {
       return true;
     }
-    return disabledTimes.some(dt => dt.hours === time.hours && dt.minutes === time.minutes);
+    return disabledTimes.some(
+      (dt) => dt.hours === time.hours && dt.minutes === time.minutes,
+    );
   };
 
   const handleInputClick = () => {
@@ -241,30 +266,31 @@ export const TimePicker: React.FC<TimePickerProps> = ({
 
   const handleInputBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     if (readonly) return;
-    
+
     const timeValue = parseTime(e.target.value);
     if (timeValue) {
       setInternalValue(timeValue);
       onChange?.(timeValue);
-    } else if (e.target.value && e.target.value.trim() !== '') {
-      onError?.('Invalid time format');
+    } else if (e.target.value && e.target.value.trim() !== "") {
+      onError?.("Invalid time format");
     }
-    
+
     onBlur?.(e);
   };
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'ArrowDown' && !isOpen) {
+    if (e.key === "ArrowDown" && !isOpen) {
       setIsOpen(true);
-    } else if (e.key === 'Escape' && isOpen) {
+    } else if (e.key === "Escape" && isOpen) {
       setIsOpen(false);
-    } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+    } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
       e.preventDefault();
       const currentTime = internalValue as TimeValue | null;
       if (currentTime) {
-        const newHours = e.key === 'ArrowUp' 
-          ? Math.min(23, currentTime.hours + 1) 
-          : Math.max(0, currentTime.hours - 1);
+        const newHours =
+          e.key === "ArrowUp"
+            ? Math.min(23, currentTime.hours + 1)
+            : Math.max(0, currentTime.hours - 1);
         const newTime = { ...currentTime, hours: newHours };
         setInternalValue(newTime);
         onChange?.(newTime);
@@ -273,21 +299,24 @@ export const TimePicker: React.FC<TimePickerProps> = ({
   };
 
   const handleTimeSelect = (time: TimeValue) => {
-    if (mode === 'single') {
+    if (mode === "single") {
       setInternalValue(time);
       onChange?.(time);
       if (closeOnSelect) {
         setIsOpen(false);
       }
-    } else if (mode === 'range') {
+    } else if (mode === "range") {
       if (!rangeStart) {
         setRangeStart(time);
       } else {
         const range: TimeRange = {
           start: rangeStart,
-          end: time
+          end: time,
         };
-        if (time.hours < rangeStart.hours || (time.hours === rangeStart.hours && time.minutes < rangeStart.minutes)) {
+        if (
+          time.hours < rangeStart.hours ||
+          (time.hours === rangeStart.hours && time.minutes < rangeStart.minutes)
+        ) {
           range.start = time;
           range.end = rangeStart;
         }
@@ -303,11 +332,11 @@ export const TimePicker: React.FC<TimePickerProps> = ({
 
   const handleClear = () => {
     setInternalValue(null);
-    setInputValue('');
+    setInputValue("");
     setRangeStart(null);
-    if (mode === 'single') {
+    if (mode === "single") {
       onChange?.(null);
-    } else if (mode === 'range') {
+    } else if (mode === "range") {
       onRangeChange?.(null);
     }
   };
@@ -317,7 +346,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({
     const currentTime: TimeValue = {
       hours: now.getHours(),
       minutes: now.getMinutes(),
-      seconds: showSeconds ? now.getSeconds() : undefined
+      seconds: showSeconds ? now.getSeconds() : undefined,
     };
     setInternalValue(currentTime);
     onChange?.(currentTime);
@@ -325,9 +354,9 @@ export const TimePicker: React.FC<TimePickerProps> = ({
 
   const generateHours = () => {
     const hours: number[] = [];
-    const maxHour = format === '12' ? 12 : 23;
-    const minHour = format === '12' ? 1 : 0;
-    
+    const maxHour = format === "12" ? 12 : 23;
+    const minHour = format === "12" ? 1 : 0;
+
     for (let i = minHour; i <= maxHour; i += hourStep) {
       hours.push(i);
     }
@@ -363,7 +392,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({
         onBlur: handleInputBlur,
         onKeyDown: handleInputKeyDown,
         onFocus,
-        'data-testid': 'timepicker-input'
+        "data-testid": "timepicker-input",
       });
     }
 
@@ -377,14 +406,14 @@ export const TimePicker: React.FC<TimePickerProps> = ({
           disabled={disabled}
           readOnly={readonly}
           className={cn(
-            'border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors',
+            "border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors",
             sizeClasses[size],
             themeClasses[theme],
-            error && 'error border-red-500',
-            success && 'success border-green-500',
-            warning && 'warning border-yellow-500',
-            disabled && 'opacity-50 cursor-not-allowed',
-            readonly && 'bg-gray-50'
+            error && "error border-red-500",
+            success && "success border-green-500",
+            warning && "warning border-yellow-500",
+            disabled && "opacity-50 cursor-not-allowed",
+            readonly && "bg-gray-50",
           )}
           onClick={handleInputClick}
           onChange={handleInputChange}
@@ -393,7 +422,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({
           onFocus={onFocus}
           data-testid="timepicker-input"
         />
-        
+
         {showIcon && (
           <button
             type="button"
@@ -405,7 +434,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({
             🕐
           </button>
         )}
-        
+
         {clearable && internalValue && (
           <button
             type="button"
@@ -425,19 +454,19 @@ export const TimePicker: React.FC<TimePickerProps> = ({
     const minutes = generateMinutes();
     const seconds = showSeconds ? generateSeconds() : [];
 
-    const currentTime = mode === 'single' ? (internalValue as TimeValue) : null;
+    const currentTime = mode === "single" ? (internalValue as TimeValue) : null;
 
     const dropdownElement = (
       <div
         ref={dropdownRef}
         className={cn(
-          'absolute bg-white border rounded-lg shadow-lg z-50 p-4',
+          "absolute bg-white border rounded-lg shadow-lg z-50 p-4",
           `position-${position}`,
-          animated && 'animated',
-          position === 'bottom' && 'top-full mt-2',
-          position === 'top' && 'bottom-full mb-2',
-          position === 'left' && 'right-full mr-2',
-          position === 'right' && 'left-full ml-2'
+          animated && "animated",
+          position === "bottom" && "top-full mt-2",
+          position === "top" && "bottom-full mb-2",
+          position === "left" && "right-full mr-2",
+          position === "right" && "left-full ml-2",
         )}
         data-testid="timepicker-dropdown"
       >
@@ -446,21 +475,27 @@ export const TimePicker: React.FC<TimePickerProps> = ({
           <div className="flex flex-col">
             <div className="text-xs font-medium text-gray-500 mb-2">Hours</div>
             <div className="max-h-32 overflow-y-auto space-y-1">
-              {hours.map(hour => {
+              {hours.map((hour) => {
                 const timeValue: TimeValue = { hours: hour, minutes: 0 };
                 const isDisabled = isTimeDisabled(timeValue);
                 return (
                   <button
                     key={hour}
-                    onClick={() => !isDisabled && handleTimeSelect({ hours: hour, minutes: currentTime?.minutes || 0 })}
+                    onClick={() =>
+                      !isDisabled &&
+                      handleTimeSelect({
+                        hours: hour,
+                        minutes: currentTime?.minutes || 0,
+                      })
+                    }
                     disabled={isDisabled}
                     className={cn(
-                      'w-12 h-8 text-sm rounded hover:bg-blue-100 transition-colors',
-                      currentTime?.hours === hour && 'bg-blue-500 text-white',
-                      isDisabled && 'opacity-50 cursor-not-allowed'
+                      "w-12 h-8 text-sm rounded hover:bg-blue-100 transition-colors",
+                      currentTime?.hours === hour && "bg-blue-500 text-white",
+                      isDisabled && "opacity-50 cursor-not-allowed",
                     )}
                   >
-                    {hour.toString().padStart(2, '0')}
+                    {hour.toString().padStart(2, "0")}
                   </button>
                 );
               })}
@@ -469,23 +504,35 @@ export const TimePicker: React.FC<TimePickerProps> = ({
 
           {/* Minutes */}
           <div className="flex flex-col">
-            <div className="text-xs font-medium text-gray-500 mb-2">Minutes</div>
+            <div className="text-xs font-medium text-gray-500 mb-2">
+              Minutes
+            </div>
             <div className="max-h-32 overflow-y-auto space-y-1">
-              {minutes.map(minute => {
-                const timeValue: TimeValue = { hours: currentTime?.hours || 0, minutes: minute };
+              {minutes.map((minute) => {
+                const timeValue: TimeValue = {
+                  hours: currentTime?.hours || 0,
+                  minutes: minute,
+                };
                 const isDisabled = isTimeDisabled(timeValue);
                 return (
                   <button
                     key={minute}
-                    onClick={() => !isDisabled && handleTimeSelect({ hours: currentTime?.hours || 0, minutes: minute })}
+                    onClick={() =>
+                      !isDisabled &&
+                      handleTimeSelect({
+                        hours: currentTime?.hours || 0,
+                        minutes: minute,
+                      })
+                    }
                     disabled={isDisabled}
                     className={cn(
-                      'w-12 h-8 text-sm rounded hover:bg-blue-100 transition-colors',
-                      currentTime?.minutes === minute && 'bg-blue-500 text-white',
-                      isDisabled && 'opacity-50 cursor-not-allowed'
+                      "w-12 h-8 text-sm rounded hover:bg-blue-100 transition-colors",
+                      currentTime?.minutes === minute &&
+                        "bg-blue-500 text-white",
+                      isDisabled && "opacity-50 cursor-not-allowed",
                     )}
                   >
-                    {minute.toString().padStart(2, '0')}
+                    {minute.toString().padStart(2, "0")}
                   </button>
                 );
               })}
@@ -495,22 +542,27 @@ export const TimePicker: React.FC<TimePickerProps> = ({
           {/* Seconds */}
           {showSeconds && (
             <div className="flex flex-col" data-testid="timepicker-seconds">
-              <div className="text-xs font-medium text-gray-500 mb-2">Seconds</div>
+              <div className="text-xs font-medium text-gray-500 mb-2">
+                Seconds
+              </div>
               <div className="max-h-32 overflow-y-auto space-y-1">
-                {seconds.map(second => (
+                {seconds.map((second) => (
                   <button
                     key={second}
-                    onClick={() => handleTimeSelect({ 
-                      hours: currentTime?.hours || 0, 
-                      minutes: currentTime?.minutes || 0,
-                      seconds: second
-                    })}
+                    onClick={() =>
+                      handleTimeSelect({
+                        hours: currentTime?.hours || 0,
+                        minutes: currentTime?.minutes || 0,
+                        seconds: second,
+                      })
+                    }
                     className={cn(
-                      'w-12 h-8 text-sm rounded hover:bg-blue-100 transition-colors',
-                      currentTime?.seconds === second && 'bg-blue-500 text-white'
+                      "w-12 h-8 text-sm rounded hover:bg-blue-100 transition-colors",
+                      currentTime?.seconds === second &&
+                        "bg-blue-500 text-white",
                     )}
                   >
-                    {second.toString().padStart(2, '0')}
+                    {second.toString().padStart(2, "0")}
                   </button>
                 ))}
               </div>
@@ -518,19 +570,26 @@ export const TimePicker: React.FC<TimePickerProps> = ({
           )}
 
           {/* AM/PM */}
-          {format === '12' && (
+          {format === "12" && (
             <div className="flex flex-col" data-testid="timepicker-ampm">
-              <div className="text-xs font-medium text-gray-500 mb-2">AM/PM</div>
+              <div className="text-xs font-medium text-gray-500 mb-2">
+                AM/PM
+              </div>
               <div className="space-y-1">
                 <button
                   onClick={() => {
                     const hours = currentTime?.hours || 0;
                     const newHours = hours >= 12 ? hours - 12 : hours;
-                    handleTimeSelect({ ...currentTime, hours: newHours } as TimeValue);
+                    handleTimeSelect({
+                      ...currentTime,
+                      hours: newHours,
+                    } as TimeValue);
                   }}
                   className={cn(
-                    'w-12 h-8 text-sm rounded hover:bg-blue-100 transition-colors',
-                    currentTime && currentTime.hours < 12 && 'bg-blue-500 text-white'
+                    "w-12 h-8 text-sm rounded hover:bg-blue-100 transition-colors",
+                    currentTime &&
+                      currentTime.hours < 12 &&
+                      "bg-blue-500 text-white",
                   )}
                 >
                   AM
@@ -539,11 +598,16 @@ export const TimePicker: React.FC<TimePickerProps> = ({
                   onClick={() => {
                     const hours = currentTime?.hours || 0;
                     const newHours = hours < 12 ? hours + 12 : hours;
-                    handleTimeSelect({ ...currentTime, hours: newHours } as TimeValue);
+                    handleTimeSelect({
+                      ...currentTime,
+                      hours: newHours,
+                    } as TimeValue);
                   }}
                   className={cn(
-                    'w-12 h-8 text-sm rounded hover:bg-blue-100 transition-colors',
-                    currentTime && currentTime.hours >= 12 && 'bg-blue-500 text-white'
+                    "w-12 h-8 text-sm rounded hover:bg-blue-100 transition-colors",
+                    currentTime &&
+                      currentTime.hours >= 12 &&
+                      "bg-blue-500 text-white",
                   )}
                 >
                   PM
@@ -568,7 +632,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({
       </div>
     );
 
-    if (portal && typeof window !== 'undefined') {
+    if (portal && typeof window !== "undefined") {
       return createPortal(dropdownElement, document.body);
     }
 
@@ -578,7 +642,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({
   if (loading) {
     return (
       <div
-        className={cn('flex items-center', className)}
+        className={cn("flex items-center", className)}
         data-testid="timepicker-loading"
       >
         {loadingComponent || (
@@ -594,7 +658,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({
   if (inline) {
     return (
       <div
-        className={cn('inline-timepicker', className)}
+        className={cn("inline-timepicker", className)}
         data-testid={dataTestId}
         data-category={dataCategory}
         data-id={dataId}
@@ -606,9 +670,9 @@ export const TimePicker: React.FC<TimePickerProps> = ({
             {required && <span className="text-red-500 ml-1">*</span>}
           </label>
         )}
-        
+
         {renderTimePicker()}
-        
+
         {helperText && (
           <p className="mt-2 text-sm text-gray-600">{helperText}</p>
         )}
@@ -619,12 +683,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({
   return (
     <div
       ref={containerRef}
-      className={cn(
-        'relative',
-        `size-${size}`,
-        `theme-${theme}`,
-        className
-      )}
+      className={cn("relative", `size-${size}`, `theme-${theme}`, className)}
       data-testid={dataTestId}
       data-category={dataCategory}
       data-id={dataId}
@@ -636,17 +695,17 @@ export const TimePicker: React.FC<TimePickerProps> = ({
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>
       )}
-      
+
       {renderInput()}
-      
-      {error && typeof error === 'string' && (
+
+      {error && typeof error === "string" && (
         <p className="mt-1 text-sm text-red-600">{error}</p>
       )}
-      
+
       {helperText && !error && (
         <p className="mt-1 text-sm text-gray-600">{helperText}</p>
       )}
-      
+
       {isOpen && renderTimePicker()}
     </div>
   );

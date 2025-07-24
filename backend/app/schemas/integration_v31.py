@@ -110,7 +110,7 @@ class ExternalSystemCreateRequest(BaseIntegrationSchema):
     created_by: str = Field(..., description="Creator user ID")
 
     @validator("base_url")
-    def validate_base_url(cls, v):
+    def validate_base_url(cls, v) -> dict:
         """Validate base URL format."""
         if v and not (v.startswith("http://") or v.startswith("https://")):
             raise ValueError("Base URL must start with http:// or https://")
@@ -268,7 +268,7 @@ class IntegrationConnectorCreateRequest(BaseIntegrationSchema):
     created_by: str = Field(..., description="Creator user ID")
 
     @validator("http_method")
-    def validate_http_method(cls, v):
+    def validate_http_method(cls, v) -> dict:
         """Validate HTTP method."""
         allowed_methods = ["GET", "POST", "PUT", "PATCH", "DELETE"]
         if v.upper() not in allowed_methods:

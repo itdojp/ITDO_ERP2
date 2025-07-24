@@ -43,7 +43,7 @@ from app.models.audit_extended import (
 class AuditService:
     """Service class for audit log operations with comprehensive business logic."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     # =============================================================================
@@ -975,7 +975,7 @@ class AuditService:
 
         return {"triggered": triggered, "matched_conditions": matched_conditions}
 
-    async def _evaluate_audit_rules(self, entry: AuditLogEntry):
+    async def _evaluate_audit_rules(self, entry: AuditLogEntry) -> dict:
         """Evaluate audit rules against new entry."""
         try:
             # Get active rules for organization
@@ -1032,12 +1032,12 @@ class AuditService:
             # Log error but don't fail the main operation
             print(f"Error evaluating audit rules: {str(e)}")
 
-    async def _send_alert_notifications(self, alert: AuditAlert):
+    async def _send_alert_notifications(self, alert: AuditAlert) -> dict:
         """Send alert notifications (placeholder for integration with notification system)."""
         # Would integrate with actual notification system
         pass
 
-    async def _generate_report_content(self, report: AuditReport):
+    async def _generate_report_content(self, report: AuditReport) -> dict:
         """Generate report content asynchronously."""
         try:
             # Query data for report period

@@ -1,21 +1,21 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { cn } from '@/lib/utils';
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { cn } from "@/lib/utils";
 
 export interface ImageProps {
   src: string;
   alt: string;
   className?: string;
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'full';
+  size?: "xs" | "sm" | "md" | "lg" | "xl" | "full";
   width?: number | string;
   height?: number | string;
-  objectFit?: 'contain' | 'cover' | 'fill' | 'none' | 'scale-down';
-  radius?: 'none' | 'sm' | 'md' | 'lg' | 'full';
-  shadow?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
+  objectFit?: "contain" | "cover" | "fill" | "none" | "scale-down";
+  radius?: "none" | "sm" | "md" | "lg" | "full";
+  shadow?: "none" | "sm" | "md" | "lg" | "xl";
   border?: {
     width?: number;
     color?: string;
   };
-  loading?: 'lazy' | 'eager';
+  loading?: "lazy" | "eager";
   lazy?: boolean;
   placeholder?: string;
   fallback?: string;
@@ -23,8 +23,8 @@ export interface ImageProps {
   grayscale?: boolean;
   sepia?: boolean;
   opacity?: number;
-  hoverEffect?: 'zoom' | 'brightness' | 'opacity' | 'none';
-  aspectRatio?: '1/1' | '4/3' | '16/9' | '3/2' | string;
+  hoverEffect?: "zoom" | "brightness" | "opacity" | "none";
+  aspectRatio?: "1/1" | "4/3" | "16/9" | "3/2" | string;
   srcSet?: string;
   sizes?: string;
   draggable?: boolean;
@@ -40,23 +40,23 @@ export interface ImageProps {
   onLoad?: () => void;
   onError?: () => void;
   onClick?: (e: React.MouseEvent) => void;
-  'data-testid'?: string;
-  'data-category'?: string;
-  'data-id'?: string;
+  "data-testid"?: string;
+  "data-category"?: string;
+  "data-id"?: string;
 }
 
 export const Image: React.FC<ImageProps> = ({
   src,
   alt,
   className,
-  size = 'md',
+  size = "md",
   width,
   height,
-  objectFit = 'cover',
-  radius = 'none',
-  shadow = 'none',
+  objectFit = "cover",
+  radius = "none",
+  shadow = "none",
   border,
-  loading = 'lazy',
+  loading = "lazy",
   lazy = false,
   placeholder,
   fallback,
@@ -64,7 +64,7 @@ export const Image: React.FC<ImageProps> = ({
   grayscale = false,
   sepia = false,
   opacity,
-  hoverEffect = 'none',
+  hoverEffect = "none",
   aspectRatio,
   srcSet,
   sizes,
@@ -81,16 +81,16 @@ export const Image: React.FC<ImageProps> = ({
   onLoad,
   onError,
   onClick,
-  'data-testid': dataTestId = 'image-container',
-  'data-category': dataCategory,
-  'data-id': dataId,
+  "data-testid": dataTestId = "image-container",
+  "data-category": dataCategory,
+  "data-id": dataId,
   ...props
 }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [currentSrc, setCurrentSrc] = useState(() => {
     if (placeholder) return placeholder;
-    return lazy ? '' : src;
+    return lazy ? "" : src;
   });
   const [loadProgress, setLoadProgress] = useState(0);
   const [isIntersecting, setIsIntersecting] = useState(!lazy);
@@ -98,42 +98,42 @@ export const Image: React.FC<ImageProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
 
   const sizeClasses = {
-    xs: 'w-16 h-16',
-    sm: 'w-24 h-24',
-    md: 'w-32 h-32',
-    lg: 'w-48 h-48',
-    xl: 'w-64 h-64',
-    full: 'w-full h-full'
+    xs: "w-16 h-16",
+    sm: "w-24 h-24",
+    md: "w-32 h-32",
+    lg: "w-48 h-48",
+    xl: "w-64 h-64",
+    full: "w-full h-full",
   };
 
   const radiusClasses = {
-    none: '',
-    sm: 'rounded-sm',
-    md: 'rounded-md',
-    lg: 'rounded-lg',
-    full: 'rounded-full'
+    none: "",
+    sm: "rounded-sm",
+    md: "rounded-md",
+    lg: "rounded-lg",
+    full: "rounded-full",
   };
 
   const shadowClasses = {
-    none: '',
-    sm: 'shadow-sm',
-    md: 'shadow-md',
-    lg: 'shadow-lg',
-    xl: 'shadow-xl'
+    none: "",
+    sm: "shadow-sm",
+    md: "shadow-md",
+    lg: "shadow-lg",
+    xl: "shadow-xl",
   };
 
   const aspectRatioClasses = {
-    '1/1': 'aspect-square',
-    '4/3': 'aspect-4/3',
-    '16/9': 'aspect-video',
-    '3/2': 'aspect-3/2'
+    "1/1": "aspect-square",
+    "4/3": "aspect-4/3",
+    "16/9": "aspect-video",
+    "3/2": "aspect-3/2",
   };
 
   const hoverEffectClasses = {
-    zoom: 'hover:scale-110 transition-transform duration-300',
-    brightness: 'hover:brightness-110 transition-all duration-300',
-    opacity: 'hover:opacity-80 transition-opacity duration-300',
-    none: ''
+    zoom: "hover:scale-110 transition-transform duration-300",
+    brightness: "hover:brightness-110 transition-all duration-300",
+    opacity: "hover:opacity-80 transition-opacity duration-300",
+    none: "",
   };
 
   // Intersection Observer for lazy loading
@@ -149,7 +149,7 @@ export const Image: React.FC<ImageProps> = ({
           }
         });
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     observer.observe(containerRef.current);
@@ -162,7 +162,7 @@ export const Image: React.FC<ImageProps> = ({
     if (isIntersecting && lazy) {
       if (placeholder && currentSrc === placeholder) {
         setCurrentSrc(src);
-      } else if (!placeholder && currentSrc === '') {
+      } else if (!placeholder && currentSrc === "") {
         setCurrentSrc(src);
       }
     }
@@ -174,7 +174,7 @@ export const Image: React.FC<ImageProps> = ({
       const timer = setTimeout(() => {
         setCurrentSrc(src);
       }, 100); // Small delay to show placeholder briefly
-      
+
       return () => clearTimeout(timer);
     }
   }, [lazy, placeholder, currentSrc, src]);
@@ -203,9 +203,11 @@ export const Image: React.FC<ImageProps> = ({
   }, []);
 
   const getBorderClasses = () => {
-    if (!border) return '';
+    if (!border) return "";
     const widthClass = `border-${border.width || 1}`;
-    const colorClass = border.color ? `border-${border.color}-500` : 'border-gray-300';
+    const colorClass = border.color
+      ? `border-${border.color}-500`
+      : "border-gray-300";
     return `${widthClass} ${colorClass}`;
   };
 
@@ -224,26 +226,26 @@ export const Image: React.FC<ImageProps> = ({
       height={height}
       srcSet={getImageSrcSet()}
       sizes={sizes}
-      loading={lazy ? 'lazy' : loading}
+      loading={lazy ? "lazy" : loading}
       draggable={draggable}
       className={cn(
-        'transition-all duration-300',
+        "transition-all duration-300",
         `object-${objectFit}`,
         radiusClasses[radius],
         shadowClasses[shadow],
         getBorderClasses(),
-        blur && isLoading && 'blur-sm',
-        grayscale && 'grayscale',
-        sepia && 'sepia',
+        blur && isLoading && "blur-sm",
+        grayscale && "grayscale",
+        sepia && "sepia",
         hoverEffectClasses[hoverEffect],
-        zoomOnHover && 'hover:scale-110 transition-transform duration-300',
-        preview && 'cursor-pointer',
-        !width && !height && sizeClasses[size]
+        zoomOnHover && "hover:scale-110 transition-transform duration-300",
+        preview && "cursor-pointer",
+        !width && !height && sizeClasses[size],
       )}
       style={{
         ...(opacity !== undefined && { opacity }),
-        ...(width && typeof width === 'string' && { width }),
-        ...(height && typeof height === 'string' && { height })
+        ...(width && typeof width === "string" && { width }),
+        ...(height && typeof height === "string" && { height }),
       }}
       onLoad={handleImageLoad}
       onError={handleImageError}
@@ -259,20 +261,24 @@ export const Image: React.FC<ImageProps> = ({
       <source srcSet={webp} type="image/webp" />
       {imageElement}
     </picture>
-  ) : imageElement;
+  ) : (
+    imageElement
+  );
 
   return (
     <div
       ref={containerRef}
       className={cn(
-        'relative inline-block',
-        aspectRatio && (aspectRatioClasses[aspectRatio as keyof typeof aspectRatioClasses] || `aspect-[${aspectRatio}]`),
-        className
+        "relative inline-block",
+        aspectRatio &&
+          (aspectRatioClasses[aspectRatio as keyof typeof aspectRatioClasses] ||
+            `aspect-[${aspectRatio}]`),
+        className,
       )}
       data-testid={dataTestId}
     >
       {pictureElement}
-      
+
       {/* Loading state */}
       {isLoading && !hasError && (
         <>
@@ -284,7 +290,7 @@ export const Image: React.FC<ImageProps> = ({
               <div className="w-8 h-8 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
             </div>
           )}
-          
+
           {/* Progress bar */}
           {showProgress && (
             <div
@@ -299,7 +305,7 @@ export const Image: React.FC<ImageProps> = ({
           )}
         </>
       )}
-      
+
       {/* Error state */}
       {hasError && !fallback && (
         <div data-testid="image-error">
@@ -313,19 +319,17 @@ export const Image: React.FC<ImageProps> = ({
           )}
         </div>
       )}
-      
+
       {/* Overlay content */}
       {overlay && (
         <div className="absolute inset-0 flex items-center justify-center">
           {overlay}
         </div>
       )}
-      
+
       {/* Caption */}
       {caption && (
-        <div className="mt-2 text-sm text-gray-600 text-center">
-          {caption}
-        </div>
+        <div className="mt-2 text-sm text-gray-600 text-center">{caption}</div>
       )}
     </div>
   );

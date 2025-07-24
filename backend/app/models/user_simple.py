@@ -17,5 +17,5 @@ class User(Base):  # type: ignore[valid-type,misc]
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-    def __repr__(self):  # type: ignore[no-untyped-def]
+    def __repr__(self) -> dict:  # type: ignore[no-untyped-def]
         return f"<User(id={self.id}, email={self.email})>"

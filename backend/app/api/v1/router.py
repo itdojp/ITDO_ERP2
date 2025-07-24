@@ -2,42 +2,37 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.api.v1 import document_v31  # CC02 v31.0 Phase 2 - Document Management API
+from app.api.v1 import finance_v31  # CC02 v31.0 Phase 2 - Finance Management API
 from app.api.v1 import health_simple  # v19.0 practical health check
+from app.api.v1 import hr_v31  # CC02 v31.0 Phase 2 - HR Management API
 from app.api.v1 import inventory_basic  # ERP v17.0 basic inventory
 from app.api.v1 import organizations_basic  # ERP v17.0 basic organizations
 from app.api.v1 import organizations_simple  # v19.0 practical organizations
 from app.api.v1 import products_basic  # ERP v17.0 basic products
 from app.api.v1 import products_simple  # v19.0 practical products
+from app.api.v1 import project_v31  # CC02 v31.0 Phase 2 - Project Management API
 from app.api.v1 import users_basic  # ERP v17.0 basic users
 from app.api.v1 import users_simple  # v19.0 practical users
-from app.api.v1 import (  # permission_inheritance,  # Temporarily disabled due to syntax errors; role_permission_ui,  # Temporarily disabled due to syntax errors
+from app.api.v1 import (  # permission_inheritance,  # Temporarily disabled due to syntax errors; role_permission_ui,  # Temporarily disabled due to syntax errors; crm_v31,  # CC02 v31.0 Phase 2 - CRM Management API - Temporarily disabled
     applications,
     audit,
     audit_logs,
     auth,
     budgets,
     cross_tenant_permissions,
-    # crm_v31,  # CC02 v31.0 Phase 2 - CRM Management API - Temporarily disabled
     customer_activities,
     customers,
     departments,
-    document_v31,  # CC02 v31.0 Phase 2 - Document Management API
     expense_categories,
     expenses,
-    finance_v31,  # CC02 v31.0 Phase 2 - Finance Management API
     financial_reports,
     health,
-    health_simple,  # v19.0 practical health check
-    hr_v31,  # CC02 v31.0 Phase 2 - HR Management API
-    inventory_basic,  # ERP v17.0 basic inventory
     multi_tenant,
     opportunities,
     organizations,
     permission_management,
     pm_automation,
-    products_basic,  # ERP v17.0 basic products
-    products_simple,  # v19.0 practical products
-    project_v31,  # CC02 v31.0 Phase 2 - Project Management API
     reports,
     roles,
     tasks,
@@ -48,6 +43,7 @@ from app.api.v1 import (  # permission_inheritance,  # Temporarily disabled due 
     users_extended,
     workflows,
 )
+from app.api.v1.endpoints import feature_flags
 from app.api.v1.endpoints.monitoring.performance import router as performance_router
 
 # New CC02 v35.0 API modules
@@ -130,9 +126,16 @@ api_router.include_router(
 )
 api_router.include_router(reports.router, prefix="/reports", tags=["analytics"])
 
+# Feature Flags API
+api_router.include_router(feature_flags.router, prefix="/feature-flags", tags=["feature-flags"])
+
 # CC02 v35.0 - Security and Monitoring APIs
-api_router.include_router(security_audit_router, prefix="/security/audit", tags=["security"])
-api_router.include_router(performance_router, prefix="/monitoring/performance", tags=["monitoring"])
+api_router.include_router(
+    security_audit_router, prefix="/security/audit", tags=["security"]
+)
+api_router.include_router(
+    performance_router, prefix="/monitoring/performance", tags=["monitoring"]
+)
 
 # CC02 v31.0 Phase 2 - Finance Management API
 api_router.include_router(finance_v31.router, prefix="/finance", tags=["finance-v31"])
@@ -144,27 +147,37 @@ api_router.include_router(hr_v31.router, prefix="/hr", tags=["hr-v31"])
 api_router.include_router(project_v31.router, prefix="/project", tags=["project-v31"])
 
 # CC02 v31.0 Phase 2 - Document Management API
-api_router.include_router(document_v31.router, prefix="/documents", tags=["document-v31"])
+api_router.include_router(
+    document_v31.router, prefix="/documents", tags=["document-v31"]
+)
 
 # CC02 v31.0 Phase 2 - Notification System API
 from app.api.v1 import notification_v31
 
-api_router.include_router(notification_v31.router, prefix="/notifications", tags=["notification-v31"])
+api_router.include_router(
+    notification_v31.router, prefix="/notifications", tags=["notification-v31"]
+)
 
 # CC02 v31.0 Phase 2 - Analytics API
 from app.api.v1 import analytics_v31
 
-api_router.include_router(analytics_v31.router, prefix="/analytics", tags=["analytics-v31"])
+api_router.include_router(
+    analytics_v31.router, prefix="/analytics", tags=["analytics-v31"]
+)
 
 # CC02 v31.0 Phase 2 - Integration API
 from app.api.v1 import integration_v31
 
-api_router.include_router(integration_v31.router, prefix="/integration", tags=["integration-v31"])
+api_router.include_router(
+    integration_v31.router, prefix="/integration", tags=["integration-v31"]
+)
 
 # CC02 v31.0 Phase 2 - Workflow API
 from app.api.v1 import workflow_v31
 
-api_router.include_router(workflow_v31.router, prefix="/workflow", tags=["workflow-v31"])
+api_router.include_router(
+    workflow_v31.router, prefix="/workflow", tags=["workflow-v31"]
+)
 
 # CC02 v31.0 Phase 2 - Audit Log API
 from app.api.v1 import audit_v31

@@ -17,7 +17,7 @@ class WarehouseBase(BaseModel):
     )
 
     @validator("warehouse_code")
-    def validate_warehouse_code(cls, v):
+    def validate_warehouse_code(cls, v) -> dict:
         if not re.match(r"^[A-Z0-9_-]+$", v):
             raise ValueError(
                 "Warehouse code must contain only uppercase letters, numbers, underscores, and hyphens"
@@ -137,7 +137,7 @@ class WarehouseCreate(WarehouseBase):
     notes: Optional[str] = None
 
     @validator("operating_days")
-    def validate_operating_days(cls, v):
+    def validate_operating_days(cls, v) -> dict:
         valid_days = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
         for day in v:
             if day not in valid_days:
@@ -145,7 +145,7 @@ class WarehouseCreate(WarehouseBase):
         return v
 
     @validator("temperature_max")
-    def validate_temperature_range(cls, v, values):
+    def validate_temperature_range(cls, v, values) -> dict:
         if (
             v is not None
             and "temperature_min" in values
@@ -156,7 +156,7 @@ class WarehouseCreate(WarehouseBase):
         return v
 
     @validator("humidity_max")
-    def validate_humidity_range(cls, v, values):
+    def validate_humidity_range(cls, v, values) -> dict:
         if (
             v is not None
             and "humidity_min" in values
@@ -167,7 +167,7 @@ class WarehouseCreate(WarehouseBase):
         return v
 
     @validator("storage_area")
-    def validate_storage_area(cls, v, values):
+    def validate_storage_area(cls, v, values) -> dict:
         if (
             v is not None
             and "total_area" in values

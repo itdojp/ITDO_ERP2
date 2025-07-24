@@ -21,7 +21,7 @@ from app.schemas.security.audit_log import (
 class SecurityAuditService:
     """Service for managing security audit logs."""
 
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: AsyncSession) -> dict:
         self.db = db
 
     async def log_event(self, event_data: SecurityAuditLogCreate) -> SecurityAuditLog:

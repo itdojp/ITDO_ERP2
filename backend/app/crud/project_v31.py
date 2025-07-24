@@ -532,7 +532,7 @@ def create_time_entry(db: Session, time_data: Any) -> TimeEntry:
     return time_entry
 
 
-def update_task_actual_hours(db: Session, task_id: str):
+def update_task_actual_hours(db: Session, task_id: str) -> dict:
     """Update task actual hours based on time entries."""
     total_hours = (
         db.query(func.sum(TimeEntry.hours))

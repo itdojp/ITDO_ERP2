@@ -790,7 +790,7 @@ def is_password_recently_used(db: Session, user_id: str, password: str) -> bool:
     return False
 
 
-def send_password_reset_email(email: str, reset_token: str):
+def send_password_reset_email(email: str, reset_token: str) -> dict:
     """パスワードリセットメールを送信"""
     # 実装省略 - 実際のメール送信ロジック
     pass

@@ -1,5 +1,11 @@
-import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
-import { cn } from '@/lib/utils';
+import React, {
+  useState,
+  useRef,
+  useCallback,
+  useEffect,
+  useMemo,
+} from "react";
+import { cn } from "@/lib/utils";
 
 export interface AutocompleteOption {
   value: string;
@@ -12,8 +18,8 @@ export interface AutocompleteProps {
   value?: string;
   defaultValue?: string;
   placeholder?: string;
-  size?: 'sm' | 'md' | 'lg';
-  theme?: 'light' | 'dark';
+  size?: "sm" | "md" | "lg";
+  theme?: "light" | "dark";
   disabled?: boolean;
   loading?: boolean;
   clearable?: boolean;
@@ -44,18 +50,18 @@ export interface AutocompleteProps {
   onClear?: () => void;
   onCreate?: (value: string) => void;
   className?: string;
-  'data-testid'?: string;
-  'data-category'?: string;
-  'data-id'?: string;
+  "data-testid"?: string;
+  "data-category"?: string;
+  "data-id"?: string;
 }
 
 export const Autocomplete: React.FC<AutocompleteProps> = ({
   options = [],
   value,
   defaultValue,
-  placeholder = 'Type to search...',
-  size = 'md',
-  theme = 'light',
+  placeholder = "Type to search...",
+  size = "md",
+  theme = "light",
   disabled = false,
   loading = false,
   clearable = false,
@@ -86,25 +92,27 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
   onClear,
   onCreate,
   className,
-  'data-testid': dataTestId = 'autocomplete-container',
-  'data-category': dataCategory,
-  'data-id': dataId,
+  "data-testid": dataTestId = "autocomplete-container",
+  "data-category": dataCategory,
+  "data-id": dataId,
   ...props
 }) => {
   const [inputValue, setInputValue] = useState(() => {
     if (value && options.length > 0) {
-      const selectedOption = options.find(opt => opt.value === value);
-      return selectedOption?.label || '';
+      const selectedOption = options.find((opt) => opt.value === value);
+      return selectedOption?.label || "";
     }
     if (defaultValue && options.length > 0) {
-      const selectedOption = options.find(opt => opt.value === defaultValue);
-      return selectedOption?.label || '';
+      const selectedOption = options.find((opt) => opt.value === defaultValue);
+      return selectedOption?.label || "";
     }
-    return '';
+    return "";
   });
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
-  const [selectedOptions, setSelectedOptions] = useState<AutocompleteOption[]>([]);
+  const [selectedOptions, setSelectedOptions] = useState<AutocompleteOption[]>(
+    [],
+  );
   const [asyncOptions, setAsyncOptions] = useState<AutocompleteOption[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -114,184 +122,229 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
   const debounceTimeoutRef = useRef<NodeJS.Timeout>();
 
   const sizeClasses = {
-    sm: 'size-sm text-sm',
-    md: 'size-md text-base',
-    lg: 'size-lg text-lg'
+    sm: "size-sm text-sm",
+    md: "size-md text-base",
+    lg: "size-lg text-lg",
   };
 
   const themeClasses = {
-    light: 'theme-light bg-white border-gray-300 text-gray-900',
-    dark: 'theme-dark bg-gray-800 border-gray-600 text-white'
+    light: "theme-light bg-white border-gray-300 text-gray-900",
+    dark: "theme-dark bg-gray-800 border-gray-600 text-white",
   };
 
   // Update input value when controlled value changes
   useEffect(() => {
     if (value !== undefined && options.length > 0) {
-      const selectedOption = options.find(opt => opt.value === value);
-      setInputValue(selectedOption?.label || '');
+      const selectedOption = options.find((opt) => opt.value === value);
+      setInputValue(selectedOption?.label || "");
     }
   }, [value, options]);
 
   // Default filter function
-  const defaultFilter = useCallback((option: AutocompleteOption, searchValue: string) => {
-    return option.label.toLowerCase().includes(searchValue.toLowerCase());
-  }, []);
+  const defaultFilter = useCallback(
+    (option: AutocompleteOption, searchValue: string) => {
+      return option.label.toLowerCase().includes(searchValue.toLowerCase());
+    },
+    [],
+  );
 
   // Filter options based on input
   const filteredOptions = useMemo(() => {
     const currentOptions = loadOptions ? asyncOptions : options;
-    
+
     let result;
     if (!inputValue || inputValue.length < minSearchLength) {
       result = minSearchLength > 0 ? [] : currentOptions;
     } else {
-      result = currentOptions.filter(option => 
-        filterFunction ? filterFunction(option, inputValue) : defaultFilter(option, inputValue)
+      result = currentOptions.filter((option) =>
+        filterFunction
+          ? filterFunction(option, inputValue)
+          : defaultFilter(option, inputValue),
       );
     }
 
     return maxOptions ? result.slice(0, maxOptions) : result;
-  }, [options, asyncOptions, inputValue, minSearchLength, filterFunction, defaultFilter, maxOptions, loadOptions]);
+  }, [
+    options,
+    asyncOptions,
+    inputValue,
+    minSearchLength,
+    filterFunction,
+    defaultFilter,
+    maxOptions,
+    loadOptions,
+  ]);
 
   // Group options if groupBy is specified
   const groupedOptions = useMemo(() => {
-    if (!groupBy) return { '': filteredOptions };
+    if (!groupBy) return { "": filteredOptions };
 
-    return filteredOptions.reduce((groups, option) => {
-      const group = (option as any)[groupBy] || '';
-      if (!groups[group]) {
-        groups[group] = [];
-      }
-      groups[group].push(option);
-      return groups;
-    }, {} as Record<string, AutocompleteOption[]>);
+    return filteredOptions.reduce(
+      (groups, option) => {
+        const group = (option as any)[groupBy] || "";
+        if (!groups[group]) {
+          groups[group] = [];
+        }
+        groups[group].push(option);
+        return groups;
+      },
+      {} as Record<string, AutocompleteOption[]>,
+    );
   }, [filteredOptions, groupBy]);
 
   // Debounced async options loading
-  const loadAsyncOptions = useCallback(async (searchValue: string) => {
-    if (!loadOptions) return;
+  const loadAsyncOptions = useCallback(
+    async (searchValue: string) => {
+      if (!loadOptions) return;
 
-    if (debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current);
-    }
-
-    debounceTimeoutRef.current = setTimeout(async () => {
-      setIsLoading(true);
-      try {
-        const results = await loadOptions(searchValue);
-        setAsyncOptions(results);
-      } catch (error) {
-        console.error('Failed to load options:', error);
-        setAsyncOptions([]);
-      } finally {
-        setIsLoading(false);
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
       }
-    }, debounceMs);
-  }, [loadOptions, debounceMs]);
+
+      debounceTimeoutRef.current = setTimeout(async () => {
+        setIsLoading(true);
+        try {
+          const results = await loadOptions(searchValue);
+          setAsyncOptions(results);
+        } catch (error) {
+          console.error("Failed to load options:", error);
+          setAsyncOptions([]);
+        } finally {
+          setIsLoading(false);
+        }
+      }, debounceMs);
+    },
+    [loadOptions, debounceMs],
+  );
 
   // Handle input change
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setInputValue(newValue);
-    setHighlightedIndex(-1);
-    
-    if (!isOpen && newValue) {
-      setIsOpen(true);
-    }
-
-    onChange?.(newValue);
-
-    if (loadOptions) {
-      loadAsyncOptions(newValue);
-    }
-  }, [isOpen, onChange, loadOptions, loadAsyncOptions]);
-
-  // Handle input focus
-  const handleInputFocus = useCallback((e: React.FocusEvent<HTMLInputElement>) => {
-    if (!disabled) {
-      setIsOpen(true);
-      if (loadOptions && !inputValue) {
-        loadAsyncOptions('');
-      }
-    }
-    onFocus?.(e);
-  }, [disabled, onFocus, loadOptions, inputValue, loadAsyncOptions]);
-
-  // Handle input blur
-  const handleInputBlur = useCallback((e: React.FocusEvent<HTMLInputElement>) => {
-    // Delay closing to allow option clicks
-    setTimeout(() => {
-      setIsOpen(false);
+  const handleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newValue = e.target.value;
+      setInputValue(newValue);
       setHighlightedIndex(-1);
-    }, 150);
-    onBlur?.(e);
-  }, [onBlur]);
 
-  // Handle option selection
-  const handleOptionSelect = useCallback((option: AutocompleteOption) => {
-    if (multiple) {
-      const newSelection = selectedOptions.find(opt => opt.value === option.value)
-        ? selectedOptions.filter(opt => opt.value !== option.value)
-        : [...selectedOptions, option];
-      
-      setSelectedOptions(newSelection);
-      onSelect?.(newSelection);
-      setInputValue('');
-    } else {
-      setInputValue(option.label);
-      setIsOpen(false);
-      onSelect?.(option);
-    }
-    setHighlightedIndex(-1);
-  }, [multiple, selectedOptions, onSelect]);
-
-  // Handle keyboard navigation
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!isOpen) {
-      if (e.key === 'ArrowDown' || e.key === 'Enter') {
-        e.preventDefault();
+      if (!isOpen && newValue) {
         setIsOpen(true);
       }
-      return;
-    }
 
-    switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault();
-        setHighlightedIndex(prev => 
-          prev < filteredOptions.length - 1 ? prev + 1 : 0
-        );
-        break;
-      
-      case 'ArrowUp':
-        e.preventDefault();
-        setHighlightedIndex(prev => 
-          prev > 0 ? prev - 1 : filteredOptions.length - 1
-        );
-        break;
-      
-      case 'Enter':
-        e.preventDefault();
-        if (highlightedIndex >= 0 && filteredOptions[highlightedIndex]) {
-          handleOptionSelect(filteredOptions[highlightedIndex]);
-        } else if (allowCreate && inputValue && onCreate) {
-          onCreate(inputValue);
-          setIsOpen(false);
+      onChange?.(newValue);
+
+      if (loadOptions) {
+        loadAsyncOptions(newValue);
+      }
+    },
+    [isOpen, onChange, loadOptions, loadAsyncOptions],
+  );
+
+  // Handle input focus
+  const handleInputFocus = useCallback(
+    (e: React.FocusEvent<HTMLInputElement>) => {
+      if (!disabled) {
+        setIsOpen(true);
+        if (loadOptions && !inputValue) {
+          loadAsyncOptions("");
         }
-        break;
-      
-      case 'Escape':
-        e.preventDefault();
+      }
+      onFocus?.(e);
+    },
+    [disabled, onFocus, loadOptions, inputValue, loadAsyncOptions],
+  );
+
+  // Handle input blur
+  const handleInputBlur = useCallback(
+    (e: React.FocusEvent<HTMLInputElement>) => {
+      // Delay closing to allow option clicks
+      setTimeout(() => {
         setIsOpen(false);
         setHighlightedIndex(-1);
-        inputRef.current?.blur();
-        break;
-    }
-  }, [isOpen, filteredOptions, highlightedIndex, handleOptionSelect, allowCreate, inputValue, onCreate]);
+      }, 150);
+      onBlur?.(e);
+    },
+    [onBlur],
+  );
+
+  // Handle option selection
+  const handleOptionSelect = useCallback(
+    (option: AutocompleteOption) => {
+      if (multiple) {
+        const newSelection = selectedOptions.find(
+          (opt) => opt.value === option.value,
+        )
+          ? selectedOptions.filter((opt) => opt.value !== option.value)
+          : [...selectedOptions, option];
+
+        setSelectedOptions(newSelection);
+        onSelect?.(newSelection);
+        setInputValue("");
+      } else {
+        setInputValue(option.label);
+        setIsOpen(false);
+        onSelect?.(option);
+      }
+      setHighlightedIndex(-1);
+    },
+    [multiple, selectedOptions, onSelect],
+  );
+
+  // Handle keyboard navigation
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (!isOpen) {
+        if (e.key === "ArrowDown" || e.key === "Enter") {
+          e.preventDefault();
+          setIsOpen(true);
+        }
+        return;
+      }
+
+      switch (e.key) {
+        case "ArrowDown":
+          e.preventDefault();
+          setHighlightedIndex((prev) =>
+            prev < filteredOptions.length - 1 ? prev + 1 : 0,
+          );
+          break;
+
+        case "ArrowUp":
+          e.preventDefault();
+          setHighlightedIndex((prev) =>
+            prev > 0 ? prev - 1 : filteredOptions.length - 1,
+          );
+          break;
+
+        case "Enter":
+          e.preventDefault();
+          if (highlightedIndex >= 0 && filteredOptions[highlightedIndex]) {
+            handleOptionSelect(filteredOptions[highlightedIndex]);
+          } else if (allowCreate && inputValue && onCreate) {
+            onCreate(inputValue);
+            setIsOpen(false);
+          }
+          break;
+
+        case "Escape":
+          e.preventDefault();
+          setIsOpen(false);
+          setHighlightedIndex(-1);
+          inputRef.current?.blur();
+          break;
+      }
+    },
+    [
+      isOpen,
+      filteredOptions,
+      highlightedIndex,
+      handleOptionSelect,
+      allowCreate,
+      inputValue,
+      onCreate,
+    ],
+  );
 
   // Handle clear button
   const handleClear = useCallback(() => {
-    setInputValue('');
+    setInputValue("");
     setSelectedOptions([]);
     setIsOpen(false);
     onClear?.();
@@ -309,78 +362,100 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
   // Click outside handler
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
         setHighlightedIndex(-1);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   // Highlight matching text
-  const highlightText = useCallback((text: string, searchValue: string) => {
-    if (!highlightMatch || !searchValue) {
-      return text;
-    }
+  const highlightText = useCallback(
+    (text: string, searchValue: string) => {
+      if (!highlightMatch || !searchValue) {
+        return text;
+      }
 
-    const regex = new RegExp(`(${searchValue})`, 'gi');
-    const parts = text.split(regex);
+      const regex = new RegExp(`(${searchValue})`, "gi");
+      const parts = text.split(regex);
 
-    return parts.map((part, index) =>
-      regex.test(part) ? (
-        <mark key={index} className="bg-yellow-200" data-testid="highlighted-text">
-          {part}
-        </mark>
-      ) : (
-        part
-      )
-    );
-  }, [highlightMatch]);
+      return parts.map((part, index) =>
+        regex.test(part) ? (
+          <mark
+            key={index}
+            className="bg-yellow-200"
+            data-testid="highlighted-text"
+          >
+            {part}
+          </mark>
+        ) : (
+          part
+        ),
+      );
+    },
+    [highlightMatch],
+  );
 
   // Render option
-  const renderOptionContent = useCallback((option: AutocompleteOption, index: number) => {
-    const isHighlighted = index === highlightedIndex;
-    
-    if (renderOption) {
+  const renderOptionContent = useCallback(
+    (option: AutocompleteOption, index: number) => {
+      const isHighlighted = index === highlightedIndex;
+
+      if (renderOption) {
+        return (
+          <div
+            key={option.value}
+            role="option"
+            aria-selected={isHighlighted}
+            className={cn(
+              "px-3 py-2 cursor-pointer transition-colors",
+              isHighlighted && "highlighted bg-blue-100 text-blue-900",
+            )}
+            onClick={() => handleOptionSelect(option)}
+          >
+            {renderOption(option)}
+          </div>
+        );
+      }
+
       return (
         <div
           key={option.value}
           role="option"
           aria-selected={isHighlighted}
           className={cn(
-            'px-3 py-2 cursor-pointer transition-colors',
-            isHighlighted && 'highlighted bg-blue-100 text-blue-900'
+            "px-3 py-2 cursor-pointer transition-colors hover:bg-gray-100",
+            isHighlighted && "highlighted bg-blue-100 text-blue-900",
           )}
           onClick={() => handleOptionSelect(option)}
         >
-          {renderOption(option)}
+          {highlightText(option.label, inputValue)}
         </div>
       );
-    }
-
-    return (
-      <div
-        key={option.value}
-        role="option"
-        aria-selected={isHighlighted}
-        className={cn(
-          'px-3 py-2 cursor-pointer transition-colors hover:bg-gray-100',
-          isHighlighted && 'highlighted bg-blue-100 text-blue-900'
-        )}
-        onClick={() => handleOptionSelect(option)}
-      >
-        {highlightText(option.label, inputValue)}
-      </div>
-    );
-  }, [highlightedIndex, renderOption, handleOptionSelect, highlightText, inputValue]);
+    },
+    [
+      highlightedIndex,
+      renderOption,
+      handleOptionSelect,
+      highlightText,
+      inputValue,
+    ],
+  );
 
   // Render dropdown content
   const renderDropdownContent = () => {
     if (isLoading || loading) {
       return (
-        <div className="p-3 text-center text-gray-500" data-testid="autocomplete-loading">
+        <div
+          className="p-3 text-center text-gray-500"
+          data-testid="autocomplete-loading"
+        >
           {loadingComponent || (
             <div className="flex items-center justify-center space-x-2">
               <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
@@ -393,7 +468,14 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
 
     if (filteredOptions.length === 0) {
       // Show create option if allowed and search text exists
-      if (allowCreate && inputValue && inputValue.length >= minSearchLength && !options.some(opt => opt.label.toLowerCase() === inputValue.toLowerCase())) {
+      if (
+        allowCreate &&
+        inputValue &&
+        inputValue.length >= minSearchLength &&
+        !options.some(
+          (opt) => opt.label.toLowerCase() === inputValue.toLowerCase(),
+        )
+      ) {
         return (
           <div
             className="px-3 py-2 cursor-pointer bg-gray-50 text-blue-600 hover:bg-gray-100"
@@ -404,10 +486,10 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
           </div>
         );
       }
-      
+
       return (
         <div className="p-3 text-center text-gray-500" data-testid="no-results">
-          {noResultsComponent || 'No results found'}
+          {noResultsComponent || "No results found"}
         </div>
       );
     }
@@ -415,7 +497,9 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
     if (virtualized) {
       return (
         <div data-testid="virtualized-list" className="max-h-60 overflow-auto">
-          {filteredOptions.slice(0, 10).map((option, index) => renderOptionContent(option, index))}
+          {filteredOptions
+            .slice(0, 10)
+            .map((option, index) => renderOptionContent(option, index))}
         </div>
       );
     }
@@ -444,16 +528,23 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
 
     return (
       <div className="max-h-60 overflow-auto">
-        {filteredOptions.map((option, index) => renderOptionContent(option, index))}
-        {allowCreate && inputValue && inputValue.length >= minSearchLength && !filteredOptions.some(opt => opt.label.toLowerCase() === inputValue.toLowerCase()) && (
-          <div
-            className="px-3 py-2 cursor-pointer bg-gray-50 border-t text-blue-600 hover:bg-gray-100"
-            onClick={handleCreateOption}
-            data-testid="create-option"
-          >
-            Create "{inputValue}"
-          </div>
+        {filteredOptions.map((option, index) =>
+          renderOptionContent(option, index),
         )}
+        {allowCreate &&
+          inputValue &&
+          inputValue.length >= minSearchLength &&
+          !filteredOptions.some(
+            (opt) => opt.label.toLowerCase() === inputValue.toLowerCase(),
+          ) && (
+            <div
+              className="px-3 py-2 cursor-pointer bg-gray-50 border-t text-blue-600 hover:bg-gray-100"
+              onClick={handleCreateOption}
+              data-testid="create-option"
+            >
+              Create "{inputValue}"
+            </div>
+          )}
       </div>
     );
   };
@@ -464,7 +555,7 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
 
     return (
       <div className="flex flex-wrap gap-1 mb-2" data-testid="selected-items">
-        {selectedOptions.map(option => (
+        {selectedOptions.map((option) => (
           <span
             key={option.value}
             className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
@@ -487,11 +578,11 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
     <div
       ref={containerRef}
       className={cn(
-        'relative',
+        "relative",
         sizeClasses[size],
         themeClasses[theme],
-        error && 'error',
-        className
+        error && "error",
+        className,
       )}
       data-testid={dataTestId}
       data-category={dataCategory}
@@ -510,7 +601,7 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
       <div className="relative">
         <div className="flex items-center">
           {prefix && <div className="pl-3">{prefix}</div>}
-          
+
           <input
             ref={inputRef}
             type="text"
@@ -518,13 +609,13 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
             placeholder={placeholder}
             disabled={disabled}
             className={cn(
-              'w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500',
+              "w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500",
               sizeClasses[size],
               themeClasses[theme],
-              error && 'border-red-500',
-              disabled && 'bg-gray-100 cursor-not-allowed',
-              prefix && 'pl-0',
-              (suffix || clearable) && 'pr-8'
+              error && "border-red-500",
+              disabled && "bg-gray-100 cursor-not-allowed",
+              prefix && "pl-0",
+              (suffix || clearable) && "pr-8",
             )}
             onChange={handleInputChange}
             onFocus={handleInputFocus}
@@ -560,7 +651,7 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
         )}
       </div>
 
-      {error && typeof error === 'string' && (
+      {error && typeof error === "string" && (
         <p className="mt-1 text-sm text-red-600">{error}</p>
       )}
 

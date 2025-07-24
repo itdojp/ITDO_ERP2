@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from "react";
 
 interface ProgressSegment {
   value: number;
@@ -11,10 +11,10 @@ interface ProgressProps {
   min?: number;
   max?: number;
   buffer?: number;
-  type?: 'line' | 'circle' | 'steps';
-  size?: 'sm' | 'md' | 'lg';
-  color?: 'primary' | 'success' | 'warning' | 'danger';
-  status?: 'normal' | 'success' | 'error' | 'warning';
+  type?: "line" | "circle" | "steps";
+  size?: "sm" | "md" | "lg";
+  color?: "primary" | "success" | "warning" | "danger";
+  status?: "normal" | "success" | "error" | "warning";
   showText?: boolean;
   text?: string;
   textFormatter?: (value: number, max: number) => string;
@@ -36,9 +36,9 @@ interface ProgressProps {
   thresholds?: number[];
   icon?: React.ReactNode;
   onComplete?: () => void;
-  'aria-label'?: string;
-  'aria-describedby'?: string;
-  'aria-labelledby'?: string;
+  "aria-label"?: string;
+  "aria-describedby"?: string;
+  "aria-labelledby"?: string;
 }
 
 export const Progress: React.FC<ProgressProps> = ({
@@ -46,10 +46,10 @@ export const Progress: React.FC<ProgressProps> = ({
   min = 0,
   max = 100,
   buffer,
-  type = 'line',
-  size = 'md',
-  color = 'primary',
-  status = 'normal',
+  type = "line",
+  size = "md",
+  color = "primary",
+  status = "normal",
   showText = true,
   text,
   textFormatter,
@@ -60,10 +60,10 @@ export const Progress: React.FC<ProgressProps> = ({
   indeterminate = false,
   vertical = false,
   loading = false,
-  className = '',
+  className = "",
   trackStyle,
   barStyle,
-  trackColor = 'bg-gray-200',
+  trackColor = "bg-gray-200",
   circleSize = 120,
   strokeWidth = 6,
   gradient,
@@ -71,16 +71,18 @@ export const Progress: React.FC<ProgressProps> = ({
   thresholds,
   icon,
   onComplete,
-  'aria-label': ariaLabel,
-  'aria-describedby': ariaDescribedBy,
-  'aria-labelledby': ariaLabelledBy
+  "aria-label": ariaLabel,
+  "aria-describedby": ariaDescribedBy,
+  "aria-labelledby": ariaLabelledBy,
 }) => {
   const [animatedValue, setAnimatedValue] = useState(0);
   const prevValueRef = useRef(value);
 
   const normalizedValue = Math.min(Math.max(value, min), max);
   const percentage = ((normalizedValue - min) / (max - min)) * 100;
-  const bufferPercentage = buffer ? ((Math.min(Math.max(buffer, min), max) - min) / (max - min)) * 100 : 0;
+  const bufferPercentage = buffer
+    ? ((Math.min(Math.max(buffer, min), max) - min) / (max - min)) * 100
+    : 0;
 
   useEffect(() => {
     if (animated && !indeterminate) {
@@ -102,36 +104,36 @@ export const Progress: React.FC<ProgressProps> = ({
 
   const getSizeClasses = () => {
     const sizeMap = {
-      sm: 'h-1',
-      md: 'h-2',
-      lg: 'h-4'
+      sm: "h-1",
+      md: "h-2",
+      lg: "h-4",
     };
     return sizeMap[size];
   };
 
   const getColorClasses = () => {
-    if (status === 'success') return 'bg-green-500';
-    if (status === 'error') return 'bg-red-500';
-    if (status === 'warning') return 'bg-yellow-500';
-    
+    if (status === "success") return "bg-green-500";
+    if (status === "error") return "bg-red-500";
+    if (status === "warning") return "bg-yellow-500";
+
     const colorMap = {
-      primary: 'bg-blue-500',
-      success: 'bg-green-500',
-      warning: 'bg-yellow-500',
-      danger: 'bg-red-500'
+      primary: "bg-blue-500",
+      success: "bg-green-500",
+      warning: "bg-yellow-500",
+      danger: "bg-red-500",
     };
     return colorMap[color];
   };
 
   const getStripedClasses = () => {
-    if (!striped) return '';
-    return 'bg-gradient-to-r from-transparent via-white/20 to-transparent bg-[length:20px_20px]';
+    if (!striped) return "";
+    return "bg-gradient-to-r from-transparent via-white/20 to-transparent bg-[length:20px_20px]";
   };
 
   const getAnimationClasses = () => {
-    if (indeterminate) return 'animate-pulse';
-    if (animated) return 'transition-all duration-300 ease-out';
-    return '';
+    if (indeterminate) return "animate-pulse";
+    if (animated) return "transition-all duration-300 ease-out";
+    return "";
   };
 
   const formatText = () => {
@@ -142,10 +144,10 @@ export const Progress: React.FC<ProgressProps> = ({
 
   const renderLineProgress = () => {
     return (
-      <div 
+      <div
         className={`
           relative w-full ${getSizeClasses()} ${trackColor} rounded-full overflow-hidden
-          ${vertical ? 'h-32 w-2' : ''}
+          ${vertical ? "h-32 w-2" : ""}
           ${className}
         `}
         style={trackStyle}
@@ -153,11 +155,15 @@ export const Progress: React.FC<ProgressProps> = ({
         {buffer && (
           <div
             data-testid="progress-buffer"
-            className={`absolute inset-0 bg-gray-300 rounded-full ${vertical ? 'w-full' : 'h-full'}`}
-            style={vertical ? { height: `${bufferPercentage}%`, bottom: 0 } : { width: `${bufferPercentage}%` }}
+            className={`absolute inset-0 bg-gray-300 rounded-full ${vertical ? "w-full" : "h-full"}`}
+            style={
+              vertical
+                ? { height: `${bufferPercentage}%`, bottom: 0 }
+                : { width: `${bufferPercentage}%` }
+            }
           />
         )}
-        
+
         {segments ? (
           <div className="flex h-full">
             {segments.map((segment, index) => {
@@ -187,12 +193,16 @@ export const Progress: React.FC<ProgressProps> = ({
               ${getAnimationClasses()}
             `}
             style={{
-              [vertical ? 'height' : 'width']: `${animatedValue}%`,
-              ...(vertical && { position: 'absolute', bottom: 0, width: '100%' }),
-              ...(gradient && {
-                backgroundImage: `linear-gradient(90deg, ${gradient.join(', ')})`
+              [vertical ? "height" : "width"]: `${animatedValue}%`,
+              ...(vertical && {
+                position: "absolute",
+                bottom: 0,
+                width: "100%",
               }),
-              ...barStyle
+              ...(gradient && {
+                backgroundImage: `linear-gradient(90deg, ${gradient.join(", ")})`,
+              }),
+              ...barStyle,
             }}
           />
         )}
@@ -204,9 +214,14 @@ export const Progress: React.FC<ProgressProps> = ({
               key={index}
               data-testid="progress-threshold"
               className="absolute w-0.5 h-full bg-gray-600"
-              style={vertical ? 
-                { bottom: `${thresholdPercentage}%`, width: '100%', height: '1px' } : 
-                { left: `${thresholdPercentage}%` }
+              style={
+                vertical
+                  ? {
+                      bottom: `${thresholdPercentage}%`,
+                      width: "100%",
+                      height: "1px",
+                    }
+                  : { left: `${thresholdPercentage}%` }
               }
             />
           );
@@ -218,7 +233,8 @@ export const Progress: React.FC<ProgressProps> = ({
   const renderCircleProgress = () => {
     const radius = (circleSize - strokeWidth) / 2;
     const circumference = radius * 2 * Math.PI;
-    const strokeDashoffset = circumference - (animatedValue / 100) * circumference;
+    const strokeDashoffset =
+      circumference - (animatedValue / 100) * circumference;
 
     return (
       <svg
@@ -251,7 +267,7 @@ export const Progress: React.FC<ProgressProps> = ({
           fill="transparent"
           strokeDasharray={circumference}
           strokeDashoffset={strokeDashoffset}
-          className={`${getColorClasses().replace('bg-', 'text-')} transition-all duration-300 ease-out`}
+          className={`${getColorClasses().replace("bg-", "text-")} transition-all duration-300 ease-out`}
           strokeLinecap="round"
         />
         {showText && (
@@ -282,11 +298,11 @@ export const Progress: React.FC<ProgressProps> = ({
           data-testid="progress-step"
           className={`
             w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold
-            ${isActive ? getColorClasses() : 'bg-gray-200'}
-            ${isCompleted ? 'bg-green-500' : ''}
+            ${isActive ? getColorClasses() : "bg-gray-200"}
+            ${isCompleted ? "bg-green-500" : ""}
           `}
         >
-          {isCompleted ? '✓' : stepNumber}
+          {isCompleted ? "✓" : stepNumber}
         </div>
       );
     });
@@ -308,15 +324,15 @@ export const Progress: React.FC<ProgressProps> = ({
   };
 
   const renderProgress = () => {
-    if (type === 'circle') return renderCircleProgress();
-    if (type === 'steps') return renderStepsProgress();
+    if (type === "circle") return renderCircleProgress();
+    if (type === "steps") return renderStepsProgress();
     return renderLineProgress();
   };
 
   if (loading) {
     return (
       <div className={`flex items-center space-x-2 ${className}`}>
-        <div 
+        <div
           className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"
           role="img"
           aria-hidden="true"
@@ -334,13 +350,13 @@ export const Progress: React.FC<ProgressProps> = ({
           {icon && <span className="flex-shrink-0">{icon}</span>}
         </div>
       )}
-      
-      <div className={`relative ${vertical ? 'flex flex-col items-center' : 'flex items-center'} space-x-3`}>
-        <div className="flex-1">
-          {renderProgress()}
-        </div>
-        
-        {showText && type === 'line' && (
+
+      <div
+        className={`relative ${vertical ? "flex flex-col items-center" : "flex items-center"} space-x-3`}
+      >
+        <div className="flex-1">{renderProgress()}</div>
+
+        {showText && type === "line" && (
           <span className="text-sm font-medium text-gray-700 whitespace-nowrap">
             {formatText()}
           </span>

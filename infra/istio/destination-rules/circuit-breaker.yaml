@@ -1,0 +1,311 @@
+# Circuit Breaker Destination Rules for ITDO ERP
+# Advanced resilience patterns with intelligent failure handling
+
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: itdo-erp-circuit-breaker-backend
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: circuit-breaker-backend
+    app.kubernetes.io/component: resilience
+spec:
+  host: itdo-erp-backend-api.itdo-erp.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+    # Connection Pool Settings
+    connectionPool:
+      tcp:
+        maxConnections: 100
+        connectTimeout: 10s
+        tcpKeepalive:
+          time: 7200s
+          interval: 75s
+          probes: 3
+      http:
+        http1MaxPendingRequests: 50
+        http2MaxRequests: 100
+        maxRequestsPerConnection: 10
+        maxRetries: 3
+        idleTimeout: 60s
+        h2UpgradePolicy: UPGRADE
+        useClientProtocol: true
+    # Load Balancing
+    loadBalancer:
+      simple: LEAST_CONN
+      localityLbSetting:
+        enabled: true
+        distribute:
+        - from: "region1/zone1/*"
+          to:
+            "region1/zone1/*": 80
+            "region1/zone2/*": 20
+        failover:
+        - from: "region1"
+          to: "region2"
+    # Outlier Detection (Circuit Breaker)
+    outlierDetection:
+      consecutive5xxErrors: 3      # Trip after 3 consecutive 5xx errors
+      consecutiveGatewayErrors: 3  # Trip after 3 consecutive gateway errors
+      interval: 10s                # Analysis interval
+      baseEjectionTime: 30s        # Minimum ejection duration
+      maxEjectionPercent: 50       # Max percentage of hosts to eject
+      minHealthPercent: 30         # Minimum healthy hosts required
+      splitExternalLocalOriginErrors: true
+      
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: itdo-erp-circuit-breaker-database
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: circuit-breaker-database
+spec:
+  host: postgresql.itdo-erp.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+    connectionPool:
+      tcp:
+        maxConnections: 20       # Lower for database connections
+        connectTimeout: 5s
+        tcpKeepalive:
+          time: 600s             # 10 minutes
+          interval: 60s
+          probes: 3
+      http:
+        http1MaxPendingRequests: 10
+        http2MaxRequests: 20
+        maxRequestsPerConnection: 1  # Connection per request for DB
+        maxRetries: 1               # Limited retries for DB
+        idleTimeout: 300s           # 5 minutes idle timeout
+    outlierDetection:
+      consecutive5xxErrors: 2      # More sensitive for database
+      consecutiveGatewayErrors: 2
+      interval: 30s
+      baseEjectionTime: 60s        # Longer ejection for DB
+      maxEjectionPercent: 25       # Conservative ejection
+      minHealthPercent: 50         # Higher minimum health
+      
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: itdo-erp-circuit-breaker-redis
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: circuit-breaker-redis
+spec:
+  host: redis.itdo-erp.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+    connectionPool:
+      tcp:
+        maxConnections: 50       # Moderate for cache
+        connectTimeout: 2s       # Fast connect for cache
+        tcpKeepalive:
+          time: 300s             # 5 minutes
+          interval: 30s
+          probes: 2
+      http:
+        http1MaxPendingRequests: 25
+        http2MaxRequests: 50
+        maxRequestsPerConnection: 50  # Reuse connections for cache
+        maxRetries: 2                 # Quick retries for cache
+        idleTimeout: 120s             # 2 minutes idle
+    loadBalancer:
+      simple: ROUND_ROBIN         # Even distribution for cache
+    outlierDetection:
+      consecutive5xxErrors: 3
+      consecutiveGatewayErrors: 3
+      interval: 15s               # Fast detection for cache
+      baseEjectionTime: 15s       # Short ejection for cache
+      maxEjectionPercent: 30
+      minHealthPercent: 40
+      
+---
+# External Service Circuit Breakers
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: itdo-erp-circuit-breaker-external
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: circuit-breaker-external
+spec:
+  host: "*.googleapis.com"
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 30
+        connectTimeout: 10s
+      http:
+        http1MaxPendingRequests: 20
+        http2MaxRequests: 30
+        maxRequestsPerConnection: 5
+        maxRetries: 2
+        idleTimeout: 60s
+    outlierDetection:
+      consecutive5xxErrors: 5      # More tolerant for external
+      consecutiveGatewayErrors: 5
+      interval: 60s                # Less frequent checks
+      baseEjectionTime: 120s       # Longer ejection
+      maxEjectionPercent: 25       # Conservative
+      minHealthPercent: 25
+      
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: itdo-erp-circuit-breaker-payment
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: circuit-breaker-payment
+spec:
+  host: "*.stripe.com"
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 10       # Limited for payment
+        connectTimeout: 15s      # Longer timeout for payment
+      http:
+        http1MaxPendingRequests: 5
+        http2MaxRequests: 10
+        maxRequestsPerConnection: 1  # One request per connection
+        maxRetries: 1               # No retries for payment
+        idleTimeout: 30s
+    outlierDetection:
+      consecutive5xxErrors: 2      # Very sensitive for payment
+      consecutiveGatewayErrors: 2
+      interval: 30s
+      baseEjectionTime: 300s       # 5 minutes ejection
+      maxEjectionPercent: 20
+      minHealthPercent: 80         # High availability required
+      
+---
+# Global Default Circuit Breaker
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: itdo-erp-default-circuit-breaker
+  namespace: istio-system
+  labels:
+    app.kubernetes.io/name: default-circuit-breaker
+spec:
+  host: "*.local"
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+    connectionPool:
+      tcp:
+        maxConnections: 50
+        connectTimeout: 10s
+      http:
+        http1MaxPendingRequests: 25
+        http2MaxRequests: 50
+        maxRequestsPerConnection: 10
+        maxRetries: 3
+        idleTimeout: 60s
+    outlierDetection:
+      consecutive5xxErrors: 5
+      consecutiveGatewayErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+      minHealthPercent: 30
+  exportTo:
+  - "*"
+  
+---
+# Circuit Breaker for Monitoring Services
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: itdo-erp-circuit-breaker-monitoring
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: circuit-breaker-monitoring
+spec:
+  host: "*.monitoring.svc.cluster.local"
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+    connectionPool:
+      tcp:
+        maxConnections: 100      # Higher for monitoring
+        connectTimeout: 5s
+      http:
+        http1MaxPendingRequests: 50
+        http2MaxRequests: 100
+        maxRequestsPerConnection: 20
+        maxRetries: 2
+        idleTimeout: 120s
+    outlierDetection:
+      consecutive5xxErrors: 5
+      consecutiveGatewayErrors: 5
+      interval: 60s              # Less aggressive for monitoring
+      baseEjectionTime: 60s
+      maxEjectionPercent: 30
+      minHealthPercent: 40
+      
+---
+# Adaptive Circuit Breaker with Retry Policy
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: itdo-erp-adaptive-retry
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: adaptive-retry
+spec:
+  hosts:
+  - itdo-erp-backend-api.itdo-erp.svc.cluster.local
+  http:
+  - match:
+    - uri:
+        prefix: "/api/v1/auth"
+    route:
+    - destination:
+        host: itdo-erp-backend-api.itdo-erp.svc.cluster.local
+        port:
+          number: 8000
+    timeout: 10s
+    retries:
+      attempts: 3
+      perTryTimeout: 3s
+      retryOn: 5xx,reset,connect-failure,refused-stream
+      retryRemoteLocalities: false  # Don't retry across regions for auth
+    fault:
+      abort:
+        percentage:
+          value: 0.1  # 0.1% chaos injection
+        httpStatus: 503
+        
+  - match:
+    - uri:
+        prefix: "/api/v1/users"
+    route:
+    - destination:
+        host: itdo-erp-backend-api.itdo-erp.svc.cluster.local
+        port:
+          number: 8000
+    timeout: 15s
+    retries:
+      attempts: 2
+      perTryTimeout: 5s
+      retryOn: 5xx,reset,connect-failure,refused-stream
+      retryRemoteLocalities: true   # Allow cross-region for user data
+      
+  - route:  # Default route
+    - destination:
+        host: itdo-erp-backend-api.itdo-erp.svc.cluster.local
+        port:
+          number: 8000
+    timeout: 30s
+    retries:
+      attempts: 3
+      perTryTimeout: 10s
+      retryOn: 5xx,reset,connect-failure,refused-stream

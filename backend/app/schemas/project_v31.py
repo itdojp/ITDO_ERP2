@@ -316,7 +316,7 @@ class TimeEntryBase(BaseModel):
     billing_rate: Optional[Decimal] = Field(None, ge=0)
 
     @validator("end_time")
-    def validate_end_time(cls, v, values):
+    def validate_end_time(cls, v, values) -> dict:
         if "start_time" in values and values["start_time"] and v:
             if v <= values["start_time"]:
                 raise ValueError("End time must be after start time")

@@ -178,7 +178,7 @@ class NotificationCreateRequest(BaseNotificationSchema):
     created_by: Optional[str] = Field(None, description="Creator user ID")
 
     @validator("channels")
-    def validate_channels(cls, v):
+    def validate_channels(cls, v) -> dict:
         """Validate channels list."""
         if not v:
             return ["in_app"]

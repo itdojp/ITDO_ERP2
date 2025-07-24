@@ -1,0 +1,22 @@
+apiVersion: v2
+name: frontend-app
+description: ITDO ERP Frontend Application Helm Chart
+version: 2.1.0
+appVersion: "2.1.0"
+
+keywords:
+- react
+- typescript
+- frontend
+- spa
+- erp
+- itdo
+
+maintainers:
+- name: ITDO Platform Team
+  email: platform@itdo-erp.com
+
+annotations:
+  category: ERP
+  itdo-erp.com/component: frontend
+  itdo-erp.com/layer: presentation

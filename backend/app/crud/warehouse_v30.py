@@ -39,7 +39,7 @@ class InvalidOperationError(Exception):
 
 
 class WarehouseCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def get_by_id(self, warehouse_id: str) -> Optional[Warehouse]:
@@ -488,7 +488,7 @@ class WarehouseCRUD:
 
 
 class WarehouseZoneCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def get_by_id(self, zone_id: str) -> Optional[WarehouseZone]:
@@ -603,7 +603,7 @@ class WarehouseZoneCRUD:
 
 
 class WarehouseLocationCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def get_by_id(self, location_id: str) -> Optional[WarehouseLocation]:
@@ -827,7 +827,7 @@ class WarehouseLocationCRUD:
 
         return query.order_by(WarehouseLocation.pick_priority.desc()).all()
 
-    def _update_zone_location_count(self, zone_id: str):
+    def _update_zone_location_count(self, zone_id: str) -> dict:
         """ゾーンのロケーション数を更新"""
         zone = self.db.query(WarehouseZone).filter(WarehouseZone.id == zone_id).first()
         if zone:
@@ -862,7 +862,7 @@ class WarehouseLocationCRUD:
 
 
 class InventoryMovementCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def get_by_id(self, movement_id: str) -> Optional[InventoryMovement]:
@@ -1029,7 +1029,7 @@ class InventoryMovementCRUD:
 
 
 class CycleCountCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def get_by_id(self, count_id: str) -> Optional[CycleCount]:
@@ -1152,12 +1152,12 @@ class CycleCountCRUD:
 
         return f"{prefix}-{new_number:04d}"
 
-    def _generate_count_lines(self, cycle_count: CycleCount):
+    def _generate_count_lines(self, cycle_count: CycleCount) -> dict:
         """カウントライン生成"""
         # 対象ロケーションを特定してカウントライン生成
         # 実装は簡略化
 
-    def _calculate_completion_stats(self, cycle_count: CycleCount):
+    def _calculate_completion_stats(self, cycle_count: CycleCount) -> dict:
         """完了統計を計算"""
         # カウントラインから統計を計算
         # 実装は簡略化
