@@ -1,11 +1,11 @@
-import React from 'react';
+import React from "react";
 
 interface CardProps {
   children: React.ReactNode;
-  variant?: 'default' | 'outlined' | 'elevated' | 'filled';
-  size?: 'sm' | 'md' | 'lg';
+  variant?: "default" | "outlined" | "elevated" | "filled";
+  size?: "sm" | "md" | "lg";
   rounded?: boolean;
-  shadow?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
+  shadow?: "none" | "sm" | "md" | "lg" | "xl";
   bordered?: boolean;
   hoverable?: boolean;
   clickable?: boolean;
@@ -22,7 +22,7 @@ interface CardProps {
   footer?: React.ReactNode;
   image?: string | React.ReactNode;
   imageAlt?: string;
-  imagePosition?: 'top' | 'bottom' | 'left' | 'right';
+  imagePosition?: "top" | "bottom" | "left" | "right";
   actions?: React.ReactNode;
   title?: string;
   subtitle?: string;
@@ -33,81 +33,81 @@ interface CardProps {
 
 export const Card: React.FC<CardProps> = ({
   children,
-  variant = 'default',
-  size = 'md',
+  variant = "default",
+  size = "md",
   rounded = true,
-  shadow = 'md',
+  shadow = "md",
   bordered = false,
   hoverable = false,
   clickable = false,
   onClick,
   href,
-  className = '',
-  headerClassName = '',
-  bodyClassName = '',
-  footerClassName = '',
-  imageClassName = '',
+  className = "",
+  headerClassName = "",
+  bodyClassName = "",
+  footerClassName = "",
+  imageClassName = "",
   disabled = false,
   loading = false,
   header,
   footer,
   image,
-  imageAlt = '',
-  imagePosition = 'top',
+  imageAlt = "",
+  imagePosition = "top",
   actions,
   title,
   subtitle,
-  titleClassName = '',
-  subtitleClassName = '',
-  compact = false
+  titleClassName = "",
+  subtitleClassName = "",
+  compact = false,
 }) => {
   const getVariantClasses = () => {
     const variantMap = {
-      default: 'bg-white',
-      outlined: 'bg-white border border-gray-200',
-      elevated: 'bg-white',
-      filled: 'bg-gray-50'
+      default: "bg-white",
+      outlined: "bg-white border border-gray-200",
+      elevated: "bg-white",
+      filled: "bg-gray-50",
     };
     return variantMap[variant];
   };
 
   const getSizeClasses = () => {
-    if (compact) return 'p-3';
-    
+    if (compact) return "p-3";
+
     const sizeMap = {
-      sm: 'p-4',
-      md: 'p-6',
-      lg: 'p-8'
+      sm: "p-4",
+      md: "p-6",
+      lg: "p-8",
     };
     return sizeMap[size];
   };
 
   const getShadowClasses = () => {
     const shadowMap = {
-      none: '',
-      sm: 'shadow-sm',
-      md: 'shadow-md',
-      lg: 'shadow-lg',
-      xl: 'shadow-xl'
+      none: "",
+      sm: "shadow-sm",
+      md: "shadow-md",
+      lg: "shadow-lg",
+      xl: "shadow-xl",
     };
     return shadowMap[shadow];
   };
 
   const getHoverClasses = () => {
-    if (disabled || loading) return '';
-    
+    if (disabled || loading) return "";
+
     if (hoverable || clickable) {
-      return 'transition-all duration-200 hover:shadow-lg hover:-translate-y-1';
+      return "transition-all duration-200 hover:shadow-lg hover:-translate-y-1";
     }
-    return '';
+    return "";
   };
 
   const getRoundedClasses = () => {
-    return rounded ? 'rounded-lg' : '';
+    return rounded ? "rounded-lg" : "";
   };
 
   const isInteractive = !!(clickable || onClick || href);
-  const Element = href && !disabled ? 'a' : isInteractive ? 'button' : 'div';
+  const Element = href && !disabled ? "a" : isInteractive ? "button" : "div";
 
   const handleClick = (event: React.MouseEvent) => {
     if (disabled || loading) {
@@ -119,8 +119,8 @@ export const Card: React.FC<CardProps> = ({
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if (disabled || loading) return;
-    
-    if (event.key === 'Enter' || event.key === ' ') {
+
+    if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       onClick?.(event as any);
     }
@@ -132,73 +132,72 @@ export const Card: React.FC<CardProps> = ({
     ${getRoundedClasses()}
     ${getShadowClasses()}
     ${getHoverClasses()}
-    ${bordered ? 'border border-gray-200' : ''}
-    ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
-    ${isInteractive && !disabled && !loading ? 'cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2' : ''}
-    ${loading ? 'animate-pulse cursor-wait' : ''}
+    ${bordered ? "border border-gray-200" : ""}
+    ${disabled ? "opacity-50 cursor-not-allowed" : ""}
+    ${isInteractive && !disabled && !loading ? "cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2" : ""}
+    ${loading ? "animate-pulse cursor-wait" : ""}
     ${className}
   `;
 
   const elementProps: any = {
     className: cardClasses,
     onClick: handleClick,
-    onKeyDown: handleKeyDown
+    onKeyDown: handleKeyDown,
   };
 
-  if (Element === 'a') {
+  if (Element === "a") {
     elementProps.href = href;
-    elementProps.role = 'link';
+    elementProps.role = "link";
   } else if (isInteractive) {
-    elementProps.type = 'button';
-    elementProps.role = 'button';
+    elementProps.type = "button";
+    elementProps.role = "button";
     elementProps.tabIndex = disabled ? -1 : 0;
   }
 
   if (disabled) {
-    elementProps['aria-disabled'] = 'true';
+    elementProps["aria-disabled"] = "true";
   }
 
   if (loading) {
-    elementProps['aria-busy'] = 'true';
+    elementProps["aria-busy"] = "true";
   }
 
   const renderImage = () => {
     if (!image) return null;
 
-    const imageElement = typeof image === 'string' ? (
-      <img 
-        src={image} 
-        alt={imageAlt}
-        className={`w-full h-full object-cover ${imageClassName}`}
-      />
-    ) : (
-      <div className={imageClassName}>{image}</div>
-    );
+    const imageElement =
+      typeof image === "string" ? (
+        <img
+          src={image}
+          alt={imageAlt}
+          className={`w-full h-full object-cover ${imageClassName}`}
+        />
+      ) : (
+        <div className={imageClassName}>{image}</div>
+      );
 
     const imageWrapperClasses = `
-      ${imagePosition === 'top' ? 'w-full h-48' : ''}
-      ${imagePosition === 'bottom' ? 'w-full h-48' : ''}
-      ${imagePosition === 'left' ? 'w-48 h-full flex-shrink-0' : ''}
-      ${imagePosition === 'right' ? 'w-48 h-full flex-shrink-0' : ''}
+      ${imagePosition === "top" ? "w-full h-48" : ""}
+      ${imagePosition === "bottom" ? "w-full h-48" : ""}
+      ${imagePosition === "left" ? "w-48 h-full flex-shrink-0" : ""}
+      ${imagePosition === "right" ? "w-48 h-full flex-shrink-0" : ""}
       overflow-hidden
     `;
 
-    return (
-      <div className={imageWrapperClasses}>
-        {imageElement}
-      </div>
-    );
+    return <div className={imageWrapperClasses}>{imageElement}</div>;
   };
 
   const renderHeader = () => {
     if (!header && !title && !subtitle) return null;
 
     return (
-      <div className={`${compact ? 'mb-2' : 'mb-4'} ${headerClassName}`}>
+      <div className={`${compact ? "mb-2" : "mb-4"} ${headerClassName}`}>
         {header || (
           <div>
             {title && (
-              <h3 className={`text-lg font-semibold text-gray-900 ${titleClassName}`}>
+              <h3
+                className={`text-lg font-semibold text-gray-900 ${titleClassName}`}
+              >
                 {title}
               </h3>
             )}
@@ -214,18 +213,14 @@ export const Card: React.FC<CardProps> = ({
   };
 
   const renderBody = () => {
-    return (
-      <div className={`flex-1 ${bodyClassName}`}>
-        {children}
-      </div>
-    );
+    return <div className={`flex-1 ${bodyClassName}`}>{children}</div>;
   };
 
   const renderFooter = () => {
     if (!footer && !actions) return null;
 
     return (
-      <div className={`${compact ? 'mt-2' : 'mt-4'} ${footerClassName}`}>
+      <div className={`${compact ? "mt-2" : "mt-4"} ${footerClassName}`}>
         {footer || actions}
       </div>
     );
@@ -246,28 +241,29 @@ export const Card: React.FC<CardProps> = ({
 
   const contentClasses = `
     ${getSizeClasses()}
-    ${imagePosition === 'left' || imagePosition === 'right' ? 'flex-1' : ''}
+    ${imagePosition === "left" || imagePosition === "right" ? "flex-1" : ""}
   `;
 
-  const isHorizontalImage = imagePosition === 'left' || imagePosition === 'right';
+  const isHorizontalImage =
+    imagePosition === "left" || imagePosition === "right";
 
   return (
     <Element {...elementProps}>
-      {imagePosition === 'top' && renderImage()}
-      
-      <div className={isHorizontalImage ? 'flex' : ''}>
-        {imagePosition === 'left' && renderImage()}
-        
+      {imagePosition === "top" && renderImage()}
+
+      <div className={isHorizontalImage ? "flex" : ""}>
+        {imagePosition === "left" && renderImage()}
+
         <div className={contentClasses}>
           {renderHeader()}
           {renderBody()}
           {renderFooter()}
         </div>
-        
-        {imagePosition === 'right' && renderImage()}
+
+        {imagePosition === "right" && renderImage()}
       </div>
-      
-      {imagePosition === 'bottom' && renderImage()}
+
+      {imagePosition === "bottom" && renderImage()}
       {renderLoadingOverlay()}
     </Element>
   );
