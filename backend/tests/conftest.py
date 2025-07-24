@@ -324,6 +324,20 @@ def setup_sync_test_data():
     except ImportError:
         pass  # Core products module not available yet
     
+    # Clear core inventory data
+    try:
+        from app.api.v1.endpoints.inventory_core import (
+            locations_store, inventory_items_store, movements_store, 
+            adjustments_store, transfers_store
+        )
+        locations_store.clear()
+        inventory_items_store.clear()
+        movements_store.clear()
+        adjustments_store.clear()
+        transfers_store.clear()
+    except ImportError:
+        pass  # Core inventory module not available yet
+    
     yield
     
     # Cleanup
@@ -359,6 +373,20 @@ def setup_sync_test_data():
     try:
         from app.api.v1.endpoints.products_core import products_store
         products_store.clear()
+    except ImportError:
+        pass
+    
+    # Cleanup core inventory data
+    try:
+        from app.api.v1.endpoints.inventory_core import (
+            locations_store, inventory_items_store, movements_store, 
+            adjustments_store, transfers_store
+        )
+        locations_store.clear()
+        inventory_items_store.clear()
+        movements_store.clear()
+        adjustments_store.clear()
+        transfers_store.clear()
     except ImportError:
         pass
 
