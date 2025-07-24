@@ -1,7 +1,12 @@
 import { render, fireEvent, screen } from '@testing-library/react';
+import { vi } from 'vitest';
 import { Badge } from './Badge';
 
 describe('Badge', () => {
+  // Helper function to get the badge element (parent of text)
+  const getBadgeElement = (text: string) => {
+    return screen.getByText(text).parentElement;
+  };
   it('renders badge content', () => {
     render(<Badge>Badge Text</Badge>);
     expect(screen.getByText('Badge Text')).toBeInTheDocument();
@@ -9,85 +14,85 @@ describe('Badge', () => {
 
   it('applies default variant classes', () => {
     render(<Badge>Default Badge</Badge>);
-    const badge = screen.getByText('Default Badge');
+    const badge = getBadgeElement('Default Badge');
     expect(badge).toHaveClass('bg-gray-100', 'text-gray-800');
   });
 
   it('applies success variant classes', () => {
     render(<Badge variant="success">Success Badge</Badge>);
-    const badge = screen.getByText('Success Badge');
+    const badge = getBadgeElement('Success Badge');
     expect(badge).toHaveClass('bg-green-500', 'text-white');
   });
 
   it('applies warning variant classes', () => {
     render(<Badge variant="warning">Warning Badge</Badge>);
-    const badge = screen.getByText('Warning Badge');
+    const badge = getBadgeElement('Warning Badge');
     expect(badge).toHaveClass('bg-yellow-500', 'text-white');
   });
 
   it('applies error variant classes', () => {
     render(<Badge variant="error">Error Badge</Badge>);
-    const badge = screen.getByText('Error Badge');
+    const badge = getBadgeElement('Error Badge');
     expect(badge).toHaveClass('bg-red-500', 'text-white');
   });
 
   it('applies info variant classes', () => {
     render(<Badge variant="info">Info Badge</Badge>);
-    const badge = screen.getByText('Info Badge');
+    const badge = getBadgeElement('Info Badge');
     expect(badge).toHaveClass('bg-blue-500', 'text-white');
   });
 
   it('applies secondary variant classes', () => {
     render(<Badge variant="secondary">Secondary Badge</Badge>);
-    const badge = screen.getByText('Secondary Badge');
+    const badge = getBadgeElement('Secondary Badge');
     expect(badge).toHaveClass('bg-gray-600', 'text-white');
   });
 
   it('applies outline style when outline is true', () => {
     render(<Badge variant="success" outline>Outline Badge</Badge>);
-    const badge = screen.getByText('Outline Badge');
+    const badge = getBadgeElement('Outline Badge');
     expect(badge).toHaveClass('border-2', 'bg-transparent', 'border-green-500', 'text-green-600');
   });
 
   it('applies small size classes', () => {
     render(<Badge size="sm">Small Badge</Badge>);
-    const badge = screen.getByText('Small Badge');
+    const badge = getBadgeElement('Small Badge');
     expect(badge).toHaveClass('px-2', 'py-0.5', 'text-xs');
   });
 
   it('applies medium size classes', () => {
     render(<Badge size="md">Medium Badge</Badge>);
-    const badge = screen.getByText('Medium Badge');
+    const badge = getBadgeElement('Medium Badge');
     expect(badge).toHaveClass('px-2.5', 'py-1', 'text-sm');
   });
 
   it('applies large size classes', () => {
     render(<Badge size="lg">Large Badge</Badge>);
-    const badge = screen.getByText('Large Badge');
+    const badge = getBadgeElement('Large Badge');
     expect(badge).toHaveClass('px-3', 'py-1.5', 'text-base');
   });
 
   it('applies rounded shape by default', () => {
     render(<Badge>Rounded Badge</Badge>);
-    const badge = screen.getByText('Rounded Badge');
+    const badge = getBadgeElement('Rounded Badge');
     expect(badge).toHaveClass('rounded-md');
   });
 
   it('applies pill shape classes', () => {
     render(<Badge shape="pill">Pill Badge</Badge>);
-    const badge = screen.getByText('Pill Badge');
+    const badge = getBadgeElement('Pill Badge');
     expect(badge).toHaveClass('rounded-full');
   });
 
   it('applies square shape classes', () => {
     render(<Badge shape="square">Square Badge</Badge>);
-    const badge = screen.getByText('Square Badge');
+    const badge = getBadgeElement('Square Badge');
     expect(badge).toHaveClass('rounded-none');
   });
 
   it('renders as dot when dot is true', () => {
     render(<Badge dot>Dot Badge</Badge>);
-    const badge = screen.getByLabelText('Badge indicator');
+    const badge = screen.getByLabelText('Dot Badge');
     expect(badge).toHaveClass('w-3', 'h-3', 'rounded-full');
     expect(screen.queryByText('Dot Badge')).not.toBeInTheDocument();
   });
@@ -108,7 +113,7 @@ describe('Badge', () => {
   });
 
   it('calls onRemove when remove button is clicked', () => {
-    const onRemove = jest.fn();
+    const onRemove = vi.fn();
     render(<Badge removable onRemove={onRemove}>Removable Badge</Badge>);
     
     fireEvent.click(screen.getByLabelText('Remove badge'));
@@ -117,7 +122,7 @@ describe('Badge', () => {
   });
 
   it('calls onClick when badge is clicked', () => {
-    const onClick = jest.fn();
+    const onClick = vi.fn();
     render(<Badge onClick={onClick}>Clickable Badge</Badge>);
     
     fireEvent.click(screen.getByText('Clickable Badge'));
@@ -126,7 +131,7 @@ describe('Badge', () => {
   });
 
   it('renders as button when onClick is provided', () => {
-    render(<Badge onClick={jest.fn()}>Button Badge</Badge>);
+    render(<Badge onClick={vi.fn()}>Button Badge</Badge>);
     const badge = screen.getByRole('button');
     expect(badge).toBeInTheDocument();
     expect(badge).toHaveAttribute('type', 'button');
@@ -140,7 +145,7 @@ describe('Badge', () => {
   });
 
   it('handles keyboard navigation with Enter key', () => {
-    const onClick = jest.fn();
+    const onClick = vi.fn();
     render(<Badge onClick={onClick}>Keyboard Badge</Badge>);
     
     const badge = screen.getByRole('button');
@@ -150,7 +155,7 @@ describe('Badge', () => {
   });
 
   it('handles keyboard navigation with Space key', () => {
-    const onClick = jest.fn();
+    const onClick = vi.fn();
     render(<Badge onClick={onClick}>Keyboard Badge</Badge>);
     
     const badge = screen.getByRole('button');
@@ -160,14 +165,14 @@ describe('Badge', () => {
   });
 
   it('applies disabled state correctly', () => {
-    const onClick = jest.fn();
+    const onClick = vi.fn();
     render(<Badge onClick={onClick} disabled>Disabled Badge</Badge>);
     
-    const badge = screen.getByText('Disabled Badge');
+    const badge = getBadgeElement('Disabled Badge');
     expect(badge).toHaveClass('opacity-50', 'cursor-not-allowed');
     expect(badge).toHaveAttribute('aria-disabled', 'true');
     
-    fireEvent.click(badge);
+    fireEvent.click(badge!);
     expect(onClick).not.toHaveBeenCalled();
   });
 
@@ -179,31 +184,31 @@ describe('Badge', () => {
 
   it('applies animated classes when animated is true', () => {
     render(<Badge animated>Animated Badge</Badge>);
-    const badge = screen.getByText('Animated Badge');
+    const badge = getBadgeElement('Animated Badge');
     expect(badge).toHaveClass('transition-all', 'duration-300', 'ease-in-out');
   });
 
   it('applies pulse animation when pulse is true', () => {
     render(<Badge pulse>Pulse Badge</Badge>);
-    const badge = screen.getByText('Pulse Badge');
+    const badge = getBadgeElement('Pulse Badge');
     expect(badge).toHaveClass('animate-pulse');
   });
 
   it('applies ping animation to dot when pulse is true', () => {
     render(<Badge dot pulse>Pulse Dot</Badge>);
-    const badge = screen.getByLabelText('Badge indicator');
+    const badge = screen.getByLabelText('Pulse Dot');
     expect(badge).toHaveClass('animate-ping');
   });
 
   it('applies border when bordered is true', () => {
     render(<Badge bordered>Bordered Badge</Badge>);
-    const badge = screen.getByText('Bordered Badge');
+    const badge = getBadgeElement('Bordered Badge');
     expect(badge).toHaveClass('border');
   });
 
   it('applies custom className', () => {
     render(<Badge className="custom-badge">Custom Badge</Badge>);
-    const badge = screen.getByText('Custom Badge');
+    const badge = getBadgeElement('Custom Badge');
     expect(badge).toHaveClass('custom-badge');
   });
 
@@ -228,8 +233,8 @@ describe('Badge', () => {
   });
 
   it('prevents remove button click from triggering badge click', () => {
-    const onClick = jest.fn();
-    const onRemove = jest.fn();
+    const onClick = vi.fn();
+    const onRemove = vi.fn();
     
     render(
       <Badge onClick={onClick} removable onRemove={onRemove}>
@@ -244,25 +249,25 @@ describe('Badge', () => {
   });
 
   it('applies focus styles when clickable', () => {
-    render(<Badge onClick={jest.fn()}>Clickable Badge</Badge>);
+    render(<Badge onClick={vi.fn()}>Clickable Badge</Badge>);
     const badge = screen.getByRole('button');
     expect(badge).toHaveClass('focus:outline-none', 'focus:ring-2', 'focus:ring-offset-2', 'focus:ring-blue-500');
   });
 
   it('does not apply focus styles when not clickable', () => {
     render(<Badge>Static Badge</Badge>);
-    const badge = screen.getByText('Static Badge');
+    const badge = getBadgeElement('Static Badge');
     expect(badge).not.toHaveClass('focus:outline-none');
   });
 
   it('sets tabIndex to -1 when disabled and clickable', () => {
-    render(<Badge onClick={jest.fn()} disabled>Disabled Clickable</Badge>);
-    const badge = screen.getByText('Disabled Clickable');
+    render(<Badge onClick={vi.fn()} disabled>Disabled Clickable</Badge>);
+    const badge = getBadgeElement('Disabled Clickable');
     expect(badge).toHaveAttribute('tabindex', '-1');
   });
 
   it('sets tabIndex to 0 when clickable and not disabled', () => {
-    render(<Badge onClick={jest.fn()}>Clickable Badge</Badge>);
+    render(<Badge onClick={vi.fn()}>Clickable Badge</Badge>);
     const badge = screen.getByRole('button');
     expect(badge).toHaveAttribute('tabindex', '0');
   });
@@ -274,7 +279,7 @@ describe('Badge', () => {
   });
 
   it('does not handle keyboard events when disabled', () => {
-    const onClick = jest.fn();
+    const onClick = vi.fn();
     render(<Badge onClick={onClick} disabled>Disabled Badge</Badge>);
     
     const badge = screen.getByText('Disabled Badge');
@@ -291,13 +296,13 @@ describe('Badge', () => {
 
   it('applies hover styles for interactive variants', () => {
     render(<Badge variant="success">Success Badge</Badge>);
-    const badge = screen.getByText('Success Badge');
+    const badge = getBadgeElement('Success Badge');
     expect(badge).toHaveClass('hover:bg-green-600');
   });
 
   it('applies hover styles for outline variants', () => {
     render(<Badge variant="success" outline>Outline Success Badge</Badge>);
-    const badge = screen.getByText('Outline Success Badge');
+    const badge = getBadgeElement('Outline Success Badge');
     expect(badge).toHaveClass('hover:bg-green-50');
   });
 });

@@ -12,7 +12,7 @@ interface BadgeProps {
   removable?: boolean;
   onRemove?: () => void;
   className?: string;
-  onClick?: () => void;
+  onClick?: (event: React.MouseEvent) => void;
   href?: string;
   disabled?: boolean;
   animated?: boolean;
@@ -126,12 +126,16 @@ export const Badge: React.FC<BadgeProps> = ({
     
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
-      onClick?.(event as any);
+      onClick?.(event as any as React.MouseEvent);
     }
   };
 
   const isClickable = !!(onClick || href);
-  const Element = href && !disabled ? 'a' : isClickable ? 'button' : 'span';
+  // If Badge is clickable AND has removable button, use div to avoid nested buttons
+  const hasRemoveButton = removable;
+  const Element = href && !disabled ? 'a' : 
+                  (isClickable && hasRemoveButton) ? 'div' :
+                  isClickable ? 'button' : 'span';
 
   const badgeClasses = `
     inline-flex items-center justify-center gap-1 font-medium transition-colors duration-200
@@ -156,7 +160,9 @@ export const Badge: React.FC<BadgeProps> = ({
     elementProps.href = href;
     elementProps.role = 'link';
   } else if (isClickable) {
-    elementProps.type = 'button';
+    if (Element === 'button') {
+      elementProps.type = 'button';
+    }
     elementProps.role = 'button';
     elementProps.tabIndex = disabled ? -1 : 0;
   }
