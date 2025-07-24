@@ -18,7 +18,6 @@ class TestTaskAPI:
 
     def teardown_method(self):
         """Clean up after tests."""
-        pass
 
     def test_create_task_api(
         self, client: TestClient, test_user: User, user_token: str, db_session: Session
@@ -182,7 +181,6 @@ class TestTaskAPIFilters:
 
     def teardown_method(self):
         """Clean up after tests."""
-        pass
 
     def test_filter_by_status(self):
         """Test filtering tasks by status."""
@@ -263,7 +261,6 @@ class TestTaskAPIPagination:
 
     def teardown_method(self):
         """Clean up after tests."""
-        pass
 
     def test_pagination_default(self):
         """Test default pagination settings."""
@@ -320,7 +317,6 @@ class TestTaskAPISorting:
 
     def teardown_method(self):
         """Clean up after tests."""
-        pass
 
     def test_sort_by_created_at(self):
         """Test sorting by creation date."""

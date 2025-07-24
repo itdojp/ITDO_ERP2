@@ -26,7 +26,7 @@ from app.schemas.expense import (
 
 
 class ExpenseService:
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: AsyncSession) -> dict:
         self.db = db
 
     async def create_expense(
@@ -406,13 +406,10 @@ class ExpenseService:
         prefix = f"EXP{now.year:04d}{now.month:02d}"
 
         # Get latest number for this prefix
-        query = (
-            select(func.max(Expense.expense_number))
-            .where(
-                and_(
-                    Expense.organization_id == organization_id,
-                    Expense.expense_number.like(f"{prefix}%"),
-                )
+        query = select(func.max(Expense.expense_number)).where(
+            and_(
+                Expense.organization_id == organization_id,
+                Expense.expense_number.like(f"{prefix}%"),
             )
         )
 
@@ -445,42 +442,46 @@ class ExpenseService:
             )
         elif expense.amount <= Decimal("50000"):
             # 10,001 - 50,000 JPY: Department manager approval
-            flows_to_create.extend([
-                ExpenseApprovalFlow(
-                    expense_id=expense.id,
-                    approver_id=expense.employee_id,  # Simplified: Level 1
-                    approval_level=1,
-                    is_required=True,
-                ),
-                ExpenseApprovalFlow(
-                    expense_id=expense.id,
-                    approver_id=expense.employee_id,  # Simplified: Level 2
-                    approval_level=2,
-                    is_required=True,
-                ),
-            ])
+            flows_to_create.extend(
+                [
+                    ExpenseApprovalFlow(
+                        expense_id=expense.id,
+                        approver_id=expense.employee_id,  # Simplified: Level 1
+                        approval_level=1,
+                        is_required=True,
+                    ),
+                    ExpenseApprovalFlow(
+                        expense_id=expense.id,
+                        approver_id=expense.employee_id,  # Simplified: Level 2
+                        approval_level=2,
+                        is_required=True,
+                    ),
+                ]
+            )
         else:
             # Over 50,000 JPY: Executive approval required
-            flows_to_create.extend([
-                ExpenseApprovalFlow(
-                    expense_id=expense.id,
-                    approver_id=expense.employee_id,  # Simplified: Level 1
-                    approval_level=1,
-                    is_required=True,
-                ),
-                ExpenseApprovalFlow(
-                    expense_id=expense.id,
-                    approver_id=expense.employee_id,  # Simplified: Level 2
-                    approval_level=2,
-                    is_required=True,
-                ),
-                ExpenseApprovalFlow(
-                    expense_id=expense.id,
-                    approver_id=expense.employee_id,  # Simplified: Level 3
-                    approval_level=3,
-                    is_required=True,
-                ),
-            ])
+            flows_to_create.extend(
+                [
+                    ExpenseApprovalFlow(
+                        expense_id=expense.id,
+                        approver_id=expense.employee_id,  # Simplified: Level 1
+                        approval_level=1,
+                        is_required=True,
+                    ),
+                    ExpenseApprovalFlow(
+                        expense_id=expense.id,
+                        approver_id=expense.employee_id,  # Simplified: Level 2
+                        approval_level=2,
+                        is_required=True,
+                    ),
+                    ExpenseApprovalFlow(
+                        expense_id=expense.id,
+                        approver_id=expense.employee_id,  # Simplified: Level 3
+                        approval_level=3,
+                        is_required=True,
+                    ),
+                ]
+            )
 
         # Add flows to database
         for flow in flows_to_create:
@@ -545,4 +546,3 @@ class ExpenseService:
         await self.db.commit()
 
         return True
-
