@@ -35,7 +35,7 @@ from app.types import OrganizationId, RoleId, UserId
 class RoleService:
     """Service for managing roles and permissions."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         """Initialize service with database session."""
         self.db = db
         self.repository = RoleRepository(Role, db)

@@ -2,7 +2,7 @@
 
 from typing import List, Optional
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field
 
 from app.schemas.base import BaseResponse
 
@@ -25,8 +25,8 @@ class ExpenseCategoryBase(BaseModel):
     sort_order: int = Field(0, description="Sort order")
     parent_id: Optional[int] = Field(None, description="Parent category ID")
 
-    @validator("category_type")
-    def validate_category_type(cls, v):
+    @field_validator("category_type")
+    def validate_category_type(cls, v) -> dict:
         allowed_types = ["fixed", "variable", "capital"]
         if v not in allowed_types:
             raise ValueError(
@@ -34,8 +34,8 @@ class ExpenseCategoryBase(BaseModel):
             )
         return v
 
-    @validator("code")
-    def validate_code(cls, v):
+    @field_validator("code")
+    def validate_code(cls, v) -> dict:
         # Code should be uppercase alphanumeric with underscores
         import re
 
@@ -49,7 +49,6 @@ class ExpenseCategoryBase(BaseModel):
 class ExpenseCategoryCreate(ExpenseCategoryBase):
     """Schema for creating expense categories."""
 
-    pass
 
 
 class ExpenseCategoryUpdate(BaseModel):
@@ -78,8 +77,8 @@ class ExpenseCategoryUpdate(BaseModel):
     sort_order: Optional[int] = Field(None, description="Sort order")
     parent_id: Optional[int] = Field(None, description="Parent category ID")
 
-    @validator("category_type")
-    def validate_category_type(cls, v):
+    @field_validator("category_type")
+    def validate_category_type(cls, v) -> dict:
         if v is not None:
             allowed_types = ["fixed", "variable", "capital"]
             if v not in allowed_types:
@@ -88,8 +87,8 @@ class ExpenseCategoryUpdate(BaseModel):
                 )
         return v
 
-    @validator("code")
-    def validate_code(cls, v):
+    @field_validator("code")
+    def validate_code(cls, v) -> dict:
         if v is not None:
             import re
 
@@ -142,6 +141,24 @@ class ExpenseCategoryTree(BaseModel):
         from_attributes = True
 
 
+<<<<<<< HEAD
+# Alias for backward compatibility
+ExpenseCategoryTreeResponse = ExpenseCategoryTree
+=======
+class ExpenseCategoryTreeResponse(BaseModel):
+    """Schema for expense category tree response."""
+
+    tree: List[ExpenseCategoryTree] = Field(
+        default_factory=list, description="Category tree structure"
+    )
+    total_categories: int = Field(..., description="Total number of categories")
+    max_depth: int = Field(..., description="Maximum tree depth")
+
+    class Config:
+        from_attributes = True
+>>>>>>> main
+
+
 class ExpenseCategoryListResponse(BaseModel):
     """Schema for expense category list responses."""
 
@@ -178,14 +195,26 @@ class ExpenseCategoryMove(BaseModel):
     new_sort_order: Optional[int] = Field(None, description="New sort order")
 
 
+class ExpenseCategoryBulkCreate(BaseModel):
+    """Schema for bulk creating expense categories."""
+
+    categories: List[ExpenseCategoryCreate] = Field(..., description="Categories to create")
+
+    @validator("categories")
+    def validate_categories(cls, v) -> dict:
+        if not v:
+            raise ValueError("At least one category must be provided")
+        return v
+
+
 class ExpenseCategoryBulkUpdate(BaseModel):
     """Schema for bulk updating expense categories."""
 
     category_ids: List[int] = Field(..., description="Category IDs to update")
     updates: ExpenseCategoryUpdate = Field(..., description="Updates to apply")
 
-    @validator("category_ids")
-    def validate_category_ids(cls, v):
+    @field_validator("category_ids")
+    def validate_category_ids(cls, v) -> dict:
         if not v:
             raise ValueError("At least one category ID must be provided")
         return v
@@ -255,8 +284,8 @@ class ExpenseCategorySearch(BaseModel):
         False, description="Include child categories in results"
     )
 
-    @validator("category_type")
-    def validate_category_type(cls, v):
+    @field_validator("category_type")
+    def validate_category_type(cls, v) -> dict:
         if v is not None:
             allowed_types = ["fixed", "variable", "capital"]
             if v not in allowed_types:
@@ -276,8 +305,8 @@ class ExpenseCategoryImport(BaseModel):
         False, description="Whether to overwrite existing categories"
     )
 
-    @validator("categories")
-    def validate_categories(cls, v):
+    @field_validator("categories")
+    def validate_categories(cls, v) -> dict:
         if not v:
             raise ValueError("At least one category must be provided")
         return v
@@ -290,8 +319,8 @@ class ExpenseCategoryExport(BaseModel):
     include_inactive: bool = Field(False, description="Include inactive categories")
     include_hierarchy: bool = Field(True, description="Include hierarchy information")
 
-    @validator("format")
-    def validate_format(cls, v):
+    @field_validator("format")
+    def validate_format(cls, v) -> dict:
         allowed_formats = ["csv", "json", "xlsx"]
         if v not in allowed_formats:
             raise ValueError(f"Format must be one of: {', '.join(allowed_formats)}")

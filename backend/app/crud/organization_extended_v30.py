@@ -1,20 +1,33 @@
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import or_, and_, func
-from typing import Optional, List, Dict, Any
-from datetime import datetime
 import uuid
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from app.models.organization_extended import Organization, Department, OrganizationAddress, OrganizationContact
-from app.schemas.organization_complete_v30 import (
-    OrganizationCreate, OrganizationUpdate, DepartmentCreate, DepartmentUpdate,
-    AddressCreate, ContactCreate
+from sqlalchemy import func, or_
+from sqlalchemy.orm import Session, joinedload
+
+from app.models.organization_extended import (
+    Department,
+    Organization,
+    OrganizationAddress,
+    OrganizationContact,
 )
+from app.schemas.organization_complete_v30 import (
+    AddressCreate,
+    ContactCreate,
+    DepartmentCreate,
+    DepartmentUpdate,
+    OrganizationCreate,
+    OrganizationUpdate,
+)
+
 
 class NotFoundError(Exception):
     pass
 
+
 class DuplicateError(Exception):
     pass
+
 
 class OrganizationCRUD:
     def __init__(self, db: Session):
@@ -32,7 +45,7 @@ class OrganizationCRUD:
         limit: int = 100,
         filters: Optional[Dict[str, Any]] = None,
         sort_by: str = "created_at",
-        sort_desc: bool = True
+        sort_desc: bool = True,
     ) -> tuple[List[Organization], int]:
         query = self.db.query(Organization)
 
@@ -41,7 +54,9 @@ class OrganizationCRUD:
             if filters.get("is_active") is not None:
                 query = query.filter(Organization.is_active == filters["is_active"])
             if filters.get("organization_type"):
-                query = query.filter(Organization.organization_type == filters["organization_type"])
+                query = query.filter(
+                    Organization.organization_type == filters["organization_type"]
+                )
             if filters.get("industry"):
                 query = query.filter(Organization.industry == filters["industry"])
             if filters.get("country"):
@@ -54,7 +69,7 @@ class OrganizationCRUD:
                     or_(
                         Organization.name.ilike(search),
                         Organization.code.ilike(search),
-                        Organization.description.ilike(search)
+                        Organization.description.ilike(search),
                     )
                 )
 
@@ -81,7 +96,7 @@ class OrganizationCRUD:
         parent = None
         level = 0
         path = f"/{org_in.code}"
-        
+
         if org_in.parent_id:
             parent = self.get_by_id(org_in.parent_id)
             if not parent:
@@ -116,7 +131,7 @@ class OrganizationCRUD:
             annual_revenue=org_in.annual_revenue,
             employee_count=org_in.employee_count,
             established_date=org_in.established_date,
-            settings=org_in.settings
+            settings=org_in.settings,
         )
 
         self.db.add(db_org)
@@ -147,10 +162,12 @@ class OrganizationCRUD:
             raise NotFoundError(f"Organization {org_id} not found")
 
         # 子組織の確認
-        children_count = self.db.query(func.count(Organization.id)).filter(
-            Organization.parent_id == org_id
-        ).scalar()
-        
+        children_count = (
+            self.db.query(func.count(Organization.id))
+            .filter(Organization.parent_id == org_id)
+            .scalar()
+        )
+
         if children_count > 0:
             raise ValueError("Cannot delete organization with child organizations")
 
@@ -166,8 +183,7 @@ class OrganizationCRUD:
         return (
             self.db.query(Organization)
             .options(
-                joinedload(Organization.children),
-                joinedload(Organization.departments)
+                joinedload(Organization.children), joinedload(Organization.departments)
             )
             .filter(Organization.id == org_id)
             .first()
@@ -175,24 +191,28 @@ class OrganizationCRUD:
 
     def get_tree(self, parent_id: str = None) -> List[Organization]:
         """組織ツリー構造を取得"""
-        query = self.db.query(Organization).filter(Organization.is_active == True)
-        
+        query = self.db.query(Organization).filter(Organization.is_active)
+
         if parent_id:
             query = query.filter(Organization.parent_id == parent_id)
         else:
             query = query.filter(Organization.parent_id.is_(None))
-            
+
         return query.order_by(Organization.name).all()
 
     def get_statistics(self) -> Dict[str, Any]:
         """組織統計情報を取得"""
         total_orgs = self.db.query(func.count(Organization.id)).scalar()
-        active_orgs = self.db.query(func.count(Organization.id)).filter(
-            Organization.is_active == True
-        ).scalar()
-        headquarters_count = self.db.query(func.count(Organization.id)).filter(
-            Organization.is_headquarters == True
-        ).scalar()
+        active_orgs = (
+            self.db.query(func.count(Organization.id))
+            .filter(Organization.is_active)
+            .scalar()
+        )
+        headquarters_count = (
+            self.db.query(func.count(Organization.id))
+            .filter(Organization.is_headquarters)
+            .scalar()
+        )
 
         # タイプ別統計
         type_stats = {}
@@ -228,7 +248,8 @@ class OrganizationCRUD:
         total_employees = (
             self.db.query(func.sum(Organization.employee_count))
             .filter(Organization.employee_count.isnot(None))
-            .scalar() or 0
+            .scalar()
+            or 0
         )
 
         # 部署数合計
@@ -243,7 +264,7 @@ class OrganizationCRUD:
             "by_industry": industry_stats,
             "by_country": country_stats,
             "total_employees": total_employees,
-            "total_departments": total_departments or 0
+            "total_departments": total_departments or 0,
         }
 
 
@@ -259,7 +280,7 @@ class DepartmentCRUD:
         skip: int = 0,
         limit: int = 100,
         organization_id: Optional[str] = None,
-        filters: Optional[Dict[str, Any]] = None
+        filters: Optional[Dict[str, Any]] = None,
     ) -> tuple[List[Department], int]:
         query = self.db.query(Department)
 
@@ -270,14 +291,13 @@ class DepartmentCRUD:
             if filters.get("is_active") is not None:
                 query = query.filter(Department.is_active == filters["is_active"])
             if filters.get("department_type"):
-                query = query.filter(Department.department_type == filters["department_type"])
+                query = query.filter(
+                    Department.department_type == filters["department_type"]
+                )
             if filters.get("search"):
                 search = f"%{filters['search']}%"
                 query = query.filter(
-                    or_(
-                        Department.name.ilike(search),
-                        Department.code.ilike(search)
-                    )
+                    or_(Department.name.ilike(search), Department.code.ilike(search))
                 )
 
         total = query.count()
@@ -287,7 +307,11 @@ class DepartmentCRUD:
 
     def create(self, dept_in: DepartmentCreate) -> Department:
         # 組織の存在確認
-        org = self.db.query(Organization).filter(Organization.id == dept_in.organization_id).first()
+        org = (
+            self.db.query(Organization)
+            .filter(Organization.id == dept_in.organization_id)
+            .first()
+        )
         if not org:
             raise NotFoundError("Organization not found")
 
@@ -296,7 +320,7 @@ class DepartmentCRUD:
             self.db.query(Department)
             .filter(
                 Department.organization_id == dept_in.organization_id,
-                Department.code == dept_in.code
+                Department.code == dept_in.code,
             )
             .first()
         )
@@ -315,7 +339,7 @@ class DepartmentCRUD:
             budget=dept_in.budget,
             location=dept_in.location,
             manager_id=dept_in.manager_id,
-            settings=dept_in.settings
+            settings=dept_in.settings,
         )
 
         self.db.add(db_dept)
@@ -361,7 +385,9 @@ class AddressCRUD:
         return (
             self.db.query(OrganizationAddress)
             .filter(OrganizationAddress.organization_id == org_id)
-            .order_by(OrganizationAddress.is_primary.desc(), OrganizationAddress.created_at)
+            .order_by(
+                OrganizationAddress.is_primary.desc(), OrganizationAddress.created_at
+            )
             .all()
         )
 
@@ -370,7 +396,7 @@ class AddressCRUD:
         if address_in.is_primary:
             self.db.query(OrganizationAddress).filter(
                 OrganizationAddress.organization_id == address_in.organization_id,
-                OrganizationAddress.is_primary == True
+                OrganizationAddress.is_primary,
             ).update({"is_primary": False})
 
         db_address = OrganizationAddress(
@@ -389,7 +415,7 @@ class AddressCRUD:
             email=address_in.email,
             is_primary=address_in.is_primary,
             latitude=address_in.latitude,
-            longitude=address_in.longitude
+            longitude=address_in.longitude,
         )
 
         self.db.add(db_address)
@@ -407,7 +433,9 @@ class ContactCRUD:
         return (
             self.db.query(OrganizationContact)
             .filter(OrganizationContact.organization_id == org_id)
-            .order_by(OrganizationContact.is_primary.desc(), OrganizationContact.created_at)
+            .order_by(
+                OrganizationContact.is_primary.desc(), OrganizationContact.created_at
+            )
             .all()
         )
 
@@ -416,7 +444,7 @@ class ContactCRUD:
         if contact_in.is_primary:
             self.db.query(OrganizationContact).filter(
                 OrganizationContact.organization_id == contact_in.organization_id,
-                OrganizationContact.is_primary == True
+                OrganizationContact.is_primary,
             ).update({"is_primary": False})
 
         db_contact = OrganizationContact(
@@ -430,7 +458,7 @@ class ContactCRUD:
             mobile=contact_in.mobile,
             contact_type=contact_in.contact_type,
             is_primary=contact_in.is_primary,
-            notes=contact_in.notes
+            notes=contact_in.notes,
         )
 
         self.db.add(db_contact)

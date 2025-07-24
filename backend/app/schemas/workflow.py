@@ -210,13 +210,9 @@ class WorkflowConnectionCreate(WorkflowConnectionBase):
 class WorkflowInstanceCreate(WorkflowInstanceBase):
     """Schema for creating a workflow instance."""
 
-    pass
-
 
 class WorkflowTaskCreate(WorkflowTaskBase):
     """Schema for creating a workflow task."""
-
-    pass
 
 
 # Update schemas

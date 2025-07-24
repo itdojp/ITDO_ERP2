@@ -18,7 +18,7 @@ from app.schemas.customer import (
 
 
 class CustomerActivityService:
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: AsyncSession) -> dict:
         self.db = db
 
     async def get_activities(
