@@ -23,7 +23,7 @@ from app.types import DepartmentId, OrganizationId, UserId
 class DepartmentService:
     """Service for department business logic."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         """Initialize service with database session."""
         self.db = db
         self.repository = DepartmentRepository(Department, db)

@@ -36,7 +36,67 @@ async def get_customers(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """顧客一覧取得"""
+    """
+    Retrieve a paginated list of customers with advanced filtering capabilities.
+
+    This endpoint provides comprehensive customer data with multiple filtering options:
+    - Filter by customer status (active, inactive, prospect, archived)
+    - Filter by customer type (individual, corporate, government, non-profit)
+    - Filter by industry sector
+    - Filter by assigned sales representative
+    - Full-text search across customer names and descriptions
+
+    **Query Parameters:**
+    - `status`: Customer status filter (active, inactive, prospect, archived)
+    - `customer_type`: Type of customer (individual, corporate, government)
+    - `industry`: Industry sector (technology, healthcare, finance, etc.)
+    - `sales_rep_id`: ID of assigned sales representative
+    - `search`: Text search across customer names and descriptions
+    - `skip`: Number of records to skip for pagination (default: 0)
+    - `limit`: Maximum number of records to return (1-1000, default: 100)
+
+    **Example Request:**
+    ```
+    GET /customers/?status=active&industry=technology&limit=50&skip=0
+    ```
+
+    **Response Example:**
+    ```json
+    [
+        {
+            "id": 1,
+            "name": "Tech Innovations Inc.",
+            "customer_code": "CUST-001",
+            "customer_type": "corporate",
+            "industry": "technology",
+            "status": "active",
+            "contact_email": "contact@techinnovations.com",
+            "phone": "+1-555-0123",
+            "address": {
+                "street": "123 Tech Street",
+                "city": "San Francisco",
+                "state": "CA",
+                "postal_code": "94105",
+                "country": "USA"
+            },
+            "sales_rep": {
+                "id": 5,
+                "name": "Sarah Johnson",
+                "email": "sarah.johnson@company.com"
+            },
+            "total_revenue": 125000.00,
+            "last_interaction": "2024-03-15T14:30:00Z",
+            "created_at": "2023-06-01T09:00:00Z",
+            "updated_at": "2024-03-15T14:30:00Z"
+        }
+    ]
+    ```
+
+    **Error Responses:**
+    - `400 Bad Request`: Invalid query parameters
+    - `401 Unauthorized`: Authentication required
+    - `422 Unprocessable Entity`: Parameter validation errors
+    """
     service = CustomerService(db)
     customers = await service.get_customers(
         organization_id=current_user.organization_id,
@@ -75,7 +135,82 @@ async def create_customer(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """顧客新規作成"""
+    """
+    Create a new customer record with comprehensive profile information.
+
+    This endpoint creates a complete customer profile including:
+    - Basic company/individual information
+    - Contact details and communication preferences
+    - Industry classification and business details
+    - Sales representative assignment
+    - Initial relationship status and notes
+
+    **Request Body Example:**
+    ```json
+    {
+        "name": "Global Manufacturing Corp",
+        "customer_type": "corporate",
+        "industry": "manufacturing",
+        "contact_email": "procurement@globalmanuf.com",
+        "phone": "+1-555-0199",
+        "website": "https://www.globalmanuf.com",
+        "address": {
+            "street": "456 Industrial Way",
+            "city": "Detroit",
+            "state": "MI",
+            "postal_code": "48201",
+            "country": "USA"
+        },
+        "billing_address": {
+            "street": "789 Finance Blvd",
+            "city": "Detroit",
+            "state": "MI",
+            "postal_code": "48202",
+            "country": "USA"
+        },
+        "sales_rep_id": 3,
+        "annual_revenue": 5000000.00,
+        "employee_count": 250,
+        "payment_terms": "NET_30",
+        "credit_limit": 100000.00,
+        "tags": ["enterprise", "manufacturing", "priority"]
+    }
+    ```
+
+    **Response Example:**
+    ```json
+    {
+        "id": 42,
+        "customer_code": "CUST-042",
+        "name": "Global Manufacturing Corp",
+        "customer_type": "corporate",
+        "industry": "manufacturing",
+        "status": "prospect",
+        "contact_email": "procurement@globalmanuf.com",
+        "phone": "+1-555-0199",
+        "website": "https://www.globalmanuf.com",
+        "sales_rep": {
+            "id": 3,
+            "name": "Michael Chen",
+            "email": "michael.chen@company.com"
+        },
+        "created_at": "2024-03-20T10:15:30Z",
+        "updated_at": "2024-03-20T10:15:30Z"
+    }
+    ```
+
+    **Validation Rules:**
+    - `name`: Required, 1-255 characters
+    - `contact_email`: Must be valid email format
+    - `customer_type`: Must be one of: individual, corporate, government, non-profit
+    - `phone`: Optional, valid phone number format
+    - `industry`: Must be from predefined industry list
+
+    **Error Responses:**
+    - `400 Bad Request`: Invalid customer data or duplicate email
+    - `401 Unauthorized`: Authentication required
+    - `422 Unprocessable Entity`: Validation errors
+    """
     service = CustomerService(db)
     customer = await service.create_customer(
         customer_data, current_user.organization_id

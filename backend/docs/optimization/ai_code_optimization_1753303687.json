@@ -1,0 +1,261 @@
+{
+  "timestamp": "2025-07-24T05:47:37.964289",
+  "code_improvements": [
+    {
+      "type": "complexity_reduction",
+      "file": "app/services/financial_reports_service.py",
+      "function": "generate_budget_performance_report",
+      "issue": "high_cyclomatic_complexity",
+      "current_value": 11,
+      "recommendation": "Break down into smaller functions",
+      "improvement_strategy": "extract_methods",
+      "estimated_impact": "Reduce complexity from 11 to <10"
+    },
+    {
+      "type": "complexity_reduction",
+      "file": "app/services/permission_inheritance.py",
+      "function": "get_effective_permissions_with_source",
+      "issue": "high_cyclomatic_complexity",
+      "current_value": 11,
+      "recommendation": "Break down into smaller functions",
+      "improvement_strategy": "extract_methods",
+      "estimated_impact": "Reduce complexity from 11 to <10"
+    },
+    {
+      "type": "complexity_reduction",
+      "file": "app/services/permission_inheritance.py",
+      "function": "collect_permissions_with_source",
+      "issue": "high_cyclomatic_complexity",
+      "current_value": 11,
+      "recommendation": "Break down into smaller functions",
+      "improvement_strategy": "extract_methods",
+      "estimated_impact": "Reduce complexity from 11 to <10"
+    },
+    {
+      "type": "complexity_reduction",
+      "file": "app/services/permission.py",
+      "function": "get_user_permissions",
+      "issue": "high_cyclomatic_complexity",
+      "current_value": 11,
+      "recommendation": "Break down into smaller functions",
+      "improvement_strategy": "extract_methods",
+      "estimated_impact": "Reduce complexity from 11 to <10"
+    },
+    {
+      "type": "complexity_reduction",
+      "file": "app/services/multi_tenant.py",
+      "function": "approve_transfer_request",
+      "issue": "high_cyclomatic_complexity",
+      "current_value": 12,
+      "recommendation": "Break down into smaller functions",
+      "improvement_strategy": "extract_methods",
+      "estimated_impact": "Reduce complexity from 12 to <10"
+    },
+    {
+      "type": "complexity_reduction",
+      "file": "app/services/role_permission_ui.py",
+      "function": "update_role_permissions",
+      "issue": "high_cyclomatic_complexity",
+      "current_value": 16,
+      "recommendation": "Break down into smaller functions",
+      "improvement_strategy": "extract_methods",
+      "estimated_impact": "Reduce complexity from 16 to <10"
+    },
+    {
+      "type": "complexity_reduction",
+      "file": "app/services/user_profile.py",
+      "function": "_user_to_profile_response",
+      "issue": "high_cyclomatic_complexity",
+      "current_value": 11,
+      "recommendation": "Break down into smaller functions",
+      "improvement_strategy": "extract_methods",
+      "estimated_impact": "Reduce complexity from 11 to <10"
+    },
+    {
+      "type": "complexity_reduction",
+      "file": "app/services/task.py",
+      "function": "update_task_status",
+      "issue": "high_cyclomatic_complexity",
+      "current_value": 12,
+      "recommendation": "Break down into smaller functions",
+      "improvement_strategy": "extract_methods",
+      "estimated_impact": "Reduce complexity from 12 to <10"
+    },
+    {
+      "type": "complexity_reduction",
+      "file": "app/services/task.py",
+      "function": "assign_user",
+      "issue": "high_cyclomatic_complexity",
+      "current_value": 13,
+      "recommendation": "Break down into smaller functions",
+      "improvement_strategy": "extract_methods",
+      "estimated_impact": "Reduce complexity from 13 to <10"
+    },
+    {
+      "type": "complexity_reduction",
+      "file": "app/services/task.py",
+      "function": "unassign_user",
+      "issue": "high_cyclomatic_complexity",
+      "current_value": 11,
+      "recommendation": "Break down into smaller functions",
+      "improvement_strategy": "extract_methods",
+      "estimated_impact": "Reduce complexity from 11 to <10"
+    },
+    {
+      "type": "complexity_reduction",
+      "file": "app/services/task.py",
+      "function": "set_due_date",
+      "issue": "high_cyclomatic_complexity",
+      "current_value": 11,
+      "recommendation": "Break down into smaller functions",
+      "improvement_strategy": "extract_methods",
+      "estimated_impact": "Reduce complexity from 11 to <10"
+    },
+    {
+      "type": "complexity_reduction",
+      "file": "app/services/task.py",
+      "function": "set_priority",
+      "issue": "high_cyclomatic_complexity",
+      "current_value": 12,
+      "recommendation": "Break down into smaller functions",
+      "improvement_strategy": "extract_methods",
+      "estimated_impact": "Reduce complexity from 12 to <10"
+    },
+    {
+      "type": "complexity_reduction",
+      "file": "app/services/expense_service.py",
+      "function": "get_expenses",
+      "issue": "high_cyclomatic_complexity",
+      "current_value": 12,
+      "recommendation": "Break down into smaller functions",
+      "improvement_strategy": "extract_methods",
+      "estimated_impact": "Reduce complexity from 12 to <10"
+    },
+    {
+      "type": "complexity_reduction",
+      "file": "app/services/expense_service.py",
+      "function": "get_expense_summary",
+      "issue": "high_cyclomatic_complexity",
+      "current_value": 13,
+      "recommendation": "Break down into smaller functions",
+      "improvement_strategy": "extract_methods",
+      "estimated_impact": "Reduce complexity from 13 to <10"
+    },
+    {
+      "type": "complexity_reduction",
+      "file": "app/services/user.py",
+      "function": "create_user",
+      "issue": "high_cyclomatic_complexity",
+      "current_value": 11,
+      "recommendation": "Break down into smaller functions",
+      "improvement_strategy": "extract_methods",
+      "estimated_impact": "Reduce complexity from 11 to <10"
+    },
+    {
+      "type": "complexity_reduction",
+      "file": "app/core/config.py",
+      "function": "assemble_cors_origins",
+      "issue": "high_cyclomatic_complexity",
+      "current_value": 11,
+      "recommendation": "Break down into smaller functions",
+      "improvement_strategy": "extract_methods",
+      "estimated_impact": "Reduce complexity from 11 to <10"
+    },
+    {
+      "type": "complexity_reduction",
+      "file": "app/api/base.py",
+      "function": "_setup_routes",
+      "issue": "high_cyclomatic_complexity",
+      "current_value": 24,
+      "recommendation": "Break down into smaller functions",
+      "improvement_strategy": "extract_methods",
+      "estimated_impact": "Reduce complexity from 24 to <10"
+    },
+    {
+      "type": "complexity_reduction",
+      "file": "app/repositories/task.py",
+      "function": "search_tasks",
+      "issue": "high_cyclomatic_complexity",
+      "current_value": 24,
+      "recommendation": "Break down into smaller functions",
+      "improvement_strategy": "extract_methods",
+      "estimated_impact": "Reduce complexity from 24 to <10"
+    },
+    {
+      "type": "complexity_reduction",
+      "file": "app/repositories/task.py",
+      "function": "get_task_statistics",
+      "issue": "high_cyclomatic_complexity",
+      "current_value": 15,
+      "recommendation": "Break down into smaller functions",
+      "improvement_strategy": "extract_methods",
+      "estimated_impact": "Reduce complexity from 15 to <10"
+    },
+    {
+      "type": "complexity_reduction",
+      "file": "app/repositories/base.py",
+      "function": "search",
+      "issue": "high_cyclomatic_complexity",
+      "current_value": 11,
+      "recommendation": "Break down into smaller functions",
+      "improvement_strategy": "extract_methods",
+      "estimated_impact": "Reduce complexity from 11 to <10"
+    },
+    {
+      "type": "complexity_reduction",
+      "file": "app/api/v1/departments.py",
+      "function": "update_department",
+      "issue": "high_cyclomatic_complexity",
+      "current_value": 12,
+      "recommendation": "Break down into smaller functions",
+      "improvement_strategy": "extract_methods",
+      "estimated_impact": "Reduce complexity from 12 to <10"
+    },
+    {
+      "type": "complexity_reduction",
+      "file": "app/api/v1/roles.py",
+      "function": "update_role",
+      "issue": "high_cyclomatic_complexity",
+      "current_value": 12,
+      "recommendation": "Break down into smaller functions",
+      "improvement_strategy": "extract_methods",
+      "estimated_impact": "Reduce complexity from 12 to <10"
+    },
+    {
+      "type": "complexity_reduction",
+      "file": "app/api/v1/endpoints/monitoring/performance.py",
+      "function": "get_performance_summary",
+      "issue": "high_cyclomatic_complexity",
+      "current_value": 13,
+      "recommendation": "Break down into smaller functions",
+      "improvement_strategy": "extract_methods",
+      "estimated_impact": "Reduce complexity from 13 to <10"
+    },
+    {
+      "type": "code_deduplication",
+      "issue": "code_duplication",
+      "recommendation": "Reduce code duplication by extracting common functionality into shared utilities",
+      "improvement_strategy": "extract_common_utilities",
+      "estimated_impact": "Reduce codebase size by 5-15%"
+    },
+    {
+      "type": "database_optimization",
+      "issue": "n_plus_one_queries",
+      "recommendation": "Implement eager loading for database queries to eliminate N+1 problems",
+      "improvement_strategy": "eager_loading",
+      "estimated_impact": "50-90% reduction in database queries"
+    },
+    {
+      "type": "caching_implementation",
+      "issue": "repeated_computations",
+      "recommendation": "Implement response caching for frequently accessed data",
+      "improvement_strategy": "redis_caching",
+      "estimated_impact": "30-70% response time improvement"
+    }
+  ],
+  "performance_optimizations": [],
+  "security_enhancements": [],
+  "type_safety_fixes": [],
+  "refactoring_suggestions": [],
+  "architectural_improvements": []
+}
