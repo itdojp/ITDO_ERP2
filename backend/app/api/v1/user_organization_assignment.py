@@ -3,7 +3,7 @@ User Organization and Department Assignment API endpoints for Issue #42.
 ユーザー組織・部門割り当てAPIエンドポイント（Issue #42）
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,12 +12,12 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.models.user import User
 from app.schemas.user_assignment import (
+    BulkUserAssignmentRequest,
+    DepartmentUsersResponse,
+    OrganizationUsersResponse,
     UserAssignmentCreate,
     UserAssignmentResponse,
     UserAssignmentUpdate,
-    BulkUserAssignmentRequest,
-    OrganizationUsersResponse,
-    DepartmentUsersResponse,
 )
 from app.services.user_assignment_service import UserAssignmentService
 
@@ -27,7 +27,9 @@ router = APIRouter(prefix="/user-assignments", tags=["user-assignments"])
 @router.get("/organizations/{organization_id}/users")
 async def get_organization_users(
     organization_id: int = Path(..., description="Organization ID"),
-    include_departments: bool = Query(True, description="Include department information"),
+    include_departments: bool = Query(
+        True, description="Include department information"
+    ),
     include_inactive: bool = Query(False, description="Include inactive users"),
     role_filter: Optional[str] = Query(None, description="Filter by user role"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of results"),
@@ -40,7 +42,7 @@ async def get_organization_users(
     組織に割り当てられたユーザー一覧を取得
     """
     service = UserAssignmentService(db)
-    
+
     try:
         result = await service.get_organization_users(
             organization_id=organization_id,
@@ -48,28 +50,29 @@ async def get_organization_users(
             include_inactive=include_inactive,
             role_filter=role_filter,
             limit=limit,
-            offset=offset
+            offset=offset,
         )
-        
+
         if not result:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Organization not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found"
             )
-        
+
         return result
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve organization users: {str(e)}"
+            detail=f"Failed to retrieve organization users: {str(e)}",
         )
 
 
 @router.get("/departments/{department_id}/users")
 async def get_department_users(
     department_id: int = Path(..., description="Department ID"),
-    include_sub_departments: bool = Query(False, description="Include users from sub-departments"),
+    include_sub_departments: bool = Query(
+        False, description="Include users from sub-departments"
+    ),
     include_inactive: bool = Query(False, description="Include inactive users"),
     role_filter: Optional[str] = Query(None, description="Filter by user role"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of results"),
@@ -82,7 +85,7 @@ async def get_department_users(
     部門に割り当てられたユーザー一覧を取得
     """
     service = UserAssignmentService(db)
-    
+
     try:
         result = await service.get_department_users(
             department_id=department_id,
@@ -90,21 +93,20 @@ async def get_department_users(
             include_inactive=include_inactive,
             role_filter=role_filter,
             limit=limit,
-            offset=offset
+            offset=offset,
         )
-        
+
         if not result:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Department not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Department not found"
             )
-        
+
         return result
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve department users: {str(e)}"
+            detail=f"Failed to retrieve department users: {str(e)}",
         )
 
 
@@ -119,31 +121,30 @@ async def assign_user_to_organization_department(
     ユーザーを組織・部門に割り当て
     """
     # Check permissions - only admins or HR can assign users
-    if not (current_user.is_superuser or "hr_admin" in [role.name for role in current_user.roles]):
+    if not (
+        current_user.is_superuser
+        or "hr_admin" in [role.name for role in current_user.roles]
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions to assign users"
+            detail="Insufficient permissions to assign users",
         )
-    
+
     service = UserAssignmentService(db)
-    
+
     try:
         result = await service.assign_user(
-            assignment=assignment,
-            assigned_by=current_user.id
+            assignment=assignment, assigned_by=current_user.id
         )
-        
+
         return result
-        
+
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to assign user: {str(e)}"
+            detail=f"Failed to assign user: {str(e)}",
         )
 
 
@@ -159,38 +160,37 @@ async def update_user_assignment(
     ユーザー割り当て情報の更新
     """
     # Check permissions
-    if not (current_user.is_superuser or "hr_admin" in [role.name for role in current_user.roles]):
+    if not (
+        current_user.is_superuser
+        or "hr_admin" in [role.name for role in current_user.roles]
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions to update assignments"
+            detail="Insufficient permissions to update assignments",
         )
-    
+
     service = UserAssignmentService(db)
-    
+
     try:
         result = await service.update_assignment(
             assignment_id=assignment_id,
             assignment_update=assignment_update,
-            updated_by=current_user.id
+            updated_by=current_user.id,
         )
-        
+
         if not result:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Assignment not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Assignment not found"
             )
-        
+
         return result
-        
+
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to update assignment: {str(e)}"
+            detail=f"Failed to update assignment: {str(e)}",
         )
 
 
@@ -205,36 +205,37 @@ async def remove_user_assignment(
     ユーザー割り当ての削除
     """
     # Check permissions
-    if not (current_user.is_superuser or "hr_admin" in [role.name for role in current_user.roles]):
+    if not (
+        current_user.is_superuser
+        or "hr_admin" in [role.name for role in current_user.roles]
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions to remove assignments"
+            detail="Insufficient permissions to remove assignments",
         )
-    
+
     service = UserAssignmentService(db)
-    
+
     try:
         result = await service.remove_assignment(
-            assignment_id=assignment_id,
-            removed_by=current_user.id
+            assignment_id=assignment_id, removed_by=current_user.id
         )
-        
+
         if not result:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Assignment not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Assignment not found"
             )
-        
+
         return {
             "success": True,
             "message": "User assignment removed successfully",
-            "assignment_id": assignment_id
+            "assignment_id": assignment_id,
         }
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to remove assignment: {str(e)}"
+            detail=f"Failed to remove assignment: {str(e)}",
         )
 
 
@@ -252,35 +253,31 @@ async def bulk_assign_users(
     if not current_user.is_superuser:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions for bulk assignments"
+            detail="Insufficient permissions for bulk assignments",
         )
-    
+
     service = UserAssignmentService(db)
-    
+
     try:
         result = await service.bulk_assign_users(
-            bulk_request=bulk_request,
-            assigned_by=current_user.id
+            bulk_request=bulk_request, assigned_by=current_user.id
         )
-        
+
         return {
             "success": True,
             "message": "Bulk assignment completed",
             "total_assignments": len(bulk_request.assignments),
             "successful_assignments": result["successful_count"],
             "failed_assignments": result["failed_count"],
-            "errors": result.get("errors", [])
+            "errors": result.get("errors", []),
         }
-        
+
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to perform bulk assignment: {str(e)}"
+            detail=f"Failed to perform bulk assignment: {str(e)}",
         )
 
 
@@ -296,25 +293,23 @@ async def get_user_assignments(
     特定ユーザーの割り当て情報を取得
     """
     service = UserAssignmentService(db)
-    
+
     try:
         result = await service.get_user_assignments(
-            user_id=user_id,
-            include_history=include_history
+            user_id=user_id, include_history=include_history
         )
-        
+
         if not result:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
             )
-        
+
         return result
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve user assignments: {str(e)}"
+            detail=f"Failed to retrieve user assignments: {str(e)}",
         )
 
 
@@ -324,7 +319,9 @@ async def transfer_user(
     new_organization_id: Optional[int] = Query(None, description="New organization ID"),
     new_department_id: Optional[int] = Query(None, description="New department ID"),
     transfer_reason: Optional[str] = Query(None, description="Reason for transfer"),
-    effective_date: Optional[str] = Query(None, description="Effective date (ISO format)"),
+    effective_date: Optional[str] = Query(
+        None, description="Effective date (ISO format)"
+    ),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
@@ -333,14 +330,17 @@ async def transfer_user(
     ユーザーの組織・部門転籍
     """
     # Check permissions
-    if not (current_user.is_superuser or "hr_admin" in [role.name for role in current_user.roles]):
+    if not (
+        current_user.is_superuser
+        or "hr_admin" in [role.name for role in current_user.roles]
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions to transfer users"
+            detail="Insufficient permissions to transfer users",
         )
-    
+
     service = UserAssignmentService(db)
-    
+
     try:
         result = await service.transfer_user(
             user_id=user_id,
@@ -348,33 +348,29 @@ async def transfer_user(
             new_department_id=new_department_id,
             transfer_reason=transfer_reason,
             effective_date=effective_date,
-            transferred_by=current_user.id
+            transferred_by=current_user.id,
         )
-        
+
         if not result:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
             )
-        
+
         return {
             "success": True,
             "message": "User transferred successfully",
             "user_id": user_id,
             "new_organization_id": new_organization_id,
             "new_department_id": new_department_id,
-            "transfer_details": result
+            "transfer_details": result,
         }
-        
+
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to transfer user: {str(e)}"
+            detail=f"Failed to transfer user: {str(e)}",
         )
 
 
@@ -390,32 +386,32 @@ async def get_organization_assignment_stats(
     組織の割り当て統計情報を取得
     """
     service = UserAssignmentService(db)
-    
+
     try:
         result = await service.get_organization_assignment_stats(
-            organization_id=organization_id,
-            include_departments=include_departments
+            organization_id=organization_id, include_departments=include_departments
         )
-        
+
         if not result:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Organization not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found"
             )
-        
+
         return result
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve assignment statistics: {str(e)}"
+            detail=f"Failed to retrieve assignment statistics: {str(e)}",
         )
 
 
 @router.get("/departments/{department_id}/stats")
 async def get_department_assignment_stats(
     department_id: int = Path(..., description="Department ID"),
-    include_sub_departments: bool = Query(False, description="Include sub-department statistics"),
+    include_sub_departments: bool = Query(
+        False, description="Include sub-department statistics"
+    ),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
@@ -424,25 +420,23 @@ async def get_department_assignment_stats(
     部門の割り当て統計情報を取得
     """
     service = UserAssignmentService(db)
-    
+
     try:
         result = await service.get_department_assignment_stats(
-            department_id=department_id,
-            include_sub_departments=include_sub_departments
+            department_id=department_id, include_sub_departments=include_sub_departments
         )
-        
+
         if not result:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Department not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Department not found"
             )
-        
+
         return result
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve assignment statistics: {str(e)}"
+            detail=f"Failed to retrieve assignment statistics: {str(e)}",
         )
 
 
@@ -461,27 +455,26 @@ async def validate_all_assignments(
     if not current_user.is_superuser:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions for assignment validation"
+            detail="Insufficient permissions for assignment validation",
         )
-    
+
     service = UserAssignmentService(db)
-    
+
     try:
         result = await service.validate_assignments(
-            organization_id=organization_id,
-            fix_issues=fix_issues
+            organization_id=organization_id, fix_issues=fix_issues
         )
-        
+
         return {
             "validation_complete": True,
             "issues_found": result["issues_count"],
             "issues_fixed": result.get("fixed_count", 0) if fix_issues else 0,
             "validation_details": result["issues"],
-            "recommendations": result.get("recommendations", [])
+            "recommendations": result.get("recommendations", []),
         }
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Assignment validation failed: {str(e)}"
+            detail=f"Assignment validation failed: {str(e)}",
         )

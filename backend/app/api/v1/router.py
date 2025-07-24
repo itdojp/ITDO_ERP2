@@ -14,7 +14,6 @@ from app.api.v1 import (
     departments,
     enhanced_departments,
     enhanced_organizations,
-    enhanced_security_monitoring,
     expense_categories,
     expenses,
     financial_reports,
@@ -22,14 +21,11 @@ from app.api.v1 import (
     multi_tenant,
     opportunities,
     organizations,
-    password_security,
-    # permission_inheritance,  # Temporarily disabled due to syntax errors
     permission_management,
     pm_automation,
     reports,
     # role_permission_ui,  # Temporarily disabled due to syntax errors
     roles,
-    sales_analytics,
     tasks,
     user_organization_assignment,
     user_preferences,
@@ -78,13 +74,19 @@ api_router.include_router(
 )
 # Issue #42: Enhanced Organization and Department Management
 api_router.include_router(
-    enhanced_organizations.router, prefix="/enhanced-organizations", tags=["organizations", "hierarchy"]
+    enhanced_organizations.router,
+    prefix="/enhanced-organizations",
+    tags=["organizations", "hierarchy"],
 )
 api_router.include_router(
-    enhanced_departments.router, prefix="/enhanced-departments", tags=["departments", "hierarchy"]
+    enhanced_departments.router,
+    prefix="/enhanced-departments",
+    tags=["departments", "hierarchy"],
 )
 api_router.include_router(
-    user_organization_assignment.router, prefix="/user-assignments", tags=["user-assignments", "hr"]
+    user_organization_assignment.router,
+    prefix="/user-assignments",
+    tags=["user-assignments", "hr"],
 )
 api_router.include_router(pm_automation.router)
 api_router.include_router(budgets.router, prefix="/budgets", tags=["budgets"])

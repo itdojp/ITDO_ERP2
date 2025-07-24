@@ -3,19 +3,18 @@ Unit tests for Role Management API endpoints.
 ロール管理APIエンドポイントのユニットテスト（Issue #40）
 """
 
+from datetime import datetime
+from unittest.mock import MagicMock, patch
+
 import pytest
-from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock, patch
 from httpx import AsyncClient
 
 from app.main import app
 from app.models.role import Role, UserRole
 from app.models.user import User
 from app.schemas.role import (
-    RoleCreate,
     RoleResponse,
     RoleSummary,
-    UserRoleAssignment,
     UserRoleResponse,
 )
 
@@ -24,7 +23,7 @@ from app.schemas.role import (
 def mock_role_service():
     """Mock role service for testing."""
     service = MagicMock()
-    
+
     # Mock role data
     mock_role = Role(
         id=1,
@@ -39,7 +38,7 @@ def mock_role_service():
         created_by=1,
         updated_by=1,
     )
-    
+
     # Mock service methods
     service.get_role.return_value = mock_role
     service.list_roles.return_value = ([mock_role], 1)
@@ -85,7 +84,7 @@ def mock_role_service():
         user_count=0,
         permission_count=0,
     )
-    
+
     return service
 
 
@@ -109,13 +108,14 @@ class TestRoleManagementAPI:
 
     async def test_list_roles_success(self, mock_role_service, mock_user):
         """Test successful role listing."""
-        with patch('app.api.v1.roles.RoleService', return_value=mock_role_service), \
-             patch('app.api.v1.roles.get_current_active_user', return_value=mock_user), \
-             patch('app.api.v1.roles.get_db'):
-            
+        with (
+            patch("app.api.v1.roles.RoleService", return_value=mock_role_service),
+            patch("app.api.v1.roles.get_current_active_user", return_value=mock_user),
+            patch("app.api.v1.roles.get_db"),
+        ):
             async with AsyncClient(app=app, base_url="http://test") as client:
                 response = await client.get("/api/v1/roles/")
-                
+
                 assert response.status_code == 200
                 data = response.json()
                 assert "items" in data
@@ -125,13 +125,14 @@ class TestRoleManagementAPI:
 
     async def test_get_role_success(self, mock_role_service, mock_user):
         """Test successful role retrieval."""
-        with patch('app.api.v1.roles.RoleService', return_value=mock_role_service), \
-             patch('app.api.v1.roles.get_current_active_user', return_value=mock_user), \
-             patch('app.api.v1.roles.get_db'):
-            
+        with (
+            patch("app.api.v1.roles.RoleService", return_value=mock_role_service),
+            patch("app.api.v1.roles.get_current_active_user", return_value=mock_user),
+            patch("app.api.v1.roles.get_db"),
+        ):
             async with AsyncClient(app=app, base_url="http://test") as client:
                 response = await client.get("/api/v1/roles/1")
-                
+
                 assert response.status_code == 200
                 data = response.json()
                 assert data["id"] == 1
@@ -141,28 +142,32 @@ class TestRoleManagementAPI:
     async def test_get_role_not_found(self, mock_role_service, mock_user):
         """Test role not found error."""
         mock_role_service.get_role.return_value = None
-        
-        with patch('app.api.v1.roles.RoleService', return_value=mock_role_service), \
-             patch('app.api.v1.roles.get_current_active_user', return_value=mock_user), \
-             patch('app.api.v1.roles.get_db'):
-            
+
+        with (
+            patch("app.api.v1.roles.RoleService", return_value=mock_role_service),
+            patch("app.api.v1.roles.get_current_active_user", return_value=mock_user),
+            patch("app.api.v1.roles.get_db"),
+        ):
             async with AsyncClient(app=app, base_url="http://test") as client:
                 response = await client.get("/api/v1/roles/999")
-                
+
                 assert response.status_code == 404
 
     async def test_create_role_success(self, mock_role_service, mock_user):
         """Test successful role creation."""
-        with patch('app.api.v1.roles.RoleService', return_value=mock_role_service), \
-             patch('app.api.v1.roles.get_current_active_user', return_value=mock_user), \
-             patch('app.api.v1.roles.get_db'), \
-             patch('app.services.organization.OrganizationService') as mock_org_service:
-            
+        with (
+            patch("app.api.v1.roles.RoleService", return_value=mock_role_service),
+            patch("app.api.v1.roles.get_current_active_user", return_value=mock_user),
+            patch("app.api.v1.roles.get_db"),
+            patch("app.services.organization.OrganizationService") as mock_org_service,
+        ):
             # Mock organization service
             mock_org_instance = MagicMock()
-            mock_org_instance.get_organization.return_value = MagicMock(id=1, name="Test Org")
+            mock_org_instance.get_organization.return_value = MagicMock(
+                id=1, name="Test Org"
+            )
             mock_org_service.return_value = mock_org_instance
-            
+
             role_data = {
                 "code": "NEW_ROLE",
                 "name": "New Role",
@@ -173,10 +178,10 @@ class TestRoleManagementAPI:
                 "permissions": {},
                 "display_order": 0,
             }
-            
+
             async with AsyncClient(app=app, base_url="http://test") as client:
                 response = await client.post("/api/v1/roles/", json=role_data)
-                
+
                 assert response.status_code == 201
                 data = response.json()
                 assert data["code"] == "TEST_ROLE"  # Mocked return value
@@ -185,11 +190,12 @@ class TestRoleManagementAPI:
         """Test role creation with insufficient permissions."""
         mock_user.is_superuser = False
         mock_role_service.user_has_permission.return_value = False
-        
-        with patch('app.api.v1.roles.RoleService', return_value=mock_role_service), \
-             patch('app.api.v1.roles.get_current_active_user', return_value=mock_user), \
-             patch('app.api.v1.roles.get_db'):
-            
+
+        with (
+            patch("app.api.v1.roles.RoleService", return_value=mock_role_service),
+            patch("app.api.v1.roles.get_current_active_user", return_value=mock_user),
+            patch("app.api.v1.roles.get_db"),
+        ):
             role_data = {
                 "code": "NEW_ROLE",
                 "name": "New Role",
@@ -197,26 +203,27 @@ class TestRoleManagementAPI:
                 "role_type": "custom",
                 "permissions": {},
             }
-            
+
             async with AsyncClient(app=app, base_url="http://test") as client:
                 response = await client.post("/api/v1/roles/", json=role_data)
-                
+
                 assert response.status_code == 403
 
     async def test_update_role_success(self, mock_role_service, mock_user):
         """Test successful role update."""
-        with patch('app.api.v1.roles.RoleService', return_value=mock_role_service), \
-             patch('app.api.v1.roles.get_current_active_user', return_value=mock_user), \
-             patch('app.api.v1.roles.get_db'):
-            
+        with (
+            patch("app.api.v1.roles.RoleService", return_value=mock_role_service),
+            patch("app.api.v1.roles.get_current_active_user", return_value=mock_user),
+            patch("app.api.v1.roles.get_db"),
+        ):
             update_data = {
                 "name": "Updated Role Name",
                 "description": "Updated description",
             }
-            
+
             async with AsyncClient(app=app, base_url="http://test") as client:
                 response = await client.put("/api/v1/roles/1", json=update_data)
-                
+
                 assert response.status_code == 200
                 data = response.json()
                 assert data["id"] == 1
@@ -224,14 +231,15 @@ class TestRoleManagementAPI:
     async def test_delete_role_success(self, mock_role_service, mock_user):
         """Test successful role deletion."""
         mock_role_service.is_role_in_use.return_value = False
-        
-        with patch('app.api.v1.roles.RoleService', return_value=mock_role_service), \
-             patch('app.api.v1.roles.get_current_active_user', return_value=mock_user), \
-             patch('app.api.v1.roles.get_db'):
-            
+
+        with (
+            patch("app.api.v1.roles.RoleService", return_value=mock_role_service),
+            patch("app.api.v1.roles.get_current_active_user", return_value=mock_user),
+            patch("app.api.v1.roles.get_db"),
+        ):
             async with AsyncClient(app=app, base_url="http://test") as client:
                 response = await client.delete("/api/v1/roles/1")
-                
+
                 assert response.status_code == 200
                 data = response.json()
                 assert data["success"] is True
@@ -239,14 +247,15 @@ class TestRoleManagementAPI:
     async def test_delete_role_in_use(self, mock_role_service, mock_user):
         """Test role deletion when role is in use."""
         mock_role_service.is_role_in_use.return_value = True
-        
-        with patch('app.api.v1.roles.RoleService', return_value=mock_role_service), \
-             patch('app.api.v1.roles.get_current_active_user', return_value=mock_user), \
-             patch('app.api.v1.roles.get_db'):
-            
+
+        with (
+            patch("app.api.v1.roles.RoleService", return_value=mock_role_service),
+            patch("app.api.v1.roles.get_current_active_user", return_value=mock_user),
+            patch("app.api.v1.roles.get_db"),
+        ):
             async with AsyncClient(app=app, base_url="http://test") as client:
                 response = await client.delete("/api/v1/roles/1")
-                
+
                 assert response.status_code == 409
 
     async def test_assign_role_to_user_success(self, mock_role_service, mock_user):
@@ -256,7 +265,7 @@ class TestRoleManagementAPI:
         mock_user_role.user_id = 2
         mock_user_role.role_id = 1
         mock_user_role.organization_id = 1
-        
+
         mock_role_service.assign_role_to_user.return_value = mock_user_role
         mock_role_service.get_user_role_response.return_value = UserRoleResponse(
             id=1,
@@ -283,16 +292,17 @@ class TestRoleManagementAPI:
             updated_at=datetime.utcnow(),
             updated_by=1,
         )
-        
-        with patch('app.api.v1.roles.RoleService', return_value=mock_role_service), \
-             patch('app.api.v1.roles.get_current_active_user', return_value=mock_user), \
-             patch('app.api.v1.roles.get_db') as mock_db:
-            
+
+        with (
+            patch("app.api.v1.roles.RoleService", return_value=mock_role_service),
+            patch("app.api.v1.roles.get_current_active_user", return_value=mock_user),
+            patch("app.api.v1.roles.get_db") as mock_db,
+        ):
             # Mock user query
             mock_db_instance = MagicMock()
             mock_db_instance.query.return_value.filter.return_value.first.return_value = mock_user
             mock_db.return_value = mock_db_instance
-            
+
             assignment_data = {
                 "user_id": 2,
                 "role_id": 1,
@@ -301,23 +311,26 @@ class TestRoleManagementAPI:
                 "valid_from": datetime.utcnow().isoformat(),
                 "expires_at": None,
             }
-            
+
             async with AsyncClient(app=app, base_url="http://test") as client:
-                response = await client.post("/api/v1/roles/assign", json=assignment_data)
-                
+                response = await client.post(
+                    "/api/v1/roles/assign", json=assignment_data
+                )
+
                 assert response.status_code == 201
 
     async def test_remove_role_from_user_success(self, mock_role_service, mock_user):
         """Test successful role removal from user."""
         mock_role_service.remove_role_from_user.return_value = True
-        
-        with patch('app.api.v1.roles.RoleService', return_value=mock_role_service), \
-             patch('app.api.v1.roles.get_current_active_user', return_value=mock_user), \
-             patch('app.api.v1.roles.get_db'):
-            
+
+        with (
+            patch("app.api.v1.roles.RoleService", return_value=mock_role_service),
+            patch("app.api.v1.roles.get_current_active_user", return_value=mock_user),
+            patch("app.api.v1.roles.get_db"),
+        ):
             async with AsyncClient(app=app, base_url="http://test") as client:
                 response = await client.delete("/api/v1/roles/assign/2/1")
-                
+
                 assert response.status_code == 200
                 data = response.json()
                 assert data["success"] is True
@@ -325,19 +338,20 @@ class TestRoleManagementAPI:
     async def test_get_user_roles_success(self, mock_role_service, mock_user):
         """Test successful user roles retrieval."""
         mock_role_service.get_user_roles.return_value = []
-        
-        with patch('app.api.v1.roles.RoleService', return_value=mock_role_service), \
-             patch('app.api.v1.roles.get_current_active_user', return_value=mock_user), \
-             patch('app.api.v1.roles.get_db') as mock_db:
-            
+
+        with (
+            patch("app.api.v1.roles.RoleService", return_value=mock_role_service),
+            patch("app.api.v1.roles.get_current_active_user", return_value=mock_user),
+            patch("app.api.v1.roles.get_db") as mock_db,
+        ):
             # Mock user query
             mock_db_instance = MagicMock()
             mock_db_instance.query.return_value.filter.return_value.first.return_value = mock_user
             mock_db.return_value = mock_db_instance
-            
+
             async with AsyncClient(app=app, base_url="http://test") as client:
                 response = await client.get("/api/v1/roles/user/2")
-                
+
                 assert response.status_code == 200
                 data = response.json()
                 assert isinstance(data, list)
@@ -357,18 +371,19 @@ class TestRoleManagementAPI:
                 "inherited": False,
             }
         }
-        
+
         mock_user_role = MagicMock()
         mock_user_role.role = mock_role
         mock_user_role.organization_id = 1
-        
+
         mock_role_service.get_user_roles.return_value = [mock_user_role]
         mock_role_service.get_role.return_value = mock_role
-        
-        with patch('app.api.v1.roles.RoleService', return_value=mock_role_service), \
-             patch('app.api.v1.roles.get_current_active_user', return_value=mock_user), \
-             patch('app.api.v1.roles.get_db') as mock_db:
-            
+
+        with (
+            patch("app.api.v1.roles.RoleService", return_value=mock_role_service),
+            patch("app.api.v1.roles.get_current_active_user", return_value=mock_user),
+            patch("app.api.v1.roles.get_db") as mock_db,
+        ):
             # Mock user query
             mock_target_user = MagicMock()
             mock_target_user.id = 2
@@ -376,14 +391,14 @@ class TestRoleManagementAPI:
             mock_target_user.last_name = "User"
             mock_target_user.full_name = "Target User"
             mock_target_user.is_superuser = False
-            
+
             mock_db_instance = MagicMock()
             mock_db_instance.query.return_value.filter.return_value.first.return_value = mock_target_user
             mock_db.return_value = mock_db_instance
-            
+
             async with AsyncClient(app=app, base_url="http://test") as client:
                 response = await client.get("/api/v1/roles/user/2/permissions")
-                
+
                 assert response.status_code == 200
                 data = response.json()
                 assert "user_id" in data
@@ -392,42 +407,45 @@ class TestRoleManagementAPI:
                 assert data["user_id"] == 2
                 assert "user.view" in data["effective_permissions"]
 
-    async def test_get_user_permissions_user_not_found(self, mock_role_service, mock_user):
+    async def test_get_user_permissions_user_not_found(
+        self, mock_role_service, mock_user
+    ):
         """Test user permissions retrieval for non-existent user."""
-        with patch('app.api.v1.roles.RoleService', return_value=mock_role_service), \
-             patch('app.api.v1.roles.get_current_active_user', return_value=mock_user), \
-             patch('app.api.v1.roles.get_db') as mock_db:
-            
+        with (
+            patch("app.api.v1.roles.RoleService", return_value=mock_role_service),
+            patch("app.api.v1.roles.get_current_active_user", return_value=mock_user),
+            patch("app.api.v1.roles.get_db") as mock_db,
+        ):
             # Mock user query to return None
             mock_db_instance = MagicMock()
             mock_db_instance.query.return_value.filter.return_value.first.return_value = None
             mock_db.return_value = mock_db_instance
-            
+
             async with AsyncClient(app=app, base_url="http://test") as client:
                 response = await client.get("/api/v1/roles/user/999/permissions")
-                
+
                 assert response.status_code == 404
 
     async def test_update_role_permissions_success(self, mock_role_service, mock_user):
         """Test successful role permissions update."""
-        with patch('app.api.v1.roles.RoleService', return_value=mock_role_service), \
-             patch('app.api.v1.roles.get_current_active_user', return_value=mock_user), \
-             patch('app.api.v1.roles.get_db'):
-            
+        with (
+            patch("app.api.v1.roles.RoleService", return_value=mock_role_service),
+            patch("app.api.v1.roles.get_current_active_user", return_value=mock_user),
+            patch("app.api.v1.roles.get_db"),
+        ):
             permission_codes = ["user.view", "user.create", "user.edit"]
-            
+
             async with AsyncClient(app=app, base_url="http://test") as client:
                 response = await client.put(
-                    "/api/v1/roles/1/permissions",
-                    json=permission_codes
+                    "/api/v1/roles/1/permissions", json=permission_codes
                 )
-                
+
                 assert response.status_code == 200
 
     async def test_get_role_tree_success(self, mock_role_service, mock_user):
         """Test successful role tree retrieval."""
         from app.schemas.role import RoleTree
-        
+
         mock_role_service.get_role_tree.return_value = [
             RoleTree(
                 id=1,
@@ -443,20 +461,23 @@ class TestRoleManagementAPI:
                 children=[],
             )
         ]
-        
-        with patch('app.api.v1.roles.RoleService', return_value=mock_role_service), \
-             patch('app.api.v1.roles.get_current_active_user', return_value=mock_user), \
-             patch('app.api.v1.roles.get_db'), \
-             patch('app.services.organization.OrganizationService') as mock_org_service:
-            
+
+        with (
+            patch("app.api.v1.roles.RoleService", return_value=mock_role_service),
+            patch("app.api.v1.roles.get_current_active_user", return_value=mock_user),
+            patch("app.api.v1.roles.get_db"),
+            patch("app.services.organization.OrganizationService") as mock_org_service,
+        ):
             # Mock organization service
             mock_org_instance = MagicMock()
-            mock_org_instance.get_organization.return_value = MagicMock(id=1, name="Test Org")
+            mock_org_instance.get_organization.return_value = MagicMock(
+                id=1, name="Test Org"
+            )
             mock_org_service.return_value = mock_org_instance
-            
+
             async with AsyncClient(app=app, base_url="http://test") as client:
                 response = await client.get("/api/v1/roles/organization/1/tree")
-                
+
                 assert response.status_code == 200
                 data = response.json()
                 assert isinstance(data, list)
@@ -466,7 +487,7 @@ class TestRoleManagementAPI:
     async def test_list_permissions_success(self, mock_role_service, mock_user):
         """Test successful permissions listing."""
         from app.schemas.role import PermissionBasic
-        
+
         mock_role_service.list_all_permissions.return_value = [
             PermissionBasic(
                 id=1,
@@ -476,14 +497,15 @@ class TestRoleManagementAPI:
                 description="View user information",
             )
         ]
-        
-        with patch('app.api.v1.roles.RoleService', return_value=mock_role_service), \
-             patch('app.api.v1.roles.get_current_active_user', return_value=mock_user), \
-             patch('app.api.v1.roles.get_db'):
-            
+
+        with (
+            patch("app.api.v1.roles.RoleService", return_value=mock_role_service),
+            patch("app.api.v1.roles.get_current_active_user", return_value=mock_user),
+            patch("app.api.v1.roles.get_db"),
+        ):
             async with AsyncClient(app=app, base_url="http://test") as client:
                 response = await client.get("/api/v1/roles/permissions")
-                
+
                 assert response.status_code == 200
                 data = response.json()
                 assert isinstance(data, list)

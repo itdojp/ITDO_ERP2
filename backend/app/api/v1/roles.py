@@ -620,34 +620,34 @@ def get_user_permissions(
         )
 
     service = RoleService(db)
-    
+
     # Get all user roles with their permissions
     user_roles = service.get_user_roles(user_id, organization_id, active_only=True)
-    
+
     # Collect all effective permissions
     all_permissions: dict[str, dict[str, Any]] = {}
     permissions_by_role: dict[str, dict[str, Any]] = {}
-    
+
     for user_role in user_roles:
-        role_id = user_role.role.id if hasattr(user_role, 'role') else None
+        role_id = user_role.role.id if hasattr(user_role, "role") else None
         if role_id:
             role = service.get_role(role_id)
             if role:
                 role_permissions = role.get_all_permissions()
                 role_name = role.name
-                
+
                 # Add to permissions by role
                 permissions_by_role[role_name] = role_permissions
-                
+
                 # Merge into all permissions
                 all_permissions.update(role_permissions)
-    
+
     # Check if user is superuser
-    is_superuser = getattr(user, 'is_superuser', False)
-    
+    is_superuser = getattr(user, "is_superuser", False)
+
     return {
         "user_id": user_id,
-        "user_name": getattr(user, 'full_name', f"{user.first_name} {user.last_name}"),
+        "user_name": getattr(user, "full_name", f"{user.first_name} {user.last_name}"),
         "is_superuser": is_superuser,
         "organization_id": organization_id,
         "effective_permissions": all_permissions,
@@ -656,11 +656,13 @@ def get_user_permissions(
         "roles_count": len(user_roles),
         "roles": [
             {
-                "id": ur.role.id if hasattr(ur, 'role') else None,
-                "name": ur.role.name if hasattr(ur, 'role') else None,
-                "code": ur.role.code if hasattr(ur, 'role') else None,
-                "organization_id": ur.organization_id if hasattr(ur, 'organization_id') else None,
+                "id": ur.role.id if hasattr(ur, "role") else None,
+                "name": ur.role.name if hasattr(ur, "role") else None,
+                "code": ur.role.code if hasattr(ur, "role") else None,
+                "organization_id": ur.organization_id
+                if hasattr(ur, "organization_id")
+                else None,
             }
             for ur in user_roles
-        ]
+        ],
     }

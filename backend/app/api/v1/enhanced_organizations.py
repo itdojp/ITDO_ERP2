@@ -12,10 +12,8 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.models.user import User
 from app.schemas.organization import (
-    OrganizationCreate,
     OrganizationResponse,
     OrganizationTree,
-    OrganizationUpdate,
     OrganizationWithStats,
 )
 from app.services.enhanced_organization_service import EnhancedOrganizationService
@@ -37,39 +35,37 @@ async def get_organization_tree(
     組織階層ツリー構造の取得
     """
     service = EnhancedOrganizationService(db)
-    
+
     try:
         tree = await service.get_organization_tree(
             organization_id=organization_id,
             include_departments=include_departments,
             include_users=include_users,
-            max_depth=max_depth
+            max_depth=max_depth,
         )
-        
+
         if not tree:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Organization not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found"
             )
-        
+
         return tree
-        
+
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve organization tree: {str(e)}"
+            detail=f"Failed to retrieve organization tree: {str(e)}",
         )
 
 
 @router.get("/{organization_id}/stats")
 async def get_organization_statistics(
     organization_id: int = Path(..., description="Organization ID"),
-    include_subsidiaries: bool = Query(False, description="Include subsidiary statistics"),
+    include_subsidiaries: bool = Query(
+        False, description="Include subsidiary statistics"
+    ),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> OrganizationWithStats:
@@ -78,32 +74,32 @@ async def get_organization_statistics(
     組織統計情報の取得
     """
     service = EnhancedOrganizationService(db)
-    
+
     try:
         stats = await service.get_organization_with_stats(
-            organization_id=organization_id,
-            include_subsidiaries=include_subsidiaries
+            organization_id=organization_id, include_subsidiaries=include_subsidiaries
         )
-        
+
         if not stats:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Organization not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found"
             )
-        
+
         return stats
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve organization statistics: {str(e)}"
+            detail=f"Failed to retrieve organization statistics: {str(e)}",
         )
 
 
 @router.post("/{organization_id}/move")
 async def move_organization(
     organization_id: int = Path(..., description="Organization ID to move"),
-    new_parent_id: Optional[int] = Query(None, description="New parent organization ID (null for root level)"),
+    new_parent_id: Optional[int] = Query(
+        None, description="New parent organization ID (null for root level)"
+    ),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
@@ -112,38 +108,38 @@ async def move_organization(
     組織の階層移動
     """
     # Check permissions - only admins can move organizations
-    if not (current_user.is_superuser or "org_admin" in [role.name for role in current_user.roles]):
+    if not (
+        current_user.is_superuser
+        or "org_admin" in [role.name for role in current_user.roles]
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions to move organizations"
+            detail="Insufficient permissions to move organizations",
         )
-    
+
     service = EnhancedOrganizationService(db)
-    
+
     try:
         result = await service.move_organization(
             organization_id=organization_id,
             new_parent_id=new_parent_id,
-            updated_by=current_user.id
+            updated_by=current_user.id,
         )
-        
+
         return {
             "success": True,
             "message": "Organization moved successfully",
             "organization_id": organization_id,
             "new_parent_id": new_parent_id,
-            "hierarchy_updated": result
+            "hierarchy_updated": result,
         }
-        
+
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to move organization: {str(e)}"
+            detail=f"Failed to move organization: {str(e)}",
         )
 
 
@@ -159,19 +155,18 @@ async def get_all_subsidiaries(
     すべての子会社の再帰的取得
     """
     service = EnhancedOrganizationService(db)
-    
+
     try:
         subsidiaries = await service.get_all_subsidiaries(
-            organization_id=organization_id,
-            include_inactive=include_inactive
+            organization_id=organization_id, include_inactive=include_inactive
         )
-        
+
         return subsidiaries
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve subsidiaries: {str(e)}"
+            detail=f"Failed to retrieve subsidiaries: {str(e)}",
         )
 
 
@@ -186,22 +181,21 @@ async def get_hierarchy_path(
     ルートから指定組織までの階層パスを取得
     """
     service = EnhancedOrganizationService(db)
-    
+
     try:
         path = await service.get_hierarchy_path(organization_id)
-        
+
         if not path:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Organization not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Organization not found"
             )
-        
+
         return path
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve hierarchy path: {str(e)}"
+            detail=f"Failed to retrieve hierarchy path: {str(e)}",
         )
 
 
@@ -216,22 +210,22 @@ async def validate_organization_hierarchy(
     組織階層の整合性検証
     """
     service = EnhancedOrganizationService(db)
-    
+
     try:
         validation_result = await service.validate_hierarchy(organization_id)
-        
+
         return {
             "organization_id": organization_id,
             "is_valid": validation_result["is_valid"],
             "errors": validation_result.get("errors", []),
             "warnings": validation_result.get("warnings", []),
-            "recommendations": validation_result.get("recommendations", [])
+            "recommendations": validation_result.get("recommendations", []),
         }
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to validate hierarchy: {str(e)}"
+            detail=f"Failed to validate hierarchy: {str(e)}",
         )
 
 
@@ -239,7 +233,9 @@ async def validate_organization_hierarchy(
 async def bulk_update_organization_hierarchy(
     organization_id: int = Path(..., description="Root organization ID"),
     updates: List[Dict[str, Any]] = ...,
-    validate_before_commit: bool = Query(True, description="Validate changes before committing"),
+    validate_before_commit: bool = Query(
+        True, description="Validate changes before committing"
+    ),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
@@ -251,36 +247,33 @@ async def bulk_update_organization_hierarchy(
     if not current_user.is_superuser:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions for bulk updates"
+            detail="Insufficient permissions for bulk updates",
         )
-    
+
     service = EnhancedOrganizationService(db)
-    
+
     try:
         result = await service.bulk_update_hierarchy(
             root_organization_id=organization_id,
             updates=updates,
             validate_before_commit=validate_before_commit,
-            updated_by=current_user.id
+            updated_by=current_user.id,
         )
-        
+
         return {
             "success": True,
             "message": "Bulk update completed successfully",
             "updated_count": result["updated_count"],
             "errors": result.get("errors", []),
-            "validation_results": result.get("validation_results", {})
+            "validation_results": result.get("validation_results", {}),
         }
-        
+
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to perform bulk update: {str(e)}"
+            detail=f"Failed to perform bulk update: {str(e)}",
         )
 
 
@@ -298,34 +291,36 @@ async def get_organization_department_tree(
     組織の部門ツリー構造を取得
     """
     service = EnhancedOrganizationService(db)
-    
+
     try:
         department_tree = await service.get_organization_department_tree(
             organization_id=organization_id,
             include_users=include_users,
             include_inactive=include_inactive,
-            max_depth=max_depth
+            max_depth=max_depth,
         )
-        
+
         if not department_tree:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Organization not found or has no departments"
+                detail="Organization not found or has no departments",
             )
-        
+
         return department_tree
-        
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve department tree: {str(e)}"
+            detail=f"Failed to retrieve department tree: {str(e)}",
         )
 
 
 @router.get("/search/advanced")
 async def advanced_organization_search(
     query: str = Query(..., min_length=1, description="Search query"),
-    search_fields: List[str] = Query(["name", "code"], description="Fields to search in"),
+    search_fields: List[str] = Query(
+        ["name", "code"], description="Fields to search in"
+    ),
     filters: Optional[Dict[str, Any]] = Query(None, description="Additional filters"),
     sort_by: str = Query("name", description="Sort field"),
     sort_order: str = Query("asc", regex="^(asc|desc)$", description="Sort order"),
@@ -339,7 +334,7 @@ async def advanced_organization_search(
     高度な組織検索（複数条件対応）
     """
     service = EnhancedOrganizationService(db)
-    
+
     try:
         search_results = await service.advanced_search(
             query=query,
@@ -348,9 +343,9 @@ async def advanced_organization_search(
             sort_by=sort_by,
             sort_order=sort_order,
             limit=limit,
-            offset=offset
+            offset=offset,
         )
-        
+
         return {
             "results": search_results["organizations"],
             "total_count": search_results["total_count"],
@@ -360,17 +355,14 @@ async def advanced_organization_search(
             "pagination": {
                 "limit": limit,
                 "offset": offset,
-                "has_more": search_results["total_count"] > (offset + limit)
-            }
+                "has_more": search_results["total_count"] > (offset + limit),
+            },
         }
-        
+
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Search failed: {str(e)}"
+            detail=f"Search failed: {str(e)}",
         )

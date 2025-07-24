@@ -1,6 +1,7 @@
 """Department schemas."""
 
 from typing import Any, Optional
+
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.common import AuditInfo, SoftDeleteInfo
@@ -206,13 +207,17 @@ class DepartmentWithUsers(DepartmentResponse):
 class DepartmentWithStats(DepartmentResponse):
     """Department with statistics information."""
 
-    statistics: dict[str, Any] = Field(default_factory=dict, description="Department statistics")
+    statistics: dict[str, Any] = Field(
+        default_factory=dict, description="Department statistics"
+    )
     user_count: int = Field(0, description="Number of users in department")
     active_user_count: int = Field(0, description="Number of active users")
     sub_department_count: int = Field(0, description="Number of sub-departments")
     total_budget: float = Field(0.0, description="Total budget allocated")
     headcount_limit: Optional[int] = Field(None, description="Maximum headcount")
-    headcount_utilization: Optional[float] = Field(None, description="Headcount utilization percentage")
+    headcount_utilization: Optional[float] = Field(
+        None, description="Headcount utilization percentage"
+    )
 
     model_config = ConfigDict(from_attributes=True)
 
