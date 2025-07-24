@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.models.workflow import ApplicationStatus, ApplicationType, ApprovalStatus
 
@@ -222,13 +222,10 @@ class BulkOperationResponse(BaseModel):
     total_requested: int
     success_rate: float
 
-    @field_validator("success_rate", pre=True, always=True)
-    def calculate_success_rate(cls, v, values) -> dict:
-        """Calculate success rate based on processed and total."""
-        if "total_requested" in values and values["total_requested"] > 0:
-            processed = values.get("processed_count", 0)
-            return round((processed / values["total_requested"]) * 100, 2)
-        return 0.0
+    @field_validator("success_rate")
+    def calculate_success_rate(cls, v) -> float:
+        """Calculate success rate."""
+        return round(v, 2) if v else 0.0
 
 
 # Analytics Schemas
