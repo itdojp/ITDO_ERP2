@@ -41,7 +41,7 @@ class InvalidStatusError(Exception):
 
 
 class CustomerCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def get_by_id(self, customer_id: str) -> Optional[Customer]:
@@ -146,7 +146,7 @@ class CustomerCRUD:
 
         return customer
 
-    def update_sales_stats(self, customer_id: str, order_amount: Decimal):
+    def update_sales_stats(self, customer_id: str, order_amount: Decimal) -> dict:
         """顧客の売上統計を更新"""
         customer = self.get_by_id(customer_id)
         if customer:
@@ -158,7 +158,7 @@ class CustomerCRUD:
 
 
 class SalesOrderCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def get_by_id(self, order_id: str) -> Optional[SalesOrder]:
@@ -404,7 +404,7 @@ class SalesOrderCRUD:
 
 
 class QuoteCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def get_by_id(self, quote_id: str) -> Optional[Quote]:
@@ -488,7 +488,7 @@ class QuoteCRUD:
 
 
 class InvoiceCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def get_by_id(self, invoice_id: str) -> Optional[Invoice]:
@@ -543,7 +543,7 @@ class InvoiceCRUD:
 
 
 class PaymentCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def create(self, payment_in: PaymentCreate) -> Payment:
@@ -583,7 +583,7 @@ class PaymentCRUD:
 
 
 class ShipmentCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def create(self, shipment_in: ShipmentCreate) -> Shipment:

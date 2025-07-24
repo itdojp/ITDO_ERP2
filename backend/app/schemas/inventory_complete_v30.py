@@ -29,7 +29,7 @@ class WarehouseBase(BaseModel):
     capacity_volume: Optional[Decimal] = Field(None, ge=0)
 
     @validator("code")
-    def code_valid(cls, v):
+    def code_valid(cls, v) -> dict:
         if not re.match(r"^[A-Z0-9_-]+$", v):
             raise ValueError(
                 "Code must contain only uppercase letters, numbers, hyphens and underscores"
