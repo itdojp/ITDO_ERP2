@@ -1,0 +1,30 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: itdo-prod
+
+resources:
+- ../../base
+
+patchesStrategicMerge:
+- replica-count.yaml
+- resource-limits.yaml
+
+configMapGenerator:
+- name: app-config
+  behavior: merge
+  literals:
+  - environment=production
+  - debug=false
+
+secretGenerator:
+- name: app-secrets
+  behavior: replace
+  envs:
+  - secrets.env
+
+images:
+- name: itdo-erp/backend
+  newTag: latest
+- name: itdo-erp/frontend
+  newTag: latest

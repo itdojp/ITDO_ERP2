@@ -22,7 +22,7 @@ from app.schemas.customer import (
 
 
 class CustomerService:
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: AsyncSession) -> dict:
         self.db = db
 
     async def get_customers(
