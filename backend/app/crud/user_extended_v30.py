@@ -21,7 +21,7 @@ class NotFoundError(Exception):
 
 
 class UserCRUD:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def get_by_id(self, user_id: str) -> Optional[User]:
