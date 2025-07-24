@@ -129,8 +129,6 @@ class UserTransferRequestBase(BaseModel):
 class UserTransferRequestCreate(UserTransferRequestBase):
     """Schema for creating transfer request."""
 
-    pass
-
 
 class UserTransferRequestUpdate(BaseModel):
     """Schema for updating transfer request."""
