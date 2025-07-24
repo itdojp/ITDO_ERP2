@@ -560,12 +560,8 @@ def get_crm_stats(
 
     # 基本統計
     total_customers = db.query(CRMCustomer).count()
-    active_customers = (
-        db.query(CRMCustomer).filter(CRMCustomer.is_active == True).count()
-    )
-    qualified_leads = (
-        db.query(CRMCustomer).filter(CRMCustomer.is_qualified == True).count()
-    )
+    active_customers = db.query(CRMCustomer).filter(CRMCustomer.is_active).count()
+    qualified_leads = db.query(CRMCustomer).filter(CRMCustomer.is_qualified).count()
 
     total_opportunities = db.query(SalesOpportunity).count()
     open_opportunities = (
@@ -692,7 +688,7 @@ def get_crm_analytics(
         CRMCustomer.created_at >= date_from, CRMCustomer.created_at <= date_to
     )
     new_customers = customer_query.count()
-    qualified_leads = customer_query.filter(CRMCustomer.is_qualified == True).count()
+    qualified_leads = customer_query.filter(CRMCustomer.is_qualified).count()
 
     opp_query = db.query(SalesOpportunity).filter(
         SalesOpportunity.created_at >= date_from, SalesOpportunity.created_at <= date_to

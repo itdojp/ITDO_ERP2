@@ -1,28 +1,44 @@
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import or_, and_, func
-from typing import Optional, List, Dict, Any
-from datetime import datetime, timedelta
 import uuid
+from datetime import datetime, timedelta
 from decimal import Decimal
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy import or_
+from sqlalchemy.orm import Session, joinedload
 
 from app.models.sales_extended import (
-    Customer, SalesOrder, SalesOrderItem, Quote, QuoteItem,
-    Invoice, Payment, Shipment, ShipmentItem
+    Customer,
+    Invoice,
+    Payment,
+    Quote,
+    QuoteItem,
+    SalesOrder,
+    SalesOrderItem,
+    Shipment,
+    ShipmentItem,
 )
 from app.schemas.sales_complete_v30 import (
-    CustomerCreate, CustomerUpdate, SalesOrderCreate, SalesOrderUpdate,
-    QuoteCreate, QuoteUpdate, InvoiceCreate, InvoiceUpdate,
-    PaymentCreate, ShipmentCreate, ShipmentUpdate
+    CustomerCreate,
+    CustomerUpdate,
+    PaymentCreate,
+    QuoteCreate,
+    SalesOrderCreate,
+    SalesOrderUpdate,
+    ShipmentCreate,
 )
+
 
 class NotFoundError(Exception):
     pass
 
+
 class DuplicateError(Exception):
     pass
 
+
 class InvalidStatusError(Exception):
     pass
+
 
 class CustomerCRUD:
     def __init__(self, db: Session):
@@ -35,10 +51,7 @@ class CustomerCRUD:
         return self.db.query(Customer).filter(Customer.customer_code == code).first()
 
     def get_multi(
-        self,
-        skip: int = 0,
-        limit: int = 100,
-        filters: Optional[Dict[str, Any]] = None
+        self, skip: int = 0, limit: int = 100, filters: Optional[Dict[str, Any]] = None
     ) -> tuple[List[Customer], int]:
         query = self.db.query(Customer)
 
@@ -48,7 +61,9 @@ class CustomerCRUD:
             if filters.get("customer_type"):
                 query = query.filter(Customer.customer_type == filters["customer_type"])
             if filters.get("customer_group"):
-                query = query.filter(Customer.customer_group == filters["customer_group"])
+                query = query.filter(
+                    Customer.customer_group == filters["customer_group"]
+                )
             if filters.get("is_vip") is not None:
                 query = query.filter(Customer.is_vip == filters["is_vip"])
             if filters.get("sales_rep_id"):
@@ -60,7 +75,7 @@ class CustomerCRUD:
                         Customer.name.ilike(search),
                         Customer.company_name.ilike(search),
                         Customer.customer_code.ilike(search),
-                        Customer.email.ilike(search)
+                        Customer.email.ilike(search),
                     )
                 )
 
@@ -100,9 +115,11 @@ class CustomerCRUD:
             tax_exempt=customer_in.tax_exempt,
             sales_rep_id=customer_in.sales_rep_id,
             acquisition_source=customer_in.acquisition_source,
-            acquisition_date=datetime.utcnow() if customer_in.acquisition_source else None,
+            acquisition_date=datetime.utcnow()
+            if customer_in.acquisition_source
+            else None,
             notes=customer_in.notes,
-            preferences=customer_in.preferences
+            preferences=customer_in.preferences,
         )
 
         self.db.add(db_customer)
@@ -111,7 +128,9 @@ class CustomerCRUD:
 
         return db_customer
 
-    def update(self, customer_id: str, customer_in: CustomerUpdate) -> Optional[Customer]:
+    def update(
+        self, customer_id: str, customer_in: CustomerUpdate
+    ) -> Optional[Customer]:
         customer = self.get_by_id(customer_id)
         if not customer:
             raise NotFoundError(f"Customer {customer_id} not found")
@@ -148,20 +167,21 @@ class SalesOrderCRUD:
             .options(
                 joinedload(SalesOrder.customer),
                 joinedload(SalesOrder.order_items),
-                joinedload(SalesOrder.sales_rep)
+                joinedload(SalesOrder.sales_rep),
             )
             .filter(SalesOrder.id == order_id)
             .first()
         )
 
     def get_by_number(self, order_number: str) -> Optional[SalesOrder]:
-        return self.db.query(SalesOrder).filter(SalesOrder.order_number == order_number).first()
+        return (
+            self.db.query(SalesOrder)
+            .filter(SalesOrder.order_number == order_number)
+            .first()
+        )
 
     def get_multi(
-        self,
-        skip: int = 0,
-        limit: int = 100,
-        filters: Optional[Dict[str, Any]] = None
+        self, skip: int = 0, limit: int = 100, filters: Optional[Dict[str, Any]] = None
     ) -> tuple[List[SalesOrder], int]:
         query = self.db.query(SalesOrder)
 
@@ -173,7 +193,9 @@ class SalesOrderCRUD:
             if filters.get("sales_rep_id"):
                 query = query.filter(SalesOrder.sales_rep_id == filters["sales_rep_id"])
             if filters.get("sales_channel"):
-                query = query.filter(SalesOrder.sales_channel == filters["sales_channel"])
+                query = query.filter(
+                    SalesOrder.sales_channel == filters["sales_channel"]
+                )
             if filters.get("date_from"):
                 query = query.filter(SalesOrder.order_date >= filters["date_from"])
             if filters.get("date_to"):
@@ -184,7 +206,9 @@ class SalesOrderCRUD:
                 query = query.filter(SalesOrder.total_amount <= filters["amount_max"])
 
         total = query.count()
-        orders = query.offset(skip).limit(limit).order_by(SalesOrder.order_date.desc()).all()
+        orders = (
+            query.offset(skip).limit(limit).order_by(SalesOrder.order_date.desc()).all()
+        )
 
         return orders, total
 
@@ -211,18 +235,20 @@ class SalesOrderCRUD:
             referral_source=order_in.referral_source,
             internal_notes=order_in.internal_notes,
             customer_notes=order_in.customer_notes,
-            custom_fields=order_in.custom_fields
+            custom_fields=order_in.custom_fields,
         )
 
         self.db.add(db_order)
         self.db.flush()  # IDを取得するため
 
         # 注文アイテム作成
-        total_amount = Decimal('0')
+        total_amount = Decimal("0")
         for item_data in order_in.items:
             line_total = item_data.quantity * item_data.unit_price
             if item_data.line_discount_percentage > 0:
-                discount_amount = line_total * (item_data.line_discount_percentage / 100)
+                discount_amount = line_total * (
+                    item_data.line_discount_percentage / 100
+                )
                 line_total -= discount_amount
 
             order_item = SalesOrderItem(
@@ -234,10 +260,13 @@ class SalesOrderCRUD:
                 quantity=item_data.quantity,
                 unit_price=item_data.unit_price,
                 line_discount_percentage=item_data.line_discount_percentage,
-                line_discount_amount=line_total * (item_data.line_discount_percentage / 100) if item_data.line_discount_percentage > 0 else 0,
+                line_discount_amount=line_total
+                * (item_data.line_discount_percentage / 100)
+                if item_data.line_discount_percentage > 0
+                else 0,
                 line_total=line_total,
                 custom_attributes=item_data.custom_attributes,
-                notes=item_data.notes
+                notes=item_data.notes,
             )
             self.db.add(order_item)
             total_amount += line_total
@@ -261,8 +290,12 @@ class SalesOrderCRUD:
             raise NotFoundError(f"Sales order {order_id} not found")
 
         # ステータス遷移チェック
-        if order_in.status and not self._is_valid_status_transition(order.status, order_in.status):
-            raise InvalidStatusError(f"Invalid status transition from {order.status} to {order_in.status}")
+        if order_in.status and not self._is_valid_status_transition(
+            order.status, order_in.status
+        ):
+            raise InvalidStatusError(
+                f"Invalid status transition from {order.status} to {order_in.status}"
+            )
 
         update_data = order_in.dict(exclude_unset=True)
         for field, value in update_data.items():
@@ -280,7 +313,7 @@ class SalesOrderCRUD:
         order = self.get_by_id(order_id)
         if not order:
             raise NotFoundError(f"Sales order {order_id} not found")
-        
+
         if order.status != "draft":
             raise InvalidStatusError("Only draft orders can be confirmed")
 
@@ -299,7 +332,7 @@ class SalesOrderCRUD:
         """注文番号生成"""
         today = datetime.now()
         prefix = f"SO-{today.year}{today.month:02d}"
-        
+
         # 同日の最後の番号を取得
         last_order = (
             self.db.query(SalesOrder)
@@ -307,13 +340,13 @@ class SalesOrderCRUD:
             .order_by(SalesOrder.order_number.desc())
             .first()
         )
-        
+
         if last_order:
-            last_number = int(last_order.order_number.split('-')[-1])
+            last_number = int(last_order.order_number.split("-")[-1])
             new_number = last_number + 1
         else:
             new_number = 1
-            
+
         return f"{prefix}-{new_number:04d}"
 
     def _is_valid_status_transition(self, current_status: str, new_status: str) -> bool:
@@ -324,20 +357,22 @@ class SalesOrderCRUD:
             "processing": ["shipped", "cancelled"],
             "shipped": ["delivered"],
             "delivered": [],
-            "cancelled": []
+            "cancelled": [],
         }
         return new_status in valid_transitions.get(current_status, [])
 
-    def get_sales_analytics(self, date_from: datetime, date_to: datetime) -> Dict[str, Any]:
+    def get_sales_analytics(
+        self, date_from: datetime, date_to: datetime
+    ) -> Dict[str, Any]:
         """売上分析データ取得"""
         query = self.db.query(SalesOrder).filter(
             SalesOrder.order_date >= date_from,
             SalesOrder.order_date <= date_to,
-            SalesOrder.status != "cancelled"
+            SalesOrder.status != "cancelled",
         )
 
         orders = query.all()
-        
+
         total_revenue = sum(order.total_amount for order in orders)
         orders_count = len(orders)
         customers_count = len(set(order.customer_id for order in orders))
@@ -348,7 +383,7 @@ class SalesOrderCRUD:
         for order in orders:
             date_key = order.order_date.date().isoformat()
             if date_key not in daily_breakdown:
-                daily_breakdown[date_key] = {"revenue": Decimal('0'), "orders": 0}
+                daily_breakdown[date_key] = {"revenue": Decimal("0"), "orders": 0}
             daily_breakdown[date_key]["revenue"] += order.total_amount
             daily_breakdown[date_key]["orders"] += 1
 
@@ -359,12 +394,12 @@ class SalesOrderCRUD:
             "orders_count": orders_count,
             "customers_count": customers_count,
             "avg_order_value": avg_order_value,
-            "conversion_rate": Decimal('0'),  # 実装時に計算
-            "growth_rate": Decimal('0'),  # 実装時に計算
+            "conversion_rate": Decimal("0"),  # 実装時に計算
+            "growth_rate": Decimal("0"),  # 実装時に計算
             "daily_breakdown": [
                 {"date": date, "revenue": data["revenue"], "orders": data["orders"]}
                 for date, data in sorted(daily_breakdown.items())
-            ]
+            ],
         }
 
 
@@ -394,16 +429,19 @@ class QuoteCRUD:
             sales_rep_id=user_id,
             description=quote_in.description,
             terms_conditions=quote_in.terms_conditions,
-            internal_notes=quote_in.internal_notes
+            internal_notes=quote_in.internal_notes,
         )
 
         self.db.add(db_quote)
         self.db.flush()
 
         # 見積アイテム作成
-        total_amount = Decimal('0')
+        total_amount = Decimal("0")
         for item_data in quote_in.items:
-            line_total = item_data.quantity * item_data.unit_price - item_data.line_discount_amount
+            line_total = (
+                item_data.quantity * item_data.unit_price
+                - item_data.line_discount_amount
+            )
 
             quote_item = QuoteItem(
                 id=str(uuid.uuid4()),
@@ -415,7 +453,7 @@ class QuoteCRUD:
                 unit_price=item_data.unit_price,
                 line_discount_amount=item_data.line_discount_amount,
                 line_total=line_total,
-                notes=item_data.notes
+                notes=item_data.notes,
             )
             self.db.add(quote_item)
             total_amount += line_total
@@ -432,20 +470,20 @@ class QuoteCRUD:
         """見積番号生成"""
         today = datetime.now()
         prefix = f"QT-{today.year}{today.month:02d}"
-        
+
         last_quote = (
             self.db.query(Quote)
             .filter(Quote.quote_number.like(f"{prefix}%"))
             .order_by(Quote.quote_number.desc())
             .first()
         )
-        
+
         if last_quote:
-            last_number = int(last_quote.quote_number.split('-')[-1])
+            last_number = int(last_quote.quote_number.split("-")[-1])
             new_number = last_number + 1
         else:
             new_number = 1
-            
+
         return f"{prefix}-{new_number:04d}"
 
 
@@ -474,7 +512,7 @@ class InvoiceCRUD:
             tax_amount=order.tax_amount,
             total_amount=order.total_amount,
             balance_due=order.total_amount,
-            payment_terms=order.payment_terms
+            payment_terms=order.payment_terms,
         )
 
         self.db.add(db_invoice)
@@ -487,20 +525,20 @@ class InvoiceCRUD:
         """請求書番号生成"""
         today = datetime.now()
         prefix = f"INV-{today.year}{today.month:02d}"
-        
+
         last_invoice = (
             self.db.query(Invoice)
             .filter(Invoice.invoice_number.like(f"{prefix}%"))
             .order_by(Invoice.invoice_number.desc())
             .first()
         )
-        
+
         if last_invoice:
-            last_number = int(last_invoice.invoice_number.split('-')[-1])
+            last_number = int(last_invoice.invoice_number.split("-")[-1])
             new_number = last_number + 1
         else:
             new_number = 1
-            
+
         return f"{prefix}-{new_number:04d}"
 
 
@@ -510,7 +548,9 @@ class PaymentCRUD:
 
     def create(self, payment_in: PaymentCreate) -> Payment:
         """支払記録作成"""
-        invoice = self.db.query(Invoice).filter(Invoice.id == payment_in.invoice_id).first()
+        invoice = (
+            self.db.query(Invoice).filter(Invoice.id == payment_in.invoice_id).first()
+        )
         if not invoice:
             raise NotFoundError(f"Invoice {payment_in.invoice_id} not found")
 
@@ -523,13 +563,13 @@ class PaymentCRUD:
             payment_method=payment_in.payment_method,
             reference_number=payment_in.reference_number,
             transaction_id=payment_in.transaction_id,
-            notes=payment_in.notes
+            notes=payment_in.notes,
         )
 
         # 請求書の支払状況更新
         invoice.paid_amount += payment_in.amount
         invoice.balance_due = invoice.total_amount - invoice.paid_amount
-        
+
         if invoice.balance_due <= 0:
             invoice.status = "paid"
         else:
@@ -561,7 +601,7 @@ class ShipmentCRUD:
             delivery_city=shipment_in.delivery_city,
             delivery_postal_code=shipment_in.delivery_postal_code,
             delivery_country=shipment_in.delivery_country,
-            notes=shipment_in.notes
+            notes=shipment_in.notes,
         )
 
         self.db.add(db_shipment)
@@ -575,7 +615,7 @@ class ShipmentCRUD:
                 sales_order_item_id=item_data.sales_order_item_id,
                 product_id=item_data.product_id,
                 quantity_shipped=item_data.quantity_shipped,
-                serial_numbers=item_data.serial_numbers
+                serial_numbers=item_data.serial_numbers,
             )
             self.db.add(shipment_item)
 
@@ -588,18 +628,18 @@ class ShipmentCRUD:
         """出荷番号生成"""
         today = datetime.now()
         prefix = f"SH-{today.year}{today.month:02d}"
-        
+
         last_shipment = (
             self.db.query(Shipment)
             .filter(Shipment.shipment_number.like(f"{prefix}%"))
             .order_by(Shipment.shipment_number.desc())
             .first()
         )
-        
+
         if last_shipment:
-            last_number = int(last_shipment.shipment_number.split('-')[-1])
+            last_number = int(last_shipment.shipment_number.split("-")[-1])
             new_number = last_number + 1
         else:
             new_number = 1
-            
+
         return f"{prefix}-{new_number:04d}"

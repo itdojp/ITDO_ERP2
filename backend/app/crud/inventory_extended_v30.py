@@ -1,29 +1,43 @@
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import or_, and_, func
-from typing import Optional, List, Dict, Any
-from datetime import datetime, timedelta
 import uuid
+from datetime import datetime, timedelta
 from decimal import Decimal
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy import and_, func, or_
+from sqlalchemy.orm import Session, joinedload
 
 from app.models.inventory_extended import (
-    Warehouse, WarehouseLocation, InventoryItem, StockMovement, 
-    InventoryReservation, CycleCount, CycleCountItem, StockAlert
+    CycleCount,
+    CycleCountItem,
+    InventoryItem,
+    InventoryReservation,
+    StockAlert,
+    StockMovement,
+    Warehouse,
 )
 from app.schemas.inventory_complete_v30 import (
-    WarehouseCreate, WarehouseUpdate, WarehouseLocationCreate,
-    InventoryItemCreate, InventoryItemUpdate, StockMovementCreate,
-    InventoryReservationCreate, CycleCountCreate, CycleCountUpdate,
-    CycleCountItemCreate, CycleCountItemUpdate, StockAlertCreate
+    CycleCountCreate,
+    CycleCountItemUpdate,
+    InventoryItemCreate,
+    InventoryItemUpdate,
+    InventoryReservationCreate,
+    StockMovementCreate,
+    WarehouseCreate,
+    WarehouseUpdate,
 )
+
 
 class NotFoundError(Exception):
     pass
 
+
 class DuplicateError(Exception):
     pass
 
+
 class InsufficientStockError(Exception):
     pass
+
 
 class WarehouseCRUD:
     def __init__(self, db: Session):
@@ -36,10 +50,7 @@ class WarehouseCRUD:
         return self.db.query(Warehouse).filter(Warehouse.code == code).first()
 
     def get_multi(
-        self,
-        skip: int = 0,
-        limit: int = 100,
-        filters: Optional[Dict[str, Any]] = None
+        self, skip: int = 0, limit: int = 100, filters: Optional[Dict[str, Any]] = None
     ) -> tuple[List[Warehouse], int]:
         query = self.db.query(Warehouse)
 
@@ -47,14 +58,13 @@ class WarehouseCRUD:
             if filters.get("is_active") is not None:
                 query = query.filter(Warehouse.is_active == filters["is_active"])
             if filters.get("warehouse_type"):
-                query = query.filter(Warehouse.warehouse_type == filters["warehouse_type"])
+                query = query.filter(
+                    Warehouse.warehouse_type == filters["warehouse_type"]
+                )
             if filters.get("search"):
                 search = f"%{filters['search']}%"
                 query = query.filter(
-                    or_(
-                        Warehouse.name.ilike(search),
-                        Warehouse.code.ilike(search)
-                    )
+                    or_(Warehouse.name.ilike(search), Warehouse.code.ilike(search))
                 )
 
         total = query.count()
@@ -89,7 +99,7 @@ class WarehouseCRUD:
             operating_hours=warehouse_in.operating_hours,
             timezone=warehouse_in.timezone,
             is_default=warehouse_in.is_default,
-            settings=warehouse_in.settings
+            settings=warehouse_in.settings,
         )
 
         self.db.add(db_warehouse)
@@ -98,7 +108,9 @@ class WarehouseCRUD:
 
         return db_warehouse
 
-    def update(self, warehouse_id: str, warehouse_in: WarehouseUpdate) -> Optional[Warehouse]:
+    def update(
+        self, warehouse_id: str, warehouse_in: WarehouseUpdate
+    ) -> Optional[Warehouse]:
         warehouse = self.get_by_id(warehouse_id)
         if not warehouse:
             raise NotFoundError(f"Warehouse {warehouse_id} not found")
@@ -120,11 +132,15 @@ class WarehouseCRUD:
             raise NotFoundError(f"Warehouse {warehouse_id} not found")
 
         # 在庫アイテムの確認
-        inventory_count = self.db.query(func.count(InventoryItem.id)).filter(
-            InventoryItem.warehouse_id == warehouse_id,
-            InventoryItem.quantity_available > 0
-        ).scalar()
-        
+        inventory_count = (
+            self.db.query(func.count(InventoryItem.id))
+            .filter(
+                InventoryItem.warehouse_id == warehouse_id,
+                InventoryItem.quantity_available > 0,
+            )
+            .scalar()
+        )
+
         if inventory_count > 0:
             raise ValueError("Cannot delete warehouse with active inventory")
 
@@ -143,47 +159,57 @@ class InventoryItemCRUD:
     def get_by_id(self, item_id: str) -> Optional[InventoryItem]:
         return (
             self.db.query(InventoryItem)
-            .options(joinedload(InventoryItem.product), joinedload(InventoryItem.warehouse))
+            .options(
+                joinedload(InventoryItem.product), joinedload(InventoryItem.warehouse)
+            )
             .filter(InventoryItem.id == item_id)
             .first()
         )
 
     def get_multi(
-        self,
-        skip: int = 0,
-        limit: int = 100,
-        filters: Optional[Dict[str, Any]] = None
+        self, skip: int = 0, limit: int = 100, filters: Optional[Dict[str, Any]] = None
     ) -> tuple[List[InventoryItem], int]:
         query = self.db.query(InventoryItem)
 
         if filters:
             if filters.get("warehouse_id"):
-                query = query.filter(InventoryItem.warehouse_id == filters["warehouse_id"])
+                query = query.filter(
+                    InventoryItem.warehouse_id == filters["warehouse_id"]
+                )
             if filters.get("product_id"):
                 query = query.filter(InventoryItem.product_id == filters["product_id"])
             if filters.get("location_id"):
-                query = query.filter(InventoryItem.location_id == filters["location_id"])
+                query = query.filter(
+                    InventoryItem.location_id == filters["location_id"]
+                )
             if filters.get("quality_status"):
-                query = query.filter(InventoryItem.quality_status == filters["quality_status"])
+                query = query.filter(
+                    InventoryItem.quality_status == filters["quality_status"]
+                )
             if filters.get("low_stock"):
-                query = query.filter(InventoryItem.quantity_available <= InventoryItem.reorder_point)
+                query = query.filter(
+                    InventoryItem.quantity_available <= InventoryItem.reorder_point
+                )
             if filters.get("out_of_stock"):
                 query = query.filter(InventoryItem.quantity_available <= 0)
             if filters.get("expired"):
-                query = query.filter(
-                    InventoryItem.expiry_date <= datetime.utcnow()
-                )
+                query = query.filter(InventoryItem.expiry_date <= datetime.utcnow())
             if filters.get("expiring_soon"):
                 next_month = datetime.utcnow() + timedelta(days=30)
                 query = query.filter(
                     and_(
                         InventoryItem.expiry_date <= next_month,
-                        InventoryItem.expiry_date > datetime.utcnow()
+                        InventoryItem.expiry_date > datetime.utcnow(),
                     )
                 )
 
         total = query.count()
-        items = query.offset(skip).limit(limit).order_by(InventoryItem.created_at.desc()).all()
+        items = (
+            query.offset(skip)
+            .limit(limit)
+            .order_by(InventoryItem.created_at.desc())
+            .all()
+        )
 
         return items, total
 
@@ -195,11 +221,11 @@ class InventoryItemCRUD:
                 InventoryItem.product_id == item_in.product_id,
                 InventoryItem.warehouse_id == item_in.warehouse_id,
                 InventoryItem.location_id == item_in.location_id,
-                InventoryItem.batch_number == item_in.batch_number
+                InventoryItem.batch_number == item_in.batch_number,
             )
             .first()
         )
-        
+
         if existing:
             # 既存アイテムに数量を追加
             existing.quantity_available += item_in.quantity_available
@@ -222,7 +248,7 @@ class InventoryItemCRUD:
             quality_status=item_in.quality_status,
             reorder_point=item_in.reorder_point,
             safety_stock=item_in.safety_stock,
-            attributes=item_in.attributes
+            attributes=item_in.attributes,
         )
 
         # 平均コスト計算
@@ -236,7 +262,9 @@ class InventoryItemCRUD:
 
         return db_item
 
-    def update(self, item_id: str, item_in: InventoryItemUpdate) -> Optional[InventoryItem]:
+    def update(
+        self, item_id: str, item_in: InventoryItemUpdate
+    ) -> Optional[InventoryItem]:
         item = self.get_by_id(item_id)
         if not item:
             raise NotFoundError(f"Inventory item {item_id} not found")
@@ -252,7 +280,9 @@ class InventoryItemCRUD:
 
         return item
 
-    def adjust_quantity(self, item_id: str, movement: StockMovementCreate, user_id: str) -> StockMovement:
+    def adjust_quantity(
+        self, item_id: str, movement: StockMovementCreate, user_id: str
+    ) -> StockMovement:
         item = self.get_by_id(item_id)
         if not item:
             raise NotFoundError(f"Inventory item {item_id} not found")
@@ -281,7 +311,9 @@ class InventoryItemCRUD:
             transaction_type=movement.transaction_type,
             quantity=movement.quantity,
             unit_cost=movement.unit_cost,
-            total_cost=movement.unit_cost * abs(movement.quantity) if movement.unit_cost else None,
+            total_cost=movement.unit_cost * abs(movement.quantity)
+            if movement.unit_cost
+            else None,
             stock_before=stock_before,
             stock_after=stock_after,
             from_warehouse_id=movement.from_warehouse_id,
@@ -296,7 +328,7 @@ class InventoryItemCRUD:
             executed_date=datetime.utcnow(),
             status="executed",
             reason=movement.reason,
-            notes=movement.notes
+            notes=movement.notes,
         )
 
         self.db.add(stock_movement)
@@ -306,14 +338,20 @@ class InventoryItemCRUD:
 
         return stock_movement
 
-    def reserve_inventory(self, reservation_in: InventoryReservationCreate, user_id: str) -> InventoryReservation:
+    def reserve_inventory(
+        self, reservation_in: InventoryReservationCreate, user_id: str
+    ) -> InventoryReservation:
         item = self.get_by_id(reservation_in.inventory_item_id)
         if not item:
-            raise NotFoundError(f"Inventory item {reservation_in.inventory_item_id} not found")
+            raise NotFoundError(
+                f"Inventory item {reservation_in.inventory_item_id} not found"
+            )
 
         available = item.quantity_available - item.quantity_reserved
         if available < reservation_in.quantity_reserved:
-            raise InsufficientStockError("Not enough inventory available for reservation")
+            raise InsufficientStockError(
+                "Not enough inventory available for reservation"
+            )
 
         reservation = InventoryReservation(
             id=str(uuid.uuid4()),
@@ -326,7 +364,7 @@ class InventoryItemCRUD:
             reserved_date=datetime.utcnow(),
             expected_release_date=reservation_in.expected_release_date,
             reserved_by=user_id,
-            notes=reservation_in.notes
+            notes=reservation_in.notes,
         )
 
         # 予約数量更新
@@ -339,32 +377,33 @@ class InventoryItemCRUD:
 
         return reservation
 
-    def get_stock_summary(self, product_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    def get_stock_summary(
+        self, product_id: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
         """在庫サマリー取得"""
-        query = (
-            self.db.query(
-                InventoryItem.product_id,
-                func.sum(InventoryItem.quantity_available).label("total_available"),
-                func.sum(InventoryItem.quantity_reserved).label("total_reserved"),
-                func.sum(InventoryItem.quantity_allocated).label("total_allocated"),
-                func.count(InventoryItem.id).label("locations_count")
-            )
-            .group_by(InventoryItem.product_id)
-        )
+        query = self.db.query(
+            InventoryItem.product_id,
+            func.sum(InventoryItem.quantity_available).label("total_available"),
+            func.sum(InventoryItem.quantity_reserved).label("total_reserved"),
+            func.sum(InventoryItem.quantity_allocated).label("total_allocated"),
+            func.count(InventoryItem.id).label("locations_count"),
+        ).group_by(InventoryItem.product_id)
 
         if product_id:
             query = query.filter(InventoryItem.product_id == product_id)
 
         results = query.all()
-        
+
         return [
             {
                 "product_id": r.product_id,
                 "total_available": r.total_available or 0,
                 "total_reserved": r.total_reserved or 0,
                 "total_allocated": r.total_allocated or 0,
-                "net_available": (r.total_available or 0) - (r.total_reserved or 0) - (r.total_allocated or 0),
-                "locations_count": r.locations_count
+                "net_available": (r.total_available or 0)
+                - (r.total_reserved or 0)
+                - (r.total_allocated or 0),
+                "locations_count": r.locations_count,
             }
             for r in results
         ]
@@ -372,34 +411,32 @@ class InventoryItemCRUD:
     def get_inventory_valuation(self) -> Dict[str, Any]:
         """在庫評価額取得"""
         # 平均コスト法での評価
-        total_value = (
-            self.db.query(
-                func.sum(InventoryItem.quantity_available * InventoryItem.average_cost)
-            )
-            .filter(InventoryItem.average_cost.isnot(None))
-            .scalar() or Decimal('0')
-        )
+        total_value = self.db.query(
+            func.sum(InventoryItem.quantity_available * InventoryItem.average_cost)
+        ).filter(InventoryItem.average_cost.isnot(None)).scalar() or Decimal("0")
 
         # 倉庫別評価額
         warehouse_values = {}
         warehouse_results = (
             self.db.query(
                 Warehouse.name,
-                func.sum(InventoryItem.quantity_available * InventoryItem.average_cost).label("value")
+                func.sum(
+                    InventoryItem.quantity_available * InventoryItem.average_cost
+                ).label("value"),
             )
             .join(InventoryItem, Warehouse.id == InventoryItem.warehouse_id)
             .filter(InventoryItem.average_cost.isnot(None))
             .group_by(Warehouse.name)
             .all()
         )
-        
+
         for name, value in warehouse_results:
-            warehouse_values[name] = value or Decimal('0')
+            warehouse_values[name] = value or Decimal("0")
 
         return {
             "total_value": total_value,
             "by_warehouse": warehouse_values,
-            "valuation_date": datetime.utcnow()
+            "valuation_date": datetime.utcnow(),
         }
 
 
@@ -417,9 +454,11 @@ class CycleCountCRUD:
 
     def create(self, count_in: CycleCountCreate) -> CycleCount:
         # 棚卸番号の重複チェック
-        existing = self.db.query(CycleCount).filter(
-            CycleCount.cycle_count_number == count_in.cycle_count_number
-        ).first()
+        existing = (
+            self.db.query(CycleCount)
+            .filter(CycleCount.cycle_count_number == count_in.cycle_count_number)
+            .first()
+        )
         if existing:
             raise DuplicateError("Cycle count number already exists")
 
@@ -432,7 +471,7 @@ class CycleCountCRUD:
             scheduled_date=count_in.scheduled_date,
             assigned_to=count_in.assigned_to,
             supervised_by=count_in.supervised_by,
-            notes=count_in.notes
+            notes=count_in.notes,
         )
 
         self.db.add(db_count)
@@ -448,14 +487,14 @@ class CycleCountCRUD:
         """棚卸対象アイテムの自動生成"""
         query = self.db.query(InventoryItem).filter(
             InventoryItem.warehouse_id == cycle_count.warehouse_id,
-            InventoryItem.is_active == True
+            InventoryItem.is_active,
         )
 
         if cycle_count.location_id:
             query = query.filter(InventoryItem.location_id == cycle_count.location_id)
 
         items = query.all()
-        
+
         count_items = []
         for item in items:
             count_item = CycleCountItem(
@@ -463,19 +502,23 @@ class CycleCountCRUD:
                 cycle_count_id=cycle_count.id,
                 inventory_item_id=item.id,
                 product_id=item.product_id,
-                system_quantity=item.quantity_available
+                system_quantity=item.quantity_available,
             )
             count_items.append(count_item)
 
         self.db.add_all(count_items)
-        
+
         # 棚卸予定アイテム数更新
         cycle_count.total_items_planned = len(count_items)
-        
+
         self.db.commit()
 
-    def update_count_item(self, item_id: str, item_in: CycleCountItemUpdate) -> CycleCountItem:
-        item = self.db.query(CycleCountItem).filter(CycleCountItem.id == item_id).first()
+    def update_count_item(
+        self, item_id: str, item_in: CycleCountItemUpdate
+    ) -> CycleCountItem:
+        item = (
+            self.db.query(CycleCountItem).filter(CycleCountItem.id == item_id).first()
+        )
         if not item:
             raise NotFoundError(f"Cycle count item {item_id} not found")
 
@@ -483,13 +526,17 @@ class CycleCountCRUD:
         if item_in.counted_quantity is not None:
             item.counted_quantity = item_in.counted_quantity
             item.variance_quantity = item_in.counted_quantity - item.system_quantity
-            
+
             # 差異金額の計算（在庫アイテムのコストを使用）
-            inventory_item = self.db.query(InventoryItem).filter(
-                InventoryItem.id == item.inventory_item_id
-            ).first()
+            inventory_item = (
+                self.db.query(InventoryItem)
+                .filter(InventoryItem.id == item.inventory_item_id)
+                .first()
+            )
             if inventory_item and inventory_item.average_cost:
-                item.variance_value = item.variance_quantity * inventory_item.average_cost
+                item.variance_value = (
+                    item.variance_quantity * inventory_item.average_cost
+                )
 
             item.count_date = datetime.utcnow()
             item.status = "counted"
@@ -518,7 +565,7 @@ class StockAlertCRUD:
             self.db.query(InventoryItem)
             .filter(
                 InventoryItem.quantity_available <= InventoryItem.reorder_point,
-                InventoryItem.is_active == True
+                InventoryItem.is_active,
             )
             .all()
         )
@@ -532,11 +579,11 @@ class StockAlertCRUD:
                     StockAlert.product_id == item.product_id,
                     StockAlert.warehouse_id == item.warehouse_id,
                     StockAlert.alert_type == "low_stock",
-                    StockAlert.status == "active"
+                    StockAlert.status == "active",
                 )
                 .first()
             )
-            
+
             if not existing:
                 alert = StockAlert(
                     id=str(uuid.uuid4()),
@@ -546,8 +593,9 @@ class StockAlertCRUD:
                     severity="medium",
                     current_quantity=item.quantity_available,
                     threshold_quantity=item.reorder_point,
-                    recommended_order_quantity=item.economic_order_qty or item.reorder_point * 2,
-                    message=f"Stock level ({item.quantity_available}) below reorder point ({item.reorder_point})"
+                    recommended_order_quantity=item.economic_order_qty
+                    or item.reorder_point * 2,
+                    message=f"Stock level ({item.quantity_available}) below reorder point ({item.reorder_point})",
                 )
                 alerts.append(alert)
 
