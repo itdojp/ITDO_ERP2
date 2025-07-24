@@ -84,7 +84,9 @@ class TestMultiTenantSecurity:
 
         # Test: 他組織の更新は権限エラーになるべき
         # 現在の実装では直接更新できてしまうが、将来的に権限チェックが必要
-        # org_service.update_organization(org2.id, OrganizationUpdate(name="不正な更新"))
+        # org_service.update_organization(
+        #     org2.id, OrganizationUpdate(name="不正な更新")
+        # )
 
         # テスト簡略化: 他組織のデータにアクセスできないことを確認
         org_list, _ = org_service.list_organizations(filters={"id": org2.id})
