@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback } from "react";
 
 interface SearchInputProps {
   placeholder?: string;
@@ -8,64 +8,69 @@ interface SearchInputProps {
   onClear?: () => void;
   disabled?: boolean;
   loading?: boolean;
-  size?: 'sm' | 'md' | 'lg';
+  size?: "sm" | "md" | "lg";
   showClearButton?: boolean;
   debounceMs?: number;
 }
 
 export const SearchInput: React.FC<SearchInputProps> = ({
-  placeholder = '検索...',
+  placeholder = "検索...",
   value: controlledValue,
   onChange,
   onSearch,
   onClear,
   disabled = false,
   loading = false,
-  size = 'md',
+  size = "md",
   showClearButton = true,
-  debounceMs = 300
+  debounceMs = 300,
 }) => {
-  const [internalValue, setInternalValue] = useState('');
-  const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(null);
+  const [internalValue, setInternalValue] = useState("");
+  const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(
+    null,
+  );
 
   const value = controlledValue !== undefined ? controlledValue : internalValue;
 
   const sizeClasses = {
-    sm: 'h-8 text-sm px-3',
-    md: 'h-10 text-base px-4',
-    lg: 'h-12 text-lg px-5'
+    sm: "h-8 text-sm px-3",
+    md: "h-10 text-base px-4",
+    lg: "h-12 text-lg px-5",
   };
 
   const iconSize = {
-    sm: 'w-4 h-4',
-    md: 'w-5 h-5',
-    lg: 'w-6 h-6'
+    sm: "w-4 h-4",
+    md: "w-5 h-5",
+    lg: "w-6 h-6",
   };
 
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    
-    if (controlledValue === undefined) {
-      setInternalValue(newValue);
-    }
-    
-    onChange?.(newValue);
+  const handleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newValue = e.target.value;
 
-    // デバウンス機能
-    if (debounceTimer) {
-      clearTimeout(debounceTimer);
-    }
+      if (controlledValue === undefined) {
+        setInternalValue(newValue);
+      }
 
-    if (onSearch && debounceMs > 0) {
-      const timer = setTimeout(() => {
-        onSearch(newValue);
-      }, debounceMs);
-      setDebounceTimer(timer);
-    }
-  }, [controlledValue, onChange, onSearch, debounceMs, debounceTimer]);
+      onChange?.(newValue);
+
+      // デバウンス機能
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+      }
+
+      if (onSearch && debounceMs > 0) {
+        const timer = setTimeout(() => {
+          onSearch(newValue);
+        }, debounceMs);
+        setDebounceTimer(timer);
+      }
+    },
+    [controlledValue, onChange, onSearch, debounceMs, debounceTimer],
+  );
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && onSearch) {
+    if (e.key === "Enter" && onSearch) {
       if (debounceTimer) {
         clearTimeout(debounceTimer);
         setDebounceTimer(null);
@@ -75,12 +80,12 @@ export const SearchInput: React.FC<SearchInputProps> = ({
   };
 
   const handleClear = () => {
-    const newValue = '';
-    
+    const newValue = "";
+
     if (controlledValue === undefined) {
       setInternalValue(newValue);
     }
-    
+
     onChange?.(newValue);
     onClear?.();
     onSearch?.(newValue);
@@ -104,12 +109,26 @@ export const SearchInput: React.FC<SearchInputProps> = ({
   return (
     <div className="relative inline-flex items-center w-full max-w-md">
       {/* 検索アイコン */}
-      <div className={`absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 ${iconSize[size]}`}>
+      <div
+        className={`absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 ${iconSize[size]}`}
+      >
         {loading ? (
-          <div className={`animate-spin rounded-full border-2 border-gray-300 border-t-blue-600 ${iconSize[size]}`} />
+          <div
+            className={`animate-spin rounded-full border-2 border-gray-300 border-t-blue-600 ${iconSize[size]}`}
+          />
         ) : (
-          <svg className={iconSize[size]} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          <svg
+            className={iconSize[size]}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
           </svg>
         )}
       </div>
@@ -137,8 +156,18 @@ export const SearchInput: React.FC<SearchInputProps> = ({
           className={`absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 ${iconSize[size]}`}
           type="button"
         >
-          <svg className={iconSize[size]} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          <svg
+            className={iconSize[size]}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
           </svg>
         </button>
       )}
@@ -151,8 +180,18 @@ export const SearchInput: React.FC<SearchInputProps> = ({
           className={`absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-blue-600 disabled:cursor-not-allowed ${iconSize[size]}`}
           type="button"
         >
-          <svg className={iconSize[size]} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          <svg
+            className={iconSize[size]}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
           </svg>
         </button>
       )}
