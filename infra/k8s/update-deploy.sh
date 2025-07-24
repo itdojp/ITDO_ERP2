@@ -71,7 +71,7 @@ check_prerequisites() {
     fi
     
     # Check cluster version
-    K8S_VERSION=$(kubectl version --short --client | grep -oE 'v[0-9]+\.[0-9]+')
+    K8S_VERSION=$(kubectl version --client | grep -oE 'v[0-9]+\.[0-9]+' | head -1)
     info "Kubernetes client version: $K8S_VERSION"
     
     # Check helm (optional but recommended)
