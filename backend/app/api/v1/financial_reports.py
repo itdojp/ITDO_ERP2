@@ -23,9 +23,7 @@ async def get_budget_performance_report(
     include_variance_analysis: bool = Query(
         True, description="Include detailed variance analysis"
     ),
-    include_trend_data: bool = Query(
-        True, description="Include historical trend data"
-    ),
+    include_trend_data: bool = Query(True, description="Include historical trend data"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -33,7 +31,7 @@ async def get_budget_performance_report(
     if not current_user.organization_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User must belong to an organization"
+            detail="User must belong to an organization",
         )
 
     service = FinancialReportsService(db)
@@ -50,7 +48,7 @@ async def get_budget_performance_report(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to generate budget performance report: {str(e)}"
+            detail=f"Failed to generate budget performance report: {str(e)}",
         )
 
 
@@ -75,7 +73,7 @@ async def get_expense_summary_report(
     if not current_user.organization_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User must belong to an organization"
+            detail="User must belong to an organization",
         )
 
     service = FinancialReportsService(db)
@@ -93,7 +91,7 @@ async def get_expense_summary_report(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to generate expense summary report: {str(e)}"
+            detail=f"Failed to generate expense summary report: {str(e)}",
         )
 
 
@@ -108,14 +106,14 @@ async def get_monthly_financial_report(
     if not current_user.organization_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User must belong to an organization"
+            detail="User must belong to an organization",
         )
 
     # Validate month
     if month < 1 or month > 12:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Month must be between 1 and 12"
+            detail="Month must be between 1 and 12",
         )
 
     service = FinancialReportsService(db)
@@ -131,7 +129,7 @@ async def get_monthly_financial_report(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to generate monthly financial report: {str(e)}"
+            detail=f"Failed to generate monthly financial report: {str(e)}",
         )
 
 
@@ -145,7 +143,7 @@ async def get_yearly_financial_summary(
     if not current_user.organization_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User must belong to an organization"
+            detail="User must belong to an organization",
         )
 
     service = FinancialReportsService(db)
@@ -160,7 +158,7 @@ async def get_yearly_financial_summary(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to generate yearly financial summary: {str(e)}"
+            detail=f"Failed to generate yearly financial summary: {str(e)}",
         )
 
 
@@ -173,10 +171,11 @@ async def get_current_year_financial_dashboard(
     if not current_user.organization_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User must belong to an organization"
+            detail="User must belong to an organization",
         )
 
     from datetime import datetime
+
     current_year = datetime.now().year
 
     service = FinancialReportsService(db)
@@ -211,7 +210,7 @@ async def get_current_year_financial_dashboard(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to generate financial dashboard: {str(e)}"
+            detail=f"Failed to generate financial dashboard: {str(e)}",
         )
 
 
@@ -221,7 +220,7 @@ async def get_variance_analysis_report(
     threshold_percentage: float = Query(
         20.0,
         description="Variance threshold percentage for highlighting significant "
-        "variances"
+        "variances",
     ),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -230,7 +229,7 @@ async def get_variance_analysis_report(
     if not current_user.organization_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User must belong to an organization"
+            detail="User must belong to an organization",
         )
 
     service = FinancialReportsService(db)
@@ -252,8 +251,10 @@ async def get_variance_analysis_report(
         for budget in report.get("budget_breakdown", []):
             if abs(budget["variance_percentage"]) >= threshold_percentage:
                 budget["severity"] = (
-                    "high" if abs(budget["variance_percentage"]) >= 50
-                    else "medium" if abs(budget["variance_percentage"]) >= 30
+                    "high"
+                    if abs(budget["variance_percentage"]) >= 50
+                    else "medium"
+                    if abs(budget["variance_percentage"]) >= 30
                     else "low"
                 )
                 significant_variances.append(budget)
@@ -275,7 +276,7 @@ async def get_variance_analysis_report(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to generate variance analysis report: {str(e)}"
+            detail=f"Failed to generate variance analysis report: {str(e)}",
         )
 
 
@@ -290,13 +291,13 @@ async def export_budget_performance_report(
     if not current_user.organization_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User must belong to an organization"
+            detail="User must belong to an organization",
         )
 
     if format not in ["json", "csv"]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Format must be 'json' or 'csv'"
+            detail="Format must be 'json' or 'csv'",
         )
 
     service = FinancialReportsService(db)
@@ -311,12 +312,12 @@ async def export_budget_performance_report(
 
         if format == "json":
             from fastapi.responses import JSONResponse
+
             return JSONResponse(
                 content=report,
                 headers={
-                    "Content-Disposition":
-                    f"attachment; filename=budget_performance_{fiscal_year}.json"
-                }
+                    "Content-Disposition": f"attachment; filename=budget_performance_{fiscal_year}.json"
+                },
             )
 
         elif format == "csv":
@@ -328,23 +329,33 @@ async def export_budget_performance_report(
             writer = csv.writer(output)
 
             # Write headers
-            writer.writerow([
-                "Budget Code", "Budget Name", "Budget Amount", "Actual Amount",
-                "Variance", "Variance %", "Status", "Utilization Rate"
-            ])
+            writer.writerow(
+                [
+                    "Budget Code",
+                    "Budget Name",
+                    "Budget Amount",
+                    "Actual Amount",
+                    "Variance",
+                    "Variance %",
+                    "Status",
+                    "Utilization Rate",
+                ]
+            )
 
             # Write data
             for budget in report["budget_breakdown"]:
-                writer.writerow([
-                    budget["budget_code"],
-                    budget["budget_name"],
-                    budget["budget_amount"],
-                    budget["actual_amount"],
-                    budget["variance"],
-                    budget["variance_percentage"],
-                    budget["status"],
-                    budget["utilization_rate"],
-                ])
+                writer.writerow(
+                    [
+                        budget["budget_code"],
+                        budget["budget_name"],
+                        budget["budget_amount"],
+                        budget["actual_amount"],
+                        budget["variance"],
+                        budget["variance_percentage"],
+                        budget["status"],
+                        budget["utilization_rate"],
+                    ]
+                )
 
             from fastapi.responses import StreamingResponse
 
@@ -353,15 +364,14 @@ async def export_budget_performance_report(
                 io.BytesIO(output.getvalue().encode()),
                 media_type="text/csv",
                 headers={
-                    "Content-Disposition":
-                    f"attachment; filename=budget_performance_{fiscal_year}.csv"
-                }
+                    "Content-Disposition": f"attachment; filename=budget_performance_{fiscal_year}.csv"
+                },
             )
 
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to export budget performance report: {str(e)}"
+            detail=f"Failed to export budget performance report: {str(e)}",
         )
 
 
@@ -371,37 +381,40 @@ async def _generate_variance_recommendations(significant_variances) -> list:
 
     for variance in significant_variances:
         if variance["variance_percentage"] < -20:  # Over budget
-            recommendations.append({
-                "budget_code": variance["budget_code"],
-                "type": "cost_control",
-                "priority": variance["severity"],
-                "message": (
-                    f"Budget {variance['budget_code']} is "
-                    f"{abs(variance['variance_percentage']):.1f}% over budget. "
-                    f"Consider implementing cost control measures."
-                ),
-                "suggested_actions": [
-                    "Review expense approval process",
-                    "Identify cost reduction opportunities",
-                    "Monitor spending more closely",
-                ]
-            })
+            recommendations.append(
+                {
+                    "budget_code": variance["budget_code"],
+                    "type": "cost_control",
+                    "priority": variance["severity"],
+                    "message": (
+                        f"Budget {variance['budget_code']} is "
+                        f"{abs(variance['variance_percentage']):.1f}% over budget. "
+                        f"Consider implementing cost control measures."
+                    ),
+                    "suggested_actions": [
+                        "Review expense approval process",
+                        "Identify cost reduction opportunities",
+                        "Monitor spending more closely",
+                    ],
+                }
+            )
         elif variance["variance_percentage"] > 20:  # Under budget
-            recommendations.append({
-                "budget_code": variance["budget_code"],
-                "type": "utilization",
-                "priority": "low",
-                "message": (
-                    f"Budget {variance['budget_code']} is "
-                    f"{variance['variance_percentage']:.1f}% under budget. "
-                    f"Consider reallocating funds or reviewing budget planning."
-                ),
-                "suggested_actions": [
-                    "Review budget allocation accuracy",
-                    "Consider reallocating surplus to other areas",
-                    "Evaluate if budget targets are realistic",
-                ]
-            })
+            recommendations.append(
+                {
+                    "budget_code": variance["budget_code"],
+                    "type": "utilization",
+                    "priority": "low",
+                    "message": (
+                        f"Budget {variance['budget_code']} is "
+                        f"{variance['variance_percentage']:.1f}% under budget. "
+                        f"Consider reallocating funds or reviewing budget planning."
+                    ),
+                    "suggested_actions": [
+                        "Review budget allocation accuracy",
+                        "Consider reallocating surplus to other areas",
+                        "Evaluate if budget targets are realistic",
+                    ],
+                }
+            )
 
     return recommendations
-
