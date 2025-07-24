@@ -5,7 +5,14 @@ interface BadgeProps {
   count?: number;
   max?: number;
   showZero?: boolean;
-  variant?: "primary" | "secondary" | "success" | "warning" | "danger" | "info";
+  variant?:
+    | "primary"
+    | "secondary"
+    | "success"
+    | "warning"
+    | "danger"
+    | "info"
+    | "default";
   size?: "sm" | "md" | "lg";
   color?: string;
   outlined?: boolean;
@@ -13,10 +20,12 @@ interface BadgeProps {
   pulse?: boolean;
   loading?: boolean;
   closable?: boolean;
+  removable?: boolean;
   icon?: React.ReactNode;
+  iconPosition?: "left" | "right";
   status?: "success" | "processing" | "error" | "warning" | "default";
   position?: "top-left" | "top-right" | "bottom-left" | "bottom-right";
-  shape?: "rounded" | "square";
+  shape?: "rounded" | "square" | "pill";
   gradient?: string;
   border?: string;
   shadow?: "sm" | "md" | "lg" | "xl";
@@ -24,6 +33,8 @@ interface BadgeProps {
   textTransform?: "uppercase" | "lowercase" | "capitalize";
   theme?: "light" | "dark";
   animateChange?: boolean;
+  animated?: boolean;
+  bordered?: boolean;
   className?: string;
   style?: React.CSSProperties;
   title?: string;
@@ -31,6 +42,9 @@ interface BadgeProps {
   "aria-label"?: string;
   onClick?: (event: React.MouseEvent<HTMLSpanElement>) => void;
   onClose?: () => void;
+  onRemove?: () => void;
+  href?: string;
+  disabled?: boolean;
 }
 
 interface BadgeGroupProps {
@@ -47,14 +61,16 @@ const BadgeComponent = forwardRef<HTMLSpanElement, BadgeProps>(
       max = 99,
       showZero = false,
       variant = "primary",
-      size = "sm",
+      size = "md",
       color,
       outlined = false,
       dot = false,
       pulse = false,
       loading = false,
       closable = false,
+      removable = false,
       icon,
+      iconPosition = "left",
       status,
       position,
       shape = "rounded",
@@ -65,6 +81,8 @@ const BadgeComponent = forwardRef<HTMLSpanElement, BadgeProps>(
       textTransform,
       theme = "light",
       animateChange = false,
+      animated = false,
+      bordered = false,
       className = "",
       style,
       title,
@@ -72,6 +90,9 @@ const BadgeComponent = forwardRef<HTMLSpanElement, BadgeProps>(
       "aria-label": ariaLabel,
       onClick,
       onClose,
+      onRemove,
+      href,
+      disabled = false,
     },
     ref,
   ) => {
@@ -92,31 +113,45 @@ const BadgeComponent = forwardRef<HTMLSpanElement, BadgeProps>(
       if (color) return `bg-${color}-500 text-white`;
       if (theme === "dark") return "bg-gray-800 text-white";
 
+      const baseClasses = outlined ? "border-2 bg-transparent" : "";
+
       const variantMap = {
+        default: outlined
+          ? `${baseClasses} border-gray-300 text-gray-700 hover:bg-gray-50`
+          : "bg-gray-100 text-gray-800 hover:bg-gray-200",
         primary: outlined
-          ? "border-blue-500 text-blue-500 bg-transparent"
-          : "bg-blue-500 text-white",
+          ? `${baseClasses} border-blue-500 text-blue-500 hover:bg-blue-50`
+          : "bg-blue-500 text-white hover:bg-blue-600",
         secondary: outlined
-          ? "border-gray-500 text-gray-500 bg-transparent"
-          : "bg-gray-500 text-white",
+          ? `${baseClasses} border-gray-600 text-gray-600 hover:bg-gray-50`
+          : "bg-gray-600 text-white hover:bg-gray-700",
         success: outlined
-          ? "border-green-500 text-green-500 bg-transparent"
-          : "bg-green-500 text-white",
+          ? `${baseClasses} border-green-500 text-green-600 hover:bg-green-50`
+          : "bg-green-500 text-white hover:bg-green-600",
         warning: outlined
-          ? "border-yellow-500 text-yellow-500 bg-transparent"
-          : "bg-yellow-500 text-white",
+          ? `${baseClasses} border-yellow-500 text-yellow-600 hover:bg-yellow-50`
+          : "bg-yellow-500 text-white hover:bg-yellow-600",
         danger: outlined
-          ? "border-red-500 text-red-500 bg-transparent"
-          : "bg-red-500 text-white",
+          ? `${baseClasses} border-red-500 text-red-600 hover:bg-red-50`
+          : "bg-red-500 text-white hover:bg-red-600",
         info: outlined
-          ? "border-cyan-500 text-cyan-500 bg-transparent"
-          : "bg-cyan-500 text-white",
+          ? `${baseClasses} border-cyan-500 text-cyan-600 hover:bg-cyan-50`
+          : "bg-cyan-500 text-white hover:bg-cyan-600",
       };
 
       return variantMap[variant];
     };
 
     const getSizeClasses = () => {
+      if (dot) {
+        const dotSizeMap = {
+          sm: "w-2 h-2",
+          md: "w-3 h-3",
+          lg: "w-4 h-4",
+        };
+        return dotSizeMap[size];
+      }
+
       const sizeMap = {
         sm: "text-xs px-2 py-0.5",
         md: "text-sm px-2.5 py-1",
@@ -126,9 +161,14 @@ const BadgeComponent = forwardRef<HTMLSpanElement, BadgeProps>(
     };
 
     const getShapeClasses = () => {
-      if (dot) return "w-2 h-2 rounded-full";
-      if (shape === "square") return "rounded-none";
-      return "rounded-full";
+      if (dot) return "rounded-full";
+
+      const shapeMap = {
+        rounded: "rounded-md",
+        pill: "rounded-full",
+        square: "rounded-none",
+      };
+      return shapeMap[shape];
     };
 
     const getPositionClasses = () => {
@@ -196,6 +236,29 @@ const BadgeComponent = forwardRef<HTMLSpanElement, BadgeProps>(
       return children;
     };
 
+    const handleRemove = (event: React.MouseEvent) => {
+      event.stopPropagation();
+      if (onRemove) onRemove();
+      if (onClose) onClose();
+    };
+
+    const handleClick = (event: React.MouseEvent) => {
+      if (disabled) {
+        event.preventDefault();
+        return;
+      }
+      onClick?.(event);
+    };
+
+    const handleKeyDown = (event: React.KeyboardEvent) => {
+      if (disabled) return;
+
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        onClick?.(event as any as React.MouseEvent<HTMLSpanElement>);
+      }
+    };
+
     if (!shouldShowBadge()) {
       return null;
     }
@@ -209,7 +272,10 @@ const BadgeComponent = forwardRef<HTMLSpanElement, BadgeProps>(
           style={style}
           title={title}
           role={role}
-          aria-label={ariaLabel}
+          aria-label={
+            ariaLabel ||
+            (typeof children === "string" ? children : "Badge indicator")
+          }
         />
       );
     }
@@ -224,33 +290,98 @@ const BadgeComponent = forwardRef<HTMLSpanElement, BadgeProps>(
       );
     }
 
+    const isClickable = !!(onClick || href);
+    const hasRemoveButton = closable || removable;
+    const Element =
+      href && !disabled
+        ? "a"
+        : isClickable && hasRemoveButton
+          ? "div"
+          : isClickable
+            ? "button"
+            : "span";
+
+    const badgeClasses = `
+      inline-flex items-center justify-center gap-1 font-medium leading-none transition-colors duration-200
+      ${getVariantClasses()}
+      ${getSizeClasses()}
+      ${getShapeClasses()}
+      ${getPositionClasses()}
+      ${getRibbonClasses()}
+      ${getShadowClasses()}
+      ${getTextTransformClasses()}
+      ${outlined || bordered ? "border" : ""}
+      ${border || ""}
+      ${pulse ? "animate-pulse" : ""}
+      ${isAnimating ? "animate-bounce" : ""}
+      ${animated ? "transition-all duration-300 ease-in-out" : ""}
+      ${disabled ? "opacity-50 cursor-not-allowed" : ""}
+      ${isClickable && !disabled ? "cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" : ""}
+      ${className}
+    `;
+
+    const elementProps: any = {
+      className: badgeClasses.trim(),
+      style,
+      title,
+      role,
+      "aria-label": ariaLabel,
+      onClick: handleClick,
+      onKeyDown: handleKeyDown,
+    };
+
+    if (Element === "a") {
+      elementProps.href = href;
+      elementProps.role = "link";
+    } else if (isClickable) {
+      if (Element === "button") {
+        elementProps.type = "button";
+      }
+      elementProps.role = elementProps.role || "button";
+      elementProps.tabIndex = disabled ? -1 : 0;
+    }
+
+    if (disabled) {
+      elementProps["aria-disabled"] = "true";
+    }
+
+    const renderIcon = (position: "left" | "right") => {
+      if (!icon || iconPosition !== position) return null;
+      return <span className="flex-shrink-0">{icon}</span>;
+    };
+
+    const renderRemoveButton = () => {
+      if (!hasRemoveButton) return null;
+
+      return (
+        <button
+          onClick={handleRemove}
+          className="ml-1 flex-shrink-0 rounded-full p-0.5 hover:bg-black hover:bg-opacity-20 focus:outline-none focus:bg-black focus:bg-opacity-20 transition-colors duration-200"
+          aria-label="Remove badge"
+          type="button"
+          tabIndex={0}
+        >
+          <svg
+            className="w-3 h-3"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+      );
+    };
+
+    const displayContent = getDisplayText();
+
     return (
-      <span
-        ref={ref}
-        className={[
-          "inline-flex items-center font-medium leading-none",
-          getSizeClasses(),
-          getShapeClasses(),
-          getVariantClasses(),
-          getPositionClasses(),
-          getRibbonClasses(),
-          getShadowClasses(),
-          getTextTransformClasses(),
-          outlined ? "border" : "",
-          border || "",
-          pulse ? "animate-pulse" : "",
-          isAnimating ? "animate-bounce" : "",
-          onClick ? "hover:opacity-80 cursor-pointer" : "",
-          className,
-        ]
-          .filter(Boolean)
-          .join(" ")}
-        style={style}
-        title={title}
-        role={role}
-        aria-label={ariaLabel}
-        onClick={onClick}
-      >
+      <Element {...elementProps} ref={ref}>
         {status && (
           <span
             data-testid="badge-status"
@@ -282,36 +413,11 @@ const BadgeComponent = forwardRef<HTMLSpanElement, BadgeProps>(
           </svg>
         )}
 
-        {icon && <span className="mr-1">{icon}</span>}
-
-        <span>{getDisplayText()}</span>
-
-        {closable && (
-          <button
-            type="button"
-            className="ml-1 hover:opacity-70 focus:outline-none"
-            onClick={(e) => {
-              e.stopPropagation();
-              onClose?.();
-            }}
-            aria-label="Remove badge"
-          >
-            <svg
-              className="w-3 h-3"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-        )}
-      </span>
+        {renderIcon("left")}
+        <span className="truncate">{displayContent}</span>
+        {renderIcon("right")}
+        {renderRemoveButton()}
+      </Element>
     );
   },
 );
