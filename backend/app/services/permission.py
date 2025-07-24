@@ -26,7 +26,7 @@ from app.schemas.permission_management import (
 class PermissionService:
     """Service for managing permissions."""
 
-    def __init__(self, db: Session) -> dict:
+    def __init__(self, db: Session):
         """Initialize permission service."""
         self.db = db
 

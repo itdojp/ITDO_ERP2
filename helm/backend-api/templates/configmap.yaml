@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "backend-api.fullname" . }}-config
+  labels:
+    {{- include "backend-api.labels" . | nindent 4 }}
+data:
+  environment: {{ .Values.config.environment | quote }}
+  log-level: {{ .Values.config.logLevel | quote }}
+  debug-mode: {{ .Values.config.debugMode | quote }}
+  workers: {{ .Values.config.workers | quote }}
+  max-connections: {{ .Values.config.maxConnections | quote }}
+  database-host: {{ .Values.database.host | quote }}
+  database-port: {{ .Values.database.port | quote }}
+  database-name: {{ .Values.database.name | quote }}
+  database-ssl-mode: {{ .Values.database.sslMode | quote }}
+  database-pool-size: {{ .Values.database.poolSize | quote }}
+  database-max-overflow: {{ .Values.database.maxOverflow | quote }}
+  redis-host: {{ .Values.redis.host | quote }}
+  redis-port: {{ .Values.redis.port | quote }}
+  redis-database: {{ .Values.redis.database | quote }}
+  redis-max-connections: {{ .Values.redis.maxConnections | quote }}

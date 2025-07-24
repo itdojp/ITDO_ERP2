@@ -1,7 +1,7 @@
 """Unit tests for TaskService."""
 
-from datetime import UTC, datetime, timedelta, timezone
-from unittest.mock import MagicMock, patch
+from datetime import UTC, datetime, timedelta
+from unittest.mock import MagicMock
 
 import pytest
 from sqlalchemy.orm import Session
@@ -53,7 +53,7 @@ class TestTaskService:
             title="新しいタスク",
             description="タスクの説明",
             project_id=1,
-            priority=TaskPriority.MEDIUM,
+            priority="medium",
             due_date=datetime.now(UTC) + timedelta(days=7),
         )
 

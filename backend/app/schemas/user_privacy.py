@@ -61,6 +61,8 @@ class PrivacySettingsBase(BaseModel):
 class PrivacySettingsCreate(PrivacySettingsBase):
     """Schema for creating privacy settings."""
 
+    pass
+
 
 class PrivacySettingsUpdate(BaseModel):
     """Schema for updating privacy settings."""

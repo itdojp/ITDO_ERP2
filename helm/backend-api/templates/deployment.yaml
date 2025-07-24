@@ -1,0 +1,154 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "backend-api.fullname" . }}
+  labels:
+    {{- include "backend-api.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "backend-api.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  template:
+    metadata:
+      annotations:
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+      labels:
+        {{- include "backend-api.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "backend-api.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+      - name: {{ .Chart.Name }}
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 12 }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: 8000
+          protocol: TCP
+        - name: metrics
+          containerPort: 8000
+          protocol: TCP
+        env:
+        - name: ENVIRONMENT
+          value: {{ .Values.config.environment | quote }}
+        - name: LOG_LEVEL
+          value: {{ .Values.config.logLevel | quote }}
+        - name: DEBUG
+          value: {{ .Values.config.debugMode | quote }}
+        - name: WORKERS
+          value: {{ .Values.config.workers | quote }}
+        - name: MAX_CONNECTIONS
+          value: {{ .Values.config.maxConnections | quote }}
+        - name: DATABASE_HOST
+          value: {{ .Values.database.host | quote }}
+        - name: DATABASE_PORT
+          value: {{ .Values.database.port | quote }}
+        - name: DATABASE_NAME
+          value: {{ .Values.database.name | quote }}
+        - name: DATABASE_SSL_MODE
+          value: {{ .Values.database.sslMode | quote }}
+        - name: DATABASE_POOL_SIZE
+          value: {{ .Values.database.poolSize | quote }}
+        - name: DATABASE_MAX_OVERFLOW
+          value: {{ .Values.database.maxOverflow | quote }}
+        - name: REDIS_HOST
+          value: {{ .Values.redis.host | quote }}
+        - name: REDIS_PORT
+          value: {{ .Values.redis.port | quote }}
+        - name: REDIS_DATABASE
+          value: {{ .Values.redis.database | quote }}
+        - name: REDIS_MAX_CONNECTIONS
+          value: {{ .Values.redis.maxConnections | quote }}
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "backend-api.fullname" . }}-secret
+              key: database-password
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "backend-api.fullname" . }}-secret
+              key: jwt-secret
+        - name: ENCRYPTION_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "backend-api.fullname" . }}-secret
+              key: encryption-key
+        # Comprehensive health check probes
+        {{- if .Values.startupCheck.enabled }}
+        startupProbe:
+          httpGet:
+            path: {{ .Values.startupCheck.path }}
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: {{ .Values.startupCheck.initialDelaySeconds }}
+          periodSeconds: {{ .Values.startupCheck.periodSeconds }}
+          timeoutSeconds: {{ .Values.startupCheck.timeoutSeconds }}
+          successThreshold: {{ .Values.startupCheck.successThreshold }}
+          failureThreshold: {{ .Values.startupCheck.failureThreshold }}
+        {{- end }}
+        {{- if .Values.healthCheck.enabled }}
+        livenessProbe:
+          httpGet:
+            path: {{ .Values.healthCheck.path }}
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: {{ .Values.healthCheck.initialDelaySeconds }}
+          periodSeconds: {{ .Values.healthCheck.periodSeconds }}
+          timeoutSeconds: {{ .Values.healthCheck.timeoutSeconds }}
+          successThreshold: {{ .Values.healthCheck.successThreshold }}
+          failureThreshold: {{ .Values.healthCheck.failureThreshold }}
+        {{- end }}
+        {{- if .Values.readinessCheck.enabled }}
+        readinessProbe:
+          httpGet:
+            path: {{ .Values.readinessCheck.path }}
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: {{ .Values.readinessCheck.initialDelaySeconds }}
+          periodSeconds: {{ .Values.readinessCheck.periodSeconds }}
+          timeoutSeconds: {{ .Values.readinessCheck.timeoutSeconds }}
+          successThreshold: {{ .Values.readinessCheck.successThreshold }}
+          failureThreshold: {{ .Values.readinessCheck.failureThreshold }}
+        {{- end }}
+        resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+        volumeMounts:
+        {{- with .Values.volumeMounts }}
+        {{- toYaml . | nindent 12 }}
+        {{- end }}
+      volumes:
+      {{- with .Values.volumes }}
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

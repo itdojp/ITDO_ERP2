@@ -1,0 +1,194 @@
+# Default values for frontend-app
+replicaCount: 3
+
+image:
+  repository: ghcr.io/itdo-erp/frontend-app
+  pullPolicy: IfNotPresent
+  tag: "2.1.0"
+
+imagePullSecrets:
+- name: ghcr-secret
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext:
+  fsGroup: 101
+  runAsNonRoot: true
+  runAsUser: 101
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 101
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 3000
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "128k"
+    nginx.ingress.kubernetes.io/proxy-buffers: "4 128k"
+    nginx.ingress.kubernetes.io/proxy-busy-buffers-size: "128k"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+  - host: app.itdo-erp.com
+    paths:
+    - path: /
+      pathType: Prefix
+  tls:
+  - secretName: frontend-app-tls
+    hosts:
+    - app.itdo-erp.com
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 1Gi
+  requests:
+    cpu: 250m
+    memory: 512Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 8
+  targetCPUUtilizationPercentage: 70
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app.kubernetes.io/name
+            operator: In
+            values:
+            - frontend-app
+        topologyKey: kubernetes.io/hostname
+
+# Environment configuration
+config:
+  environment: production
+  apiUrl: https://api.itdo-erp.com
+  enableAnalytics: true
+  enableHotjar: true
+  logLevel: INFO
+
+# Health checks
+healthCheck:
+  enabled: true
+  path: /health
+  initialDelaySeconds: 20
+  periodSeconds: 10
+  timeoutSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+
+readinessCheck:
+  enabled: true
+  path: /
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 3
+  successThreshold: 1
+  failureThreshold: 3
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+# Network policies
+networkPolicy:
+  enabled: true
+  ingress:
+    enabled: true
+    from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+  egress:
+    enabled: true
+    to: []
+
+# Volume mounts for nginx cache and temp files
+volumeMounts:
+- name: nginx-cache
+  mountPath: /var/cache/nginx
+- name: nginx-run
+  mountPath: /var/run
+
+volumes:
+- name: nginx-cache
+  emptyDir: {}
+- name: nginx-run
+  emptyDir: {}
+
+# Development overrides
+dev:
+  replicaCount: 1
+  resources:
+    limits:
+      cpu: 250m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  autoscaling:
+    enabled: false
+  ingress:
+    hosts:
+    - host: app.dev.itdo-erp.com
+      paths:
+      - path: /
+        pathType: Prefix
+  config:
+    apiUrl: https://api.dev.itdo-erp.com
+    enableAnalytics: false
+    enableHotjar: false
+    logLevel: DEBUG
+
+# Staging overrides  
+staging:
+  replicaCount: 2
+  resources:
+    limits:
+      cpu: 400m
+      memory: 800Mi
+    requests:
+      cpu: 200m
+      memory: 400Mi
+  autoscaling:
+    maxReplicas: 4
+  ingress:
+    hosts:
+    - host: app.staging.itdo-erp.com
+      paths:
+      - path: /
+        pathType: Prefix
+  config:
+    apiUrl: https://api.staging.itdo-erp.com
+    enableAnalytics: false

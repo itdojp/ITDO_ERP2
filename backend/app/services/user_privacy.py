@@ -18,7 +18,7 @@ from app.schemas.user_privacy import (
 class UserPrivacyService:
     """User privacy settings management service."""
 
-    def __init__(self, db: Session) -> dict:
+    def __init__(self, db: Session):
         """Initialize service with database session."""
         self.db = db
 

@@ -1,0 +1,448 @@
+# Kube-Prometheus-Stack Configuration for ITDO ERP
+nameOverride: ""
+fullnameOverride: ""
+
+# Global monitoring configuration
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+
+# Alertmanager configuration
+alertmanager:
+  enabled: true
+  image:
+    registry: quay.io
+    repository: prometheus/alertmanager
+    tag: v0.26.0
+  
+  config:
+    global:
+      smtp_smarthost: 'smtp.itdo-erp.com:587'
+      smtp_from: 'alerts@itdo-erp.com'
+      smtp_auth_username: 'alerts@itdo-erp.com'
+      smtp_auth_password_file: '/etc/alertmanager/secrets/smtp-password'
+    
+    route:
+      group_by: ['alertname', 'cluster', 'service']
+      group_wait: 10s
+      group_interval: 10s
+      repeat_interval: 1h
+      receiver: 'default'
+      routes:
+      - match:
+          severity: critical
+        receiver: 'critical-alerts'
+        group_wait: 5s
+        repeat_interval: 30m
+      - match:
+          severity: warning
+        receiver: 'warning-alerts'
+        group_wait: 30s
+        repeat_interval: 2h
+      - match:
+          service: backend-api
+        receiver: 'backend-team'
+      - match:
+          service: frontend-app
+        receiver: 'frontend-team'
+    
+    receivers:
+    - name: 'default'
+      email_configs:
+      - to: 'platform@itdo-erp.com'
+        subject: '[ITDO ERP] {{ .GroupLabels.alertname }}'
+        body: |
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Labels: {{ range .Labels.SortedPairs }}{{ .Name }}: {{ .Value }} {{ end }}
+          {{ end }}
+    
+    - name: 'critical-alerts'
+      email_configs:
+      - to: 'oncall@itdo-erp.com'
+        subject: '[CRITICAL] {{ .GroupLabels.alertname }}'
+        body: |
+          CRITICAL ALERT TRIGGERED
+          
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Severity: {{ .Labels.severity }}
+          Service: {{ .Labels.service }}
+          Runbook: {{ .Annotations.runbook_url }}
+          {{ end }}
+      slack_configs:
+      - api_url_file: '/etc/alertmanager/secrets/slack-webhook'
+        channel: '#critical-alerts'
+        title: 'Critical Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert*: {{ .Annotations.summary }}
+          *Description*: {{ .Annotations.description }}
+          *Service*: {{ .Labels.service }}
+          {{ end }}
+    
+    - name: 'warning-alerts'
+      email_configs:
+      - to: 'platform@itdo-erp.com'
+        subject: '[WARNING] {{ .GroupLabels.alertname }}'
+        body: |
+          WARNING ALERT
+          
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          {{ end }}
+    
+    - name: 'backend-team'
+      email_configs:
+      - to: 'backend-team@itdo-erp.com'
+        subject: '[Backend Alert] {{ .GroupLabels.alertname }}'
+        body: |
+          Backend Service Alert
+          
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          {{ end }}
+    
+    - name: 'frontend-team'
+      email_configs:
+      - to: 'frontend-team@itdo-erp.com'
+        subject: '[Frontend Alert] {{ .GroupLabels.alertname }}'
+        body: |
+          Frontend Service Alert
+          
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          {{ end }}
+
+  storage:
+    volumeClaimTemplate:
+      spec:
+        storageClassName: gp3
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 10Gi
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+
+# Grafana configuration
+grafana:
+  enabled: true
+  image:
+    repository: grafana/grafana
+    tag: "10.2.2"
+  
+  adminPassword: "admin123!"  # Change in production
+  
+  # Grafana configuration
+  grafana.ini:
+    server:
+      domain: grafana.itdo-erp.com
+      root_url: https://grafana.itdo-erp.com
+    
+    auth:
+      disable_login_form: false
+    
+    auth.generic_oauth:
+      enabled: true
+      name: Keycloak
+      allow_sign_up: true
+      client_id: grafana
+      client_secret: grafana-secret
+      scopes: openid email profile
+      email_attribute_name: email:primary
+      auth_url: https://auth.itdo-erp.com/auth/realms/itdo-erp/protocol/openid_connect/auth
+      token_url: https://auth.itdo-erp.com/auth/realms/itdo-erp/protocol/openid_connect/token
+      api_url: https://auth.itdo-erp.com/auth/realms/itdo-erp/protocol/openid_connect/userinfo
+      
+    security:
+      admin_user: admin
+      admin_password: admin123!
+      disable_gravatar: true
+      cookie_secure: true
+      cookie_samesite: strict
+  
+  # Persistent storage
+  persistence:
+    enabled: true
+    storageClassName: gp3
+    size: 20Gi
+    
+  # Resources
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+  
+  # Ingress
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    annotations:
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    hosts:
+    - grafana.itdo-erp.com
+    tls:
+    - secretName: grafana-tls
+      hosts:
+      - grafana.itdo-erp.com
+  
+  # Dashboards
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+      - name: 'itdo-erp-dashboards'
+        orgId: 1
+        folder: 'ITDO ERP'
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards/itdo-erp
+  
+  dashboards:
+    itdo-erp:
+      kubernetes-cluster:
+        gnetId: 7249
+        revision: 1
+        datasource: Prometheus
+      
+      kubernetes-pods:
+        gnetId: 6336
+        revision: 1
+        datasource: Prometheus
+      
+      nginx-ingress:
+        gnetId: 9614
+        revision: 1
+        datasource: Prometheus
+      
+      postgresql:
+        gnetId: 9628
+        revision: 7
+        datasource: Prometheus
+
+# Prometheus configuration
+prometheus:
+  enabled: true
+  
+  prometheusSpec:
+    image:
+      registry: quay.io
+      repository: prometheus/prometheus
+      tag: v2.47.2
+    
+    # Retention and storage
+    retention: 30d
+    retentionSize: 45GB
+    
+    # Storage configuration
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: gp3
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 50Gi
+    
+    # Resources
+    resources:
+      limits:
+        cpu: 2000m
+        memory: 8Gi
+      requests:
+        cpu: 1000m
+        memory: 4Gi
+    
+    # Monitoring configuration
+    serviceMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    probeSelectorNilUsesHelmValues: false
+    
+    # External URL
+    externalUrl: https://prometheus.itdo-erp.com
+    
+    # Security context
+    securityContext:
+      fsGroup: 2000
+      runAsGroup: 2000
+      runAsNonRoot: true
+      runAsUser: 1000
+    
+    # Additional scrape configs
+    additionalScrapeConfigs:
+    - job_name: 'backend-api-metrics'
+      static_configs:
+      - targets: ['backend-api.production.svc.cluster.local:8000']
+      metrics_path: '/metrics'
+      scrape_interval: 30s
+      scrape_timeout: 10s
+      
+    - job_name: 'postgresql-exporter'
+      static_configs:
+      - targets: ['postgres-exporter.production.svc.cluster.local:9187']
+      scrape_interval: 30s
+      
+    - job_name: 'redis-exporter'
+      static_configs:
+      - targets: ['redis-exporter.production.svc.cluster.local:9121']
+      scrape_interval: 30s
+  
+  # Ingress for Prometheus
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    annotations:
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/auth-type: basic
+      nginx.ingress.kubernetes.io/auth-secret: prometheus-basic-auth
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    hosts:
+    - prometheus.itdo-erp.com
+    tls:
+    - secretName: prometheus-tls
+      hosts:
+      - prometheus.itdo-erp.com
+
+# Kube-state-metrics configuration
+kubeStateMetrics:
+  enabled: true
+  
+# Node exporter configuration  
+nodeExporter:
+  enabled: true
+  
+# Prometheus operator configuration
+prometheusOperator:
+  enabled: true
+  
+  image:
+    registry: quay.io
+    repository: prometheus-operator/prometheus-operator
+    tag: v0.68.0
+  
+  resources:
+    limits:
+      cpu: 200m
+      memory: 500Mi
+    requests:
+      cpu: 100m
+      memory: 250Mi
+  
+  # Security context
+  securityContext:
+    fsGroup: 65534
+    runAsGroup: 65534
+    runAsNonRoot: true
+    runAsUser: 65534
+
+# Default rules configuration
+defaultRules:
+  create: true
+  rules:
+    alertmanager: true
+    etcd: true
+    configReloaders: true
+    general: true
+    k8s: true
+    kubeApiserverAvailability: true
+    kubeApiserverBurnrate: true
+    kubeApiserverHistogram: true
+    kubeApiserverSlos: true
+    kubelet: true
+    kubeProxy: true
+    kubePrometheusGeneral: true
+    kubePrometheusNodeRecording: true
+    kubernetesApps: true
+    kubernetesResources: true
+    kubernetesStorage: true
+    kubernetesSystem: true
+    kubeScheduler: true
+    kubeStateMetrics: true
+    network: true
+    node: true
+    nodeExporterAlerting: true
+    nodeExporterRecording: true
+    prometheus: true
+    prometheusOperator: true
+
+# Additional monitoring components
+additionalPrometheusRulesMap:
+  itdo-erp-custom-rules:
+    groups:
+    - name: itdo-erp.rules
+      rules:
+      - alert: ITDOERPHighErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{job="backend-api-metrics",status=~"5.."}[5m])) /
+            sum(rate(http_requests_total{job="backend-api-metrics"}[5m]))
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          service: itdo-erp
+        annotations:
+          summary: "ITDO ERP has high error rate"
+          description: "Error rate is {{ $value | humanizePercentage }}"
+          runbook_url: "https://runbooks.itdo-erp.com/high-error-rate"
+      
+      - alert: ITDOERPHighLatency
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket{job="backend-api-metrics"}[5m])) by (le)
+          ) > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: itdo-erp
+        annotations:
+          summary: "ITDO ERP has high latency"
+          description: "95th percentile latency is {{ $value }}s"
+          runbook_url: "https://runbooks.itdo-erp.com/high-latency"
+      
+      - alert: ITDOERPDatabaseConnectionHigh
+        expr: |
+          (
+            pg_stat_activity_count /
+            pg_settings_max_connections
+          ) > 0.8
+        for: 10m
+        labels:
+          severity: warning
+          service: postgresql
+        annotations:
+          summary: "PostgreSQL connection usage is high"
+          description: "Connection usage is {{ $value | humanizePercentage }}"
+      
+      - alert: ITDOERPRedisMemoryHigh
+        expr: |
+          (
+            redis_memory_used_bytes /
+            redis_config_maxmemory
+          ) > 0.9
+        for: 10m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "Redis memory usage is high"
+          description: "Memory usage is {{ $value | humanizePercentage }}"

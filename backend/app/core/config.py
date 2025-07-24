@@ -1,7 +1,5 @@
-import json
-from typing import Any, List, Union
-
 from pydantic import (
+    AnyHttpUrl,
     AnyUrl,
     Field,
     PostgresDsn,
@@ -17,20 +15,14 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
 
     # CORS設定
-    BACKEND_CORS_ORIGINS: Any = Field(
-        default="http://localhost:3000,http://127.0.0.1:3000"
-    )
+    BACKEND_CORS_ORIGINS: list[AnyHttpUrl] = []
 
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
-    def assemble_cors_origins(cls, v: Union[str, List[str], None]) -> List[str]:
-        """Parse CORS origins from string or list."""
-        default_origins = ["http://localhost:3000", "http://127.0.0.1:3000"]
-
-        if v is None:
-            return default_origins
-
-        if isinstance(v, list):
+    def assemble_cors_origins(cls, v: str | list[str]) -> list[str] | str:
+        if isinstance(v, str) and not v.startswith("["):
+            return [i.strip() for i in v.split(",")]
+        elif isinstance(v, (list, str)):
             return v
 
         # Handle string values
@@ -77,24 +69,14 @@ class Settings(BaseSettings):
     POSTGRES_PORT: int = Field(default=5432, description="PostgreSQL port")
     DATABASE_URL: PostgresDsn | AnyUrl | None = None
 
-    # Test environment overrides
-    @property
-    def postgres_db_name(self) -> str:
-        """Get the correct database name based on environment."""
-        if self.ENVIRONMENT in ("test", "testing") or self.TESTING:
-            return "itdo_erp_test"
-        return self.POSTGRES_DB
-
     @model_validator(mode="after")
     def assemble_db_connection(self) -> "Settings":
         if self.DATABASE_URL is None:
-            # Use test database for test environment
-            db_name = self.postgres_db_name
             db_url = (
                 f"postgresql://{self.POSTGRES_USER}:"
                 f"{self.POSTGRES_PASSWORD}@"
                 f"{self.POSTGRES_SERVER}:"
-                f"{self.POSTGRES_PORT}/{db_name}"
+                f"{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
             )
             # Convert string to PostgresDsn type
             self.DATABASE_URL = PostgresDsn(db_url)
@@ -133,14 +115,7 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     API_V1_PREFIX: str = "/api/v1"
 
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        case_sensitive=True,
-        # Don't try to parse complex fields automatically
-        json_schema_extra={
-            "env_parse_none_str": "null",
-        },
-    )
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
 
 
 settings = Settings()

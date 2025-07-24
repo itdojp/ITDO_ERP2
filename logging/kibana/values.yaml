@@ -1,0 +1,268 @@
+# Kibana Configuration for ITDO ERP Logging
+elasticsearchHosts: "https://elasticsearch.logging.svc.cluster.local:9200"
+
+replicas: 2
+
+# Extra environment variables to append to this nodeGroup
+# This will be appended to the current 'env:' key. You can use any of the kubernetes env
+# syntax here
+extraEnvs:
+  - name: "NODE_OPTIONS"
+    value: "--max-old-space-size=1800"
+  - name: ELASTICSEARCH_USERNAME
+    value: "elastic"
+  - name: ELASTICSEARCH_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: elasticsearch-credentials
+        key: password
+  - name: ENCRYPTION_KEY
+    valueFrom:
+      secretKeyRef:
+        name: kibana-encryption-key
+        key: encryptionkey
+
+# Allows you to load environment variables from kubernetes secret or config map
+envFrom: []
+
+# A list of secrets and their paths to mount inside the pod
+# This is useful for mounting certificates for security and for mounting
+# the X-Pack license
+secretMounts:
+  - name: elastic-certificates
+    secretName: elastic-certificates
+    path: /usr/share/kibana/config/certs
+    defaultMode: 0755
+
+hostAliases: []
+
+image: "docker.elastic.co/kibana/kibana"
+imageTag: "8.11.0"
+imagePullPolicy: "IfNotPresent"
+
+# additionals labels
+labels: {}
+
+podAnnotations:
+  co.elastic.logs/enabled: "false"
+
+resources:
+  requests:
+    cpu: "500m"
+    memory: "1Gi"
+  limits:
+    cpu: "1000m"
+    memory: "2Gi"
+
+protocol: https
+
+serverHost: "0.0.0.0"
+
+healthCheckPath: "/app/kibana"
+
+# Kibana configuration
+kibanaConfig:
+  kibana.yml: |
+    # ITDO ERP Kibana Configuration
+    server.name: itdo-erp-kibana
+    server.host: 0.0.0.0
+    server.port: 5601
+    server.ssl.enabled: true
+    server.ssl.certificate: /usr/share/kibana/config/certs/elastic-certificates.crt
+    server.ssl.key: /usr/share/kibana/config/certs/elastic-certificates.key
+    
+    # Elasticsearch configuration
+    elasticsearch.hosts: ["https://elasticsearch.logging.svc.cluster.local:9200"]
+    elasticsearch.username: elastic
+    elasticsearch.password: ${ELASTICSEARCH_PASSWORD}
+    elasticsearch.ssl.certificateAuthorities: ["/usr/share/kibana/config/certs/elastic-certificates.crt"]
+    elasticsearch.ssl.verificationMode: certificate
+    
+    # Security settings
+    xpack.security.enabled: true
+    xpack.security.encryptionKey: ${ENCRYPTION_KEY}
+    xpack.security.session.idleTimeout: "4h"
+    xpack.security.session.lifespan: "24h"
+    
+    # SAML/OAuth integration with Keycloak
+    xpack.security.authc.providers:
+      saml:
+        saml1:
+          order: 0
+          realm: "saml"
+          description: "ITDO ERP SAML"
+      basic:
+        basic1:
+          order: 1
+    
+    # Monitoring
+    monitoring.enabled: true
+    monitoring.kibana.collection.enabled: true
+    monitoring.kibana.collection.interval: 30000
+    
+    # ITDO ERP specific settings
+    kibana.defaultAppId: "discover"
+    kibana.index: ".kibana-itdo-erp"
+    
+    # Performance optimization
+    elasticsearch.requestTimeout: 300000
+    elasticsearch.shardTimeout: 30000
+    elasticsearch.pingTimeout: 1500
+    
+    # Logging
+    logging.appenders:
+      file:
+        type: file
+        fileName: /usr/share/kibana/logs/kibana.log
+        layout:
+          type: json
+    logging.loggers:
+      - name: http.server.response
+        appenders: [file]
+        level: warn
+      - name: metrics.ops
+        appenders: [file]  
+        level: warn
+    logging.root:
+      appenders: [file]
+      level: info
+    
+    # Maps and visualizations
+    map.includeElasticMapsService: true
+    xpack.maps.enabled: true
+    
+    # Canvas and machine learning
+    xpack.canvas.enabled: true
+    xpack.ml.enabled: false
+    
+    # Spaces
+    xpack.spaces.enabled: true
+    xpack.spaces.maxSpaces: 10
+    
+    # Alerting
+    xpack.alerting.enabled: true
+    xpack.actions.enabled: true
+    
+    # Index patterns
+    kibana.autocompleteTimeout: 3000
+    kibana.autocompleteTerminateAfter: 2500000
+
+podSecurityContext:
+  fsGroup: 1000
+
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  runAsNonRoot: true
+  runAsUser: 1000
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+  automountServiceAccountToken: true
+
+# This is the PriorityClass settings as defined in
+# https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/#priorityclass
+priorityClassName: ""
+
+httpPort: 5601
+
+extraVolumes:
+  - name: kibana-logs
+    emptyDir: {}
+
+extraVolumeMounts:
+  - name: kibana-logs
+    mountPath: /usr/share/kibana/logs
+
+extraContainers: []
+
+extraInitContainers: []
+
+updateStrategy:
+  type: "Recreate"
+
+service:
+  type: ClusterIP
+  loadBalancerIP: ""
+  port: 5601
+  nodePort: ""
+  labels: {}
+  annotations: {}
+  loadBalancerSourceRanges: []
+  httpPortName: http
+
+ingress:
+  enabled: true
+  ingressClassName: nginx
+  pathtype: Prefix
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/auth-type: basic
+    nginx.ingress.kubernetes.io/auth-secret: kibana-basic-auth
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: kibana.itdo-erp.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: kibana-tls
+      hosts:
+        - kibana.itdo-erp.com
+
+readinessProbe:
+  failureThreshold: 10
+  initialDelaySeconds: 60
+  periodSeconds: 10
+  successThreshold: 3
+  timeoutSeconds: 10
+
+imagePullSecrets: []
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+nameOverride: ""
+fullnameOverride: ""
+healthNameOverride: ""
+
+lifecycle: {}
+
+# Deprecated - use only with versions < 6.6
+elasticsearchCertificateSecret: elastic-certificates
+elasticsearchCertificateAuthoritiesFile: elastic-certificates.crt
+elasticsearchCertificateFile: elastic-certificates.crt
+elasticsearchCredentialSecret: elasticsearch-credentials
+
+# Pod Disruption Budget configuration
+maxUnavailable: 1
+
+# Custom labels for pods
+podLabels: {}
+
+# Additional containers
+extraObjects: []
+
+# Default Kibana index patterns for ITDO ERP
+defaultIndexPatterns:
+  - name: "itdo-erp-logs"
+    timeField: "@timestamp"
+    pattern: "itdo-erp-logs-*"
+  - name: "system-logs"
+    timeField: "@timestamp"
+    pattern: "system-logs-*"
+
+# Startup probe
+startupProbe:
+  initialDelaySeconds: 120
+  periodSeconds: 10
+  timeoutSeconds: 10
+  failureThreshold: 20
+  successThreshold: 1

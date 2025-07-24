@@ -1,0 +1,321 @@
+# Backend API Network Policy - Zero Trust Implementation
+# Implements minimum privilege access for backend API service
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backend-api-ingress
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: backend-api-ingress
+    security.istio.io/policy: "zero-trust"
+    app.kubernetes.io/component: network-security
+spec:
+  podSelector:
+    matchLabels:
+      app: itdo-erp-backend-api
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow traffic from frontend application
+  - from:
+    - podSelector:
+        matchLabels:
+          app: itdo-erp-frontend-app
+    ports:
+    - protocol: TCP
+      port: 8000
+  # Allow traffic from Istio ingress gateway
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: istio-system
+      podSelector:
+        matchLabels:
+          istio: ingressgateway
+    ports:
+    - protocol: TCP
+      port: 8000
+  # Allow health checks from load balancer
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-proxy
+    ports:
+    - protocol: TCP
+      port: 8080  # Health check port
+  # Allow monitoring from Prometheus
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+      podSelector:
+        matchLabels:
+          app: prometheus
+    ports:
+    - protocol: TCP
+      port: 9090  # Metrics port
+  # Allow Istio sidecar communication
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: istio-system
+      podSelector:
+        matchLabels:
+          app: istiod
+    ports:
+    - protocol: TCP
+      port: 15090  # Envoy admin port
+    - protocol: TCP
+      port: 15000  # Envoy admin port
+      
+  egress:
+  # Allow DNS resolution
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # Allow connection to PostgreSQL
+  - to:
+    - podSelector:
+        matchLabels:
+          app: postgresql
+    ports:
+    - protocol: TCP
+      port: 5432
+  # Allow connection to Redis
+  - to:
+    - podSelector:
+        matchLabels:
+          app: redis
+    ports:
+    - protocol: TCP
+      port: 6379
+  # Allow connection to Keycloak for authentication
+  - to:
+    - podSelector:
+        matchLabels:
+          app: keycloak
+    ports:
+    - protocol: TCP
+      port: 8080
+  # Allow HTTPS to external APIs (payment gateways, etc.)
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+  # Allow connection to Kubernetes API
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: TCP
+      port: 443
+      
+---
+# Cilium L7 Policy for Backend API
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: backend-api-l7-security
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: backend-api-l7-security
+spec:
+  description: "L7 HTTP security for backend API with SQL injection protection"
+  endpointSelector:
+    matchLabels:
+      app: itdo-erp-backend-api
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        app: itdo-erp-frontend-app
+    - matchLabels:
+        "k8s:io.kubernetes.pod.namespace": "istio-system"
+        "k8s:app": "istio-proxy"
+    toPorts:
+    - ports:
+      - port: "8000"
+        protocol: TCP
+      rules:
+        http:
+        # Authentication endpoints
+        - method: "POST"
+          path: "/api/v1/auth/login"
+          headers:
+          - "Content-Type: application/json"
+        - method: "POST"
+          path: "/api/v1/auth/logout"
+          headers:
+          - "Authorization: Bearer .*"
+        - method: "POST"
+          path: "/api/v1/auth/refresh"
+          headers:
+          - "Authorization: Bearer .*"
+        # User management
+        - method: "GET"
+          path: "/api/v1/users/profile"
+          headers:
+          - "Authorization: Bearer .*"
+        - method: "PUT"
+          path: "/api/v1/users/profile"
+          headers:
+          - "Authorization: Bearer .*"
+          - "Content-Type: application/json"
+        # Business endpoints with rate limiting
+        - method: "GET"
+          path: "/api/v1/.*"
+          headers:
+          - "Authorization: Bearer .*"
+        - method: "POST"
+          path: "/api/v1/.*"
+          headers:
+          - "Authorization: Bearer .*"
+          - "Content-Type: application/json"
+        - method: "PUT"
+          path: "/api/v1/.*"
+          headers:
+          - "Authorization: Bearer .*"
+        - method: "DELETE"
+          path: "/api/v1/.*"
+          headers:
+          - "Authorization: Bearer .*"
+        # Health check (no auth required)
+        - method: "GET"
+          path: "/api/v1/health"
+        - method: "GET"
+          path: "/api/v1/health/live"
+        - method: "GET"
+          path: "/api/v1/health/ready"
+        # Admin endpoints (strict access)
+        - method: "GET"
+          path: "/api/v1/admin/.*"
+          headers:
+          - "Authorization: Bearer .*"
+          - "X-Admin-Token: .*"
+          - "X-Admin-Role: admin"
+        # Block potential SQL injection patterns
+        - method: ".*"
+          path: ".*"
+          headers:
+          - "!.*[;'\"\\--].*"  # Block SQL injection characters
+      
+  egress:
+  # Allow DNS
+  - toEndpoints:
+    - matchLabels:
+        "k8s:io.kubernetes.pod.namespace": "kube-system"
+        "k8s:k8s-app": "kube-dns"
+    toPorts:
+    - ports:
+      - port: "53"
+        protocol: UDP
+      - port: "53"
+        protocol: TCP
+  # Allow PostgreSQL with query monitoring
+  - toEndpoints:
+    - matchLabels:
+        app: postgresql
+    toPorts:
+    - ports:
+      - port: "5432"
+        protocol: TCP
+        rules:
+          kafka:
+          - role: "produce"
+            topic: "database-audit"  # Log all DB queries
+  # Allow Redis
+  - toEndpoints:
+    - matchLabels:
+        app: redis
+    toPorts:
+    - ports:
+      - port: "6379"
+        protocol: TCP
+  # Allow HTTPS egress with domain restrictions
+  - toFQDNs:
+    - matchName: "auth.itdo-erp.com"
+    - matchName: "api.stripe.com"
+    - matchName: "api.paypal.com"
+    - matchPattern: "*.amazonaws.com"
+    - matchPattern: "*.googleapi.com"
+    toPorts:
+    - ports:
+      - port: "443"
+        protocol: TCP
+        rules:
+          http:
+          - method: "GET"
+          - method: "POST"
+            headers:
+            - "Content-Type: application/json"
+          - method: "PUT"
+            headers:
+            - "Content-Type: application/json"
+            
+---
+# Calico Global Network Set for Backend API
+apiVersion: projectcalico.org/v3
+kind: GlobalNetworkSet
+metadata:
+  name: backend-api-allowed-ips
+  labels:
+    app.kubernetes.io/name: backend-api-allowed-ips
+spec:
+  nets:
+  # Internal cluster networks
+  - 10.0.0.0/8
+  - 172.16.0.0/12
+  - 192.168.0.0/16
+  # Specific external services
+  - 54.230.0.0/16    # CloudFront CDN
+  - 52.84.0.0/15     # CloudFront CDN
+  - 13.32.0.0/15     # CloudFront CDN
+  - 99.84.0.0/16     # CloudFront CDN
+  - 18.160.0.0/15    # Stripe API
+  - 54.187.216.72/29 # PayPal API
+  
+---
+# Backend API Rate Limiting Policy (Calico)
+apiVersion: projectcalico.org/v3
+kind: GlobalNetworkPolicy
+metadata:
+  name: backend-api-rate-limit
+  labels:
+    app.kubernetes.io/name: backend-api-rate-limit
+spec:
+  order: 200
+  selector: 'app == "itdo-erp-backend-api"'
+  types:
+  - Ingress
+  ingress:
+  # Rate limit per source IP
+  - action: Allow
+    source:
+      selector: 'app == "itdo-erp-frontend-app"'
+    destination:
+      ports: [8000]
+    # This would need external rate limiting solution
+    metadata:
+      annotations:
+        "rate-limit": "100req/min"
+        "burst-limit": "20"
+  # Admin endpoints - stricter limits
+  - action: Allow
+    source:
+      selector: 'role == "admin"'
+    destination:
+      ports: [8000]
+      services:
+        name: "admin-api"
+    metadata:
+      annotations:
+        "rate-limit": "10req/min"
+        "burst-limit": "2"

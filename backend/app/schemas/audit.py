@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, validator
 
 
 class AuditLogBase(BaseModel):
@@ -23,6 +23,8 @@ class AuditLogBase(BaseModel):
 
 class AuditLogCreate(AuditLogBase):
     """Schema for creating audit logs."""
+
+    pass
 
 
 class AuditLogResponse(AuditLogBase):
@@ -80,15 +82,13 @@ class AuditLogSearch(BaseModel):
     sort_by: str = Field(default="created_at", description="Sort field")
     sort_order: str = Field(default="desc", description="Sort order (asc/desc)")
 
-    @field_validator("sort_order")
-    @classmethod
+    @validator("sort_order")
     def validate_sort_order(cls, v: str) -> str:
         if v not in ["asc", "desc"]:
             raise ValueError('sort_order must be "asc" or "desc"')
         return v
 
-    @field_validator("sort_by")
-    @classmethod
+    @validator("sort_by")
     def validate_sort_by(cls, v: str) -> str:
         allowed_fields = ["created_at", "action", "resource_type", "user_id"]
         if v not in allowed_fields:
@@ -155,8 +155,7 @@ class AuditLogExportRequest(BaseModel):
     )
     include_sensitive: bool = Field(default=False, description="Include sensitive data")
 
-    @field_validator("format")
-    @classmethod
+    @validator("format")
     def validate_format(cls, v: str) -> str:
         if v not in ["csv", "json", "xlsx"]:
             raise ValueError('format must be "csv", "json", or "xlsx"')

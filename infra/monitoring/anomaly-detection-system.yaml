@@ -1,0 +1,1008 @@
+# AI-Powered Anomaly Detection System
+# Machine Learning-based monitoring with predictive analytics
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: aiops
+  labels:
+    name: aiops
+    ai.itdo-erp.com/system: "true"
+    monitoring: "advanced"
+
+---
+# Prometheus Anomaly Detector Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus-anomaly-detector
+  namespace: aiops
+  labels:
+    app.kubernetes.io/name: prometheus-anomaly-detector
+    ai.component: "anomaly-detection"
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: prometheus-anomaly-detector
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: prometheus-anomaly-detector
+        ai.component: "anomaly-detection"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: aiops-service-account
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: anomaly-detector
+        image: itdo-erp/prometheus-anomaly-detector:v2.1.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http-api
+          containerPort: 8080
+        - name: grpc-api
+          containerPort: 9090
+        env:
+        - name: PROMETHEUS_URL
+          value: "http://prometheus-server.monitoring.svc.cluster.local:9090"
+        - name: MODEL_STORE_PATH
+          value: "/models"
+        - name: TRAINING_INTERVAL
+          value: "24h"
+        - name: PREDICTION_INTERVAL
+          value: "5m"
+        - name: ANOMALY_THRESHOLD
+          value: "0.85"
+        - name: SLACK_WEBHOOK_URL
+          valueFrom:
+            secretKeyRef:
+              name: notification-secrets
+              key: slack-webhook-url
+        - name: JAEGER_AGENT_HOST
+          value: "jaeger-agent.monitoring.svc.cluster.local"
+        - name: LOG_LEVEL
+          value: "INFO"
+        command:
+        - /app/anomaly-detector
+        args:
+        - --config-file=/config/detector-config.yaml
+        - --model-config=/config/model-config.yaml
+        - --metrics-config=/config/metrics-config.yaml
+        - --server-port=8080
+        - --grpc-port=9090
+        - --health-check-port=8081
+        volumeMounts:
+        - name: config
+          mountPath: /config
+          readOnly: true
+        - name: models
+          mountPath: /models
+        - name: training-data
+          mountPath: /training-data
+        - name: temp
+          mountPath: /tmp
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8081
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8081
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        resources:
+          limits:
+            cpu: 2000m
+            memory: 4Gi
+            nvidia.com/gpu: "1"
+          requests:
+            cpu: 1000m
+            memory: 2Gi
+      - name: model-trainer
+        image: itdo-erp/ml-model-trainer:v1.5.0
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: TRAINING_SCHEDULE
+          value: "0 2 * * *"  # Daily at 2 AM
+        - name: MODEL_TYPE
+          value: "isolation_forest,lstm,prophet"
+        - name: FEATURE_STORE_URL
+          value: "http://feature-store.aiops.svc.cluster.local:8080"
+        command:
+        - /app/model-trainer
+        args:
+        - --training-data-path=/training-data
+        - --model-output-path=/models
+        - --prometheus-url=http://prometheus-server.monitoring.svc.cluster.local:9090
+        - --lookback-days=30
+        - --retrain-threshold=0.7
+        volumeMounts:
+        - name: models
+          mountPath: /models
+        - name: training-data
+          mountPath: /training-data
+        - name: gpu-cache
+          mountPath: /gpu-cache
+        resources:
+          limits:
+            cpu: 4000m
+            memory: 8Gi
+            nvidia.com/gpu: "1"
+          requests:
+            cpu: 2000m
+            memory: 4Gi
+      volumes:
+      - name: config
+        configMap:
+          name: anomaly-detector-config
+      - name: models
+        persistentVolumeClaim:
+          claimName: ml-models-pvc
+      - name: training-data
+        persistentVolumeClaim:
+          claimName: training-data-pvc
+      - name: temp
+        emptyDir: {}
+      - name: gpu-cache
+        emptyDir: {}
+
+---
+# Feature Store for ML Models
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: feature-store
+  namespace: aiops
+  labels:
+    app.kubernetes.io/name: feature-store
+    ai.component: "feature-engineering"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: feature-store
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: feature-store
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+    spec:
+      containers:
+      - name: feature-store
+        image: itdo-erp/feature-store:v1.3.0
+        ports:
+        - containerPort: 8080
+        env:
+        - name: REDIS_URL
+          value: "redis://redis.itdo-erp.svc.cluster.local:6379"
+        - name: POSTGRES_URL
+          value: "postgresql://postgres:password@postgresql.itdo-erp.svc.cluster.local:5432/itdo_erp"
+        - name: PROMETHEUS_URL
+          value: "http://prometheus-server.monitoring.svc.cluster.local:9090"
+        command:
+        - /app/feature-store
+        args:
+        - --port=8080
+        - --feature-pipelines=/config/feature-pipelines.yaml
+        - --feature-store-config=/config/feature-store.yaml
+        - --batch-size=1000
+        - --processing-interval=60s
+        volumeMounts:
+        - name: config
+          mountPath: /config
+          readOnly: true
+        - name: feature-cache
+          mountPath: /cache
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 2Gi
+          requests:
+            cpu: 500m
+            memory: 1Gi
+      volumes:
+      - name: config
+        configMap:
+          name: feature-store-config
+      - name: feature-cache
+        emptyDir: {}
+
+---
+# Time Series Forecasting Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: time-series-forecaster
+  namespace: aiops
+  labels:
+    app.kubernetes.io/name: time-series-forecaster
+    ai.component: "forecasting"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: time-series-forecaster
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: time-series-forecaster
+    spec:
+      containers:
+      - name: forecaster
+        image: itdo-erp/time-series-forecaster:v1.2.0
+        ports:
+        - containerPort: 8080
+        env:
+        - name: MODEL_TYPES
+          value: "prophet,lstm,arima"
+        - name: FORECAST_HORIZON
+          value: "24h"
+        - name: UPDATE_INTERVAL
+          value: "1h"
+        command:
+        - /app/forecaster
+        args:
+        - --config=/config/forecaster-config.yaml
+        - --models-path=/models/forecasting
+        - --prometheus-url=http://prometheus-server.monitoring.svc.cluster.local:9090
+        volumeMounts:
+        - name: forecaster-config
+          mountPath: /config
+          readOnly: true
+        - name: models
+          mountPath: /models
+        resources:
+          limits:
+            cpu: 2000m
+            memory: 4Gi
+          requests:
+            cpu: 1000m
+            memory: 2Gi
+      volumes:
+      - name: forecaster-config
+        configMap:
+          name: time-series-forecaster-config
+      - name: models
+        persistentVolumeClaim:
+          claimName: ml-models-pvc
+
+---
+# Log Anomaly Detection Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: log-anomaly-detector
+  namespace: aiops
+  labels:
+    app.kubernetes.io/name: log-anomaly-detector
+    ai.component: "log-analysis"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: log-anomaly-detector
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: log-anomaly-detector
+    spec:
+      containers:
+      - name: log-detector
+        image: itdo-erp/log-anomaly-detector:v1.4.0
+        ports:
+        - containerPort: 8080
+        env:
+        - name: ELASTICSEARCH_URL
+          value: "http://elasticsearch.logging.svc.cluster.local:9200"
+        - name: LOGSTASH_URL
+          value: "http://logstash.logging.svc.cluster.local:9600"
+        - name: MODEL_TYPE
+          value: "bert,isolation_forest"
+        - name: TRAINING_INTERVAL
+          value: "12h"
+        command:
+        - /app/log-detector
+        args:
+        - --config=/config/log-detector-config.yaml
+        - --elasticsearch-index=itdo-erp-logs-*
+        - --anomaly-threshold=0.9
+        - --batch-processing-size=10000
+        volumeMounts:
+        - name: log-detector-config
+          mountPath: /config
+          readOnly: true
+        - name: models
+          mountPath: /models/log-analysis
+        - name: bert-cache
+          mountPath: /cache/bert
+        resources:
+          limits:
+            cpu: 2000m
+            memory: 8Gi
+            nvidia.com/gpu: "1"
+          requests:
+            cpu: 1000m
+            memory: 4Gi
+      volumes:
+      - name: log-detector-config
+        configMap:
+          name: log-anomaly-detector-config
+      - name: models
+        persistentVolumeClaim:
+          claimName: ml-models-pvc
+      - name: bert-cache
+        emptyDir: {}
+
+---
+# Real-time Anomaly Alert Manager
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: anomaly-alert-manager
+  namespace: aiops
+  labels:
+    app.kubernetes.io/name: anomaly-alert-manager
+    ai.component: "alerting"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: anomaly-alert-manager
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: anomaly-alert-manager
+    spec:
+      containers:
+      - name: alert-manager
+        image: itdo-erp/anomaly-alert-manager:v1.1.0
+        ports:
+        - containerPort: 8080
+        - containerPort: 9093
+        env:
+        - name: ANOMALY_DETECTOR_URL
+          value: "http://prometheus-anomaly-detector.aiops.svc.cluster.local:8080"
+        - name: ALERTMANAGER_URL
+          value: "http://alertmanager.monitoring.svc.cluster.local:9093"
+        - name: SEVERITY_THRESHOLDS
+          value: "high:0.9,medium:0.7,low:0.5"
+        - name: CORRELATION_WINDOW
+          value: "5m"
+        command:
+        - /app/alert-manager
+        args:
+        - --config=/config/alert-manager-config.yaml
+        - --rules=/config/anomaly-rules.yaml
+        - --webhook-url=http://webhook-receiver.aiops.svc.cluster.local:8080/webhook
+        volumeMounts:
+        - name: alert-config
+          mountPath: /config
+          readOnly: true
+        resources:
+          limits:
+            cpu: 500m
+            memory: 1Gi
+          requests:
+            cpu: 250m
+            memory: 512Mi
+      volumes:
+      - name: alert-config
+        configMap:
+          name: anomaly-alert-config
+
+---
+# AI-Ops Dashboard
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aiops-dashboard
+  namespace: aiops
+  labels:
+    app.kubernetes.io/name: aiops-dashboard
+    ai.component: "dashboard"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: aiops-dashboard
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: aiops-dashboard
+    spec:
+      containers:
+      - name: dashboard
+        image: itdo-erp/aiops-dashboard:v1.0.0
+        ports:
+        - containerPort: 3000
+        env:
+        - name: ANOMALY_DETECTOR_API
+          value: "http://prometheus-anomaly-detector.aiops.svc.cluster.local:8080"
+        - name: FEATURE_STORE_API
+          value: "http://feature-store.aiops.svc.cluster.local:8080"
+        - name: FORECASTER_API
+          value: "http://time-series-forecaster.aiops.svc.cluster.local:8080"
+        - name: GRAFANA_URL
+          value: "http://grafana.monitoring.svc.cluster.local:3000"
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 250m
+            memory: 256Mi
+
+---
+# Persistent Volume Claims for ML Models and Data
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ml-models-pvc
+  namespace: aiops
+  labels:
+    app.kubernetes.io/name: ml-models-storage
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 100Gi
+  storageClassName: efs-storage
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: training-data-pvc
+  namespace: aiops
+  labels:
+    app.kubernetes.io/name: training-data-storage
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 500Gi
+  storageClassName: efs-storage
+
+---
+# ConfigMaps for AI/ML Services
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: anomaly-detector-config
+  namespace: aiops
+  labels:
+    app.kubernetes.io/name: anomaly-detector-config
+data:
+  detector-config.yaml: |
+    anomaly_detection:
+      models:
+        - name: "isolation_forest"
+          enabled: true
+          parameters:
+            contamination: 0.1
+            n_estimators: 100
+            max_samples: "auto"
+            
+        - name: "lstm_autoencoder"
+          enabled: true
+          parameters:
+            sequence_length: 60
+            encoding_dim: 32
+            epochs: 100
+            batch_size: 32
+            
+        - name: "prophet_anomaly"
+          enabled: true
+          parameters:
+            interval_width: 0.99
+            changepoint_prior_scale: 0.05
+            
+      metrics:
+        - name: "cpu_usage"
+          query: "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)"
+          interval: "1m"
+          threshold: 0.8
+          
+        - name: "memory_usage"
+          query: "100 * (1 - ((node_memory_MemAvailable_bytes) / (node_memory_MemTotal_bytes)))"
+          interval: "1m"
+          threshold: 0.85
+          
+        - name: "response_time"
+          query: "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))"
+          interval: "1m"
+          threshold: 0.9
+          
+        - name: "error_rate"
+          query: "100 * (rate(http_requests_total{status=~\"5..\"}[5m]) / rate(http_requests_total[5m]))"
+          interval: "1m"
+          threshold: 0.95
+          
+      alerting:
+        channels:
+          - type: "slack"
+            webhook_url: "${SLACK_WEBHOOK_URL}"
+            channel: "#aiops-alerts"
+            
+          - type: "pagerduty"
+            integration_key: "${PAGERDUTY_INTEGRATION_KEY}"
+            severity: "critical"
+            
+        rules:
+          - condition: "anomaly_score > 0.9"
+            severity: "critical"
+            message: "Critical anomaly detected: {{.metric_name}} score: {{.anomaly_score}}"
+            
+          - condition: "anomaly_score > 0.7"
+            severity: "warning"
+            message: "Anomaly detected: {{.metric_name}} score: {{.anomaly_score}}"
+
+  model-config.yaml: |
+    machine_learning:
+      training:
+        schedule: "0 2 * * *"  # Daily at 2 AM
+        lookback_days: 30
+        validation_split: 0.2
+        test_split: 0.1
+        
+      models:
+        isolation_forest:
+          type: "unsupervised"
+          hyperparameters:
+            n_estimators: [100, 200, 300]
+            contamination: [0.05, 0.1, 0.15]
+            max_features: [1.0, 0.5, 0.3]
+            
+        lstm_autoencoder:
+          type: "deep_learning"
+          hyperparameters:
+            sequence_length: [30, 60, 120]
+            encoding_dim: [16, 32, 64]
+            learning_rate: [0.001, 0.01, 0.1]
+            
+        prophet:
+          type: "time_series"
+          hyperparameters:
+            changepoint_prior_scale: [0.001, 0.01, 0.1, 0.5]
+            seasonality_prior_scale: [0.01, 0.1, 1.0, 10.0]
+            
+      feature_engineering:
+        window_sizes: [5, 15, 30, 60]  # minutes
+        statistical_features:
+          - mean
+          - std
+          - min
+          - max
+          - median
+          - percentile_75
+          - percentile_95
+        time_features:
+          - hour_of_day
+          - day_of_week
+          - day_of_month
+          - is_weekend
+
+  metrics-config.yaml: |
+    metrics:
+      collection:
+        interval: "30s"
+        retention: "7d"
+        
+      custom_metrics:
+        - name: "application_health_score"
+          query: |
+            (
+              (up{job="itdo-erp-backend"} * 100) +
+              (100 - rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) * 100) +
+              (100 - histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) / 2)
+            ) / 3
+          type: "gauge"
+          
+        - name: "infrastructure_stability_index"
+          query: |
+            (
+              (up{job="node"} * 100) +
+              (100 - avg(rate(node_cpu_seconds_total{mode="idle"}[5m]))) +
+              (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes * 100)
+            ) / 3
+          type: "gauge"
+          
+        - name: "business_kpi_health"
+          query: |
+            (
+              rate(http_requests_total{endpoint="/api/v1/orders"}[5m]) +
+              rate(http_requests_total{endpoint="/api/v1/payments"}[5m]) +
+              rate(http_requests_total{endpoint="/api/v1/users"}[5m])
+            ) * 100
+          type: "gauge"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: feature-store-config
+  namespace: aiops
+data:
+  feature-pipelines.yaml: |
+    pipelines:
+      - name: "system_metrics"
+        input_sources:
+          - type: "prometheus"
+            url: "http://prometheus-server.monitoring.svc.cluster.local:9090"
+            queries:
+              - metric: "cpu_usage"
+                query: "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)"
+              - metric: "memory_usage" 
+                query: "100 * (1 - ((node_memory_MemAvailable_bytes) / (node_memory_MemTotal_bytes)))"
+              - metric: "disk_io"
+                query: "rate(node_disk_io_time_seconds_total[5m])"
+                
+        transformations:
+          - type: "rolling_window"
+            window_size: "10m"
+            functions: ["mean", "std", "min", "max"]
+            
+          - type: "time_features"
+            features: ["hour", "day_of_week", "is_business_hour"]
+            
+        output:
+          type: "redis"
+          key_prefix: "features:system:"
+          ttl: "24h"
+          
+      - name: "application_metrics"
+        input_sources:
+          - type: "prometheus"
+            queries:
+              - metric: "request_rate"
+                query: "rate(http_requests_total[5m])"
+              - metric: "error_rate"
+                query: "rate(http_requests_total{status=~\"5..\"}[5m])"
+              - metric: "response_time"
+                query: "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))"
+                
+        transformations:
+          - type: "anomaly_features"
+            methods: ["zscore", "iqr", "isolation_forest"]
+            
+        output:
+          type: "redis"
+          key_prefix: "features:app:"
+
+  feature-store.yaml: |
+    storage:
+      primary:
+        type: "redis"
+        url: "redis://redis.itdo-erp.svc.cluster.local:6379"
+        db: 1
+        
+      backup:
+        type: "postgresql"
+        url: "postgresql://postgres:password@postgresql.itdo-erp.svc.cluster.local:5432/itdo_erp"
+        table: "ml_features"
+        
+    serving:
+      api:
+        port: 8080
+        endpoints:
+          - path: "/features/latest"
+            method: "GET"
+          - path: "/features/range"
+            method: "GET"
+          - path: "/features/batch"
+            method: "POST"
+            
+      caching:
+        enabled: true
+        ttl: "5m"
+        max_size: "1000MB"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: time-series-forecaster-config
+  namespace: aiops
+data:
+  forecaster-config.yaml: |
+    forecasting:
+      models:
+        - name: "prophet"
+          enabled: true
+          parameters:
+            growth: "linear"
+            yearly_seasonality: true
+            weekly_seasonality: true
+            daily_seasonality: false
+            
+        - name: "lstm"
+          enabled: true
+          parameters:
+            sequence_length: 60
+            hidden_units: 50
+            dropout: 0.2
+            epochs: 100
+            
+        - name: "arima"
+          enabled: true
+          parameters:
+            order: [1, 1, 1]
+            seasonal_order: [1, 1, 1, 24]
+            
+      metrics_to_forecast:
+        - name: "cpu_usage_forecast"
+          query: "avg(rate(node_cpu_seconds_total{mode!=\"idle\"}[5m])) * 100"
+          horizon: "24h"
+          frequency: "5m"
+          
+        - name: "request_rate_forecast"
+          query: "sum(rate(http_requests_total[5m]))"
+          horizon: "4h"
+          frequency: "1m"
+          
+        - name: "memory_usage_forecast"
+          query: "avg(node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / avg(node_memory_MemTotal_bytes) * 100"
+          horizon: "12h"
+          frequency: "5m"
+          
+      alerting:
+        thresholds:
+          cpu_usage_forecast:
+            warning: 70
+            critical: 85
+          memory_usage_forecast:
+            warning: 80
+            critical: 90
+          request_rate_forecast:
+            spike_threshold: 200  # % increase
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: log-anomaly-detector-config
+  namespace: aiops
+data:
+  log-detector-config.yaml: |
+    log_analysis:
+      input_sources:
+        - type: "elasticsearch"
+          index_pattern: "itdo-erp-logs-*"
+          fields:
+            - "message"
+            - "level"
+            - "timestamp"
+            - "service"
+            - "pod_name"
+            
+      preprocessing:
+        - type: "text_cleaning"
+          remove_patterns:
+            - "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}"  # timestamps
+            - "\\b\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\b"  # IP addresses
+            
+        - type: "tokenization"
+          method: "bert"
+          model: "bert-base-uncased"
+          
+      anomaly_detection:
+        models:
+          - name: "bert_encoder"
+            type: "transformer"
+            parameters:
+              max_length: 512
+              threshold: 0.85
+              
+          - name: "isolation_forest_logs"
+            type: "unsupervised"
+            parameters:
+              contamination: 0.01
+              
+        rules:
+          - pattern: "ERROR|CRITICAL|FATAL"
+            weight: 3.0
+          - pattern: "Exception|Error|Failed"
+            weight: 2.0
+          - pattern: "timeout|connection.*refused"
+            weight: 2.5
+            
+      alerting:
+        severity_mapping:
+          high: ["ERROR", "CRITICAL", "FATAL"]
+          medium: ["WARN", "WARNING"]
+          low: ["INFO", "DEBUG"]
+          
+        rate_limiting:
+          similar_alerts: "5m"
+          max_alerts_per_minute: 10
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: anomaly-alert-config
+  namespace: aiops
+data:
+  alert-manager-config.yaml: |
+    alert_management:
+      correlation:
+        enabled: true
+        time_window: "5m"
+        similarity_threshold: 0.8
+        
+      suppression:
+        rules:
+          - if: "maintenance_mode == true"
+            suppress_all: true
+          - if: "alert_type == 'forecast' and severity == 'low'"
+            duration: "30m"
+            
+      enrichment:
+        enabled: true
+        sources:
+          - type: "kubernetes"
+            fields: ["namespace", "pod", "node"]
+          - type: "service_map"
+            fields: ["upstream_services", "downstream_services"]
+            
+      routing:
+        rules:
+          - match:
+              severity: "critical"
+            route: "pagerduty"
+            
+          - match:
+              ai_component: "anomaly-detection"
+            route: "aiops-team"
+            
+          - default:
+            route: "slack"
+
+  anomaly-rules.yaml: |
+    groups:
+    - name: ai_anomaly_detection
+      rules:
+      - alert: MetricAnomalyDetected
+        expr: anomaly_score > 0.9
+        for: 2m
+        labels:
+          severity: critical
+          ai_detected: "true"
+        annotations:
+          summary: "AI detected anomaly in {{ $labels.metric_name }}"
+          description: "Anomaly score: {{ $value }}, Metric: {{ $labels.metric_name }}"
+          runbook_url: "https://runbooks.itdo-erp.com/aiops/anomaly-response"
+          
+      - alert: ForecastThresholdBreach
+        expr: forecast_value > forecast_threshold
+        for: 5m
+        labels:
+          severity: warning
+          ai_detected: "true"
+        annotations:
+          summary: "Forecast indicates threshold breach for {{ $labels.metric_name }}"
+          description: "Predicted value: {{ $value }}, Threshold: {{ $labels.forecast_threshold }}"
+          
+      - alert: LogAnomalyBurst
+        expr: log_anomaly_rate > 10
+        for: 1m
+        labels:
+          severity: warning
+          ai_detected: "true"
+        annotations:
+          summary: "Burst of log anomalies detected"
+          description: "{{ $value }} anomalous log entries per minute"
+
+---
+# Services
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus-anomaly-detector
+  namespace: aiops
+  labels:
+    app.kubernetes.io/name: prometheus-anomaly-detector
+spec:
+  selector:
+    app.kubernetes.io/name: prometheus-anomaly-detector
+  ports:
+  - name: http-api
+    port: 8080
+    targetPort: 8080
+  - name: grpc-api
+    port: 9090
+    targetPort: 9090
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: feature-store
+  namespace: aiops
+spec:
+  selector:
+    app.kubernetes.io/name: feature-store
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: http
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aiops-dashboard
+  namespace: aiops
+spec:
+  selector:
+    app.kubernetes.io/name: aiops-dashboard
+  ports:
+  - port: 3000
+    targetPort: 3000
+    name: http
+  type: LoadBalancer
+
+---
+# Service Account and RBAC
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: aiops-service-account
+  namespace: aiops
+  labels:
+    app.kubernetes.io/name: aiops-service-account
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: aiops-reader
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services", "endpoints", "nodes"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "statefulsets", "daemonsets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["metrics.k8s.io"]
+  resources: ["*"]
+  verbs: ["get", "list"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: aiops-reader-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: aiops-reader
+subjects:
+- kind: ServiceAccount
+  name: aiops-service-account
+  namespace: aiops

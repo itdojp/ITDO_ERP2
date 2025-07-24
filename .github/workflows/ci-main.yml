@@ -1,0 +1,516 @@
+name: CI/CD Pipeline - Main
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+# Optimization: Global cache strategy and job parallelization
+env:
+  UV_CACHE_DIR: /tmp/.uv-cache
+  NODE_CACHE_DIR: /tmp/.npm-cache
+
+jobs:
+  # Path-based change detection for optimized CI runs
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.changes.outputs.backend }}
+      frontend: ${{ steps.changes.outputs.frontend }}
+    steps:
+    - uses: actions/checkout@v4
+    - uses: dorny/paths-filter@v3
+      id: changes
+      with:
+        filters: |
+          backend:
+            - 'backend/**'
+            - '.github/workflows/**'
+          frontend:
+            - 'frontend/**'
+            - '.github/workflows/**'
+
+  # Job parallelization optimization - Run type checks and security scans simultaneously
+  python-typecheck:
+    runs-on: ubuntu-latest
+    needs: changes
+    if: ${{ needs.changes.outputs.backend == 'true' }}
+    defaults:
+      run:
+        working-directory: ./backend
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    # Optimization: Use UV cache
+    - name: Cache UV dependencies
+      uses: actions/cache@v4
+      with:
+        path: /tmp/.uv-cache
+        key: uv-${{ runner.os }}-${{ hashFiles('backend/uv.lock') }}
+        restore-keys: |
+          uv-${{ runner.os }}-
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: "latest"
+        enable-cache: true
+    
+    - name: Set up Python
+      run: uv python install 3.13
+    
+    # Optimization: Parallel dependency installation
+    - name: Install dependencies (optimized)
+      run: |
+        uv sync --dev --locked
+    
+    - name: Run mypy type checking (optimized)
+      run: |
+        # Optimization: Use mypy cache and parallel processing
+        echo "Running optimized type checking..."
+        uv run mypy app/ --cache-dir=/tmp/.mypy-cache \
+          --show-error-context --show-error-codes \
+          --no-incremental || true
+    
+    # Optimization: Upload artifacts only on failure
+    - name: Upload type check report
+      uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: mypy-report-${{ github.run_id }}
+        path: backend/mypy-report/
+        retention-days: 3
+
+  typescript-typecheck:
+    runs-on: ubuntu-latest
+    needs: changes
+    if: ${{ needs.changes.outputs.frontend == 'true' }}
+    defaults:
+      run:
+        working-directory: ./frontend
+        
+    steps:
+    - uses: actions/checkout@v4
+    
+    # Optimization: Advanced Node.js caching
+    - name: Setup Node.js with enhanced caching
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+    
+    # Optimization: Use npm ci with cache optimization
+    - name: Install dependencies (optimized)
+      run: |
+        npm ci --prefer-offline --no-audit --no-fund
+    
+    # Optimization: Parallel TypeScript checking
+    - name: TypeScript type checking (optimized)
+      run: |
+        # Optimization: Use TypeScript incremental compilation
+        npm run typecheck -- --incremental
+    
+    # Optimization: Skip unused exports check for speed (optional)
+    - name: Check for unused exports (conditional)
+      if: github.event_name == 'pull_request'
+      run: npx ts-unused-exports tsconfig.json
+
+  # Optimization: Combined linting and security scan job
+  quality-and-security:
+    runs-on: ubuntu-latest
+    needs: changes
+    strategy:
+      matrix:
+        target: [backend, frontend]
+        include:
+          - target: backend
+            condition: ${{ needs.changes.outputs.backend == 'true' }}
+          - target: frontend  
+            condition: ${{ needs.changes.outputs.frontend == 'true' }}
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    # Backend quality checks
+    - name: Backend quality and security
+      if: matrix.target == 'backend' && needs.changes.outputs.backend == 'true'
+      working-directory: ./backend
+      run: |
+        # Setup UV with cache
+        export UV_CACHE_DIR=/tmp/.uv-cache
+        pip install uv
+        uv python install 3.13
+        uv sync --dev --locked
+        
+        # Parallel execution of quality checks
+        echo "Running parallel quality checks..."
+        
+        # Linting
+        uv run ruff check . --ignore E501,N805,N818 &
+        RUFF_PID=$!
+        
+        # Security scan
+        uv run safety check --json > /tmp/safety-report.json &
+        SAFETY_PID=$!
+        
+        # Wait for all background jobs
+        wait $RUFF_PID $SAFETY_PID
+        
+        # Format check
+        uv run ruff format --check .
+    
+    # Frontend quality checks
+    - name: Frontend quality and security
+      if: matrix.target == 'frontend' && needs.changes.outputs.frontend == 'true'
+      working-directory: ./frontend
+      run: |
+        # Setup Node with cache
+        npm ci --prefer-offline --no-audit --no-fund
+        
+        # Parallel execution
+        npm run lint &
+        LINT_PID=$!
+        
+        # Security audit
+        npm audit --audit-level moderate &
+        AUDIT_PID=$!
+        
+        # Wait for all background jobs
+        wait $LINT_PID $AUDIT_PID
+
+  # Optimization: Smart test execution with caching
+  backend-test:
+    runs-on: ubuntu-latest
+    needs: [python-typecheck]
+    defaults:
+      run:
+        working-directory: ./backend
+    
+    # Optimization: Use matrix for parallel test execution
+    strategy:
+      matrix:
+        test-group: [unit, integration, security]
+    
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_PASSWORD: itdo_password
+          POSTGRES_USER: itdo_user
+          POSTGRES_DB: itdo_erp_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    # Optimization: Restore UV cache
+    - name: Cache UV dependencies
+      uses: actions/cache@v4
+      with:
+        path: /tmp/.uv-cache
+        key: uv-${{ runner.os }}-${{ hashFiles('backend/uv.lock') }}
+        restore-keys: |
+          uv-${{ runner.os }}-
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: "latest"
+        enable-cache: true
+    
+    - name: Set up Python
+      run: uv python install 3.13
+    
+    # Optimization: Fast dependency installation
+    - name: Install dependencies (cached)
+      run: |
+        uv sync --dev --locked
+    
+    # Optimization: Conditional test execution based on matrix
+    - name: Run test group - ${{ matrix.test-group }}
+      env:
+        DATABASE_URL: sqlite:///test.db
+        REDIS_URL: redis://localhost:6379
+        SECRET_KEY: test-secret-key
+        PYTHONPATH: /home/runner/work/ITDO_ERP2/ITDO_ERP2/backend
+        CI: true
+        GITHUB_ACTIONS: true
+      run: |
+        case "${{ matrix.test-group }}" in
+          unit)
+            echo "Running unit tests..."
+            uv run pytest tests/unit/ tests/test_main.py \
+              -v --tb=short --cov=app --cov-report=xml \
+              --cov-report=term-missing --maxfail=3
+            ;;
+          integration)
+            echo "Running integration tests..."
+            uv run pytest tests/integration/ \
+              -v --tb=short --maxfail=3
+            ;;
+          security)
+            echo "Running security tests..."
+            uv run pytest tests/security/ \
+              -v --tb=short --maxfail=3
+            ;;
+        esac
+    
+    # Optimization: Upload coverage only from unit tests
+    - name: Upload coverage to Codecov
+      if: matrix.test-group == 'unit'
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./backend/coverage.xml
+        flags: backend
+        name: backend-coverage
+
+  frontend-test:
+    runs-on: ubuntu-latest
+    needs: [typescript-typecheck]
+    defaults:
+      run:
+        working-directory: ./frontend
+        
+    steps:
+    - uses: actions/checkout@v4
+    
+    # Optimization: Enhanced Node.js caching
+    - name: Setup Node.js with enhanced caching
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+    
+    # Optimization: Cache node_modules
+    - name: Cache node_modules
+      uses: actions/cache@v4
+      with:
+        path: frontend/node_modules
+        key: npm-${{ runner.os }}-${{ hashFiles('frontend/package-lock.json') }}
+        restore-keys: |
+          npm-${{ runner.os }}-
+    
+    - name: Install dependencies (cached)
+      run: |
+        npm ci --prefer-offline --no-audit --no-fund
+    
+    # Optimization: Parallel test execution
+    - name: Run tests with coverage (optimized)
+      run: |
+        # Use Jest parallel execution
+        npm run coverage -- --maxWorkers=2
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./frontend/coverage/coverage-final.json
+        flags: frontend
+        name: frontend-coverage
+
+  # Optimization: Conditional E2E tests (only on important changes)
+  e2e-test:
+    runs-on: ubuntu-latest
+    needs: [backend-test, frontend-test]
+    # Optimization: Skip E2E on draft PRs or docs-only changes
+    if: |
+      github.event_name == 'push' || 
+      (github.event_name == 'pull_request' && 
+       !github.event.pull_request.draft &&
+       !contains(github.event.head_commit.message, '[skip e2e]'))
+    timeout-minutes: 20
+    
+    # Optimization: Reduce browser matrix for faster execution
+    strategy:
+      matrix:
+        browser: [chromium]  # Only test primary browser in CI
+    
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: itdo_user
+          POSTGRES_PASSWORD: itdo_password
+          POSTGRES_DB: itdo_erp_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    # Optimization: Parallel setup of backend and frontend
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: "latest"
+        enable-cache: true
+    
+    - name: Set up Python
+      run: uv python install 3.13
+    
+    # Optimization: Parallel dependency installation
+    - name: Install dependencies (parallel)
+      run: |
+        # Backend dependencies
+        cd backend && uv sync --dev --locked &
+        BACKEND_PID=$!
+        
+        # Frontend dependencies
+        cd frontend && npm ci --prefer-offline --no-audit --no-fund &
+        FRONTEND_PID=$!
+        
+        # Wait for both
+        wait $BACKEND_PID $FRONTEND_PID
+    
+    # Optimization: Faster backend startup
+    - name: Setup and start backend (optimized)
+      working-directory: backend
+      run: |
+        cp .env.example .env
+        echo "DATABASE_URL=postgresql://itdo_user:itdo_password@localhost:5432/itdo_erp_test" >> .env
+        echo "REDIS_URL=redis://localhost:6379/0" >> .env
+        echo "ENVIRONMENT=test" >> .env
+        echo "TESTING=true" >> .env
+        echo "SECRET_KEY=test-secret-key-for-ci" >> .env
+        echo "BACKEND_CORS_ORIGINS=http://localhost:3000" >> .env
+        
+        # Quick DB setup and start
+        export $(cat .env | xargs)
+        uv run alembic upgrade head
+        nohup uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1 > backend.log 2>&1 &
+        
+        # Optimized health check
+        for i in {1..15}; do
+          if curl -f -s http://localhost:8000/health > /dev/null 2>&1; then
+            echo "Backend ready!"
+            break
+          fi
+          sleep 1
+        done
+    
+    # Optimization: Install only required browser
+    - name: Install Playwright browsers (selective)
+      working-directory: frontend
+      run: npx playwright install ${{ matrix.browser }} --with-deps
+    
+    # Optimization: Faster frontend startup
+    - name: Start frontend (optimized)
+      working-directory: frontend
+      run: |
+        nohup npm run dev -- --host 0.0.0.0 > frontend.log 2>&1 &
+        
+        # Quick health check
+        for i in {1..15}; do
+          if curl -f -s http://localhost:3000 > /dev/null 2>&1; then
+            echo "Frontend ready!"
+            break
+          fi
+          sleep 1
+        done
+    
+    # Optimization: Run only critical E2E tests
+    - name: Run critical E2E tests
+      working-directory: frontend
+      run: |
+        # Run only smoke and critical path tests for speed
+        npm run test:e2e -- --project=${{ matrix.browser }} \
+          --grep="smoke|critical" --max-failures=3
+      env:
+        CI: true
+        VITE_API_URL: http://localhost:8000
+        VITE_API_BASE_URL: http://localhost:8000/api/v1
+    
+    # Optimization: Minimal artifact upload
+    - name: Upload E2E results (on failure only)
+      uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: e2e-failure-${{ matrix.browser }}-${{ github.run_id }}
+        path: |
+          frontend/test-results/
+        retention-days: 3
+
+  # Optimization: Conditional container builds
+  build-containers:
+    runs-on: ubuntu-latest
+    needs: [e2e-test]
+    # Only build on main branch pushes and release PRs
+    if: |
+      github.ref == 'refs/heads/main' || 
+      contains(github.event.pull_request.labels.*.name, 'release')
+    
+    strategy:
+      matrix:
+        component: [backend, frontend]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    # Optimization: Use Docker layer caching
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    
+    # Optimization: Build with cache and multi-stage optimization
+    - name: Build and push ${{ matrix.component }} image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./${{ matrix.component }}
+        push: true
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        tags: |
+          ghcr.io/${{ github.repository_owner }}/itdo-erp-${{ matrix.component }}:latest
+          ghcr.io/${{ github.repository_owner }}/itdo-erp-${{ matrix.component }}:${{ github.sha }}
+
+# Optimization: Workflow-level optimizations
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true

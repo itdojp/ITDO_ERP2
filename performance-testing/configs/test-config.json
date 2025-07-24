@@ -1,0 +1,133 @@
+{
+  "testSuites": {
+    "smoke": {
+      "name": "API Smoke Test",
+      "script": "scenarios/api-smoke-test.js",
+      "description": "Quick validation of critical endpoints",
+      "duration": "2m",
+      "vus": 1,
+      "thresholds": {
+        "http_req_duration": ["p(95)<1000"],
+        "http_req_failed": ["rate<0.01"]
+      }
+    },
+    "load": {
+      "name": "Load Test",
+      "script": "scripts/load-test.js",
+      "description": "Standard load testing with realistic user patterns",
+      "duration": "16m",
+      "maxVus": 20,
+      "thresholds": {
+        "http_req_duration": ["p(95)<2000"],
+        "http_req_failed": ["rate<0.05"],
+        "response_time": ["p(95)<1500"],
+        "error_rate": ["rate<0.1"]
+      }
+    },
+    "stress": {
+      "name": "Stress Test",
+      "script": "scripts/stress-test.js",
+      "description": "High load testing to find breaking points",
+      "duration": "16m",
+      "maxVus": 300,
+      "thresholds": {
+        "http_req_duration": ["p(99)<5000"],
+        "http_req_failed": ["rate<0.20"],
+        "stress_response_time": ["p(90)<3000"],
+        "timeout_count": ["count<100"]
+      }
+    },
+    "spike": {
+      "name": "Spike Test",
+      "script": "scripts/load-test.js",
+      "description": "Sudden traffic spikes testing",
+      "stages": [
+        { "duration": "1m", "target": 10 },
+        { "duration": "30s", "target": 100 },
+        { "duration": "2m", "target": 100 },
+        { "duration": "30s", "target": 10 },
+        { "duration": "1m", "target": 10 }
+      ],
+      "thresholds": {
+        "http_req_duration": ["p(95)<3000"],
+        "http_req_failed": ["rate<0.15"]
+      }
+    },
+    "volume": {
+      "name": "Volume Test",
+      "script": "scripts/load-test.js",
+      "description": "Extended duration testing",
+      "duration": "30m",
+      "vus": 50,
+      "thresholds": {
+        "http_req_duration": ["p(95)<2500"],
+        "http_req_failed": ["rate<0.08"]
+      }
+    }
+  },
+  "environments": {
+    "local": {
+      "baseUrl": "http://localhost:8000",
+      "description": "Local development environment"
+    },
+    "dev": {
+      "baseUrl": "https://dev-api.itdo-erp.com",
+      "description": "Development environment"
+    },
+    "staging": {
+      "baseUrl": "https://staging-api.itdo-erp.com",
+      "description": "Staging environment"
+    }
+  },
+  "reporting": {
+    "formats": ["json", "html", "junit"],
+    "outputDir": "reports",
+    "includeDetails": true,
+    "generateCharts": true
+  },
+  "notifications": {
+    "slack": {
+      "enabled": false,
+      "webhook": "",
+      "channel": "#performance-alerts"
+    },
+    "email": {
+      "enabled": false,
+      "recipients": ["devops@company.com"],
+      "smtp": {
+        "host": "smtp.company.com",
+        "port": 587,
+        "secure": true
+      }
+    }
+  },
+  "regression": {
+    "enabled": true,
+    "baselineFile": "reports/baseline-metrics.json",
+    "tolerances": {
+      "responseTime": {
+        "p95": 0.20,
+        "p99": 0.30
+      },
+      "errorRate": 0.05,
+      "throughput": -0.10
+    }
+  },
+  "monitoring": {
+    "metrics": [
+      "http_req_duration",
+      "http_req_failed",
+      "http_reqs",
+      "vus",
+      "vus_max",
+      "data_received",
+      "data_sent"
+    ],
+    "tags": [
+      "environment",
+      "test_type",
+      "endpoint",
+      "method"
+    ]
+  }
+}

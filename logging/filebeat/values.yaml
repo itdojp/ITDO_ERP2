@@ -1,0 +1,380 @@
+# Filebeat Configuration for ITDO ERP Additional Log Sources
+daemonset:
+  enabled: true
+
+deployment:
+  enabled: false
+
+# Filebeat configuration
+filebeatConfig:
+  filebeat.yml: |
+    # ITDO ERP Filebeat Configuration
+    filebeat.inputs:
+    # Kubernetes container logs (alternative to Fluent Bit)
+    - type: container
+      enabled: true
+      paths:
+        - /var/log/containers/*itdo-erp*.log
+        - /var/log/containers/*backend-api*.log
+        - /var/log/containers/*frontend-app*.log
+      processors:
+        - add_kubernetes_metadata:
+            host: ${NODE_NAME}
+            matchers:
+            - logs_path:
+                logs_path: "/var/log/containers/"
+        - decode_json_fields:
+            fields: ["message"]
+            target: "json"
+            overwrite_keys: true
+        - timestamp:
+            field: json.timestamp
+            layouts:
+              - '2006-01-02T15:04:05.000Z'
+              - '2006-01-02T15:04:05Z'
+            test:
+              - '2023-01-01T12:34:56.789Z'
+
+    # System logs from journald
+    - type: journald
+      enabled: true
+      id: itdo-erp-system-logs
+      include_matches:
+        - "UNIT=docker.service"
+        - "UNIT=kubelet.service"
+        - "UNIT=containerd.service"
+      processors:
+        - add_host_metadata:
+            when.not.contains.tags: forwarded
+
+    # Audit logs (if available)
+    - type: log
+      enabled: true
+      paths:
+        - /var/log/audit/audit.log
+      fields:
+        log_type: audit
+        environment: production
+      fields_under_root: true
+
+    # Application-specific log files
+    - type: log
+      enabled: true
+      paths:
+        - /var/log/itdo-erp/*.log
+      fields:
+        log_type: application
+        service: itdo-erp
+      fields_under_root: true
+      multiline.pattern: '^\d{4}-\d{2}-\d{2}'
+      multiline.negate: true
+      multiline.match: after
+
+    # PostgreSQL logs
+    - type: log
+      enabled: true
+      paths:
+        - /var/log/postgresql/*.log
+      fields:
+        log_type: database
+        service: postgresql
+      fields_under_root: true
+
+    # Redis logs
+    - type: log
+      enabled: true
+      paths:
+        - /var/log/redis/*.log
+      fields:
+        log_type: cache
+        service: redis
+      fields_under_root: true
+
+    # Nginx access logs
+    - type: log
+      enabled: true
+      paths:
+        - /var/log/nginx/access.log
+      fields:
+        log_type: web_access
+        service: nginx
+      fields_under_root: true
+
+    # Nginx error logs
+    - type: log
+      enabled: true
+      paths:
+        - /var/log/nginx/error.log
+      fields:
+        log_type: web_error
+        service: nginx
+      fields_under_root: true
+        
+    # Global processors
+    processors:
+      - add_cloud_metadata:
+          timeout: 10s
+      - add_host_metadata:
+          when.not.contains.tags: forwarded
+      - add_docker_metadata: ~
+      - add_kubernetes_metadata: ~
+      - drop_event:
+          when:
+            or:
+              - contains:
+                  message: "health"
+              - contains:
+                  message: "readiness"
+              - contains:
+                  message: "liveness"
+
+    # Output configuration
+    output.elasticsearch:
+      hosts: ['https://elasticsearch.logging.svc.cluster.local:9200']
+      username: '${ELASTICSEARCH_USERNAME}'
+      password: '${ELASTICSEARCH_PASSWORD}'
+      ssl.certificate_authorities: ["/usr/share/filebeat/certs/elastic-certificates.crt"]
+      ssl.verification_mode: certificate
+      template.enabled: true
+      template.pattern: "filebeat-*"
+      template.settings:
+        index.number_of_shards: 1
+        index.number_of_replicas: 1
+        index.refresh_interval: "30s"
+        index.codec: best_compression
+      indices:
+        - index: "itdo-erp-app-%{+yyyy.MM.dd}"
+          when.equals:
+            fields.log_type: "application"
+        - index: "itdo-erp-web-%{+yyyy.MM.dd}"
+          when.or:
+            - equals:
+                fields.log_type: "web_access"
+            - equals:
+                fields.log_type: "web_error"
+        - index: "itdo-erp-db-%{+yyyy.MM.dd}"
+          when.equals:
+            fields.log_type: "database"
+        - index: "itdo-erp-system-%{+yyyy.MM.dd}"
+          when.equals:
+            fields.log_type: "system"
+        - index: "itdo-erp-audit-%{+yyyy.MM.dd}"
+          when.equals:
+            fields.log_type: "audit"
+
+    # Monitoring
+    monitoring.enabled: true
+    monitoring.elasticsearch:
+      hosts: ['https://elasticsearch.logging.svc.cluster.local:9200']
+      username: '${ELASTICSEARCH_USERNAME}'
+      password: '${ELASTICSEARCH_PASSWORD}'
+      ssl.certificate_authorities: ["/usr/share/filebeat/certs/elastic-certificates.crt"]
+
+    # Logging
+    logging.level: info
+    logging.to_files: true
+    logging.files:
+      path: /usr/share/filebeat/logs
+      name: filebeat
+      keepfiles: 7
+      permissions: 0644
+
+    # Setup
+    setup.template.enabled: true
+    setup.template.settings:
+      index.number_of_shards: 1
+      index.number_of_replicas: 1
+      index.refresh_interval: "30s"
+
+    setup.ilm.enabled: true
+    setup.ilm.rollover_alias: "filebeat"
+    setup.ilm.pattern: "{now/d}-000001"
+    setup.ilm.policy: "filebeat-policy"
+
+    # HTTP endpoint for monitoring
+    http.enabled: true
+    http.host: "0.0.0.0"
+    http.port: 5066
+
+# Image configuration
+image: "docker.elastic.co/beats/filebeat"
+imageTag: "8.11.0"
+imagePullPolicy: "IfNotPresent"
+
+# Resource configuration
+resources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
+
+# Environment variables
+extraEnvs:
+  - name: ELASTICSEARCH_USERNAME
+    value: "elastic"
+  - name: ELASTICSEARCH_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: elasticsearch-credentials
+        key: password
+  - name: NODE_NAME
+    valueFrom:
+      fieldRef:
+        fieldPath: spec.nodeName
+
+# Secret mounts
+secretMounts:
+  - name: elastic-certificates
+    secretName: elastic-certificates
+    path: /usr/share/filebeat/certs
+    defaultMode: 0755
+
+# Extra volumes
+extraVolumes:
+  - name: varlogcontainers
+    hostPath:
+      path: /var/log/containers
+  - name: varlogpods
+    hostPath:
+      path: /var/log/pods
+  - name: varlibdockercontainers
+    hostPath:
+      path: /var/lib/docker/containers
+  - name: systemd-logs
+    hostPath:
+      path: /var/log/journal
+  - name: filebeat-logs
+    emptyDir: {}
+
+# Extra volume mounts
+extraVolumeMounts:
+  - name: varlogcontainers
+    mountPath: /var/log/containers
+    readOnly: true
+  - name: varlogpods
+    mountPath: /var/log/pods
+    readOnly: true
+  - name: varlibdockercontainers
+    mountPath: /var/lib/docker/containers
+    readOnly: true
+  - name: systemd-logs
+    mountPath: /var/log/journal
+    readOnly: true
+  - name: filebeat-logs
+    mountPath: /usr/share/filebeat/logs
+
+# Host configuration
+hostPathRoot: /var/lib
+hostNetworking: false
+dnsPolicy: ClusterFirstWithHostNet
+
+# Security context
+podSecurityContext:
+  runAsUser: 0
+  runAsGroup: 0
+  fsGroup: 0
+
+# Node selector and tolerations
+nodeSelector: {}
+
+tolerations:
+  - key: node-role.kubernetes.io/master
+    operator: Exists
+    effect: NoSchedule
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule
+
+affinity: {}
+
+# Service account
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Cluster role binding
+clusterRoleRules:
+  - apiGroups: [""]
+    resources:
+      - nodes
+      - namespaces
+      - events
+      - pods
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources:
+      - replicasets
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["batch"]
+    resources:
+      - jobs
+    verbs: ["get", "list", "watch"]
+
+# Pod disruption budget
+maxUnavailable: 1
+
+# Priority class
+priorityClassName: ""
+
+# Update strategy
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 1
+
+# Annotations
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "5066"
+  prometheus.io/path: "/stats"
+
+# Lifecycle hooks
+lifecycle: {}
+
+# Liveness and readiness probes
+livenessProbe:
+  exec:
+    command:
+      - sh
+      - -c
+      - |
+        #!/usr/bin/env bash -e
+        curl --fail 127.0.0.1:5066
+  failureThreshold: 3
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+
+readinessProbe:
+  exec:
+    command:
+      - sh
+      - -c
+      - |
+        #!/usr/bin/env bash -e
+        filebeat test output
+  failureThreshold: 3
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+
+# Network policy
+networkPolicy:
+  create: false
+
+# Service monitor for Prometheus
+serviceMonitor:
+  enabled: true
+  labels: {}
+  interval: 30s
+  scrapeTimeout: 10s
+
+# Additional labels
+labels: {}
+
+# Name overrides
+nameOverride: ""
+fullnameOverride: ""

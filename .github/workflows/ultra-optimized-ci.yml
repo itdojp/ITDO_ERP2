@@ -1,11 +1,6 @@
 name: Ultra-Optimized CI/CD Pipeline v2.0
 
 on:
-
-permissions:
-  contents: read
-  pull-requests: read
-  checks: read
   push:
     branches: [ main, develop ]
   pull_request:

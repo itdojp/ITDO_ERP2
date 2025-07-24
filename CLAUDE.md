@@ -65,6 +65,15 @@ ITDO ERP System v2 - Modern ERP system with hybrid development environment.
    - Follow TDD approach: Write tests first, then implementation
    - Update PR from Draft to Ready when implementation is complete
    - **CRITICAL**: Use `gh pr merge [PR] --squash --delete-branch` to prevent branch accumulation
+8. **MANDATORY - Code Quality Standards**: ALWAYS follow these code quality rules:
+   - **BEFORE writing code**: Check lint/format with `cd backend && uv run ruff check . --fix`
+   - **AFTER writing code**: Format with `cd backend && uv run ruff format .`
+   - **Python line length**: Max 88 characters (use line breaks for long lines)
+   - **Import organization**: Use `from __future__ import annotations` for forward references
+   - **No unused imports**: Remove ALL unused imports immediately
+   - **Type annotations**: ALWAYS add type hints (no bare `def func():`)
+   - **Docstrings**: Add for all public functions/classes
+   - **BEFORE committing**: Run `uv run pre-commit run --all-files`
 
 ### Development Environment Setup
 ```bash
@@ -201,6 +210,24 @@ cd frontend && npm install                  # Install dependencies
 - Type Safety: Strict TypeScript and mypy
 
 ## Key Development Notes
+
+### Claude Code Agent Commands
+When working as a Claude Code agent, use these commands frequently:
+```bash
+# Quick quality check (run this BEFORE and AFTER code changes)
+./scripts/claude-code-quality-check.sh
+
+# Manual quality fixes
+cd backend && uv run ruff check . --fix --unsafe-fixes
+cd backend && uv run ruff format .
+
+# Check specific file before editing
+cd backend && uv run ruff check path/to/file.py
+
+# Use templates for new files
+cp templates/claude-code-python-template.py app/new_module.py
+cp templates/claude-code-typescript-template.tsx frontend/src/components/NewComponent.tsx
+```
 
 ### Python Environment
 - Always use `uv run` prefix for Python commands

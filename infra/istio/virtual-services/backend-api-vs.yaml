@@ -1,0 +1,328 @@
+# Backend API Virtual Service Configuration
+# Advanced traffic management with canary deployment support
+
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: itdo-erp-backend-api
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: backend-api-vs
+    app.kubernetes.io/component: traffic-management
+spec:
+  hosts:
+  - "api.itdo-erp.com"
+  gateways:
+  - itdo-erp-api-gateway
+  http:
+  # Health Check Route (High Priority)
+  - match:
+    - uri:
+        prefix: "/api/v1/health"
+    route:
+    - destination:
+        host: itdo-erp-backend-api.itdo-erp.svc.cluster.local
+        port:
+          number: 8000
+        subset: stable
+    timeout: 5s
+    retries:
+      attempts: 2
+      perTryTimeout: 2s
+      retryOn: gateway-error,connect-failure,refused-stream
+    headers:
+      request:
+        add:
+          X-Service-Route: "health-check"
+      response:
+        add:
+          X-Response-Source: "backend-api"
+          Cache-Control: "no-cache, no-store, must-revalidate"
+          
+  # Authentication Routes
+  - match:
+    - uri:
+        prefix: "/api/v1/auth"
+    route:
+    - destination:
+        host: itdo-erp-backend-api.itdo-erp.svc.cluster.local
+        port:
+          number: 8000
+        subset: stable
+      weight: 90
+    - destination:
+        host: itdo-erp-backend-api.itdo-erp.svc.cluster.local
+        port:
+          number: 8000
+        subset: canary
+      weight: 10  # 10% canary traffic
+    timeout: 10s
+    retries:
+      attempts: 3
+      perTryTimeout: 3s
+      retryOn: 5xx,reset,connect-failure,refused-stream
+    fault:
+      delay:
+        percentage:
+          value: 0.1  # 0.1% of requests
+        fixedDelay: 100ms  # Add 100ms delay for resilience testing
+    headers:
+      request:
+        add:
+          X-Service-Route: "authentication"
+          X-Request-ID: "%REQ(X-REQUEST-ID)%"
+        remove:
+        - X-Internal-Token  # Remove internal tokens
+      response:
+        add:
+          X-Response-Source: "backend-api"
+          X-Content-Type-Options: "nosniff"
+          X-Frame-Options: "DENY"
+          X-XSS-Protection: "1; mode=block"
+          Strict-Transport-Security: "max-age=31536000; includeSubDomains"
+          
+  # API v1 Routes (Main Application APIs)
+  - match:
+    - uri:
+        prefix: "/api/v1/"
+    route:
+    - destination:
+        host: itdo-erp-backend-api.itdo-erp.svc.cluster.local
+        port:
+          number: 8000
+        subset: stable
+      weight: 95
+    - destination:
+        host: itdo-erp-backend-api.itdo-erp.svc.cluster.local
+        port:
+          number: 8000
+        subset: canary
+      weight: 5   # 5% canary traffic for main APIs
+    timeout: 30s
+    retries:
+      attempts: 3
+      perTryTimeout: 10s
+      retryOn: 5xx,reset,connect-failure,refused-stream
+      retryRemoteLocalities: true
+    corsPolicy:
+      allowOrigins:
+      - exact: "https://app.itdo-erp.com"
+      - exact: "https://www.itdo-erp.com" 
+      - regex: "https://.*\.itdo-erp\.com"
+      allowMethods:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - PATCH
+      - OPTIONS
+      allowHeaders:
+      - "Authorization"
+      - "Content-Type"
+      - "X-Requested-With"
+      - "X-Request-ID"
+      - "Accept"
+      - "Origin"
+      allowCredentials: true
+      maxAge: 86400s  # 24 hours
+    headers:
+      request:
+        add:
+          X-Service-Route: "api-v1"
+          X-Forwarded-Proto: "https"
+          X-Request-Start: "%START_TIME(%s.%3f)%"
+        remove:
+        - X-Internal-Debug
+      response:
+        add:
+          X-Response-Source: "backend-api"
+          X-Content-Type-Options: "nosniff"
+          X-Frame-Options: "SAMEORIGIN"
+          X-XSS-Protection: "1; mode=block"
+          Cache-Control: "no-cache, must-revalidate"
+        remove:
+        - Server  # Hide server information
+        - X-Powered-By
+        
+  # Feature Flags API (Special routing)
+  - match:
+    - uri:
+        prefix: "/api/v1/feature-flags"
+    route:
+    - destination:
+        host: itdo-erp-backend-api.itdo-erp.svc.cluster.local
+        port:
+          number: 8000
+        subset: stable
+      weight: 100  # No canary for feature flags (stability required)
+    timeout: 5s
+    retries:
+      attempts: 2
+      perTryTimeout: 2s
+    headers:
+      request:
+        add:
+          X-Service-Route: "feature-flags"
+          Cache-Control: "max-age=60"  # Cache for 1 minute
+      response:
+        add:
+          Cache-Control: "max-age=60, public"
+          
+  # Admin API Routes (Restricted)
+  - match:
+    - uri:
+        prefix: "/api/v1/admin"
+    route:
+    - destination:
+        host: itdo-erp-backend-api.itdo-erp.svc.cluster.local
+        port:
+          number: 8000
+        subset: stable
+    timeout: 60s  # Longer timeout for admin operations
+    retries:
+      attempts: 1  # No retries for admin operations
+    headers:
+      request:
+        add:
+          X-Service-Route: "admin"
+          X-Admin-Request: "true"
+      response:
+        add:
+          X-Response-Source: "backend-api-admin"
+          X-Robots-Tag: "noindex, nofollow"
+          
+  # Metrics and Monitoring (Internal)
+  - match:
+    - uri:
+        prefix: "/metrics"
+    - uri:
+        prefix: "/actuator"
+    route:
+    - destination:
+        host: itdo-erp-backend-api.itdo-erp.svc.cluster.local
+        port:
+          number: 8000
+        subset: stable
+    timeout: 10s
+    headers:
+      request:
+        add:
+          X-Service-Route: "monitoring"
+      response:
+        add:
+          Cache-Control: "no-cache, no-store"
+          
+  # Default Route (Fallback)
+  - match:
+    - uri:
+        prefix: "/"
+    route:
+    - destination:
+        host: itdo-erp-backend-api.itdo-erp.svc.cluster.local
+        port:
+          number: 8000
+        subset: stable
+    timeout: 15s
+    retries:
+      attempts: 2
+      perTryTimeout: 5s
+    fault:
+      abort:
+        percentage:
+          value: 0.01  # 0.01% error injection for chaos testing
+        httpStatus: 503
+    headers:
+      request:
+        add:
+          X-Service-Route: "default"
+      response:
+        add:
+          X-Response-Source: "backend-api"
+          X-Content-Type-Options: "nosniff"
+          
+---
+# Destination Rule for Backend API Traffic Splitting
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: itdo-erp-backend-api
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: backend-api-dr
+spec:
+  host: itdo-erp-backend-api.itdo-erp.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL  # Enforce mTLS
+    connectionPool:
+      tcp:
+        maxConnections: 100
+        connectTimeout: 10s
+        tcpKeepalive:
+          time: 7200s
+          interval: 75s
+      http:
+        http1MaxPendingRequests: 50
+        http2MaxRequests: 100
+        maxRequestsPerConnection: 10
+        maxRetries: 3
+        idleTimeout: 60s
+        h2UpgradePolicy: UPGRADE
+    loadBalancer:
+      simple: LEAST_CONN
+    outlierDetection:
+      consecutive5xxErrors: 5
+      consecutiveGatewayErrors: 3
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+      minHealthPercent: 30
+      splitExternalLocalOriginErrors: true
+  subsets:
+  - name: stable
+    labels:
+      version: stable
+    trafficPolicy:
+      circuitBreaker:
+        maxConnections: 100
+        maxPendingRequests: 50
+        maxRetries: 3
+        consecutiveErrors: 3
+      healthCheck:
+        path: "/api/v1/health/live"
+        interval: 10s
+        timeout: 3s
+        unhealthyThreshold: 3
+        healthyThreshold: 2
+        
+  - name: canary
+    labels:
+      version: canary
+    trafficPolicy:
+      circuitBreaker:
+        maxConnections: 50   # Lower limits for canary
+        maxPendingRequests: 25
+        maxRetries: 2
+        consecutiveErrors: 2
+      healthCheck:
+        path: "/api/v1/health/live"
+        interval: 5s  # More frequent health checks
+        timeout: 2s
+        unhealthyThreshold: 2
+        healthyThreshold: 3
+        
+  - name: v2-beta
+    labels:
+      version: v2-beta
+    trafficPolicy:
+      circuitBreaker:
+        maxConnections: 20   # Very limited for beta
+        maxPendingRequests: 10
+        maxRetries: 1
+        consecutiveErrors: 1
+      healthCheck:
+        path: "/api/v2/health/live"  # Different health check path
+        interval: 5s
+        timeout: 2s
+        unhealthyThreshold: 1
+        healthyThreshold: 5
