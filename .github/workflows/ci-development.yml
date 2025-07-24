@@ -1,5 +1,10 @@
 name: Development CI - Phase 1
 on:
+
+permissions:
+  contents: read
+  pull-requests: read
+  checks: read
   push:
     branches: [ main, develop, feature/*, hotfix/* ]
   pull_request:

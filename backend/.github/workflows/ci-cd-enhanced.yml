@@ -1,0 +1,173 @@
+name: CC02 v38.0 Enhanced CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  PYTHON_VERSION: "3.13"
+  NODE_VERSION: "20"
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.changes.outputs.backend }}
+      frontend: ${{ steps.changes.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+            frontend:
+              - 'frontend/**'
+
+  backend-tests:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        test-type: [unit, integration, security, performance]
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install uv
+        uses: astral-sh/setup-uv@v1
+      
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/uv
+          key: ${{ runner.os }}-uv-${{ hashFiles('backend/pyproject.toml') }}
+      
+      - name: Install dependencies
+        run: |
+          cd backend
+          uv sync
+      
+      - name: Run ${{ matrix.test-type }} tests
+        run: |
+          cd backend
+          case "${{ matrix.test-type }}" in
+            unit)
+              uv run pytest tests/unit/ -v --cov=app --cov-report=xml
+              ;;
+            integration)
+              uv run pytest tests/integration/ -v
+              ;;
+            security)
+              uv run pytest tests/security/ -v
+              ;;
+            performance)
+              uv run pytest tests/performance/ -v
+              ;;
+          esac
+      
+      - name: Upload coverage
+        if: matrix.test-type == 'unit'
+        uses: codecov/codecov-action@v3
+        with:
+          file: backend/coverage.xml
+
+  quality-gates:
+    needs: [changes, backend-tests]
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install uv
+        uses: astral-sh/setup-uv@v1
+      
+      - name: Install dependencies
+        run: |
+          cd backend
+          uv sync
+      
+      - name: Code quality checks
+        run: |
+          cd backend
+          uv run ruff check .
+          uv run ruff format --check .
+          uv run mypy app/
+      
+      - name: Security scan
+        run: |
+          cd backend
+          uv run bandit -r app/
+          uv run safety check
+
+  frontend-tests:
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm ci
+      
+      - name: Run tests
+        run: |
+          cd frontend
+          npm run test
+          npm run test:e2e
+      
+      - name: Build
+        run: |
+          cd frontend
+          npm run build
+
+  deploy-staging:
+    needs: [backend-tests, quality-gates, frontend-tests]
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Deploy to staging
+        run: |
+          echo "Deploying to staging environment..."
+          # Add actual deployment commands here
+
+  deploy-production:
+    needs: [backend-tests, quality-gates, frontend-tests]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Deploy to production
+        run: |
+          echo "Deploying to production environment..."
+          # Add actual deployment commands here
