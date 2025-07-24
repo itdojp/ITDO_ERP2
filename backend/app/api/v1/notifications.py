@@ -1,7 +1,7 @@
 """Notification API endpoints."""
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -151,7 +151,9 @@ def mark_notification_read(
             notification_ids=[notification_id],
         )
         if count == 0:
-            raise HTTPException(status_code=404, detail="Notification not found or already read")
+            raise HTTPException(
+                status_code=404, detail="Notification not found or already read"
+            )
         return {"message": "Notification marked as read"}
     except HTTPException:
         raise
@@ -210,6 +212,7 @@ def get_notification_preferences(
         if not preferences:
             # Return default preferences if none exist
             from app.schemas.notification import NotificationPreferencesResponse
+
             return NotificationPreferencesResponse(
                 id=0,  # Default ID for non-persisted preferences
                 user_id=current_user.id,

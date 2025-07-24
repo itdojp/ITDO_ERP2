@@ -23,7 +23,7 @@ async def ping_v2() -> dict[str, str]:
     return {
         "message": "pong",
         "version": "v2",
-        "features": ["enhanced_responses", "improved_performance", "better_auth"]
+        "features": ["enhanced_responses", "improved_performance", "better_auth"],
     }
 
 
@@ -36,14 +36,14 @@ async def db_test_v2(db: Session = Depends(get_db)) -> dict[str, str]:
             "status": "success",
             "result": str(result[0]) if result else "None",
             "version": "v2",
-            "connection_pool_size": "optimized"
+            "connection_pool_size": "optimized",
         }
     except Exception as e:
         return {
             "status": "error",
             "error": str(e),
             "version": "v2",
-            "error_code": "DB_CONNECTION_FAILED"
+            "error_code": "DB_CONNECTION_FAILED",
         }
 
 
@@ -60,10 +60,10 @@ async def version_info() -> dict[str, str]:
             "Enhanced response formats",
             "Improved error handling",
             "Better performance",
-            "Advanced authentication"
+            "Advanced authentication",
         ],
         "breaking_changes": [
             "Response format changes in some endpoints",
-            "New required authentication headers"
-        ]
+            "New required authentication headers",
+        ],
     }

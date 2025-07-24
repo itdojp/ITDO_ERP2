@@ -51,16 +51,24 @@ def add_user_to_organization(
             id=user_org_model.id,
             user_id=user_org_model.user_id,
             organization_id=user_org_model.organization_id,
-            access_type=cast(Literal["member", "guest", "temporary", "transferred"], user_org_model.access_type if user_org_model.access_type in ["member", "guest", "temporary", "transferred"] else "member"),
+            access_type=cast(
+                "Literal['member', 'guest', 'temporary', 'transferred']",
+                user_org_model.access_type
+                if user_org_model.access_type
+                in ["member", "guest", "temporary", "transferred"]
+                else "member",
+            ),
             is_primary=user_org_model.is_primary,
             is_active=user_org_model.is_active,
             access_granted_at=user_org_model.created_at,  # Add missing field
             access_expires_at=user_org_model.access_expires_at,
-            last_access_at=getattr(user_org_model, 'last_access_at', None),
-            transfer_requested_at=getattr(user_org_model, 'transfer_requested_at', None),
-            transfer_approved_at=getattr(user_org_model, 'transfer_approved_at', None),
-            invited_by=getattr(user_org_model, 'invited_by', None),
-            approved_by=getattr(user_org_model, 'approved_by', None),
+            last_access_at=getattr(user_org_model, "last_access_at", None),
+            transfer_requested_at=getattr(
+                user_org_model, "transfer_requested_at", None
+            ),
+            transfer_approved_at=getattr(user_org_model, "transfer_approved_at", None),
+            invited_by=getattr(user_org_model, "invited_by", None),
+            approved_by=getattr(user_org_model, "approved_by", None),
             created_at=user_org_model.created_at,
             updated_at=user_org_model.updated_at,
             notes=user_org_model.notes,

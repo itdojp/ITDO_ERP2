@@ -851,7 +851,6 @@ class ApplicationService:
         df = pd.DataFrame(data)
 
         # Return Excel response
-        from io import BytesIO
 
         from fastapi.responses import Response
 

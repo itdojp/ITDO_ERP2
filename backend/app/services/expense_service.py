@@ -390,7 +390,9 @@ class ExpenseService:
             total_expenses=total_expenses,
             total_amount=total_amount,
             pending_approval_count=len(pending_expenses),
-            pending_approval_amount=Decimal(str(sum(e.amount for e in pending_expenses) or 0)),
+            pending_approval_amount=Decimal(
+                str(sum(e.amount for e in pending_expenses) or 0)
+            ),
             approved_count=len(approved_expenses),
             approved_amount=Decimal(str(sum(e.amount for e in approved_expenses) or 0)),
             rejected_count=len(rejected_expenses),

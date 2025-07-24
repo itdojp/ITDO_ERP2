@@ -65,10 +65,10 @@ async def get_opportunity(
     """商談詳細取得"""
     if current_user.organization_id is None:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, 
-            detail="User must belong to an organization"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User must belong to an organization",
         )
-    
+
     service = OpportunityService(db)
     opportunity = await service.get_opportunity_by_id(
         opportunity_id, current_user.organization_id
@@ -89,10 +89,10 @@ async def create_opportunity(
     """商談新規作成"""
     if current_user.organization_id is None:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, 
-            detail="User must belong to an organization"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User must belong to an organization",
         )
-    
+
     service = OpportunityService(db)
     opportunity = await service.create_opportunity(
         opportunity_data, current_user.organization_id
@@ -110,10 +110,10 @@ async def update_opportunity(
     """商談更新"""
     if current_user.organization_id is None:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, 
-            detail="User must belong to an organization"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User must belong to an organization",
         )
-    
+
     service = OpportunityService(db)
     opportunity = await service.update_opportunity(
         opportunity_id, opportunity_data, current_user.organization_id
@@ -134,10 +134,10 @@ async def delete_opportunity(
     """商談削除（論理削除）"""
     if current_user.organization_id is None:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, 
-            detail="User must belong to an organization"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User must belong to an organization",
         )
-    
+
     service = OpportunityService(db)
     success = await service.delete_opportunity(
         opportunity_id, current_user.organization_id
@@ -159,10 +159,10 @@ async def update_opportunity_stage(
     """商談ステージ更新"""
     if current_user.organization_id is None:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, 
-            detail="User must belong to an organization"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User must belong to an organization",
         )
-    
+
     service = OpportunityService(db)
     opportunity = await service.update_stage(
         opportunity_id, stage, current_user.organization_id
@@ -185,10 +185,10 @@ async def close_opportunity(
     """商談クローズ"""
     if current_user.organization_id is None:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, 
-            detail="User must belong to an organization"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User must belong to an organization",
         )
-    
+
     service = OpportunityService(db)
     opportunity = await service.close_opportunity(
         opportunity_id, close_status, current_user.organization_id, reason=reason
@@ -212,10 +212,10 @@ async def get_opportunity_analytics(
     """商談分析サマリー"""
     if current_user.organization_id is None:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, 
-            detail="User must belong to an organization"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User must belong to an organization",
         )
-    
+
     service = OpportunityService(db)
     analytics = await service.get_opportunity_analytics(
         organization_id=current_user.organization_id,
@@ -237,10 +237,10 @@ async def get_pipeline_forecast(
     """パイプライン予測"""
     if current_user.organization_id is None:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, 
-            detail="User must belong to an organization"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User must belong to an organization",
         )
-    
+
     service = OpportunityService(db)
     forecast = await service.get_pipeline_forecast(
         organization_id=current_user.organization_id,
@@ -263,9 +263,9 @@ async def get_conversion_rate_report(
     if current_user.organization_id is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User must be associated with an organization"
+            detail="User must be associated with an organization",
         )
-    
+
     service = OpportunityService(db)
     report = await service.get_conversion_rate_report(
         organization_id=current_user.organization_id,

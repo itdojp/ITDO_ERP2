@@ -1,8 +1,7 @@
 """Security monitoring API integration tests for Issue #46."""
 
-import pytest
 from datetime import datetime, timedelta, timezone
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
@@ -24,13 +23,13 @@ class TestSecurityMonitoringAPI:
             headers=superuser_token_headers,
         )
         assert response.status_code == 200
-        
+
         data = response.json()
         assert "timestamp" in data
         assert "threats" in data
         assert "metrics" in data
         assert "monitoring_status" in data
-        
+
         # Check threat statistics structure
         assert "total" in data["threats"]
         assert "critical" in data["threats"]
@@ -58,14 +57,18 @@ class TestSecurityMonitoringAPI:
             headers=superuser_token_headers,
         )
         assert response.status_code == 200
-        
+
         data = response.json()
         assert "threats" in data
         assert "total_count" in data
         assert "filters_applied" in data
 
     def test_get_current_threats_with_filters(
-        self, client: TestClient, superuser_token_headers: dict, test_user: User, db: Session
+        self,
+        client: TestClient,
+        superuser_token_headers: dict,
+        test_user: User,
+        db: Session,
     ):
         """Test current threats retrieval with filters."""
         response = client.get(
@@ -73,7 +76,7 @@ class TestSecurityMonitoringAPI:
             headers=superuser_token_headers,
         )
         assert response.status_code == 200
-        
+
         data = response.json()
         assert data["filters_applied"]["user_id"] == test_user.id
         assert data["filters_applied"]["severity"] == "high"
@@ -87,7 +90,7 @@ class TestSecurityMonitoringAPI:
             headers=superuser_token_headers,
         )
         assert response.status_code == 200
-        
+
         data = response.json()
         assert "failed_login_threats" in data
         assert "monitoring_config" in data
@@ -103,7 +106,7 @@ class TestSecurityMonitoringAPI:
             headers=superuser_token_headers,
         )
         assert response.status_code == 200
-        
+
         data = response.json()
         assert "bulk_access_threats" in data
         assert "monitoring_config" in data
@@ -117,7 +120,7 @@ class TestSecurityMonitoringAPI:
             headers=superuser_token_headers,
         )
         assert response.status_code == 200
-        
+
         data = response.json()
         assert "privilege_escalation_threats" in data
         assert "monitoring_enabled" in data
@@ -131,7 +134,7 @@ class TestSecurityMonitoringAPI:
             headers=superuser_token_headers,
         )
         assert response.status_code == 200
-        
+
         data = response.json()
         assert "report_period" in data
         assert "summary" in data
@@ -144,13 +147,13 @@ class TestSecurityMonitoringAPI:
         """Test security report generation with custom date range."""
         start_date = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
         end_date = datetime.now(timezone.utc).isoformat()
-        
+
         response = client.get(
             f"/api/v1/security-monitoring/reports/security?start_date={start_date}&end_date={end_date}",
             headers=superuser_token_headers,
         )
         assert response.status_code == 200
-        
+
         data = response.json()
         assert data["report_period"]["start_date"].startswith(start_date[:10])
 
@@ -163,7 +166,7 @@ class TestSecurityMonitoringAPI:
             headers=user_token_headers,
         )
         assert response.status_code == 200
-        
+
         data = response.json()
         assert "monitoring_active" in data
         assert "service_status" in data
@@ -180,7 +183,7 @@ class TestSecurityMonitoringAPI:
             headers=superuser_token_headers,
         )
         assert response.status_code == 200
-        
+
         data = response.json()
         assert "message" in data
 
@@ -201,7 +204,7 @@ class TestSecurityMonitoringService:
     def test_monitor_failed_logins_detection(self, db: Session, test_user: User):
         """Test failed login threat detection."""
         service = SecurityMonitoringService(db)
-        
+
         # Create multiple failed login attempts
         for i in range(6):  # Above threshold of 5
             audit_log = AuditLog(
@@ -216,7 +219,7 @@ class TestSecurityMonitoringService:
             )
             db.add(audit_log)
         db.commit()
-        
+
         # Monitor should detect threat
         threats = service.monitor_failed_logins(test_user.id)
         assert len(threats) > 0
@@ -226,7 +229,7 @@ class TestSecurityMonitoringService:
     def test_monitor_bulk_access_detection(self, db: Session, test_user: User):
         """Test bulk access threat detection."""
         service = SecurityMonitoringService(db)
-        
+
         # Create bulk access attempts
         for i in range(150):  # Above threshold of 100
             audit_log = AuditLog(
@@ -240,7 +243,7 @@ class TestSecurityMonitoringService:
             )
             db.add(audit_log)
         db.commit()
-        
+
         # Monitor should detect threat
         threats = service.monitor_bulk_data_access(test_user.id)
         assert len(threats) > 0
@@ -250,7 +253,7 @@ class TestSecurityMonitoringService:
     def test_monitor_privilege_escalation_detection(self, db: Session, test_user: User):
         """Test privilege escalation threat detection."""
         service = SecurityMonitoringService(db)
-        
+
         # Create multiple privilege changes
         for action in ["permission_grant", "role_change"]:
             audit_log = AuditLog(
@@ -264,7 +267,7 @@ class TestSecurityMonitoringService:
             )
             db.add(audit_log)
         db.commit()
-        
+
         # Monitor should detect threat
         threats = service.monitor_privilege_escalation(test_user.id)
         assert len(threats) > 0
@@ -274,7 +277,7 @@ class TestSecurityMonitoringService:
     def test_monitor_unusual_access_patterns(self, db: Session, test_user: User):
         """Test unusual access pattern detection."""
         service = SecurityMonitoringService(db)
-        
+
         # Create logins from multiple IPs
         ips = ["192.168.1.1", "10.0.0.1", "172.16.0.1", "203.0.113.1"]
         for i, ip in enumerate(ips):
@@ -290,7 +293,7 @@ class TestSecurityMonitoringService:
             )
             db.add(audit_log)
         db.commit()
-        
+
         # Monitor should detect threat
         threats = service.monitor_unusual_access_patterns(test_user.id)
         assert len(threats) > 0
@@ -300,7 +303,7 @@ class TestSecurityMonitoringService:
     def test_get_security_dashboard(self, db: Session, test_user: User):
         """Test security dashboard data generation."""
         service = SecurityMonitoringService(db)
-        
+
         # Create some audit logs
         audit_log = AuditLog(
             user_id=test_user.id,
@@ -313,9 +316,9 @@ class TestSecurityMonitoringService:
         )
         db.add(audit_log)
         db.commit()
-        
+
         dashboard = service.get_security_dashboard(test_user.organization_id)
-        
+
         assert "timestamp" in dashboard
         assert "threats" in dashboard
         assert "metrics" in dashboard
@@ -324,7 +327,7 @@ class TestSecurityMonitoringService:
     def test_generate_security_report(self, db: Session, test_user: User):
         """Test security report generation."""
         service = SecurityMonitoringService(db)
-        
+
         # Create audit logs
         actions = ["login_success", "login_failed", "read", "export"]
         for action in actions:
@@ -339,38 +342,38 @@ class TestSecurityMonitoringService:
             )
             db.add(audit_log)
         db.commit()
-        
+
         report = service.generate_security_report(
             organization_id=test_user.organization_id,
             start_date=datetime.now(timezone.utc) - timedelta(days=1),
             end_date=datetime.now(timezone.utc),
         )
-        
+
         assert "report_period" in report
         assert "summary" in report
         assert "top_activities" in report
         assert "security_insights" in report
         assert report["summary"]["total_events"] == len(actions)
 
-    @patch('app.services.security_monitoring.AuditLogger.log')
+    @patch("app.services.security_monitoring.AuditLogger.log")
     def test_log_security_event(self, mock_log, db: Session, test_user: User):
         """Test security event logging."""
         service = SecurityMonitoringService(db)
-        
+
         threat = SecurityThreat(
             threat_type="test_threat",
             severity=SecurityThreat.HIGH,
             description="Test threat description",
-            details={"test": "data"}
+            details={"test": "data"},
         )
-        
+
         service.log_security_event(
             threat=threat,
             user=test_user,
             organization_id=test_user.organization_id,
             ip_address="192.168.1.1",
         )
-        
+
         mock_log.assert_called_once()
         call_args = mock_log.call_args
         assert call_args[1]["action"] == "security_threat_detected"

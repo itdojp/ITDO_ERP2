@@ -1,7 +1,7 @@
 """Project Management Automation Service Implementation."""
 
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List
 
 from sqlalchemy import and_, func, select
 from sqlalchemy.orm import Session
@@ -287,8 +287,12 @@ class PMAutomationService:
             task_create = TaskCreate(
                 title=str(task_data["title"]),
                 project_id=project_id,
-                priority=TaskPriority(str(task_data["priority"])) if task_data.get("priority") else TaskPriority.MEDIUM,
-                estimated_hours=float(str(task_data.get("estimated_hours", 0))) if task_data.get("estimated_hours") not in (None, "") else 0.0,
+                priority=TaskPriority(str(task_data["priority"]))
+                if task_data.get("priority")
+                else TaskPriority.MEDIUM,
+                estimated_hours=float(str(task_data.get("estimated_hours", 0)))
+                if task_data.get("estimated_hours") not in (None, "")
+                else 0.0,
             )
 
             task = self.task_service.create_task(task_create, user, self.db)
@@ -321,8 +325,12 @@ class PMAutomationService:
             task_create = TaskCreate(
                 title=str(task_data["title"]),
                 project_id=project_id,
-                priority=TaskPriority(str(task_data["priority"])) if task_data.get("priority") else TaskPriority.MEDIUM,
-                estimated_hours=float(str(task_data.get("estimated_hours", 0))) if task_data.get("estimated_hours") not in (None, "") else 0.0,
+                priority=TaskPriority(str(task_data["priority"]))
+                if task_data.get("priority")
+                else TaskPriority.MEDIUM,
+                estimated_hours=float(str(task_data.get("estimated_hours", 0)))
+                if task_data.get("estimated_hours") not in (None, "")
+                else 0.0,
             )
 
             task = self.task_service.create_task(task_create, user, self.db)
@@ -351,8 +359,12 @@ class PMAutomationService:
             task_create = TaskCreate(
                 title=str(task_data["title"]),
                 project_id=project_id,
-                priority=TaskPriority(str(task_data["priority"])) if task_data.get("priority") else TaskPriority.MEDIUM,
-                estimated_hours=float(str(task_data.get("estimated_hours", 0))) if task_data.get("estimated_hours") not in (None, "") else 0.0,
+                priority=TaskPriority(str(task_data["priority"]))
+                if task_data.get("priority")
+                else TaskPriority.MEDIUM,
+                estimated_hours=float(str(task_data.get("estimated_hours", 0)))
+                if task_data.get("estimated_hours") not in (None, "")
+                else 0.0,
             )
 
             task = self.task_service.create_task(task_create, user, self.db)
@@ -523,10 +535,12 @@ class PMAutomationService:
 
         return {
             "daily_completions": daily_completions,
-            "average_daily_completion": (sum(v for v in daily_completions.values() if v is not None)
-            / len(daily_completions)
-            if daily_completions and len(daily_completions) > 0
-            else 0),
+            "average_daily_completion": (
+                sum(v for v in daily_completions.values() if v is not None)
+                / len(daily_completions)
+                if daily_completions and len(daily_completions) > 0
+                else 0
+            ),
         }
 
     async def _identify_project_risks(self, project_id: int) -> List[Dict[str, Any]]:

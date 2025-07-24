@@ -7,7 +7,7 @@ in-app notifications, email notifications, push notifications, and webhook integ
 import json
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Dict, List, Optional
 
 import redis
 from fastapi import BackgroundTasks

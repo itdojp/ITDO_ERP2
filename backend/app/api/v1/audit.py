@@ -53,19 +53,19 @@ def get_organization_audit_logs(
             date_from=date_from,
             date_to=date_to,
         )
-        
+
         # Convert to response format
         total = len(logs)  # This is simplified; should do a count query
         page = (offset // limit) + 1
         pages = (total + limit - 1) // limit
-        
+
         return AuditLogListResponse(
             items=[AuditLogResponse.model_validate(log) for log in logs],
             total=total,
             page=page,
             pages=pages,
             has_next=page < pages,
-            has_prev=page > 1
+            has_prev=page > 1,
         )
     except PermissionDenied:
         raise HTTPException(
@@ -91,7 +91,7 @@ def search_audit_logs(
     try:
         result = service.search_audit_logs(search_params, current_user, db)
         # Convert dict result to AuditLogListResponse
-        # This is a simplified conversion - in practice you'd want to properly 
+        # This is a simplified conversion - in practice you'd want to properly
         # transform the result structure
         return AuditLogListResponse(
             items=[],  # Placeholder - would need proper conversion
@@ -99,7 +99,7 @@ def search_audit_logs(
             page=result.get("page", 1),
             pages=result.get("pages", 1),
             has_next=result.get("has_next", False),
-            has_prev=result.get("has_prev", False)
+            has_prev=result.get("has_prev", False),
         )
     except PermissionDenied:
         raise HTTPException(
@@ -237,7 +237,7 @@ def get_recent_activity(
             page=result.get("page", 1),
             pages=result.get("pages", 1),
             has_next=result.get("has_next", False),
-            has_prev=result.get("has_prev", False)
+            has_prev=result.get("has_prev", False),
         )
     except PermissionDenied:
         raise HTTPException(

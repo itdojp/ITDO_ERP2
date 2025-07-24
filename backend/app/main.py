@@ -13,8 +13,8 @@ from app.core.monitoring import (
     setup_health_checks,
 )
 from app.core.versioning import (
-    VersionValidationMiddleware,
     DeprecationWarningMiddleware,
+    VersionValidationMiddleware,
     version_manager,
 )
 
@@ -81,7 +81,7 @@ async def metrics_endpoint() -> Response:
 async def get_v2_docs():
     """Custom documentation endpoint for API v2."""
     from fastapi.openapi.docs import get_swagger_ui_html
-    
+
     return get_swagger_ui_html(
         openapi_url="/api/v2/openapi.json",
         title=f"{settings.PROJECT_NAME} - API v2 Documentation",
@@ -92,7 +92,7 @@ async def get_v2_docs():
 async def get_v2_openapi():
     """Custom OpenAPI schema endpoint for API v2."""
     from fastapi.openapi.utils import get_openapi
-    
+
     if not hasattr(app, "_v2_openapi_schema"):
         app._v2_openapi_schema = get_openapi(
             title=f"{settings.PROJECT_NAME} - API v2",
@@ -115,14 +115,14 @@ async def get_api_versions():
                 "docs_url": "/api/v1/docs",
                 "openapi_url": "/api/v1/openapi.json",
                 "deprecated": version_manager.is_deprecated("v1"),
-                "deprecation_info": version_manager.get_deprecation_info("v1")
+                "deprecation_info": version_manager.get_deprecation_info("v1"),
             },
             "v2": {
                 "description": "ITDO ERP API Version 2 - Enhanced features and performance",
                 "docs_url": "/api/v2/docs",
                 "openapi_url": "/api/v2/openapi.json",
                 "deprecated": version_manager.is_deprecated("v2"),
-                "deprecation_info": version_manager.get_deprecation_info("v2")
-            }
-        }
+                "deprecation_info": version_manager.get_deprecation_info("v2"),
+            },
+        },
     }

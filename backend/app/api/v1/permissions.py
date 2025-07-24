@@ -332,7 +332,10 @@ def get_level_permissions(
         all_permissions = matrix.get_all_permissions(permission_level)
 
         # Convert sets to lists for JSON serialization
-        serialized_permissions: dict[str, Any] = {"base": list(all_permissions["base"]), "contexts": {}}
+        serialized_permissions: dict[str, Any] = {
+            "base": list(all_permissions["base"]),
+            "contexts": {},
+        }
 
         contexts = all_permissions.get("contexts", {})
         if isinstance(contexts, dict):
@@ -346,7 +349,9 @@ def get_level_permissions(
             "base_permission_count": len(all_permissions["base"]),
             "context_permission_counts": {
                 context: len(perms)
-                for context, perms in (contexts.items() if isinstance(contexts, dict) else {}.items())
+                for context, perms in (
+                    contexts.items() if isinstance(contexts, dict) else {}.items()
+                )
                 if isinstance(perms, set)
             },
         }

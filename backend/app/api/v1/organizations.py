@@ -11,6 +11,7 @@ from app.core.dependencies import get_current_active_user, get_db
 from app.models.department import Department
 from app.models.user import User
 from app.schemas.common import DeleteResponse, ErrorResponse, PaginatedResponse
+from app.schemas.department import UserSummary
 from app.schemas.organization import (
     OrganizationBasic,
     OrganizationCreate,
@@ -19,7 +20,6 @@ from app.schemas.organization import (
     OrganizationTree,
     OrganizationUpdate,
 )
-from app.schemas.department import UserSummary
 from app.services.organization import OrganizationService
 
 router = APIRouter(prefix="/organizations", tags=["organizations"])

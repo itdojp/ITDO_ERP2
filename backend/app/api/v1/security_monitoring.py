@@ -1,10 +1,9 @@
 """Security monitoring API endpoints for Issue #46."""
 
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_active_user, get_db
@@ -22,10 +21,13 @@ async def get_security_dashboard(
 ) -> Dict[str, Any]:
     """Get real-time security monitoring dashboard."""
     # Check permissions - only admins and security officers
-    if not (current_user.is_superuser or "security_admin" in getattr(current_user, "roles", [])):
+    if not (
+        current_user.is_superuser
+        or "security_admin" in getattr(current_user, "roles", [])
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions for security monitoring"
+            detail="Insufficient permissions for security monitoring",
         )
 
     # Use user's organization if not specified and not superuser
@@ -34,7 +36,7 @@ async def get_security_dashboard(
 
     service = SecurityMonitoringService(db)
     dashboard_data = await service.get_security_dashboard(organization_id)
-    
+
     return dashboard_data
 
 
@@ -48,25 +50,28 @@ async def get_current_threats(
 ) -> Dict[str, Any]:
     """Get current security threats."""
     # Check permissions
-    if not (current_user.is_superuser or "security_admin" in getattr(current_user, "roles", [])):
+    if not (
+        current_user.is_superuser
+        or "security_admin" in getattr(current_user, "roles", [])
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions for security monitoring"
+            detail="Insufficient permissions for security monitoring",
         )
 
     service = SecurityMonitoringService(db)
-    
+
     # Collect all threats
     threats = []
     threats.extend(await service.monitor_failed_logins(user_id, ip_address))
     threats.extend(await service.monitor_bulk_data_access(user_id))
     threats.extend(await service.monitor_privilege_escalation(user_id))
     threats.extend(await service.monitor_unusual_access_patterns(user_id))
-    
+
     # Filter by severity if specified
     if severity:
         threats = [t for t in threats if t.severity == severity]
-    
+
     return {
         "threats": [
             {
@@ -96,15 +101,18 @@ async def monitor_failed_logins(
 ) -> Dict[str, Any]:
     """Monitor failed login attempts."""
     # Check permissions
-    if not (current_user.is_superuser or "security_admin" in getattr(current_user, "roles", [])):
+    if not (
+        current_user.is_superuser
+        or "security_admin" in getattr(current_user, "roles", [])
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions for security monitoring"
+            detail="Insufficient permissions for security monitoring",
         )
 
     service = SecurityMonitoringService(db)
     threats = await service.monitor_failed_logins(user_id, ip_address)
-    
+
     return {
         "failed_login_threats": [
             {
@@ -131,15 +139,18 @@ async def monitor_bulk_access(
 ) -> Dict[str, Any]:
     """Monitor bulk data access patterns."""
     # Check permissions
-    if not (current_user.is_superuser or "security_admin" in getattr(current_user, "roles", [])):
+    if not (
+        current_user.is_superuser
+        or "security_admin" in getattr(current_user, "roles", [])
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions for security monitoring"
+            detail="Insufficient permissions for security monitoring",
         )
 
     service = SecurityMonitoringService(db)
     threats = await service.monitor_bulk_data_access(user_id)
-    
+
     return {
         "bulk_access_threats": [
             {
@@ -166,15 +177,18 @@ async def monitor_privilege_escalation(
 ) -> Dict[str, Any]:
     """Monitor privilege escalation attempts."""
     # Check permissions
-    if not (current_user.is_superuser or "security_admin" in getattr(current_user, "roles", [])):
+    if not (
+        current_user.is_superuser
+        or "security_admin" in getattr(current_user, "roles", [])
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions for security monitoring"
+            detail="Insufficient permissions for security monitoring",
         )
 
     service = SecurityMonitoringService(db)
     threats = await service.monitor_privilege_escalation(user_id)
-    
+
     return {
         "privilege_escalation_threats": [
             {
@@ -201,10 +215,13 @@ async def generate_security_report(
 ) -> Dict[str, Any]:
     """Generate comprehensive security report."""
     # Check permissions
-    if not (current_user.is_superuser or "security_admin" in getattr(current_user, "roles", [])):
+    if not (
+        current_user.is_superuser
+        or "security_admin" in getattr(current_user, "roles", [])
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permissions for security reporting"
+            detail="Insufficient permissions for security reporting",
         )
 
     # Use user's organization if not specified and not superuser
@@ -218,8 +235,10 @@ async def generate_security_report(
         end_date = datetime.now(timezone.utc)
 
     service = SecurityMonitoringService(db)
-    report = await service.generate_security_report(organization_id, start_date, end_date)
-    
+    report = await service.generate_security_report(
+        organization_id, start_date, end_date
+    )
+
     return report
 
 
@@ -234,21 +253,21 @@ async def test_security_alert(
     if not current_user.is_superuser:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only superusers can test security alerts"
+            detail="Only superusers can test security alerts",
         )
 
     # Add background task to test alert system
     background_tasks.add_task(_test_alert_system, current_user, db)
-    
+
     return {"message": "Security alert test initiated"}
 
 
 async def _test_alert_system(user: User, db: Session) -> None:
     """Background task to test alert system."""
     from app.services.security_monitoring import SecurityThreat
-    
+
     service = SecurityMonitoringService(db)
-    
+
     # Create test threat
     test_threat = SecurityThreat(
         threat_type="test_alert",
@@ -257,9 +276,9 @@ async def _test_alert_system(user: User, db: Session) -> None:
         details={
             "test_initiated_by": user.id,
             "test_timestamp": datetime.now(timezone.utc).isoformat(),
-        }
+        },
     )
-    
+
     # Log the test event
     await service.log_security_event(
         threat=test_threat,
@@ -276,7 +295,7 @@ async def get_monitoring_status(
     """Get security monitoring system status."""
     # Basic status check available to authenticated users
     service = SecurityMonitoringService(db)
-    
+
     return {
         "monitoring_active": True,
         "service_status": "operational",

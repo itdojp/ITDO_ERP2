@@ -149,7 +149,9 @@ async def get_activity_summary(
     """活動サマリーレポート"""
     service = CustomerActivityService(db)
     if current_user.organization_id is None:
-        raise HTTPException(status_code=400, detail="User must belong to an organization")
+        raise HTTPException(
+            status_code=400, detail="User must belong to an organization"
+        )
     summary = await service.get_activity_summary(
         organization_id=current_user.organization_id,
         customer_id=customer_id,
@@ -170,7 +172,9 @@ async def get_upcoming_actions(
     """今後のアクション予定"""
     service = CustomerActivityService(db)
     if current_user.organization_id is None:
-        raise HTTPException(status_code=400, detail="User must belong to an organization")
+        raise HTTPException(
+            status_code=400, detail="User must belong to an organization"
+        )
     actions = await service.get_upcoming_actions(
         organization_id=current_user.organization_id,
         user_id=user_id or current_user.id,
@@ -191,7 +195,9 @@ async def complete_activity(
     """活動完了"""
     service = CustomerActivityService(db)
     if current_user.organization_id is None:
-        raise HTTPException(status_code=400, detail="User must belong to an organization")
+        raise HTTPException(
+            status_code=400, detail="User must belong to an organization"
+        )
     activity = await service.complete_activity(
         activity_id=activity_id,
         organization_id=current_user.organization_id,

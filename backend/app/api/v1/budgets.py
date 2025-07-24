@@ -32,7 +32,7 @@ def _get_organization_id(user: User) -> int:
     if user.organization_id is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User must be associated with an organization"
+            detail="User must be associated with an organization",
         )
     return user.organization_id
 

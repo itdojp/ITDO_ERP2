@@ -370,7 +370,7 @@ class BudgetService:
             "variance_analysis": {
                 "positive_variance": 0.0,
                 "negative_variance": 0.0,
-                "significant_variances": []
+                "significant_variances": [],
             },
             "recommendations": [],  # 推奨事項（実装時に生成）
         }

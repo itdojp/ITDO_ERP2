@@ -383,7 +383,9 @@ async def export_budget_performance_report(
         )
 
 
-async def _generate_variance_recommendations(significant_variances: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+async def _generate_variance_recommendations(
+    significant_variances: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
     """Generate recommendations based on variance analysis."""
     recommendations = []
 

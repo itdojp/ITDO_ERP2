@@ -16,7 +16,6 @@ from app.schemas.expense_category import (
     ExpenseCategoryBulkCreate,
     ExpenseCategoryCreate,
     ExpenseCategoryResponse,
-    ExpenseCategoryTreeResponse,
     ExpenseCategoryUpdate,
 )
 from app.services.expense_category_service import ExpenseCategoryService
@@ -37,9 +36,9 @@ async def get_expense_categories(
     if current_user.organization_id is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User must be associated with an organization"
+            detail="User must be associated with an organization",
         )
-    
+
     service = ExpenseCategoryService(db)
     categories = await service.get_categories(
         organization_id=current_user.organization_id,
@@ -61,9 +60,9 @@ async def get_expense_category_tree(
     if current_user.organization_id is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User must be associated with an organization"
+            detail="User must be associated with an organization",
         )
-    
+
     service = ExpenseCategoryService(db)
     tree = await service.get_category_tree(
         organization_id=current_user.organization_id, category_type=category_type
@@ -82,9 +81,9 @@ async def get_expense_category(
     if current_user.organization_id is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User must be associated with an organization"
+            detail="User must be associated with an organization",
         )
-    
+
     service = ExpenseCategoryService(db)
     category = await service.get_category_by_id(
         category_id, current_user.organization_id
@@ -107,9 +106,9 @@ async def create_expense_category(
     if current_user.organization_id is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User must be associated with an organization"
+            detail="User must be associated with an organization",
         )
-    
+
     service = ExpenseCategoryService(db)
     category = await service.create_category(
         category_data, current_user.organization_id
@@ -128,9 +127,9 @@ async def create_expense_categories_bulk(
     if current_user.organization_id is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User must be associated with an organization"
+            detail="User must be associated with an organization",
         )
-    
+
     service = ExpenseCategoryService(db)
     categories = await service.create_categories_bulk(
         categories_data, current_user.organization_id
@@ -150,9 +149,9 @@ async def update_expense_category(
     if current_user.organization_id is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User must be associated with an organization"
+            detail="User must be associated with an organization",
         )
-    
+
     service = ExpenseCategoryService(db)
     category = await service.update_category(
         category_id, category_data, current_user.organization_id
@@ -175,9 +174,9 @@ async def delete_expense_category(
     if current_user.organization_id is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User must be associated with an organization"
+            detail="User must be associated with an organization",
         )
-    
+
     service = ExpenseCategoryService(db)
     success = await service.delete_category(category_id, current_user.organization_id)
     if not success:
@@ -199,9 +198,9 @@ async def get_expense_category_analytics(
     if current_user.organization_id is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User must be associated with an organization"
+            detail="User must be associated with an organization",
         )
-    
+
     service = ExpenseCategoryService(db)
     analytics = await service.get_category_analytics(
         organization_id=current_user.organization_id,

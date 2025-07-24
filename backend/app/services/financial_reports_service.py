@@ -4,7 +4,7 @@ Financial Reports Service for Phase 4 Financial Management.
 """
 
 from datetime import date, datetime
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy import and_, extract, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -436,7 +436,9 @@ class FinancialReportsService:
 
         return {"historical_trends": trend_data}
 
-    async def _generate_employee_breakdown(self, expenses: List[Expense]) -> List[Dict[str, Any]]:
+    async def _generate_employee_breakdown(
+        self, expenses: List[Expense]
+    ) -> List[Dict[str, Any]]:
         """Generate employee expense breakdown."""
         employee_data: Dict[int, Dict[str, Any]] = {}
 
@@ -464,7 +466,9 @@ class FinancialReportsService:
 
         return list(employee_data.values())
 
-    async def _generate_category_breakdown(self, expenses: List[Expense]) -> List[Dict[str, Any]]:
+    async def _generate_category_breakdown(
+        self, expenses: List[Expense]
+    ) -> List[Dict[str, Any]]:
         """Generate expense category breakdown."""
         category_data: Dict[int, Dict[str, Any]] = {}
 
