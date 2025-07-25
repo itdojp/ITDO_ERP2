@@ -426,18 +426,27 @@ main() {
             $COMPOSE_CMD -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d
             verify_deployment
             ;;
+        "blue-green")
+            info "Launching Blue-Green deployment system..."
+            if [[ -f "./deploy-blue-green-v64.sh" ]]; then
+                exec "./deploy-blue-green-v64.sh" "${@:2}"
+            else
+                error "Blue-Green deployment script not found: ./deploy-blue-green-v64.sh"
+            fi
+            ;;
         "help")
-            echo "Usage: $0 [deploy|cleanup|backup|status|logs|restart|update|help]"
+            echo "Usage: $0 [deploy|cleanup|backup|status|logs|restart|update|blue-green|help]"
             echo ""
             echo "Commands:"
-            echo "  deploy  - Deploy the complete production infrastructure"
-            echo "  cleanup - Remove deployed resources (use 'cleanup all' for volumes)"
-            echo "  backup  - Create backup of database and application data"
-            echo "  status  - Show current deployment status"
-            echo "  logs    - Show logs (use 'logs [service]' for specific service)"
-            echo "  restart - Restart services (use 'restart [service]' for specific service)"
-            echo "  update  - Update images and restart services"
-            echo "  help    - Show this help message"
+            echo "  deploy     - Deploy the complete production infrastructure"
+            echo "  cleanup    - Remove deployed resources (use 'cleanup all' for volumes)"
+            echo "  backup     - Create backup of database and application data"
+            echo "  status     - Show current deployment status"
+            echo "  logs       - Show logs (use 'logs [service]' for specific service)"
+            echo "  restart    - Restart services (use 'restart [service]' for specific service)"
+            echo "  update     - Update images and restart services"
+            echo "  blue-green - Launch Blue-Green deployment system (NEW in v64.0)"
+            echo "  help       - Show this help message"
             echo ""
             echo "Examples:"
             echo "  $0 deploy           # Full production deployment"
@@ -445,6 +454,8 @@ main() {
             echo "  $0 logs backend     # View backend logs"
             echo "  $0 backup           # Create backup"
             echo "  $0 cleanup all      # Complete cleanup (DESTRUCTIVE)"
+            echo "  $0 blue-green deploy # Zero-downtime Blue-Green deployment"
+            echo "  $0 blue-green status # Check Blue-Green deployment status"
             ;;
         *)
             error "Unknown command: $1. Use '$0 help' for usage information."

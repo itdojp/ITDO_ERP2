@@ -1,0 +1,152 @@
+# CC03 v63.0 - 3日間集中実用インフラ構築
+# Day 2: Prometheus監視設定 (v62実績ベース強化版)
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'itdo-erp-v63'
+    environment: 'production'
+
+rule_files:
+  - "/etc/prometheus/alert-rules.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+scrape_configs:
+  # Prometheus自身の監視
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    metrics_path: /metrics
+    scrape_interval: 30s
+
+  # Node Exporter (システムメトリクス)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # cAdvisor (コンテナメトリクス)
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # PostgreSQL Exporter
+  - job_name: 'postgres-exporter'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # Redis Exporter
+  - job_name: 'redis-exporter'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # Nginx Exporter
+  - job_name: 'nginx-exporter'
+    static_configs:
+      - targets: ['nginx-exporter:9113']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # Backend API メトリクス
+  - job_name: 'backend-api'
+    static_configs:
+      - targets: ['backend:8000']
+    metrics_path: /metrics
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # Keycloak メトリクス
+  - job_name: 'keycloak'
+    static_configs:
+      - targets: ['keycloak:8080']
+    metrics_path: /auth/realms/master/metrics
+    scrape_interval: 60s
+    scrape_timeout: 10s
+
+  # Grafana メトリクス
+  - job_name: 'grafana'
+    static_configs:
+      - targets: ['grafana:3000']
+    metrics_path: /metrics
+    scrape_interval: 60s
+
+  # Blackbox Exporter (外部監視)
+  - job_name: 'blackbox'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+        - https://itdo-erp-v63.com
+        - https://api.itdo-erp-v63.com/health
+        - https://auth.itdo-erp-v63.com/health
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+  # SSL証明書監視
+  - job_name: 'ssl-exporter'
+    static_configs:
+      - targets: ['ssl-exporter:9219']
+    metrics_path: /probe
+    params:
+      target: ['itdo-erp-v63.com:443']
+    scrape_interval: 300s
+
+  # Custom Application Metrics
+  - job_name: 'custom-app-metrics'
+    static_configs:
+      - targets: ['backend:8000']
+    metrics_path: /api/v1/metrics
+    scrape_interval: 30s
+    honor_labels: true
+
+# Prometheus Federation (将来の水平スケーリング対応)
+  - job_name: 'federate'
+    scrape_interval: 15s
+    honor_labels: true
+    metrics_path: '/federate'
+    params:
+      'match[]':
+        - '{job=~"prometheus|node-exporter|cadvisor"}'
+        - '{__name__=~"up|prometheus_.*"}'
+    static_configs:
+      - targets:
+        # - 'prometheus-region-1:9090'
+        # - 'prometheus-region-2:9090'
+
+# ストレージ設定
+storage:
+  tsdb:
+    path: /prometheus
+    retention.time: 30d
+    retention.size: 15GB
+    wal-compression: true
+
+# パフォーマンス最適化
+query:
+  max_concurrency: 20
+  max_samples: 50000000
+  timeout: 2m
+
+# ログ設定
+log:
+  level: info
+  format: json

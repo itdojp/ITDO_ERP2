@@ -1,0 +1,493 @@
+# CC03 v63.0 - 3日間集中実用インフラ構築
+# Day 1: v62.0実績ベース本番構成強化版
+
+version: '3.8'
+
+name: itdo-erp-v63-production
+
+services:
+  # リバースプロキシ & SSL終端 - v62実績ベース改良
+  nginx:
+    image: docker.io/library/nginx:1.25-alpine
+    container_name: itdo-nginx-v63
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./config/nginx-v63.conf:/etc/nginx/nginx.conf:ro
+      - ./config/ssl:/etc/nginx/ssl:ro
+      - nginx-logs:/var/log/nginx
+    networks:
+      - web-tier
+      - app-tier
+    depends_on:
+      - backend
+      - frontend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+
+  # フロントエンド - 本番最適化
+  frontend:
+    image: itdo-erp/frontend:v63-production
+    container_name: itdo-frontend-v63
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile.prod
+      target: production
+      args:
+        - NODE_ENV=production
+        - VITE_BUILD_MODE=production
+    environment:
+      - NODE_ENV=production
+      - VITE_API_URL=https://api.${DOMAIN_NAME:-localhost}
+      - VITE_WS_URL=wss://api.${DOMAIN_NAME:-localhost}/ws
+      - VITE_AUTH_URL=https://auth.${DOMAIN_NAME:-localhost}
+    networks:
+      - web-tier
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+        reservations:
+          memory: 256M
+          cpus: '0.5'
+      replicas: 1
+
+  # バックエンドAPI - 高可用性設定
+  backend:
+    image: itdo-erp/backend:v63-production
+    container_name: itdo-backend-v63
+    build:
+      context: ../backend
+      dockerfile: Dockerfile.prod
+      target: production
+      args:
+        - ENVIRONMENT=production
+    environment:
+      - ENVIRONMENT=production
+      - SECRET_KEY=${SECRET_KEY}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - KEYCLOAK_URL=http://keycloak:8080
+      - KEYCLOAK_REALM=${KEYCLOAK_REALM}
+      - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID}
+      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
+      - LOG_LEVEL=INFO
+      - WORKERS=4
+      - MAX_CONNECTIONS=1000
+      - KEEPALIVE_TIMEOUT=65
+    networks:
+      - app-tier
+      - data-tier
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+        reservations:
+          memory: 1G
+          cpus: '1.0'
+      replicas: 1
+    volumes:
+      - app-logs:/app/logs
+    sysctls:
+      - net.core.somaxconn=65535
+
+  # PostgreSQL データベース - v62実績設定
+  postgres:
+    image: docker.io/library/postgres:15-alpine
+    container_name: itdo-postgres-v63
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./config/postgres-v63.conf:/etc/postgresql/postgresql.conf:ro
+      - ./init-scripts:/docker-entrypoint-initdb.d:ro
+    networks:
+      - data-tier
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '2.0'
+        reservations:
+          memory: 2G
+          cpus: '1.0'
+    command: >
+      postgres
+      -c config_file=/etc/postgresql/postgresql.conf
+    shm_size: 256mb
+
+  # Redis キャッシュ - 高性能設定
+  redis:
+    image: docker.io/library/redis:7-alpine
+    container_name: itdo-redis-v63
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD}
+      --maxmemory 1gb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+      --appendonly yes
+      --appendfsync everysec
+      --tcp-keepalive 300
+      --timeout 0
+    volumes:
+      - redis-data:/data
+      - redis-logs:/var/log/redis
+    networks:
+      - data-tier
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    sysctls:
+      - net.core.somaxconn=65535
+
+  # Keycloak 認証サーバー - 安定化設定
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0
+    container_name: itdo-keycloak-v63
+    environment:
+      - KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN_USER}
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
+      - KC_DB=postgres
+      - KC_DB_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      - KC_DB_USERNAME=${POSTGRES_USER}
+      - KC_DB_PASSWORD=${POSTGRES_PASSWORD}
+      - KC_HOSTNAME=${DOMAIN_NAME:-localhost}
+      - KC_HTTP_ENABLED=true
+      - KC_PROXY=edge
+      - KC_LOG_LEVEL=INFO
+      - KC_HEALTH_ENABLED=true
+      - KC_METRICS_ENABLED=true
+    networks:
+      - app-tier
+      - data-tier
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    command:
+      - start
+      - --optimized
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
+      interval: 60s
+      timeout: 15s
+      retries: 5
+      start_period: 180s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+    volumes:
+      - keycloak-data:/opt/keycloak/data
+
+  # Prometheus 監視 - v62実績設定
+  prometheus:
+    image: docker.io/prom/prometheus:v2.47.0
+    container_name: itdo-prometheus-v63
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/prometheus-v63.yml:/etc/prometheus/prometheus.yml:ro
+      - ./config/alert-rules-v63.yml:/etc/prometheus/alert-rules.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - monitoring
+      - app-tier
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--storage.tsdb.retention.time=30d'
+      - '--storage.tsdb.retention.size=15GB'
+      - '--web.enable-admin-api'
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+
+  # Grafana ダッシュボード - 最適化設定
+  grafana:
+    image: docker.io/grafana/grafana:10.2.0
+    container_name: itdo-grafana-v63
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_USERS_ALLOW_ORG_CREATE=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-worldmap-panel,grafana-clock-panel
+      - GF_LOG_LEVEL=info
+      - GF_ANALYTICS_REPORTING_ENABLED=false
+      - GF_ANALYTICS_CHECK_FOR_UPDATES=false
+      - GF_DATABASE_TYPE=postgres
+      - GF_DATABASE_HOST=postgres:5432
+      - GF_DATABASE_NAME=${POSTGRES_DB}
+      - GF_DATABASE_USER=${POSTGRES_USER}
+      - GF_DATABASE_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./config/grafana-v63/provisioning:/etc/grafana/provisioning:ro
+      - ./config/grafana-v63/dashboards:/var/lib/grafana/dashboards:ro
+    networks:
+      - monitoring
+      - data-tier
+    depends_on:
+      - prometheus
+      - postgres
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+
+  # Alertmanager アラート管理 - v62修正版
+  alertmanager:
+    image: docker.io/prom/alertmanager:v0.26.0
+    container_name: itdo-alertmanager-v63
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./config/alertmanager-v63.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+    networks:
+      - monitoring
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.external-url=http://localhost:9093'
+      - '--cluster.advertise-address=0.0.0.0:9093'
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9093/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+  # cAdvisor コンテナ監視
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.47.2
+    container_name: itdo-cadvisor-v63
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/containers/:/var/lib/containers:ro
+      - /dev/disk/:/dev/disk:ro
+    networks:
+      - monitoring
+    restart: unless-stopped
+    privileged: true
+    devices:
+      - /dev/kmsg
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    command:
+      - '--housekeeping_interval=30s'
+      - '--max_housekeeping_interval=35s'
+      - '--event_storage_event_limit=default=0'
+      - '--event_storage_age_limit=default=0'
+      - '--disable_metrics=percpu,sched,tcp,udp,disk,diskIO,accelerator'
+      - '--docker_only'
+
+  # バックアップサービス - 自動化改良
+  backup:
+    image: docker.io/library/postgres:15-alpine
+    container_name: itdo-backup-v63
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - S3_BUCKET=${S3_BACKUP_BUCKET}
+      - BACKUP_RETENTION_DAYS=30
+      - BACKUP_SCHEDULE="0 2 * * *"
+    volumes:
+      - backup-data:/backup
+      - ./scripts/backup-v63.sh:/backup.sh:ro
+    networks:
+      - data-tier
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    command: ["crond", "-f", "-d", "8"]
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.1'
+
+networks:
+  web-tier:
+    driver: bridge
+    external: false
+    ipam:
+      config:
+        - subnet: 172.20.1.0/24
+  app-tier:
+    driver: bridge
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.20.2.0/24
+  data-tier:
+    driver: bridge
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.20.3.0/24
+  monitoring:
+    driver: bridge
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.20.4.0/24
+
+volumes:
+  postgres-data:
+    driver: local
+  redis-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+  alertmanager-data:
+    driver: local
+  keycloak-data:
+    driver: local
+  backup-data:
+    driver: local
+  nginx-logs:
+    driver: local
+  postgres-logs:
+    driver: local
+  redis-logs:
+    driver: local
+  app-logs:
+    driver: local
+
+# Health check and dependency management
+x-healthcheck-defaults: &healthcheck-defaults
+  interval: 30s
+  timeout: 10s
+  retries: 3
+
+x-resource-defaults: &resource-defaults
+  deploy:
+    resources:
+      reservations:
+        memory: 128M
+        cpus: '0.1'
