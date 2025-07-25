@@ -166,6 +166,25 @@ from app.models.workflow_extended import (
     WorkflowTemplate,
 )
 
+# CC02 v61.0 - Shipping Management Models
+from app.models.shipping_management import (
+    CarrierConfiguration,
+    Address,
+    Shipment,
+    ShipmentItem,
+    ShipmentTracking,
+    DeliveryAttempt,
+    ShippingRate,
+    ShippingZone,
+    ShippingNotification,
+    ShippingRule,
+    ShippingCarrier,
+    ShippingMethod,
+    ShipmentStatus,
+    PackageType,
+    DeliveryPriority,
+)
+
 __all__ = [
     "User",
     "Organization",
@@ -325,4 +344,20 @@ __all__ = [
     "AuditCompliance",
     "AuditConfiguration",
     "AuditMetrics",
+    # CC02 v61.0 - Shipping Management Models
+    "CarrierConfiguration",
+    "Address",
+    "Shipment",
+    "ShipmentItem",
+    "ShipmentTracking",
+    "DeliveryAttempt",
+    "ShippingRate",
+    "ShippingZone",
+    "ShippingNotification",
+    "ShippingRule",
+    "ShippingCarrier",
+    "ShippingMethod",
+    "ShipmentStatus",
+    "PackageType",
+    "DeliveryPriority",
 ]
