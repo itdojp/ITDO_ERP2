@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useFinancialStats, useFinancialDashboard, useSalesStats } from '../../hooks/useFinancial';
+import { useSalesStats as useSalesStatsHook } from '../../hooks/useSales';
 import {
   Box,
   Paper,
