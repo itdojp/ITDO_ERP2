@@ -41,6 +41,12 @@ services:
 
   # Backend Application - Production Optimized
   backend:
+    build:
+      context: ../
+      dockerfile: infra/Dockerfile.backend.prod
+      args:
+        - PYTHON_VERSION=3.13
+        - UV_VERSION=latest  
     image: ghcr.io/itdojp/itdo_erp2-backend:${BACKEND_VERSION:-latest}
     container_name: itdo-backend-prod
     environment:
@@ -104,6 +110,12 @@ services:
 
   # Frontend Application - Production Build
   frontend:
+    build:
+      context: ../
+      dockerfile: infra/Dockerfile.frontend.prod
+      args:
+        - NODE_VERSION=20
+        - NGINX_VERSION=1.25-alpine
     image: ghcr.io/itdojp/itdo_erp2-frontend:${FRONTEND_VERSION:-latest}
     container_name: itdo-frontend-prod
     environment:
