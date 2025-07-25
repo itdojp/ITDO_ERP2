@@ -1,0 +1,372 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "ITDO ERP v65.0 - システム全体概要",
+    "tags": ["cc03-v65", "overview", "realtime"],
+    "timezone": "Asia/Tokyo",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "5s",
+    "templating": {
+      "list": [
+        {
+          "name": "datasource",
+          "type": "datasource",
+          "query": "prometheus",
+          "current": {
+            "text": "Prometheus-v65",
+            "value": "Prometheus-v65"
+          }
+        },
+        {
+          "name": "environment",
+          "type": "query",
+          "query": "label_values(up, environment)",
+          "datasource": "$datasource",
+          "refresh": 1,
+          "current": {
+            "text": "production",
+            "value": "production"
+          }
+        }
+      ]
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "🚀 システム全体ステータス",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "up{environment=\"$environment\"}",
+            "legendFormat": "{{job}} - {{instance}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {"options": {"0": {"text": "DOWN", "color": "red"}}, "type": "value"},
+              {"options": {"1": {"text": "UP", "color": "green"}}, "type": "value"}
+            ],
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "green", "value": 1}
+              ]
+            },
+            "unit": "none"
+          }
+        },
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0},
+        "options": {
+          "orientation": "horizontal",
+          "reduceOptions": {
+            "calcs": ["lastNotNull"],
+            "fields": "",
+            "values": false
+          },
+          "textMode": "value_and_name"
+        }
+      },
+      {
+        "id": 2,
+        "title": "📊 リアルタイム CPU 使用率",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "100 - (avg(irate(node_cpu_seconds_total{mode=\"idle\",environment=\"$environment\"}[5m])) * 100)",
+            "legendFormat": "CPU使用率",
+            "refId": "A",
+            "step": 5
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "percent",
+            "max": 100,
+            "min": 0,
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 70},
+                {"color": "red", "value": 90}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "options": {
+          "tooltip": {"mode": "multi"},
+          "legend": {"displayMode": "table", "placement": "right"}
+        }
+      },
+      {
+        "id": 3,
+        "title": "💾 リアルタイム メモリ使用率",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "(1 - (node_memory_MemAvailable_bytes{environment=\"$environment\"} / node_memory_MemTotal_bytes{environment=\"$environment\"})) * 100",
+            "legendFormat": "メモリ使用率",
+            "refId": "A",
+            "step": 5
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "percent",
+            "max": 100,
+            "min": 0,
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 80},
+                {"color": "red", "value": 95}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      },
+      {
+        "id": 4,
+        "title": "🗄️ PostgreSQL アクティブ接続数",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "pg_stat_database_numbackends{datname=\"itdo_erp\",environment=\"$environment\"}",
+            "legendFormat": "アクティブ接続",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 50},
+                {"color": "red", "value": 80}
+              ]
+            },
+            "max": 100,
+            "min": 0,
+            "unit": "none"
+          }
+        },
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 16},
+        "options": {
+          "showThresholdLabels": true,
+          "showThresholdMarkers": true
+        }
+      },
+      {
+        "id": 5,
+        "title": "📈 API リクエスト/秒",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total{job=\"backend-api\",environment=\"$environment\"}[5m])",
+            "legendFormat": "{{method}} {{status}}",
+            "refId": "A",
+            "step": 5
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "reqps"
+          }
+        },
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 16}
+      },
+      {
+        "id": 6,
+        "title": "⚡ Redis キャッシュヒット率",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(redis_keyspace_hits_total{environment=\"$environment\"}[5m]) / (rate(redis_keyspace_hits_total{environment=\"$environment\"}[5m]) + rate(redis_keyspace_misses_total{environment=\"$environment\"}[5m])) * 100",
+            "legendFormat": "ヒット率",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 70},
+                {"color": "green", "value": 90}
+              ]
+            },
+            "unit": "percent"
+          }
+        },
+        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 16}
+      },
+      {
+        "id": 7,
+        "title": "🔥 トップ5 リソース消費コンテナ",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "topk(5, rate(container_cpu_usage_seconds_total{name!=\"\",environment=\"$environment\"}[5m]))",
+            "legendFormat": "{{name}}",
+            "refId": "A",
+            "format": "table"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 0.5},
+                {"color": "red", "value": 1}
+              ]
+            },
+            "unit": "none"
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {"Time": true, "__name__": true},
+              "includeByName": {},
+              "indexByName": {"name": 0, "Value": 1},
+              "renameByName": {"name": "コンテナ名", "Value": "CPU使用率"}
+            }
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "🚨 アクティブアラート",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "ALERTS{environment=\"$environment\"}",
+            "legendFormat": "{{alertname}}",
+            "refId": "A",
+            "format": "table"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 1},
+                {"color": "red", "value": 2}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {"Time": true, "__name__": true},
+              "includeByName": {},
+              "indexByName": {"alertname": 0, "severity": 1, "alertstate": 2},
+              "renameByName": {"alertname": "アラート名", "severity": "重要度", "alertstate": "状態"}
+            }
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "🌐 ネットワーク I/O",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(node_network_receive_bytes_total{device!=\"lo\",environment=\"$environment\"}[5m])",
+            "legendFormat": "受信 {{device}}",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(node_network_transmit_bytes_total{device!=\"lo\",environment=\"$environment\"}[5m])",
+            "legendFormat": "送信 {{device}}",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "Bps"
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 32}
+      },
+      {
+        "id": 10,
+        "title": "💽 ディスク I/O",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(node_disk_read_bytes_total{environment=\"$environment\"}[5m])",
+            "legendFormat": "読み取り {{device}}",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(node_disk_written_bytes_total{environment=\"$environment\"}[5m])",
+            "legendFormat": "書き込み {{device}}",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "Bps"
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 32}
+      }
+    ],
+    "annotations": {
+      "list": [
+        {
+          "builtIn": 1,
+          "datasource": "-- Grafana --",
+          "enable": true,
+          "hide": true,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "name": "Annotations & Alerts",
+          "type": "dashboard"
+        },
+        {
+          "datasource": "$datasource",
+          "enable": true,
+          "expr": "ALERTS{alertstate=\"firing\"}",
+          "iconColor": "red",
+          "name": "アクティブアラート",
+          "titleFormat": "{{alertname}}",
+          "textFormat": "{{instance}}: {{summary}}"
+        }
+      ]
+    },
+    "links": [
+      {
+        "icon": "external link",
+        "includeVars": true,
+        "keepTime": true,
+        "tags": ["cc03-v65"],
+        "title": "システム詳細監視",
+        "type": "dashboards"
+      }
+    ]
+  }
+}

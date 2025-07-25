@@ -1,0 +1,230 @@
+# CC03 v65.0 - Blackbox Exporter設定
+# 外部監視・エンドポイント監視設定
+
+modules:
+  # HTTP 2xx レスポンスチェック
+  http_2xx:
+    prober: http
+    timeout: 10s
+    http:
+      valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+      valid_status_codes: [200, 201, 202, 204]
+      method: GET
+      headers:
+        Host: localhost
+        User-Agent: "Blackbox-Exporter/v65.0 (ITDO-ERP-Monitoring)"
+      no_follow_redirects: false
+      fail_if_ssl: false
+      fail_if_not_ssl: false
+      tls_config:
+        insecure_skip_verify: true
+      preferred_ip_protocol: "ip4"
+
+  # HTTP POST チェック
+  http_post_2xx:
+    prober: http
+    timeout: 10s
+    http:
+      method: POST
+      headers:
+        Content-Type: application/json
+      body: '{"status": "health_check"}'
+      valid_status_codes: [200, 201, 202]
+
+  # HTTP 認証付きチェック
+  http_2xx_with_auth:
+    prober: http
+    timeout: 15s
+    http:
+      method: GET
+      valid_status_codes: [200]
+      basic_auth:
+        username: "monitoring"
+        password: "monitor123"
+      headers:
+        Authorization: "Bearer monitoring-token"
+
+  # HTTPS SSL証明書チェック
+  https_2xx:
+    prober: http
+    timeout: 10s
+    http:
+      method: GET
+      valid_status_codes: [200]
+      fail_if_not_ssl: true
+      tls_config:
+        insecure_skip_verify: false
+        ca_file: "/etc/ssl/certs/ca-certificates.crt"
+
+  # TCP 接続チェック
+  tcp_connect:
+    prober: tcp
+    timeout: 5s
+    tcp:
+      preferred_ip_protocol: "ip4"
+
+  # PostgreSQL TCP接続チェック
+  tcp_postgres:
+    prober: tcp
+    timeout: 5s
+    tcp:
+      preferred_ip_protocol: "ip4"
+      query_response:
+        - expect: "^\\x00"
+        - send: "\\x00\\x00\\x00\\x17\\x00\\x03\\x00\\x00user\\x00postgres\\x00\\x00"
+
+  # Redis TCP接続チェック
+  tcp_redis:
+    prober: tcp
+    timeout: 5s
+    tcp:
+      preferred_ip_protocol: "ip4"
+      query_response:
+        - send: "PING"
+        - expect: "PONG"
+
+  # DNS A レコードチェック
+  dns_a:
+    prober: dns
+    timeout: 5s
+    dns:
+      query_name: "localhost"
+      query_type: "A"
+      valid_rcodes:
+        - NOERROR
+      validate_answer_rrs:
+        fail_if_matches_regexp:
+          - ".*127.0.0.1"
+        fail_if_not_matches_regexp:
+          - ".*"
+
+  # DNS PTR レコードチェック
+  dns_ptr:
+    prober: dns
+    timeout: 5s
+    dns:
+      query_name: "1.0.0.127.in-addr.arpa"
+      query_type: "PTR"
+      valid_rcodes:
+        - NOERROR
+
+  # ICMP Ping チェック
+  icmp:
+    prober: icmp
+    timeout: 5s
+    icmp:
+      preferred_ip_protocol: "ip4"
+      source_ip_address: "127.0.0.1"
+
+  # ICMP IPv6 Ping チェック  
+  icmp_ipv6:
+    prober: icmp
+    timeout: 5s
+    icmp:
+      preferred_ip_protocol: "ip6"
+
+  # HTTP レスポンス時間チェック
+  http_response_time:
+    prober: http
+    timeout: 30s
+    http:
+      method: GET
+      valid_status_codes: [200]
+      headers:
+        User-Agent: "Response-Time-Monitor/1.0"
+      no_follow_redirects: true
+
+  # HTTP コンテンツチェック
+  http_content_check:
+    prober: http
+    timeout: 10s
+    http:
+      method: GET
+      valid_status_codes: [200]
+      fail_if_not_matches_regexp:
+        - "ITDO ERP System"
+        - "version.*v[0-9]+\\.[0-9]+\\.[0-9]+"
+      headers:
+        Accept: "text/html,application/xhtml+xml"
+
+  # API エンドポイントチェック
+  api_health_check:
+    prober: http
+    timeout: 15s
+    http:
+      method: GET
+      valid_status_codes: [200]
+      headers:
+        Accept: "application/json"
+        User-Agent: "API-Health-Monitor/1.0"
+      fail_if_not_matches_regexp:
+        - '"status"\\s*:\\s*"healthy"'
+        - '"version"\\s*:\\s*"[0-9]+\\.[0-9]+\\.[0-9]+"'
+
+  # GraphQL エンドポイントチェック
+  graphql_health:
+    prober: http
+    timeout: 10s
+    http:
+      method: POST
+      headers:
+        Content-Type: "application/json"
+      body: '{"query": "{ __schema { types { name } } }"}'
+      valid_status_codes: [200]
+      fail_if_not_matches_regexp:
+        - '"data"'
+
+  # WebSocket 接続チェック
+  websocket_check:
+    prober: http
+    timeout: 10s
+    http:
+      method: GET
+      headers:
+        Upgrade: websocket
+        Connection: Upgrade
+        Sec-WebSocket-Key: "dGhlIHNhbXBsZSBub25jZQ=="
+        Sec-WebSocket-Version: "13"
+      valid_status_codes: [101]
+
+  # カスタムアプリケーションヘルスチェック
+  custom_app_health:
+    prober: http
+    timeout: 20s
+    http:
+      method: GET
+      valid_status_codes: [200]
+      headers:
+        X-Health-Check: "monitoring-v65"
+        User-Agent: "ITDO-ERP-Monitor/65.0"
+      fail_if_not_matches_regexp:
+        - '"database"\\s*:\\s*"connected"'
+        - '"cache"\\s*:\\s*"connected"'
+        - '"auth"\\s*:\\s*"available"'
+      body_size_limit: 1MB
+
+  # メンテナンスモードチェック
+  maintenance_check:
+    prober: http
+    timeout: 5s
+    http:
+      method: GET
+      valid_status_codes: [200, 503]
+      headers:
+        User-Agent: "Maintenance-Monitor/1.0"
+      fail_if_matches_regexp:
+        - "Under Maintenance"
+        - "Service Unavailable"
+
+  # Blue-Green環境チェック
+  blue_green_check:
+    prober: http
+    timeout: 10s
+    http:
+      method: GET
+      valid_status_codes: [200]
+      headers:
+        X-Environment-Check: "blue-green-v65"
+      fail_if_not_matches_regexp:
+        - '"environment"\\s*:\\s*"(blue|green)"'
+        - '"deployment_id"\\s*:\\s*"[a-f0-9-]+"'

@@ -1,0 +1,319 @@
+# CC03 v65.0 - アラートルール設定
+# インテリジェント監視・早期警告システム
+
+groups:
+  # システムリソース監視
+  - name: system-resources-v65
+    interval: 30s
+    rules:
+      # CPU使用率警告
+      - alert: HighCPUUsage
+        expr: 100 - (avg(irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 2m
+        labels:
+          severity: warning
+          category: system
+          service: system
+        annotations:
+          summary: "CPU使用率が高くなっています"
+          description: "CPU使用率が{{ $value }}%になっています。閾値: 80%"
+          
+      # CPU使用率重要
+      - alert: CriticalCPUUsage
+        expr: 100 - (avg(irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 95
+        for: 1m
+        labels:
+          severity: critical
+          category: system
+          service: system
+        annotations:
+          summary: "CPU使用率が危険レベルです"
+          description: "CPU使用率が{{ $value }}%に達しました。即座の対応が必要です。"
+          
+      # メモリ使用率警告
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 3m
+        labels:
+          severity: warning
+          category: system
+          service: system
+        annotations:
+          summary: "メモリ使用率が高くなっています"
+          description: "メモリ使用率が{{ $value }}%になっています。閾値: 85%"
+          
+      # メモリ使用率重要
+      - alert: CriticalMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 95
+        for: 1m
+        labels:
+          severity: critical
+          category: system
+          service: system
+        annotations:
+          summary: "メモリ不足の危険があります"
+          description: "メモリ使用率が{{ $value }}%に達しました。即座の対応が必要です。"
+          
+      # ディスク容量警告
+      - alert: DiskSpaceWarning
+        expr: 100 - ((node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          category: system
+          service: filesystem
+        annotations:
+          summary: "ディスク容量が不足しています"
+          description: "ディスク使用率が{{ $value }}%になっています。閾値: 80%"
+          
+      # ディスク容量重要
+      - alert: DiskSpaceCritical
+        expr: 100 - ((node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100) > 90
+        for: 2m
+        labels:
+          severity: critical
+          category: system
+          service: filesystem
+        annotations:
+          summary: "ディスク容量が危険レベルです"
+          description: "ディスク使用率が{{ $value }}%に達しました。即座の対応が必要です。"
+
+  # サービス可用性監視
+  - name: service-availability-v65
+    interval: 15s
+    rules:
+      # サービス停止アラート
+      - alert: ServiceDown
+        expr: up == 0
+        for: 30s
+        labels:
+          severity: critical
+          category: availability
+        annotations:
+          summary: "サービス{{ $labels.job }}が停止しています"
+          description: "{{ $labels.instance }}上の{{ $labels.job }}サービスが30秒間応答していません。"
+          
+      # Backend API レスポンス時間
+      - alert: HighAPIResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="backend-api"}[5m])) > 1
+        for: 3m
+        labels:
+          severity: warning
+          category: application
+          service: api
+        annotations:
+          summary: "API応答時間が遅くなっています"
+          description: "95%タイルのAPI応答時間が{{ $value }}秒です。閾値: 1秒"
+          
+      # Backend API エラー率
+      - alert: HighAPIErrorRate
+        expr: rate(http_requests_total{job="backend-api",status=~"5.."}[5m]) / rate(http_requests_total{job="backend-api"}[5m]) * 100 > 5
+        for: 2m
+        labels:
+          severity: critical
+          category: application
+          service: api
+        annotations:
+          summary: "APIエラー率が高くなっています"
+          description: "APIエラー率が{{ $value }}%になっています。閾値: 5%"
+
+  # データベース監視
+  - name: database-monitoring-v65
+    interval: 30s
+    rules:
+      # PostgreSQL接続数警告
+      - alert: HighPostgreSQLConnections
+        expr: pg_stat_database_numbackends{datname="itdo_erp"} > 80
+        for: 2m
+        labels:
+          severity: warning
+          category: database
+          service: postgresql
+          database: itdo_erp
+        annotations:
+          summary: "PostgreSQL接続数が多くなっています"
+          description: "PostgreSQL接続数が{{ $value }}になっています。閾値: 80"
+          
+      # PostgreSQL接続数重要
+      - alert: CriticalPostgreSQLConnections
+        expr: pg_stat_database_numbackends{datname="itdo_erp"} > 100
+        for: 1m
+        labels:
+          severity: critical
+          category: database
+          service: postgresql
+          database: itdo_erp
+        annotations:
+          summary: "PostgreSQL接続数が限界に達しています"
+          description: "PostgreSQL接続数が{{ $value }}に達しました。即座の対応が必要です。"
+          
+      # PostgreSQLスロークエリ
+      - alert: SlowPostgreSQLQueries
+        expr: pg_stat_activity_max_tx_duration{datname="itdo_erp"} > 300
+        for: 1m
+        labels:
+          severity: warning
+          category: database
+          service: postgresql
+          database: itdo_erp
+        annotations:
+          summary: "長時間実行中のクエリがあります"
+          description: "{{ $value }}秒間実行中のクエリがあります。閾値: 300秒"
+          
+      # Redis メモリ使用率
+      - alert: HighRedisMemoryUsage
+        expr: redis_memory_used_bytes / redis_memory_max_bytes * 100 > 80
+        for: 3m
+        labels:
+          severity: warning
+          category: database
+          service: redis
+        annotations:
+          summary: "Redisメモリ使用率が高くなっています"
+          description: "Redisメモリ使用率が{{ $value }}%になっています。閾値: 80%"
+          
+      # Redis接続拒否
+      - alert: RedisRejectedConnections
+        expr: increase(redis_rejected_connections_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+          category: database
+          service: redis
+        annotations:
+          summary: "Redis接続が拒否されています"
+          description: "過去5分間で{{ $value }}個のRedis接続が拒否されました。"
+
+  # コンテナ監視
+  - name: container-monitoring-v65
+    interval: 30s
+    rules:
+      # コンテナCPU使用率
+      - alert: HighContainerCPU
+        expr: rate(container_cpu_usage_seconds_total{name!=""}[5m]) * 100 > 80
+        for: 3m
+        labels:
+          severity: warning
+          category: container
+          service: "{{ $labels.name }}"
+        annotations:
+          summary: "コンテナ{{ $labels.name }}のCPU使用率が高いです"
+          description: "コンテナCPU使用率が{{ $value }}%になっています。閾値: 80%"
+          
+      # コンテナメモリ使用率
+      - alert: HighContainerMemory
+        expr: container_memory_usage_bytes{name!=""} / container_spec_memory_limit_bytes{name!=""} * 100 > 85
+        for: 3m
+        labels:
+          severity: warning
+          category: container
+          service: "{{ $labels.name }}"
+        annotations:
+          summary: "コンテナ{{ $labels.name }}のメモリ使用率が高いです"
+          description: "コンテナメモリ使用率が{{ $value }}%になっています。閾値: 85%"
+          
+      # コンテナ再起動
+      - alert: ContainerRestarted
+        expr: increase(kube_pod_container_status_restarts_total[10m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+          category: container
+        annotations:
+          summary: "コンテナが再起動しました"
+          description: "コンテナ{{ $labels.container }}が過去10分間で{{ $value }}回再起動しました。"
+
+  # ネットワーク監視
+  - name: network-monitoring-v65
+    interval: 30s
+    rules:
+      # SSL証明書期限警告
+      - alert: SSLCertificateExpiringSoon
+        expr: ssl_cert_not_after - time() < 7 * 24 * 3600
+        for: 1h
+        labels:
+          severity: warning
+          category: security
+          service: ssl
+        annotations:
+          summary: "SSL証明書の期限が近づいています"
+          description: "{{ $labels.instance }}のSSL証明書が7日以内に期限切れになります。"
+          
+      # SSL証明書期限重要
+      - alert: SSLCertificateExpiringSoon
+        expr: ssl_cert_not_after - time() < 1 * 24 * 3600
+        for: 10m
+        labels:
+          severity: critical
+          category: security
+          service: ssl
+        annotations:
+          summary: "SSL証明書の期限が明日までです"
+          description: "{{ $labels.instance }}のSSL証明書が24時間以内に期限切れになります。即座の対応が必要です。"
+          
+      # 外部サービス応答なし
+      - alert: ExternalServiceDown
+        expr: probe_success == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: external
+        annotations:
+          summary: "外部サービス{{ $labels.instance }}に接続できません"
+          description: "{{ $labels.instance }}が1分間応答していません。"
+
+  # セキュリティ監視
+  - name: security-monitoring-v65
+    interval: 60s
+    rules:
+      # 認証失敗率
+      - alert: HighAuthenticationFailureRate
+        expr: rate(keycloak_failed_login_attempts[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+          category: security
+          service: authentication
+        annotations:
+          summary: "認証失敗が多発しています"
+          description: "過去5分間で{{ $value }}件/秒の認証失敗が発生しています。"
+          
+      # 不正アクセス試行
+      - alert: SuspiciousAccessPattern
+        expr: rate(http_requests_total{status="401"}[5m]) > 5
+        for: 3m
+        labels:
+          severity: critical
+          category: security
+          service: access-control
+        annotations:
+          summary: "不正アクセスの可能性があります"
+          description: "401エラーが{{ $value }}件/秒発生しています。不正アクセスの可能性があります。"
+
+  # ビジネスメトリクス監視
+  - name: business-metrics-v65
+    interval: 60s
+    rules:
+      # トランザクション処理時間
+      - alert: SlowTransactionProcessing
+        expr: histogram_quantile(0.95, rate(business_transaction_duration_seconds_bucket[10m])) > 30
+        for: 5m
+        labels:
+          severity: warning
+          category: business
+          service: transaction
+        annotations:
+          summary: "トランザクション処理が遅くなっています"
+          description: "95%タイルのトランザクション処理時間が{{ $value }}秒です。閾値: 30秒"
+          
+      # エラートランザクション率
+      - alert: HighTransactionErrorRate
+        expr: rate(business_transaction_errors_total[5m]) / rate(business_transaction_total[5m]) * 100 > 1
+        for: 3m
+        labels:
+          severity: critical
+          category: business
+          service: transaction
+        annotations:
+          summary: "トランザクションエラー率が高くなっています"
+          description: "トランザクションエラー率が{{ $value }}%になっています。閾値: 1%"

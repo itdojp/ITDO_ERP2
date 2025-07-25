@@ -1,12 +1,93 @@
+# CC03 v65.0 - Grafana ダッシュボード プロビジョニング設定
+# 自動ダッシュボード配置設定
+
 apiVersion: 1
 
 providers:
-  - name: 'default'
+  # システム監視ダッシュボード群
+  - name: 'system-monitoring-v65'
     orgId: 1
-    folder: ''
+    folder: 'システム監視 v65'
     type: file
     disableDeletion: false
-    updateIntervalSeconds: 10
+    updateIntervalSeconds: 60
     allowUiUpdates: true
     options:
-      path: /etc/grafana/provisioning/dashboards
+      path: /var/lib/grafana/dashboards/system
+
+  # アプリケーション監視ダッシュボード群
+  - name: 'application-monitoring-v65'
+    orgId: 1
+    folder: 'アプリケーション監視 v65'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 60
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards/application
+
+  # データベース監視ダッシュボード群
+  - name: 'database-monitoring-v65'
+    orgId: 1
+    folder: 'データベース監視 v65'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 60
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards/database
+
+  # ビジネスメトリクスダッシュボード群
+  - name: 'business-metrics-v65'
+    orgId: 1
+    folder: 'ビジネスメトリクス v65'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 60
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards/business
+
+  # セキュリティ監視ダッシュボード群
+  - name: 'security-monitoring-v65'
+    orgId: 1
+    folder: 'セキュリティ監視 v65'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 60
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards/security
+
+  # インフラ監視ダッシュボード群
+  - name: 'infrastructure-monitoring-v65'
+    orgId: 1
+    folder: 'インフラ監視 v65'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 60
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards/infrastructure
+
+  # 全体概要ダッシュボード
+  - name: 'overview-dashboards-v65'
+    orgId: 1
+    folder: ''  # ルートフォルダ
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards
+
+  # カスタムダッシュボード（ユーザー作成）
+  - name: 'custom-dashboards-v65'
+    orgId: 1
+    folder: 'カスタムダッシュボード'
+    type: file
+    disableDeletion: true
+    updateIntervalSeconds: 120
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards/custom
