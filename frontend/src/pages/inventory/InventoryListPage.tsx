@@ -47,35 +47,9 @@ import {
   NotificationImportant as AlertIcon,
   Download as ExportIcon
 } from '@mui/icons-material';
-import { apiClient } from '@/services/api';
+import { useInventory, useInventoryStats, useInventoryLocations, useAdjustStock, useTransferStock } from '../../hooks/useInventory';
+import { InventoryItem } from '../../services/api/inventory';
 
-interface InventoryItem {
-  id: number;
-  product_id: number;
-  product_code: string;
-  product_name: string;
-  sku: string;
-  current_stock: number;
-  reserved_stock: number;
-  available_stock: number;
-  minimum_stock_level: number;
-  maximum_stock_level?: number;
-  reorder_point: number;
-  warehouse_location?: string;
-  bin_location?: string;
-  last_movement_date: string;
-  last_count_date?: string;
-  stock_value: number;
-  average_cost: number;
-  stock_status: 'in_stock' | 'low_stock' | 'out_of_stock' | 'overstock';
-  movement_trend: 'up' | 'down' | 'stable';
-  days_of_inventory: number;
-  turnover_rate: number;
-  is_tracked: boolean;
-  category?: string;
-  supplier?: string;
-  updated_at: string;
-}
 
 interface InventoryFilters {
   search: string;
@@ -90,12 +64,6 @@ interface InventoryFilters {
   value_max: string;
 }
 
-interface StockAdjustment {
-  product_id: number;
-  adjustment_quantity: number;
-  reason: string;
-  notes?: string;
-}
 
 export const InventoryListPage: React.FC = () => {
   const navigate = useNavigate();
@@ -135,61 +103,34 @@ export const InventoryListPage: React.FC = () => {
     return () => clearInterval(interval);
   }, [queryClient]);
 
+  // API query parameters
+  const queryParams = useMemo(() => {
+    const params: any = {
+      page: paginationModel.page + 1,
+      per_page: paginationModel.pageSize,
+      sort_by: 'created_at',
+      sort_order: 'desc',
+    };
+    
+    if (filters.search) params.search = filters.search;
+    if (filters.stock_status) params.status = filters.stock_status;
+    if (filters.warehouse_location) params.location = filters.warehouse_location;
+    if (filters.stock_min) params.min_quantity = parseInt(filters.stock_min);
+    if (filters.stock_max) params.max_quantity = parseInt(filters.stock_max);
+    
+    return params;
+  }, [paginationModel, filters]);
+
   // Fetch inventory data with real-time updates
-  const { data: inventoryData, isLoading, error, refetch } = useQuery({
-    queryKey: ['inventory-list', filters, paginationModel],
-    queryFn: async () => {
-      const params = new URLSearchParams({
-        skip: (paginationModel.page * paginationModel.pageSize).toString(),
-        limit: paginationModel.pageSize.toString(),
-        sort_by: 'stock_status,product_name',
-        sort_order: 'asc',
-      });
+  const { data: inventoryData, isLoading, error, refetch } = useInventory(queryParams);
+  const { data: inventoryStats } = useInventoryStats();
+  const { data: locations } = useInventoryLocations();
+  const adjustStockMutation = useAdjustStock();
+  const transferStockMutation = useTransferStock();
+  
+  const items = inventoryData?.items || [];
+  const totalItems = inventoryData?.total || 0;
 
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value && value !== '') {
-          params.append(key, value);
-        }
-      });
-
-      const response = await apiClient.get(`/api/v1/inventory?${params}`);
-      return {
-        items: response.data?.items || [],
-        total: response.data?.total || 0,
-        alerts: response.data?.alerts || 0,
-        total_value: response.data?.total_value || 0,
-        low_stock_count: response.data?.low_stock_count || 0
-      };
-    },
-    refetchInterval: 30000, // Auto-refresh every 30 seconds
-  });
-
-  // Fetch warehouse locations for filter
-  const { data: warehouses } = useQuery({
-    queryKey: ['warehouse-locations'],
-    queryFn: async () => {
-      const response = await apiClient.get('/api/v1/warehouses');
-      return response.data || [];
-    },
-  });
-
-  // Fetch categories for filter
-  const { data: categories } = useQuery({
-    queryKey: ['inventory-categories'],
-    queryFn: async () => {
-      const response = await apiClient.get('/api/v1/inventory/categories');
-      return response.data || [];
-    },
-  });
-
-  // Fetch suppliers for filter
-  const { data: suppliers } = useQuery({
-    queryKey: ['inventory-suppliers'],
-    queryFn: async () => {
-      const response = await apiClient.get('/api/v1/inventory/suppliers');
-      return response.data || [];
-    },
-  });
 
   // Stock adjustment mutation
   const adjustmentMutation = useMutation({
@@ -761,11 +702,11 @@ export const InventoryListPage: React.FC = () => {
         {isLoading && <LinearProgress />}
         
         <DataGrid
-          rows={inventoryData?.items || []}
+          rows={items}
           columns={columns}
           paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
-          rowCount={inventoryData?.total || 0}
+          rowCount={totalItems}
           loading={isLoading}
           checkboxSelection
           disableRowSelectionOnClick
