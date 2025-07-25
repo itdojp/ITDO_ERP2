@@ -66,6 +66,26 @@ app.include_router(inventory_core_router, prefix="/api/v1", tags=["core-inventor
 from app.api.v1.endpoints.sales_core import router as sales_core_router
 app.include_router(sales_core_router, prefix="/api/v1", tags=["core-sales"])
 
+# Import and include products v53.0 endpoints - CC02 v53.0 ERP Business API Sprint
+from app.api.v1.endpoints.products_v53 import router as products_v53_router
+app.include_router(products_v53_router, prefix="/api/v1", tags=["products-v53"])
+
+# Import and include inventory v53.0 endpoints - CC02 v53.0 ERP Business API Sprint Day 3-4
+from app.api.v1.endpoints.inventory_v53 import router as inventory_v53_router
+app.include_router(inventory_v53_router, prefix="/api/v1", tags=["inventory-v53"])
+
+# Import and include sales v53.0 endpoints - CC02 v53.0 ERP Business API Sprint Day 5-6
+from app.api.v1.endpoints.sales_v53 import router as sales_v53_router
+app.include_router(sales_v53_router, prefix="/api/v1/sales-v53", tags=["sales-v53"])
+
+# Import and include CRM v53.0 endpoints - CC02 v53.0 ERP Business API Sprint Day 7-8
+from app.api.v1.endpoints.crm_v53 import router as crm_v53_router
+app.include_router(crm_v53_router, prefix="/api/v1/crm-v53", tags=["crm-v53"])
+
+# Import and include Reporting & Analytics v53.0 endpoints - CC02 v53.0 ERP Business API Sprint Day 9-10
+from app.api.v1.endpoints.reports_analytics_v53 import router as reports_v53_router
+app.include_router(reports_v53_router, prefix="/api/v1/reports-v53", tags=["reports-v53"])
+
 @app.get("/")
 async def root():
     """Root endpoint for core ERP API."""
@@ -76,6 +96,33 @@ async def root():
         "available_endpoints": [
             "/api/v1/simple-products/",
             "/api/v1/products/",
+            "/api/v1/products-v53/",
+            "/api/v1/products-v53/categories/",
+            "/api/v1/products-v53/bulk",
+            "/api/v1/products-v53/statistics",
+            "/api/v1/inventory-v53/locations/",
+            "/api/v1/inventory-v53/items/",
+            "/api/v1/inventory-v53/adjustments/",
+            "/api/v1/inventory-v53/transfers/",
+            "/api/v1/inventory-v53/movements/",
+            "/api/v1/inventory-v53/statistics",
+            "/api/v1/sales-v53/customers/",
+            "/api/v1/sales-v53/orders/",
+            "/api/v1/sales-v53/payments/",
+            "/api/v1/sales-v53/quotes/",
+            "/api/v1/sales-v53/statistics",
+            "/api/v1/crm-v53/leads/",
+            "/api/v1/crm-v53/opportunities/",
+            "/api/v1/crm-v53/contacts/",
+            "/api/v1/crm-v53/activities/",
+            "/api/v1/crm-v53/campaigns/",
+            "/api/v1/crm-v53/statistics",
+            "/api/v1/reports-v53/reports/",
+            "/api/v1/reports-v53/dashboards/",
+            "/api/v1/reports-v53/analytics/",
+            "/api/v1/reports-v53/kpis/",
+            "/api/v1/reports-v53/bi-dashboard",
+            "/api/v1/reports-v53/statistics",
             "/api/v1/simple-inventory/items/",
             "/api/v1/simple-inventory/movements/",
             "/api/v1/inventory/locations/",
