@@ -8,10 +8,16 @@ from app.api.v1 import (
     cross_tenant_permissions,
     departments,
     health,
+    inventory_basic,
+    inventory_integration,
     multi_tenant,
     organizations,
+    organizations_basic,
+    organizations_simple,
     permission_inheritance,
     pm_automation,
+    products_basic,
+    products_simple,
     role_permission_ui,
     roles,
     tasks,
@@ -19,6 +25,7 @@ from app.api.v1 import (
     user_privacy,
     user_profile,
     users,
+    users_basic,
     users_extended,
     workflows,
 )
@@ -75,6 +82,9 @@ api_router.include_router(
     user_privacy.router, prefix="/users/privacy", tags=["user-privacy"]
 )
 api_router.include_router(pm_automation.router)
+
+# CC02 v62.0 Inventory Integration System
+api_router.include_router(inventory_integration.router)
 
 
 @api_router.get("/ping")
