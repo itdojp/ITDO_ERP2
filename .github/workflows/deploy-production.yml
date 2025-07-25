@@ -1,8 +1,14 @@
-name: 🚀 Production Deployment
+name: 🚀 Production Deployment Pipeline
+# CC03 v58.0 - 7-Day Production Automation Implementation
+# Quality Standards: 99.9% Availability, 15min Recovery, Security A+
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - release/*
+    tags:
+      - 'v*'
     paths:
       - 'backend/**'
       - 'frontend/**'
@@ -10,21 +16,27 @@ on:
       - '.github/workflows/deploy-production.yml'
   workflow_dispatch:
     inputs:
+      environment:
+        description: 'Deployment Environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+          - disaster-recovery
       force_deploy:
-        description: 'Force deployment (skip checks)'
+        description: 'Force deployment (skip health checks)'
         required: false
-        default: 'false'
+        default: false
         type: boolean
-      rollback_version:
-        description: 'Rollback to specific version'
-        required: false
-        type: string
-
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
-  DEPLOY_TIMEOUT: 600
+  BACKEND_IMAGE: ghcr.io/${{ github.repository }}-backend
+  FRONTEND_IMAGE: ghcr.io/${{ github.repository }}-frontend
+  DEPLOYMENT_TIMEOUT: 900  # 15 minutes
   HEALTH_CHECK_RETRIES: 30
+  SECURITY_SCAN_THRESHOLD: 95
 
 jobs:
   security-scan:
