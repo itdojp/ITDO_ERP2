@@ -1,0 +1,319 @@
+# Prometheus Alert Rules - 99.9% Availability Target
+# CC03 v58.0 - Day 3 Monitoring Stack Implementation
+
+groups:
+  - name: availability.rules
+    interval: 30s
+    rules:
+      # Service Availability Rules
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: availability
+          sla_impact: high
+        annotations:
+          summary: "Service {{ $labels.instance }} is down"
+          description: "{{ $labels.service }} has been down for more than 1 minute. Immediate attention required."
+          impact: "Service unavailable - affecting 99.9% availability target"
+          recovery_time_target: "15 minutes"
+          runbook_url: "https://runbooks.itdo-erp.com/service-down"
+
+      - alert: ServicePartialOutage
+        expr: (up == 0) and on(service) group_left() (count by(service)(up) > 1)
+        for: 2m
+        labels:
+          severity: warning
+          category: availability
+          sla_impact: medium
+        annotations:
+          summary: "Partial outage detected for {{ $labels.service }}"
+          description: "Some instances of {{ $labels.service }} are down, but service is still partially available."
+          impact: "Reduced capacity - monitor for full outage"
+
+      # High Error Rate Alert
+      - alert: HighErrorRate
+        expr: |
+          (
+            rate(http_requests_total{status=~"5.."}[5m]) /
+            rate(http_requests_total[5m])
+          ) * 100 > 1
+        for: 2m
+        labels:
+          severity: critical
+          category: availability
+          sla_impact: high
+        annotations:
+          summary: "High error rate detected on {{ $labels.service }}"
+          description: "Error rate is {{ $value | humanizePercentage }} (threshold: 1%) over the last 5 minutes"
+          impact: "Service degradation - affecting user experience and availability"
+          availability_impact: "{{ $value | humanizePercentage }} error rate reduces effective availability"
+
+      # Availability SLO Violation
+      - alert: AvailabilitySLOViolation
+        expr: |
+          (
+            (
+              sum(rate(http_requests_total{status!~"5.."}[1h])) /
+              sum(rate(http_requests_total[1h]))
+            ) * 100
+          ) < 99.9
+        for: 5m
+        labels:
+          severity: critical
+          category: availability
+          sla_impact: critical
+        annotations:
+          summary: "99.9% availability SLO violation"
+          description: "Current availability is {{ $value | humanizePercentage }} over the last hour (target: 99.9%)"
+          impact: "SLA breach - immediate escalation required"
+          business_impact: "Customer-facing availability below contractual obligations"
+
+      # Response Time Impact on Availability
+      - alert: HighResponseTimeImpactingAvailability
+        expr: |
+          histogram_quantile(0.95, 
+            rate(http_request_duration_seconds_bucket[5m])
+          ) > 10
+        for: 3m
+        labels:
+          severity: warning
+          category: availability
+          sla_impact: medium
+        annotations:
+          summary: "High response time affecting perceived availability"
+          description: "95th percentile response time is {{ $value }}s (threshold: 10s) on {{ $labels.service }}"
+          impact: "Slow response times may be perceived as unavailability by users"
+
+      # Database Availability
+      - alert: DatabaseUnavailable
+        expr: up{service="postgresql-database"} == 0
+        for: 30s
+        labels:
+          severity: critical
+          category: availability
+          sla_impact: critical
+        annotations:
+          summary: "PostgreSQL Database is unavailable"
+          description: "Primary database is down - all services will be affected"
+          impact: "Complete service outage - database dependency failure"
+          recovery_action: "Initiate database failover or restore procedures"
+
+      - alert: DatabaseConnectionPoolExhaustion
+        expr: |
+          (
+            postgresql_stat_database_numbackends /
+            postgresql_settings_max_connections
+          ) * 100 > 90
+        for: 2m
+        labels:
+          severity: warning
+          category: availability
+          sla_impact: high
+        annotations:
+          summary: "Database connection pool near exhaustion"
+          description: "{{ $value | humanizePercentage }} of database connections in use"
+          impact: "New requests may fail - potential service degradation"
+
+      # Cache Availability Impact
+      - alert: CacheUnavailable
+        expr: up{service="redis-cache"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          category: availability
+          sla_impact: medium
+        annotations:
+          summary: "Redis cache is unavailable"
+          description: "Cache layer is down - performance degradation expected"
+          impact: "Increased database load and slower response times"
+
+      # Load Balancer Health
+      - alert: LoadBalancerDown
+        expr: up{service="nginx-loadbalancer"} == 0
+        for: 30s
+        labels:
+          severity: critical
+          category: availability
+          sla_impact: critical
+        annotations:
+          summary: "Load balancer is down"
+          description: "NGINX load balancer is unavailable - traffic routing affected"
+          impact: "Complete service outage - no traffic routing available"
+
+      # External Endpoint Availability
+      - alert: ExternalEndpointDown
+        expr: probe_success{service="external-endpoint"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: availability
+          sla_impact: high
+        annotations:
+          summary: "External endpoint {{ $labels.instance }} is unreachable"
+          description: "External monitoring probe failed for {{ $labels.instance }}"
+          impact: "User-facing endpoint unavailable from external perspective"
+
+      # SSL Certificate Issues Affecting Availability
+      - alert: SSLCertificateExpiringSoon
+        expr: (probe_ssl_earliest_cert_expiry - time()) / 86400 < 7
+        for: 1h
+        labels:
+          severity: warning
+          category: availability
+          sla_impact: high
+        annotations:
+          summary: "SSL certificate expiring soon for {{ $labels.instance }}"
+          description: "SSL certificate expires in {{ $value | humanizeDuration }}"
+          impact: "Service will become unavailable when certificate expires"
+
+      - alert: SSLCertificateInvalid
+        expr: probe_ssl_cert_not_after == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: availability
+          sla_impact: critical
+        annotations:
+          summary: "SSL certificate invalid for {{ $labels.instance }}"
+          description: "SSL certificate validation failed"
+          impact: "HTTPS service unavailable - users cannot access securely"
+
+      # Authentication Service Availability
+      - alert: AuthenticationServiceDown
+        expr: up{service="keycloak-auth"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: availability
+          sla_impact: critical
+        annotations:
+          summary: "Authentication service is down"
+          description: "Keycloak authentication service is unavailable"
+          impact: "Users cannot login - complete service unavailability for authenticated features"
+
+      # Container/Infrastructure Availability
+      - alert: ContainerHighRestartRate
+        expr: |
+          rate(container_start_time_seconds[5m]) > 0.1
+        for: 3m
+        labels:
+          severity: warning
+          category: availability
+          sla_impact: medium
+        annotations:
+          summary: "High container restart rate detected"
+          description: "Container {{ $labels.name }} is restarting frequently ({{ $value }} restarts/sec)"
+          impact: "Service instability - potential intermittent unavailability"
+
+      # Disk Space Affecting Availability
+      - alert: DiskSpaceCritical
+        expr: |
+          (
+            (node_filesystem_size_bytes - node_filesystem_avail_bytes) /
+            node_filesystem_size_bytes
+          ) * 100 > 95
+        for: 2m
+        labels:
+          severity: critical
+          category: availability
+          sla_impact: critical
+        annotations:
+          summary: "Critical disk space on {{ $labels.instance }}"
+          description: "Disk usage is {{ $value | humanizePercentage }} on {{ $labels.mountpoint }}"
+          impact: "Service will fail when disk is full - immediate cleanup required"
+
+      # Memory Pressure Affecting Availability
+      - alert: MemoryPressureCritical
+        expr: |
+          (
+            (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) /
+            node_memory_MemTotal_bytes
+          ) * 100 > 95
+        for: 3m
+        labels:
+          severity: critical
+          category: availability
+          sla_impact: high
+        annotations:
+          summary: "Critical memory pressure on {{ $labels.instance }}"
+          description: "Memory usage is {{ $value | humanizePercentage }}"
+          impact: "Services may crash due to OOM - affecting availability"
+
+      # Network Connectivity Issues
+      - alert: NetworkConnectivityIssues
+        expr: |
+          rate(node_network_receive_errs_total[5m]) +
+          rate(node_network_transmit_errs_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+          category: availability
+          sla_impact: medium
+        annotations:
+          summary: "Network connectivity issues on {{ $labels.instance }}"
+          description: "High network error rate detected on {{ $labels.device }}"
+          impact: "Network issues may affect service availability and performance"
+
+  # Recovery Time Tracking
+  - name: recovery.rules
+    interval: 15s
+    rules:
+      - record: availability:service_recovery_time
+        expr: |
+          time() - on(service) group_left() 
+          (
+            max_over_time(
+              (time() and (up == 0))[15m:15s]
+            )
+          )
+        labels:
+          category: recovery
+
+      - alert: RecoveryTimeExceeded
+        expr: availability:service_recovery_time > 900  # 15 minutes
+        for: 0s
+        labels:
+          severity: critical
+          category: availability
+          sla_impact: critical
+        annotations:
+          summary: "Recovery time target exceeded for {{ $labels.service }}"
+          description: "Service has been down for {{ $value | humanizeDuration }} (target: 15 minutes)"
+          impact: "Recovery time SLA breach - escalation required"
+
+  # Availability Calculation Rules
+  - name: availability-calculations.rules
+    interval: 60s
+    rules:
+      # Current availability percentage (last hour)
+      - record: availability:current_percent_1h
+        expr: |
+          (
+            sum(rate(http_requests_total{status!~"5.."}[1h])) /
+            sum(rate(http_requests_total[1h]))
+          ) * 100
+
+      # Current availability percentage (last 24 hours)
+      - record: availability:current_percent_24h
+        expr: |
+          (
+            sum(rate(http_requests_total{status!~"5.."}[24h])) /
+            sum(rate(http_requests_total[24h]))
+          ) * 100
+
+      # Service uptime percentage
+      - record: availability:service_uptime_percent
+        expr: |
+          avg_over_time(up[1h]) * 100
+        labels:
+          timeframe: "1h"
+
+      # Error budget consumption (monthly)
+      - record: availability:error_budget_consumed_percent
+        expr: |
+          (1 - (
+            sum(rate(http_requests_total{status!~"5.."}[30d])) /
+            sum(rate(http_requests_total[30d]))
+          )) / 0.001 * 100  # 0.001 = 0.1% error budget for 99.9% target

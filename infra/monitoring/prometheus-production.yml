@@ -1,0 +1,214 @@
+# Prometheus Production Configuration
+# CC03 v58.0 - Day 3 Monitoring Stack Implementation
+# Target: 99.9% Availability Monitoring
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'itdo-erp-production'
+    environment: 'production'
+    replica: '1'
+
+# Rule files for alerting
+rule_files:
+  - "alert-rules-availability.yml"
+  - "alert-rules-performance.yml" 
+  - "alert-rules-security.yml"
+  - "alert-rules-business.yml"
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+      timeout: 10s
+      api_version: v2
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # ITDO ERP Backend API
+  - job_name: 'itdo-erp-backend'
+    static_configs:
+      - targets: ['backend:8000']
+    metrics_path: /api/v1/metrics
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    params:
+      format: ['prometheus']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'backend-api'
+      - source_labels: [__address__]
+        target_label: service
+        replacement: 'itdo-erp-backend'
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'http_request_duration_seconds_.*'
+        target_label: __tmp_availability_metric
+        replacement: 'true'
+
+  # ITDO ERP Frontend (NGINX metrics)
+  - job_name: 'itdo-erp-frontend'
+    static_configs:
+      - targets: ['frontend:8080']
+    metrics_path: /nginx_status
+    scrape_interval: 30s
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: service
+        replacement: 'itdo-erp-frontend'
+
+  # PostgreSQL Database Metrics
+  - job_name: 'postgresql'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: service
+        replacement: 'postgresql-database'
+
+  # Redis Cache Metrics
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    scrape_interval: 30s
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: service
+        replacement: 'redis-cache'
+
+  # NGINX Load Balancer
+  - job_name: 'nginx-lb'
+    static_configs:
+      - targets: ['nginx:80']
+    metrics_path: /nginx_status
+    scrape_interval: 15s
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: service
+        replacement: 'nginx-loadbalancer'
+
+  # Keycloak Authentication
+  - job_name: 'keycloak'
+    static_configs:
+      - targets: ['keycloak:8080']
+    metrics_path: /auth/realms/master/metrics
+    scrape_interval: 60s
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: service
+        replacement: 'keycloak-auth'
+
+  # Node Exporter (System Metrics)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 30s
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: service
+        replacement: 'system-node'
+
+  # Container/Docker Metrics
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    scrape_interval: 30s
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: service
+        replacement: 'container-metrics'
+
+  # Blackbox Exporter (External Monitoring)
+  - job_name: 'blackbox-http'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+        - https://itdo-erp.com
+        - https://api.itdo-erp.com/api/v1/health
+        - https://auth.itdo-erp.com/health
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+      - source_labels: [__param_target]
+        target_label: service
+        replacement: 'external-endpoint'
+
+  # SSL Certificate Monitoring
+  - job_name: 'blackbox-ssl'
+    metrics_path: /probe
+    params:
+      module: [tls_connect]
+    static_configs:
+      - targets:
+        - itdo-erp.com:443
+        - api.itdo-erp.com:443
+        - auth.itdo-erp.com:443
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+      - source_labels: [__param_target]
+        target_label: service
+        replacement: 'ssl-certificate'
+
+  # Business Metrics (Custom Application Metrics)
+  - job_name: 'business-metrics'
+    static_configs:
+      - targets: ['backend:8000']
+    metrics_path: /api/v1/business-metrics
+    scrape_interval: 60s
+    honor_labels: true
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: service
+        replacement: 'business-kpi'
+
+# Remote write configuration for long-term storage
+remote_write:
+  - url: "http://victoriametrics:8428/api/v1/write"
+    queue_config:
+      max_samples_per_send: 10000
+      batch_send_deadline: 5s
+      min_shards: 1
+      max_shards: 200
+      capacity: 100000
+    write_relabel_configs:
+      - source_labels: [__name__]
+        regex: '(up|http_request_duration_seconds|http_requests_total|availability_.*)'
+        action: keep
+
+# Storage configuration
+storage:
+  tsdb:
+    retention.time: 15d
+    retention.size: 10GB
+    path: /prometheus/data
+    wal-compression: true
+
+# Query configuration optimized for availability monitoring  
+query:
+  timeout: 2m
+  max_concurrency: 20
+  max_samples: 50000000
