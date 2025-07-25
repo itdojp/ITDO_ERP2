@@ -1,0 +1,13 @@
+# CC03 v62.0 - Grafana ダッシュボード設定
+
+apiVersion: 1
+
+providers:
+  - name: 'default'
+    orgId: 1
+    folder: ''
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /etc/grafana/provisioning/dashboards
