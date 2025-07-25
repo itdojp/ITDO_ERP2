@@ -1,4 +1,4 @@
-import { apiClient } from './client';
+import { apiClient } from "./client";
 
 export interface SalesQuote {
   id: string;
@@ -6,7 +6,7 @@ export interface SalesQuote {
   customer_id: string;
   customer_name: string;
   customer_email: string;
-  status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired';
+  status: "draft" | "sent" | "accepted" | "rejected" | "expired";
   valid_until: string;
   subtotal: number;
   tax_amount: number;
@@ -38,7 +38,13 @@ export interface SalesOrder {
   customer_id: string;
   customer_name: string;
   customer_email: string;
-  status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  status:
+    | "pending"
+    | "confirmed"
+    | "processing"
+    | "shipped"
+    | "delivered"
+    | "cancelled";
   order_date: string;
   delivery_date?: string;
   subtotal: number;
@@ -49,7 +55,7 @@ export interface SalesOrder {
   items: SalesOrderItem[];
   shipping_address: Address;
   billing_address: Address;
-  payment_status: 'pending' | 'paid' | 'partial' | 'refunded';
+  payment_status: "pending" | "paid" | "partial" | "refunded";
   payment_method?: string;
   notes?: string;
   created_by: string;
@@ -76,7 +82,7 @@ export interface Invoice {
   customer_id: string;
   customer_name: string;
   customer_email: string;
-  status: 'draft' | 'sent' | 'paid' | 'partial' | 'overdue' | 'cancelled';
+  status: "draft" | "sent" | "paid" | "partial" | "overdue" | "cancelled";
   issue_date: string;
   due_date: string;
   paid_date?: string;
@@ -137,7 +143,7 @@ export interface SalesQueryParams {
   date_from?: string;
   date_to?: string;
   sort_by?: string;
-  sort_order?: 'asc' | 'desc';
+  sort_order?: "asc" | "desc";
 }
 
 export interface SalesListResponse<T> {
@@ -163,8 +169,10 @@ export interface SalesStats {
 
 export const salesApi = {
   // Quotes API
-  getQuotes: async (params: SalesQueryParams = {}): Promise<SalesListResponse<SalesQuote>> => {
-    const response = await apiClient.get('/api/v1/sales/quotes', { params });
+  getQuotes: async (
+    params: SalesQueryParams = {},
+  ): Promise<SalesListResponse<SalesQuote>> => {
+    const response = await apiClient.get("/api/v1/sales/quotes", { params });
     return response.data;
   },
 
@@ -173,12 +181,17 @@ export const salesApi = {
     return response.data;
   },
 
-  createQuote: async (data: Omit<SalesQuote, 'id' | 'quote_number' | 'created_at' | 'updated_at'>): Promise<SalesQuote> => {
-    const response = await apiClient.post('/api/v1/sales/quotes', data);
+  createQuote: async (
+    data: Omit<SalesQuote, "id" | "quote_number" | "created_at" | "updated_at">,
+  ): Promise<SalesQuote> => {
+    const response = await apiClient.post("/api/v1/sales/quotes", data);
     return response.data;
   },
 
-  updateQuote: async (id: string, data: Partial<SalesQuote>): Promise<SalesQuote> => {
+  updateQuote: async (
+    id: string,
+    data: Partial<SalesQuote>,
+  ): Promise<SalesQuote> => {
     const response = await apiClient.put(`/api/v1/sales/quotes/${id}`, data);
     return response.data;
   },
@@ -188,13 +201,17 @@ export const salesApi = {
   },
 
   convertQuoteToOrder: async (quoteId: string): Promise<SalesOrder> => {
-    const response = await apiClient.post(`/api/v1/sales/quotes/${quoteId}/convert`);
+    const response = await apiClient.post(
+      `/api/v1/sales/quotes/${quoteId}/convert`,
+    );
     return response.data;
   },
 
   // Orders API
-  getOrders: async (params: SalesQueryParams = {}): Promise<SalesListResponse<SalesOrder>> => {
-    const response = await apiClient.get('/api/v1/sales/orders', { params });
+  getOrders: async (
+    params: SalesQueryParams = {},
+  ): Promise<SalesListResponse<SalesOrder>> => {
+    const response = await apiClient.get("/api/v1/sales/orders", { params });
     return response.data;
   },
 
@@ -203,12 +220,17 @@ export const salesApi = {
     return response.data;
   },
 
-  createOrder: async (data: Omit<SalesOrder, 'id' | 'order_number' | 'created_at' | 'updated_at'>): Promise<SalesOrder> => {
-    const response = await apiClient.post('/api/v1/sales/orders', data);
+  createOrder: async (
+    data: Omit<SalesOrder, "id" | "order_number" | "created_at" | "updated_at">,
+  ): Promise<SalesOrder> => {
+    const response = await apiClient.post("/api/v1/sales/orders", data);
     return response.data;
   },
 
-  updateOrder: async (id: string, data: Partial<SalesOrder>): Promise<SalesOrder> => {
+  updateOrder: async (
+    id: string,
+    data: Partial<SalesOrder>,
+  ): Promise<SalesOrder> => {
     const response = await apiClient.put(`/api/v1/sales/orders/${id}`, data);
     return response.data;
   },
@@ -217,14 +239,22 @@ export const salesApi = {
     await apiClient.delete(`/api/v1/sales/orders/${id}`);
   },
 
-  fulfillOrder: async (orderId: string, items: { item_id: string; quantity: number }[]): Promise<SalesOrder> => {
-    const response = await apiClient.post(`/api/v1/sales/orders/${orderId}/fulfill`, { items });
+  fulfillOrder: async (
+    orderId: string,
+    items: { item_id: string; quantity: number }[],
+  ): Promise<SalesOrder> => {
+    const response = await apiClient.post(
+      `/api/v1/sales/orders/${orderId}/fulfill`,
+      { items },
+    );
     return response.data;
   },
 
   // Invoices API
-  getInvoices: async (params: SalesQueryParams = {}): Promise<SalesListResponse<Invoice>> => {
-    const response = await apiClient.get('/api/v1/sales/invoices', { params });
+  getInvoices: async (
+    params: SalesQueryParams = {},
+  ): Promise<SalesListResponse<Invoice>> => {
+    const response = await apiClient.get("/api/v1/sales/invoices", { params });
     return response.data;
   },
 
@@ -233,12 +263,17 @@ export const salesApi = {
     return response.data;
   },
 
-  createInvoice: async (data: Omit<Invoice, 'id' | 'invoice_number' | 'created_at' | 'updated_at'>): Promise<Invoice> => {
-    const response = await apiClient.post('/api/v1/sales/invoices', data);
+  createInvoice: async (
+    data: Omit<Invoice, "id" | "invoice_number" | "created_at" | "updated_at">,
+  ): Promise<Invoice> => {
+    const response = await apiClient.post("/api/v1/sales/invoices", data);
     return response.data;
   },
 
-  updateInvoice: async (id: string, data: Partial<Invoice>): Promise<Invoice> => {
+  updateInvoice: async (
+    id: string,
+    data: Partial<Invoice>,
+  ): Promise<Invoice> => {
     const response = await apiClient.put(`/api/v1/sales/invoices/${id}`, data);
     return response.data;
   },
@@ -248,22 +283,34 @@ export const salesApi = {
   },
 
   createInvoiceFromOrder: async (orderId: string): Promise<Invoice> => {
-    const response = await apiClient.post(`/api/v1/sales/orders/${orderId}/invoice`);
+    const response = await apiClient.post(
+      `/api/v1/sales/orders/${orderId}/invoice`,
+    );
     return response.data;
   },
 
-  recordPayment: async (invoiceId: string, amount: number, paymentMethod: string, notes?: string): Promise<Invoice> => {
-    const response = await apiClient.post(`/api/v1/sales/invoices/${invoiceId}/payment`, {
-      amount,
-      payment_method: paymentMethod,
-      notes,
-    });
+  recordPayment: async (
+    invoiceId: string,
+    amount: number,
+    paymentMethod: string,
+    notes?: string,
+  ): Promise<Invoice> => {
+    const response = await apiClient.post(
+      `/api/v1/sales/invoices/${invoiceId}/payment`,
+      {
+        amount,
+        payment_method: paymentMethod,
+        notes,
+      },
+    );
     return response.data;
   },
 
   // Customers API
-  getCustomers: async (params: SalesQueryParams = {}): Promise<SalesListResponse<Customer>> => {
-    const response = await apiClient.get('/api/v1/sales/customers', { params });
+  getCustomers: async (
+    params: SalesQueryParams = {},
+  ): Promise<SalesListResponse<Customer>> => {
+    const response = await apiClient.get("/api/v1/sales/customers", { params });
     return response.data;
   },
 
@@ -272,12 +319,17 @@ export const salesApi = {
     return response.data;
   },
 
-  createCustomer: async (data: Omit<Customer, 'id' | 'created_at' | 'updated_at'>): Promise<Customer> => {
-    const response = await apiClient.post('/api/v1/sales/customers', data);
+  createCustomer: async (
+    data: Omit<Customer, "id" | "created_at" | "updated_at">,
+  ): Promise<Customer> => {
+    const response = await apiClient.post("/api/v1/sales/customers", data);
     return response.data;
   },
 
-  updateCustomer: async (id: string, data: Partial<Customer>): Promise<Customer> => {
+  updateCustomer: async (
+    id: string,
+    data: Partial<Customer>,
+  ): Promise<Customer> => {
     const response = await apiClient.put(`/api/v1/sales/customers/${id}`, data);
     return response.data;
   },
@@ -288,12 +340,16 @@ export const salesApi = {
 
   // Analytics & Stats
   getSalesStats: async (): Promise<SalesStats> => {
-    const response = await apiClient.get('/api/v1/sales/stats');
+    const response = await apiClient.get("/api/v1/sales/stats");
     return response.data;
   },
 
-  getSalesReport: async (dateFrom: string, dateTo: string, groupBy: 'day' | 'week' | 'month'): Promise<any[]> => {
-    const response = await apiClient.get('/api/v1/sales/reports', {
+  getSalesReport: async (
+    dateFrom: string,
+    dateTo: string,
+    groupBy: "day" | "week" | "month",
+  ): Promise<any[]> => {
+    const response = await apiClient.get("/api/v1/sales/reports", {
       params: { date_from: dateFrom, date_to: dateTo, group_by: groupBy },
     });
     return response.data;

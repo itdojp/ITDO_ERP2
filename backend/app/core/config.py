@@ -1,7 +1,8 @@
 from typing import List
+
 from pydantic import (
     AnyHttpUrl,
-    AnyUrl,  
+    AnyUrl,
     Field,
     PostgresDsn,
     field_validator,

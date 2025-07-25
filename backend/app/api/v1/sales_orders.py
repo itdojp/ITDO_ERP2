@@ -190,7 +190,9 @@ async def confirm_sales_order(order_id: str) -> dict:
 
 
 @router.post("/sales-orders/{order_id}/ship")
-async def ship_sales_order(order_id: str, tracking_number: Optional[str] = None) -> dict:
+async def ship_sales_order(
+    order_id: str, tracking_number: Optional[str] = None
+) -> dict:
     """売上オーダーを出荷"""
     if order_id not in sales_orders_db:
         raise HTTPException(status_code=404, detail="売上オーダーが見つかりません")

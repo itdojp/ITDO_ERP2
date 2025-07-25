@@ -48,26 +48,9 @@ from app.models.document_extended import (
 from app.models.expense import Expense, ExpenseApprovalFlow
 from app.models.expense_category import ExpenseCategory
 
-# CC02 v60.0 - Payment Processing Models
-from app.models.payment_processing import (
-    PaymentTransaction,
-    PaymentMethodInfo,
-    PaymentRefund,
-    PaymentProcessingLog,
-    PaymentProviderConfig,
-    PaymentAnalytics,
-    PaymentStatus,
-    PaymentMethod,
-    PaymentProvider,
-    RefundReason,
-)
-
 # CC02 v31.0 Phase 2 - Finance Management Models
 from app.models.finance_extended import (
     Account,
-)
-from app.models.finance_extended import Budget as FinanceBudget
-from app.models.finance_extended import (
     BudgetLine,
     CostCenter,
     FinanceAuditLog,
@@ -77,6 +60,7 @@ from app.models.finance_extended import (
     JournalEntryLine,
     TaxConfiguration,
 )
+from app.models.finance_extended import Budget as FinanceBudget
 
 # CC02 v31.0 Phase 2 - HR Management Models
 from app.models.hr_extended import (
@@ -120,6 +104,20 @@ from app.models.notification_extended import (
 )
 from app.models.organization import Organization
 from app.models.password_history import PasswordHistory
+
+# CC02 v60.0 - Payment Processing Models
+from app.models.payment_processing import (
+    PaymentAnalytics,
+    PaymentMethod,
+    PaymentMethodInfo,
+    PaymentProcessingLog,
+    PaymentProvider,
+    PaymentProviderConfig,
+    PaymentRefund,
+    PaymentStatus,
+    PaymentTransaction,
+    RefundReason,
+)
 from app.models.permission import Permission
 from app.models.permission_inheritance import (
     InheritanceAuditLog,

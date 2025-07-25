@@ -3,7 +3,7 @@
  * Provides client-side methods for managing and evaluating feature flags
  */
 
-import { apiClient } from './api';
+import { apiClient } from "./api";
 
 export interface FeatureFlagContext {
   userId?: string;
@@ -64,33 +64,49 @@ class FeatureFlagsService {
   /**
    * Evaluate a single feature flag
    */
-  async evaluateFlag(key: string, context: FeatureFlagContext = {}): Promise<FeatureFlagEvaluation> {
-    const response = await apiClient.post<FeatureFlagEvaluation>('/api/v1/feature-flags/evaluate', {
-      key,
-      ...context
-    });
+  async evaluateFlag(
+    key: string,
+    context: FeatureFlagContext = {},
+  ): Promise<FeatureFlagEvaluation> {
+    const response = await apiClient.post<FeatureFlagEvaluation>(
+      "/api/v1/feature-flags/evaluate",
+      {
+        key,
+        ...context,
+      },
+    );
     return response.data;
   }
 
   /**
    * Bulk evaluate multiple feature flags
    */
-  async evaluateFlags(keys: string[], context: FeatureFlagContext = {}): Promise<FeatureFlagEvaluation[]> {
-    const response = await apiClient.post<FeatureFlagEvaluation[]>('/api/v1/feature-flags/bulk-evaluate', {
-      flag_keys: keys,
-      context
-    });
+  async evaluateFlags(
+    keys: string[],
+    context: FeatureFlagContext = {},
+  ): Promise<FeatureFlagEvaluation[]> {
+    const response = await apiClient.post<FeatureFlagEvaluation[]>(
+      "/api/v1/feature-flags/bulk-evaluate",
+      {
+        flag_keys: keys,
+        context,
+      },
+    );
     return response.data;
   }
 
   /**
    * Get A/B testing variant
    */
-  async getVariant(key: string, variants: string[] = ['A', 'B'], context: FeatureFlagContext = {}): Promise<{ key: string; variant: string; userId: string }> {
-    const response = await apiClient.post('/api/v1/feature-flags/variant', {
+  async getVariant(
+    key: string,
+    variants: string[] = ["A", "B"],
+    context: FeatureFlagContext = {},
+  ): Promise<{ key: string; variant: string; userId: string }> {
+    const response = await apiClient.post("/api/v1/feature-flags/variant", {
       key,
       variants,
-      ...context
+      ...context,
     });
     return response.data;
   }
@@ -99,7 +115,9 @@ class FeatureFlagsService {
    * List all feature flags (admin only)
    */
   async listFlags(): Promise<FeatureFlag[]> {
-    const response = await apiClient.get<FeatureFlag[]>('/api/v1/feature-flags/flags');
+    const response = await apiClient.get<FeatureFlag[]>(
+      "/api/v1/feature-flags/flags",
+    );
     return response.data;
   }
 
@@ -114,16 +132,27 @@ class FeatureFlagsService {
   /**
    * Create a new feature flag (admin only)
    */
-  async createFlag(request: CreateFeatureFlagRequest): Promise<{ message: string }> {
-    const response = await apiClient.post('/api/v1/feature-flags/flags', request);
+  async createFlag(
+    request: CreateFeatureFlagRequest,
+  ): Promise<{ message: string }> {
+    const response = await apiClient.post(
+      "/api/v1/feature-flags/flags",
+      request,
+    );
     return response.data;
   }
 
   /**
    * Update an existing feature flag (admin only)
    */
-  async updateFlag(key: string, request: UpdateFeatureFlagRequest): Promise<{ message: string }> {
-    const response = await apiClient.put(`/api/v1/feature-flags/flags/${key}`, request);
+  async updateFlag(
+    key: string,
+    request: UpdateFeatureFlagRequest,
+  ): Promise<{ message: string }> {
+    const response = await apiClient.put(
+      `/api/v1/feature-flags/flags/${key}`,
+      request,
+    );
     return response.data;
   }
 
@@ -131,7 +160,9 @@ class FeatureFlagsService {
    * Delete a feature flag (admin only)
    */
   async deleteFlag(key: string): Promise<{ message: string }> {
-    const response = await apiClient.delete(`/api/v1/feature-flags/flags/${key}`);
+    const response = await apiClient.delete(
+      `/api/v1/feature-flags/flags/${key}`,
+    );
     return response.data;
   }
 
@@ -139,15 +170,22 @@ class FeatureFlagsService {
    * Update rollout percentage for gradual rollout (admin only)
    */
   async updateRolloutPercentage(key: string, percentage: number): Promise<any> {
-    const response = await apiClient.post(`/api/v1/feature-flags/flags/${key}/rollout`, percentage);
+    const response = await apiClient.post(
+      `/api/v1/feature-flags/flags/${key}/rollout`,
+      percentage,
+    );
     return response.data;
   }
 
   /**
    * Get current rollout percentage
    */
-  async getRolloutPercentage(key: string): Promise<{ flagKey: string; rolloutPercentage: number }> {
-    const response = await apiClient.get(`/api/v1/feature-flags/flags/${key}/rollout`);
+  async getRolloutPercentage(
+    key: string,
+  ): Promise<{ flagKey: string; rolloutPercentage: number }> {
+    const response = await apiClient.get(
+      `/api/v1/feature-flags/flags/${key}/rollout`,
+    );
     return response.data;
   }
 }
@@ -169,15 +207,19 @@ export function useFeatureFlag(key: string, context: FeatureFlagContext = {}) {
       try {
         setIsLoading(true);
         setError(null);
-        
+
         const result = await featureFlagsService.evaluateFlag(key, context);
-        
+
         if (mounted) {
           setIsEnabled(result.enabled);
         }
       } catch (err) {
         if (mounted) {
-          setError(err instanceof Error ? err : new Error('Failed to evaluate feature flag'));
+          setError(
+            err instanceof Error
+              ? err
+              : new Error("Failed to evaluate feature flag"),
+          );
           setIsEnabled(false); // Fail safe to disabled
         }
       } finally {
@@ -200,7 +242,11 @@ export function useFeatureFlag(key: string, context: FeatureFlagContext = {}) {
 /**
  * React hook for A/B testing variants
  */
-export function useFeatureVariant(key: string, variants: string[] = ['A', 'B'], context: FeatureFlagContext = {}) {
+export function useFeatureVariant(
+  key: string,
+  variants: string[] = ["A", "B"],
+  context: FeatureFlagContext = {},
+) {
   const [variant, setVariant] = React.useState<string>(variants[0]);
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
   const [error, setError] = React.useState<Error | null>(null);
@@ -212,15 +258,23 @@ export function useFeatureVariant(key: string, variants: string[] = ['A', 'B'], 
       try {
         setIsLoading(true);
         setError(null);
-        
-        const result = await featureFlagsService.getVariant(key, variants, context);
-        
+
+        const result = await featureFlagsService.getVariant(
+          key,
+          variants,
+          context,
+        );
+
         if (mounted) {
           setVariant(result.variant);
         }
       } catch (err) {
         if (mounted) {
-          setError(err instanceof Error ? err : new Error('Failed to get feature variant'));
+          setError(
+            err instanceof Error
+              ? err
+              : new Error("Failed to get feature variant"),
+          );
           setVariant(variants[0]); // Default to first variant
         }
       } finally {
@@ -243,7 +297,10 @@ export function useFeatureVariant(key: string, variants: string[] = ['A', 'B'], 
 /**
  * React hook for bulk feature flag evaluation
  */
-export function useFeatureFlags(keys: string[], context: FeatureFlagContext = {}) {
+export function useFeatureFlags(
+  keys: string[],
+  context: FeatureFlagContext = {},
+) {
   const [flags, setFlags] = React.useState<Record<string, boolean>>({});
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
   const [error, setError] = React.useState<Error | null>(null);
@@ -255,25 +312,35 @@ export function useFeatureFlags(keys: string[], context: FeatureFlagContext = {}
       try {
         setIsLoading(true);
         setError(null);
-        
+
         const results = await featureFlagsService.evaluateFlags(keys, context);
-        
+
         if (mounted) {
-          const flagsMap = results.reduce((acc, result) => {
-            acc[result.key] = result.enabled;
-            return acc;
-          }, {} as Record<string, boolean>);
-          
+          const flagsMap = results.reduce(
+            (acc, result) => {
+              acc[result.key] = result.enabled;
+              return acc;
+            },
+            {} as Record<string, boolean>,
+          );
+
           setFlags(flagsMap);
         }
       } catch (err) {
         if (mounted) {
-          setError(err instanceof Error ? err : new Error('Failed to evaluate feature flags'));
+          setError(
+            err instanceof Error
+              ? err
+              : new Error("Failed to evaluate feature flags"),
+          );
           // Set all flags to false as fail-safe
-          const failSafeFlags = keys.reduce((acc, key) => {
-            acc[key] = false;
-            return acc;
-          }, {} as Record<string, boolean>);
+          const failSafeFlags = keys.reduce(
+            (acc, key) => {
+              acc[key] = false;
+              return acc;
+            },
+            {} as Record<string, boolean>,
+          );
           setFlags(failSafeFlags);
         }
       } finally {
@@ -298,6 +365,6 @@ export function useFeatureFlags(keys: string[], context: FeatureFlagContext = {}
 }
 
 // Import React for hooks
-import React from 'react';
+import React from "react";
 
 export default featureFlagsService;

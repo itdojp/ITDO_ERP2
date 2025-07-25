@@ -12,11 +12,14 @@ from pydantic import BaseModel, ConfigDict, Field
 # Base schemas
 class CustomerBase(BaseModel):
     """顧客基本スキーマ"""
+
     code: str = Field(..., description="顧客コード", max_length=50)
     name: str = Field(..., description="顧客名", max_length=200)
     name_kana: Optional[str] = Field(None, description="顧客名カナ", max_length=200)
     short_name: Optional[str] = Field(None, description="略称", max_length=100)
-    customer_type: str = Field("corporate", description="顧客種別: corporate, individual")
+    customer_type: str = Field(
+        "corporate", description="顧客種別: corporate, individual"
+    )
     industry: Optional[str] = Field(None, description="業界", max_length=100)
     scale: Optional[str] = Field(None, description="規模: large, medium, small")
     postal_code: Optional[str] = Field(None, description="郵便番号", max_length=10)
@@ -36,11 +39,13 @@ class CustomerBase(BaseModel):
 
 class CustomerCreate(CustomerBase):
     """顧客作成スキーマ"""
+
     pass
 
 
 class CustomerUpdate(BaseModel):
     """顧客更新スキーマ"""
+
     code: Optional[str] = Field(None, description="顧客コード", max_length=50)
     name: Optional[str] = Field(None, description="顧客名", max_length=200)
     name_kana: Optional[str] = Field(None, description="顧客名カナ", max_length=200)
@@ -65,6 +70,7 @@ class CustomerUpdate(BaseModel):
 
 class CustomerResponse(CustomerBase):
     """顧客レスポンススキーマ"""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -80,6 +86,7 @@ class CustomerResponse(CustomerBase):
 # Customer Contact schemas
 class CustomerContactBase(BaseModel):
     """顧客担当者基本スキーマ"""
+
     name: str = Field(..., description="氏名", max_length=100)
     name_kana: Optional[str] = Field(None, description="氏名カナ", max_length=100)
     title: Optional[str] = Field(None, description="役職", max_length=100)
@@ -94,11 +101,13 @@ class CustomerContactBase(BaseModel):
 
 class CustomerContactCreate(CustomerContactBase):
     """顧客担当者作成スキーマ"""
+
     customer_id: int = Field(..., description="顧客ID")
 
 
 class CustomerContactUpdate(BaseModel):
     """顧客担当者更新スキーマ"""
+
     name: Optional[str] = Field(None, description="氏名", max_length=100)
     name_kana: Optional[str] = Field(None, description="氏名カナ", max_length=100)
     title: Optional[str] = Field(None, description="役職", max_length=100)
@@ -113,6 +122,7 @@ class CustomerContactUpdate(BaseModel):
 
 class CustomerContactResponse(CustomerContactBase):
     """顧客担当者レスポンススキーマ"""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -124,6 +134,7 @@ class CustomerContactResponse(CustomerContactBase):
 # Opportunity schemas
 class OpportunityBase(BaseModel):
     """商談基本スキーマ"""
+
     title: str = Field(..., description="商談名", max_length=200)
     description: Optional[str] = Field(None, description="商談詳細")
     estimated_value: Optional[float] = Field(None, description="予想受注金額")
@@ -138,12 +149,14 @@ class OpportunityBase(BaseModel):
 
 class OpportunityCreate(OpportunityBase):
     """商談作成スキーマ"""
+
     customer_id: int = Field(..., description="顧客ID")
     owner_id: int = Field(..., description="営業担当者ID")
 
 
 class OpportunityUpdate(BaseModel):
     """商談更新スキーマ"""
+
     title: Optional[str] = Field(None, description="商談名", max_length=200)
     description: Optional[str] = Field(None, description="商談詳細")
     estimated_value: Optional[float] = Field(None, description="予想受注金額")
@@ -160,6 +173,7 @@ class OpportunityUpdate(BaseModel):
 
 class OpportunityResponse(OpportunityBase):
     """商談レスポンススキーマ"""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -173,24 +187,33 @@ class OpportunityResponse(OpportunityBase):
 # Customer Activity schemas
 class CustomerActivityBase(BaseModel):
     """顧客活動基本スキーマ"""
-    activity_type: str = Field(..., description="活動種別: call, email, meeting, proposal, other")
+
+    activity_type: str = Field(
+        ..., description="活動種別: call, email, meeting, proposal, other"
+    )
     subject: str = Field(..., description="件名", max_length=200)
     description: Optional[str] = Field(None, description="内容")
     activity_date: datetime = Field(..., description="活動日時")
-    status: str = Field("completed", description="ステータス: planned, completed, canceled")
+    status: str = Field(
+        "completed", description="ステータス: planned, completed, canceled"
+    )
     outcome: Optional[str] = Field(None, description="結果・成果")
     next_action: Optional[str] = Field(None, description="次回アクション")
-    next_action_date: Optional[datetime] = Field(None, description="次回アクション予定日")
+    next_action_date: Optional[datetime] = Field(
+        None, description="次回アクション予定日"
+    )
 
 
 class CustomerActivityCreate(CustomerActivityBase):
     """顧客活動作成スキーマ"""
+
     customer_id: int = Field(..., description="顧客ID")
     opportunity_id: Optional[int] = Field(None, description="商談ID")
 
 
 class CustomerActivityUpdate(BaseModel):
     """顧客活動更新スキーマ"""
+
     activity_type: Optional[str] = Field(None, description="活動種別")
     subject: Optional[str] = Field(None, description="件名", max_length=200)
     description: Optional[str] = Field(None, description="内容")
@@ -198,11 +221,14 @@ class CustomerActivityUpdate(BaseModel):
     status: Optional[str] = Field(None, description="ステータス")
     outcome: Optional[str] = Field(None, description="結果・成果")
     next_action: Optional[str] = Field(None, description="次回アクション")
-    next_action_date: Optional[datetime] = Field(None, description="次回アクション予定日")
+    next_action_date: Optional[datetime] = Field(
+        None, description="次回アクション予定日"
+    )
 
 
 class CustomerActivityResponse(CustomerActivityBase):
     """顧客活動レスポンススキーマ"""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -216,6 +242,7 @@ class CustomerActivityResponse(CustomerActivityBase):
 # Complex response schemas with relationships
 class CustomerDetailResponse(CustomerResponse):
     """顧客詳細レスポンススキーマ"""
+
     contacts: List[CustomerContactResponse] = []
     opportunities: List[OpportunityResponse] = []
     recent_activities: List[CustomerActivityResponse] = []
@@ -223,12 +250,14 @@ class CustomerDetailResponse(CustomerResponse):
 
 class OpportunityDetailResponse(OpportunityResponse):
     """商談詳細レスポンススキーマ"""
+
     activities: List[CustomerActivityResponse] = []
 
 
 # Analytics schemas
 class CustomerAnalytics(BaseModel):
     """顧客分析スキーマ"""
+
     total_customers: int
     active_customers: int
     prospects: int
@@ -241,6 +270,7 @@ class CustomerAnalytics(BaseModel):
 
 class OpportunityAnalytics(BaseModel):
     """商談分析スキーマ"""
+
     total_opportunities: int
     open_opportunities: int
     won_opportunities: int
@@ -255,9 +285,11 @@ class OpportunityAnalytics(BaseModel):
 # Bulk operations
 class CustomerBulkCreate(BaseModel):
     """顧客一括作成スキーマ"""
+
     customers: List[CustomerCreate]
 
 
 class CustomerBulkUpdate(BaseModel):
     """顧客一括更新スキーマ"""
+
     updates: List[dict]  # [{"id": 1, "data": CustomerUpdate}, ...]

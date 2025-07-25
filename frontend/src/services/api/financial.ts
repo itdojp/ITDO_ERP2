@@ -1,10 +1,10 @@
-import { apiClient } from './client';
+import { apiClient } from "./client";
 
 export interface Account {
   id: string;
   account_code: string;
   account_name: string;
-  account_type: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense';
+  account_type: "asset" | "liability" | "equity" | "revenue" | "expense";
   parent_account_id?: string;
   is_active: boolean;
   balance: number;
@@ -23,7 +23,7 @@ export interface Transaction {
   total_amount: number;
   currency: string;
   entries: TransactionEntry[];
-  status: 'draft' | 'posted' | 'reconciled';
+  status: "draft" | "posted" | "reconciled";
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -48,7 +48,7 @@ export interface JournalEntry {
   total_debits: number;
   total_credits: number;
   entries: JournalEntryLine[];
-  status: 'draft' | 'posted';
+  status: "draft" | "posted";
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -66,7 +66,11 @@ export interface JournalEntryLine {
 
 export interface FinancialReport {
   id: string;
-  report_type: 'balance_sheet' | 'income_statement' | 'cash_flow' | 'trial_balance';
+  report_type:
+    | "balance_sheet"
+    | "income_statement"
+    | "cash_flow"
+    | "trial_balance";
   report_name: string;
   period_start: string;
   period_end: string;
@@ -95,7 +99,7 @@ export interface BudgetPlan {
   fiscal_year: string;
   period_start: string;
   period_end: string;
-  status: 'draft' | 'approved' | 'active' | 'closed';
+  status: "draft" | "approved" | "active" | "closed";
   budget_items: BudgetItem[];
   total_revenue_budget: number;
   total_expense_budget: number;
@@ -139,7 +143,7 @@ export interface CashFlowForecast {
 export interface CashFlowItem {
   date: string;
   description: string;
-  category: 'operating' | 'investing' | 'financing';
+  category: "operating" | "investing" | "financing";
   cash_in: number;
   cash_out: number;
   net_flow: number;
@@ -149,8 +153,8 @@ export interface CashFlowItem {
 export interface TaxReturn {
   id: string;
   tax_year: string;
-  return_type: 'corporate' | 'sales' | 'payroll' | 'property';
-  status: 'draft' | 'filed' | 'accepted' | 'amended';
+  return_type: "corporate" | "sales" | "payroll" | "property";
+  status: "draft" | "filed" | "accepted" | "amended";
   due_date: string;
   filed_date?: string;
   tax_liability: number;
@@ -171,7 +175,7 @@ export interface FinancialQueryParams {
   date_to?: string;
   status?: string;
   sort_by?: string;
-  sort_order?: 'asc' | 'desc';
+  sort_order?: "asc" | "desc";
 }
 
 export interface FinancialListResponse<T> {
@@ -201,8 +205,12 @@ export interface FinancialStats {
 
 export const financialApi = {
   // Chart of Accounts
-  getAccounts: async (params: FinancialQueryParams = {}): Promise<FinancialListResponse<Account>> => {
-    const response = await apiClient.get('/api/v1/financial/accounts', { params });
+  getAccounts: async (
+    params: FinancialQueryParams = {},
+  ): Promise<FinancialListResponse<Account>> => {
+    const response = await apiClient.get("/api/v1/financial/accounts", {
+      params,
+    });
     return response.data;
   },
 
@@ -211,13 +219,21 @@ export const financialApi = {
     return response.data;
   },
 
-  createAccount: async (data: Omit<Account, 'id' | 'balance' | 'created_at' | 'updated_at'>): Promise<Account> => {
-    const response = await apiClient.post('/api/v1/financial/accounts', data);
+  createAccount: async (
+    data: Omit<Account, "id" | "balance" | "created_at" | "updated_at">,
+  ): Promise<Account> => {
+    const response = await apiClient.post("/api/v1/financial/accounts", data);
     return response.data;
   },
 
-  updateAccount: async (id: string, data: Partial<Account>): Promise<Account> => {
-    const response = await apiClient.put(`/api/v1/financial/accounts/${id}`, data);
+  updateAccount: async (
+    id: string,
+    data: Partial<Account>,
+  ): Promise<Account> => {
+    const response = await apiClient.put(
+      `/api/v1/financial/accounts/${id}`,
+      data,
+    );
     return response.data;
   },
 
@@ -226,23 +242,43 @@ export const financialApi = {
   },
 
   // Transactions
-  getTransactions: async (params: FinancialQueryParams = {}): Promise<FinancialListResponse<Transaction>> => {
-    const response = await apiClient.get('/api/v1/financial/transactions', { params });
+  getTransactions: async (
+    params: FinancialQueryParams = {},
+  ): Promise<FinancialListResponse<Transaction>> => {
+    const response = await apiClient.get("/api/v1/financial/transactions", {
+      params,
+    });
     return response.data;
   },
 
   getTransaction: async (id: string): Promise<Transaction> => {
-    const response = await apiClient.get(`/api/v1/financial/transactions/${id}`);
+    const response = await apiClient.get(
+      `/api/v1/financial/transactions/${id}`,
+    );
     return response.data;
   },
 
-  createTransaction: async (data: Omit<Transaction, 'id' | 'transaction_number' | 'created_at' | 'updated_at'>): Promise<Transaction> => {
-    const response = await apiClient.post('/api/v1/financial/transactions', data);
+  createTransaction: async (
+    data: Omit<
+      Transaction,
+      "id" | "transaction_number" | "created_at" | "updated_at"
+    >,
+  ): Promise<Transaction> => {
+    const response = await apiClient.post(
+      "/api/v1/financial/transactions",
+      data,
+    );
     return response.data;
   },
 
-  updateTransaction: async (id: string, data: Partial<Transaction>): Promise<Transaction> => {
-    const response = await apiClient.put(`/api/v1/financial/transactions/${id}`, data);
+  updateTransaction: async (
+    id: string,
+    data: Partial<Transaction>,
+  ): Promise<Transaction> => {
+    const response = await apiClient.put(
+      `/api/v1/financial/transactions/${id}`,
+      data,
+    );
     return response.data;
   },
 
@@ -251,28 +287,55 @@ export const financialApi = {
   },
 
   postTransaction: async (id: string): Promise<Transaction> => {
-    const response = await apiClient.post(`/api/v1/financial/transactions/${id}/post`);
+    const response = await apiClient.post(
+      `/api/v1/financial/transactions/${id}/post`,
+    );
     return response.data;
   },
 
   // Journal Entries
-  getJournalEntries: async (params: FinancialQueryParams = {}): Promise<FinancialListResponse<JournalEntry>> => {
-    const response = await apiClient.get('/api/v1/financial/journal-entries', { params });
+  getJournalEntries: async (
+    params: FinancialQueryParams = {},
+  ): Promise<FinancialListResponse<JournalEntry>> => {
+    const response = await apiClient.get("/api/v1/financial/journal-entries", {
+      params,
+    });
     return response.data;
   },
 
   getJournalEntry: async (id: string): Promise<JournalEntry> => {
-    const response = await apiClient.get(`/api/v1/financial/journal-entries/${id}`);
+    const response = await apiClient.get(
+      `/api/v1/financial/journal-entries/${id}`,
+    );
     return response.data;
   },
 
-  createJournalEntry: async (data: Omit<JournalEntry, 'id' | 'entry_number' | 'total_debits' | 'total_credits' | 'created_at' | 'updated_at'>): Promise<JournalEntry> => {
-    const response = await apiClient.post('/api/v1/financial/journal-entries', data);
+  createJournalEntry: async (
+    data: Omit<
+      JournalEntry,
+      | "id"
+      | "entry_number"
+      | "total_debits"
+      | "total_credits"
+      | "created_at"
+      | "updated_at"
+    >,
+  ): Promise<JournalEntry> => {
+    const response = await apiClient.post(
+      "/api/v1/financial/journal-entries",
+      data,
+    );
     return response.data;
   },
 
-  updateJournalEntry: async (id: string, data: Partial<JournalEntry>): Promise<JournalEntry> => {
-    const response = await apiClient.put(`/api/v1/financial/journal-entries/${id}`, data);
+  updateJournalEntry: async (
+    id: string,
+    data: Partial<JournalEntry>,
+  ): Promise<JournalEntry> => {
+    const response = await apiClient.put(
+      `/api/v1/financial/journal-entries/${id}`,
+      data,
+    );
     return response.data;
   },
 
@@ -281,56 +344,87 @@ export const financialApi = {
   },
 
   postJournalEntry: async (id: string): Promise<JournalEntry> => {
-    const response = await apiClient.post(`/api/v1/financial/journal-entries/${id}/post`);
+    const response = await apiClient.post(
+      `/api/v1/financial/journal-entries/${id}/post`,
+    );
     return response.data;
   },
 
   // Financial Reports
   getReports: async (): Promise<FinancialReport[]> => {
-    const response = await apiClient.get('/api/v1/financial/reports');
+    const response = await apiClient.get("/api/v1/financial/reports");
     return response.data;
   },
 
-  generateReport: async (reportType: string, periodStart: string, periodEnd: string): Promise<FinancialReport> => {
-    const response = await apiClient.post('/api/v1/financial/reports/generate', {
-      report_type: reportType,
-      period_start: periodStart,
-      period_end: periodEnd,
-    });
+  generateReport: async (
+    reportType: string,
+    periodStart: string,
+    periodEnd: string,
+  ): Promise<FinancialReport> => {
+    const response = await apiClient.post(
+      "/api/v1/financial/reports/generate",
+      {
+        report_type: reportType,
+        period_start: periodStart,
+        period_end: periodEnd,
+      },
+    );
     return response.data;
   },
 
   getBalanceSheet: async (asOfDate: string): Promise<FinancialReport> => {
-    const response = await apiClient.get('/api/v1/financial/reports/balance-sheet', {
-      params: { as_of_date: asOfDate },
-    });
+    const response = await apiClient.get(
+      "/api/v1/financial/reports/balance-sheet",
+      {
+        params: { as_of_date: asOfDate },
+      },
+    );
     return response.data;
   },
 
-  getIncomeStatement: async (periodStart: string, periodEnd: string): Promise<FinancialReport> => {
-    const response = await apiClient.get('/api/v1/financial/reports/income-statement', {
-      params: { period_start: periodStart, period_end: periodEnd },
-    });
+  getIncomeStatement: async (
+    periodStart: string,
+    periodEnd: string,
+  ): Promise<FinancialReport> => {
+    const response = await apiClient.get(
+      "/api/v1/financial/reports/income-statement",
+      {
+        params: { period_start: periodStart, period_end: periodEnd },
+      },
+    );
     return response.data;
   },
 
-  getCashFlowStatement: async (periodStart: string, periodEnd: string): Promise<FinancialReport> => {
-    const response = await apiClient.get('/api/v1/financial/reports/cash-flow', {
-      params: { period_start: periodStart, period_end: periodEnd },
-    });
+  getCashFlowStatement: async (
+    periodStart: string,
+    periodEnd: string,
+  ): Promise<FinancialReport> => {
+    const response = await apiClient.get(
+      "/api/v1/financial/reports/cash-flow",
+      {
+        params: { period_start: periodStart, period_end: periodEnd },
+      },
+    );
     return response.data;
   },
 
   getTrialBalance: async (asOfDate: string): Promise<FinancialReport> => {
-    const response = await apiClient.get('/api/v1/financial/reports/trial-balance', {
-      params: { as_of_date: asOfDate },
-    });
+    const response = await apiClient.get(
+      "/api/v1/financial/reports/trial-balance",
+      {
+        params: { as_of_date: asOfDate },
+      },
+    );
     return response.data;
   },
 
   // Budget Management
-  getBudgets: async (params: FinancialQueryParams = {}): Promise<FinancialListResponse<BudgetPlan>> => {
-    const response = await apiClient.get('/api/v1/financial/budgets', { params });
+  getBudgets: async (
+    params: FinancialQueryParams = {},
+  ): Promise<FinancialListResponse<BudgetPlan>> => {
+    const response = await apiClient.get("/api/v1/financial/budgets", {
+      params,
+    });
     return response.data;
   },
 
@@ -339,13 +433,29 @@ export const financialApi = {
     return response.data;
   },
 
-  createBudget: async (data: Omit<BudgetPlan, 'id' | 'total_revenue_budget' | 'total_expense_budget' | 'net_budget' | 'created_at' | 'updated_at'>): Promise<BudgetPlan> => {
-    const response = await apiClient.post('/api/v1/financial/budgets', data);
+  createBudget: async (
+    data: Omit<
+      BudgetPlan,
+      | "id"
+      | "total_revenue_budget"
+      | "total_expense_budget"
+      | "net_budget"
+      | "created_at"
+      | "updated_at"
+    >,
+  ): Promise<BudgetPlan> => {
+    const response = await apiClient.post("/api/v1/financial/budgets", data);
     return response.data;
   },
 
-  updateBudget: async (id: string, data: Partial<BudgetPlan>): Promise<BudgetPlan> => {
-    const response = await apiClient.put(`/api/v1/financial/budgets/${id}`, data);
+  updateBudget: async (
+    id: string,
+    data: Partial<BudgetPlan>,
+  ): Promise<BudgetPlan> => {
+    const response = await apiClient.put(
+      `/api/v1/financial/budgets/${id}`,
+      data,
+    );
     return response.data;
   },
 
@@ -355,18 +465,32 @@ export const financialApi = {
 
   // Cash Flow Forecasting
   getCashFlowForecasts: async (): Promise<CashFlowForecast[]> => {
-    const response = await apiClient.get('/api/v1/financial/cash-flow-forecasts');
+    const response = await apiClient.get(
+      "/api/v1/financial/cash-flow-forecasts",
+    );
     return response.data;
   },
 
-  createCashFlowForecast: async (data: Omit<CashFlowForecast, 'id' | 'closing_balance' | 'created_at' | 'updated_at'>): Promise<CashFlowForecast> => {
-    const response = await apiClient.post('/api/v1/financial/cash-flow-forecasts', data);
+  createCashFlowForecast: async (
+    data: Omit<
+      CashFlowForecast,
+      "id" | "closing_balance" | "created_at" | "updated_at"
+    >,
+  ): Promise<CashFlowForecast> => {
+    const response = await apiClient.post(
+      "/api/v1/financial/cash-flow-forecasts",
+      data,
+    );
     return response.data;
   },
 
   // Tax Management
-  getTaxReturns: async (params: FinancialQueryParams = {}): Promise<FinancialListResponse<TaxReturn>> => {
-    const response = await apiClient.get('/api/v1/financial/tax-returns', { params });
+  getTaxReturns: async (
+    params: FinancialQueryParams = {},
+  ): Promise<FinancialListResponse<TaxReturn>> => {
+    const response = await apiClient.get("/api/v1/financial/tax-returns", {
+      params,
+    });
     return response.data;
   },
 
@@ -375,32 +499,51 @@ export const financialApi = {
     return response.data;
   },
 
-  createTaxReturn: async (data: Omit<TaxReturn, 'id' | 'created_at' | 'updated_at'>): Promise<TaxReturn> => {
-    const response = await apiClient.post('/api/v1/financial/tax-returns', data);
+  createTaxReturn: async (
+    data: Omit<TaxReturn, "id" | "created_at" | "updated_at">,
+  ): Promise<TaxReturn> => {
+    const response = await apiClient.post(
+      "/api/v1/financial/tax-returns",
+      data,
+    );
     return response.data;
   },
 
   // Financial Analytics
   getFinancialStats: async (): Promise<FinancialStats> => {
-    const response = await apiClient.get('/api/v1/financial/stats');
+    const response = await apiClient.get("/api/v1/financial/stats");
     return response.data;
   },
 
-  getFinancialDashboard: async (periodStart: string, periodEnd: string): Promise<any> => {
-    const response = await apiClient.get('/api/v1/financial/dashboard', {
+  getFinancialDashboard: async (
+    periodStart: string,
+    periodEnd: string,
+  ): Promise<any> => {
+    const response = await apiClient.get("/api/v1/financial/dashboard", {
       params: { period_start: periodStart, period_end: periodEnd },
     });
     return response.data;
   },
 
-  getAccountBalance: async (accountId: string, asOfDate?: string): Promise<{ balance: number; currency: string }> => {
-    const response = await apiClient.get(`/api/v1/financial/accounts/${accountId}/balance`, {
-      params: asOfDate ? { as_of_date: asOfDate } : {},
-    });
+  getAccountBalance: async (
+    accountId: string,
+    asOfDate?: string,
+  ): Promise<{ balance: number; currency: string }> => {
+    const response = await apiClient.get(
+      `/api/v1/financial/accounts/${accountId}/balance`,
+      {
+        params: asOfDate ? { as_of_date: asOfDate } : {},
+      },
+    );
     return response.data;
   },
 
-  reconcileAccount: async (accountId: string, entries: { transaction_id: string; reconciled: boolean }[]): Promise<void> => {
-    await apiClient.post(`/api/v1/financial/accounts/${accountId}/reconcile`, { entries });
+  reconcileAccount: async (
+    accountId: string,
+    entries: { transaction_id: string; reconciled: boolean }[],
+  ): Promise<void> => {
+    await apiClient.post(`/api/v1/financial/accounts/${accountId}/reconcile`, {
+      entries,
+    });
   },
 };

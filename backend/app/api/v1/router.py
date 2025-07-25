@@ -21,13 +21,9 @@ from app.api.v1 import (
     user_profile,
     users,
     users_extended,
-    workflows,
 )
-from app.api.v1.endpoints import feature_flags
-from app.api.v1.endpoints.monitoring.performance import router as performance_router
 
 # New CC02 v35.0 API modules
-from app.api.v1.endpoints.security.audit import router as security_audit_router
 from app.core.database import get_db
 
 api_router = APIRouter()

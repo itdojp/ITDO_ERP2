@@ -1,6 +1,8 @@
-from sqlalchemy import Column, String, Integer, DateTime, Text, ForeignKey, Float, Boolean
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.sql import func
+
 from app.core.database_simple import Base
+
 
 class SalesOrder(Base):
     __tablename__ = "sales_orders_v20"
@@ -12,7 +14,9 @@ class SalesOrder(Base):
     customer_phone = Column(String, nullable=True)
     order_date = Column(DateTime(timezone=True), server_default=func.now())
     delivery_date = Column(DateTime(timezone=True), nullable=True)
-    status = Column(String, default='pending')  # pending, confirmed, shipped, delivered, cancelled
+    status = Column(
+        String, default="pending"
+    )  # pending, confirmed, shipped, delivered, cancelled
     total_amount = Column(Float, default=0.0)
     tax_amount = Column(Float, default=0.0)
     discount_amount = Column(Float, default=0.0)
@@ -21,12 +25,13 @@ class SalesOrder(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
+
 class SalesOrderItem(Base):
     __tablename__ = "sales_order_items_v20"
 
     id = Column(String, primary_key=True)
-    order_id = Column(String, ForeignKey('sales_orders_v20.id'), nullable=False)
-    product_id = Column(String, ForeignKey('products_v20.id'), nullable=False)
+    order_id = Column(String, ForeignKey("sales_orders_v20.id"), nullable=False)
+    product_id = Column(String, ForeignKey("products_v20.id"), nullable=False)
     product_name = Column(String, nullable=False)  # Snapshot at time of order
     quantity = Column(Integer, nullable=False)
     unit_price = Column(Float, nullable=False)

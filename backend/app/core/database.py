@@ -18,6 +18,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 async_engine = None
 AsyncSessionLocal = None
 
+
 def get_db() -> Generator[Session]:
     db = SessionLocal()
     try:

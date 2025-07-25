@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useForm, Controller, useFieldArray } from 'react-hook-form';
+import React, { useState, useEffect, useMemo } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useForm, Controller, useFieldArray } from "react-hook-form";
 import {
   Box,
   Paper,
@@ -39,8 +39,8 @@ import {
   Step,
   StepLabel,
   Tabs,
-  Tab
-} from '@mui/material';
+  Tab,
+} from "@mui/material";
 import {
   Add as AddIcon,
   Remove as RemoveIcon,
@@ -60,9 +60,9 @@ import {
   ContentCopy as CopyIcon,
   CheckCircle as CompleteIcon,
   Cancel as CancelIcon,
-  Inventory as StockIcon
-} from '@mui/icons-material';
-import { apiClient } from '@/services/api';
+  Inventory as StockIcon,
+} from "@mui/icons-material";
+import { apiClient } from "@/services/api";
 
 interface Customer {
   id: number;
@@ -112,7 +112,13 @@ interface SalesOrder {
   customer_name: string;
   order_date: string;
   delivery_date?: string;
-  status: 'draft' | 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
+  status:
+    | "draft"
+    | "pending"
+    | "confirmed"
+    | "shipped"
+    | "delivered"
+    | "cancelled";
   payment_terms: string;
   shipping_method: string;
   shipping_address: string;
@@ -167,9 +173,16 @@ export const SalesOrderPage: React.FC = () => {
   const [customerDialogOpen, setCustomerDialogOpen] = useState(false);
   const [productDialogOpen, setProductDialogOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  
-  const orderSteps = ['Customer & Basic Info', 'Add Products', 'Review & Pricing', 'Confirm Order'];
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
+    null,
+  );
+
+  const orderSteps = [
+    "Customer & Basic Info",
+    "Add Products",
+    "Review & Pricing",
+    "Confirm Order",
+  ];
 
   const {
     control,
@@ -177,34 +190,39 @@ export const SalesOrderPage: React.FC = () => {
     reset,
     watch,
     setValue,
-    formState: { errors, isDirty, isSubmitting }
+    formState: { errors, isDirty, isSubmitting },
   } = useForm<OrderFormData>({
     defaultValues: {
       customer_id: null,
-      order_date: new Date().toISOString().split('T')[0],
-      delivery_date: '',
-      payment_terms: 'NET30',
-      shipping_method: 'standard',
-      shipping_address: '',
-      billing_address: '',
-      notes: '',
-      internal_notes: '',
-      items: []
-    }
+      order_date: new Date().toISOString().split("T")[0],
+      delivery_date: "",
+      payment_terms: "NET30",
+      shipping_method: "standard",
+      shipping_address: "",
+      billing_address: "",
+      notes: "",
+      internal_notes: "",
+      items: [],
+    },
   });
 
-  const { fields: itemFields, append: addItem, remove: removeItem, update: updateItem } = useFieldArray({
+  const {
+    fields: itemFields,
+    append: addItem,
+    remove: removeItem,
+    update: updateItem,
+  } = useFieldArray({
     control,
-    name: 'items'
+    name: "items",
   });
 
   // Watch form values for calculations
-  const watchedItems = watch('items');
-  const watchedCustomerId = watch('customer_id');
+  const watchedItems = watch("items");
+  const watchedCustomerId = watch("customer_id");
 
   // Fetch existing order for editing
   const { data: existingOrder, isLoading: orderLoading } = useQuery({
-    queryKey: ['sales-order', orderId],
+    queryKey: ["sales-order", orderId],
     queryFn: async (): Promise<SalesOrder> => {
       const response = await apiClient.get(`/api/v1/sales-orders/${orderId}`);
       return response.data;
@@ -214,41 +232,48 @@ export const SalesOrderPage: React.FC = () => {
 
   // Fetch customers
   const { data: customers } = useQuery({
-    queryKey: ['customers'],
+    queryKey: ["customers"],
     queryFn: async (): Promise<Customer[]> => {
-      const response = await apiClient.get('/api/v1/customers');
+      const response = await apiClient.get("/api/v1/customers");
       return response.data || [];
     },
   });
 
   // Fetch products
   const { data: products } = useQuery({
-    queryKey: ['products-sales'],
+    queryKey: ["products-sales"],
     queryFn: async (): Promise<Product[]> => {
-      const response = await apiClient.get('/api/v1/products-basic');
+      const response = await apiClient.get("/api/v1/products-basic");
       return response.data || [];
     },
   });
 
   // Calculate totals
   const calculations = useMemo(() => {
-    const subtotal = watchedItems?.reduce((sum, item) => {
-      return sum + (item.quantity * item.unit_price);
-    }, 0) || 0;
+    const subtotal =
+      watchedItems?.reduce((sum, item) => {
+        return sum + item.quantity * item.unit_price;
+      }, 0) || 0;
 
-    const totalDiscount = watchedItems?.reduce((sum, item) => {
-      const lineDiscount = (item.quantity * item.unit_price) * (item.discount_percent || 0) / 100;
-      return sum + lineDiscount;
-    }, 0) || 0;
+    const totalDiscount =
+      watchedItems?.reduce((sum, item) => {
+        const lineDiscount =
+          (item.quantity * item.unit_price * (item.discount_percent || 0)) /
+          100;
+        return sum + lineDiscount;
+      }, 0) || 0;
 
     const subtotalAfterDiscount = subtotal - totalDiscount;
 
-    const totalTax = watchedItems?.reduce((sum, item) => {
-      const lineSubtotal = item.quantity * item.unit_price;
-      const lineDiscount = lineSubtotal * (item.discount_percent || 0) / 100;
-      const lineTax = (lineSubtotal - lineDiscount) * (item.tax_rate || 0) / 100;
-      return sum + lineTax;
-    }, 0) || 0;
+    const totalTax =
+      watchedItems?.reduce((sum, item) => {
+        const lineSubtotal = item.quantity * item.unit_price;
+        const lineDiscount =
+          (lineSubtotal * (item.discount_percent || 0)) / 100;
+        const lineTax =
+          ((lineSubtotal - lineDiscount) * (item.tax_rate || 0)) / 100;
+        return sum + lineTax;
+      }, 0) || 0;
 
     const shippingCost = 0; // Could be calculated based on shipping method
     const totalAmount = subtotalAfterDiscount + totalTax + shippingCost;
@@ -259,7 +284,7 @@ export const SalesOrderPage: React.FC = () => {
       subtotalAfterDiscount,
       totalTax,
       shippingCost,
-      totalAmount
+      totalAmount,
     };
   }, [watchedItems]);
 
@@ -267,16 +292,17 @@ export const SalesOrderPage: React.FC = () => {
   useEffect(() => {
     watchedItems?.forEach((item, index) => {
       const lineSubtotal = item.quantity * item.unit_price;
-      const discountAmount = lineSubtotal * (item.discount_percent || 0) / 100;
+      const discountAmount =
+        (lineSubtotal * (item.discount_percent || 0)) / 100;
       const taxableAmount = lineSubtotal - discountAmount;
-      const taxAmount = taxableAmount * (item.tax_rate || 0) / 100;
+      const taxAmount = (taxableAmount * (item.tax_rate || 0)) / 100;
       const lineTotal = taxableAmount + taxAmount;
 
       updateItem(index, {
         ...item,
         discount_amount: discountAmount,
         tax_amount: taxAmount,
-        line_total: lineTotal
+        line_total: lineTotal,
       });
     });
   }, [watchedItems, updateItem]);
@@ -284,12 +310,12 @@ export const SalesOrderPage: React.FC = () => {
   // Load customer data when selected
   useEffect(() => {
     if (watchedCustomerId && customers) {
-      const customer = customers.find(c => c.id === watchedCustomerId);
+      const customer = customers.find((c) => c.id === watchedCustomerId);
       if (customer) {
         setSelectedCustomer(customer);
-        setValue('shipping_address', customer.address);
-        setValue('billing_address', customer.address);
-        setValue('payment_terms', customer.payment_terms || 'NET30');
+        setValue("shipping_address", customer.address);
+        setValue("billing_address", customer.address);
+        setValue("payment_terms", customer.payment_terms || "NET30");
       }
     }
   }, [watchedCustomerId, customers, setValue]);
@@ -300,14 +326,14 @@ export const SalesOrderPage: React.FC = () => {
       reset({
         customer_id: existingOrder.customer_id,
         order_date: existingOrder.order_date,
-        delivery_date: existingOrder.delivery_date || '',
+        delivery_date: existingOrder.delivery_date || "",
         payment_terms: existingOrder.payment_terms,
         shipping_method: existingOrder.shipping_method,
         shipping_address: existingOrder.shipping_address,
         billing_address: existingOrder.billing_address,
-        notes: existingOrder.notes || '',
-        internal_notes: existingOrder.internal_notes || '',
-        items: existingOrder.items
+        notes: existingOrder.notes || "",
+        internal_notes: existingOrder.internal_notes || "",
+        items: existingOrder.items,
       });
     }
   }, [existingOrder, reset, isEditing]);
@@ -322,19 +348,25 @@ export const SalesOrderPage: React.FC = () => {
         tax_amount: calculations.totalTax,
         shipping_cost: calculations.shippingCost,
         total_amount: calculations.totalAmount,
-        status: 'draft'
+        status: "draft",
       };
 
       if (isEditing) {
-        const response = await apiClient.put(`/api/v1/sales-orders/${orderId}`, orderData);
+        const response = await apiClient.put(
+          `/api/v1/sales-orders/${orderId}`,
+          orderData,
+        );
         return response.data;
       } else {
-        const response = await apiClient.post('/api/v1/sales-orders', orderData);
+        const response = await apiClient.post(
+          "/api/v1/sales-orders",
+          orderData,
+        );
         return response.data;
       }
     },
     onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ['sales-orders'] });
+      queryClient.invalidateQueries({ queryKey: ["sales-orders"] });
       if (!isEditing) {
         navigate(`/sales/orders/${result.id}`);
       }
@@ -347,20 +379,22 @@ export const SalesOrderPage: React.FC = () => {
       await apiClient.post(`/api/v1/sales-orders/${orderId}/confirm`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sales-order', orderId] });
-      queryClient.invalidateQueries({ queryKey: ['sales-orders'] });
+      queryClient.invalidateQueries({ queryKey: ["sales-order", orderId] });
+      queryClient.invalidateQueries({ queryKey: ["sales-orders"] });
     },
   });
 
   const handleAddProduct = (product: Product) => {
-    const existingItemIndex = itemFields.findIndex(item => item.product_id === product.id);
-    
+    const existingItemIndex = itemFields.findIndex(
+      (item) => item.product_id === product.id,
+    );
+
     if (existingItemIndex >= 0) {
       // Increase quantity if product already exists
       const existingItem = itemFields[existingItemIndex];
       updateItem(existingItemIndex, {
         ...existingItem,
-        quantity: existingItem.quantity + 1
+        quantity: existingItem.quantity + 1,
       });
     } else {
       // Add new product
@@ -375,7 +409,7 @@ export const SalesOrderPage: React.FC = () => {
         tax_rate: product.tax_rate,
         tax_amount: 0,
         line_total: 0,
-        notes: ''
+        notes: "",
       });
     }
     setProductDialogOpen(false);
@@ -390,14 +424,14 @@ export const SalesOrderPage: React.FC = () => {
   };
 
   const duplicateOrder = () => {
-    navigate('/sales/orders/new', { 
-      state: { duplicateFrom: orderId }
+    navigate("/sales/orders/new", {
+      state: { duplicateFrom: orderId },
     });
   };
 
   if (isEditing && orderLoading) {
     return (
-      <Box sx={{ maxWidth: 1200, mx: 'auto', p: 3 }}>
+      <Box sx={{ maxWidth: 1200, mx: "auto", p: 3 }}>
         <LinearProgress />
         <Typography sx={{ mt: 2 }}>Loading order...</Typography>
       </Box>
@@ -405,14 +439,21 @@ export const SalesOrderPage: React.FC = () => {
   }
 
   return (
-    <Box sx={{ maxWidth: 1400, mx: 'auto', p: 3 }}>
+    <Box sx={{ maxWidth: 1400, mx: "auto", p: 3 }}>
       {/* Header */}
       <Paper sx={{ p: 3, mb: 3 }}>
-        <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          alignItems="center"
+          mb={2}
+        >
           <Typography variant="h4" component="h1">
-            {isEditing ? `Edit Order ${existingOrder?.order_number}` : 'Create Sales Order'}
+            {isEditing
+              ? `Edit Order ${existingOrder?.order_number}`
+              : "Create Sales Order"}
           </Typography>
-          
+
           <Stack direction="row" spacing={2}>
             {isEditing && (
               <>
@@ -423,19 +464,13 @@ export const SalesOrderPage: React.FC = () => {
                 >
                   Duplicate
                 </Button>
-                <Button
-                  variant="outlined"
-                  startIcon={<PrintIcon />}
-                >
+                <Button variant="outlined" startIcon={<PrintIcon />}>
                   Print
                 </Button>
-                <Button
-                  variant="outlined"
-                  startIcon={<EmailIcon />}
-                >
+                <Button variant="outlined" startIcon={<EmailIcon />}>
                   Email
                 </Button>
-                {existingOrder?.status === 'draft' && (
+                {existingOrder?.status === "draft" && (
                   <Button
                     variant="contained"
                     color="success"
@@ -454,7 +489,11 @@ export const SalesOrderPage: React.FC = () => {
               onClick={handleSubmit(handleSubmitOrder)}
               disabled={isSubmitting || !isDirty}
             >
-              {isSubmitting ? 'Saving...' : isEditing ? 'Update Order' : 'Save Draft'}
+              {isSubmitting
+                ? "Saving..."
+                : isEditing
+                  ? "Update Order"
+                  : "Save Draft"}
             </Button>
           </Stack>
         </Stack>
@@ -465,17 +504,26 @@ export const SalesOrderPage: React.FC = () => {
             <Chip
               label={existingOrder.status.toUpperCase()}
               color={
-                existingOrder.status === 'confirmed' ? 'success' :
-                existingOrder.status === 'shipped' ? 'info' :
-                existingOrder.status === 'cancelled' ? 'error' :
-                'warning'
+                existingOrder.status === "confirmed"
+                  ? "success"
+                  : existingOrder.status === "shipped"
+                    ? "info"
+                    : existingOrder.status === "cancelled"
+                      ? "error"
+                      : "warning"
               }
             />
             <Typography variant="body2" color="text.secondary">
-              Created: {existingOrder.created_at ? new Date(existingOrder.created_at).toLocaleString() : '—'}
+              Created:{" "}
+              {existingOrder.created_at
+                ? new Date(existingOrder.created_at).toLocaleString()
+                : "—"}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Updated: {existingOrder.updated_at ? new Date(existingOrder.updated_at).toLocaleString() : '—'}
+              Updated:{" "}
+              {existingOrder.updated_at
+                ? new Date(existingOrder.updated_at).toLocaleString()
+                : "—"}
             </Typography>
           </Stack>
         )}
@@ -485,7 +533,7 @@ export const SalesOrderPage: React.FC = () => {
           <Stepper activeStep={currentStep} sx={{ mt: 3 }}>
             {orderSteps.map((label) => (
               <Step key={label}>
-                <StepLabel>{label}</StepLabel>  
+                <StepLabel>{label}</StepLabel>
               </Step>
             ))}
           </Stepper>
@@ -498,7 +546,7 @@ export const SalesOrderPage: React.FC = () => {
           <Grid item xs={12} lg={8}>
             {/* Customer Information */}
             <Card sx={{ mb: 3 }}>
-              <CardHeader 
+              <CardHeader
                 title="Customer Information"
                 action={
                   <Button
@@ -515,13 +563,19 @@ export const SalesOrderPage: React.FC = () => {
                     <Controller
                       name="customer_id"
                       control={control}
-                      rules={{ required: 'Customer is required' }}
+                      rules={{ required: "Customer is required" }}
                       render={({ field }) => (
                         <Autocomplete
                           options={customers || []}
-                          getOptionLabel={(option) => `${option.name} (${option.code})`}
-                          value={customers?.find(c => c.id === field.value) || null}
-                          onChange={(_, value) => field.onChange(value?.id || null)}
+                          getOptionLabel={(option) =>
+                            `${option.name} (${option.code})`
+                          }
+                          value={
+                            customers?.find((c) => c.id === field.value) || null
+                          }
+                          onChange={(_, value) =>
+                            field.onChange(value?.id || null)
+                          }
                           renderInput={(params) => (
                             <TextField
                               {...params}
@@ -540,7 +594,7 @@ export const SalesOrderPage: React.FC = () => {
                     <Controller
                       name="order_date"
                       control={control}
-                      rules={{ required: 'Order date is required' }}
+                      rules={{ required: "Order date is required" }}
                       render={({ field }) => (
                         <TextField
                           {...field}
@@ -612,7 +666,7 @@ export const SalesOrderPage: React.FC = () => {
 
             {/* Order Items */}
             <Card>
-              <CardHeader 
+              <CardHeader
                 title="Order Items"
                 action={
                   <Button
@@ -646,7 +700,10 @@ export const SalesOrderPage: React.FC = () => {
                               <Typography variant="body2" fontWeight="medium">
                                 {item.product_name}
                               </Typography>
-                              <Typography variant="caption" color="text.secondary">
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
                                 {item.product_code}
                               </Typography>
                             </Box>
@@ -677,7 +734,11 @@ export const SalesOrderPage: React.FC = () => {
                                   size="small"
                                   inputProps={{ step: 0.01, min: 0 }}
                                   InputProps={{
-                                    startAdornment: <InputAdornment position="start">$</InputAdornment>
+                                    startAdornment: (
+                                      <InputAdornment position="start">
+                                        $
+                                      </InputAdornment>
+                                    ),
                                   }}
                                   sx={{ width: 100 }}
                                 />
@@ -716,7 +777,7 @@ export const SalesOrderPage: React.FC = () => {
                           </TableCell>
                           <TableCell align="right">
                             <Typography variant="body2" fontWeight="medium">
-                              ${item.line_total?.toFixed(2) || '0.00'}
+                              ${item.line_total?.toFixed(2) || "0.00"}
                             </Typography>
                           </TableCell>
                           <TableCell align="center">
@@ -734,7 +795,8 @@ export const SalesOrderPage: React.FC = () => {
                         <TableRow>
                           <TableCell colSpan={7} align="center">
                             <Typography color="text.secondary">
-                              No items added. Click "Add Product" to get started.
+                              No items added. Click "Add Product" to get
+                              started.
                             </Typography>
                           </TableCell>
                         </TableRow>
@@ -759,7 +821,9 @@ export const SalesOrderPage: React.FC = () => {
                   </Box>
                   <Box display="flex" justifyContent="space-between">
                     <Typography>Discount:</Typography>
-                    <Typography color="error">-${calculations.totalDiscount.toFixed(2)}</Typography>
+                    <Typography color="error">
+                      -${calculations.totalDiscount.toFixed(2)}
+                    </Typography>
                   </Box>
                   <Box display="flex" justifyContent="space-between">
                     <Typography>Tax:</Typography>
@@ -767,7 +831,9 @@ export const SalesOrderPage: React.FC = () => {
                   </Box>
                   <Box display="flex" justifyContent="space-between">
                     <Typography>Shipping:</Typography>
-                    <Typography>${calculations.shippingCost.toFixed(2)}</Typography>
+                    <Typography>
+                      ${calculations.shippingCost.toFixed(2)}
+                    </Typography>
                   </Box>
                   <Divider />
                   <Box display="flex" justifyContent="space-between">
@@ -800,7 +866,9 @@ export const SalesOrderPage: React.FC = () => {
                     </Box>
                     <Box>
                       <Typography variant="subtitle2">Credit Limit</Typography>
-                      <Typography>${selectedCustomer.credit_limit?.toFixed(2) || '0.00'}</Typography>
+                      <Typography>
+                        ${selectedCustomer.credit_limit?.toFixed(2) || "0.00"}
+                      </Typography>
                     </Box>
                   </Stack>
                 </CardContent>
@@ -848,7 +916,12 @@ export const SalesOrderPage: React.FC = () => {
       </form>
 
       {/* Customer Selection Dialog */}
-      <Dialog open={customerDialogOpen} onClose={() => setCustomerDialogOpen(false)} maxWidth="md" fullWidth>
+      <Dialog
+        open={customerDialogOpen}
+        onClose={() => setCustomerDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
         <DialogTitle>Select Customer</DialogTitle>
         <DialogContent>
           <TableContainer>
@@ -873,7 +946,7 @@ export const SalesOrderPage: React.FC = () => {
                       <Button
                         size="small"
                         onClick={() => {
-                          setValue('customer_id', customer.id);
+                          setValue("customer_id", customer.id);
                           setCustomerDialogOpen(false);
                         }}
                       >
@@ -892,7 +965,12 @@ export const SalesOrderPage: React.FC = () => {
       </Dialog>
 
       {/* Product Selection Dialog */}
-      <Dialog open={productDialogOpen} onClose={() => setProductDialogOpen(false)} maxWidth="lg" fullWidth>
+      <Dialog
+        open={productDialogOpen}
+        onClose={() => setProductDialogOpen(false)}
+        maxWidth="lg"
+        fullWidth
+      >
         <DialogTitle>Add Products</DialogTitle>
         <DialogContent>
           <TableContainer>
@@ -936,13 +1014,15 @@ export const SalesOrderPage: React.FC = () => {
                       <Chip
                         label={product.available_stock}
                         size="small"
-                        color={product.available_stock > 0 ? 'success' : 'error'}
+                        color={
+                          product.available_stock > 0 ? "success" : "error"
+                        }
                         icon={<StockIcon />}
                       />
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2">
-                        {product.category || '—'}
+                        {product.category || "—"}
                       </Typography>
                     </TableCell>
                     <TableCell>
