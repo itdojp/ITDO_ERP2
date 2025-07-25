@@ -1,6 +1,6 @@
 """
-Basic Product Management API for ERP v17.0
-Focused on essential product operations with simplified endpoints
+Core Product Management API for ERP Business Operations
+Essential product CRUD operations for business functionality
 """
 
 from typing import List, Optional
