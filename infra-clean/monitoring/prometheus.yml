@@ -1,0 +1,65 @@
+# ITDO ERP v2 - Clean Production Prometheus Configuration
+# CC03 v60.0 - Clean Production Implementation
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'itdo-erp-production'
+    environment: 'production'
+
+rule_files:
+  - "rules.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 30s
+
+  # Backend API Metrics
+  - job_name: 'backend-api'
+    static_configs:
+      - targets: ['backend:8000']
+    metrics_path: '/api/v1/metrics'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+
+  # NGINX Metrics
+  - job_name: 'nginx'
+    static_configs:
+      - targets: ['nginx:80']
+    metrics_path: '/nginx_status'
+    scrape_interval: 30s
+
+  # PostgreSQL Metrics
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres:5432']
+    scrape_interval: 30s
+
+  # Redis Metrics
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+    scrape_interval: 30s
+
+  # Keycloak Metrics
+  - job_name: 'keycloak'
+    static_configs:
+      - targets: ['keycloak:8080']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  # Container Runtime Metrics
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    scrape_interval: 30s
