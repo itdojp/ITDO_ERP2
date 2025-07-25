@@ -1,13 +1,13 @@
 # CI/CD Health Report
 
-Generated: 2025-07-25T11:49:25.716216
+Generated: 2025-07-25T12:04:51.594061
 
 ## Overall Health
-- Success Rate: 30.0%
+- Success Rate: 20.0%
 - Total Runs: 20
-- Successful: 6
-- Failed: 13
-- Repairs Applied: 107
+- Successful: 4
+- Failed: 15
+- Repairs Applied: 109
 
 ## Recent Repairs
 - Check log file for details: /tmp/ci_health_monitor.log
