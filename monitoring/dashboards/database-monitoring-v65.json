@@ -1,0 +1,392 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "ITDO ERP v65.0 - データベース監視",
+    "tags": ["cc03-v65", "database", "postgresql", "redis", "realtime"],
+    "timezone": "Asia/Tokyo",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "10s",
+    "templating": {
+      "list": [
+        {
+          "name": "datasource",
+          "type": "datasource",
+          "query": "prometheus",
+          "current": {
+            "text": "Database-Metrics",
+            "value": "Database-Metrics"
+          }
+        },
+        {
+          "name": "database",
+          "type": "query",
+          "query": "label_values(pg_stat_database_numbackends, datname)",
+          "datasource": "$datasource",
+          "refresh": 1,
+          "multi": true,
+          "includeAll": true,
+          "current": {
+            "text": "itdo_erp",
+            "value": "itdo_erp"
+          }
+        }
+      ]
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "🗄️ PostgreSQL 概要",
+        "type": "row",
+        "collapsed": false,
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "📊 データベース接続数",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "pg_stat_database_numbackends{datname=~\"$database\"}",
+            "legendFormat": "{{datname}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 50},
+                {"color": "red", "value": 80}
+              ]
+            },
+            "max": 100,
+            "min": 0,
+            "unit": "none"
+          }
+        },
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 1},
+        "options": {
+          "showThresholdLabels": true,
+          "showThresholdMarkers": true
+        }
+      },
+      {
+        "id": 3,
+        "title": "⚡ トランザクション/秒",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(pg_stat_database_xact_commit{datname=~\"$database\"}[5m])",
+            "legendFormat": "{{datname}} コミット",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(pg_stat_database_xact_rollback{datname=~\"$database\"}[5m])",
+            "legendFormat": "{{datname}} ロールバック",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "tps"
+          }
+        },
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 1}
+      },
+      {
+        "id": 4,
+        "title": "🔄 データベースサイズ",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "pg_database_size_bytes{datname=~\"$database\"}",
+            "legendFormat": "{{datname}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 1073741824},
+                {"color": "red", "value": 5368709120}
+              ]
+            },
+            "unit": "bytes"
+          }
+        },
+        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 1}
+      },
+      {
+        "id": 5,
+        "title": "📈 クエリ実行統計",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(pg_stat_database_tup_returned{datname=~\"$database\"}[5m])",
+            "legendFormat": "{{datname}} 読み取り行/秒",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(pg_stat_database_tup_inserted{datname=~\"$database\"}[5m])",
+            "legendFormat": "{{datname}} 挿入行/秒",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(pg_stat_database_tup_updated{datname=~\"$database\"}[5m])",
+            "legendFormat": "{{datname}} 更新行/秒",
+            "refId": "C"
+          },
+          {
+            "expr": "rate(pg_stat_database_tup_deleted{datname=~\"$database\"}[5m])",
+            "legendFormat": "{{datname}} 削除行/秒",
+            "refId": "D"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "rps"
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 9}
+      },
+      {
+        "id": 6,
+        "title": "🐌 スロークエリ監視",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "pg_stat_activity_max_tx_duration{datname=~\"$database\"}",
+            "legendFormat": "最長実行時間",
+            "refId": "A",
+            "format": "table"
+          },
+          {
+            "expr": "pg_stat_activity_count{datname=~\"$database\",state=\"active\"}",
+            "legendFormat": "アクティブクエリ数",
+            "refId": "B",
+            "format": "table"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 60},
+                {"color": "red", "value": 300}
+              ]
+            },
+            "unit": "s"
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 9},
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {"Time": true},
+              "renameByName": {
+                "datname": "データベース",
+                "Value #A": "最長実行時間(秒)",
+                "Value #B": "アクティブクエリ数"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "⚡ Redis 概要",
+        "type": "row",
+        "collapsed": false,
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 17}
+      },
+      {
+        "id": 8,
+        "title": "💾 Redis メモリ使用量",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "redis_memory_used_bytes / redis_memory_max_bytes * 100",
+            "legendFormat": "メモリ使用率",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 70},
+                {"color": "red", "value": 90}
+              ]
+            },
+            "max": 100,
+            "min": 0,
+            "unit": "percent"
+          }
+        },
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 18}
+      },
+      {
+        "id": 9,
+        "title": "🎯 Redis キャッシュヒット率",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(redis_keyspace_hits_total[5m]) / (rate(redis_keyspace_hits_total[5m]) + rate(redis_keyspace_misses_total[5m])) * 100",
+            "legendFormat": "ヒット率",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 70},
+                {"color": "green", "value": 90}
+              ]
+            },
+            "unit": "percent"
+          }
+        },
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 18}
+      },
+      {
+        "id": 10,
+        "title": "🔑 Redis キー数",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "redis_db_keys",
+            "legendFormat": "DB{{db}} キー数",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 10000},
+                {"color": "red", "value": 100000}
+              ]
+            },
+            "unit": "none"
+          }
+        },
+        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 18}
+      },
+      {
+        "id": 11,
+        "title": "📊 Redis コマンド統計",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(redis_commands_total[5m])",
+            "legendFormat": "{{cmd}} コマンド/秒",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "ops"
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 26}
+      },
+      {
+        "id": 12,
+        "title": "🔄 Redis 接続数",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "redis_connected_clients",
+            "legendFormat": "接続中クライアント",
+            "refId": "A"
+          },
+          {
+            "expr": "redis_blocked_clients",
+            "legendFormat": "ブロック中クライアント",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "none"
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 26}
+      },
+      {
+        "id": 13,
+        "title": "⚠️ データベースアラート",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "ALERTS{category=\"database\",alertstate=\"firing\"}",
+            "legendFormat": "{{alertname}}",
+            "refId": "A",
+            "format": "table"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "red", "value": 1}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 34},
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {"Time": true, "__name__": true},
+              "renameByName": {
+                "alertname": "アラート名",
+                "severity": "重要度",
+                "instance": "インスタンス",
+                "summary": "概要"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "annotations": {
+      "list": [
+        {
+          "datasource": "$datasource",
+          "enable": true,
+          "expr": "ALERTS{category=\"database\",alertstate=\"firing\"}",
+          "iconColor": "red",
+          "name": "データベースアラート",
+          "titleFormat": "{{alertname}}",
+          "textFormat": "{{instance}}: {{summary}}"
+        }
+      ]
+    }
+  }
+}

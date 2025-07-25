@@ -1,0 +1,199 @@
+# CC03 v65.0 - Alertmanager設定
+# インテリジェントアラート管理システム
+
+global:
+  smtp_smarthost: 'localhost:587'
+  smtp_from: 'alerts@itdo-erp.com'
+  smtp_auth_username: 'alerts@itdo-erp.com'
+  smtp_auth_password: 'AlertPassword2025!'
+  smtp_require_tls: true
+
+# テンプレート設定
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# ルーティング設定
+route:
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 12h
+  receiver: 'default'
+  routes:
+    # 重要度: Critical - 即座通知
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 10s
+      repeat_interval: 5m
+      
+    # 重要度: Warning - 通常通知
+    - match:
+        severity: warning
+      receiver: 'warning-alerts'
+      group_wait: 5m
+      repeat_interval: 30m
+      
+    # システム関連アラート
+    - match:
+        category: system
+      receiver: 'system-alerts'
+      
+    # データベース関連アラート
+    - match:
+        category: database
+      receiver: 'database-alerts'
+      
+    # アプリケーション関連アラート
+    - match:
+        category: application
+      receiver: 'application-alerts'
+
+# 受信者設定
+receivers:
+  # デフォルト受信者
+  - name: 'default'
+    email_configs:
+      - to: 'admin@itdo-erp.com'
+        subject: '[ITDO ERP v65] {{ .GroupLabels.alertname }}'
+        body: |
+          {{ range .Alerts }}
+          アラート: {{ .Annotations.summary }}
+          詳細: {{ .Annotations.description }}
+          発生時刻: {{ .StartsAt }}
+          {{ end }}
+
+  # 重要アラート - 複数チャンネル通知
+  - name: 'critical-alerts'
+    email_configs:
+      - to: 'admin@itdo-erp.com'
+        subject: '🚨 [CRITICAL] ITDO ERP v65 - {{ .GroupLabels.alertname }}'
+        body: |
+          🚨 CRITICAL ALERT 🚨
+          
+          {{ range .Alerts }}
+          アラート名: {{ .Annotations.summary }}
+          詳細: {{ .Annotations.description }}
+          発生時刻: {{ .StartsAt }}
+          影響度: {{ .Labels.severity }}
+          サービス: {{ .Labels.service }}
+          インスタンス: {{ .Labels.instance }}
+          {{ end }}
+          
+          即座に対応が必要です。
+          
+          ダッシュボード: http://localhost:3001
+          Prometheus: http://localhost:9090
+    slack_configs:
+      - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+        channel: '#alerts-critical'
+        title: '🚨 Critical Alert - ITDO ERP v65'
+        text: |
+          {{ range .Alerts }}
+          *{{ .Annotations.summary }}*
+          {{ .Annotations.description }}
+          {{ end }}
+
+  # 警告アラート
+  - name: 'warning-alerts'
+    email_configs:
+      - to: 'monitoring@itdo-erp.com'
+        subject: '⚠️ [WARNING] ITDO ERP v65 - {{ .GroupLabels.alertname }}'
+        body: |
+          ⚠️ WARNING ALERT ⚠️
+          
+          {{ range .Alerts }}
+          アラート名: {{ .Annotations.summary }}
+          詳細: {{ .Annotations.description }}
+          発生時刻: {{ .StartsAt }}
+          サービス: {{ .Labels.service }}
+          {{ end }}
+
+  # システムアラート
+  - name: 'system-alerts'
+    email_configs:
+      - to: 'sysadmin@itdo-erp.com'
+        subject: '🖥️ [SYSTEM] ITDO ERP v65 - {{ .GroupLabels.alertname }}'
+        body: |
+          🖥️ SYSTEM ALERT 🖥️
+          
+          {{ range .Alerts }}
+          システム: {{ .Labels.instance }}
+          アラート: {{ .Annotations.summary }}
+          詳細: {{ .Annotations.description }}
+          発生時刻: {{ .StartsAt }}
+          CPU使用率: {{ .Labels.cpu_usage }}%
+          メモリ使用率: {{ .Labels.memory_usage }}%
+          {{ end }}
+
+  # データベースアラート
+  - name: 'database-alerts'
+    email_configs:
+      - to: 'dba@itdo-erp.com'
+        subject: '🗄️ [DATABASE] ITDO ERP v65 - {{ .GroupLabels.alertname }}'
+        body: |
+          🗄️ DATABASE ALERT 🗄️
+          
+          {{ range .Alerts }}
+          データベース: {{ .Labels.database }}
+          アラート: {{ .Annotations.summary }}
+          詳細: {{ .Annotations.description }}
+          発生時刻: {{ .StartsAt }}
+          接続数: {{ .Labels.connections }}
+          {{ end }}
+
+  # アプリケーションアラート
+  - name: 'application-alerts'
+    email_configs:
+      - to: 'dev@itdo-erp.com'
+        subject: '🚀 [APPLICATION] ITDO ERP v65 - {{ .GroupLabels.alertname }}'
+        body: |
+          🚀 APPLICATION ALERT 🚀
+          
+          {{ range .Alerts }}
+          アプリケーション: {{ .Labels.application }}
+          アラート: {{ .Annotations.summary }}
+          詳細: {{ .Annotations.description }}
+          発生時刻: {{ .StartsAt }}
+          レスポンス時間: {{ .Labels.response_time }}ms
+          エラー率: {{ .Labels.error_rate }}%
+          {{ end }}
+
+# アラート抑制設定
+inhibit_rules:
+  # サービス停止時は他のアラートを抑制
+  - source_match:
+      alertname: ServiceDown
+    target_match:
+      service: '.*'
+    equal: ['service', 'instance']
+    
+  # Critical発生時はWarningを抑制
+  - source_match:
+      severity: critical
+    target_match:
+      severity: warning
+    equal: ['alertname', 'instance']
+    
+  # ディスク容量Critical時は関連Warningを抑制
+  - source_match:
+      alertname: DiskSpaceCritical
+    target_match:
+      alertname: DiskSpaceWarning
+    equal: ['instance', 'device']
+
+# アラート時間設定
+time_intervals:
+  - name: working-hours
+    time_intervals:
+      - times:
+          - start_time: '09:00'
+            end_time: '18:00'
+        weekdays: ['monday:friday']
+        
+  - name: emergency-hours
+    time_intervals:
+      - times:
+          - start_time: '00:00'
+            end_time: '23:59'
+        weekdays: ['monday:sunday']

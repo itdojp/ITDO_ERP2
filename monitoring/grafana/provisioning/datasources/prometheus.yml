@@ -1,12 +1,140 @@
+# CC03 v65.0 - Grafana データソース設定
+# Prometheus統合設定
+
 apiVersion: 1
 
 datasources:
-  - name: Prometheus
+  # メインPrometheusデータソース
+  - name: Prometheus-v65
     type: prometheus
     access: proxy
-    orgId: 1
     url: http://prometheus:9090
-    basicAuth: false
     isDefault: true
-    version: 1
     editable: true
+    version: 1
+    jsonData:
+      httpMethod: POST
+      prometheusType: Prometheus
+      prometheusVersion: 2.47.0
+      cacheLevel: 'High'
+      disableMetricsLookup: false
+      incrementalQuerying: true
+      exemplarTraceIdDestinations:
+        - name: trace_id
+          datasourceUid: jaeger-uid
+      httpHeaderName1: 'X-Grafana-Source'
+    secureJsonData:
+      httpHeaderValue1: 'v65-monitoring-dashboard'
+
+  # Prometheusアラート専用データソース  
+  - name: Prometheus-Alerts
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    editable: false
+    version: 1
+    jsonData:
+      httpMethod: GET
+      prometheusType: Prometheus
+      disableMetricsLookup: true
+      customQueryParameters: 'query_timeout=30s'
+      httpHeaderName1: 'X-Query-Type'
+    secureJsonData:
+      httpHeaderValue1: 'alerts-only'
+
+  # システムメトリクス専用データソース
+  - name: System-Metrics
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    editable: true
+    version: 1
+    jsonData:
+      httpMethod: POST
+      prometheusType: Prometheus
+      customQueryParameters: 'step=15s'
+      httpHeaderName1: 'X-Metrics-Category'
+    secureJsonData:
+      httpHeaderValue1: 'system-resources'
+
+  # アプリケーションメトリクス専用データソース
+  - name: Application-Metrics
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    editable: true
+    version: 1
+    jsonData:
+      httpMethod: POST
+      prometheusType: Prometheus
+      customQueryParameters: 'step=5s'
+      httpHeaderName1: 'X-Metrics-Category'
+    secureJsonData:
+      httpHeaderValue1: 'application-performance'
+
+  # データベースメトリクス専用データソース
+  - name: Database-Metrics
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    editable: true
+    version: 1
+    jsonData:
+      httpMethod: POST
+      prometheusType: Prometheus
+      customQueryParameters: 'step=30s'
+      httpHeaderName1: 'X-Metrics-Category'
+    secureJsonData:
+      httpHeaderValue1: 'database-performance'
+
+  # ビジネスメトリクス専用データソース
+  - name: Business-Metrics
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    editable: true
+    version: 1
+    jsonData:
+      httpMethod: POST
+      prometheusType: Prometheus
+      customQueryParameters: 'step=60s'
+      httpHeaderName1: 'X-Metrics-Category'
+    secureJsonData:
+      httpHeaderValue1: 'business-kpi'
+
+  # セキュリティメトリクス専用データソース
+  - name: Security-Metrics
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    editable: true
+    version: 1
+    jsonData:
+      httpMethod: POST
+      prometheusType: Prometheus
+      customQueryParameters: 'step=60s'
+      httpHeaderName1: 'X-Metrics-Category'
+    secureJsonData:
+      httpHeaderValue1: 'security-monitoring'
+
+  # 外部サービス監視データソース
+  - name: External-Services
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    editable: true
+    version: 1
+    jsonData:
+      httpMethod: POST
+      prometheusType: Prometheus
+      customQueryParameters: 'step=60s'
+      httpHeaderName1: 'X-Metrics-Category'
+    secureJsonData:
+      httpHeaderValue1: 'external-monitoring'
+
+# データソース設定のプロビジョニング詳細設定
+deleteDatasources:
+  - name: Prometheus-v64
+    orgId: 1
+  - name: Legacy-Prometheus
+    orgId: 1
