@@ -48,25 +48,9 @@ import {
   TrendingUp as TrendingUpIcon,
   Category as CategoryIcon
 } from '@mui/icons-material';
-import { apiClient } from '@/services/api';
+import { useProducts, useProductCategories, useDeleteProduct, useBulkDeleteProducts, useBulkUpdateProducts } from '../../hooks/useProducts';
+import { Product } from '../../services/api/products';
 
-interface Product {
-  id: number;
-  code: string;
-  name: string;
-  sku: string;
-  price: number;
-  cost_price?: number;
-  stock: number;
-  category: string;
-  status: 'active' | 'inactive' | 'discontinued';
-  is_active: boolean;
-  supplier?: string;
-  last_updated: string;
-  total_sales?: number;
-  profit_margin?: number;
-  stock_status: 'in_stock' | 'low_stock' | 'out_of_stock';
-}
 
 interface ProductFilters {
   search: string;
@@ -103,159 +87,46 @@ export const ProductListPage: React.FC = () => {
     price_max: ''
   });
 
-  // Mock data for initial development - replace with real API
-  const mockProducts: Product[] = [
-    {
-      id: 1,
-      code: 'PROD001',
-      name: 'Ultra Gaming Laptop X1',
-      sku: 'LAP-X1-001',
-      price: 1299.99,
-      cost_price: 950.00,
-      stock: 45,
-      category: 'Electronics',
-      status: 'active',
-      is_active: true,
-      supplier: 'TechCorp Ltd',
-      last_updated: '2024-01-15T10:30:00Z',
-      total_sales: 156,
-      profit_margin: 26.9,
-      stock_status: 'in_stock'
-    },
-    {
-      id: 2,
-      code: 'PROD002', 
-      name: 'Wireless Bluetooth Headphones Pro',
-      sku: 'HEAD-PRO-002',
-      price: 199.99,
-      cost_price: 125.00,
-      stock: 8,
-      category: 'Audio',
-      status: 'active',
-      is_active: true,
-      supplier: 'AudioMax Inc',
-      last_updated: '2024-01-14T15:45:00Z',
-      total_sales: 89,
-      profit_margin: 37.5,
-      stock_status: 'low_stock'
-    },
-    {
-      id: 3,
-      code: 'PROD003',
-      name: 'Smart Home Security Camera 4K',
-      sku: 'CAM-4K-003',
-      price: 299.99,
-      cost_price: 180.00,
-      stock: 0,
-      category: 'Security',
-      status: 'active',
-      is_active: true,
-      supplier: 'SecureTech Solutions',
-      last_updated: '2024-01-13T09:20:00Z',
-      total_sales: 67,
-      profit_margin: 40.0,
-      stock_status: 'out_of_stock'
-    },
-    {
-      id: 4,
-      code: 'PROD004',
-      name: 'Professional Drone with 4K Camera',
-      sku: 'DRONE-4K-004',
-      price: 899.99,
-      cost_price: 650.00,
-      stock: 23,
-      category: 'Drones',
-      status: 'active',
-      is_active: true,
-      supplier: 'SkyTech Manufacturing',
-      last_updated: '2024-01-12T14:10:00Z',
-      total_sales: 34,
-      profit_margin: 27.8,
-      stock_status: 'in_stock'
-    },
-    {
-      id: 5,
-      code: 'PROD005',
-      name: 'Vintage Mechanical Keyboard RGB',
-      sku: 'KEY-RGB-005',
-      price: 159.99,
-      cost_price: 89.00,
-      stock: 67,
-      category: 'Peripherals',
-      status: 'active',
-      is_active: true,
-      supplier: 'KeyCraft Ltd',
-      last_updated: '2024-01-11T11:30:00Z',
-      total_sales: 234,
-      profit_margin: 44.4,
-      stock_status: 'in_stock'
-    }
-  ];
+  // API data fetching
+  const queryParams = useMemo(() => {
+    const params: any = {
+      page: paginationModel.page + 1,
+      per_page: paginationModel.pageSize,
+    };
+    
+    if (filters.search) params.search = filters.search;
+    if (filters.category) params.category = filters.category;
+    if (filters.status) params.status = filters.status;
+    if (filters.price_min) params.min_price = parseFloat(filters.price_min);
+    if (filters.price_max) params.max_price = parseFloat(filters.price_max);
+    if (filters.stock_status === 'low_stock') params.low_stock = true;
+    
+    return params;
+  }, [paginationModel, filters]);
+  
+  const { data: productsData, isLoading, error, refetch } = useProducts(queryParams);
+  const { data: categories } = useProductCategories();
+  const deleteProductMutation = useDeleteProduct();
+  const bulkDeleteMutation = useBulkDeleteProducts();
+  const bulkUpdateMutation = useBulkUpdateProducts();
+  
+  const products = productsData?.items || [];
+  const totalProducts = productsData?.total || 0;
 
-  // Real-time data fetching (mocked for now)
-  const { data: productData, isLoading, error, refetch } = useQuery({
-    queryKey: ['products-list', filters, paginationModel],
-    queryFn: async () => {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // Filter mock data based on current filters
-      let filteredProducts = mockProducts;
-      
-      if (filters.search) {
-        const searchLower = filters.search.toLowerCase();
-        filteredProducts = filteredProducts.filter(p => 
-          p.name.toLowerCase().includes(searchLower) ||
-          p.code.toLowerCase().includes(searchLower) ||
-          p.sku.toLowerCase().includes(searchLower)
-        );
-      }
-      
-      if (filters.category) {
-        filteredProducts = filteredProducts.filter(p => p.category === filters.category);
-      }
-      
-      if (filters.status) {
-        filteredProducts = filteredProducts.filter(p => p.status === filters.status);
-      }
-      
-      if (filters.stock_status) {
-        filteredProducts = filteredProducts.filter(p => p.stock_status === filters.stock_status);
-      }
-      
-      return {
-        products: filteredProducts,
-        total: filteredProducts.length,
-        summary: {
-          total_products: mockProducts.length,
-          active_products: mockProducts.filter(p => p.is_active).length,
-          low_stock_count: mockProducts.filter(p => p.stock_status === 'low_stock').length,
-          out_of_stock_count: mockProducts.filter(p => p.stock_status === 'out_of_stock').length,
-          total_value: mockProducts.reduce((sum, p) => sum + (p.price * p.stock), 0)
-        }
-      };
-    },
-    refetchInterval: 30000, // Auto-refresh every 30 seconds
-  });
-
-  // Delete mutation (mocked)
-  const deleteMutation = useMutation({
-    mutationFn: async (productIds: number[]) => {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      console.log('Deleting products:', productIds);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products-list'] });
-      setSelectedRows([]);
-      setDeleteDialogOpen(false);
-    },
-  });
+  // Summary stats
+  const summaryStats = useMemo(() => ({
+    total_products: totalProducts,
+    active_products: products.filter(p => p.status === 'active').length,
+    low_stock_count: products.filter(p => p.stock_quantity <= p.min_stock_level).length,
+    out_of_stock_count: products.filter(p => p.stock_quantity === 0).length,
+    total_value: products.reduce((sum, p) => sum + (p.price * p.stock_quantity), 0)
+  }), [products, totalProducts]);
 
   // DataGrid columns with advanced features
   const columns: GridColDef[] = useMemo(() => [
     {
-      field: 'code',
-      headerName: 'Code',
+      field: 'sku',
+      headerName: 'SKU',
       width: 130,
       renderCell: (params: GridRenderCellParams) => (
         <Typography variant="body2" fontFamily="monospace" fontWeight="medium" color="primary">
@@ -302,22 +173,24 @@ export const ProductListPage: React.FC = () => {
           <Typography variant="body2" fontWeight="bold" color="success.main">
             ${params.value.toFixed(2)}
           </Typography>
-          {params.row.profit_margin && (
+          {params.row.cost && (
             <Typography variant="caption" color="text.secondary">
-              {params.row.profit_margin.toFixed(1)}% margin
+              {(((params.value - params.row.cost) / params.value) * 100).toFixed(1)}% margin
             </Typography>
           )}
         </Box>
       ),
     },
     {
-      field: 'stock',
+      field: 'stock_quantity',
       headerName: 'Stock',
       width: 100,
       type: 'number',
       renderCell: (params: GridRenderCellParams) => {
-        const stockStatus = params.row.stock_status;
         const stockValue = params.value as number;
+        const minStock = params.row.min_stock_level as number;
+        const stockStatus = stockValue === 0 ? 'out_of_stock' : 
+                          stockValue <= minStock ? 'low_stock' : 'in_stock';
         
         return (
           <Box textAlign="center">
@@ -451,10 +324,17 @@ export const ProductListPage: React.FC = () => {
   };
 
   const confirmDelete = async () => {
-    if (selectedProduct) {
-      await deleteMutation.mutateAsync([selectedProduct.id]);
-    } else if (selectedRows.length > 0) {
-      await deleteMutation.mutateAsync(selectedRows as number[]);
+    try {
+      if (selectedProduct) {
+        await deleteProductMutation.mutateAsync(selectedProduct.id);
+        setSelectedProduct(null);
+      } else if (selectedRows.length > 0) {
+        await bulkDeleteMutation.mutateAsync(selectedRows as string[]);
+        setSelectedRows([]);
+      }
+      setDeleteDialogOpen(false);
+    } catch (error) {
+      console.error('Delete failed:', error);
     }
   };
 
@@ -501,11 +381,11 @@ export const ProductListPage: React.FC = () => {
             label="Category"
           >
             <MenuItem value="">All Categories</MenuItem>
-            <MenuItem value="Electronics">Electronics</MenuItem>
-            <MenuItem value="Audio">Audio</MenuItem>
-            <MenuItem value="Security">Security</MenuItem>
-            <MenuItem value="Drones">Drones</MenuItem>
-            <MenuItem value="Peripherals">Peripherals</MenuItem>
+            {categories?.map((category) => (
+              <MenuItem key={category} value={category}>
+                {category}
+              </MenuItem>
+            ))}
           </Select>
         </FormControl>
 
@@ -661,6 +541,13 @@ export const ProductListPage: React.FC = () => {
           </Stack>
         </Box>
 
+        {/* Error display */}
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            Failed to load products: {error instanceof Error ? error.message : 'Unknown error'}
+          </Alert>
+        )}
+
         {/* Key Metrics Dashboard */}
         <Grid container spacing={3} sx={{ mb: 2 }}>
           <Grid item xs={12} md={2.4}>
@@ -670,7 +557,7 @@ export const ProductListPage: React.FC = () => {
                   <InventoryIcon />
                 </Avatar>
                 <Box>
-                  <Typography variant="h6">{productData?.summary.total_products || 0}</Typography>
+                  <Typography variant="h6">{summaryStats.total_products}</Typography>
                   <Typography variant="caption" color="text.secondary">Total Products</Typography>
                 </Box>
               </CardContent>
@@ -683,7 +570,7 @@ export const ProductListPage: React.FC = () => {
                   <ActiveIcon />
                 </Avatar>
                 <Box>
-                  <Typography variant="h6">{productData?.summary.active_products || 0}</Typography>
+                  <Typography variant="h6">{summaryStats.active_products}</Typography>
                   <Typography variant="caption" color="text.secondary">Active Products</Typography>
                 </Box>
               </CardContent>
@@ -696,7 +583,7 @@ export const ProductListPage: React.FC = () => {
                   <WarningIcon />
                 </Avatar>
                 <Box>
-                  <Typography variant="h6">{productData?.summary.low_stock_count || 0}</Typography>
+                  <Typography variant="h6">{summaryStats.low_stock_count}</Typography>
                   <Typography variant="caption" color="text.secondary">Low Stock</Typography>
                 </Box>
               </CardContent>
@@ -709,7 +596,7 @@ export const ProductListPage: React.FC = () => {
                   <WarningIcon />
                 </Avatar>
                 <Box>
-                  <Typography variant="h6">{productData?.summary.out_of_stock_count || 0}</Typography>
+                  <Typography variant="h6">{summaryStats.out_of_stock_count}</Typography>
                   <Typography variant="caption" color="text.secondary">Out of Stock</Typography>
                 </Box>
               </CardContent>
@@ -722,7 +609,7 @@ export const ProductListPage: React.FC = () => {
                   <PriceIcon />
                 </Avatar>
                 <Box>
-                  <Typography variant="h6">${productData?.summary.total_value?.toFixed(0) || '0'}</Typography>
+                  <Typography variant="h6">${summaryStats.total_value.toFixed(0)}</Typography>
                   <Typography variant="caption" color="text.secondary">Total Value</Typography>
                 </Box>
               </CardContent>
@@ -788,11 +675,11 @@ export const ProductListPage: React.FC = () => {
         {isLoading && <LinearProgress />}
         
         <DataGrid
-          rows={productData?.products || []}
+          rows={products}
           columns={columns}
           paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
-          rowCount={productData?.total || 0}
+          rowCount={totalProducts}
           loading={isLoading}
           checkboxSelection
           disableRowSelectionOnClick
@@ -842,14 +729,16 @@ export const ProductListPage: React.FC = () => {
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+          <Button onClick={() => setDeleteDialogOpen(false)} disabled={deleteProductMutation.isPending || bulkDeleteMutation.isPending}>
+            Cancel
+          </Button>
           <Button
             onClick={confirmDelete}
             color="error"
             variant="contained"
-            disabled={deleteMutation.isPending}
+            disabled={deleteProductMutation.isPending || bulkDeleteMutation.isPending}
           >
-            {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+            {(deleteProductMutation.isPending || bulkDeleteMutation.isPending) ? 'Deleting...' : 'Delete'}
           </Button>
         </DialogActions>
       </Dialog>
