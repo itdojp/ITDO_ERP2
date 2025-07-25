@@ -1,9 +1,7 @@
 from collections.abc import Generator
-from typing import AsyncGenerator
 
 from sqlalchemy import create_engine
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.orm import Session, declarative_base, sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import settings
 
@@ -18,19 +16,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 async_engine = None
 AsyncSessionLocal = None
 
-# Only create async engine if using PostgreSQL
-if str(settings.DATABASE_URL).startswith("postgresql"):
-    async_database_url = str(settings.DATABASE_URL).replace(
-        "postgresql://", "postgresql+asyncpg://"
-    )
-    async_engine = create_async_engine(async_database_url)
-    AsyncSessionLocal = async_sessionmaker(
-        async_engine, class_=AsyncSession, expire_on_commit=False
-    )
-
-
 def get_db() -> Generator[Session]:
-    """Get a database session for dependency injection."""
     db = SessionLocal()
     try:
         yield db

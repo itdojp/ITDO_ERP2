@@ -1,46 +1,73 @@
-# Multi-stage Dockerfile for production backend
-FROM python:3.13-slim as base
+# ITDO ERP Backend - Production Dockerfile
+# 本番環境用 最適化されたマルチステージビルド
 
-# Install system dependencies
+# ==================== Build Stage ====================
+FROM python:3.13-slim as builder
+
+# システム依存関係
 RUN apt-get update && apt-get install -y \
-    gcc \
-    postgresql-client \
+    build-essential \
+    curl \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
-# Install uv
-RUN pip install uv
+# uv のインストール
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 
+# 作業ディレクトリ設定
 WORKDIR /app
 
-# Copy dependency files
+# Python 依存関係ファイルをコピー
 COPY pyproject.toml uv.lock ./
 
-# Install dependencies
-RUN uv sync --frozen --no-dev
+# 依存関係インストール（本番用）
+RUN uv sync --frozen --no-cache --no-dev
 
-# Development stage
-FROM base as development
-RUN uv sync --frozen
-COPY . .
-CMD ["uv", "run", "uvicorn", "app.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000"]
+# ==================== Runtime Stage ====================
+FROM python:3.13-slim as runtime
 
-# Testing stage
-FROM development as testing
-RUN uv sync --frozen
-RUN uv run pytest --cov=app --cov-report=xml || true
+# 非特権ユーザー作成
+RUN groupadd -r erp && useradd -r -g erp -d /app -s /bin/bash erp
 
-# Production stage
-FROM base as production
-COPY . .
+# システム依存関係（ランタイムのみ）
+RUN apt-get update && apt-get install -y \
+    libpq5 \
+    curl \
+    dumb-init \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
-# Create non-root user
-RUN useradd --create-home --shell /bin/bash app \
-    && chown -R app:app /app
-USER app
+# 作業ディレクトリ設定
+WORKDIR /app
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+# Python環境を builder からコピー
+COPY --from=builder --chown=erp:erp /app/.venv /app/.venv
 
+# アプリケーションコードをコピー
+COPY --chown=erp:erp . .
+
+# Python パスとコマンドラインの設定
+ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONPATH=/app \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONIOENCODING=utf-8
+
+# ヘルスチェック用スクリプト
+RUN echo '#!/bin/bash\ncurl -f http://localhost:8000/api/v1/health || exit 1' > /app/healthcheck.sh \
+    && chmod +x /app/healthcheck.sh \
+    && chown erp:erp /app/healthcheck.sh
+
+# 非特権ユーザーに切り替え
+USER erp
+
+# ポート公開
 EXPOSE 8000
-CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+
+# ヘルスチェック設定
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD /app/healthcheck.sh
+
+# アプリケーション起動（dumb-init で PID 1 問題を回避）
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4", "--worker-class", "uvicorn.workers.UvicornWorker", "--access-log", "--log-level", "info"]

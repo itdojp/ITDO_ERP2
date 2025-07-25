@@ -1,0 +1,479 @@
+version: '3.8'
+
+services:
+  # NGINX Reverse Proxy & Load Balancer - Production Grade
+  nginx:
+    image: docker.io/nginx:1.25-alpine
+    container_name: itdo-nginx-prod
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx-prod.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./nginx/logs:/var/log/nginx
+      - nginx_cache:/var/cache/nginx
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+    networks:
+      - itdo-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/nginx-health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+    labels:
+      - "com.itdo.service=nginx-proxy"
+      - "com.itdo.environment=production"
+
+  # Backend Application - Production Optimized
+  backend:
+    build:
+      context: ../
+      dockerfile: infra/Dockerfile.backend.prod
+      args:
+        - PYTHON_VERSION=3.13
+        - UV_VERSION=latest  
+    image: ghcr.io/itdojp/itdo_erp2-backend:${BACKEND_VERSION:-latest}
+    container_name: itdo-backend-prod
+    environment:
+      - DATABASE_URL=postgresql://itdo_user:${POSTGRES_PASSWORD}@postgres:5432/itdo_erp?sslmode=prefer
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - SECRET_KEY=${SECRET_KEY}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - ENVIRONMENT=production
+      - DEBUG=false
+      - CORS_ORIGINS=${FRONTEND_URL},${API_URL}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - WORKERS=${BACKEND_WORKERS:-4}
+      - MAX_REQUESTS=1000
+      - MAX_REQUESTS_JITTER=100
+      - TIMEOUT=30
+      - KEEPALIVE=2
+      - ACCESS_LOG=/app/logs/access.log
+      - ERROR_LOG=/app/logs/error.log
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - itdo-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: ${HEALTH_CHECK_INTERVAL:-30}s
+      timeout: ${HEALTH_CHECK_TIMEOUT:-10}s
+      retries: ${HEALTH_CHECK_RETRIES:-3}
+      start_period: 90s
+    deploy:
+      resources:
+        limits:
+          memory: ${BACKEND_MEMORY_LIMIT:-1G}
+          cpus: '${BACKEND_CPU_LIMIT:-0.5}'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+      replicas: 1
+    volumes:
+      - backend_logs:/app/logs
+      - backend_uploads:/app/uploads
+      - backend_cache:/app/cache
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+    labels:
+      - "com.itdo.service=backend-api"
+      - "com.itdo.environment=production"
+    security_opt:
+      - no-new-privileges:true
+    read_only: false
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=100m
+
+  # Frontend Application - Production Build
+  frontend:
+    build:
+      context: ../
+      dockerfile: infra/Dockerfile.frontend.prod
+      args:
+        - NODE_VERSION=20
+        - NGINX_VERSION=1.25-alpine
+    image: ghcr.io/itdojp/itdo_erp2-frontend:${FRONTEND_VERSION:-latest}
+    container_name: itdo-frontend-prod
+    environment:
+      - REACT_APP_API_URL=${API_URL}/api/v1
+      - REACT_APP_AUTH_URL=${AUTH_URL}
+      - REACT_APP_ENVIRONMENT=production
+      - NODE_ENV=production
+      - GENERATE_SOURCEMAP=false
+      - INLINE_RUNTIME_CHUNK=false
+      - IMAGE_INLINE_SIZE_LIMIT=0
+    ports:
+      - "3000:8080"
+    networks:
+      - itdo-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+    deploy:
+      resources:
+        limits:
+          memory: ${FRONTEND_MEMORY_LIMIT:-512M}
+          cpus: '${FRONTEND_CPU_LIMIT:-0.25}'
+        reservations:
+          memory: 256M
+          cpus: '0.1'
+      replicas: 1
+    volumes:
+      - frontend_cache:/app/cache
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    labels:
+      - "com.itdo.service=frontend-app"
+      - "com.itdo.environment=production"
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=50m
+
+  # PostgreSQL Database - High Performance Production
+  postgres:
+    image: docker.io/postgres:15.5-alpine
+    container_name: itdo-postgres-prod
+    environment:
+      POSTGRES_DB: itdo_erp
+      POSTGRES_USER: itdo_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --locale=C --data-checksums"
+      PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+      POSTGRES_INITDB_WALDIR: /var/lib/postgresql/wal
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - postgres_wal:/var/lib/postgresql/wal
+      - postgres_backups:/backups
+      - ./postgres/postgres-prod.conf:/etc/postgresql/postgresql.conf:ro
+      - ./init-scripts:/docker-entrypoint-initdb.d:ro
+      - postgres_logs:/var/log/postgresql
+    networks:
+      - itdo-network
+    restart: unless-stopped
+    command: [
+      "postgres",
+      "-c", "config_file=/etc/postgresql/postgresql.conf",
+      "-c", "log_destination=stderr,csvlog",
+      "-c", "log_directory=/var/log/postgresql",
+      "-c", "log_filename=postgresql-%Y-%m-%d.log",
+      "-c", "logging_collector=on"
+    ]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U itdo_user -d itdo_erp -h localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: ${POSTGRES_MEMORY_LIMIT:-2G}
+          cpus: '${POSTGRES_CPU_LIMIT:-1.0}'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "10"
+    labels:
+      - "com.itdo.service=database"
+      - "com.itdo.environment=production"
+    security_opt:
+      - no-new-privileges:true
+    shm_size: 256M
+
+  # Redis Cache - High Performance Production
+  redis:
+    image: docker.io/redis:7.2-alpine
+    container_name: itdo-redis-prod
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - redis_logs:/var/log/redis
+      - ./redis/redis-prod.conf:/usr/local/etc/redis/redis.conf:ro
+    networks:
+      - itdo-network
+    restart: unless-stopped
+    command: [
+      "redis-server",
+      "/usr/local/etc/redis/redis.conf",
+      "--requirepass", "${REDIS_PASSWORD}",
+      "--appendonly", "yes",
+      "--appendfsync", "everysec",
+      "--maxmemory", "${REDIS_MAXMEMORY:-512mb}",
+      "--maxmemory-policy", "allkeys-lru",
+      "--save", "900", "1",
+      "--save", "300", "10",
+      "--save", "60", "10000",
+      "--loglevel", "notice",
+      "--logfile", "/var/log/redis/redis.log",
+      "--tcp-keepalive", "300",
+      "--timeout", "0",
+      "--tcp-backlog", "511"
+    ]
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: ${REDIS_MEMORY_LIMIT:-512M}
+          cpus: '${REDIS_CPU_LIMIT:-0.25}'
+        reservations:
+          memory: 256M
+          cpus: '0.1'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+    labels:
+      - "com.itdo.service=cache"
+      - "com.itdo.environment=production"
+    security_opt:
+      - no-new-privileges:true
+
+  # Keycloak Authentication Server - Production Optimized
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0
+    container_name: itdo-keycloak-prod
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN_USER:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak_db?sslmode=prefer
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USER:-keycloak_user}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      KC_HOSTNAME: ${AUTH_DOMAIN:-auth.itdo-erp.com}
+      KC_HOSTNAME_STRICT: false
+      KC_HOSTNAME_STRICT_HTTPS: false
+      KC_PROXY: edge
+      KC_HTTP_ENABLED: true
+      KC_HTTPS_PORT: 8443
+      KC_HTTP_PORT: 8080
+      KC_HEALTH_ENABLED: true
+      KC_METRICS_ENABLED: true
+      KC_LOG_LEVEL: ${KEYCLOAK_LOG_LEVEL:-INFO}
+      KC_CACHE: ispn
+      KC_CACHE_STACK: tcp
+      JAVA_OPTS_APPEND: "-Xms1g -Xmx1g -XX:MetaspaceSize=96M -XX:MaxMetaspaceSize=256m -Djava.net.preferIPv4Stack=true"
+    ports:
+      - "8080:8080"
+      - "8443:8443"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - itdo-network
+    restart: unless-stopped
+    command: [
+      "start",
+      "--optimized",
+      "--import-realm"
+    ]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/ready || exit 1"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 180s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+    volumes:
+      - keycloak_data:/opt/keycloak/data
+      - keycloak_logs:/opt/keycloak/logs
+      - ./keycloak/themes:/opt/keycloak/themes:ro
+      - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "15m"
+        max-file: "5"
+    labels:
+      - "com.itdo.service=authentication"
+      - "com.itdo.environment=production"
+    security_opt:
+      - no-new-privileges:true
+
+  # Database Backup Service
+  db-backup:
+    image: docker.io/postgres:15.5-alpine
+    container_name: itdo-db-backup
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_backups:/backups
+      - ./backup-prod.sh:/usr/local/bin/backup-prod.sh:ro
+    networks:
+      - itdo-network
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: >
+      sh -c "
+        chmod +x /usr/local/bin/backup-prod.sh &&
+        while true; do
+          /usr/local/bin/backup-prod.sh
+          sleep 3600
+        done
+      "
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+    labels:
+      - "com.itdo.service=database-backup"
+      - "com.itdo.environment=production"
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  # Database volumes
+  postgres_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/itdo-erp/data/postgres
+  postgres_wal:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/itdo-erp/data/postgres-wal
+  postgres_backups:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/itdo-erp/backups/postgres
+  postgres_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/itdo-erp/logs/postgres
+  
+  # Cache volumes
+  redis_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/itdo-erp/data/redis
+  redis_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/itdo-erp/logs/redis
+  
+  # Application volumes
+  backend_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/itdo-erp/logs/backend
+  backend_uploads:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/itdo-erp/data/uploads
+  backend_cache:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/itdo-erp/cache/backend
+  frontend_cache:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/itdo-erp/cache/frontend
+  
+  # Authentication volumes
+  keycloak_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/itdo-erp/data/keycloak
+  keycloak_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/itdo-erp/logs/keycloak
+  
+  # Proxy volumes
+  nginx_cache:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/itdo-erp/cache/nginx
+
+networks:
+  itdo-network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: ${NETWORK_SUBNET:-172.20.0.0/16}
+          gateway: 172.20.0.1
+    driver_opts:
+      com.docker.network.bridge.name: itdo-prod-br
+      com.docker.network.driver.mtu: 1500

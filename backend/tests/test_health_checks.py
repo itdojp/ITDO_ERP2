@@ -50,21 +50,22 @@ class TestHealthChecker:
         redis_mock.get.return_value = b"test_value"
         redis_mock.delete.return_value = 1
         redis_mock.info.return_value = {
-            'redis_version': '7.0.0',
-            'connected_clients': 2,
-            'keyspace_hits': 100,
-            'keyspace_misses': 5
+            "redis_version": "7.0.0",
+            "connected_clients": 2,
+            "keyspace_hits": 100,
+            "keyspace_misses": 5,
         }
         return redis_mock
 
     @pytest.mark.asyncio
     async def test_check_system_health_basic(self, health_checker):
         """Test basic system health check"""
-        with patch.object(health_checker, '_check_database') as mock_db, \
-             patch.object(health_checker, '_check_redis') as mock_redis, \
-             patch.object(health_checker, '_check_external_dependencies') as mock_ext, \
-             patch.object(health_checker, '_check_application_health') as mock_app:
-
+        with (
+            patch.object(health_checker, "_check_database") as mock_db,
+            patch.object(health_checker, "_check_redis") as mock_redis,
+            patch.object(health_checker, "_check_external_dependencies") as mock_ext,
+            patch.object(health_checker, "_check_application_health") as mock_app,
+        ):
             # Mock successful health checks
             mock_db.return_value = HealthCheckResult(
                 component="database",
@@ -72,7 +73,7 @@ class TestHealthChecker:
                 status=HealthStatus.HEALTHY,
                 response_time_ms=50.0,
                 timestamp=datetime.now(timezone.utc),
-                message="Database operating normally"
+                message="Database operating normally",
             )
 
             mock_redis.return_value = HealthCheckResult(
@@ -81,7 +82,7 @@ class TestHealthChecker:
                 status=HealthStatus.HEALTHY,
                 response_time_ms=10.0,
                 timestamp=datetime.now(timezone.utc),
-                message="Redis operating normally"
+                message="Redis operating normally",
             )
 
             mock_ext.return_value = HealthCheckResult(
@@ -90,7 +91,7 @@ class TestHealthChecker:
                 status=HealthStatus.HEALTHY,
                 response_time_ms=100.0,
                 timestamp=datetime.now(timezone.utc),
-                message="All dependencies available"
+                message="All dependencies available",
             )
 
             mock_app.return_value = HealthCheckResult(
@@ -99,7 +100,7 @@ class TestHealthChecker:
                 status=HealthStatus.HEALTHY,
                 response_time_ms=5.0,
                 timestamp=datetime.now(timezone.utc),
-                message="Application running normally"
+                message="Application running normally",
             )
 
             result = await health_checker.check_system_health()
@@ -113,11 +114,12 @@ class TestHealthChecker:
     @pytest.mark.asyncio
     async def test_check_system_health_with_failures(self, health_checker):
         """Test system health check with some component failures"""
-        with patch.object(health_checker, '_check_database') as mock_db, \
-             patch.object(health_checker, '_check_redis') as mock_redis, \
-             patch.object(health_checker, '_check_external_dependencies') as mock_ext, \
-             patch.object(health_checker, '_check_application_health') as mock_app:
-
+        with (
+            patch.object(health_checker, "_check_database") as mock_db,
+            patch.object(health_checker, "_check_redis") as mock_redis,
+            patch.object(health_checker, "_check_external_dependencies") as mock_ext,
+            patch.object(health_checker, "_check_application_health") as mock_app,
+        ):
             # Mock database failure
             mock_db.return_value = HealthCheckResult(
                 component="database",
@@ -126,7 +128,7 @@ class TestHealthChecker:
                 response_time_ms=0,
                 timestamp=datetime.now(timezone.utc),
                 message="Database connection failed",
-                error="Connection refused"
+                error="Connection refused",
             )
 
             # Mock Redis degraded
@@ -136,7 +138,7 @@ class TestHealthChecker:
                 status=HealthStatus.DEGRADED,
                 response_time_ms=150.0,
                 timestamp=datetime.now(timezone.utc),
-                message="Redis responding slowly"
+                message="Redis responding slowly",
             )
 
             mock_ext.return_value = HealthCheckResult(
@@ -145,7 +147,7 @@ class TestHealthChecker:
                 status=HealthStatus.HEALTHY,
                 response_time_ms=100.0,
                 timestamp=datetime.now(timezone.utc),
-                message="All dependencies available"
+                message="All dependencies available",
             )
 
             mock_app.return_value = HealthCheckResult(
@@ -154,7 +156,7 @@ class TestHealthChecker:
                 status=HealthStatus.HEALTHY,
                 response_time_ms=5.0,
                 timestamp=datetime.now(timezone.utc),
-                message="Application running normally"
+                message="Application running normally",
             )
 
             result = await health_checker.check_system_health()
@@ -167,8 +169,10 @@ class TestHealthChecker:
             assert "redis" in result.summary["warnings"]
 
     @pytest.mark.asyncio
-    @patch('app.core.health.get_db')
-    async def test_check_database_success(self, mock_get_db, health_checker, mock_db_session):
+    @patch("app.core.health.get_db")
+    async def test_check_database_success(
+        self, mock_get_db, health_checker, mock_db_session
+    ):
         """Test successful database health check"""
         mock_get_db.return_value.__next__.return_value = mock_db_session
 
@@ -183,7 +187,7 @@ class TestHealthChecker:
         assert "connection_pool" in result.details
 
     @pytest.mark.asyncio
-    @patch('app.core.health.get_db')
+    @patch("app.core.health.get_db")
     async def test_check_database_failure(self, mock_get_db, health_checker):
         """Test database health check with connection failure"""
         mock_get_db.return_value.__next__.side_effect = Exception("Connection refused")
@@ -196,8 +200,10 @@ class TestHealthChecker:
         assert "Database connection failed" in result.message
 
     @pytest.mark.asyncio
-    @patch('app.core.health.get_redis')
-    async def test_check_redis_success(self, mock_get_redis, health_checker, mock_redis_client):
+    @patch("app.core.health.get_redis")
+    async def test_check_redis_success(
+        self, mock_get_redis, health_checker, mock_redis_client
+    ):
         """Test successful Redis health check"""
         mock_get_redis.return_value = mock_redis_client
 
@@ -211,7 +217,7 @@ class TestHealthChecker:
         assert "redis_version" in result.details
 
     @pytest.mark.asyncio
-    @patch('app.core.health.get_redis')
+    @patch("app.core.health.get_redis")
     async def test_check_redis_failure(self, mock_get_redis, health_checker):
         """Test Redis health check with connection failure"""
         mock_redis = AsyncMock()
@@ -225,14 +231,14 @@ class TestHealthChecker:
         assert "Redis connection failed" in result.error
 
     @pytest.mark.asyncio
-    @patch('psutil.virtual_memory')
+    @patch("psutil.virtual_memory")
     async def test_check_memory(self, mock_memory, health_checker):
         """Test memory health check"""
         mock_memory.return_value = MagicMock(
             total=8 * 1024**3,  # 8GB
             available=6 * 1024**3,  # 6GB
             used=2 * 1024**3,  # 2GB
-            percent=25.0
+            percent=25.0,
         )
 
         result = await health_checker._check_memory()
@@ -244,19 +250,18 @@ class TestHealthChecker:
         assert len(result.metrics) >= 1
 
         # Check memory metric
-        memory_metric = next(m for m in result.metrics if m.name == "memory_usage_percent")
+        memory_metric = next(
+            m for m in result.metrics if m.name == "memory_usage_percent"
+        )
         assert memory_metric.value == 25.0
         assert memory_metric.unit == "%"
 
     @pytest.mark.asyncio
-    @patch('psutil.virtual_memory')
+    @patch("psutil.virtual_memory")
     async def test_check_memory_high_usage(self, mock_memory, health_checker):
         """Test memory health check with high usage"""
         mock_memory.return_value = MagicMock(
-            total=8 * 1024**3,
-            available=0.5 * 1024**3,
-            used=7.5 * 1024**3,
-            percent=95.0
+            total=8 * 1024**3, available=0.5 * 1024**3, used=7.5 * 1024**3, percent=95.0
         )
 
         result = await health_checker._check_memory()
@@ -265,14 +270,14 @@ class TestHealthChecker:
         assert "Critical memory usage" in result.message
 
     @pytest.mark.asyncio
-    @patch('psutil.cpu_percent')
-    @patch('psutil.cpu_count')
+    @patch("psutil.cpu_percent")
+    @patch("psutil.cpu_count")
     async def test_check_cpu(self, mock_cpu_count, mock_cpu_percent, health_checker):
         """Test CPU health check"""
         mock_cpu_percent.return_value = 45.0
         mock_cpu_count.return_value = 4
 
-        with patch('psutil.getloadavg', return_value=(1.2, 1.5, 1.8)):
+        with patch("psutil.getloadavg", return_value=(1.2, 1.5, 1.8)):
             result = await health_checker._check_cpu()
 
         assert result.component == "cpu"
@@ -285,13 +290,13 @@ class TestHealthChecker:
         assert cpu_metric.value == 45.0
 
     @pytest.mark.asyncio
-    @patch('psutil.disk_usage')
+    @patch("psutil.disk_usage")
     async def test_check_disk(self, mock_disk_usage, health_checker):
         """Test disk health check"""
         mock_disk_usage.return_value = MagicMock(
             total=100 * 1024**3,  # 100GB
-            used=50 * 1024**3,    # 50GB
-            free=50 * 1024**3     # 50GB
+            used=50 * 1024**3,  # 50GB
+            free=50 * 1024**3,  # 50GB
         )
 
         result = await health_checker._check_disk()
@@ -309,18 +314,38 @@ class TestHealthChecker:
         """Test overall status calculation logic"""
         # All healthy
         components = [
-            HealthCheckResult("db", ComponentType.DATABASE, HealthStatus.HEALTHY, 50, datetime.now(timezone.utc)),
-            HealthCheckResult("redis", ComponentType.CACHE, HealthStatus.HEALTHY, 20, datetime.now(timezone.utc))
+            HealthCheckResult(
+                "db",
+                ComponentType.DATABASE,
+                HealthStatus.HEALTHY,
+                50,
+                datetime.now(timezone.utc),
+            ),
+            HealthCheckResult(
+                "redis",
+                ComponentType.CACHE,
+                HealthStatus.HEALTHY,
+                20,
+                datetime.now(timezone.utc),
+            ),
         ]
-        assert health_checker._calculate_overall_status(components) == HealthStatus.HEALTHY
+        assert (
+            health_checker._calculate_overall_status(components) == HealthStatus.HEALTHY
+        )
 
         # One degraded
         components[1].status = HealthStatus.DEGRADED
-        assert health_checker._calculate_overall_status(components) == HealthStatus.DEGRADED
+        assert (
+            health_checker._calculate_overall_status(components)
+            == HealthStatus.DEGRADED
+        )
 
         # One unhealthy
         components[0].status = HealthStatus.UNHEALTHY
-        assert health_checker._calculate_overall_status(components) == HealthStatus.UNHEALTHY
+        assert (
+            health_checker._calculate_overall_status(components)
+            == HealthStatus.UNHEALTHY
+        )
 
         # Empty components
         assert health_checker._calculate_overall_status([]) == HealthStatus.UNKNOWN
@@ -328,9 +353,27 @@ class TestHealthChecker:
     def test_generate_summary(self, health_checker):
         """Test summary generation"""
         components = [
-            HealthCheckResult("db", ComponentType.DATABASE, HealthStatus.HEALTHY, 50, datetime.now(timezone.utc)),
-            HealthCheckResult("redis", ComponentType.CACHE, HealthStatus.DEGRADED, 150, datetime.now(timezone.utc)),
-            HealthCheckResult("app", ComponentType.APPLICATION, HealthStatus.UNHEALTHY, 0, datetime.now(timezone.utc))
+            HealthCheckResult(
+                "db",
+                ComponentType.DATABASE,
+                HealthStatus.HEALTHY,
+                50,
+                datetime.now(timezone.utc),
+            ),
+            HealthCheckResult(
+                "redis",
+                ComponentType.CACHE,
+                HealthStatus.DEGRADED,
+                150,
+                datetime.now(timezone.utc),
+            ),
+            HealthCheckResult(
+                "app",
+                ComponentType.APPLICATION,
+                HealthStatus.UNHEALTHY,
+                0,
+                datetime.now(timezone.utc),
+            ),
         ]
 
         summary = health_checker._generate_summary(components)
@@ -359,7 +402,7 @@ class TestHealthCheckAPI:
         assert response.status_code == 200
         assert response.json()["status"] == "alive"
 
-    @patch('app.core.health.get_health_checker')
+    @patch("app.core.health.get_health_checker")
     def test_comprehensive_health_check(self, mock_get_checker, client):
         """Test comprehensive health check endpoint"""
         mock_checker = MagicMock()
@@ -378,10 +421,10 @@ class TestHealthCheckAPI:
                     datetime.now(timezone.utc),
                     "Database OK",
                     {"version": "15.0"},
-                    [HealthMetric("response_time", 50.0, "ms")]
+                    [HealthMetric("response_time", 50.0, "ms")],
                 )
             ],
-            summary={"healthy_components": 1}
+            summary={"healthy_components": 1},
         )
 
         mock_checker.check_system_health = AsyncMock(return_value=mock_report)
@@ -397,11 +440,13 @@ class TestHealthCheckAPI:
         assert len(data["components"]) == 1
         assert data["components"][0]["component"] == "database"
 
-    @patch('app.core.health.get_health_checker')
+    @patch("app.core.health.get_health_checker")
     def test_comprehensive_health_check_failure(self, mock_get_checker, client):
         """Test comprehensive health check with failure"""
         mock_checker = MagicMock()
-        mock_checker.check_system_health = AsyncMock(side_effect=Exception("Health check failed"))
+        mock_checker.check_system_health = AsyncMock(
+            side_effect=Exception("Health check failed")
+        )
         mock_checker.version = "1.0.0"
         mock_checker.environment = "test"
         mock_get_checker.return_value = mock_checker
@@ -428,24 +473,31 @@ class TestHealthCheckIntegration:
         # This would typically use real database and Redis connections
         # For integration tests, you'd set up test containers
 
-        with patch('app.core.database.get_db') as mock_get_db, \
-             patch('app.core.database.get_redis') as mock_get_redis:
-
+        with (
+            patch("app.core.database.get_db") as mock_get_db,
+            patch("app.core.database.get_redis") as mock_get_redis,
+        ):
             # Mock successful connections
             mock_session = MagicMock()
-            mock_session.execute.return_value.fetchone.return_value = (1, "PostgreSQL 15.0")
+            mock_session.execute.return_value.fetchone.return_value = (
+                1,
+                "PostgreSQL 15.0",
+            )
             mock_get_db.return_value.__next__.return_value = mock_session
 
             mock_redis = AsyncMock()
             mock_redis.ping.return_value = True
-            mock_redis.info.return_value = {'redis_version': '7.0.0'}
+            mock_redis.info.return_value = {"redis_version": "7.0.0"}
             mock_get_redis.return_value = mock_redis
 
             # Run health check
             report = await health_checker.check_system_health(include_detailed=True)
 
             assert isinstance(report, SystemHealthReport)
-            assert report.overall_status in [HealthStatus.HEALTHY, HealthStatus.DEGRADED]
+            assert report.overall_status in [
+                HealthStatus.HEALTHY,
+                HealthStatus.DEGRADED,
+            ]
             assert len(report.components) > 0
             assert report.summary is not None
 
@@ -482,7 +534,7 @@ class TestHealthMetrics:
             unit="ms",
             threshold_warning=100,
             threshold_critical=200,
-            description="API response time"
+            description="API response time",
         )
 
         assert metric.name == "response_time"
@@ -505,7 +557,7 @@ class TestHealthMetrics:
             message="Test message",
             details={"key": "value"},
             metrics=metrics,
-            error=None
+            error=None,
         )
 
         assert result.component == "test_component"

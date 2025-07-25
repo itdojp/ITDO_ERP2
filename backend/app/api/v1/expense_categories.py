@@ -30,7 +30,7 @@ async def get_expense_categories(
     category_type: Optional[str] = None,
     include_children: bool = False,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user)
 ):
     """費目一覧取得"""
     service = ExpenseCategoryService(db)
@@ -38,7 +38,7 @@ async def get_expense_categories(
         organization_id=current_user.organization_id,
         parent_id=parent_id,
         category_type=category_type,
-        include_children=include_children,
+        include_children=include_children
     )
     return categories
 
@@ -47,12 +47,13 @@ async def get_expense_categories(
 async def get_expense_category_tree(
     category_type: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user)
 ):
     """費目ツリー構造取得"""
     service = ExpenseCategoryService(db)
     tree = await service.get_category_tree(
-        organization_id=current_user.organization_id, category_type=category_type
+        organization_id=current_user.organization_id,
+        category_type=category_type
     )
     return tree
 
@@ -61,16 +62,15 @@ async def get_expense_category_tree(
 async def get_expense_category(
     category_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user)
 ):
     """費目詳細取得"""
     service = ExpenseCategoryService(db)
-    category = await service.get_category_by_id(
-        category_id, current_user.organization_id
-    )
+    category = await service.get_category_by_id(category_id, current_user.organization_id)
     if not category:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Expense category not found"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Expense category not found"
         )
     return category
 
@@ -79,13 +79,11 @@ async def get_expense_category(
 async def create_expense_category(
     category_data: ExpenseCategoryCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user)
 ):
     """費目新規作成"""
     service = ExpenseCategoryService(db)
-    category = await service.create_category(
-        category_data, current_user.organization_id
-    )
+    category = await service.create_category(category_data, current_user.organization_id)
     return category
 
 
@@ -93,7 +91,7 @@ async def create_expense_category(
 async def create_expense_categories_bulk(
     categories_data: ExpenseCategoryBulkCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user)
 ):
     """費目一括作成"""
     service = ExpenseCategoryService(db)
@@ -108,7 +106,7 @@ async def update_expense_category(
     category_id: int,
     category_data: ExpenseCategoryUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user)
 ):
     """費目更新"""
     service = ExpenseCategoryService(db)
@@ -117,7 +115,8 @@ async def update_expense_category(
     )
     if not category:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Expense category not found"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Expense category not found"
         )
     return category
 
@@ -126,14 +125,15 @@ async def update_expense_category(
 async def delete_expense_category(
     category_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user)
 ):
     """費目削除（論理削除）"""
     service = ExpenseCategoryService(db)
     success = await service.delete_category(category_id, current_user.organization_id)
     if not success:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Expense category not found"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Expense category not found"
         )
     return {"message": "Expense category deleted successfully"}
 
@@ -143,13 +143,13 @@ async def get_expense_category_analytics(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user)
 ):
     """費目使用状況分析"""
     service = ExpenseCategoryService(db)
     analytics = await service.get_category_analytics(
         organization_id=current_user.organization_id,
         start_date=start_date,
-        end_date=end_date,
+        end_date=end_date
     )
     return analytics

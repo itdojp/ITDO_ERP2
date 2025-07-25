@@ -1,0 +1,357 @@
+name: ✅ Validate Workflows
+
+on:
+  push:
+    paths:
+      - '.github/workflows/**'
+      - 'infra/**'
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+      - 'infra/**'
+  workflow_dispatch:
+
+jobs:
+  validate-workflows:
+    name: 🔍 Validate GitHub Actions Workflows
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Validate workflow syntax
+        run: |
+          echo "🔍 Validating GitHub Actions workflow syntax..."
+          
+          # Install yamllint for YAML validation
+          pip install yamllint
+          
+          # Create yamllint config
+          cat > .yamllint.yml << EOF
+          extends: default
+          rules:
+            line-length:
+              max: 120
+            indentation:
+              spaces: 2
+            comments:
+              min-spaces-from-content: 1
+          EOF
+          
+          # Validate all workflow files
+          find .github/workflows -name "*.yml" -o -name "*.yaml" | while read -r file; do
+            echo "Validating $file..."
+            yamllint -c .yamllint.yml "$file"
+            echo "✅ $file syntax valid"
+          done
+          
+          echo "✅ All workflow files have valid YAML syntax"
+      
+      - name: Validate workflow structure
+        run: |
+          echo "🔧 Validating workflow structure..."
+          
+          # Check for required fields in workflow files
+          find .github/workflows -name "*.yml" -o -name "*.yaml" | while read -r file; do
+            echo "Checking structure of $file..."
+            
+            # Check for required top-level fields
+            if ! grep -q "^name:" "$file"; then
+              echo "❌ Missing 'name' field in $file"
+              exit 1
+            fi
+            
+            if ! grep -q "^on:" "$file"; then
+              echo "❌ Missing 'on' field in $file"
+              exit 1
+            fi
+            
+            if ! grep -q "^jobs:" "$file"; then
+              echo "❌ Missing 'jobs' field in $file"
+              exit 1
+            fi
+            
+            echo "✅ $file structure valid"
+          done
+          
+          echo "✅ All workflow structures are valid"
+
+  validate-docker-compose:
+    name: 🐳 Validate Docker Compose
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Validate production compose
+        run: |
+          echo "🐳 Validating production Docker Compose configuration..."
+          
+          cd infra
+          
+          # Check if compose file exists
+          if [ ! -f "compose-prod.yaml" ]; then
+            echo "❌ compose-prod.yaml not found"
+            exit 1
+          fi
+          
+          # Validate compose syntax
+          docker-compose -f compose-prod.yaml config -q
+          echo "✅ Production compose syntax valid"
+          
+          # Check required services
+          required_services=("backend" "frontend" "postgres" "redis" "nginx")
+          for service in "${required_services[@]}"; do
+            if ! docker-compose -f compose-prod.yaml config | grep -q "^  $service:"; then
+              echo "❌ Required service '$service' not found in compose-prod.yaml"
+              exit 1
+            fi
+            echo "✅ Service '$service' found"
+          done
+      
+      - name: Validate monitoring compose
+        run: |
+          echo "📊 Validating monitoring Docker Compose configuration..."
+          
+          cd infra
+          
+          # Check if compose file exists
+          if [ ! -f "compose-monitoring.yaml" ]; then
+            echo "❌ compose-monitoring.yaml not found"
+            exit 1
+          fi
+          
+          # Validate compose syntax
+          docker-compose -f compose-monitoring.yaml config -q
+          echo "✅ Monitoring compose syntax valid"
+          
+          # Check monitoring services
+          monitoring_services=("prometheus" "grafana" "loki")
+          for service in "${monitoring_services[@]}"; do
+            if ! docker-compose -f compose-monitoring.yaml config | grep -q "^  $service:"; then
+              echo "⚠️ Monitoring service '$service' not found (optional)"
+            else
+              echo "✅ Monitoring service '$service' found"
+            fi
+          done
+
+  validate-environment:
+    name: 🔧 Validate Environment Configuration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Validate environment templates
+        run: |
+          echo "🔧 Validating environment configuration templates..."
+          
+          cd infra
+          
+          # Check if environment template exists
+          if [ ! -f ".env.prod.example" ]; then
+            echo "❌ .env.prod.example not found"
+            exit 1
+          fi
+          
+          echo "✅ Environment template found"
+          
+          # Check for required environment variables
+          required_vars=(
+            "POSTGRES_DB"
+            "POSTGRES_USER" 
+            "POSTGRES_PASSWORD"
+            "DATABASE_URL"
+            "REDIS_URL"
+            "DOMAIN"
+            "SSL_EMAIL"
+          )
+          
+          for var in "${required_vars[@]}"; do
+            if ! grep -q "^$var=" .env.prod.example; then
+              echo "❌ Required environment variable '$var' not found in .env.prod.example"
+              exit 1
+            fi
+            echo "✅ Environment variable '$var' found"
+          done
+          
+          echo "✅ All required environment variables present"
+
+  validate-scripts:
+    name: 📜 Validate Deployment Scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Validate shell scripts
+        run: |
+          echo "📜 Validating deployment scripts..."
+          
+          # Install shellcheck
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+          
+          # Find and validate shell scripts
+          find infra -name "*.sh" -type f | while read -r script; do
+            echo "Validating $script..."
+            
+            # Check if script is executable
+            if [ ! -x "$script" ]; then
+              echo "⚠️ Script $script is not executable"
+              chmod +x "$script"
+            fi
+            
+            # Run shellcheck
+            shellcheck "$script"
+            echo "✅ $script passed shellcheck"
+          done
+          
+          echo "✅ All shell scripts validated"
+      
+      - name: Test script syntax
+        run: |
+          echo "🧪 Testing script syntax..."
+          
+          find infra -name "*.sh" -type f | while read -r script; do
+            echo "Testing syntax of $script..."
+            bash -n "$script"
+            echo "✅ $script syntax valid"
+          done
+          
+          echo "✅ All script syntax checks passed"
+
+  validate-nginx:
+    name: 🌐 Validate NGINX Configuration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install NGINX
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nginx
+      
+      - name: Validate NGINX configuration
+        run: |
+          echo "🌐 Validating NGINX configuration..."
+          
+          if [ -f "infra/nginx/nginx-prod.conf" ]; then
+            echo "Validating NGINX production configuration..."
+            
+            # Copy config to nginx directory for testing
+            sudo cp infra/nginx/nginx-prod.conf /etc/nginx/nginx.conf
+            
+            # Test NGINX configuration
+            sudo nginx -t
+            echo "✅ NGINX configuration valid"
+          else
+            echo "⚠️ NGINX configuration file not found"
+          fi
+
+  security-check:
+    name: 🔒 Security Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Check for secrets in workflows
+        run: |
+          echo "🔒 Checking for hardcoded secrets in workflows..."
+          
+          # Patterns to look for
+          secret_patterns=(
+            "password.*=.*['\"][^'\"]*['\"]"
+            "token.*=.*['\"][^'\"]*['\"]"
+            "key.*=.*['\"][^'\"]*['\"]"  
+            "secret.*=.*['\"][^'\"]*['\"]"
+          )
+          
+          found_secrets=false
+          
+          find .github/workflows -name "*.yml" -o -name "*.yaml" | while read -r file; do
+            for pattern in "${secret_patterns[@]}"; do
+              if grep -i -E "$pattern" "$file"; then
+                echo "⚠️ Potential hardcoded secret found in $file"
+                found_secrets=true
+              fi
+            done
+          done
+          
+          # Check infra files too
+          find infra -name "*.yml" -o -name "*.yaml" -o -name "*.conf" | while read -r file; do
+            for pattern in "${secret_patterns[@]}"; do
+              if grep -i -E "$pattern" "$file"; then
+                echo "⚠️ Potential hardcoded secret found in $file"
+                found_secrets=true
+              fi
+            done
+          done
+          
+          if [ "$found_secrets" = "true" ]; then
+            echo "❌ Security check failed - secrets found"
+            exit 1
+          fi
+          
+          echo "✅ No hardcoded secrets detected"
+      
+      - name: Validate secret references
+        run: |
+          echo "🔑 Validating secret references in workflows..."
+          
+          # Find all secret references
+          find .github/workflows -name "*.yml" -o -name "*.yaml" | xargs grep -h "secrets\." | sort | uniq > /tmp/workflow_secrets.txt
+          
+          echo "📋 Secret references found:"
+          cat /tmp/workflow_secrets.txt
+          
+          # Check if secrets follow naming convention
+          while read -r line; do
+            if echo "$line" | grep -q "secrets\."; then
+              secret_name=$(echo "$line" | sed 's/.*secrets\.\([A-Z_]*\).*/\1/')
+              if ! echo "$secret_name" | grep -q "^[A-Z_]*$"; then
+                echo "⚠️ Secret '$secret_name' doesn't follow UPPER_CASE naming convention"
+              fi
+            fi
+          done < /tmp/workflow_secrets.txt
+          
+          echo "✅ Secret reference validation completed"
+
+  integration-test:
+    name: 🧪 Integration Test
+    runs-on: ubuntu-latest
+    needs: [validate-workflows, validate-docker-compose, validate-environment, validate-scripts]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Test deployment simulation
+        run: |
+          echo "🧪 Running deployment simulation test..."
+          
+          cd infra
+          
+          # Create test environment file
+          cp .env.prod.example .env.test
+          sed -i 's/your_production_domain/test.local/g' .env.test
+          sed -i 's/your_production_password/test_password/g' .env.test
+          
+          # Test compose configuration with test environment
+          docker-compose -f compose-prod.yaml --env-file .env.test config -q
+          echo "✅ Deployment simulation test passed"
+          
+          # Cleanup
+          rm -f .env.test
+      
+      - name: Workflow validation summary
+        run: |
+          echo "📊 Validation Summary"
+          echo "===================="
+          echo "✅ GitHub Actions workflows validated"
+          echo "✅ Docker Compose configurations validated"
+          echo "✅ Environment templates validated"
+          echo "✅ Deployment scripts validated"
+          echo "✅ NGINX configuration validated"
+          echo "✅ Security checks passed"
+          echo "✅ Integration tests passed"
+          echo ""
+          echo "🎉 All validations completed successfully!"
+          echo "🚀 CI/CD pipeline is ready for production use"

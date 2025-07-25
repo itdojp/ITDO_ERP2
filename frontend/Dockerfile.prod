@@ -1,43 +1,103 @@
-# Multi-stage Dockerfile for production frontend
-FROM node:20-alpine as base
+# ITDO ERP Frontend - Production Dockerfile
+# 本番環境用 最適化されたマルチステージビルド
 
-# Install dependencies
+# ==================== Dependencies Stage ====================
+FROM node:20-alpine as deps
 WORKDIR /app
+
+# システム依存関係とセキュリティ更新
+RUN apk update && apk upgrade && \
+    apk add --no-cache \
+    curl \
+    dumb-init \
+    ca-certificates && \
+    rm -rf /var/cache/apk/*
+
+# npm パッケージファイルのコピー
 COPY package*.json ./
-RUN npm ci --only=production && npm cache clean --force
 
-# Development stage
-FROM node:20-alpine as development
+# 本番依存関係のインストール（セキュリティ監査付き）
+RUN npm ci --only=production --no-audit && \
+    npm cache clean --force
+
+# ==================== Build Stage ====================
+FROM node:20-alpine as builder
 WORKDIR /app
+
+# ビルド用システム依存関係
+RUN apk update && apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    curl
+
+# 全依存関係をインストール
 COPY package*.json ./
-RUN npm ci
+RUN npm ci --no-audit
+
+# ソースコードをコピー
 COPY . .
-EXPOSE 3000
-CMD ["npm", "run", "dev"]
 
-# Build stage
-FROM development as build
-WORKDIR /app
-COPY . .
-RUN npm run build
+# TypeScript型チェック
+RUN npm run typecheck
 
-# Testing stage
-FROM build as testing
-RUN npm run test:ci || true
-RUN npm run lint || true
+# リント実行
+RUN npm run lint
 
-# Production stage
-FROM nginx:alpine as production
-COPY --from=build /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# テスト実行（本番ビルド前）
+RUN npm run test:ci
 
-# Create non-root user
-RUN addgroup -g 1001 -S nginx && \
-    adduser -S nginx -u 1001
+# 本番ビルド実行
+RUN npm run build && \
+    ls -la dist/  # ビルド成果物確認
 
-EXPOSE 80
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost/ || exit 1
+# ==================== Runtime Stage ====================
+FROM nginx:1.25-alpine as runtime
 
-USER nginx
+# セキュリティ更新とcurl追加（ヘルスチェック用）
+RUN apk update && apk upgrade && \
+    apk add --no-cache \
+    curl \
+    dumb-init && \
+    rm -rf /var/cache/apk/*
+
+# 非特権ユーザー作成
+RUN addgroup -g 1001 -S erp && \
+    adduser -S erp -u 1001 -G erp
+
+# ビルド成果物をコピー
+COPY --from=builder --chown=erp:erp /app/dist /usr/share/nginx/html
+
+# 最適化されたnginx設定
+COPY --chown=erp:erp nginx.prod.conf /etc/nginx/conf.d/default.conf
+
+# nginxの権限調整
+RUN chown -R erp:erp /var/cache/nginx && \
+    chown -R erp:erp /var/log/nginx && \
+    chown -R erp:erp /etc/nginx/conf.d && \
+    touch /var/run/nginx.pid && \
+    chown -R erp:erp /var/run/nginx.pid
+
+# セキュリティ設定
+RUN rm -f /etc/nginx/conf.d/default.conf.dpkg-old && \
+    chmod -R 755 /usr/share/nginx/html && \
+    find /usr/share/nginx/html -type f -exec chmod 644 {} \;
+
+# ヘルスチェック用スクリプト
+RUN echo '#!/bin/sh\ncurl -f http://localhost:8080/health || exit 1' > /usr/local/bin/healthcheck.sh && \
+    chmod +x /usr/local/bin/healthcheck.sh && \
+    chown erp:erp /usr/local/bin/healthcheck.sh
+
+# 非特権ユーザーに切り替え
+USER erp
+
+# ポート公開（8080を使用してバックエンドとの競合回避）
+EXPOSE 8080
+
+# ヘルスチェック設定
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD /usr/local/bin/healthcheck.sh
+
+# プロセス管理とnginx起動
+ENTRYPOINT ["dumb-init", "--"]
 CMD ["nginx", "-g", "daemon off;"]

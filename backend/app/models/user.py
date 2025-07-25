@@ -85,10 +85,10 @@ class User(SoftDeletableModel):
 
     # Task relationships
     assigned_tasks: Mapped[list["Task"]] = relationship(
-        "Task", foreign_keys="Task.assigned_to", back_populates="assignee"
+        "Task", foreign_keys="Task.assignee_id", back_populates="assignee"
     )
-    created_tasks: Mapped[list["Task"]] = relationship(
-        "Task", foreign_keys="Task.created_by", back_populates="creator"
+    reported_tasks: Mapped[list["Task"]] = relationship(
+        "Task", foreign_keys="Task.reporter_id", back_populates="reporter"
     )
 
     # User preferences and privacy settings
@@ -252,16 +252,14 @@ class User(SoftDeletableModel):
 
     def is_password_expired(self) -> bool:
         """Check if password has expired (90 days)."""
-        if not self.password_changed_at:
-            return True
-
-        # Ensure timezone-aware comparison
-        password_changed = self.password_changed_at
-        if password_changed.tzinfo is None:
-            password_changed = password_changed.replace(tzinfo=timezone.utc)
-
-        expiry_date = password_changed + timedelta(days=90)
-        return datetime.now(timezone.utc) > expiry_date
+        expiry_date = self.password_changed_at + timedelta(days=90)
+        # Handle both timezone-aware and naive datetimes
+        if expiry_date.tzinfo is None:
+            # If expiry_date is naive, compare with naive datetime
+            return datetime.now() > expiry_date
+        else:
+            # If expiry_date is timezone-aware, compare with timezone-aware datetime
+            return datetime.now(timezone.utc) > expiry_date
 
     def create_session(
         self,
@@ -415,9 +413,9 @@ class User(SoftDeletableModel):
                 user_role.organization_id == organization_id
                 and not user_role.is_expired
             ):
-                # Handle permissions from role - use many-to-many relationship
+                # Handle permissions from role
                 if user_role.role and user_role.role.permissions:
-                    # permissions is a list of Permission objects through many-to-many
+                    # permissions is a list of Permission objects
                     for permission in user_role.role.permissions:
                         permissions.add(permission.code)
 
@@ -607,53 +605,6 @@ class User(SoftDeletableModel):
         online_threshold = now - timedelta(minutes=15)
 
         return self.last_login_at > online_threshold
-
-    @property
-    def organization_id(self) -> int | None:
-        """Get primary organization ID for the user."""
-        # Return the first active organization from user_organizations
-        if hasattr(self, "user_organizations") and self.user_organizations:
-            active_orgs = [
-                uo
-                for uo in self.user_organizations
-                if hasattr(uo, "is_active") and uo.is_active
-            ]
-            if active_orgs and hasattr(active_orgs[0], "organization_id"):
-                return int(active_orgs[0].organization_id)
-
-        # Fallback: if user has a department_id, get department's organization
-        if self.department_id:
-            # This would require a database query to get the actual department
-            # For now, return None as this requires additional context
-            pass
-
-        return None
-
-    def get_full_display_name(self) -> str:
-        """Get user's full display name for ERP systems."""
-        if self.full_name:
-            return self.full_name
-        return self.email
-
-    def is_erp_user(self) -> bool:
-        """Check if user has ERP access permissions."""
-        # Basic check - could be expanded with specific ERP permissions
-        return self.is_active and bool(self.organization_id)
-
-    def get_erp_context(self) -> dict[str, Any]:
-        """Get ERP-specific user context."""
-        return {
-            "user_id": self.id,
-            "full_name": self.full_name,
-            "email": self.email,
-            "organization_id": self.organization_id,
-            "department_id": self.department_id,
-            "is_active": self.is_active,
-            "is_superuser": self.is_superuser,
-            "last_login": self.last_login_at.isoformat()
-            if self.last_login_at
-            else None,
-        }
 
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email={self.email})>"

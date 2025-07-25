@@ -46,7 +46,7 @@ class UserProfileService:
     # Thumbnail size
     THUMBNAIL_SIZE = (100, 100)
 
-    def __init__(self, db: Session) -> dict:
+    def __init__(self, db: Session):
         """Initialize service."""
         self.db = db
 
@@ -185,7 +185,7 @@ class UserProfileService:
             date_format=prefs.date_format,
             time_format="24h"
             if prefs.time_format not in ["12h", "24h"]
-            else prefs.time_format,
+            else ("12h" if prefs.time_format == "12h" else "24h"),
             notification_email=prefs.notifications_email,
             notification_push=prefs.notifications_push,
             updated_at=prefs.updated_at,
@@ -255,7 +255,7 @@ class UserProfileService:
             date_format=prefs.date_format,
             time_format="24h"
             if prefs.time_format not in ["12h", "24h"]
-            else prefs.time_format,
+            else ("12h" if prefs.time_format == "12h" else "24h"),
             notification_email=prefs.notifications_email,
             notification_push=prefs.notifications_push,
             updated_at=prefs.updated_at,

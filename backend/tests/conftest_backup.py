@@ -146,7 +146,6 @@ except Exception as e:
     print(f"Available metadata tables: {list(Base.metadata.tables.keys())}")
     raise
 
-
 @pytest.fixture(autouse=True)
 def isolate_test_data() -> dict[str, str]:
     """各テストで独立したデータを使用"""
@@ -215,9 +214,7 @@ def db_session() -> Generator[Session]:
             ]
             for table in table_order:
                 try:
-                    conn.execute(
-                        text(f'TRUNCATE TABLE "{table}" RESTART IDENTITY CASCADE')
-                    )
+                    conn.execute(text(f'TRUNCATE TABLE "{table}" RESTART IDENTITY CASCADE'))
                 except Exception:
                     # Table might not exist, skip
                     pass
@@ -246,7 +243,6 @@ def db_session() -> Generator[Session]:
 def test_user(db_session: Session) -> User:
     """Create a basic test user."""
     import uuid
-
     unique_id = str(uuid.uuid4())[:8]
     return UserFactory.create_with_password(
         db_session,
@@ -260,7 +256,6 @@ def test_user(db_session: Session) -> User:
 def test_admin(db_session: Session) -> User:
     """Create a test admin user."""
     import uuid
-
     unique_id = str(uuid.uuid4())[:8]
     return UserFactory.create_with_password(
         db_session,
@@ -275,7 +270,6 @@ def test_admin(db_session: Session) -> User:
 def test_manager(db_session: Session) -> User:
     """Create a test manager user."""
     import uuid
-
     unique_id = str(uuid.uuid4())[:8]
     return UserFactory.create_with_password(
         db_session,
@@ -333,13 +327,12 @@ def manager_token(test_manager: User) -> str:
 def test_organization(db_session: Session) -> Organization:
     """Create a test organization."""
     import uuid
-
     unique_id = str(uuid.uuid4())[:8]
     return OrganizationFactory.create(
         db_session,
         name=f"テスト株式会社-{unique_id}",
         code=f"TEST-ORG-{unique_id}",
-        industry="IT",
+        industry="IT"
     )
 
 
@@ -358,13 +351,11 @@ def test_organization_tree(db_session: Session) -> dict[str, Any]:
 def test_department(db_session: Session, test_organization: Organization) -> Department:
     """Create a test department."""
     import uuid
-
     unique_id = str(uuid.uuid4())[:8]
     return DepartmentFactory.create_with_organization(
-        db_session,
-        test_organization,
+        db_session, test_organization,
         name=f"テスト部門-{unique_id}",
-        code=f"TEST-DEPT-{unique_id}",
+        code=f"TEST-DEPT-{unique_id}"
     )
 
 
@@ -385,13 +376,11 @@ def test_department_tree(
 def test_role(db_session: Session, test_organization: Organization) -> Role:
     """Create a test role."""
     import uuid
-
     unique_id = str(uuid.uuid4())[:8]
     return RoleFactory.create_with_organization(
-        db_session,
-        test_organization,
+        db_session, test_organization,
         name=f"テストロール-{unique_id}",
-        role_type="custom",
+        role_type="custom"
     )
 
 
@@ -497,6 +486,7 @@ def setup_test_environment() -> None:
     """Set up test environment variables."""
     # Environment variables are already set at module level
     # This fixture ensures they remain set for each test
+    pass
 
 
 # Utility Functions for Tests

@@ -15,7 +15,7 @@ from app.schemas.audit import AuditLogSearch
 class AuditLogger:
     """Audit logger for tracking system changes."""
 
-    def __init__(self, db: Session | None = None) -> dict:
+    def __init__(self, db: Session | None = None):
         """Initialize audit logger."""
         self.db = db
 

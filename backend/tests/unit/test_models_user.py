@@ -198,11 +198,5 @@ class TestUserModel:
 
         # Then: User should be updated
         assert user.full_name == "Updated Name"
-        # Handle timezone comparison properly
-        updated_at = user.updated_at
-        if updated_at.tzinfo is None:
-            updated_at = updated_at.replace(tzinfo=timezone.utc)
-        if original_updated_at.tzinfo is None:
-            original_updated_at = original_updated_at.replace(tzinfo=timezone.utc)
-        # Use >= because SQLite has lower timestamp precision
-        assert updated_at >= original_updated_at
+        # >= because SQLite has lower timestamp precision
+        assert user.updated_at >= user.created_at

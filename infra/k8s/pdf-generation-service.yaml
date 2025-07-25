@@ -1,0 +1,1307 @@
+# ITDO ERP v2 - PDF Generation Service
+# CC03 v48.0 Business-Aligned Infrastructure
+
+# PDF Generation Service Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pdf-generation-service
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: pdf-generation-service
+    app.kubernetes.io/component: document-generation
+    app.kubernetes.io/version: "1.0"
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: pdf-generation-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: pdf-generation-service
+        app.kubernetes.io/component: document-generation
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+      containers:
+      - name: pdf-service
+        image: itdo/pdf-generation-service:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 9090
+          name: metrics
+        env:
+        # Service Configuration
+        - name: PORT
+          value: "8080"
+        - name: METRICS_PORT
+          value: "9090"
+        - name: LOG_LEVEL
+          value: "INFO"
+        
+        # PDF Engine Configuration
+        - name: PDF_ENGINE
+          value: "chromium"  # chromium, wkhtmltopdf
+        - name: CHROMIUM_PATH
+          value: "/usr/bin/chromium-browser"
+        - name: CHROMIUM_ARGS
+          value: "--no-sandbox,--headless,--disable-gpu,--disable-web-security,--disable-features=VizDisplayCompositor"
+        
+        # Processing Configuration
+        - name: MAX_CONCURRENT_JOBS
+          value: "10"
+        - name: JOB_TIMEOUT_SECONDS
+          value: "300"  # 5 minutes
+        - name: MAX_PAGE_SIZE
+          value: "50"   # Maximum pages per PDF
+        - name: COMPRESSION_LEVEL
+          value: "6"    # 0-9, higher = more compression
+        
+        # Queue Configuration
+        - name: RABBITMQ_URL
+          value: "amqp://itdo-erp:rabbitmq_password_2025@rabbitmq-service.itdo-erp-data.svc.cluster.local:5672/itdo-erp-prod"
+        - name: PDF_QUEUE_NAME
+          value: "pdf.generation"
+        - name: QUEUE_PREFETCH_COUNT
+          value: "5"
+        
+        # Storage Configuration
+        - name: MINIO_ENDPOINT
+          value: "minio-service.itdo-erp-data.svc.cluster.local:9000"
+        - name: MINIO_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: minio-secret
+              key: MINIO_ACCESS_KEY
+        - name: MINIO_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: minio-secret
+              key: MINIO_SECRET_KEY
+        - name: MINIO_BUCKET
+          value: "itdo-erp-documents"
+        - name: MINIO_USE_SSL
+          value: "false"
+        
+        # Redis Configuration
+        - name: REDIS_URL
+          value: "redis://redis-cluster-service.itdo-erp-data.svc.cluster.local:6379"
+        - name: REDIS_KEY_PREFIX
+          value: "pdf:"
+        - name: CACHE_TTL_SECONDS
+          value: "3600"
+        
+        # Template Configuration
+        - name: TEMPLATE_BASE_URL
+          value: "http://pdf-generation-service:8080/templates"
+        - name: STATIC_ASSETS_URL
+          value: "http://pdf-generation-service:8080/assets"
+        
+        # Japanese Font Configuration
+        - name: JAPANESE_FONT_PATH
+          value: "/usr/share/fonts/truetype/noto-cjk"
+        - name: DEFAULT_FONT_FAMILY
+          value: "Noto Sans CJK JP"
+        
+        # Security Configuration
+        - name: ALLOWED_DOMAINS
+          value: "itdo-erp.com,localhost"
+        - name: MAX_FILE_SIZE_MB
+          value: "100"
+        - name: ENABLE_WATERMARK
+          value: "true"
+        - name: WATERMARK_TEXT
+          value: "ITDO ERP System"
+        
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        
+        volumeMounts:
+        - name: pdf-templates
+          mountPath: /app/templates
+        - name: pdf-assets
+          mountPath: /app/assets
+        - name: fonts
+          mountPath: /usr/share/fonts/truetype/noto-cjk
+        - name: tmp
+          mountPath: /tmp
+        - name: chromium-cache
+          mountPath: /home/pdf/.cache
+        
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1001
+          capabilities:
+            drop:
+            - ALL
+      
+      volumes:
+      - name: pdf-templates
+        configMap:
+          name: pdf-templates
+      - name: pdf-assets
+        configMap:
+          name: pdf-assets
+      - name: fonts
+        configMap:
+          name: japanese-fonts
+      - name: tmp
+        emptyDir:
+          sizeLimit: 1Gi
+      - name: chromium-cache
+        emptyDir:
+          sizeLimit: 100Mi
+
+---
+# PDF Templates ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pdf-templates
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: pdf-generation-service
+    app.kubernetes.io/component: templates
+data:
+  # Invoice Template
+  invoice.html: |
+    <!DOCTYPE html>
+    <html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>請求書</title>
+        <style>
+            @import url('/assets/pdf-styles.css');
+            
+            body {
+                font-family: 'Noto Sans CJK JP', 'Hiragino Kaku Gothic ProN', sans-serif;
+                font-size: 12px;
+                line-height: 1.6;
+                color: #333;
+                margin: 0;
+                padding: 20px;
+            }
+            
+            .header {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                margin-bottom: 30px;
+                border-bottom: 2px solid #2563eb;
+                padding-bottom: 20px;
+            }
+            
+            .company-info {
+                flex: 1;
+            }
+            
+            .invoice-info {
+                text-align: right;
+                flex: 1;
+            }
+            
+            .invoice-title {
+                font-size: 24px;
+                font-weight: bold;
+                color: #2563eb;
+                margin-bottom: 10px;
+            }
+            
+            .customer-info {
+                margin: 30px 0;
+                padding: 20px;
+                background: #f8fafc;
+                border-left: 4px solid #2563eb;
+            }
+            
+            .items-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 30px 0;
+            }
+            
+            .items-table th,
+            .items-table td {
+                padding: 12px;
+                text-align: left;
+                border: 1px solid #e2e8f0;
+            }
+            
+            .items-table th {
+                background: #f1f5f9;
+                font-weight: bold;
+            }
+            
+            .items-table td.number {
+                text-align: right;
+            }
+            
+            .total-section {
+                margin-top: 30px;
+                text-align: right;
+            }
+            
+            .total-row {
+                display: flex;
+                justify-content: flex-end;
+                margin: 10px 0;
+            }
+            
+            .total-label {
+                width: 150px;
+                text-align: right;
+                padding-right: 20px;
+            }
+            
+            .total-amount {
+                width: 120px;
+                text-align: right;
+                font-weight: bold;
+            }
+            
+            .grand-total {
+                font-size: 18px;
+                color: #2563eb;
+                border-top: 2px solid #2563eb;
+                padding-top: 10px;
+            }
+            
+            .footer {
+                margin-top: 50px;
+                padding-top: 20px;
+                border-top: 1px solid #e2e8f0;
+                font-size: 10px;
+                color: #64748b;
+            }
+            
+            .payment-terms {
+                margin: 30px 0;
+                padding: 15px;
+                background: #fef3c7;
+                border-left: 4px solid #f59e0b;
+            }
+            
+            @media print {
+                body { margin: 0; }
+                .page-break { page-break-before: always; }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <div class="company-info">
+                <h1>{{ company.name }}</h1>
+                <p>
+                    {{ company.address }}<br>
+                    TEL: {{ company.phone }}<br>
+                    EMAIL: {{ company.email }}
+                </p>
+            </div>
+            <div class="invoice-info">
+                <div class="invoice-title">請求書</div>
+                <p>
+                    <strong>請求書番号:</strong> {{ invoice.number }}<br>
+                    <strong>発行日:</strong> {{ invoice.issue_date }}<br>
+                    <strong>支払期限:</strong> {{ invoice.due_date }}
+                </p>
+            </div>
+        </div>
+        
+        <div class="customer-info">
+            <h2>請求先</h2>
+            <p>
+                <strong>{{ customer.name }}</strong><br>
+                {{ customer.address }}<br>
+                {% if customer.phone %}TEL: {{ customer.phone }}<br>{% endif %}
+                {% if customer.email %}EMAIL: {{ customer.email }}{% endif %}
+            </p>
+        </div>
+        
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th>品目</th>
+                    <th>数量</th>
+                    <th>単価</th>
+                    <th>金額</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in invoice.items %}
+                <tr>
+                    <td>
+                        <strong>{{ item.name }}</strong>
+                        {% if item.description %}<br><small>{{ item.description }}</small>{% endif %}
+                    </td>
+                    <td class="number">{{ item.quantity }}</td>
+                    <td class="number">¥{{ item.unit_price | number_format }}</td>
+                    <td class="number">¥{{ item.amount | number_format }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <div class="total-section">
+            <div class="total-row">
+                <div class="total-label">小計:</div>
+                <div class="total-amount">¥{{ invoice.subtotal | number_format }}</div>
+            </div>
+            {% if invoice.discount > 0 %}
+            <div class="total-row">
+                <div class="total-label">割引:</div>
+                <div class="total-amount">-¥{{ invoice.discount | number_format }}</div>
+            </div>
+            {% endif %}
+            <div class="total-row">
+                <div class="total-label">消費税 ({{ invoice.tax_rate }}%):</div>
+                <div class="total-amount">¥{{ invoice.tax_amount | number_format }}</div>
+            </div>
+            <div class="total-row grand-total">
+                <div class="total-label">合計金額:</div>
+                <div class="total-amount">¥{{ invoice.total_amount | number_format }}</div>
+            </div>
+        </div>
+        
+        {% if invoice.payment_terms %}
+        <div class="payment-terms">
+            <h3>お支払い条件</h3>
+            <p>{{ invoice.payment_terms }}</p>
+        </div>
+        {% endif %}
+        
+        {% if invoice.notes %}
+        <div class="notes">
+            <h3>備考</h3>
+            <p>{{ invoice.notes }}</p>
+        </div>
+        {% endif %}
+        
+        <div class="footer">
+            <p>この請求書は ITDO ERP システムにより自動生成されました。</p>
+            <p>発行日時: {{ current_timestamp }}</p>
+        </div>
+    </body>
+    </html>
+
+  # Quote Template
+  quote.html: |
+    <!DOCTYPE html>
+    <html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>見積書</title>
+        <style>
+            @import url('/assets/pdf-styles.css');
+            
+            body {
+                font-family: 'Noto Sans CJK JP', 'Hiragino Kaku Gothic ProN', sans-serif;
+                font-size: 12px;
+                line-height: 1.6;
+                color: #333;
+                margin: 0;
+                padding: 20px;
+            }
+            
+            .header {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                margin-bottom: 30px;
+                border-bottom: 2px solid #059669;
+                padding-bottom: 20px;
+            }
+            
+            .quote-title {
+                font-size: 24px;
+                font-weight: bold;
+                color: #059669;
+                margin-bottom: 10px;
+            }
+            
+            .validity-notice {
+                margin: 30px 0;
+                padding: 15px;
+                background: #ecfdf5;
+                border-left: 4px solid #059669;
+                border-radius: 4px;
+            }
+            
+            .items-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 30px 0;
+            }
+            
+            .items-table th,
+            .items-table td {
+                padding: 12px;
+                text-align: left;
+                border: 1px solid #e2e8f0;
+            }
+            
+            .items-table th {
+                background: #f0fdf4;
+                font-weight: bold;
+                color: #065f46;
+            }
+            
+            .total-section {
+                margin-top: 30px;
+                text-align: right;
+                background: #f9fafb;
+                padding: 20px;
+                border-radius: 8px;
+            }
+            
+            .grand-total {
+                font-size: 18px;
+                color: #059669;
+                border-top: 2px solid #059669;
+                padding-top: 10px;
+                margin-top: 10px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <div class="company-info">
+                <h1>{{ company.name }}</h1>
+                <p>
+                    {{ company.address }}<br>
+                    TEL: {{ company.phone }}<br>
+                    EMAIL: {{ company.email }}
+                </p>
+            </div>
+            <div class="quote-info">
+                <div class="quote-title">見積書</div>
+                <p>
+                    <strong>見積書番号:</strong> {{ quote.number }}<br>
+                    <strong>発行日:</strong> {{ quote.issue_date }}<br>
+                    <strong>有効期限:</strong> {{ quote.valid_until }}
+                </p>
+            </div>
+        </div>
+        
+        <div class="customer-info">
+            <h2>見積先</h2>
+            <p>
+                <strong>{{ customer.name }}</strong><br>
+                {{ customer.address }}<br>
+                {% if customer.contact_person %}ご担当者: {{ customer.contact_person }}<br>{% endif %}
+                {% if customer.phone %}TEL: {{ customer.phone }}<br>{% endif %}
+                {% if customer.email %}EMAIL: {{ customer.email }}{% endif %}
+            </p>
+        </div>
+        
+        <div class="validity-notice">
+            <strong>見積有効期限:</strong> {{ quote.valid_until }} まで<br>
+            この見積書は上記期限まで有効です。期限を過ぎた場合は再見積もりとなる場合があります。
+        </div>
+        
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th>品目</th>
+                    <th>仕様</th>
+                    <th>数量</th>
+                    <th>単価</th>
+                    <th>金額</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in quote.items %}
+                <tr>
+                    <td><strong>{{ item.name }}</strong></td>
+                    <td>{{ item.specification }}</td>
+                    <td class="number">{{ item.quantity }}</td>
+                    <td class="number">¥{{ item.unit_price | number_format }}</td>
+                    <td class="number">¥{{ item.amount | number_format }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <div class="total-section">
+            <div class="total-row">
+                <div class="total-label">小計:</div>
+                <div class="total-amount">¥{{ quote.subtotal | number_format }}</div>
+            </div>
+            <div class="total-row">
+                <div class="total-label">消費税 ({{ quote.tax_rate }}%):</div>
+                <div class="total-amount">¥{{ quote.tax_amount | number_format }}</div>
+            </div>
+            <div class="total-row grand-total">
+                <div class="total-label">見積金額:</div>
+                <div class="total-amount">¥{{ quote.total_amount | number_format }}</div>
+            </div>
+        </div>
+        
+        {% if quote.terms %}
+        <div class="terms">
+            <h3>見積条件</h3>
+            <ul>
+                {% for term in quote.terms %}
+                <li>{{ term }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        
+        {% if quote.notes %}
+        <div class="notes">
+            <h3>備考</h3>
+            <p>{{ quote.notes }}</p>
+        </div>
+        {% endif %}
+        
+        <div class="footer">
+            <p>ご不明な点がございましたら、お気軽にお問い合わせください。</p>
+            <p>この見積書は ITDO ERP システムにより自動生成されました。</p>
+            <p>発行日時: {{ current_timestamp }}</p>
+        </div>
+    </body>
+    </html>
+
+  # Delivery Note Template
+  delivery_note.html: |
+    <!DOCTYPE html>
+    <html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>納品書</title>
+        <style>
+            @import url('/assets/pdf-styles.css');
+            
+            body {
+                font-family: 'Noto Sans CJK JP', 'Hiragino Kaku Gothic ProN', sans-serif;
+                font-size: 12px;
+                line-height: 1.6;
+                color: #333;
+                margin: 0;
+                padding: 20px;
+            }
+            
+            .header {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                margin-bottom: 30px;
+                border-bottom: 2px solid #7c3aed;
+                padding-bottom: 20px;
+            }
+            
+            .delivery-title {
+                font-size: 24px;
+                font-weight: bold;
+                color: #7c3aed;
+                margin-bottom: 10px;
+            }
+            
+            .delivery-status {
+                margin: 20px 0;
+                padding: 15px;
+                background: #faf5ff;
+                border-left: 4px solid #7c3aed;
+                border-radius: 4px;
+            }
+            
+            .items-table th {
+                background: #f3f4f6;
+                color: #374151;
+            }
+            
+            .signature-section {
+                margin-top: 50px;
+                display: flex;
+                justify-content: space-between;
+            }
+            
+            .signature-box {
+                width: 200px;
+                height: 80px;
+                border: 1px solid #d1d5db;
+                margin-top: 10px;
+                text-align: center;
+                line-height: 80px;
+                color: #9ca3af;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <div class="company-info">
+                <h1>{{ company.name }}</h1>
+                <p>
+                    {{ company.address }}<br>
+                    TEL: {{ company.phone }}<br>
+                    EMAIL: {{ company.email }}
+                </p>
+            </div>
+            <div class="delivery-info">
+                <div class="delivery-title">納品書</div>
+                <p>
+                    <strong>納品書番号:</strong> {{ delivery.number }}<br>
+                    <strong>納品日:</strong> {{ delivery.delivery_date }}<br>
+                    <strong>注文番号:</strong> {{ delivery.order_number }}
+                </p>
+            </div>
+        </div>
+        
+        <div class="customer-info">
+            <h2>納品先</h2>
+            <p>
+                <strong>{{ customer.name }}</strong><br>
+                {{ delivery.shipping_address }}<br>
+                {% if customer.phone %}TEL: {{ customer.phone }}{% endif %}
+            </p>
+        </div>
+        
+        <div class="delivery-status">
+            <strong>配送状況:</strong> {{ delivery.status }}<br>
+            {% if delivery.tracking_number %}<strong>追跡番号:</strong> {{ delivery.tracking_number }}<br>{% endif %}
+            <strong>配送方法:</strong> {{ delivery.shipping_method }}
+        </div>
+        
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th>品目</th>
+                    <th>数量</th>
+                    <th>単位</th>
+                    <th>備考</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in delivery.items %}
+                <tr>
+                    <td>
+                        <strong>{{ item.name }}</strong><br>
+                        <small>品番: {{ item.code }}</small>
+                    </td>
+                    <td class="number">{{ item.quantity }}</td>
+                    <td>{{ item.unit }}</td>
+                    <td>{{ item.notes }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        {% if delivery.special_instructions %}
+        <div class="special-instructions">
+            <h3>特記事項</h3>
+            <p>{{ delivery.special_instructions }}</p>
+        </div>
+        {% endif %}
+        
+        <div class="signature-section">
+            <div>
+                <strong>納品者</strong><br>
+                {{ company.name }}<br>
+                担当者: {{ delivery.delivery_person }}<br>
+                <div class="signature-box">署名</div>
+            </div>
+            <div>
+                <strong>受領者</strong><br>
+                {{ customer.name }}<br>
+                受領日: _____ 年 _____ 月 _____ 日<br>
+                <div class="signature-box">署名・印</div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>商品をご確認の上、相違がございましたら速やかにご連絡ください。</p>
+            <p>この納品書は ITDO ERP システムにより自動生成されました。</p>
+            <p>発行日時: {{ current_timestamp }}</p>
+        </div>
+    </body>
+    </html>
+
+---
+# PDF Assets ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pdf-assets
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: pdf-generation-service
+    app.kubernetes.io/component: assets
+data:
+  pdf-styles.css: |
+    /* Common PDF Styles for ITDO ERP Documents */
+    
+    * {
+        box-sizing: border-box;
+    }
+    
+    body {
+        font-family: 'Noto Sans CJK JP', 'Hiragino Kaku Gothic ProN', sans-serif;
+        font-size: 12px;
+        line-height: 1.6;
+        color: #333;
+        margin: 0;
+        padding: 0;
+    }
+    
+    .container {
+        max-width: 210mm;
+        margin: 0 auto;
+        padding: 20mm;
+    }
+    
+    h1, h2, h3, h4, h5, h6 {
+        margin: 0 0 15px 0;
+        font-weight: bold;
+    }
+    
+    h1 { font-size: 20px; }
+    h2 { font-size: 16px; }
+    h3 { font-size: 14px; }
+    
+    p {
+        margin: 0 0 10px 0;
+    }
+    
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 15px 0;
+    }
+    
+    th, td {
+        padding: 8px 12px;
+        text-align: left;
+        border: 1px solid #ddd;
+    }
+    
+    th {
+        background-color: #f5f5f5;
+        font-weight: bold;
+    }
+    
+    .text-right { text-align: right; }
+    .text-center { text-align: center; }
+    .font-bold { font-weight: bold; }
+    .font-large { font-size: 16px; }
+    
+    .mb-10 { margin-bottom: 10px; }
+    .mb-20 { margin-bottom: 20px; }
+    .mt-10 { margin-top: 10px; }
+    .mt-20 { margin-top: 20px; }
+    
+    .border-top { border-top: 1px solid #ddd; }
+    .border-bottom { border-bottom: 1px solid #ddd; }
+    
+    @page {
+        size: A4;
+        margin: 15mm;
+    }
+    
+    @media print {
+        body {
+            -webkit-print-color-adjust: exact;
+            color-adjust: exact;
+        }
+        
+        .page-break {
+            page-break-before: always;
+        }
+        
+        .no-print {
+            display: none;
+        }
+    }
+
+---
+# Japanese Fonts ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: japanese-fonts
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: pdf-generation-service
+    app.kubernetes.io/component: fonts
+binaryData:
+  # Note: In a real deployment, these would be actual font files
+  NotoSansCJK-Regular.ttc: ""  # Base64 encoded font file
+  NotoSansCJK-Bold.ttc: ""     # Base64 encoded font file
+
+---
+# PDF Generation Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: pdf-generation-service
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: pdf-generation-service
+    app.kubernetes.io/component: document-generation
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  - port: 9090
+    targetPort: 9090
+    protocol: TCP
+    name: metrics
+  selector:
+    app.kubernetes.io/name: pdf-generation-service
+
+---
+# PDF Queue Worker Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pdf-queue-worker
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: pdf-queue-worker
+    app.kubernetes.io/component: queue-processor
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: pdf-queue-worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: pdf-queue-worker
+        app.kubernetes.io/component: queue-processor
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+      containers:
+      - name: pdf-worker
+        image: itdo/pdf-queue-worker:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 9090
+          name: metrics
+        env:
+        # Queue Configuration
+        - name: RABBITMQ_URL
+          value: "amqp://itdo-erp:rabbitmq_password_2025@rabbitmq-service.itdo-erp-data.svc.cluster.local:5672/itdo-erp-prod"
+        - name: PDF_QUEUE_NAME
+          value: "pdf.generation"
+        - name: WORKER_CONCURRENCY
+          value: "3"
+        - name: PREFETCH_COUNT
+          value: "5"
+        
+        # PDF Service Configuration
+        - name: PDF_SERVICE_URL
+          value: "http://pdf-generation-service:8080"
+        - name: MAX_RETRY_ATTEMPTS
+          value: "3"
+        - name: RETRY_DELAY_SECONDS
+          value: "60"
+        - name: JOB_TIMEOUT_SECONDS
+          value: "600"  # 10 minutes
+        
+        # Processing Configuration
+        - name: BATCH_SIZE
+          value: "1"  # PDF generation is typically single-job
+        - name: CLEANUP_INTERVAL_MINUTES
+          value: "60"
+        
+        # Monitoring
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: METRICS_ENABLED
+          value: "true"
+        
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "125m"
+          limits:
+            memory: "512Mi"
+            cpu: "250m"
+        
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        
+        livenessProbe:
+          httpGet:
+            path: /metrics
+            port: 9090
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+        
+        readinessProbe:
+          httpGet:
+            path: /metrics
+            port: 9090
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+        
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1001
+          capabilities:
+            drop:
+            - ALL
+      
+      volumes:
+      - name: tmp
+        emptyDir: {}
+
+---
+# PDF Queue Worker Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: pdf-queue-worker-service
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: pdf-queue-worker
+spec:
+  type: ClusterIP
+  ports:
+  - port: 9090
+    targetPort: 9090
+    name: metrics
+  selector:
+    app.kubernetes.io/name: pdf-queue-worker
+
+---
+# Document Archive Service (for storing generated PDFs)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: document-archive
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: document-archive
+    app.kubernetes.io/component: document-storage
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: document-archive
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: document-archive
+        app.kubernetes.io/component: document-storage
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+      containers:
+      - name: document-archive
+        image: itdo/document-archive:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 9090
+          name: metrics
+        env:
+        # Storage Configuration
+        - name: MINIO_ENDPOINT
+          value: "minio-service.itdo-erp-data.svc.cluster.local:9000"
+        - name: MINIO_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: minio-secret
+              key: MINIO_ACCESS_KEY
+        - name: MINIO_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: minio-secret
+              key: MINIO_SECRET_KEY
+        - name: MINIO_BUCKET
+          value: "itdo-erp-documents"
+        
+        # Database Configuration
+        - name: POSTGRES_URL
+          valueFrom:
+            secretKeyRef:
+              name: itdo-erp-secrets
+              key: DATABASE_URL
+        
+        # Archive Configuration
+        - name: RETENTION_DAYS
+          value: "2555"  # 7 years for accounting documents
+        - name: COMPRESSION_ENABLED
+          value: "true"
+        - name: INDEXING_ENABLED
+          value: "true"
+        - name: SEARCH_ENABLED
+          value: "true"
+        
+        # Security Configuration
+        - name: ENCRYPTION_ENABLED
+          value: "true"
+        - name: ACCESS_LOG_ENABLED
+          value: "true"
+        - name: AUDIT_TRAIL_ENABLED
+          value: "true"
+        
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "125m"
+          limits:
+            memory: "512Mi"
+            cpu: "250m"
+        
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+        
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+        
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1001
+          capabilities:
+            drop:
+            - ALL
+      
+      volumes:
+      - name: tmp
+        emptyDir: {}
+
+---
+# Document Archive Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: document-archive-service
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: document-archive
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: http
+  - port: 9090
+    targetPort: 9090
+    name: metrics
+  selector:
+    app.kubernetes.io/name: document-archive
+
+---
+# HPA for PDF Generation Service
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: pdf-generation-service-hpa
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: pdf-generation-service
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: pdf-generation-service
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+---
+# HPA for PDF Queue Worker
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: pdf-queue-worker-hpa
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: pdf-queue-worker
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: pdf-queue-worker
+  minReplicas: 5
+  maxReplicas: 15
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 30
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 25
+        periodSeconds: 60
+
+---
+# PodDisruptionBudget for PDF Services
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: pdf-generation-service-pdb
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: pdf-generation-service
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: pdf-generation-service
+
+---
+# PodDisruptionBudget for PDF Queue Workers
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: pdf-queue-worker-pdb
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: pdf-queue-worker
+spec:
+  minAvailable: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: pdf-queue-worker
+
+---
+# PDF Service Monitor for Prometheus
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: pdf-generation-service-monitor
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: pdf-generation-service
+    app.kubernetes.io/component: monitoring
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: pdf-generation-service
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+    honorLabels: true
+
+---
+# PDF Queue Worker Monitor for Prometheus
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: pdf-queue-worker-monitor
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: pdf-queue-worker
+    app.kubernetes.io/component: monitoring
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: pdf-queue-worker
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+    honorLabels: true

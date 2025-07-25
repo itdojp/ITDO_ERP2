@@ -2,7 +2,36 @@
 
 本ディレクトリには、ITDO ERPシステムの正式な設計書類が格納されています。
 
-## 📚 設計書一覧
+## 🎨 UI Component Design System (Issue #160)
+
+### New Addition: Complete Design System Documentation
+**Status**: ✅ Complete and Ready for Implementation  
+**Created**: 2025-07-16  
+**Issue**: #160 - UI Component Design Requirements and Input Format  
+
+#### Core Design System Documents
+- **[UI Component Design Requirements](./UI_COMPONENT_DESIGN_REQUIREMENTS.md)** - Master specification for all UI components
+- **[Design Tokens](./design-tokens.json)** - Comprehensive design token specifications (JSON format)
+- **[Component Library Architecture](./COMPONENT_LIBRARY_ARCHITECTURE.md)** - Technical architecture and patterns
+- **[Input Format Standards](./INPUT_FORMAT_STANDARDS.md)** - Input validation and formatting guidelines
+- **[Component Specifications](./COMPONENT_SPECIFICATIONS.md)** - Detailed specs for 15+ components
+- **[Design System Documentation](./DESIGN_SYSTEM_DOCUMENTATION.md)** - Usage guidelines and best practices
+- **[Icon Set Requirements](./ICON_SET_REQUIREMENTS.md)** - Complete icon system (150+ icons)
+- **[Page Templates](./PAGE_TEMPLATES_SPECIFICATIONS.md)** - Standard page layouts and templates
+- **[Implementation Support](./IMPLEMENTATION_SUPPORT.md)** - Developer implementation guide
+
+#### Key Features
+- **React 18 + TypeScript 5** component library
+- **Tailwind CSS** with custom design tokens
+- **WCAG 2.1 AA** accessibility compliance
+- **150+ icons** from Lucide React
+- **15+ components** with comprehensive specifications
+- **10+ page templates** for consistent layouts
+- **Comprehensive testing** and performance guidelines
+
+---
+
+## 📚 システム設計書一覧
 
 ### 1. [システム概要設計書](./01_システム概要設計書.md)
 - システムの目的と特徴

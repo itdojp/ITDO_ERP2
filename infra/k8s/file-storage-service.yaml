@@ -1,0 +1,649 @@
+# ITDO ERP v2 - File Storage Service (MinIO S3-Compatible)
+# CC03 v48.0 Business-Aligned Infrastructure
+
+# MinIO Storage Service for file management
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: minio
+  namespace: itdo-erp-data
+  labels:
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/component: file-storage
+    app.kubernetes.io/version: "2023.7.7"
+spec:
+  serviceName: minio-service
+  replicas: 4
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: minio
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: minio
+        app.kubernetes.io/component: file-storage
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9000"
+        prometheus.io/path: "/minio/v2/metrics/cluster"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+      containers:
+      - name: minio
+        image: minio/minio:RELEASE.2023-07-07T07-13-57Z
+        imagePullPolicy: Always
+        command:
+        - /bin/bash
+        - -c
+        args: 
+        - minio server http://minio-{0...3}.minio-service.itdo-erp-data.svc.cluster.local/data --console-address ":9001" --address ":9000"
+        env:
+        - name: MINIO_ROOT_USER
+          valueFrom:
+            secretKeyRef:
+              name: minio-secret
+              key: MINIO_ROOT_USER
+        - name: MINIO_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: minio-secret
+              key: MINIO_ROOT_PASSWORD
+        - name: MINIO_BROWSER_REDIRECT_URL
+          value: "https://files.itdo-erp.com"
+        - name: MINIO_SERVER_URL
+          value: "https://s3.itdo-erp.com"
+        - name: MINIO_PROMETHEUS_AUTH_TYPE
+          value: "public"
+        - name: MINIO_IDENTITY_OPENID_CONFIG_URL
+          value: "https://auth.itdo-erp.com/realms/itdo-erp/.well-known/openid_configuration"
+        - name: MINIO_IDENTITY_OPENID_CLIENT_ID
+          value: "minio"
+        ports:
+        - containerPort: 9000
+          name: api
+        - containerPort: 9001
+          name: console
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        volumeMounts:
+        - name: minio-storage
+          mountPath: /data
+        livenessProbe:
+          httpGet:
+            path: /minio/health/live
+            port: 9000
+          initialDelaySeconds: 30
+          periodSeconds: 20
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /minio/health/ready
+            port: 9000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1001
+          capabilities:
+            drop:
+            - ALL
+  volumeClaimTemplates:
+  - metadata:
+      name: minio-storage
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: "fast-ssd"
+      resources:
+        requests:
+          storage: 500Gi
+
+---
+# MinIO Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio-service
+  namespace: itdo-erp-data
+  labels:
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/component: file-storage
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+    service.beta.kubernetes.io/aws-load-balancer-internal: "true"
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - port: 9000
+    targetPort: 9000
+    name: api
+  - port: 9001
+    targetPort: 9001
+    name: console
+  selector:
+    app.kubernetes.io/name: minio
+
+---
+# MinIO Load Balancer Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio-lb-service
+  namespace: itdo-erp-data
+  labels:
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/component: load-balancer
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: arn:aws:acm:ap-northeast-1:123456789012:certificate/12345678-1234-1234-1234-123456789012
+    external-dns.alpha.kubernetes.io/hostname: s3.itdo-erp.com,files.itdo-erp.com
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 443
+    targetPort: 9000
+    protocol: TCP
+    name: https-api
+  - port: 80
+    targetPort: 9000
+    protocol: TCP
+    name: http-api
+  - port: 9001
+    targetPort: 9001
+    protocol: TCP
+    name: console
+  selector:
+    app.kubernetes.io/name: minio
+
+---
+# MinIO Secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: minio-secret
+  namespace: itdo-erp-data
+  labels:
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/component: secrets
+type: Opaque
+data:
+  MINIO_ROOT_USER: YWRtaW4=  # admin
+  MINIO_ROOT_PASSWORD: bWluaW9fcm9vdF9wYXNzd29yZF8yMDI1  # minio_root_password_2025
+  MINIO_ACCESS_KEY: SVREUTEyMzQ1Njc4OTA=  # ITDO1234567890
+  MINIO_SECRET_KEY: c3VwZXJfc2VjdXJlX21pbmlvX2tleV8yMDI1  # super_secure_minio_key_2025
+
+---
+# MinIO Ingress for Console
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: minio-console-ingress
+  namespace: itdo-erp-data
+  labels:
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/component: ingress
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "1000m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/auth-type: basic
+    nginx.ingress.kubernetes.io/auth-secret: minio-console-auth
+    nginx.ingress.kubernetes.io/auth-realm: 'MinIO Console Authentication'
+spec:
+  tls:
+  - hosts:
+    - files.itdo-erp.com
+    secretName: minio-console-tls
+  rules:
+  - host: files.itdo-erp.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: minio-service
+            port:
+              number: 9001
+
+---
+# MinIO Console Basic Auth
+apiVersion: v1
+kind: Secret
+metadata:
+  name: minio-console-auth
+  namespace: itdo-erp-data
+type: Opaque
+data:
+  auth: YWRtaW46JGFwcjEkSDZ1bjM5emQkWkNVQi5OMXBuUmtaRWxMakNlMzZhMQ==  # admin:admin
+
+---
+# File Processing Service (for image resizing, document processing)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: file-processor
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: file-processor
+    app.kubernetes.io/component: file-processing
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: file-processor
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: file-processor
+        app.kubernetes.io/component: file-processing
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+      containers:
+      - name: file-processor
+        image: itdo/file-processor:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: MINIO_ENDPOINT
+          value: "minio-service.itdo-erp-data.svc.cluster.local:9000"
+        - name: MINIO_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: minio-secret
+              key: MINIO_ACCESS_KEY
+        - name: MINIO_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: minio-secret
+              key: MINIO_SECRET_KEY
+        - name: REDIS_URL
+          value: "redis://redis-cluster-service.itdo-erp-data.svc.cluster.local:6379"
+        - name: SUPPORTED_IMAGE_FORMATS
+          value: "jpg,jpeg,png,gif,webp,bmp,tiff"
+        - name: SUPPORTED_DOCUMENT_FORMATS
+          value: "pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv"
+        - name: MAX_FILE_SIZE_MB
+          value: "100"
+        - name: IMAGE_QUALITY
+          value: "85"
+        - name: THUMBNAIL_SIZES
+          value: "64x64,128x128,256x256,512x512"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        volumeMounts:
+        - name: tmp-processing
+          mountPath: /tmp
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1001
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: tmp-processing
+        emptyDir:
+          sizeLimit: 10Gi
+
+---
+# File Processor Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: file-processor-service
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: file-processor
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: http
+  selector:
+    app.kubernetes.io/name: file-processor
+
+---
+# File Upload Service (dedicated service for handling uploads)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: file-upload-service
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: file-upload-service
+    app.kubernetes.io/component: file-upload
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: file-upload-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: file-upload-service
+        app.kubernetes.io/component: file-upload
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+      containers:
+      - name: file-upload
+        image: nginx:1.25-alpine
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: UPLOAD_MAX_SIZE
+          value: "100m"
+        - name: ALLOWED_FILE_TYPES
+          value: "jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx,zip"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        volumeMounts:
+        - name: nginx-config
+          mountPath: /etc/nginx/nginx.conf
+          subPath: nginx.conf
+        - name: upload-temp
+          mountPath: /var/tmp/nginx
+        - name: nginx-cache
+          mountPath: /var/cache/nginx
+        - name: nginx-run
+          mountPath: /var/run
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1001
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: nginx-config
+        configMap:
+          name: file-upload-nginx-config
+      - name: upload-temp
+        emptyDir:
+          sizeLimit: 10Gi
+      - name: nginx-cache
+        emptyDir: {}
+      - name: nginx-run
+        emptyDir: {}
+
+---
+# File Upload Nginx Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: file-upload-nginx-config
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: file-upload-service
+data:
+  nginx.conf: |
+    events {
+        worker_connections 1024;
+    }
+    
+    http {
+        include /etc/nginx/mime.types;
+        default_type application/octet-stream;
+        
+        # Upload settings
+        client_max_body_size 100m;
+        client_body_timeout 60s;
+        client_body_temp_path /var/tmp/nginx/client_temp;
+        
+        # Security headers
+        add_header X-Frame-Options "DENY" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-XSS-Protection "1; mode=block" always;
+        
+        upstream backend {
+            server itdo-erp-backend-service.itdo-erp-prod.svc.cluster.local:8000;
+        }
+        
+        upstream minio {
+            server minio-service.itdo-erp-data.svc.cluster.local:9000;
+        }
+        
+        server {
+            listen 8080;
+            server_name _;
+            
+            # Health check
+            location /health {
+                access_log off;
+                return 200 '{"status":"healthy","service":"file-upload"}';
+                add_header Content-Type application/json;
+            }
+            
+            # File upload endpoint
+            location /api/v1/files/upload {
+                # File type validation
+                location ~* \.(exe|bat|cmd|scr|pif|com)$ {
+                    return 403 "File type not allowed";
+                }
+                
+                # Size limit per file
+                client_max_body_size 100m;
+                
+                # Proxy to backend for processing
+                proxy_pass http://backend/api/v1/files/upload;
+                proxy_http_version 1.1;
+                proxy_set_header Upgrade $http_upgrade;
+                proxy_set_header Connection 'upgrade';
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+                
+                # Upload progress tracking
+                proxy_request_buffering off;
+                proxy_buffering off;
+                
+                # Timeouts for large files
+                proxy_connect_timeout 60s;
+                proxy_send_timeout 300s;
+                proxy_read_timeout 300s;
+            }
+            
+            # Direct file access (for downloads)
+            location /files/ {
+                # Auth check
+                auth_request /auth;
+                
+                # Proxy to MinIO
+                proxy_pass http://minio/;
+                proxy_http_version 1.1;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+            }
+            
+            # Auth endpoint
+            location = /auth {
+                internal;
+                proxy_pass http://backend/api/v1/auth/verify;
+                proxy_pass_request_body off;
+                proxy_set_header Content-Length "";
+                proxy_set_header X-Original-URI $request_uri;
+            }
+        }
+    }
+
+---
+# File Upload Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: file-upload-service
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: file-upload-service
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    name: http
+  selector:
+    app.kubernetes.io/name: file-upload-service
+
+---
+# MinIO Backup CronJob
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: minio-backup
+  namespace: itdo-erp-data
+  labels:
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/component: backup
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: minio-backup
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: minio-backup
+            image: minio/mc:latest
+            command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Starting MinIO backup..."
+              mc alias set source http://minio-service:9000 $MINIO_ACCESS_KEY $MINIO_SECRET_KEY
+              mc alias set backup s3://backup-bucket/ $AWS_ACCESS_KEY_ID $AWS_SECRET_ACCESS_KEY
+              
+              BACKUP_DATE=$(date +%Y%m%d)
+              mc mirror source/itdo-erp-prod backup/minio-backup-$BACKUP_DATE/
+              
+              # Cleanup old backups (keep 30 days)
+              mc rm --recursive --force backup/minio-backup-$(date -d '30 days ago' +%Y%m%d)/
+              
+              echo "Backup completed successfully"
+            env:
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-secret
+                  key: MINIO_ACCESS_KEY
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-secret
+                  key: MINIO_SECRET_KEY
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: itdo-erp-secrets
+                  key: AWS_ACCESS_KEY_ID
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: itdo-erp-secrets
+                  key: AWS_SECRET_ACCESS_KEY
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "100m"
+              limits:
+                memory: "512Mi"
+                cpu: "500m"
+
+---
+# HPA for File Services
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: file-processor-hpa
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: file-processor
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: file-processor
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80

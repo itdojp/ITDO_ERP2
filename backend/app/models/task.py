@@ -4,17 +4,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from sqlalchemy import (
-    DateTime,
-)
-from sqlalchemy import Enum as SQLEnum
-from sqlalchemy import (
-    ForeignKey,
-    Integer,
-    String,
-    Text,
-    func,
-)
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import SoftDeletableModel
@@ -58,31 +48,20 @@ class Task(SoftDeletableModel):
 
     __tablename__ = "tasks"
 
-    # Basic task information
-    title: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
-    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Basic fields
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(50), default="pending")
+    priority: Mapped[str] = mapped_column(String(20), default="medium")
 
-    # Status and priority
-    status: Mapped[TaskStatus] = mapped_column(
-        SQLEnum(TaskStatus), nullable=False, default=TaskStatus.TODO, index=True
-    )
-    priority: Mapped[TaskPriority] = mapped_column(
-        SQLEnum(TaskPriority), nullable=False, default=TaskPriority.MEDIUM, index=True
-    )
-
-    # Relationships - Foreign Keys
-    project_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("projects.id"), nullable=False, index=True
-    )
-    assigned_to: Mapped[Optional[int]] = mapped_column(
-        Integer, ForeignKey("users.id"), nullable=True, index=True
-    )
-    created_by: Mapped[int] = mapped_column(
-        Integer, ForeignKey("users.id"), nullable=False, index=True
-    )
+    # Related fields
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), nullable=False)
+    assignee_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    reporter_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    parent_task_id: Mapped[int | None] = mapped_column(ForeignKey("tasks.id"))
 
     # CRITICAL: Department integration fields for Phase 3
-    department_id: Mapped[Optional[int]] = mapped_column(
+    department_id: Mapped[int | None] = mapped_column(
         Integer,
         ForeignKey("departments.id", ondelete="SET NULL"),
         nullable=True,
@@ -97,26 +76,14 @@ class Task(SoftDeletableModel):
         "department_hierarchy, organization",
     )
 
-    # Time tracking
-    estimated_hours: Mapped[Optional[float]] = mapped_column(nullable=True)
-    actual_hours: Mapped[Optional[float]] = mapped_column(nullable=True)
+    # Date fields
+    due_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    start_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    # Dates
-    start_date: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-    due_date: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True), nullable=True, index=True
-    )
-    completed_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-
-    # Progress tracking
-    progress_percentage: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-
-    # Tags for categorization
-    tags: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    # Additional fields
+    estimated_hours: Mapped[float | None] = mapped_column()
+    actual_hours: Mapped[float | None] = mapped_column()
 
     # Relationships
     project: Mapped["Project"] = relationship("Project", back_populates="tasks")
@@ -143,6 +110,11 @@ class Task(SoftDeletableModel):
     # Task history/audit
     task_history: Mapped[List["TaskHistory"]] = relationship(
         "TaskHistory", back_populates="task", cascade="all, delete-orphan"
+    )
+
+    # CRITICAL: Department relationship for hierarchical task management
+    department: Mapped[Optional["Department"]] = relationship(
+        "Department", back_populates="tasks", lazy="select"
     )
 
     # CRITICAL: Department relationship for hierarchical task management

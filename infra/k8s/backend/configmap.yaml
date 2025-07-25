@@ -1,0 +1,63 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: itdo-erp-config
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: itdo-erp
+    app.kubernetes.io/component: config
+    app.kubernetes.io/version: "2.0"
+data:
+  # Database Configuration
+  POSTGRES_HOST: "postgres-service.itdo-erp-data.svc.cluster.local"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: "itdo_erp"
+  POSTGRES_USER: "itdo_erp"
+  
+  # Redis Configuration
+  REDIS_URL: "redis://redis-service.itdo-erp-data.svc.cluster.local:6379/0"
+  REDIS_HOST: "redis-service.itdo-erp-data.svc.cluster.local"
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+  
+  # Application Configuration
+  CORS_ORIGINS: "https://itdo-erp.com,https://www.itdo-erp.com,http://localhost:3000"
+  API_VERSION: "v1"
+  API_PREFIX: "/api/v1"
+  
+  # Feature Flags
+  ENABLE_DOCS: "false"
+  ENABLE_METRICS: "true"
+  ENABLE_HEALTH_CHECK: "true"
+  
+  # Logging Configuration
+  LOG_LEVEL: "INFO"
+  LOG_FORMAT: "json"
+  LOG_FILE: "/dev/stdout"
+  
+  # Performance Settings
+  WORKERS: "4"
+  MAX_CONNECTIONS: "100"
+  CONNECTION_TIMEOUT: "30"
+  REQUEST_TIMEOUT: "60"
+  
+  # Security Settings
+  SECURE_COOKIES: "true"
+  HTTPS_ONLY: "true"
+  CSRF_PROTECTION: "true"
+  
+  # Business Configuration
+  COMPANY_NAME: "株式会社ITDO"
+  COMPANY_URL: "https://itdo.jp"
+  SUPPORT_EMAIL: "support@itdo-erp.com"
+  
+  # Integration Settings
+  EMAIL_BACKEND: "smtp"
+  FILE_STORAGE_BACKEND: "local"
+  CACHE_BACKEND: "redis"
+  SESSION_BACKEND: "redis"
+  
+  # Monitoring Configuration
+  METRICS_ENDPOINT: "/metrics"
+  HEALTH_ENDPOINT: "/api/v1/health"
+  READY_ENDPOINT: "/api/v1/ready"

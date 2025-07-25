@@ -27,7 +27,7 @@ from app.schemas.cross_tenant_permissions import (
 class CrossTenantPermissionService:
     """Service for managing cross-tenant permissions."""
 
-    def __init__(self, db: Session) -> dict:
+    def __init__(self, db: Session):
         self.db = db
 
     def create_permission_rule(

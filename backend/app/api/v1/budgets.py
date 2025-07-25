@@ -31,8 +31,8 @@ async def get_budgets(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-) -> List[BudgetResponse]:
+    current_user: User = Depends(get_current_user)
+):
     """予算一覧取得"""
     service = BudgetService(db)
     budgets = await service.get_budgets(
@@ -40,7 +40,7 @@ async def get_budgets(
         fiscal_year=fiscal_year,
         status=status,
         skip=skip,
-        limit=limit,
+        limit=limit
     )
     return budgets
 
@@ -49,14 +49,15 @@ async def get_budgets(
 async def get_budget(
     budget_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user)
 ):
     """予算詳細取得"""
     service = BudgetService(db)
     budget = await service.get_budget_by_id(budget_id, current_user.organization_id)
     if not budget:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Budget not found"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Budget not found"
         )
     return budget
 
@@ -65,7 +66,7 @@ async def get_budget(
 async def create_budget(
     budget_data: BudgetCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user)
 ):
     """予算新規作成"""
     service = BudgetService(db)
@@ -80,7 +81,7 @@ async def update_budget(
     budget_id: int,
     budget_data: BudgetUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user)
 ):
     """予算更新"""
     service = BudgetService(db)
@@ -89,7 +90,8 @@ async def update_budget(
     )
     if not budget:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Budget not found"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Budget not found"
         )
     return budget
 
@@ -98,14 +100,15 @@ async def update_budget(
 async def delete_budget(
     budget_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user)
 ):
     """予算削除（論理削除）"""
     service = BudgetService(db)
     success = await service.delete_budget(budget_id, current_user.organization_id)
     if not success:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Budget not found"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Budget not found"
         )
     return {"message": "Budget deleted successfully"}
 
@@ -115,7 +118,7 @@ async def approve_budget(
     budget_id: int,
     approval_data: dict,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user)
 ):
     """予算承認"""
     service = BudgetService(db)
@@ -124,7 +127,8 @@ async def approve_budget(
     )
     if not budget:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Budget not found"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Budget not found"
         )
     return budget
 
@@ -134,7 +138,7 @@ async def create_budget_item(
     budget_id: int,
     item_data: BudgetItemCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user)
 ):
     """予算項目新規作成"""
     service = BudgetService(db)
@@ -150,7 +154,7 @@ async def update_budget_item(
     item_id: int,
     item_data: BudgetItemUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user)
 ):
     """予算項目更新"""
     service = BudgetService(db)
@@ -159,7 +163,8 @@ async def update_budget_item(
     )
     if not item:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Budget item not found"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Budget item not found"
         )
     return item
 
@@ -169,7 +174,7 @@ async def delete_budget_item(
     budget_id: int,
     item_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user)
 ):
     """予算項目削除"""
     service = BudgetService(db)
@@ -178,7 +183,8 @@ async def delete_budget_item(
     )
     if not success:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Budget item not found"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Budget item not found"
         )
     return {"message": "Budget item deleted successfully"}
 
@@ -189,7 +195,7 @@ async def get_budget_report(
     include_variance: bool = True,
     include_utilization: bool = True,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user)
 ):
     """予算実績レポート"""
     service = BudgetService(db)
@@ -197,11 +203,12 @@ async def get_budget_report(
         budget_id,
         current_user.organization_id,
         include_variance=include_variance,
-        include_utilization=include_utilization,
+        include_utilization=include_utilization
     )
     if not report:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Budget not found"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Budget not found"
         )
     return report
 
@@ -211,27 +218,13 @@ async def get_budget_analytics(
     fiscal_year: Optional[int] = None,
     department_id: Optional[int] = None,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user)
 ):
     """予算分析サマリー"""
     service = BudgetService(db)
     analytics = await service.get_budget_analytics(
         organization_id=current_user.organization_id,
         fiscal_year=fiscal_year,
-        department_id=department_id,
+        department_id=department_id
     )
     return analytics
-
-
-@router.get("/analytics/budget-vs-actual/{fiscal_year}", response_model=dict)
-async def get_budget_vs_actual_analysis(
-    fiscal_year: int,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-) -> dict:
-    """Budget vs Actual comparison analysis for Phase 4 Financial Management."""
-    service = BudgetService(db)
-    analysis = await service.get_budget_vs_actual_analysis(
-        organization_id=current_user.organization_id, fiscal_year=fiscal_year
-    )
-    return analysis

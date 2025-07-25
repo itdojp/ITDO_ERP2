@@ -23,7 +23,7 @@ from app.schemas.role_permission_ui import (
 class RolePermissionUIService:
     """Role permission UI management service."""
 
-    def __init__(self, db: Session) -> dict:
+    def __init__(self, db: Session):
         """Initialize service with database session."""
         self.db = db
         self._permission_definitions = self._initialize_permission_definitions()
@@ -68,12 +68,6 @@ class RolePermissionUIService:
         enforce_dependencies: bool = False,
     ) -> PermissionMatrix:
         """Update role permissions."""
-
-        # Permission check
-        if not hasattr(updater, "is_superuser") or not updater.is_superuser:
-            # TODO: Implement proper permission check
-            pass
-
         role = self.db.query(Role).filter(Role.id == role_id).first()
         if not role:
             raise NotFound("ロールが見つかりません")
@@ -132,12 +126,6 @@ class RolePermissionUIService:
                 if role_permission:
                     self.db.delete(role_permission)
 
-        # Update permissions in database
-        # TODO: Implement permission updates using RolePermission model
-        for permission_code, enabled in final_permissions.items():
-            # Placeholder - implement actual permission update logic
-            pass
-
         self.db.commit()
 
         # Return updated matrix
@@ -151,7 +139,6 @@ class RolePermissionUIService:
         copier: User,
     ) -> PermissionMatrix:
         """Copy permissions from one role to another."""
-
         # Permission check - copier needs role management permissions
         if not hasattr(copier, "is_superuser") or not copier.is_superuser:
             # Check if user has role management permissions in the organization
@@ -161,11 +148,6 @@ class RolePermissionUIService:
                     raise PermissionDenied("ロール権限をコピーする権限がありません")
             else:
                 raise PermissionDenied("ロール権限をコピーする権限がありません")
-
-        # Permission check
-        if not hasattr(copier, "is_superuser") or not copier.is_superuser:
-            # TODO: Implement proper permission check
-            pass
 
         source_matrix = self.get_role_permission_matrix(source_role_id, organization_id)
 
@@ -235,8 +217,6 @@ class RolePermissionUIService:
                     raise PermissionDenied("一括権限更新を行う権限がありません")
             else:
                 raise PermissionDenied("一括権限更新を行う権限がありません")
-
-            # TODO: Implement proper permission check
 
         results = []
         for role_id, permissions in role_permissions.items():
