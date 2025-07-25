@@ -1,0 +1,257 @@
+# CC03 v63.0 - 3日間集中実用インフラ構築  
+# Day 2: Prometheus アラートルール
+
+groups:
+  # システムリソース監視
+  - name: system-resources
+    rules:
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is above 80% for more than 5 minutes on {{ $labels.instance }}"
+
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 < 10
+        for: 5m
+        labels:
+          severity: critical
+          component: system
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is above 90% for more than 5 minutes on {{ $labels.instance }}"
+
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes{fstype!="tmpfs"}) * 100 < 10
+        for: 5m
+        labels:
+          severity: warning
+          component: storage
+        annotations:
+          summary: "Disk space running low"
+          description: "Disk space is below 10% on {{ $labels.instance }} {{ $labels.mountpoint }}"
+
+  # アプリケーションサービス監視
+  - name: application-services
+    rules:
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: service
+        annotations:
+          summary: "Service is down"
+          description: "Service {{ $labels.job }} on {{ $labels.instance }} is down"
+
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: application
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is above 10% for {{ $labels.job }}"
+
+      - alert: SlowResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+          component: performance
+        annotations:
+          summary: "Slow response time detected"
+          description: "95th percentile response time is above 1 second for {{ $labels.job }}"
+
+  # データベース監視
+  - name: database-monitoring
+    rules:
+      - alert: PostgreSQLDown
+        expr: pg_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "PostgreSQL is down"
+          description: "PostgreSQL instance {{ $labels.instance }} is down"
+
+      - alert: PostgreSQLTooManyConnections
+        expr: pg_stat_database_numbackends / pg_settings_max_connections > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "PostgreSQL has too many connections"
+          description: "PostgreSQL connection usage is above 80% on {{ $labels.instance }}"
+
+      - alert: PostgreSQLSlowQueries
+        expr: rate(pg_stat_activity_max_tx_duration[5m]) > 60
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "PostgreSQL slow queries detected"
+          description: "Long running queries detected on {{ $labels.instance }}"
+
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: cache
+        annotations:
+          summary: "Redis is down"
+          description: "Redis instance {{ $labels.instance }} is down"
+
+      - alert: RedisHighMemoryUsage
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          component: cache
+        annotations:
+          summary: "Redis memory usage is high"
+          description: "Redis memory usage is above 90% on {{ $labels.instance }}"
+
+  # コンテナ監視
+  - name: container-monitoring
+    rules:
+      - alert: ContainerKilled
+        expr: time() - container_last_seen > 60
+        for: 1m
+        labels:
+          severity: warning
+          component: container
+        annotations:
+          summary: "Container killed"
+          description: "Container {{ $labels.name }} was killed"
+
+      - alert: ContainerCpuUsage
+        expr: rate(container_cpu_usage_seconds_total[5m]) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          component: container
+        annotations:
+          summary: "Container high CPU usage"
+          description: "Container {{ $labels.name }} CPU usage is above 80%"
+
+      - alert: ContainerMemoryUsage
+        expr: container_memory_usage_bytes / container_spec_memory_limit_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          component: container
+        annotations:
+          summary: "Container high memory usage"
+          description: "Container {{ $labels.name }} memory usage is above 90%"
+
+  # ネットワーク監視
+  - name: network-monitoring
+    rules:
+      - alert: HighNetworkTraffic
+        expr: rate(node_network_receive_bytes_total[5m]) > 100*1024*1024
+        for: 5m
+        labels:
+          severity: warning
+          component: network
+        annotations:
+          summary: "High network traffic"
+          description: "Network traffic is above 100MB/s on {{ $labels.instance }}"
+
+  # SSL証明書監視
+  - name: ssl-monitoring
+    rules:
+      - alert: SSLCertExpiringSoon
+        expr: probe_ssl_earliest_cert_expiry - time() < 86400 * 30
+        for: 1h
+        labels:
+          severity: warning
+          component: security
+        annotations:
+          summary: "SSL certificate expiring soon"
+          description: "SSL certificate for {{ $labels.instance }} expires in less than 30 days"
+
+      - alert: SSLCertExpired
+        expr: probe_ssl_earliest_cert_expiry - time() <= 0
+        for: 1m
+        labels:
+          severity: critical
+          component: security
+        annotations:
+          summary: "SSL certificate expired"
+          description: "SSL certificate for {{ $labels.instance }} has expired"
+
+  # アプリケーション固有監視
+  - name: itdo-erp-specific
+    rules:
+      - alert: KeycloakDown
+        expr: up{job="keycloak"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: authentication
+        annotations:
+          summary: "Keycloak authentication service is down"
+          description: "Keycloak service is not responding"
+
+      - alert: BackupJobFailed
+        expr: time() - backup_last_success_timestamp > 86400 * 2
+        for: 1h
+        labels:
+          severity: warning
+          component: backup
+        annotations:
+          summary: "Backup job has not succeeded recently"
+          description: "Backup job has not succeeded in the last 2 days"
+
+      - alert: HighDiskIOWait
+        expr: rate(node_cpu_seconds_total{mode="iowait"}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: storage
+        annotations:
+          summary: "High disk I/O wait time"
+          description: "Disk I/O wait time is high on {{ $labels.instance }}"
+
+  # プロメテウス自身の監視
+  - name: prometheus-monitoring
+    rules:
+      - alert: PrometheusConfigReloadFailure
+        expr: prometheus_config_last_reload_successful != 1
+        for: 5m
+        labels:
+          severity: warning
+          component: monitoring
+        annotations:
+          summary: "Prometheus configuration reload failure"
+          description: "Prometheus configuration reload has failed"
+
+      - alert: PrometheusNotificationQueueFull
+        expr: prometheus_notifications_queue_length > 100
+        for: 5m
+        labels:
+          severity: warning
+          component: monitoring
+        annotations:
+          summary: "Prometheus notification queue is full"
+          description: "Prometheus notification queue is full and may drop alerts"
+
+      - alert: PrometheusTSDBCompactionsFailed
+        expr: rate(prometheus_tsdb_compactions_failed_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          component: monitoring
+        annotations:
+          summary: "Prometheus TSDB compactions failed"
+          description: "Prometheus TSDB compactions are failing"
