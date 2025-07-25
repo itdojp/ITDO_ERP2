@@ -470,7 +470,7 @@ class FinancialReportBase(BaseModel):
     organization_id: str
     report_name: str
     report_code: str
-    report_type: str = Field(regex="^(balance_sheet|income_statement|cash_flow)$")
+    report_type: str = Field(pattern="^(balance_sheet|income_statement|cash_flow)$")
     template_data: Optional[Dict[str, Any]] = None
     format_options: Dict[str, Any] = {}
     is_public: bool = False
@@ -537,7 +537,7 @@ class TaxConfigurationBase(BaseModel):
     organization_id: str
     tax_name: str
     tax_code: str
-    tax_type: str = Field(regex="^(sales_tax|vat|income_tax|withholding)$")
+    tax_type: str = Field(pattern="^(sales_tax|vat|income_tax|withholding)$")
     tax_rate: Decimal = Field(ge=0, le=100)
     minimum_amount: Decimal = Field(default=0, ge=0)
     maximum_amount: Optional[Decimal] = Field(None, gt=0)

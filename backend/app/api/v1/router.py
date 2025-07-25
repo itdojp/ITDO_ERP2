@@ -184,6 +184,13 @@ from app.api.v1 import audit_v31
 
 api_router.include_router(audit_v31.router, prefix="/audit", tags=["audit-v31"])
 
+# CC02 v53.0 - ERPビジネスAPI実装スプリント (Issue #568)
+from app.api.v1 import products_business
+
+api_router.include_router(
+    products_business.router, prefix="/business", tags=["erp-business"]
+)
+
 
 @api_router.get("/ping")
 async def ping() -> dict[str, str]:
