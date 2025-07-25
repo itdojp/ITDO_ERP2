@@ -10,6 +10,7 @@ from app.api.v1 import (
     health,
     multi_tenant,
     organizations,
+    payment_processing,
     permission_inheritance,
     pm_automation,
     role_permission_ui,
@@ -75,6 +76,8 @@ api_router.include_router(
     user_privacy.router, prefix="/users/privacy", tags=["user-privacy"]
 )
 api_router.include_router(pm_automation.router)
+# CC02 v60.0 - Payment Processing API
+api_router.include_router(payment_processing.router)
 
 
 @api_router.get("/ping")

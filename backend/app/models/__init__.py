@@ -48,6 +48,20 @@ from app.models.document_extended import (
 from app.models.expense import Expense, ExpenseApprovalFlow
 from app.models.expense_category import ExpenseCategory
 
+# CC02 v60.0 - Payment Processing Models
+from app.models.payment_processing import (
+    PaymentTransaction,
+    PaymentMethodInfo,
+    PaymentRefund,
+    PaymentProcessingLog,
+    PaymentProviderConfig,
+    PaymentAnalytics,
+    PaymentStatus,
+    PaymentMethod,
+    PaymentProvider,
+    RefundReason,
+)
+
 # CC02 v31.0 Phase 2 - Finance Management Models
 from app.models.finance_extended import (
     Account,
@@ -325,4 +339,15 @@ __all__ = [
     "AuditCompliance",
     "AuditConfiguration",
     "AuditMetrics",
+    # CC02 v60.0 - Payment Processing Models
+    "PaymentTransaction",
+    "PaymentMethodInfo",
+    "PaymentRefund",
+    "PaymentProcessingLog",
+    "PaymentProviderConfig",
+    "PaymentAnalytics",
+    "PaymentStatus",
+    "PaymentMethod",
+    "PaymentProvider",
+    "RefundReason",
 ]
