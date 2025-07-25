@@ -38,9 +38,9 @@ app.include_router(catalog_router, prefix="/api/v1", tags=["product-catalog"])
 # from app.api.v1.inventory_management_core import router as inventory_core_router
 # app.include_router(inventory_core_router, prefix="/api/v1", tags=["inventory-core"])  # Temporarily disabled for TDD
 
-# Import and include products endpoints - CC02 v49.0 TDD Implementation (temporarily disabled for v50.0)
-# from app.api.v1.endpoints.products import router as products_endpoints_router
-# app.include_router(products_endpoints_router, prefix="/api/v1", tags=["products-endpoints"])
+# Import and include products endpoints - CC02 v52.0 Business API Implementation
+from app.api.v1.endpoints.products import router as products_endpoints_router
+app.include_router(products_endpoints_router, prefix="/api/v1", tags=["products-endpoints"])
 
 # Import and include inventory endpoints - CC02 v49.0 Phase 2 (temporarily disabled for v50.0)
 # from app.api.v1.endpoints.inventory import router as inventory_endpoints_router

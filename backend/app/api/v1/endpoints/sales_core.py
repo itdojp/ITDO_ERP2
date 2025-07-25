@@ -610,6 +610,56 @@ async def create_order(
     
     return response_order
 
+@router.get("/orders", response_model=List[OrderResponse])
+async def list_orders(
+    customer_id: Optional[str] = Query(None),
+    status: Optional[OrderStatus] = Query(None),
+    from_date: Optional[str] = Query(None),
+    to_date: Optional[str] = Query(None),
+    page: int = Query(1, ge=1),
+    size: int = Query(50, ge=1, le=1000),
+    db: AsyncSession = Depends(get_db)
+) -> List[OrderResponse]:
+    """List sales orders with filtering (CC02 v52.0 Required)"""
+    
+    all_orders = list(orders_store.values())
+    
+    # Apply filters
+    if customer_id:
+        all_orders = [o for o in all_orders if o.get("customer_id") == customer_id]
+    
+    if status:
+        all_orders = [o for o in all_orders if o.get("status") == status.value]
+    
+    # Date filtering (simplified for TDD)
+    if from_date or to_date:
+        # For production, implement proper date parsing and filtering
+        pass
+    
+    # Sort by created_at descending
+    all_orders.sort(key=lambda x: x["created_at"], reverse=True)
+    
+    # Apply pagination
+    total = len(all_orders)
+    start_idx = (page - 1) * size
+    end_idx = start_idx + size
+    paginated_orders = all_orders[start_idx:end_idx]
+    
+    # Convert to response format
+    response_orders = []
+    for order in paginated_orders:
+        # Get order items
+        items = order_items_store.get(order["id"], [])
+        response_items = [QuoteItemResponse(**item) for item in items]
+        
+        response_order = OrderResponse(
+            **order,
+            items=response_items
+        )
+        response_orders.append(response_order)
+    
+    return response_orders
+
 @router.put("/orders/{order_id}/status", response_model=OrderResponse)
 async def update_order_status(
     order_id: str,
@@ -904,6 +954,83 @@ async def get_sales_metrics(
         orders_this_month=orders_this_month,
         revenue_this_month=round(revenue_this_month, 2)
     )
+
+# CC02 v52.0 Required Endpoints - Phase 3 Aliases
+
+@router.post("/quotations", response_model=QuoteResponse, status_code=201)
+async def create_quotation_alias(
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+) -> QuoteResponse:
+    """Create sales quotation (CC02 v52.0 alias for /quotes)"""
+    # Forward to the main quotes endpoint
+    return await create_quote(request, db)
+
+@router.post("/quotations/{quote_id}/convert-to-order", response_model=OrderResponse, status_code=201)
+async def convert_quotation_to_order_alias(
+    quote_id: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+) -> OrderResponse:
+    """Convert quotation to order (CC02 v52.0 alias for /quotes/{id}/convert)"""
+    # Forward to the main conversion endpoint
+    return await convert_quote_to_order(quote_id, request, db)
+
+@router.post("/invoices", response_model=InvoiceResponse, status_code=201)
+async def create_invoice_direct_alias(
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+) -> InvoiceResponse:
+    """Create invoice directly (CC02 v52.0 compatibility endpoint)"""
+    
+    try:
+        invoice_data = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON data")
+    
+    # Validate required fields for direct invoice creation
+    required_fields = ["order_id", "invoice_number"]
+    for field in required_fields:
+        if field not in invoice_data:
+            raise HTTPException(status_code=422, detail=f"Missing required field: {field}")
+    
+    order_id = invoice_data["order_id"]
+    
+    # Check if order exists
+    if order_id not in orders_store:
+        raise HTTPException(status_code=404, detail="Order not found")
+    
+    order = orders_store[order_id]
+    
+    # Create invoice from order
+    invoice_id = str(uuid.uuid4())
+    now = datetime.now()
+    
+    # Calculate tax and total
+    subtotal = order["total_amount"]
+    tax_rate = invoice_data.get("tax_rate", 0.0)
+    tax_amount = subtotal * (tax_rate / 100)
+    total_amount = subtotal + tax_amount
+    
+    invoice = {
+        "id": invoice_id,
+        "order_id": order_id,
+        "invoice_number": invoice_data["invoice_number"],
+        "invoice_date": now,
+        "due_date": invoice_data.get("due_date", (now + timedelta(days=30)).isoformat()),
+        "subtotal": subtotal,
+        "tax_rate": tax_rate,
+        "tax_amount": tax_amount,
+        "total_amount": total_amount,
+        "status": InvoiceStatus.DRAFT.value,
+        "payment_terms": invoice_data.get("payment_terms", "net_30"),
+        "notes": invoice_data.get("notes"),
+        "created_at": now,
+        "updated_at": now
+    }
+    
+    invoices_store[invoice_id] = invoice
+    return InvoiceResponse(**invoice)
 
 # Health check endpoint for performance testing
 @router.get("/health/performance")

@@ -247,13 +247,19 @@ async def list_products(
 @router.put("/{product_id}", response_model=ProductCreateResponse)
 async def update_product(
     product_id: str,
-    update_data: Dict[str, Any],
+    request: Request,
     db: AsyncSession = Depends(get_db)
 ) -> ProductCreateResponse:
     """Update product"""
     
     if product_id not in products_store:
         raise HTTPException(status_code=404, detail="Product not found")
+    
+    # Get JSON data from request
+    try:
+        update_data = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON data")
     
     product = products_store[product_id].copy()
     old_price = product["price"]
@@ -297,10 +303,16 @@ async def delete_product(
 
 @router.post("/bulk", response_model=BulkCreateResponse, status_code=201)
 async def bulk_create_products(
-    bulk_data: Dict[str, List[Dict[str, Any]]],
+    request: Request,
     db: AsyncSession = Depends(get_db)
 ) -> BulkCreateResponse:
     """Bulk create products"""
+    
+    # Get JSON data from request
+    try:
+        bulk_data = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON data")
     
     products = bulk_data.get("products", [])
     created = 0
@@ -374,10 +386,16 @@ async def bulk_create_products(
 
 @router.put("/bulk", response_model=BulkUpdateResponse)
 async def bulk_update_products(
-    bulk_data: Dict[str, List[Dict[str, Any]]],
+    request: Request,
     db: AsyncSession = Depends(get_db)
 ) -> BulkUpdateResponse:
     """Bulk update products"""
+    
+    # Get JSON data from request
+    try:
+        bulk_data = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON data")
     
     updates = bulk_data.get("updates", [])
     updated = 0
