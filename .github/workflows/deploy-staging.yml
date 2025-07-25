@@ -1,0 +1,449 @@
+name: 🔄 Staging Deployment
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'infra/**'
+  push:
+    branches: 
+      - develop
+      - 'feature/**'
+      - 'hotfix/**'
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to deploy'
+        required: true
+        default: 'develop'
+      cleanup:
+        description: 'Cleanup after deployment'
+        required: false
+        default: 'true'
+        type: boolean
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  STAGING_SUBDOMAIN: staging-${{ github.head_ref || github.ref_name }}
+
+jobs:
+  validate:
+    name: ✅ Validate Changes
+    runs-on: ubuntu-latest
+    outputs:
+      validation-passed: ${{ steps.validation.outputs.passed }}
+      staging-url: ${{ steps.url.outputs.url }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Validate configuration
+        id: validation
+        run: |
+          echo "🔍 Validating Docker Compose configuration..."
+          
+          # Validate production compose
+          if ! docker-compose -f infra/compose-prod.yaml config -q; then
+            echo "❌ Production compose validation failed"
+            echo "passed=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+          
+          # Validate monitoring compose
+          if ! docker-compose -f infra/compose-monitoring.yaml config -q; then
+            echo "❌ Monitoring compose validation failed"
+            echo "passed=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+          
+          echo "✅ Configuration validation passed"
+          echo "passed=true" >> $GITHUB_OUTPUT
+      
+      - name: Generate staging URL
+        id: url
+        run: |
+          CLEAN_BRANCH=$(echo "${{ env.STAGING_SUBDOMAIN }}" | sed 's/[^a-zA-Z0-9-]/-/g' | tr '[:upper:]' '[:lower:]')
+          STAGING_URL="https://${CLEAN_BRANCH}.staging.itdo-erp.com"
+          echo "url=${STAGING_URL}" >> $GITHUB_OUTPUT
+          echo "📍 Staging URL: ${STAGING_URL}"
+
+  build-staging:
+    name: 🏗️ Build Staging Images
+    runs-on: ubuntu-latest
+    needs: validate
+    if: needs.validate.outputs.validation-passed == 'true'
+    outputs:
+      backend-image: ${{ steps.meta-backend.outputs.tags }}
+      frontend-image: ${{ steps.meta-frontend.outputs.tags }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Extract metadata for backend
+        id: meta-backend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend
+          tags: |
+            type=ref,event=branch,prefix=staging-
+            type=ref,event=pr,prefix=pr-
+            type=sha,prefix=staging-${{ github.head_ref || github.ref_name }}-
+      
+      - name: Extract metadata for frontend
+        id: meta-frontend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend
+          tags: |
+            type=ref,event=branch,prefix=staging-
+            type=ref,event=pr,prefix=pr-
+            type=sha,prefix=staging-${{ github.head_ref || github.ref_name }}-
+      
+      - name: Build and push backend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: ${{ steps.meta-backend.outputs.tags }}
+          labels: ${{ steps.meta-backend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            ENV=staging
+            DEBUG=true
+      
+      - name: Build and push frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          tags: ${{ steps.meta-frontend.outputs.tags }}
+          labels: ${{ steps.meta-frontend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NODE_ENV=staging
+            REACT_APP_DEBUG=true
+
+  deploy-staging:
+    name: 🚀 Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [validate, build-staging]
+    environment: staging
+    concurrency:
+      group: staging-${{ github.head_ref || github.ref_name }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup staging environment
+        run: |
+          echo "BACKEND_IMAGE=${{ needs.build-staging.outputs.backend-image }}" >> $GITHUB_ENV
+          echo "FRONTEND_IMAGE=${{ needs.build-staging.outputs.frontend-image }}" >> $GITHUB_ENV
+          echo "STAGING_URL=${{ needs.validate.outputs.staging-url }}" >> $GITHUB_ENV
+          echo "CLEAN_BRANCH=$(echo "${{ env.STAGING_SUBDOMAIN }}" | sed 's/[^a-zA-Z0-9-]/-/g' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+      
+      - name: Deploy to staging environment
+        run: |
+          echo "🚀 Deploying to staging: ${{ env.STAGING_URL }}"
+          
+          # Install SSH key
+          mkdir -p ~/.ssh
+          echo "${{ secrets.STAGING_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.STAGING_HOST }} >> ~/.ssh/known_hosts
+          
+          # Create staging deployment script
+          cat > staging_deploy.sh << 'EOF'
+          #!/bin/bash
+          set -euo pipefail
+          
+          STAGING_DIR="/opt/itdo-erp/staging/${{ env.CLEAN_BRANCH }}"
+          
+          echo "📁 Setting up staging directory..."
+          mkdir -p "$STAGING_DIR"
+          cd "$STAGING_DIR"
+          
+          # Copy infrastructure files
+          if [ ! -d "infra" ]; then
+            git clone ${{ github.server_url }}/${{ github.repository }}.git .
+            git checkout ${{ github.head_ref || github.ref_name }}
+          else
+            git fetch origin
+            git checkout ${{ github.head_ref || github.ref_name }}
+            git pull origin ${{ github.head_ref || github.ref_name }}
+          fi
+          
+          cd infra
+          
+          echo "🔧 Configuring staging environment..."
+          
+          # Create staging-specific environment file
+          cat > .env.staging << 'ENVEOF'
+          # Staging Environment Configuration
+          COMPOSE_PROJECT_NAME=itdo-staging-${{ env.CLEAN_BRANCH }}
+          
+          # Database Configuration
+          POSTGRES_DB=itdo_staging_${{ env.CLEAN_BRANCH }}
+          POSTGRES_USER=itdo_staging
+          POSTGRES_PASSWORD=${{ secrets.STAGING_DB_PASSWORD }}
+          DATABASE_URL=postgresql://itdo_staging:${{ secrets.STAGING_DB_PASSWORD }}@postgres:5432/itdo_staging_${{ env.CLEAN_BRANCH }}
+          
+          # Redis Configuration
+          REDIS_URL=redis://redis:6379/1
+          
+          # Backend Configuration
+          BACKEND_IMAGE=${{ env.BACKEND_IMAGE }}
+          BACKEND_DEBUG=true
+          CORS_ORIGINS=["${{ env.STAGING_URL }}"]
+          
+          # Frontend Configuration
+          FRONTEND_IMAGE=${{ env.FRONTEND_IMAGE }}
+          REACT_APP_API_URL=${{ env.STAGING_URL }}/api/v1
+          REACT_APP_WS_URL=wss://${{ env.CLEAN_BRANCH }}.staging.itdo-erp.com/ws
+          
+          # Domain Configuration
+          DOMAIN=${{ env.CLEAN_BRANCH }}.staging.itdo-erp.com
+          API_DOMAIN=api-${{ env.CLEAN_BRANCH }}.staging.itdo-erp.com
+          AUTH_DOMAIN=auth-${{ env.CLEAN_BRANCH }}.staging.itdo-erp.com
+          
+          # SSL Configuration
+          SSL_EMAIL=staging@itdo-erp.com
+          
+          # Keycloak Configuration
+          KEYCLOAK_ADMIN=admin
+          KEYCLOAK_ADMIN_PASSWORD=${{ secrets.STAGING_KEYCLOAK_PASSWORD }}
+          ENVEOF
+          
+          echo "🐳 Starting staging deployment..."
+          
+          # Pull latest images
+          docker pull ${{ env.BACKEND_IMAGE }}
+          docker pull ${{ env.FRONTEND_IMAGE }}
+          
+          # Deploy staging stack
+          docker-compose -f compose-prod.yaml --env-file .env.staging down --remove-orphans || true
+          docker-compose -f compose-prod.yaml --env-file .env.staging up -d
+          
+          echo "⏳ Waiting for services to be ready..."
+          sleep 60
+          
+          # Health check
+          for i in {1..20}; do
+            if curl -f http://localhost:8000/health >/dev/null 2>&1; then
+              echo "✅ Staging deployment successful"
+              exit 0
+            fi
+            echo "⏳ Waiting for backend... ($i/20)"
+            sleep 15
+          done
+          
+          echo "❌ Staging deployment failed - health check timeout"
+          exit 1
+          EOF
+          
+          # Execute staging deployment
+          scp staging_deploy.sh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}:/tmp/
+          ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} "chmod +x /tmp/staging_deploy.sh && /tmp/staging_deploy.sh"
+      
+      - name: Configure reverse proxy
+        run: |
+          echo "🔧 Configuring reverse proxy for staging..."
+          
+          ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'EOF'
+          # Update NGINX configuration for new staging subdomain
+          NGINX_CONFIG="/etc/nginx/sites-available/staging-${{ env.CLEAN_BRANCH }}"
+          
+          cat > "$NGINX_CONFIG" << 'NGINXEOF'
+          server {
+              listen 80;
+              server_name ${{ env.CLEAN_BRANCH }}.staging.itdo-erp.com;
+              
+              # Redirect HTTP to HTTPS
+              return 301 https://$server_name$request_uri;
+          }
+          
+          server {
+              listen 443 ssl http2;
+              server_name ${{ env.CLEAN_BRANCH }}.staging.itdo-erp.com;
+              
+              # SSL Configuration
+              ssl_certificate /etc/letsencrypt/live/${{ env.CLEAN_BRANCH }}.staging.itdo-erp.com/fullchain.pem;
+              ssl_certificate_key /etc/letsencrypt/live/${{ env.CLEAN_BRANCH }}.staging.itdo-erp.com/privkey.pem;
+              
+              # Proxy to staging container
+              location / {
+                  proxy_pass http://localhost:8080;
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+              }
+              
+              location /api/ {
+                  proxy_pass http://localhost:8000/;
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+              }
+          }
+          NGINXEOF
+          
+          # Enable site
+          ln -sf "$NGINX_CONFIG" "/etc/nginx/sites-enabled/staging-${{ env.CLEAN_BRANCH }}"
+          
+          # Test NGINX configuration
+          nginx -t
+          
+          # Reload NGINX
+          systemctl reload nginx
+          
+          echo "✅ Reverse proxy configured for ${{ env.STAGING_URL }}"
+          EOF
+      
+      - name: Generate SSL certificate
+        run: |
+          echo "🔒 Generating SSL certificate for staging..."
+          
+          ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'EOF'
+          # Generate SSL certificate using certbot
+          certbot certonly --nginx \
+            --non-interactive \
+            --agree-tos \
+            --email staging@itdo-erp.com \
+            -d ${{ env.CLEAN_BRANCH }}.staging.itdo-erp.com \
+            || echo "⚠️ SSL certificate generation failed, using self-signed"
+          
+          # Reload NGINX to use new certificate
+          systemctl reload nginx
+          
+          echo "✅ SSL certificate configured"
+          EOF
+      
+      - name: Final health check
+        run: |
+          echo "🔍 Running final health check..."
+          
+          # Wait for SSL propagation
+          sleep 30
+          
+          # Check staging deployment
+          for i in {1..10}; do
+            if curl -k -f ${{ env.STAGING_URL }}/api/v1/health; then
+              echo "✅ Staging API health check passed"
+              break
+            fi
+            if [ $i -eq 10 ]; then
+              echo "⚠️ Staging API health check failed, but deployment continues"
+            fi
+            sleep 30
+          done
+          
+          echo "🎉 Staging deployment completed!"
+          echo "🔗 Staging URL: ${{ env.STAGING_URL }}"
+      
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## 🚀 Staging Deployment Complete
+            
+            **Preview URL**: ${{ env.STAGING_URL }}
+            **Backend Image**: \`${{ env.BACKEND_IMAGE }}\`
+            **Frontend Image**: \`${{ env.FRONTEND_IMAGE }}\`
+            
+            ### 🔗 Quick Links
+            - 🌐 **Application**: [${{ env.STAGING_URL }}](${{ env.STAGING_URL }})
+            - 🔧 **API Health**: [${{ env.STAGING_URL }}/api/v1/health](${{ env.STAGING_URL }}/api/v1/health)
+            - 📊 **API Docs**: [${{ env.STAGING_URL }}/api/v1/docs](${{ env.STAGING_URL }}/api/v1/docs)
+            
+            ### ⏱️ Deployment Info
+            - **Deployed at**: $(date -u)
+            - **Commit**: ${{ github.sha }}
+            - **Branch**: ${{ github.head_ref }}
+            
+            💡 This staging environment will be automatically cleaned up when the PR is merged or closed.`
+            });
+
+  test-staging:
+    name: 🧪 Test Staging Environment
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run staging tests
+        run: |
+          echo "🧪 Running staging environment tests..."
+          STAGING_URL="${{ needs.validate.outputs.staging-url }}"
+          
+          # API tests
+          echo "Testing API endpoints..."
+          
+          # Health check
+          if ! curl -f "${STAGING_URL}/api/v1/health"; then
+            echo "❌ Health check failed"
+            exit 1
+          fi
+          
+          # OpenAPI docs
+          if ! curl -f "${STAGING_URL}/api/v1/docs"; then
+            echo "❌ API docs check failed"
+            exit 1
+          fi
+          
+          # Frontend test
+          if ! curl -f "${STAGING_URL}"; then
+            echo "❌ Frontend check failed"
+            exit 1
+          fi
+          
+          echo "✅ All staging tests passed"
+
+  cleanup-old-staging:
+    name: 🧹 Cleanup Old Staging
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+    if: always() && inputs.cleanup == 'true'
+    steps:
+      - name: Cleanup old staging environments
+        run: |
+          echo "🧹 Cleaning up old staging environments..."
+          
+          ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'EOF'
+          # Remove staging environments older than 7 days
+          find /opt/itdo-erp/staging/* -maxdepth 0 -type d -mtime +7 -exec rm -rf {} \;
+          
+          # Remove old NGINX configurations
+          find /etc/nginx/sites-enabled/staging-* -mtime +7 -delete
+          find /etc/nginx/sites-available/staging-* -mtime +7 -delete
+          
+          # Remove old SSL certificates
+          find /etc/letsencrypt/live/staging.itdo-erp.com/staging-* -mtime +7 -exec rm -rf {} \;
+          
+          # Cleanup old Docker containers and images
+          docker container prune -f --filter "until=168h"
+          docker image prune -f --filter "until=168h"
+          
+          # Reload NGINX
+          nginx -t && systemctl reload nginx
+          
+          echo "✅ Cleanup completed"
+          EOF

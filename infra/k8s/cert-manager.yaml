@@ -1,0 +1,277 @@
+# ITDO ERP v2 - SSL/TLS Certificate Management
+# CC03 v48.0 Business-Aligned Infrastructure
+
+# Cert-Manager ClusterIssuer for Let's Encrypt Production
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+  labels:
+    app.kubernetes.io/name: cert-manager
+    app.kubernetes.io/component: certificate-issuer
+spec:
+  acme:
+    # Let's Encrypt production server
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: devops@itdo.jp
+    
+    # Secret to store the account private key
+    privateKeySecretRef:
+      name: letsencrypt-prod-private-key
+    
+    # ACME HTTP01 challenge solver
+    solvers:
+    - http01:
+        ingress:
+          class: nginx
+          podTemplate:
+            spec:
+              nodeSelector:
+                "kubernetes.io/os": linux
+    
+    # DNS01 challenge solver for wildcard certificates
+    - dns01:
+        route53:
+          region: ap-northeast-1
+          accessKeyID: AKIAIOSFODNN7EXAMPLE
+          secretAccessKeySecretRef:
+            name: route53-secret
+            key: secret-access-key
+      selector:
+        dnsNames:
+        - "*.itdo-erp.com"
+
+---
+# Cert-Manager ClusterIssuer for Let's Encrypt Staging (for testing)
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+  labels:
+    app.kubernetes.io/name: cert-manager
+    app.kubernetes.io/component: certificate-issuer
+spec:
+  acme:
+    # Let's Encrypt staging server
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: devops@itdo.jp
+    
+    privateKeySecretRef:
+      name: letsencrypt-staging-private-key
+    
+    solvers:
+    - http01:
+        ingress:
+          class: nginx
+
+---
+# Route53 Secret for DNS01 challenges
+apiVersion: v1
+kind: Secret
+metadata:
+  name: route53-secret
+  namespace: cert-manager
+  labels:
+    app.kubernetes.io/name: cert-manager
+    app.kubernetes.io/component: dns-secret
+type: Opaque
+data:
+  secret-access-key: d0phbHJYVXRuRkVNSS9LN01ERU5HL2JQeFJmaUNZRVhBTVBMRUtFWQ==  # wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+
+---
+# Production Certificate for itdo-erp.com
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: itdo-erp-tls-cert
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: itdo-erp
+    app.kubernetes.io/component: certificate
+spec:
+  secretName: itdo-erp-tls
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  commonName: itdo-erp.com
+  dnsNames:
+  - itdo-erp.com
+  - www.itdo-erp.com
+  - api.itdo-erp.com
+  - staging.itdo-erp.com
+  
+  # Certificate renewal settings
+  renewBefore: 720h  # 30 days
+  duration: 2160h    # 90 days
+  
+  # Private key settings
+  privateKey:
+    algorithm: RSA
+    size: 2048
+    rotationPolicy: Always
+
+---
+# Wildcard Certificate for *.itdo-erp.com
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: itdo-erp-wildcard-cert
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: itdo-erp
+    app.kubernetes.io/component: wildcard-certificate
+spec:
+  secretName: itdo-erp-wildcard-tls
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  commonName: "*.itdo-erp.com"
+  dnsNames:
+  - "*.itdo-erp.com"
+  - itdo-erp.com
+  
+  renewBefore: 720h
+  duration: 2160h
+  
+  privateKey:
+    algorithm: RSA
+    size: 2048
+    rotationPolicy: Always
+
+---
+# Certificate monitoring and alerting
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: cert-manager-monitor
+  namespace: cert-manager
+  labels:
+    app.kubernetes.io/name: cert-manager
+    app.kubernetes.io/component: monitoring
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cert-manager
+  endpoints:
+  - port: http-metrics
+    interval: 60s
+    path: /metrics
+
+---
+# Network Policy for Cert-Manager
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: cert-manager-netpol
+  namespace: cert-manager
+  labels:
+    app.kubernetes.io/name: cert-manager
+    app.kubernetes.io/component: security
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: cert-manager
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: itdo-erp-monitoring
+    ports:
+    - protocol: TCP
+      port: 9402
+  egress:
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443  # HTTPS for Let's Encrypt API
+    - protocol: TCP
+      port: 53   # DNS
+    - protocol: UDP
+      port: 53   # DNS
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: TCP
+      port: 443  # Kubernetes API
+
+---
+# Security Policy for Certificate Secrets
+apiVersion: v1
+kind: Secret
+metadata:
+  name: certificate-security-policy
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: itdo-erp
+    app.kubernetes.io/component: security-policy
+  annotations:
+    policy.mcm.ibm.com/categories: "SystemAndInformationIntegrity"
+    policy.mcm.ibm.com/standards: "PCI-DSS"
+    policy.mcm.ibm.com/controls: "3.4.1,8.2.1"
+type: Opaque
+data:
+  # Certificate security configuration
+  security-policy: |
+    # Certificate Security Policy for ITDO ERP
+    certificate_rotation_days: 30
+    key_size_minimum: 2048
+    allowed_algorithms: ["RSA", "ECDSA"]
+    certificate_transparency_required: true
+    ocsp_stapling_enabled: true
+    hsts_max_age: 31536000
+    
+    # Monitoring settings
+    expiry_warning_days: 30
+    renewal_failure_alert: true
+    certificate_transparency_monitoring: true
+
+---
+# Certificate Expiry Alert Rule
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: certificate-expiry-alerts
+  namespace: itdo-erp-prod
+  labels:
+    app.kubernetes.io/name: itdo-erp
+    app.kubernetes.io/component: alerting
+spec:
+  groups:
+  - name: certificate.rules
+    rules:
+    - alert: CertificateExpiringSoon
+      expr: certmanager_certificate_expiration_timestamp_seconds - time() < 7 * 24 * 3600
+      for: 1h
+      labels:
+        severity: warning
+        category: security
+      annotations:
+        summary: "Certificate {{ $labels.name }} is expiring soon"
+        description: "Certificate {{ $labels.name }} in namespace {{ $labels.namespace }} will expire in less than 7 days"
+        runbook_url: "https://docs.itdo.jp/runbooks/certificate-renewal"
+    
+    - alert: CertificateExpired
+      expr: certmanager_certificate_expiration_timestamp_seconds - time() <= 0
+      for: 0m
+      labels:
+        severity: critical
+        category: security
+      annotations:
+        summary: "Certificate {{ $labels.name }} has expired"
+        description: "Certificate {{ $labels.name }} in namespace {{ $labels.namespace }} has expired and needs immediate attention"
+        runbook_url: "https://docs.itdo.jp/runbooks/certificate-expired"
+    
+    - alert: CertificateRenewalFailed
+      expr: rate(certmanager_certificate_renewal_errors_total[5m]) > 0
+      for: 15m
+      labels:
+        severity: critical
+        category: security
+      annotations:
+        summary: "Certificate renewal failed for {{ $labels.name }}"
+        description: "Certificate renewal has been failing for {{ $labels.name }} in namespace {{ $labels.namespace }}"

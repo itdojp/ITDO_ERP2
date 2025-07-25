@@ -1,0 +1,41 @@
+# ITDO ERP v2 - Production Kubernetes Namespace
+# CC03 v48.0 Business-Aligned Infrastructure
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: itdo-erp-prod
+  labels:
+    environment: production
+    app.kubernetes.io/name: itdo-erp
+    app.kubernetes.io/version: "2.0"
+    app.kubernetes.io/component: erp-system
+    app.kubernetes.io/part-of: itdo-erp-platform
+    app.kubernetes.io/managed-by: kubernetes
+  annotations:
+    description: "ITDO ERP v2 Production Environment"
+    contact: "devops@itdo.jp"
+    cost-center: "engineering"
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: itdo-erp-monitoring
+  labels:
+    environment: production
+    app.kubernetes.io/name: monitoring
+    app.kubernetes.io/component: observability
+    app.kubernetes.io/part-of: itdo-erp-platform
+  annotations:
+    description: "ITDO ERP v2 Monitoring and Observability Stack"
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: itdo-erp-data
+  labels:
+    environment: production
+    app.kubernetes.io/name: data-services
+    app.kubernetes.io/component: data-layer
+    app.kubernetes.io/part-of: itdo-erp-platform
+  annotations:
+    description: "ITDO ERP v2 Data Layer Services"
