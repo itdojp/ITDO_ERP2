@@ -185,6 +185,25 @@ from app.models.shipping_management import (
     DeliveryPriority,
 )
 
+# CC02 v64.0 - API Integration Platform Models
+from app.models.api_integration import (
+    APIGateway,
+    ExternalIntegration,
+    DataSyncJob,
+    WebhookEndpoint,
+    WebhookDelivery,
+    APIKey,
+    APIUsageLog,
+    DataMapping,
+    IntegrationHealth,
+    IntegrationType,
+    AuthenticationType,
+    ConnectionStatus,
+    SyncDirection,
+    SyncStatus,
+    WebhookStatus,
+)
+
 __all__ = [
     "User",
     "Organization",
@@ -360,4 +379,20 @@ __all__ = [
     "ShipmentStatus",
     "PackageType",
     "DeliveryPriority",
+    # CC02 v64.0 - API Integration Platform Models
+    "APIGateway",
+    "ExternalIntegration",
+    "DataSyncJob",
+    "WebhookEndpoint",
+    "WebhookDelivery",
+    "APIKey",
+    "APIUsageLog",
+    "DataMapping",
+    "IntegrationHealth",
+    "IntegrationType",
+    "AuthenticationType",
+    "ConnectionStatus",
+    "SyncDirection",
+    "SyncStatus",
+    "WebhookStatus",
 ]

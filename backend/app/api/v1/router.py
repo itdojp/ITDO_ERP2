@@ -3,6 +3,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.api.v1 import (
+    api_integration,
     audit,
     auth,
     cross_tenant_permissions,
@@ -85,6 +86,9 @@ api_router.include_router(pm_automation.router)
 
 # CC02 v62.0 Inventory Integration System
 api_router.include_router(inventory_integration.router)
+
+# CC02 v64.0 API Integration Platform
+api_router.include_router(api_integration.router)
 
 
 @api_router.get("/ping")
