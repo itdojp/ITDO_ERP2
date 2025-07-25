@@ -8,7 +8,7 @@ name: itdo-erp-v62-production
 services:
   # リバースプロキシ & SSL終端
   nginx:
-    image: nginx:1.25-alpine
+    image: docker.io/library/nginx:1.25-alpine
     container_name: itdo-nginx-v62
     ports:
       - "80:80"
@@ -182,10 +182,8 @@ services:
     environment:
       - KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN_USER}
       - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
-      - KC_DB=postgres
-      - KC_DB_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB}
-      - KC_DB_USERNAME=${POSTGRES_USER}
-      - KC_DB_PASSWORD=${POSTGRES_PASSWORD}
+      - KC_DB=h2-file
+      - KC_DB_URL_DATABASE=/opt/keycloak/data/keycloakdb
       - KC_HOSTNAME=${DOMAIN_NAME:-localhost}
       - KC_HTTP_ENABLED=true
       - KC_PROXY=edge

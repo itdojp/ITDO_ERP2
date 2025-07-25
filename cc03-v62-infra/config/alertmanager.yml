@@ -1,88 +1,26 @@
 # CC03 v62.0 - 7日間集中インフラスプリント
-# Day 1: Alertmanager設定
+# Day 2: Alertmanager設定 (v0.26.0対応)
 
 global:
   smtp_smarthost: 'localhost:587'
   smtp_from: 'alerts@itdo-erp-v62.com'
 
 route:
-  group_by: ['alertname', 'cluster', 'service']
+  group_by: ['alertname']
   group_wait: 10s
   group_interval: 10s
   repeat_interval: 1h
-  receiver: 'default'
-  routes:
-    - match:
-        severity: critical
-      receiver: 'critical-alerts'
-      continue: true
-    
-    - match:
-        severity: warning
-      receiver: 'warning-alerts'
+  receiver: 'web.hook'
 
 receivers:
-  - name: 'default'
-    email_configs:
-      - to: 'ops-team@itdo-erp-v62.com'
-        subject: '[ITDO ERP v62] Alert: {{ .GroupLabels.alertname }}'
-        body: |
-          Alert: {{ .GroupLabels.alertname }}
-          Severity: {{ .GroupLabels.severity }}
-          Environment: {{ .CommonLabels.environment }}
-          
-          {{ range .Alerts }}
-          - Instance: {{ .Labels.instance }}
-          - Description: {{ .Annotations.description }}
-          - Started: {{ .StartsAt }}
-          {{ end }}
-
-  - name: 'critical-alerts'
-    email_configs:
-      - to: 'critical-alerts@itdo-erp-v62.com'
-        subject: '[CRITICAL] ITDO ERP v62 Alert: {{ .GroupLabels.alertname }}'
-        body: |
-          🚨 CRITICAL ALERT 🚨
-          
-          Alert: {{ .GroupLabels.alertname }}
-          Environment: Production v62
-          Cluster: {{ .CommonLabels.cluster }}
-          
-          {{ range .Alerts }}
-          - Instance: {{ .Labels.instance }}
-          - Description: {{ .Annotations.description }}
-          - Started: {{ .StartsAt }}
-          {{ end }}
-    
+  - name: 'web.hook'
     webhook_configs:
-      - url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+      - url: 'http://localhost:5001/webhook'
         send_resolved: true
-        title: '🚨 CRITICAL: {{ .GroupLabels.alertname }}'
-        text: |
-          {{ range .Alerts }}
-          Instance: {{ .Labels.instance }}
-          Description: {{ .Annotations.description }}
-          {{ end }}
-
-  - name: 'warning-alerts'
-    email_configs:
-      - to: 'monitoring@itdo-erp-v62.com'
-        subject: '[WARNING] ITDO ERP v62 Alert: {{ .GroupLabels.alertname }}'
-        body: |
-          ⚠️ WARNING ALERT ⚠️
-          
-          Alert: {{ .GroupLabels.alertname }}
-          Environment: Production v62
-          
-          {{ range .Alerts }}
-          - Instance: {{ .Labels.instance }}
-          - Description: {{ .Annotations.description }}
-          - Started: {{ .StartsAt }}
-          {{ end }}
 
 inhibit_rules:
   - source_match:
       severity: 'critical'
     target_match:
       severity: 'warning'
-    equal: ['alertname', 'instance']
+    equal: ['alertname']
