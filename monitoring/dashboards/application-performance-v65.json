@@ -1,0 +1,341 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "ITDO ERP v65.0 - アプリケーションパフォーマンス監視",
+    "tags": ["cc03-v65", "application", "performance", "realtime"],
+    "timezone": "Asia/Tokyo",
+    "time": {
+      "from": "now-30m",
+      "to": "now"
+    },
+    "refresh": "5s",
+    "templating": {
+      "list": [
+        {
+          "name": "datasource",
+          "type": "datasource",
+          "query": "prometheus",
+          "current": {
+            "text": "Application-Metrics",
+            "value": "Application-Metrics"
+          }
+        },
+        {
+          "name": "service",
+          "type": "query",
+          "query": "label_values(http_requests_total, job)",
+          "datasource": "$datasource",
+          "refresh": 1,
+          "multi": true,
+          "includeAll": true
+        }
+      ]
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "🚀 API レスポンス時間分布 (リアルタイム)",
+        "type": "heatmap",
+        "targets": [
+          {
+            "expr": "rate(http_request_duration_seconds_bucket{job=~\"$service\"}[5m])",
+            "legendFormat": "{{le}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "spectrum"},
+            "unit": "s"
+          }
+        },
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0},
+        "options": {
+          "calculate": false,
+          "cellGap": 2,
+          "cellValues": {},
+          "color": {
+            "exponent": 0.5,
+            "fill": "dark-orange",
+            "mode": "spectrum",
+            "reverse": false,
+            "scheme": "Spectral",
+            "steps": 128
+          },
+          "tooltip": {
+            "show": true,
+            "yHistogram": true
+          },
+          "yAxis": {
+            "axisPlacement": "left",
+            "reverse": false,
+            "unit": "s"
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "📈 リクエスト率 (req/sec)",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total{job=~\"$service\"}[5m])",
+            "legendFormat": "{{job}} - {{method}} {{status}}",
+            "refId": "A",
+            "step": 5
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "reqps"
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+      },
+      {
+        "id": 3,
+        "title": "❌ エラー率 (%)",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total{job=~\"$service\",status=~\"4..|5..\"}[5m]) / rate(http_requests_total{job=~\"$service\"}[5m]) * 100",
+            "legendFormat": "{{job}} エラー率",
+            "refId": "A",
+            "step": 5
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 1},
+                {"color": "red", "value": 5}
+              ]
+            },
+            "unit": "percent"
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      },
+      {
+        "id": 4,
+        "title": "⏱️ P95 レスポンス時間",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=~\"$service\"}[5m]))",
+            "legendFormat": "{{job}} P95",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 0.5},
+                {"color": "red", "value": 1}
+              ]
+            },
+            "unit": "s",
+            "max": 2,
+            "min": 0
+          }
+        },
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 16}
+      },
+      {
+        "id": 5,
+        "title": "🔄 アクティブ接続数",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "http_server_active_connections{job=~\"$service\"}",
+            "legendFormat": "{{job}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 100},
+                {"color": "red", "value": 500}
+              ]
+            },
+            "unit": "none"
+          }
+        },
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 16}
+      },
+      {
+        "id": 6,
+        "title": "💾 メモリ使用量",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "process_resident_memory_bytes{job=~\"$service\"}",
+            "legendFormat": "{{job}} メモリ",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "bytes"
+          }
+        },
+        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 16}
+      },
+      {
+        "id": 7,
+        "title": "🔍 エンドポイント別レスポンス時間",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(http_request_duration_seconds_bucket{job=~\"$service\"}[5m])) by (handler)",
+            "legendFormat": "P50",
+            "refId": "A",
+            "format": "table"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=~\"$service\"}[5m])) by (handler)",
+            "legendFormat": "P95",
+            "refId": "B",
+            "format": "table"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(http_request_duration_seconds_bucket{job=~\"$service\"}[5m])) by (handler)",
+            "legendFormat": "P99",
+            "refId": "C",
+            "format": "table"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 0.5},
+                {"color": "red", "value": 1}
+              ]
+            },
+            "unit": "s"
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+        "transformations": [
+          {
+            "id": "joinByField",
+            "options": {
+              "byField": "handler",
+              "mode": "outer"
+            }
+          },
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {"Time": true},
+              "indexByName": {"handler": 0, "Value #A": 1, "Value #B": 2, "Value #C": 3},
+              "renameByName": {
+                "handler": "エンドポイント",
+                "Value #A": "P50 (秒)",
+                "Value #B": "P95 (秒)",
+                "Value #C": "P99 (秒)"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "🏆 トップ10 アクセスエンドポイント",
+        "type": "barchart",
+        "targets": [
+          {
+            "expr": "topk(10, rate(http_requests_total{job=~\"$service\"}[5m]))",
+            "legendFormat": "{{handler}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "reqps"
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+        "options": {
+          "orientation": "horizontal",
+          "barWidth": 0.6,
+          "groupWidth": 0.7,
+          "xTickLabelRotation": -45,
+          "showValue": "always"
+        }
+      },
+      {
+        "id": 9,
+        "title": "🔄 ガベージコレクション (GC) 統計",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(go_gc_duration_seconds_sum{job=~\"$service\"}[5m])",
+            "legendFormat": "{{job}} GC時間/秒",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(go_gc_duration_seconds_count{job=~\"$service\"}[5m])",
+            "legendFormat": "{{job}} GC実行回数/秒",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "s"
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 32}
+      },
+      {
+        "id": 10,
+        "title": "📊 Goroutine数",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "go_goroutines{job=~\"$service\"}",
+            "legendFormat": "{{job}} Goroutines",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "none"
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 32}
+      }
+    ],
+    "annotations": {
+      "list": [
+        {
+          "datasource": "$datasource",
+          "enable": true,
+          "expr": "ALERTS{job=~\"$service\",alertstate=\"firing\"}",
+          "iconColor": "red",
+          "name": "アプリケーションアラート",
+          "titleFormat": "{{alertname}}",
+          "textFormat": "{{instance}}: {{summary}}"
+        }
+      ]
+    }
+  }
+}

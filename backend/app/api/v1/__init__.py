@@ -23,4 +23,3 @@ async def get_api_version():
             "/organizations"
         ]
     }
-EOF < /dev/null
