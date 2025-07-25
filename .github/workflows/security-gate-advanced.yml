@@ -1,0 +1,566 @@
+name: 🔒 Advanced Security Gate Pipeline
+# CC03 v58.0 - Day 4 Security Hardening Implementation
+# Target: Security A+ Rating (95+ score)
+
+on:
+  push:
+    branches: [main, feature/cc03-v58-production-automation]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 2 * * *'  # Daily security scan at 2 AM
+  workflow_dispatch:
+    inputs:
+      scan_type:
+        description: 'Security scan type'
+        required: true
+        default: 'comprehensive'
+        type: choice
+        options:
+          - comprehensive
+          - quick
+          - critical-only
+
+env:
+  SECURITY_THRESHOLD: 95
+  CRITICAL_VULNERABILITY_THRESHOLD: 0
+  HIGH_VULNERABILITY_THRESHOLD: 5
+  SARIF_OUTPUT_PATH: security-results.sarif
+
+jobs:
+  # Container Security Scanning
+  container-security:
+    name: 🐳 Container Security Analysis
+    runs-on: ubuntu-latest
+    outputs:
+      security_score: ${{ steps.calculate-score.outputs.score }}
+      critical_vulns: ${{ steps.trivy-scan.outputs.critical }}
+      high_vulns: ${{ steps.trivy-scan.outputs.high }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔍 Trivy Container Security Scan
+        id: trivy-scan
+        run: |
+          # Install Trivy
+          sudo apt-get update
+          sudo apt-get install wget apt-transport-https gnupg lsb-release
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+          echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update
+          sudo apt-get install trivy
+
+          # Scan Docker images
+          echo "🔍 Scanning production Dockerfiles..."
+          
+          if [ -f "infra/Dockerfile.backend.prod" ]; then
+            echo "Scanning backend Docker image..."
+            trivy config infra/Dockerfile.backend.prod --format sarif --output backend-docker.sarif
+            trivy config infra/Dockerfile.backend.prod --format json --output backend-docker.json
+          fi
+          
+          if [ -f "infra/Dockerfile.frontend.prod" ]; then
+            echo "Scanning frontend Docker image..."
+            trivy config infra/Dockerfile.frontend.prod --format sarif --output frontend-docker.sarif
+            trivy config infra/Dockerfile.frontend.prod --format json --output frontend-docker.json
+          fi
+
+          # Extract vulnerability counts
+          CRITICAL_COUNT=0
+          HIGH_COUNT=0
+          
+          if [ -f "backend-docker.json" ]; then
+            BACKEND_CRITICAL=$(jq '.Results[]?.Vulnerabilities[]? | select(.Severity=="CRITICAL") | .VulnerabilityID' backend-docker.json 2>/dev/null | wc -l || echo 0)
+            BACKEND_HIGH=$(jq '.Results[]?.Vulnerabilities[]? | select(.Severity=="HIGH") | .VulnerabilityID' backend-docker.json 2>/dev/null | wc -l || echo 0)
+            CRITICAL_COUNT=$((CRITICAL_COUNT + BACKEND_CRITICAL))
+            HIGH_COUNT=$((HIGH_COUNT + BACKEND_HIGH))
+          fi
+          
+          if [ -f "frontend-docker.json" ]; then
+            FRONTEND_CRITICAL=$(jq '.Results[]?.Vulnerabilities[]? | select(.Severity=="CRITICAL") | .VulnerabilityID' frontend-docker.json 2>/dev/null | wc -l || echo 0)
+            FRONTEND_HIGH=$(jq '.Results[]?.Vulnerabilities[]? | select(.Severity=="HIGH") | .VulnerabilityID' frontend-docker.json 2>/dev/null | wc -l || echo 0)
+            CRITICAL_COUNT=$((CRITICAL_COUNT + FRONTEND_CRITICAL))
+            HIGH_COUNT=$((HIGH_COUNT + FRONTEND_HIGH))
+          fi
+          
+          echo "critical=$CRITICAL_COUNT" >> $GITHUB_OUTPUT
+          echo "high=$HIGH_COUNT" >> $GITHUB_OUTPUT
+          
+          echo "🔍 Container scan results:"
+          echo "  Critical vulnerabilities: $CRITICAL_COUNT"
+          echo "  High vulnerabilities: $HIGH_COUNT"
+
+      - name: 🔍 Docker Bench Security
+        run: |
+          echo "🔍 Running Docker Bench Security..."
+          git clone https://github.com/docker/docker-bench-security.git
+          cd docker-bench-security
+          sudo ./docker-bench-security.sh | tee ../docker-bench-results.txt
+          
+          # Extract security score from results
+          PASSED=$(grep -c "PASS" ../docker-bench-results.txt || echo 0)
+          FAILED=$(grep -c "FAIL" ../docker-bench-results.txt || echo 0)
+          TOTAL=$((PASSED + FAILED))
+          
+          if [ $TOTAL -gt 0 ]; then
+            DOCKER_SCORE=$((PASSED * 100 / TOTAL))
+            echo "Docker security score: $DOCKER_SCORE%"
+          else
+            DOCKER_SCORE=100
+          fi
+          
+          echo "docker_security_score=$DOCKER_SCORE" >> $GITHUB_ENV
+
+      - name: 📊 Calculate Container Security Score
+        id: calculate-score
+        run: |
+          # Calculate weighted security score
+          CRITICAL_PENALTY=$(($(echo "${{ steps.trivy-scan.outputs.critical }}" | bc) * 20))
+          HIGH_PENALTY=$(($(echo "${{ steps.trivy-scan.outputs.high }}" | bc) * 5))
+          DOCKER_BENCH_SCORE=${docker_security_score:-100}
+          
+          # Base score minus penalties
+          CONTAINER_SCORE=$((100 - CRITICAL_PENALTY - HIGH_PENALTY))
+          CONTAINER_SCORE=$(($CONTAINER_SCORE * DOCKER_BENCH_SCORE / 100))
+          
+          # Ensure score is not negative
+          if [ $CONTAINER_SCORE -lt 0 ]; then
+            CONTAINER_SCORE=0
+          fi
+          
+          echo "score=$CONTAINER_SCORE" >> $GITHUB_OUTPUT
+          echo "🔒 Container security score: $CONTAINER_SCORE/100"
+
+      - name: 📤 Upload Container Security Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: container-security-results
+          path: |
+            *.sarif
+            *.json
+            docker-bench-results.txt
+
+  # Infrastructure as Code Security
+  infrastructure-security:
+    name: 🏗️ Infrastructure Security Scan
+    runs-on: ubuntu-latest
+    outputs:
+      iac_score: ${{ steps.iac-score.outputs.score }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔍 Checkov Infrastructure Security
+        run: |
+          # Install Checkov
+          pip install checkov
+          
+          echo "🔍 Scanning infrastructure configurations..."
+          
+          # Scan Docker Compose
+          if [ -f "infra/compose-prod.yaml" ]; then
+            checkov -f infra/compose-prod.yaml --framework docker_compose --output sarif --output-file-path compose-security.sarif || true
+            checkov -f infra/compose-prod.yaml --framework docker_compose --output json --output-file-path compose-security.json || true
+          fi
+          
+          # Scan Terraform
+          if [ -d "infra/terraform" ]; then
+            checkov -d infra/terraform --framework terraform --output sarif --output-file-path terraform-security.sarif || true
+            checkov -d infra/terraform --framework terraform --output json --output-file-path terraform-security.json || true
+          fi
+          
+          # Scan Kubernetes manifests
+          if [ -d "k8s" ]; then
+            checkov -d k8s --framework kubernetes --output sarif --output-file-path k8s-security.sarif || true
+            checkov -d k8s --framework kubernetes --output json --output-file-path k8s-security.json || true
+          fi
+
+      - name: 🔍 TFSec Terraform Security
+        if: hashFiles('infra/terraform/**/*.tf') != ''
+        run: |
+          # Install tfsec
+          curl -s https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install_linux.sh | bash
+          
+          echo "🔍 Running TFSec on Terraform configurations..."
+          tfsec infra/terraform --format sarif --out tfsec-results.sarif || true
+          tfsec infra/terraform --format json --out tfsec-results.json || true
+
+      - name: 🔍 Kube-score Kubernetes Security
+        if: hashFiles('k8s/**/*.yaml') != ''
+        run: |
+          # Install kube-score
+          wget https://github.com/zegl/kube-score/releases/latest/download/kube-score_linux_amd64
+          chmod +x kube-score_linux_amd64
+          sudo mv kube-score_linux_amd64 /usr/local/bin/kube-score
+          
+          echo "🔍 Running kube-score on Kubernetes manifests..."
+          find k8s -name "*.yaml" -exec kube-score score {} \; > kube-score-results.txt 2>&1 || true
+
+      - name: 📊 Calculate Infrastructure Security Score
+        id: iac-score
+        run: |
+          IAC_SCORE=100
+          
+          # Process Checkov results
+          if [ -f "compose-security.json" ]; then
+            COMPOSE_FAILED=$(jq '.results.failed_checks | length' compose-security.json 2>/dev/null || echo 0)
+            IAC_SCORE=$((IAC_SCORE - COMPOSE_FAILED * 2))
+          fi
+          
+          if [ -f "terraform-security.json" ]; then
+            TERRAFORM_FAILED=$(jq '.results.failed_checks | length' terraform-security.json 2>/dev/null || echo 0)
+            IAC_SCORE=$((IAC_SCORE - TERRAFORM_FAILED * 3))
+          fi
+          
+          if [ -f "k8s-security.json" ]; then
+            K8S_FAILED=$(jq '.results.failed_checks | length' k8s-security.json 2>/dev/null || echo 0)
+            IAC_SCORE=$((IAC_SCORE - K8S_FAILED * 2))
+          fi
+          
+          # Process TFSec results
+          if [ -f "tfsec-results.json" ]; then
+            TFSEC_HIGH=$(jq '.results[] | select(.severity=="HIGH") | .rule_id' tfsec-results.json 2>/dev/null | wc -l || echo 0)
+            TFSEC_CRITICAL=$(jq '.results[] | select(.severity=="CRITICAL") | .rule_id' tfsec-results.json 2>/dev/null | wc -l || echo 0)
+            IAC_SCORE=$((IAC_SCORE - TFSEC_HIGH * 3 - TFSEC_CRITICAL * 5))
+          fi
+          
+          # Ensure score is not negative
+          if [ $IAC_SCORE -lt 0 ]; then
+            IAC_SCORE=0
+          fi
+          
+          echo "score=$IAC_SCORE" >> $GITHUB_OUTPUT
+          echo "🏗️ Infrastructure security score: $IAC_SCORE/100"
+
+  # Application Security Testing
+  application-security:
+    name: 🛡️ Application Security Testing
+    runs-on: ubuntu-latest
+    outputs:
+      sast_score: ${{ steps.sast-score.outputs.score }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔍 Semgrep SAST Analysis
+        run: |
+          # Install Semgrep
+          pip install semgrep
+          
+          echo "🔍 Running Semgrep SAST analysis..."
+          semgrep --config=auto --sarif --output=semgrep-results.sarif || true
+          semgrep --config=auto --json --output=semgrep-results.json || true
+          
+          # Additional security-focused rulesets
+          semgrep --config=p/security-audit --sarif --output=semgrep-security.sarif || true
+          semgrep --config=p/secrets --sarif --output=semgrep-secrets.sarif || true
+
+      - name: 🔍 CodeQL Analysis
+        uses: github/codeql-action/init@v3
+        with:
+          languages: python, javascript
+          queries: security-and-quality
+
+      - name: 🔍 Build for CodeQL
+        run: |
+          # Build backend for analysis
+          if [ -d "backend" ]; then
+            cd backend
+            pip install -r requirements.txt || true
+            cd ..
+          fi
+          
+          # Build frontend for analysis
+          if [ -d "frontend" ]; then
+            cd frontend
+            npm install || true
+            npm run build || true
+            cd ..
+          fi
+
+      - name: 🔍 Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:python"
+
+      - name: 🔍 Bandit Python Security Analysis
+        if: hashFiles('backend/**/*.py') != ''
+        run: |
+          pip install bandit
+          
+          echo "🔍 Running Bandit security analysis on Python code..."
+          bandit -r backend/ -f sarif -o bandit-results.sarif || true
+          bandit -r backend/ -f json -o bandit-results.json || true
+
+      - name: 🔍 ESLint Security Analysis
+        if: hashFiles('frontend/**/*.{js,ts,jsx,tsx}') != ''
+        run: |
+          cd frontend
+          npm install eslint-plugin-security || true
+          
+          echo "🔍 Running ESLint security analysis..."
+          npx eslint . --ext .js,.ts,.jsx,.tsx --format json --output-file ../eslint-security.json || true
+          cd ..
+
+      - name: 📊 Calculate Application Security Score
+        id: sast-score
+        run: |
+          SAST_SCORE=100
+          
+          # Process Semgrep results
+          if [ -f "semgrep-results.json" ]; then
+            SEMGREP_HIGH=$(jq '.results[] | select(.extra.severity=="HIGH") | .check_id' semgrep-results.json 2>/dev/null | wc -l || echo 0)
+            SEMGREP_ERROR=$(jq '.results[] | select(.extra.severity=="ERROR") | .check_id' semgrep-results.json 2>/dev/null | wc -l || echo 0)
+            SAST_SCORE=$((SAST_SCORE - SEMGREP_HIGH * 3 - SEMGREP_ERROR * 5))
+          fi
+          
+          # Process Bandit results
+          if [ -f "bandit-results.json" ]; then
+            BANDIT_HIGH=$(jq '.results[] | select(.issue_severity=="HIGH") | .test_id' bandit-results.json 2>/dev/null | wc -l || echo 0)
+            BANDIT_MEDIUM=$(jq '.results[] | select(.issue_severity=="MEDIUM") | .test_id' bandit-results.json 2>/dev/null | wc -l || echo 0)
+            SAST_SCORE=$((SAST_SCORE - BANDIT_HIGH * 4 - BANDIT_MEDIUM * 2))
+          fi
+          
+          # Ensure score is not negative
+          if [ $SAST_SCORE -lt 0 ]; then
+            SAST_SCORE=0
+          fi
+          
+          echo "score=$SAST_SCORE" >> $GITHUB_OUTPUT
+          echo "🛡️ Application security score: $SAST_SCORE/100"
+
+  # Secrets Detection
+  secrets-detection:
+    name: 🔐 Secrets Detection
+    runs-on: ubuntu-latest
+    outputs:
+      secrets_score: ${{ steps.secrets-score.outputs.score }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔍 GitLeaks Secret Detection
+        run: |
+          # Install GitLeaks
+          git clone https://github.com/gitleaks/gitleaks.git
+          cd gitleaks
+          make build
+          sudo mv gitleaks /usr/local/bin/
+          cd ..
+          
+          echo "🔍 Running GitLeaks secret detection..."
+          gitleaks detect --source . --report-format sarif --report-path gitleaks-results.sarif || true
+          gitleaks detect --source . --report-format json --report-path gitleaks-results.json || true
+
+      - name: 🔍 TruffleHog Secret Scanning
+        run: |
+          # Install TruffleHog
+          pip install truffleHog3
+          
+          echo "🔍 Running TruffleHog secret scanning..."
+          truffleHog3 --format json --output truffleHog-results.json . || true
+
+      - name: 📊 Calculate Secrets Security Score
+        id: secrets-score
+        run: |
+          SECRETS_SCORE=100
+          
+          # Process GitLeaks results
+          if [ -f "gitleaks-results.json" ]; then
+            GITLEAKS_COUNT=$(jq '. | length' gitleaks-results.json 2>/dev/null || echo 0)
+            SECRETS_SCORE=$((SECRETS_SCORE - GITLEAKS_COUNT * 10))
+          fi
+          
+          # Process TruffleHog results
+          if [ -f "truffleHog-results.json" ]; then
+            TRUFFLEHOG_COUNT=$(jq '. | length' truffleHog-results.json 2>/dev/null || echo 0)
+            SECRETS_SCORE=$((SECRETS_SCORE - TRUFFLEHOG_COUNT * 10))
+          fi
+          
+          # Ensure score is not negative
+          if [ $SECRETS_SCORE -lt 0 ]; then
+            SECRETS_SCORE=0
+          fi
+          
+          echo "score=$SECRETS_SCORE" >> $GITHUB_OUTPUT
+          echo "🔐 Secrets security score: $SECRETS_SCORE/100"
+
+  # Network Security Analysis
+  network-security:
+    name: 🌐 Network Security Analysis
+    runs-on: ubuntu-latest
+    outputs:
+      network_score: ${{ steps.network-score.outputs.score }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔍 NGINX Configuration Security
+        run: |
+          echo "🔍 Analyzing NGINX security configuration..."
+          
+          NGINX_SCORE=100
+          
+          if [ -f "infra/nginx/nginx-prod.conf" ]; then
+            # Check for security headers
+            grep -q "X-Frame-Options" infra/nginx/nginx-prod.conf && echo "✅ X-Frame-Options configured" || { echo "❌ Missing X-Frame-Options"; NGINX_SCORE=$((NGINX_SCORE - 10)); }
+            grep -q "X-Content-Type-Options" infra/nginx/nginx-prod.conf && echo "✅ X-Content-Type-Options configured" || { echo "❌ Missing X-Content-Type-Options"; NGINX_SCORE=$((NGINX_SCORE - 10)); }
+            grep -q "X-XSS-Protection" infra/nginx/nginx-prod.conf && echo "✅ X-XSS-Protection configured" || { echo "❌ Missing X-XSS-Protection"; NGINX_SCORE=$((NGINX_SCORE - 10)); }
+            grep -q "Content-Security-Policy" infra/nginx/nginx-prod.conf && echo "✅ CSP configured" || { echo "❌ Missing Content-Security-Policy"; NGINX_SCORE=$((NGINX_SCORE - 15)); }
+            grep -q "server_tokens off" infra/nginx/nginx-prod.conf && echo "✅ Server tokens disabled" || { echo "❌ Server tokens exposed"; NGINX_SCORE=$((NGINX_SCORE - 5)); }
+            grep -q "ssl_protocols" infra/nginx/nginx-prod.conf && echo "✅ SSL protocols configured" || { echo "❌ SSL protocols not specified"; NGINX_SCORE=$((NGINX_SCORE - 10)); }
+          fi
+          
+          echo "nginx_security_score=$NGINX_SCORE" >> $GITHUB_ENV
+
+      - name: 🔍 SSL/TLS Configuration Analysis
+        run: |
+          echo "🔍 Analyzing SSL/TLS configuration..."
+          
+          SSL_SCORE=100
+          
+          # Check SSL configuration in NGINX
+          if [ -f "infra/nginx/nginx-prod.conf" ]; then
+            # Check for secure SSL protocols
+            if grep -q "ssl_protocols.*TLSv1.3" infra/nginx/nginx-prod.conf; then
+              echo "✅ TLS 1.3 enabled"
+            elif grep -q "ssl_protocols.*TLSv1.2" infra/nginx/nginx-prod.conf; then
+              echo "✅ TLS 1.2 enabled"
+              SSL_SCORE=$((SSL_SCORE - 5))
+            else
+              echo "❌ Secure TLS version not found"
+              SSL_SCORE=$((SSL_SCORE - 20))
+            fi
+            
+            # Check for secure ciphers
+            grep -q "ssl_ciphers" infra/nginx/nginx-prod.conf && echo "✅ SSL ciphers configured" || { echo "❌ SSL ciphers not configured"; SSL_SCORE=$((SSL_SCORE - 10)); }
+            
+            # Check for HSTS
+            grep -q "Strict-Transport-Security" infra/nginx/nginx-prod.conf && echo "✅ HSTS configured" || { echo "❌ HSTS not configured"; SSL_SCORE=$((SSL_SCORE - 10)); }
+          fi
+          
+          echo "ssl_security_score=$SSL_SCORE" >> $GITHUB_ENV
+
+      - name: 📊 Calculate Network Security Score
+        id: network-score
+        run: |
+          NGINX_SCORE=${nginx_security_score:-100}
+          SSL_SCORE=${ssl_security_score:-100}
+          
+          # Calculate weighted average
+          NETWORK_SCORE=$(((NGINX_SCORE + SSL_SCORE) / 2))
+          
+          echo "score=$NETWORK_SCORE" >> $GITHUB_OUTPUT
+          echo "🌐 Network security score: $NETWORK_SCORE/100"
+
+  # Security Gate Decision
+  security-gate:
+    name: 🎯 Security Gate Decision
+    runs-on: ubuntu-latest
+    needs: [container-security, infrastructure-security, application-security, secrets-detection, network-security]
+    outputs:
+      overall_score: ${{ steps.calculate-overall.outputs.score }}
+      gate_passed: ${{ steps.gate-decision.outputs.passed }}
+    steps:
+      - name: 📊 Calculate Overall Security Score
+        id: calculate-overall
+        run: |
+          # Weighted scoring
+          CONTAINER_SCORE=${{ needs.container-security.outputs.security_score }}
+          IAC_SCORE=${{ needs.infrastructure-security.outputs.iac_score }}
+          SAST_SCORE=${{ needs.application-security.outputs.sast_score }}
+          SECRETS_SCORE=${{ needs.secrets-detection.outputs.secrets_score }}
+          NETWORK_SCORE=${{ needs.network-security.outputs.network_score }}
+          
+          # Calculate weighted average (container and application security weighted higher)
+          OVERALL_SCORE=$(((CONTAINER_SCORE * 25 + IAC_SCORE * 20 + SAST_SCORE * 25 + SECRETS_SCORE * 15 + NETWORK_SCORE * 15) / 100))
+          
+          echo "score=$OVERALL_SCORE" >> $GITHUB_OUTPUT
+          echo "🎯 Overall security score: $OVERALL_SCORE/100"
+
+      - name: 🚪 Security Gate Decision
+        id: gate-decision
+        run: |
+          OVERALL_SCORE=${{ steps.calculate-overall.outputs.score }}
+          CRITICAL_VULNS=${{ needs.container-security.outputs.critical_vulns }}
+          HIGH_VULNS=${{ needs.container-security.outputs.high_vulns }}
+          
+          echo "📊 Security Assessment Summary:"
+          echo "  Overall Score: $OVERALL_SCORE/100 (threshold: ${{ env.SECURITY_THRESHOLD }})"
+          echo "  Critical Vulnerabilities: $CRITICAL_VULNS (threshold: ${{ env.CRITICAL_VULNERABILITY_THRESHOLD }})"
+          echo "  High Vulnerabilities: $HIGH_VULNS (threshold: ${{ env.HIGH_VULNERABILITY_THRESHOLD }})"
+          
+          # Gate decision logic
+          if [ "$OVERALL_SCORE" -ge "${{ env.SECURITY_THRESHOLD }}" ] && \
+             [ "$CRITICAL_VULNS" -le "${{ env.CRITICAL_VULNERABILITY_THRESHOLD }}" ] && \
+             [ "$HIGH_VULNS" -le "${{ env.HIGH_VULNERABILITY_THRESHOLD }}" ]; then
+            echo "✅ SECURITY GATE PASSED - Deployment approved"
+            echo "🔒 Security A+ rating achieved"
+            echo "passed=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ SECURITY GATE FAILED - Deployment blocked"
+            echo "🚨 Security requirements not met:"
+            
+            if [ "$OVERALL_SCORE" -lt "${{ env.SECURITY_THRESHOLD }}" ]; then
+              echo "  - Overall score below threshold"
+            fi
+            if [ "$CRITICAL_VULNS" -gt "${{ env.CRITICAL_VULNERABILITY_THRESHOLD }}" ]; then
+              echo "  - Critical vulnerabilities found"  
+            fi
+            if [ "$HIGH_VULNS" -gt "${{ env.HIGH_VULNERABILITY_THRESHOLD }}" ]; then
+              echo "  - Too many high-severity vulnerabilities"
+            fi
+            
+            echo "passed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 📤 Upload Security Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-gate-report
+          path: |
+            **/*.sarif
+            **/*.json
+            **/security-*.txt
+
+      - name: 📊 Generate Security Dashboard
+        run: |
+          cat > security-dashboard.md << EOF
+          # 🔒 Security Gate Report
+          
+          **Overall Security Score**: ${{ steps.calculate-overall.outputs.score }}/100
+          **Gate Status**: ${{ steps.gate-decision.outputs.passed == 'true' && '✅ PASSED' || '❌ FAILED' }}
+          **Generated**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          
+          ## Component Scores
+          
+          | Component | Score | Status |
+          |-----------|-------|---------|
+          | 🐳 Container Security | ${{ needs.container-security.outputs.security_score }}/100 | ${{ needs.container-security.outputs.security_score >= 90 && '✅' || '⚠️' }} |
+          | 🏗️ Infrastructure Security | ${{ needs.infrastructure-security.outputs.iac_score }}/100 | ${{ needs.infrastructure-security.outputs.iac_score >= 90 && '✅' || '⚠️' }} |
+          | 🛡️ Application Security | ${{ needs.application-security.outputs.sast_score }}/100 | ${{ needs.application-security.outputs.sast_score >= 90 && '✅' || '⚠️' }} |
+          | 🔐 Secrets Detection | ${{ needs.secrets-detection.outputs.secrets_score }}/100 | ${{ needs.secrets-detection.outputs.secrets_score >= 90 && '✅' || '⚠️' }} |
+          | 🌐 Network Security | ${{ needs.network-security.outputs.network_score }}/100 | ${{ needs.network-security.outputs.network_score >= 90 && '✅' || '⚠️' }} |
+          
+          ## Vulnerability Summary
+          
+          - **Critical**: ${{ needs.container-security.outputs.critical_vulns }} (threshold: ${{ env.CRITICAL_VULNERABILITY_THRESHOLD }})
+          - **High**: ${{ needs.container-security.outputs.high_vulns }} (threshold: ${{ env.HIGH_VULNERABILITY_THRESHOLD }})
+          
+          ## Security A+ Requirements
+          
+          ${{ steps.gate-decision.outputs.passed == 'true' && '🎉 All requirements met for Security A+ rating!' || '⚠️ Additional security improvements required' }}
+          
+          ---
+          *Generated by CC03 v58.0 Security Gate Pipeline*
+          EOF
+          
+          echo "📊 Security dashboard generated"
+
+      - name: 🚨 Security Gate Failure Action
+        if: steps.gate-decision.outputs.passed != 'true'
+        run: |
+          echo "🚨 SECURITY GATE FAILURE - BLOCKING DEPLOYMENT"
+          echo "Security score ${{ steps.calculate-overall.outputs.score }}/100 below required threshold of ${{ env.SECURITY_THRESHOLD }}"
+          exit 1
