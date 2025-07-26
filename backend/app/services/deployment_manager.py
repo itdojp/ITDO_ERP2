@@ -285,7 +285,9 @@ class BlueGreenDeploymentStrategy(BaseDeploymentStrategy):
 
         return results
 
-    async def _deploy_to_environment(self, environment: str, config: DeploymentConfig) -> dict:
+    async def _deploy_to_environment(
+        self, environment: str, config: DeploymentConfig
+    ) -> dict:
         """Deploy to specific environment"""
         logging.info(
             f"Deploying to {environment} environment with image {config.image_tag}"

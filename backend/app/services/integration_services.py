@@ -97,7 +97,9 @@ class IntegrationResult:
 class BaseIntegrationAdapter(ABC):
     """Base class for integration adapters"""
 
-    def __init__(self, integration_type: IntegrationType, config: Dict[str, Any]) -> dict:
+    def __init__(
+        self, integration_type: IntegrationType, config: Dict[str, Any]
+    ) -> dict:
         self.integration_type = integration_type
         self.config = config
 
@@ -434,7 +436,9 @@ class DataMapper:
         self.mappings: Dict[str, Dict[str, str]] = {}
         self.transformers: Dict[str, Callable] = {}
 
-    def register_mapping(self, integration_id: str, field_mappings: Dict[str, str]) -> dict:
+    def register_mapping(
+        self, integration_id: str, field_mappings: Dict[str, str]
+    ) -> dict:
         """Register field mappings for an integration"""
         self.mappings[integration_id] = field_mappings
 

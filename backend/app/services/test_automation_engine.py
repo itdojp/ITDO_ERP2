@@ -215,7 +215,9 @@ class BaseTestCase(ABC):
 class APITestCase(BaseTestCase):
     """API endpoint test case"""
 
-    def __init__(self, test_id: UUID, name: str, endpoint: str, method: str = "GET") -> dict:
+    def __init__(
+        self, test_id: UUID, name: str, endpoint: str, method: str = "GET"
+    ) -> dict:
         super().__init__(test_id, name)
         self.endpoint = endpoint
         self.method = method
@@ -715,7 +717,9 @@ class ContinuousIntegrationEngine:
             "security_scan_required": True,
         }
 
-    def create_test_pipeline(self, pipeline_name: str, test_suites: List[TestSuite]) -> dict:
+    def create_test_pipeline(
+        self, pipeline_name: str, test_suites: List[TestSuite]
+    ) -> dict:
         """Create test pipeline"""
         self.test_pipelines[pipeline_name] = test_suites
 

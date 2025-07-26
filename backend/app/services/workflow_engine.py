@@ -816,7 +816,9 @@ class WorkflowEngine:
         # For now, assume all paths are completed
         return True
 
-    async def _cancel_pending_tasks(self, instance_id: UUID, session: AsyncSession) -> dict:
+    async def _cancel_pending_tasks(
+        self, instance_id: UUID, session: AsyncSession
+    ) -> dict:
         """Cancel all pending tasks for a workflow instance"""
 
         if not session:
