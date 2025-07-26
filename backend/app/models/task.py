@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import DateTime, Enum as SQLEnum, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import SoftDeletableModel
@@ -88,10 +88,10 @@ class Task(SoftDeletableModel):
     # Relationships
     project: Mapped["Project"] = relationship("Project", back_populates="tasks")
     assignee: Mapped[Optional["User"]] = relationship(
-        "User", foreign_keys=[assigned_to], back_populates="assigned_tasks"
+        "User", foreign_keys=[assignee_id], back_populates="assigned_tasks"
     )
     creator: Mapped["User"] = relationship(
-        "User", foreign_keys=[created_by], back_populates="created_tasks"
+        "User", foreign_keys=[reporter_id], back_populates="created_tasks"
     )
 
     # Task dependencies (self-referential many-to-many)
