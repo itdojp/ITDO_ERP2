@@ -10,7 +10,7 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -23,13 +23,16 @@ from app.core.database import get_db
 from app.models.inventory import InventoryBalance, InventoryLocation, InventoryMovement
 from app.models.user import User
 
+
 # Mock authentication dependency for unified APIs
 async def get_current_user() -> User:
     """Mock current user for unified APIs"""
     from unittest.mock import Mock
+
     mock_user = Mock()
     mock_user.id = "00000000-0000-0000-0000-000000000001"
     return mock_user
+
 
 router = APIRouter(prefix="/api/v1/inventory", tags=["inventory"])
 
@@ -524,7 +527,7 @@ async def add_stock_v21(
     default_location_id = uuid.UUID("00000000-0000-0000-0000-000000000001")
 
     try:
-        result = await service.update_inventory_balance(
+        await service.update_inventory_balance(
             product_id=uuid.UUID(int=product_id),
             location_id=default_location_id,
             quantity_change=Decimal(str(quantity)),

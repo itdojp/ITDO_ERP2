@@ -538,7 +538,9 @@ class BusinessRulesEngine:
 
         raise BusinessRuleError(reason)
 
-    def _set_field_value(self, field_path: str, value: Any, context: RuleContext) -> dict:
+    def _set_field_value(
+        self, field_path: str, value: Any, context: RuleContext
+    ) -> dict:
         """Set field value in context data using dot notation"""
 
         parts = field_path.split(".")

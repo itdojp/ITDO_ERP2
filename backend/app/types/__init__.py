@@ -25,6 +25,8 @@ RoleId = int
 ProductId = int
 CustomerId = int
 SupplierId = int
+AccountId = int
+BaseId = int  # Generic ID type for advanced features
 
 
 @runtime_checkable
@@ -107,6 +109,8 @@ __all__ = [
     "ProductId",
     "CustomerId",
     "SupplierId",
+    "AccountId",
+    "BaseId",
     # Protocols
     "DatabaseProtocol",
     "CacheProtocol",

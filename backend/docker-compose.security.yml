@@ -1,0 +1,322 @@
+# ITDO ERP System v2 - Security-Hardened Docker Compose Configuration
+# This file provides security-focused container configurations
+
+version: '3.8'
+
+services:
+  # PostgreSQL with security hardening
+  postgres-secure:
+    image: postgres:15-alpine
+    container_name: itdo-erp-postgres-secure
+    restart: unless-stopped
+    
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-itdo_erp_db}
+      POSTGRES_USER: ${POSTGRES_USER:-itdo_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
+      
+    volumes:
+      - postgres_data_secure:/var/lib/postgresql/data
+      - ./security/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./security/postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+      - ./security/postgres/init-security.sql:/docker-entrypoint-initdb.d/init-security.sql:ro
+      
+    command: >
+      postgres
+      -c config_file=/etc/postgresql/postgresql.conf
+      -c hba_file=/etc/postgresql/pg_hba.conf
+      -c ssl=on
+      -c ssl_cert_file=/etc/ssl/certs/server.crt
+      -c ssl_key_file=/etc/ssl/private/server.key
+      -c log_statement=all
+      -c log_connections=on
+      -c log_disconnections=on
+      -c log_checkpoints=on
+      -c log_lock_waits=on
+      
+    networks:
+      - itdo-secure-network
+      
+    ports:
+      - "127.0.0.1:5432:5432"  # Bind only to localhost
+      
+    security_opt:
+      - no-new-privileges:true
+      
+    user: postgres
+    
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Redis with security hardening
+  redis-secure:
+    image: redis:7-alpine
+    container_name: itdo-erp-redis-secure
+    restart: unless-stopped
+    
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD}
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+      --rdbcompression yes
+      --rdbchecksum yes
+      --stop-writes-on-bgsave-error yes
+      --tcp-keepalive 300
+      --timeout 0
+      --tcp-backlog 511
+      --databases 1
+      --appendonly yes
+      --appendfsync everysec
+      --no-appendfsync-on-rewrite no
+      --auto-aof-rewrite-percentage 100
+      --auto-aof-rewrite-min-size 64mb
+      --bind 0.0.0.0
+      --protected-mode yes
+      --port 6379
+      
+    volumes:
+      - redis_data_secure:/data
+      - ./security/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+      
+    networks:
+      - itdo-secure-network
+      
+    ports:
+      - "127.0.0.1:6379:6379"  # Bind only to localhost
+      
+    security_opt:
+      - no-new-privileges:true
+      
+    user: redis
+    
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 30s
+
+  # Keycloak with security hardening
+  keycloak-secure:
+    image: quay.io/keycloak/keycloak:22.0.5
+    container_name: itdo-erp-keycloak-secure
+    restart: unless-stopped
+    
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN_USERNAME:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres-secure:5432/${POSTGRES_DB:-itdo_erp_db}
+      KC_DB_USERNAME: ${POSTGRES_USER:-itdo_user}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      KC_HOSTNAME: ${KEYCLOAK_HOSTNAME:-localhost}
+      KC_HTTP_ENABLED: "true"
+      KC_HTTPS_CERTIFICATE_FILE: /opt/keycloak/conf/server.crt
+      KC_HTTPS_CERTIFICATE_KEY_FILE: /opt/keycloak/conf/server.key
+      KC_LOG_LEVEL: INFO
+      KC_METRICS_ENABLED: "true"
+      KC_HEALTH_ENABLED: "true"
+      
+    command: >
+      start
+      --optimized
+      --hostname-strict=false
+      --hostname-strict-https=false
+      --http-enabled=true
+      --https-certificate-file=/opt/keycloak/conf/server.crt
+      --https-certificate-key-file=/opt/keycloak/conf/server.key
+      --db=postgres
+      --db-url=jdbc:postgresql://postgres-secure:5432/${POSTGRES_DB:-itdo_erp_db}
+      --db-username=${POSTGRES_USER:-itdo_user}
+      --db-password=${POSTGRES_PASSWORD}
+      --log-level=INFO
+      --metrics-enabled=true
+      --health-enabled=true
+      
+    volumes:
+      - keycloak_data_secure:/opt/keycloak/data
+      - ./security/keycloak/server.crt:/opt/keycloak/conf/server.crt:ro
+      - ./security/keycloak/server.key:/opt/keycloak/conf/server.key:ro
+      - ./security/keycloak/keycloak.conf:/opt/keycloak/conf/keycloak.conf:ro
+      
+    networks:
+      - itdo-secure-network
+      
+    ports:
+      - "127.0.0.1:8080:8080"  # Bind only to localhost
+      - "127.0.0.1:8443:8443"  # HTTPS port
+      
+    depends_on:
+      postgres-secure:
+        condition: service_healthy
+        
+    security_opt:
+      - no-new-privileges:true
+      
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/ready || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  # Security scanner for containers
+  trivy-scanner:
+    image: aquasec/trivy:latest
+    container_name: itdo-erp-security-scanner
+    restart: "no"
+    
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - trivy_cache:/root/.cache/trivy
+      - ./security/reports:/reports
+      
+    command: >
+      sh -c "
+        trivy image --exit-code 1 --severity HIGH,CRITICAL --format json --output /reports/postgres-scan.json postgres:15-alpine &&
+        trivy image --exit-code 1 --severity HIGH,CRITICAL --format json --output /reports/redis-scan.json redis:7-alpine &&
+        trivy image --exit-code 1 --severity HIGH,CRITICAL --format json --output /reports/keycloak-scan.json quay.io/keycloak/keycloak:22.0.5
+      "
+      
+    networks:
+      - itdo-secure-network
+      
+    profiles:
+      - security-scan
+
+  # Fail2ban for intrusion prevention
+  fail2ban:
+    image: crazymax/fail2ban:latest
+    container_name: itdo-erp-fail2ban
+    restart: unless-stopped
+    
+    environment:
+      TZ: ${TZ:-UTC}
+      F2B_LOG_LEVEL: INFO
+      F2B_DB_PURGE_AGE: 1d
+      
+    volumes:
+      - fail2ban_data:/data
+      - ./security/fail2ban/jail.local:/etc/fail2ban/jail.local:ro
+      - ./security/fail2ban/filter.d:/etc/fail2ban/filter.d:ro
+      - /var/log:/var/log:ro
+      
+    networks:
+      - itdo-secure-network
+      
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      
+    security_opt:
+      - no-new-privileges:true
+      
+    profiles:
+      - security-monitoring
+
+  # Log monitoring and analysis
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.11.0
+    container_name: itdo-erp-filebeat
+    restart: unless-stopped
+    
+    user: root
+    
+    environment:
+      - strict.perms=false
+      
+    volumes:
+      - ./security/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - filebeat_data:/usr/share/filebeat/data
+      
+    networks:
+      - itdo-secure-network
+      
+    security_opt:
+      - no-new-privileges:true
+      
+    profiles:
+      - security-monitoring
+
+volumes:
+  postgres_data_secure:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/itdo-erp/data/postgres-secure
+      
+  redis_data_secure:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/itdo-erp/data/redis-secure
+      
+  keycloak_data_secure:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/itdo-erp/data/keycloak-secure
+      
+  trivy_cache:
+    driver: local
+    
+  fail2ban_data:
+    driver: local
+    
+  filebeat_data:
+    driver: local
+
+networks:
+  itdo-secure-network:
+    driver: bridge
+    internal: false
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1
+    driver_opts:
+      com.docker.network.bridge.enable_icc: "true"
+      com.docker.network.bridge.enable_ip_masquerade: "true"
+      com.docker.network.bridge.host_binding_ipv4: "127.0.0.1"
+      com.docker.network.driver.mtu: "1500"
+
+# Security profiles for different deployment scenarios
+profiles:
+  # Basic security profile
+  basic:
+    - postgres-secure
+    - redis-secure
+    - keycloak-secure
+    
+  # Enhanced security with monitoring
+  enhanced:
+    - postgres-secure
+    - redis-secure
+    - keycloak-secure
+    - fail2ban
+    - filebeat
+    
+  # Full security suite with scanning
+  full:
+    - postgres-secure
+    - redis-secure
+    - keycloak-secure
+    - fail2ban
+    - filebeat
+    - trivy-scanner

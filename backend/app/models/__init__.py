@@ -61,6 +61,8 @@ from app.models.finance_extended import (
     TaxConfiguration,
 )
 from app.models.finance_extended import Budget as FinanceBudget
+from app.models.budget import Budget, BudgetItem
+from app.models.customer import Customer, CustomerContact, CustomerActivity, Opportunity
 
 # CC02 v31.0 Phase 2 - HR Management Models
 from app.models.hr_extended import (
@@ -349,3 +351,17 @@ __all__ = [
     "PaymentProvider",
     "RefundReason",
 ]
+
+
+# Additional critical model imports
+from app.models.analytics import Chart, Dashboard, DashboardWidget, DataSource, Report, ReportExecution, ReportWidget
+from app.models.base import AuditableModel, BaseModel, SoftDeletableModel
+from app.models.cross_tenant_permissions import CrossTenantAuditLog, CrossTenantPermissionRule
+from app.models.expense import ExpenseStatus
+from app.models.inventory import InventoryItem, InventoryStatus, MovementType, StockMovement
+from app.models.permission_inheritance import PermissionDependency
+from app.models.product_simple import Product
+# from app.models.sales import OrderStatus, PaymentMethod, PaymentStatus, SalesOrder, SalesOrderItem
+from app.models.task import DependencyType, TaskPriority, TaskStatus
+from app.models.user_organization import OrganizationInvitation, UserOrganization, UserTransferRequest
+from app.models.workflow import Application, ApplicationApproval, Workflow, WorkflowConnection, WorkflowInstance, WorkflowNode, WorkflowTask

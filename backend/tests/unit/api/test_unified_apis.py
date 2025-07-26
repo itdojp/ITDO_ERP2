@@ -6,7 +6,7 @@ Comprehensive test suite for unified API integration
 
 import asyncio
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime
 from decimal import Decimal
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -14,24 +14,22 @@ import pytest
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
 
+from app.api.v1.unified_inventory_api import (
+    LocationCreate,
+    LocationType,
+    MovementType,
+    UnifiedInventoryService,
+)
 from app.api.v1.unified_products_api import (
     ProductCreate,
-    ProductUpdate,
     ProductResponse,
     ProductStatus,
     UnifiedProductService,
 )
-from app.api.v1.unified_inventory_api import (
-    LocationCreate,
-    MovementCreate,
-    MovementType,
-    LocationType,
-    UnifiedInventoryService,
-)
 from app.api.v1.unified_sales_api import (
-    SalesOrderCreate,
     OrderLineCreate,
     OrderStatus,
+    SalesOrderCreate,
     UnifiedSalesService,
 )
 from app.main import app
@@ -81,7 +79,7 @@ class TestUnifiedProductsAPI:
 
             with patch.object(product_service.db, "add") as mock_add:
                 with patch.object(product_service.db, "commit") as mock_commit:
-                    with patch.object(product_service.db, "refresh") as mock_refresh:
+                    with patch.object(product_service.db, "refresh"):
                         with patch.object(
                             product_service, "_cache_product"
                         ) as mock_cache:
@@ -275,7 +273,7 @@ class TestUnifiedInventoryAPI:
 
             with patch.object(inventory_service.db, "add") as mock_add:
                 with patch.object(inventory_service.db, "commit") as mock_commit:
-                    with patch.object(inventory_service.db, "refresh") as mock_refresh:
+                    with patch.object(inventory_service.db, "refresh"):
                         mock_location = Mock()
                         mock_location.id = uuid.uuid4()
                         mock_location.code = location_data.code
@@ -314,7 +312,7 @@ class TestUnifiedInventoryAPI:
 
             with patch.object(inventory_service.db, "add") as mock_add:
                 with patch.object(inventory_service.db, "commit") as mock_commit:
-                    with patch.object(inventory_service.db, "refresh") as mock_refresh:
+                    with patch.object(inventory_service.db, "refresh"):
                         # Mock Redis counter
                         inventory_service.redis.incr = AsyncMock(return_value=1)
                         inventory_service.redis.expire = AsyncMock()
@@ -414,7 +412,7 @@ class TestUnifiedSalesAPI:
         with patch.object(sales_service.db, "execute") as mock_execute:
             with patch.object(sales_service.db, "add") as mock_add:
                 with patch.object(sales_service.db, "commit") as mock_commit:
-                    with patch.object(sales_service.db, "refresh") as mock_refresh:
+                    with patch.object(sales_service.db, "refresh"):
                         # Mock Redis counter
                         sales_service.redis.incr = AsyncMock(return_value=1)
                         sales_service.redis.expire = AsyncMock()

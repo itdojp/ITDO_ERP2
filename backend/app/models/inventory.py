@@ -22,7 +22,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import SoftDeletableModel
 
-
 if TYPE_CHECKING:
     from app.models.organization import Organization
     from app.models.product import Product
@@ -388,5 +387,5 @@ class StockMovement(SoftDeletableModel):
 
 # Set aliases for unified API compatibility
 InventoryLocation = Warehouse
-InventoryBalance = InventoryItem  
+InventoryBalance = InventoryItem
 InventoryMovement = StockMovement

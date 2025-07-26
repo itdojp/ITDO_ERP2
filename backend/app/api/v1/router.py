@@ -23,6 +23,13 @@ from app.api.v1 import (
     users_extended,
 )
 
+# Day 13 API Consolidation - Import consolidated APIs
+from app.api.v1 import (
+    products_consolidated,
+    inventory_consolidated,
+    sales_consolidated,
+)
+
 # New CC02 v35.0 API modules
 from app.core.database import get_db
 
@@ -33,21 +40,20 @@ api_router.include_router(health.router)
 api_router.include_router(auth.router)
 api_router.include_router(audit.router, prefix="/audit", tags=["audit"])
 api_router.include_router(users.router)
-api_router.include_router(users_basic.router)  # ERP v17.0 basic user API
 api_router.include_router(users_extended.router)
 api_router.include_router(user_profile.router, tags=["user-profile"])
 api_router.include_router(organizations.router)
-api_router.include_router(
-    organizations_basic.router
-)  # ERP v17.0 basic organization API
-api_router.include_router(
-    organizations_simple.router, prefix="/simple", tags=["organizations-simple"]
-)  # v19.0 practical
-api_router.include_router(products_basic.router)  # ERP v17.0 basic product API
-api_router.include_router(
-    products_simple.router, prefix="/simple", tags=["products-simple"]
-)  # v19.0 practical
-api_router.include_router(inventory_basic.router)  # ERP v17.0 basic inventory API
+# api_router.include_router(
+#     organizations_basic.router
+# )  # ERP v17.0 basic organization API - temporarily disabled
+# api_router.include_router(
+#     organizations_simple.router, prefix="/simple", tags=["organizations-simple"]
+# )  # v19.0 practical - temporarily disabled
+# api_router.include_router(products_basic.router)  # ERP v17.0 basic product API - temporarily disabled
+# api_router.include_router(
+#     products_simple.router, prefix="/simple", tags=["products-simple"]
+# )  # v19.0 practical - temporarily disabled
+# api_router.include_router(inventory_basic.router)  # ERP v17.0 basic inventory API - temporarily disabled
 api_router.include_router(departments.router)
 api_router.include_router(roles.router)
 api_router.include_router(
@@ -74,6 +80,11 @@ api_router.include_router(
 api_router.include_router(pm_automation.router)
 # CC02 v60.0 - Payment Processing API
 api_router.include_router(payment_processing.router)
+
+# Day 13 API Consolidation - Include consolidated APIs
+api_router.include_router(products_consolidated.router)
+api_router.include_router(inventory_consolidated.router)
+api_router.include_router(sales_consolidated.router)
 
 
 @api_router.get("/ping")

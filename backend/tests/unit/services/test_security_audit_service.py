@@ -1,5 +1,5 @@
-<<<<<<< HEAD
 """Unit tests for security audit service."""
+
 from datetime import datetime
 from unittest.mock import AsyncMock, Mock
 from uuid import uuid4
@@ -56,7 +56,7 @@ async def test_log_event_success(audit_service, mock_db):
         user_agent="Test Browser",
         event_data={"test": "data"},
     )
-    
+
     mock_audit_log = Mock(spec=SecurityAuditLog)
     mock_audit_log.id = uuid4()
     mock_db.add = Mock()
@@ -83,14 +83,14 @@ async def test_get_logs_with_filter(audit_service, mock_db, sample_audit_log):
         limit=10,
         offset=0,
     )
-    
+
     mock_query = Mock()
     mock_query.filter.return_value = mock_query
     mock_query.order_by.return_value = mock_query
     mock_query.offset.return_value = mock_query
     mock_query.limit.return_value = mock_query
     mock_query.all = AsyncMock(return_value=[sample_audit_log])
-    
+
     mock_db.query.return_value = mock_query
 
     # Act
@@ -115,7 +115,7 @@ async def test_get_metrics(audit_service, mock_db):
 
     # Assert
     assert result is not None
-    assert hasattr(result, 'total_events')
+    assert hasattr(result, "total_events")
     mock_db.execute.assert_called()
 
 
@@ -129,7 +129,7 @@ async def test_detect_anomalies(audit_service, mock_db):
     mock_query.order_by.return_value = mock_query
     mock_query.limit.return_value = mock_query
     mock_query.all = AsyncMock(return_value=[])
-    
+
     mock_db.query.return_value = mock_query
 
     # Act
@@ -152,7 +152,7 @@ async def test_log_event_with_database_error(audit_service, mock_db):
         user_agent="Test Browser",
         event_data={"error": "Invalid credentials"},
     )
-    
+
     mock_db.add = Mock()
     mock_db.commit = AsyncMock(side_effect=Exception("Database error"))
     mock_db.rollback = AsyncMock()
@@ -160,7 +160,7 @@ async def test_log_event_with_database_error(audit_service, mock_db):
     # Act & Assert
     with pytest.raises(Exception, match="Database error"):
         await audit_service.log_event(event_data)
-    
+
     mock_db.rollback.assert_called_once()
 
 
@@ -174,14 +174,14 @@ async def test_get_logs_by_user(audit_service, mock_db, sample_audit_log):
         limit=50,
         offset=0,
     )
-    
+
     mock_query = Mock()
     mock_query.filter.return_value = mock_query
     mock_query.order_by.return_value = mock_query
     mock_query.offset.return_value = mock_query
     mock_query.limit.return_value = mock_query
     mock_query.all = AsyncMock(return_value=[sample_audit_log])
-    
+
     mock_db.query.return_value = mock_query
 
     # Act
@@ -222,15 +222,11 @@ async def test_audit_log_filter_validation():
         limit=100,
         offset=0,
     )
-    
+
     assert filter_data.event_type == SecurityEventType.LOGIN_SUCCESS
     assert filter_data.severity == SecuritySeverity.INFO
     assert filter_data.limit == 100
-=======
-"""Tests for security audit service."""
-from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock
-from uuid import uuid4
+
 
 import pytest
 
@@ -258,7 +254,7 @@ class TestSecurityAuditService:
             user_id=uuid4(),
             ip_address="192.168.1.1",
             action="User login",
-            result="SUCCESS"
+            result="SUCCESS",
         )
 
         # Mock the database operations
@@ -280,7 +276,7 @@ class TestSecurityAuditService:
         filters = SecurityAuditLogFilter(
             event_type=SecurityEventType.LOGIN_FAILURE,
             severity=SecuritySeverity.WARNING,
-            start_date=datetime.utcnow() - timedelta(days=1)
+            start_date=datetime.utcnow() - timedelta(days=1),
         )
 
         # Mock execute result
@@ -303,21 +299,25 @@ class TestSecurityAuditService:
         mock_scalar_result.scalar.return_value = 10
 
         mock_group_result = MagicMock()
-        mock_group_result.__iter__ = lambda self: iter([
-            MagicMock(event_type='login_success', count=5),
-            MagicMock(event_type='login_failure', count=3)
-        ])
+        mock_group_result.__iter__ = lambda self: iter(
+            [
+                MagicMock(event_type="login_success", count=5),
+                MagicMock(event_type="login_failure", count=3),
+            ]
+        )
 
         # Set up different return values for different queries
-        db.execute = AsyncMock(side_effect=[
-            mock_scalar_result,  # total events
-            mock_group_result,   # events by type
-            mock_group_result,   # events by severity
-            mock_scalar_result,  # failed logins
-            mock_scalar_result,  # suspicious activities
-            mock_scalar_result,  # blocked requests
-            mock_scalar_result   # unique users
-        ])
+        db.execute = AsyncMock(
+            side_effect=[
+                mock_scalar_result,  # total events
+                mock_group_result,  # events by type
+                mock_group_result,  # events by severity
+                mock_scalar_result,  # failed logins
+                mock_scalar_result,  # suspicious activities
+                mock_scalar_result,  # blocked requests
+                mock_scalar_result,  # unique users
+            ]
+        )
 
         metrics = await service.get_metrics()
 
@@ -338,20 +338,15 @@ class TestSecurityAuditService:
 
         # Mock unusual activities
         mock_activities_result = MagicMock()
-        mock_activities = [
-            MagicMock(severity='CRITICAL'),
-            MagicMock(severity='ERROR')
-        ]
+        mock_activities = [MagicMock(severity="CRITICAL"), MagicMock(severity="ERROR")]
         mock_activities_result.scalars.return_value.all.return_value = mock_activities
 
-        db.execute = AsyncMock(side_effect=[
-            mock_failures_result,
-            mock_activities_result
-        ])
+        db.execute = AsyncMock(
+            side_effect=[mock_failures_result, mock_activities_result]
+        )
 
         anomalies = await service.detect_anomalies(user_id)
 
-        assert anomalies['high_failure_rate'] is True
-        assert anomalies['recent_failures'] == 6
-        assert anomalies['requires_attention'] is True
->>>>>>> ccb1e068def1ad909fc530c57afb662159a9b79c
+        assert anomalies["high_failure_rate"] is True
+        assert anomalies["recent_failures"] == 6
+        assert anomalies["requires_attention"] is True
