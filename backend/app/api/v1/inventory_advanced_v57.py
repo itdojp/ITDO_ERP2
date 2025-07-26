@@ -366,7 +366,9 @@ class InventoryTransactionManager:
         await self.db.flush()
         return transaction
 
-    async def _update_inventory_levels(self, request: InventoryTransactionRequest) -> dict:
+    async def _update_inventory_levels(
+        self, request: InventoryTransactionRequest
+    ) -> dict:
         """Update inventory levels based on transaction"""
 
         # Get or create inventory item
@@ -516,7 +518,9 @@ class InventoryTransactionManager:
         self.db.add(alert)
         await self.db.flush()
 
-    async def _process_location_transfer(self, request: InventoryTransactionRequest) -> dict:
+    async def _process_location_transfer(
+        self, request: InventoryTransactionRequest
+    ) -> dict:
         """Process inventory transfer between locations"""
 
         if not request.from_location or not request.to_location:
@@ -572,7 +576,9 @@ class InventoryTransactionManager:
             else None,
         )
 
-    async def _validate_transaction_request(self, request: InventoryTransactionRequest) -> dict:
+    async def _validate_transaction_request(
+        self, request: InventoryTransactionRequest
+    ) -> dict:
         """Validate transaction request"""
 
         # Product existence check
@@ -1207,7 +1213,9 @@ async def send_transaction_notification(transaction_id: UUID, email: str) -> dic
     print(f"Notification sent for transaction {transaction_id} to {email}")
 
 
-async def send_bulk_transaction_notification(transaction_ids: List[UUID], email: str) -> dict:
+async def send_bulk_transaction_notification(
+    transaction_ids: List[UUID], email: str
+) -> dict:
     """Send bulk transaction notification (background task)"""
     # Simulate notification sending
     await asyncio.sleep(0.1)

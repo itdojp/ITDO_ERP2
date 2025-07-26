@@ -1203,7 +1203,9 @@ async def health_check() -> None:
 
 
 # Helper Functions
-async def schedule_follow_up_task(interaction_id: UUID, follow_up_date: datetime) -> dict:
+async def schedule_follow_up_task(
+    interaction_id: UUID, follow_up_date: datetime
+) -> dict:
     """Schedule follow-up task (background task)"""
     await asyncio.sleep(0.1)
     print(f"Follow-up scheduled for interaction {interaction_id} at {follow_up_date}")
