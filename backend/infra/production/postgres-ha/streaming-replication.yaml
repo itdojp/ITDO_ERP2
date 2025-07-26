@@ -1,0 +1,382 @@
+---
+# PostgreSQL Streaming Replication Configuration
+# CC03 v68.0 Day 1: Advanced Streaming Replication Setup
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgresql-primary-config
+  namespace: itdo-erp-production
+  labels:
+    app: postgresql
+    role: primary
+data:
+  postgresql.conf: |
+    # Basic Settings
+    listen_addresses = '*'
+    port = 5432
+    max_connections = 200
+    shared_buffers = 1GB
+    effective_cache_size = 3GB
+    work_mem = 64MB
+    maintenance_work_mem = 256MB
+    
+    # Write-Ahead Logging (WAL) Settings for Replication
+    wal_level = replica
+    max_wal_senders = 10
+    max_replication_slots = 10
+    wal_keep_size = 1GB
+    archive_mode = on
+    archive_command = 'cp %p /var/lib/postgresql/archive/%f'
+    archive_timeout = 300
+    
+    # Streaming Replication Settings
+    hot_standby = on
+    hot_standby_feedback = on
+    wal_receiver_timeout = 60s
+    wal_sender_timeout = 60s
+    
+    # Checkpoint and Performance Settings
+    checkpoint_completion_target = 0.9
+    checkpoint_timeout = 5min
+    max_wal_size = 2GB
+    min_wal_size = 1GB
+    
+    # Logging Configuration
+    log_destination = 'stderr'
+    logging_collector = on
+    log_directory = 'log'
+    log_filename = 'postgresql-%Y-%m-%d_%H%M%S.log'
+    log_rotation_age = 1d
+    log_rotation_size = 100MB
+    log_statement = 'mod'
+    log_min_duration_statement = 1000
+    log_line_prefix = '%t [%p-%l] %q%u@%d '
+    log_timezone = 'UTC'
+    
+    # Performance Monitoring
+    track_activities = on
+    track_counts = on
+    track_io_timing = on
+    track_functions = all
+    
+    # Security Settings
+    ssl = on
+    ssl_cert_file = '/etc/ssl/certs/server.crt'
+    ssl_key_file = '/etc/ssl/private/server.key'
+    password_encryption = scram-sha-256
+    
+    # Memory and Disk Settings
+    temp_buffers = 32MB
+    max_prepared_transactions = 100
+    shared_preload_libraries = 'pg_stat_statements'
+    
+    # Auto-vacuum Settings
+    autovacuum = on
+    autovacuum_max_workers = 3
+    autovacuum_naptime = 60s
+    
+  pg_hba.conf: |
+    # PostgreSQL Client Authentication Configuration
+    # TYPE  DATABASE        USER            ADDRESS                 METHOD
+    
+    # Local connections
+    local   all             all                                     trust
+    host    all             all             127.0.0.1/32            md5
+    host    all             all             ::1/128                 md5
+    
+    # Application connections
+    host    all             erp_user        10.0.0.0/8              scram-sha-256
+    host    all             erp_user        172.16.0.0/12           scram-sha-256
+    host    all             erp_user        192.168.0.0/16          scram-sha-256
+    
+    # Replication connections
+    host    replication     replicator      10.0.0.0/8              md5
+    host    replication     replicator      172.16.0.0/12           md5
+    host    replication     replicator      192.168.0.0/16          md5
+    
+    # Monitoring connections
+    host    all             postgres        10.0.0.0/8              md5
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgresql-secondary-config
+  namespace: itdo-erp-production
+  labels:
+    app: postgresql
+    role: secondary
+data:
+  postgresql-replica.conf: |
+    # PostgreSQL Replica Configuration
+    listen_addresses = '*'
+    port = 5432
+    max_connections = 100
+    shared_buffers = 768MB
+    effective_cache_size = 2GB
+    work_mem = 32MB
+    maintenance_work_mem = 128MB
+    
+    # Replica-specific Settings
+    hot_standby = on
+    hot_standby_feedback = on
+    max_standby_streaming_delay = 30s
+    max_standby_archive_delay = 30s
+    wal_receiver_status_interval = 10s
+    hot_standby_feedback = on
+    
+    # Read-only Settings
+    default_transaction_read_only = on
+    
+    # Logging (Reduced for replica)
+    log_destination = 'stderr'
+    logging_collector = on
+    log_directory = 'log'
+    log_filename = 'postgresql-replica-%Y-%m-%d_%H%M%S.log'
+    log_rotation_age = 1d
+    log_rotation_size = 50MB
+    log_statement = 'none'
+    log_min_duration_statement = 5000
+    log_line_prefix = '%t [%p-%l] %q%u@%d '
+    log_timezone = 'UTC'
+    
+    # Performance Monitoring
+    track_activities = on
+    track_counts = on
+    track_io_timing = on
+    
+    # Security Settings
+    ssl = on
+    ssl_cert_file = '/etc/ssl/certs/server.crt'
+    ssl_key_file = '/etc/ssl/private/server.key'
+    password_encryption = scram-sha-256
+    
+  pg_hba.conf: |
+    # PostgreSQL Client Authentication Configuration (Replica)
+    # TYPE  DATABASE        USER            ADDRESS                 METHOD
+    
+    # Local connections
+    local   all             all                                     trust
+    host    all             all             127.0.0.1/32            md5
+    host    all             all             ::1/128                 md5
+    
+    # Read-only application connections
+    host    all             erp_user        10.0.0.0/8              scram-sha-256
+    host    all             erp_user        172.16.0.0/12           scram-sha-256
+    host    all             erp_user        192.168.0.0/16          scram-sha-256
+    
+    # Monitoring connections
+    host    all             postgres        10.0.0.0/8              md5
+
+---
+# PostgreSQL Initialization Scripts
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgresql-init-scripts
+  namespace: itdo-erp-production
+  labels:
+    app: postgresql
+data:
+  01-create-replication-slot.sql: |
+    -- Create replication slot for each replica
+    SELECT pg_create_physical_replication_slot('replica_slot_1');
+    SELECT pg_create_physical_replication_slot('replica_slot_2');
+    
+  02-create-monitoring-tables.sql: |
+    -- Create monitoring tables and functions
+    CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+    
+    -- Replication monitoring function
+    CREATE OR REPLACE FUNCTION check_replication_lag()
+    RETURNS TABLE(client_addr inet, state text, sent_lsn pg_lsn, write_lsn pg_lsn, flush_lsn pg_lsn, replay_lsn pg_lsn, write_lag interval, flush_lag interval, replay_lag interval)
+    LANGUAGE sql
+    AS $$
+      SELECT 
+        client_addr,
+        state,
+        sent_lsn,
+        write_lsn,
+        flush_lsn,
+        replay_lsn,
+        write_lag,
+        flush_lag,
+        replay_lag
+      FROM pg_stat_replication;
+    $$;
+    
+    -- Connection monitoring
+    CREATE OR REPLACE FUNCTION check_connections()
+    RETURNS TABLE(database_name name, connection_count bigint, max_connections integer)
+    LANGUAGE sql
+    AS $$
+      SELECT 
+        datname as database_name,
+        count(*) as connection_count,
+        (SELECT setting::integer FROM pg_settings WHERE name = 'max_connections') as max_connections
+      FROM pg_stat_activity 
+      WHERE state = 'active'
+      GROUP BY datname;
+    $$;
+    
+  03-setup-backup-user.sql: |
+    -- Create backup user with minimal privileges
+    CREATE ROLE backup_user WITH LOGIN REPLICATION;
+    ALTER ROLE backup_user WITH PASSWORD '$(openssl rand -base64 32)';
+    
+    -- Grant necessary permissions
+    GRANT CONNECT ON DATABASE itdo_erp_production TO backup_user;
+    GRANT SELECT ON ALL TABLES IN SCHEMA public TO backup_user;
+    GRANT SELECT ON ALL SEQUENCES IN SCHEMA public TO backup_user;
+    
+  04-performance-tuning.sql: |
+    -- Performance optimization queries
+    
+    -- Analyze all tables
+    ANALYZE;
+    
+    -- Update table statistics
+    SELECT schemaname, tablename, attname, n_distinct, correlation 
+    FROM pg_stats 
+    WHERE schemaname = 'public' 
+    ORDER BY schemaname, tablename, attname;
+    
+    -- Check for missing indexes
+    CREATE OR REPLACE FUNCTION suggest_missing_indexes()
+    RETURNS TABLE(
+      schema_name text,
+      table_name text,
+      column_name text,
+      seq_scan bigint,
+      seq_tup_read bigint,
+      idx_scan bigint,
+      suggested_index text
+    )
+    LANGUAGE sql
+    AS $$
+      WITH table_stats AS (
+        SELECT 
+          schemaname,
+          tablename,
+          seq_scan,
+          seq_tup_read,
+          idx_scan
+        FROM pg_stat_user_tables
+        WHERE seq_scan > 1000 AND seq_tup_read / seq_scan > 10000
+      )
+      SELECT 
+        ts.schemaname::text,
+        ts.tablename::text,
+        ''::text as column_name,
+        ts.seq_scan,
+        ts.seq_tup_read,
+        ts.idx_scan,
+        'CREATE INDEX ON ' || ts.schemaname || '.' || ts.tablename || ' (column_name);' as suggested_index
+      FROM table_stats ts;
+    $$;
+
+---
+# PostgreSQL Monitoring and Health Check Job
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgresql-health-check
+  namespace: itdo-erp-production
+  labels:
+    app: postgresql
+    component: monitoring
+spec:
+  schedule: "*/5 * * * *"  # Every 5 minutes
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: postgres-health-check
+            image: postgres:15.4-alpine
+            env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgresql-secrets
+                  key: password
+            - name: PGUSER
+              valueFrom:
+                secretKeyRef:
+                  name: postgresql-secrets
+                  key: username
+            - name: PGDATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: postgresql-secrets
+                  key: database_name
+            command:
+            - /bin/sh
+            - -c
+            - |
+              # Health check script
+              echo "$(date): Starting PostgreSQL health check..."
+              
+              # Check primary
+              if pg_isready -h postgresql-primary-service -p 5432; then
+                echo "Primary: HEALTHY"
+                
+                # Check replication lag
+                psql -h postgresql-primary-service -c "SELECT client_addr, state, replay_lag FROM pg_stat_replication;" || echo "Replication check failed"
+              else
+                echo "Primary: UNHEALTHY"
+                exit 1
+              fi
+              
+              # Check secondary
+              if pg_isready -h postgresql-secondary-service -p 5432; then
+                echo "Secondary: HEALTHY"
+                
+                # Check if secondary is in recovery mode
+                psql -h postgresql-secondary-service -c "SELECT pg_is_in_recovery();" || echo "Recovery check failed"
+              else
+                echo "Secondary: UNHEALTHY"
+                exit 1
+              fi
+              
+              echo "$(date): Health check completed successfully"
+
+---
+# Network Policy for PostgreSQL Security
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgresql-network-policy
+  namespace: itdo-erp-production
+spec:
+  podSelector:
+    matchLabels:
+      app: postgresql
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: itdo-erp-production
+    - podSelector:
+        matchLabels:
+          tier: application
+    ports:
+    - protocol: TCP
+      port: 5432
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: postgresql
+    ports:
+    - protocol: TCP
+      port: 5432
+  - to: []  # Allow DNS resolution
+    ports:
+    - protocol: UDP
+      port: 53
