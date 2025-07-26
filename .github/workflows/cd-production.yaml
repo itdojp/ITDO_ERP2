@@ -1,0 +1,543 @@
+name: 🚀 Production Deployment - Cloud-Native CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target deployment environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+      force_deploy:
+        description: 'Force deployment even if tests fail'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  REGISTRY: registry.itdo-erp.com
+  BACKEND_IMAGE: itdo-erp-backend
+  FRONTEND_IMAGE: itdo-erp-frontend
+  HELM_VERSION: 'v3.13.2'
+  KUBECTL_VERSION: 'v1.28.4'
+  PYTHON_VERSION: '3.13'
+  NODE_VERSION: '20'
+
+permissions:
+  contents: read
+  packages: write
+  security-events: write
+  actions: read
+  id-token: write
+
+jobs:
+  # ============================================================================
+  # Pre-flight Checks & Setup
+  # ============================================================================
+  preflight:
+    name: 🔍 Pre-flight Checks
+    runs-on: ubuntu-latest
+    outputs:
+      deploy_environment: ${{ steps.env.outputs.environment }}
+      backend_changed: ${{ steps.changes.outputs.backend }}
+      frontend_changed: ${{ steps.changes.outputs.frontend }}
+      k8s_changed: ${{ steps.changes.outputs.kubernetes }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: 🎯 Determine Environment
+        id: env
+        run: |
+          if [[ "${{ github.ref }}" == "refs/tags/"* ]]; then
+            echo "environment=production" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+          else
+            echo "environment=staging" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: 📊 Detect Changes
+        uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+              - 'pyproject.toml'
+              - 'uv.lock'
+            frontend:
+              - 'frontend/**'
+              - 'package*.json'
+            kubernetes:
+              - 'deployment/kubernetes/**'
+              - 'deployment/helm/**'
+      
+      - name: 🏷️ Generate Version
+        id: version
+        run: |
+          if [[ "${{ github.ref }}" == "refs/tags/"* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/}
+          else
+            VERSION=$(date +%Y%m%d)-${GITHUB_SHA::8}
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Generated version: $VERSION"
+
+  # ============================================================================
+  # Security & Quality Scanning
+  # ============================================================================
+  security_scan:
+    name: 🛡️ Security Scanning
+    runs-on: ubuntu-latest
+    needs: [preflight]
+    continue-on-error: false
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: 🔐 Run Trivy Vulnerability Scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+      
+      - name: 📤 Upload Trivy Results
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+      
+      - name: 🔍 CodeQL Analysis
+        uses: github/codeql-action/init@v2
+        with:
+          languages: python, javascript
+      
+      - name: 🔍 Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+
+  # ============================================================================
+  # Backend Build & Test Pipeline
+  # ============================================================================
+  backend_pipeline:
+    name: 🔧 Backend Pipeline
+    runs-on: ubuntu-latest
+    needs: [preflight]
+    if: needs.preflight.outputs.backend_changed == 'true' || github.event.inputs.force_deploy == 'true'
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_USER: test_user
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: ⚡ Install uv
+        uses: astral-sh/setup-uv@v2
+        with:
+          version: "latest"
+      
+      - name: 📦 Install Dependencies
+        working-directory: ./backend
+        run: |
+          uv sync --dev
+          uv run python --version
+      
+      - name: 🔍 Code Quality Checks
+        working-directory: ./backend
+        run: |
+          uv run ruff check . --output-format=github
+          uv run ruff format . --check
+          uv run mypy app/ --strict
+      
+      - name: 🧪 Run Tests
+        working-directory: ./backend
+        env:
+          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
+          REDIS_URL: redis://localhost:6379/0
+          JWT_SECRET_KEY: test_secret_key
+          ENCRYPTION_KEY: test_encryption_key_32_bytes_long
+        run: |
+          uv run pytest tests/ -v --cov=app --cov-report=xml --cov-report=html
+      
+      - name: 📈 Upload Coverage
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./backend/coverage.xml
+          flags: backend
+          name: backend-coverage
+      
+      - name: 🔨 Build Backend Image
+        working-directory: ./backend
+        run: |
+          docker build -f Dockerfile.production \
+            -t ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:${{ needs.preflight.outputs.version }} \
+            -t ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:latest \
+            .
+      
+      - name: 🔐 Login to Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+      
+      - name: 📤 Push Backend Image
+        run: |
+          docker push ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:${{ needs.preflight.outputs.version }}
+          docker push ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:latest
+
+  # ============================================================================
+  # Frontend Build & Test Pipeline
+  # ============================================================================
+  frontend_pipeline:
+    name: 🎨 Frontend Pipeline
+    runs-on: ubuntu-latest
+    needs: [preflight]
+    if: needs.preflight.outputs.frontend_changed == 'true' || github.event.inputs.force_deploy == 'true'
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ./frontend/package-lock.json
+      
+      - name: 📦 Install Dependencies
+        working-directory: ./frontend
+        run: npm ci --no-audit
+      
+      - name: 🔍 Code Quality Checks
+        working-directory: ./frontend
+        run: |
+          npm run lint
+          npm run typecheck
+      
+      - name: 🧪 Run Tests
+        working-directory: ./frontend
+        run: |
+          npm run test:ci
+          npm run coverage
+      
+      - name: 📈 Upload Coverage
+        uses: codecov/codecov-action@v3
+        with:
+          directory: ./frontend/coverage
+          flags: frontend
+          name: frontend-coverage
+      
+      - name: 🏗️ Build Frontend
+        working-directory: ./frontend
+        env:
+          REACT_APP_API_BASE_URL: https://api.itdo-erp.com
+          REACT_APP_KEYCLOAK_URL: https://auth.itdo-erp.com
+          REACT_APP_KEYCLOAK_REALM: itdo-erp
+          REACT_APP_KEYCLOAK_CLIENT_ID: itdo-erp-web
+        run: |
+          npm run build
+          ls -la dist/
+      
+      - name: 🔨 Build Frontend Image
+        working-directory: ./frontend
+        run: |
+          docker build -f Dockerfile.prod \
+            -t ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:${{ needs.preflight.outputs.version }} \
+            -t ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:latest \
+            .
+      
+      - name: 🔐 Login to Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+      
+      - name: 📤 Push Frontend Image
+        run: |
+          docker push ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:${{ needs.preflight.outputs.version }}
+          docker push ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:latest
+
+  # ============================================================================
+  # End-to-End Testing
+  # ============================================================================
+  e2e_tests:
+    name: 🔄 E2E Testing
+    runs-on: ubuntu-latest
+    needs: [preflight, backend_pipeline, frontend_pipeline]
+    if: always() && (needs.backend_pipeline.result == 'success' || needs.frontend_pipeline.result == 'success')
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: 🐳 Setup Test Environment
+        run: |
+          cd deployment/kubernetes
+          kubectl apply -f namespace.yaml
+          kubectl apply -f configmap.yaml
+          kubectl apply -f secrets.yaml
+          kubectl apply -f postgresql.yaml
+          kubectl apply -f redis.yaml
+          kubectl apply -f backend.yaml
+          kubectl apply -f frontend.yaml
+          kubectl apply -f ingress.yaml
+      
+      - name: ⏳ Wait for Services
+        run: |
+          kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=itdo-erp-backend --timeout=300s
+          kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=itdo-erp-frontend --timeout=300s
+      
+      - name: 🧪 Run E2E Tests
+        working-directory: ./frontend
+        run: |
+          npm run playwright:install
+          npm run test:e2e
+      
+      - name: 📤 Upload E2E Results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: e2e-test-results
+          path: |
+            frontend/test-results/
+            frontend/playwright-report/
+
+  # ============================================================================
+  # Kubernetes Deployment
+  # ============================================================================
+  deploy_staging:
+    name: 🚀 Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [preflight, security_scan, backend_pipeline, frontend_pipeline]
+    if: needs.preflight.outputs.deploy_environment == 'staging' && (needs.backend_pipeline.result == 'success' || needs.frontend_pipeline.result == 'success')
+    environment:
+      name: staging
+      url: https://staging.itdo-erp.com
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: ⚙️ Setup Kubernetes Tools
+        run: |
+          curl -LO "https://dl.k8s.io/release/${{ env.KUBECTL_VERSION }}/bin/linux/amd64/kubectl"
+          curl -LO "https://get.helm.sh/helm-${{ env.HELM_VERSION }}-linux-amd64.tar.gz"
+          tar -zxvf helm-${{ env.HELM_VERSION }}-linux-amd64.tar.gz
+          sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+          sudo install -o root -g root -m 0755 linux-amd64/helm /usr/local/bin/helm
+      
+      - name: 🔧 Configure Kubernetes
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG_STAGING }}" | base64 -d > ~/.kube/config
+          kubectl cluster-info
+      
+      - name: 📦 Deploy with Helm
+        run: |
+          helm upgrade --install itdo-erp-staging ./deployment/helm/itdo-erp \
+            --namespace itdo-erp-staging \
+            --create-namespace \
+            --set global.imageRegistry=${{ env.REGISTRY }} \
+            --set backend.image.tag=${{ needs.preflight.outputs.version }} \
+            --set frontend.image.tag=${{ needs.preflight.outputs.version }} \
+            --set ingress.hosts[0].host=staging.itdo-erp.com \
+            --values ./deployment/helm/itdo-erp/values-staging.yaml \
+            --wait --timeout=600s
+      
+      - name: ✅ Verify Deployment
+        run: |
+          kubectl get pods -n itdo-erp-staging
+          kubectl get services -n itdo-erp-staging
+          kubectl get ingress -n itdo-erp-staging
+
+  deploy_production:
+    name: 🌟 Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [preflight, security_scan, backend_pipeline, frontend_pipeline, e2e_tests]
+    if: needs.preflight.outputs.deploy_environment == 'production' && github.ref == 'refs/heads/main'
+    environment:
+      name: production
+      url: https://itdo-erp.com
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: ⚙️ Setup Kubernetes Tools
+        run: |
+          curl -LO "https://dl.k8s.io/release/${{ env.KUBECTL_VERSION }}/bin/linux/amd64/kubectl"
+          curl -LO "https://get.helm.sh/helm-${{ env.HELM_VERSION }}-linux-amd64.tar.gz"
+          tar -zxvf helm-${{ env.HELM_VERSION }}-linux-amd64.tar.gz
+          sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+          sudo install -o root -g root -m 0755 linux-amd64/helm /usr/local/bin/helm
+      
+      - name: 🔧 Configure Kubernetes
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG_PRODUCTION }}" | base64 -d > ~/.kube/config
+          kubectl cluster-info
+      
+      - name: 🔐 Create Secrets
+        run: |
+          kubectl create secret generic itdo-erp-secrets \
+            --from-literal=DATABASE_USER="${{ secrets.DATABASE_USER }}" \
+            --from-literal=DATABASE_PASSWORD="${{ secrets.DATABASE_PASSWORD }}" \
+            --from-literal=REDIS_PASSWORD="${{ secrets.REDIS_PASSWORD }}" \
+            --from-literal=JWT_SECRET_KEY="${{ secrets.JWT_SECRET_KEY }}" \
+            --from-literal=ENCRYPTION_KEY="${{ secrets.ENCRYPTION_KEY }}" \
+            --namespace itdo-erp \
+            --dry-run=client -o yaml | kubectl apply -f -
+      
+      - name: 📦 Deploy with Helm
+        run: |
+          helm upgrade --install itdo-erp ./deployment/helm/itdo-erp \
+            --namespace itdo-erp \
+            --create-namespace \
+            --set global.imageRegistry=${{ env.REGISTRY }} \
+            --set backend.image.tag=${{ needs.preflight.outputs.version }} \
+            --set frontend.image.tag=${{ needs.preflight.outputs.version }} \
+            --values ./deployment/helm/itdo-erp/values.yaml \
+            --wait --timeout=900s
+      
+      - name: ✅ Verify Production Deployment
+        run: |
+          kubectl get pods -n itdo-erp
+          kubectl get services -n itdo-erp
+          kubectl get ingress -n itdo-erp
+          
+          # Health check
+          kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=itdo-erp-backend -n itdo-erp --timeout=300s
+          kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=itdo-erp-frontend -n itdo-erp --timeout=300s
+      
+      - name: 🔔 Notify Deployment Success
+        uses: 8398a7/action-slack@v3
+        if: success()
+        with:
+          status: success
+          text: '🚀 Production deployment successful! Version: ${{ needs.preflight.outputs.version }}'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+  # ============================================================================
+  # Post-Deployment Operations
+  # ============================================================================
+  post_deployment:
+    name: 📊 Post-Deployment Operations
+    runs-on: ubuntu-latest
+    needs: [deploy_production]
+    if: success()
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: 🏷️ Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: ITDO ERP v${{ github.ref }}
+          body: |
+            ## 🚀 ITDO ERP Production Release
+            
+            ### 🆕 What's New
+            - Cloud-native deployment infrastructure
+            - Advanced analytics and business intelligence
+            - Enterprise integration patterns
+            - API gateway with microservices architecture
+            
+            ### 🛠️ Technical Details
+            - Backend: FastAPI + Python 3.13
+            - Frontend: React 18 + TypeScript 5
+            - Database: PostgreSQL 15 + Redis 7
+            - Infrastructure: Kubernetes + Helm
+            
+            ### 📊 Metrics Dashboard
+            - [Production Monitoring](https://grafana.itdo-erp.com)
+            - [System Health](https://itdo-erp.com/health)
+            
+            ### 🔗 Quick Links
+            - [Production Application](https://itdo-erp.com)
+            - [API Documentation](https://api.itdo-erp.com/docs)
+            - [Architecture Documentation](https://docs.itdo-erp.com)
+          draft: false
+          prerelease: false
+      
+      - name: 🧹 Cleanup Old Images
+        run: |
+          echo "Cleaning up old container images..."
+          # Implementation would depend on your registry cleanup policies
+
+  # ============================================================================
+  # Rollback Capability
+  # ============================================================================
+  rollback:
+    name: 🔄 Emergency Rollback
+    runs-on: ubuntu-latest
+    if: failure() && github.event_name == 'workflow_dispatch'
+    steps:
+      - name: ⚙️ Setup Kubernetes Tools
+        run: |
+          curl -LO "https://dl.k8s.io/release/${{ env.KUBECTL_VERSION }}/bin/linux/amd64/kubectl"
+          curl -LO "https://get.helm.sh/helm-${{ env.HELM_VERSION }}-linux-amd64.tar.gz"
+          tar -zxvf helm-${{ env.HELM_VERSION }}-linux-amd64.tar.gz
+          sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+          sudo install -o root -g root -m 0755 linux-amd64/helm /usr/local/bin/helm
+      
+      - name: 🔧 Configure Kubernetes
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG_PRODUCTION }}" | base64 -d > ~/.kube/config
+      
+      - name: 🔄 Rollback to Previous Version
+        run: |
+          helm rollback itdo-erp -n itdo-erp
+          kubectl rollout status deployment/itdo-erp-backend -n itdo-erp
+          kubectl rollout status deployment/itdo-erp-frontend -n itdo-erp
+      
+      - name: 🔔 Notify Rollback
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: failure
+          text: '⚠️ Emergency rollback executed due to deployment failure'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}

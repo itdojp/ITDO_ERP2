@@ -1,0 +1,252 @@
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: itdo-erp-restricted
+  labels:
+    app.kubernetes.io/name: itdo-erp
+    app.kubernetes.io/component: security-policy
+spec:
+  # Privilege and access controls
+  privileged: false
+  allowPrivilegeEscalation: false
+  requiredDropCapabilities:
+    - ALL
+  allowedCapabilities:
+    - NET_BIND_SERVICE  # Only for frontend nginx
+  
+  # Host networking and ports
+  hostNetwork: false
+  hostIPC: false
+  hostPID: false
+  hostPorts:
+    - min: 0
+      max: 0
+  
+  # Volumes and file systems
+  volumes:
+    - 'configMap'
+    - 'emptyDir'
+    - 'projected'
+    - 'secret'
+    - 'downwardAPI'
+    - 'persistentVolumeClaim'
+  allowedHostPaths: []
+  readOnlyRootFilesystem: false  # Set to false for application compatibility
+  
+  # Users and groups
+  runAsUser:
+    rule: 'MustRunAsNonRoot'
+  runAsGroup:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1000
+        max: 65535
+  supplementalGroups:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1000
+        max: 65535
+  fsGroup:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1000
+        max: 65535
+  
+  # SELinux
+  seLinux:
+    rule: 'RunAsAny'
+  
+  # Proc mount
+  allowedProcMountTypes:
+    - Default
+  
+  # Flexvolume
+  allowedFlexVolumes: []
+
+---
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: itdo-erp-database
+  labels:
+    app.kubernetes.io/name: itdo-erp
+    app.kubernetes.io/component: database-security-policy
+spec:
+  # Privilege and access controls
+  privileged: false
+  allowPrivilegeEscalation: false
+  requiredDropCapabilities:
+    - ALL
+  allowedCapabilities: []
+  
+  # Host networking and ports
+  hostNetwork: false
+  hostIPC: false
+  hostPID: false
+  hostPorts:
+    - min: 0
+      max: 0
+  
+  # Volumes and file systems
+  volumes:
+    - 'configMap'
+    - 'emptyDir'
+    - 'projected'
+    - 'secret'
+    - 'downwardAPI'
+    - 'persistentVolumeClaim'
+  readOnlyRootFilesystem: false
+  
+  # Users and groups
+  runAsUser:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1001
+        max: 1001
+  runAsGroup:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1001
+        max: 1001
+  supplementalGroups:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1001
+        max: 1001
+  fsGroup:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1001
+        max: 1001
+  
+  # SELinux
+  seLinux:
+    rule: 'RunAsAny'
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: itdo-erp-restricted-psp
+  labels:
+    app.kubernetes.io/name: itdo-erp
+    app.kubernetes.io/component: security-rbac
+rules:
+- apiGroups: ['policy']
+  resources: ['podsecuritypolicies']
+  verbs: ['use']
+  resourceNames:
+    - itdo-erp-restricted
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: itdo-erp-database-psp
+  labels:
+    app.kubernetes.io/name: itdo-erp
+    app.kubernetes.io/component: security-rbac
+rules:
+- apiGroups: ['policy']
+  resources: ['podsecuritypolicies']
+  verbs: ['use']
+  resourceNames:
+    - itdo-erp-database
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: itdo-erp-backend-psp
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: itdo-erp-backend
+    app.kubernetes.io/component: security-rbac
+roleRef:
+  kind: ClusterRole
+  name: itdo-erp-restricted-psp
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+- kind: ServiceAccount
+  name: itdo-erp-backend
+  namespace: itdo-erp
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: itdo-erp-frontend-psp
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: itdo-erp-frontend
+    app.kubernetes.io/component: security-rbac
+roleRef:
+  kind: ClusterRole
+  name: itdo-erp-restricted-psp
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+- kind: ServiceAccount
+  name: itdo-erp-frontend
+  namespace: itdo-erp
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: itdo-erp-database-psp
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: postgresql
+    app.kubernetes.io/component: security-rbac
+roleRef:
+  kind: ClusterRole
+  name: itdo-erp-database-psp
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+- kind: ServiceAccount
+  name: postgresql
+  namespace: itdo-erp
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: itdo-erp-backend
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: itdo-erp-backend
+    app.kubernetes.io/component: service-account
+automountServiceAccountToken: false
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: itdo-erp-frontend
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: itdo-erp-frontend
+    app.kubernetes.io/component: service-account
+automountServiceAccountToken: false
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: postgresql
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: postgresql
+    app.kubernetes.io/component: service-account
+automountServiceAccountToken: false
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: redis
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/component: service-account
+automountServiceAccountToken: false

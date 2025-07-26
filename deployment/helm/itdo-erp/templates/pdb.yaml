@@ -1,0 +1,42 @@
+{{- if and .Values.backend.enabled .Values.backend.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "itdo-erp.fullname" . }}-backend-pdb
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "itdo-erp.backend.labels" . | nindent 4 }}
+    app.kubernetes.io/component: availability
+spec:
+  {{- if .Values.backend.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ .Values.backend.podDisruptionBudget.minAvailable }}
+  {{- end }}
+  {{- if .Values.backend.podDisruptionBudget.maxUnavailable }}
+  maxUnavailable: {{ .Values.backend.podDisruptionBudget.maxUnavailable }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "itdo-erp.backend.selectorLabels" . | nindent 6 }}
+{{- end }}
+
+---
+{{- if and .Values.frontend.enabled .Values.frontend.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "itdo-erp.fullname" . }}-frontend-pdb
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "itdo-erp.frontend.labels" . | nindent 4 }}
+    app.kubernetes.io/component: availability
+spec:
+  {{- if .Values.frontend.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ .Values.frontend.podDisruptionBudget.minAvailable }}
+  {{- end }}
+  {{- if .Values.frontend.podDisruptionBudget.maxUnavailable }}
+  maxUnavailable: {{ .Values.frontend.podDisruptionBudget.maxUnavailable }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "itdo-erp.frontend.selectorLabels" . | nindent 6 }}
+{{- end }}

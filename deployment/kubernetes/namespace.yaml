@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: itdo-erp
+  labels:
+    app.kubernetes.io/name: itdo-erp
+    app.kubernetes.io/version: "v2.0"
+    app.kubernetes.io/component: namespace
+    environment: production
+    team: platform
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: itdo-erp-staging
+  labels:
+    app.kubernetes.io/name: itdo-erp
+    app.kubernetes.io/version: "v2.0"
+    app.kubernetes.io/component: namespace
+    environment: staging
+    team: platform
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: itdo-erp-dev
+  labels:
+    app.kubernetes.io/name: itdo-erp
+    app.kubernetes.io/version: "v2.0"
+    app.kubernetes.io/component: namespace
+    environment: development
+    team: platform

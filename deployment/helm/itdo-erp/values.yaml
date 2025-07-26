@@ -1,0 +1,544 @@
+# ITDO ERP Helm Chart Values
+# Production-ready configuration for cloud-native deployment
+
+# Global settings
+global:
+  imageRegistry: "registry.itdo-erp.com"
+  imagePullSecrets:
+    - name: registry-secret
+  
+  # Storage class configuration
+  storageClass: "fast-ssd"
+  
+  # Security context
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1001
+    runAsGroup: 1001
+    fsGroup: 1001
+
+# Namespace configuration
+namespace:
+  create: true
+  name: "itdo-erp"
+  labels:
+    app.kubernetes.io/name: "itdo-erp"
+    app.kubernetes.io/instance: "production"
+    environment: "production"
+
+# Backend API configuration
+backend:
+  enabled: true
+  
+  # Image configuration
+  image:
+    repository: "itdo-erp-backend"
+    tag: "v65.0"
+    pullPolicy: "Always"
+  
+  # Deployment configuration
+  replicaCount: 3
+  
+  # Resource configuration
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+      ephemeral-storage: 2Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+      ephemeral-storage: 500Mi
+  
+  # Autoscaling configuration
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 20
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  
+  # Pod disruption budget
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+  
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 8000
+    targetPort: 8000
+    annotations: {}
+  
+  # Health checks
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 8000
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  
+  readinessProbe:
+    httpGet:
+      path: /health/ready
+      port: 8000
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+  
+  startupProbe:
+    httpGet:
+      path: /health
+      port: 8000
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 30
+  
+  # Environment variables
+  env:
+    LOG_LEVEL: "INFO"
+    LOG_FORMAT: "json"
+    METRICS_ENABLED: "true"
+    ENABLE_ANALYTICS: "true"
+    ENABLE_ML_FEATURES: "true"
+    ENABLE_REAL_TIME_DASHBOARD: "true"
+    ENABLE_MESSAGE_QUEUE: "true"
+
+# Frontend web application configuration
+frontend:
+  enabled: true
+  
+  # Image configuration
+  image:
+    repository: "itdo-erp-frontend"
+    tag: "v65.0"
+    pullPolicy: "Always"
+  
+  # Deployment configuration
+  replicaCount: 3
+  
+  # Resource configuration
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+      ephemeral-storage: 1Gi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+      ephemeral-storage: 100Mi
+  
+  # Autoscaling configuration
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 15
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  
+  # Pod disruption budget
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+  
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+    annotations: {}
+  
+  # Health checks
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 8080
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: 8080
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+  
+  # Environment variables
+  env:
+    REACT_APP_API_BASE_URL: "https://api.itdo-erp.com"
+    REACT_APP_KEYCLOAK_URL: "https://auth.itdo-erp.com"
+    REACT_APP_KEYCLOAK_REALM: "itdo-erp"
+    REACT_APP_KEYCLOAK_CLIENT_ID: "itdo-erp-web"
+    REACT_APP_ENABLE_ANALYTICS: "true"
+    REACT_APP_ENABLE_REAL_TIME: "true"
+    REACT_APP_ENABLE_NOTIFICATIONS: "true"
+
+# PostgreSQL database configuration
+postgresql:
+  enabled: true
+  
+  # Use external PostgreSQL or deploy with Bitnami chart
+  external:
+    enabled: false
+    host: "postgresql-service"
+    port: 5432
+    database: "itdo_erp"
+    existingSecret: "itdo-erp-secrets"
+    userKey: "DATABASE_USER"
+    passwordKey: "DATABASE_PASSWORD"
+  
+  # Bitnami PostgreSQL configuration
+  auth:
+    enablePostgresUser: true
+    postgresPassword: ""  # Set in secrets
+    username: "itdo_erp_user"
+    password: ""  # Set in secrets
+    database: "itdo_erp"
+    existingSecret: "itdo-erp-secrets"
+    secretKeys:
+      adminPasswordKey: "DATABASE_PASSWORD"
+      userPasswordKey: "DATABASE_PASSWORD"
+  
+  architecture: standalone
+  
+  primary:
+    persistence:
+      enabled: true
+      size: 100Gi
+      storageClass: "fast-ssd"
+    
+    resources:
+      limits:
+        memory: 2Gi
+        cpu: 1000m
+      requests:
+        memory: 512Mi
+        cpu: 250m
+    
+    configuration: |
+      max_connections = 200
+      shared_buffers = 256MB
+      effective_cache_size = 1GB
+      maintenance_work_mem = 64MB
+      checkpoint_completion_target = 0.9
+      wal_buffers = 16MB
+      default_statistics_target = 100
+      random_page_cost = 1.1
+      effective_io_concurrency = 200
+      work_mem = 4MB
+      min_wal_size = 1GB
+      max_wal_size = 4GB
+
+# Redis cache configuration
+redis:
+  enabled: true
+  
+  # Use external Redis or deploy with Bitnami chart
+  external:
+    enabled: false
+    host: "redis-service"
+    port: 6379
+    existingSecret: "itdo-erp-secrets"
+    passwordKey: "REDIS_PASSWORD"
+  
+  # Bitnami Redis configuration
+  auth:
+    enabled: true
+    password: ""  # Set in secrets
+    existingSecret: "itdo-erp-secrets"
+    existingSecretPasswordKey: "REDIS_PASSWORD"
+  
+  architecture: standalone
+  
+  master:
+    persistence:
+      enabled: true
+      size: 20Gi
+      storageClass: "fast-ssd"
+    
+    resources:
+      limits:
+        memory: 1Gi
+        cpu: 500m
+      requests:
+        memory: 256Mi
+        cpu: 100m
+    
+    configuration: |
+      appendonly yes
+      save ""
+      aof-use-rdb-preamble yes
+      maxmemory 1gb
+      maxmemory-policy allkeys-lru
+      tcp-keepalive 300
+      timeout 0
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: "nginx"
+  
+  # Annotations for NGINX Ingress Controller
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  
+  # Hosts configuration
+  hosts:
+    - host: itdo-erp.com
+      paths:
+        - path: /api
+          pathType: Prefix
+          service: backend
+        - path: /ws
+          pathType: Prefix
+          service: backend
+        - path: /
+          pathType: Prefix
+          service: frontend
+    - host: www.itdo-erp.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service: frontend
+    - host: api.itdo-erp.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service: backend
+  
+  # TLS configuration
+  tls:
+    - secretName: itdo-erp-tls
+      hosts:
+        - itdo-erp.com
+        - www.itdo-erp.com
+        - api.itdo-erp.com
+
+# NGINX Ingress Controller
+nginx-ingress:
+  enabled: true
+  controller:
+    replicaCount: 3
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+      requests:
+        cpu: 100m
+        memory: 256Mi
+    
+    config:
+      use-gzip: "true"
+      gzip-level: "6"
+      client-max-body-size: "100m"
+      proxy-connect-timeout: "60"
+      proxy-send-timeout: "60"
+      proxy-read-timeout: "60"
+      
+    metrics:
+      enabled: true
+      serviceMonitor:
+        enabled: true
+
+# Certificate Manager
+certManager:
+  enabled: true
+  installCRDs: true
+  
+  # Let's Encrypt configuration
+  clusterIssuer:
+    email: "admin@itdo-erp.com"
+    server: "https://acme-v02.api.letsencrypt.org/directory"
+
+# Monitoring configuration
+monitoring:
+  enabled: true
+  
+  # Prometheus configuration
+  prometheus:
+    enabled: true
+    retention: "30d"
+    
+    server:
+      resources:
+        limits:
+          cpu: 2000m
+          memory: 4Gi
+        requests:
+          cpu: 500m
+          memory: 1Gi
+      
+      persistentVolume:
+        enabled: true
+        size: 100Gi
+        storageClass: "fast-ssd"
+    
+    serverFiles:
+      prometheus.yml:
+        scrape_configs:
+          - job_name: 'itdo-erp-backend'
+            kubernetes_sd_configs:
+              - role: pod
+            relabel_configs:
+              - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+                action: keep
+                regex: true
+              - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+                action: replace
+                target_label: __metrics_path__
+                regex: (.+)
+  
+  # Grafana configuration
+  grafana:
+    enabled: true
+    
+    admin:
+      existingSecret: "grafana-admin-secret"
+      userKey: "admin-user"
+      passwordKey: "admin-password"
+    
+    persistence:
+      enabled: true
+      size: 10Gi
+      storageClass: "fast-ssd"
+    
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+      requests:
+        cpu: 100m
+        memory: 256Mi
+    
+    # Pre-configured dashboards
+    dashboardProviders:
+      dashboardproviders.yaml:
+        apiVersion: 1
+        providers:
+          - name: 'default'
+            orgId: 1
+            folder: ''
+            type: file
+            disableDeletion: false
+            editable: true
+            options:
+              path: /var/lib/grafana/dashboards/default
+    
+    dashboards:
+      default:
+        kubernetes-cluster-monitoring:
+          gnetId: 7249
+          revision: 1
+        kubernetes-pod-monitoring:
+          gnetId: 6417
+          revision: 1
+
+# Logging configuration
+logging:
+  enabled: true
+  
+  # Loki configuration
+  loki:
+    enabled: true
+    
+    persistence:
+      enabled: true
+      size: 50Gi
+      storageClass: "fast-ssd"
+    
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+      requests:
+        cpu: 100m
+        memory: 256Mi
+
+# Security configuration
+security:
+  # Network policies
+  networkPolicy:
+    enabled: true
+    
+  # Pod security policy
+  podSecurityPolicy:
+    enabled: true
+    
+  # Service mesh (Istio)
+  serviceMesh:
+    enabled: false
+    
+  # Security scanning
+  securityScanning:
+    enabled: true
+    
+# Backup configuration
+backup:
+  enabled: true
+  
+  # Database backup
+  database:
+    enabled: true
+    schedule: "0 2 * * *"  # Daily at 2 AM
+    retention: "30d"
+    
+  # File backup
+  files:
+    enabled: true
+    schedule: "0 3 * * *"  # Daily at 3 AM
+    retention: "30d"
+
+# Configuration for external services integration
+external:
+  # Keycloak (Authentication)
+  keycloak:
+    enabled: false
+    url: "https://auth.itdo-erp.com"
+    realm: "itdo-erp"
+    clientId: "itdo-erp-api"
+    clientSecret: ""  # Set in secrets
+  
+  # Email service
+  email:
+    enabled: true
+    smtp:
+      host: "smtp.gmail.com"
+      port: 587
+      username: "noreply@itdo-erp.com"
+      password: ""  # Set in secrets
+      tls: true
+  
+  # Object storage (AWS S3 compatible)
+  objectStorage:
+    enabled: true
+    endpoint: "s3.amazonaws.com"
+    bucket: "itdo-erp-storage"
+    region: "us-west-2"
+    accessKey: ""  # Set in secrets
+    secretKey: ""  # Set in secrets
+
+# Development and testing configuration
+development:
+  enabled: false
+  
+  # Debug mode
+  debug: false
+  
+  # Hot reload
+  hotReload: false
+  
+  # Test data
+  seedData: false

@@ -1,0 +1,103 @@
+{{- if .Values.frontend.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "itdo-erp.fullname" . }}-frontend
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "itdo-erp.frontend.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.frontend.replicaCount }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 2
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      {{- include "itdo-erp.frontend.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "itdo-erp.frontend.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      {{- include "itdo-erp.securityContext" . | nindent 6 }}
+      {{- include "itdo-erp.imagePullSecrets" . | nindent 6 }}
+      containers:
+      - name: frontend
+        image: {{ include "itdo-erp.frontend.image" . }}
+        imagePullPolicy: {{ .Values.frontend.image.pullPolicy }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: {{ .Values.global.securityContext.runAsUser | default 1001 }}
+          runAsGroup: {{ .Values.global.securityContext.runAsGroup | default 1001 }}
+          capabilities:
+            drop:
+            - ALL
+            add:
+            - NET_BIND_SERVICE
+        {{- include "itdo-erp.frontend.env" . | nindent 8 }}
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        {{- with .Values.frontend.livenessProbe }}
+        livenessProbe:
+          {{- toYaml . | nindent 10 }}
+          httpHeaders:
+          - name: Host
+            value: localhost
+        {{- end }}
+        {{- with .Values.frontend.readinessProbe }}
+        readinessProbe:
+          {{- toYaml . | nindent 10 }}
+          httpHeaders:
+          - name: Host
+            value: localhost
+        {{- end }}
+        {{- include "itdo-erp.resources" .Values.frontend | nindent 8 }}
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: var-cache-nginx
+          mountPath: /var/cache/nginx
+        - name: var-log-nginx
+          mountPath: /var/log/nginx
+        - name: var-run
+          mountPath: /var/run
+        - name: nginx-config
+          mountPath: /etc/nginx/conf.d/default.conf
+          subPath: nginx.conf
+          readOnly: true
+      volumes:
+      - name: tmp
+        emptyDir:
+          sizeLimit: 100Mi
+      - name: var-cache-nginx
+        emptyDir:
+          sizeLimit: 100Mi
+      - name: var-log-nginx
+        emptyDir:
+          sizeLimit: 100Mi
+      - name: var-run
+        emptyDir:
+          sizeLimit: 10Mi
+      - name: nginx-config
+        configMap:
+          name: {{ include "itdo-erp.fullname" . }}-nginx-config
+          items:
+          - key: nginx.conf
+            path: nginx.conf
+      terminationGracePeriodSeconds: 30
+      restartPolicy: Always
+      {{- include "itdo-erp.frontend.affinity" . | nindent 6 }}
+      {{- include "itdo-erp.tolerations" . | nindent 6 }}
+{{- end }}

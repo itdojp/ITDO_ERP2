@@ -1,0 +1,74 @@
+apiVersion: v2
+name: itdo-erp
+description: ITDO ERP System - Enterprise Resource Planning Platform
+type: application
+version: 65.0.0
+appVersion: "v65.0"
+
+keywords:
+  - erp
+  - business
+  - enterprise
+  - fastapi
+  - react
+  - microservices
+  - cloud-native
+
+home: https://github.com/itdojp/ITDO_ERP2
+icon: https://itdo-erp.com/assets/logo.png
+
+maintainers:
+  - name: ITDO Development Team
+    email: dev@itdo-erp.com
+    url: https://itdo-erp.com
+
+sources:
+  - https://github.com/itdojp/ITDO_ERP2
+
+dependencies:
+  - name: postgresql
+    version: "12.12.10"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: postgresql.enabled
+    tags:
+      - database
+  - name: redis
+    version: "18.1.5"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: redis.enabled
+    tags:
+      - cache
+  - name: nginx-ingress
+    version: "4.8.3"
+    repository: "https://kubernetes.github.io/ingress-nginx"
+    condition: ingress.nginx.enabled
+    tags:
+      - ingress
+  - name: cert-manager
+    version: "v1.13.2"
+    repository: "https://charts.jetstack.io"
+    condition: certManager.enabled
+    tags:
+      - certificates
+  - name: prometheus
+    version: "25.8.0"
+    repository: "https://prometheus-community.github.io/helm-charts"
+    condition: monitoring.prometheus.enabled
+    tags:
+      - monitoring
+  - name: grafana
+    version: "7.0.11"
+    repository: "https://grafana.github.io/helm-charts"
+    condition: monitoring.grafana.enabled
+    tags:
+      - monitoring
+  - name: loki
+    version: "5.42.0"
+    repository: "https://grafana.github.io/helm-charts"
+    condition: logging.loki.enabled
+    tags:
+      - logging
+
+annotations:
+  category: ERP
+  licenses: MIT
