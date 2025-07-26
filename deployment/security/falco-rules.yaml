@@ -1,0 +1,287 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: falco-rules
+  namespace: falco-system
+  labels:
+    app.kubernetes.io/name: falco
+    app.kubernetes.io/component: rules
+data:
+  # ITDO ERP specific security rules
+  itdo_erp_rules.yaml: |
+    # ITDO ERP Security Rules
+    # Custom rules for detecting security threats in ITDO ERP application
+    
+    - rule: ITDO ERP Unauthorized Database Access
+      desc: Detect unauthorized access to PostgreSQL database
+      condition: >
+        spawned_process and
+        proc.name=psql and
+        not user.name in (postgres, itdo_erp_user) and
+        container.image.repository contains "postgres"
+      output: >
+        Unauthorized database access attempt
+        (user=%user.name command=%proc.cmdline container=%container.name image=%container.image.repository)
+      priority: CRITICAL
+      tags: [database, unauthorized_access, itdo_erp]
+      
+    - rule: ITDO ERP Suspicious Backend Activity
+      desc: Detect suspicious activity in backend containers
+      condition: >
+        spawned_process and
+        container.image.repository contains "itdo-erp-backend" and
+        (proc.name in (nc, netcat, nmap, telnet, wget, curl) or
+         proc.cmdline contains "reverse shell" or
+         proc.cmdline contains "/bin/bash -i" or
+         proc.cmdline contains "sh -i")
+      output: >
+        Suspicious activity in ITDO ERP backend
+        (user=%user.name command=%proc.cmdline container=%container.name image=%container.image.repository)
+      priority: HIGH
+      tags: [backend, suspicious_activity, itdo_erp]
+      
+    - rule: ITDO ERP File Modification in Read-Only Paths
+      desc: Detect file modifications in paths that should be read-only
+      condition: >
+        open_write and
+        container.image.repository contains "itdo-erp" and
+        fd.name startswith /usr/bin or
+        fd.name startswith /usr/sbin or
+        fd.name startswith /bin or
+        fd.name startswith /sbin or
+        fd.name startswith /etc/passwd or
+        fd.name startswith /etc/shadow
+      output: >
+        File modification in read-only path
+        (user=%user.name file=%fd.name container=%container.name image=%container.image.repository)
+      priority: HIGH
+      tags: [file_modification, itdo_erp]
+      
+    - rule: ITDO ERP Privilege Escalation Attempt
+      desc: Detect privilege escalation attempts
+      condition: >
+        spawned_process and
+        container.image.repository contains "itdo-erp" and
+        (proc.name in (sudo, su, doas) or
+         proc.cmdline contains "chmod +s" or
+         proc.cmdline contains "setuid" or
+         proc.cmdline contains "setgid")
+      output: >
+        Privilege escalation attempt detected
+        (user=%user.name command=%proc.cmdline container=%container.name image=%container.image.repository)
+      priority: CRITICAL
+      tags: [privilege_escalation, itdo_erp]
+      
+    - rule: ITDO ERP Network Reconnaissance
+      desc: Detect network reconnaissance activities
+      condition: >
+        spawned_process and
+        container.image.repository contains "itdo-erp" and
+        (proc.name in (nmap, masscan, zmap, unicornscan) or
+         proc.cmdline contains "port scan" or
+         proc.cmdline contains "-p-" or
+         proc.cmdline contains "host discovery")
+      output: >
+        Network reconnaissance detected
+        (user=%user.name command=%proc.cmdline container=%container.name image=%container.image.repository)
+      priority: HIGH
+      tags: [network_reconnaissance, itdo_erp]
+      
+    - rule: ITDO ERP Crypto Mining Activity
+      desc: Detect cryptocurrency mining activities
+      condition: >
+        spawned_process and
+        container.image.repository contains "itdo-erp" and
+        (proc.name in (xmrig, minergate, ccminer, cgminer) or
+         proc.cmdline contains "stratum+tcp" or
+         proc.cmdline contains "mining pool" or
+         proc.cmdline contains "hashrate")
+      output: >
+        Cryptocurrency mining activity detected
+        (user=%user.name command=%proc.cmdline container=%container.name image=%container.image.repository)
+      priority: CRITICAL
+      tags: [crypto_mining, itdo_erp]
+      
+    - rule: ITDO ERP Sensitive File Access
+      desc: Detect access to sensitive files
+      condition: >
+        open_read and
+        container.image.repository contains "itdo-erp" and
+        (fd.name contains "id_rsa" or
+         fd.name contains "id_dsa" or
+         fd.name contains ".ssh/config" or
+         fd.name contains ".aws/credentials" or
+         fd.name contains ".kube/config" or
+         fd.name endswith ".pem" or
+         fd.name endswith ".key")
+      output: >
+        Sensitive file access detected
+        (user=%user.name file=%fd.name container=%container.name image=%container.image.repository)
+      priority: HIGH
+      tags: [sensitive_file_access, itdo_erp]
+      
+    - rule: ITDO ERP Container Escape Attempt
+      desc: Detect container escape attempts
+      condition: >
+        spawned_process and
+        container.image.repository contains "itdo-erp" and
+        (proc.cmdline contains "docker.sock" or
+         proc.cmdline contains "/var/run/docker.sock" or
+         proc.cmdline contains "runc" or
+         proc.cmdline contains "cgroup" or
+         proc.name=nsenter)
+      output: >
+        Container escape attempt detected
+        (user=%user.name command=%proc.cmdline container=%container.name image=%container.image.repository)
+      priority: CRITICAL
+      tags: [container_escape, itdo_erp]
+      
+    - rule: ITDO ERP Unusual Network Activity
+      desc: Detect unusual network activities
+      condition: >
+        inbound_outbound and
+        container.image.repository contains "itdo-erp" and
+        (fd.sport!=80 and fd.sport!=443 and fd.sport!=8000 and fd.sport!=8080 and
+         fd.dport!=80 and fd.dport!=443 and fd.dport!=5432 and fd.dport!=6379 and
+         fd.dport!=53) and
+        not proc.name in (curl, wget, python, python3, node, java)
+      output: >
+        Unusual network activity detected
+        (user=%user.name connection=%fd.name container=%container.name image=%container.image.repository)
+      priority: MEDIUM
+      tags: [network_activity, itdo_erp]
+      
+    - rule: ITDO ERP Code Injection Attempt
+      desc: Detect potential code injection attempts
+      condition: >
+        spawned_process and
+        container.image.repository contains "itdo-erp-backend" and
+        (proc.cmdline contains "eval(" or
+         proc.cmdline contains "exec(" or
+         proc.cmdline contains "system(" or
+         proc.cmdline contains "shell_exec(" or
+         proc.cmdline contains "passthru(" or
+         proc.cmdline contains "subprocess." or
+         proc.cmdline contains "os.system")
+      output: >
+        Potential code injection attempt detected
+        (user=%user.name command=%proc.cmdline container=%container.name image=%container.image.repository)
+      priority: HIGH
+      tags: [code_injection, itdo_erp]
+      
+    - rule: ITDO ERP Log Tampering
+      desc: Detect attempts to tamper with log files
+      condition: >
+        open_write and
+        container.image.repository contains "itdo-erp" and
+        (fd.name contains "/var/log/" or
+         fd.name contains "/app/logs/" or
+         fd.name contains "access.log" or
+         fd.name contains "error.log" or
+         fd.name contains "audit.log") and
+        not proc.name in (logrotate, rsyslog, fluentd, filebeat)
+      output: >
+        Log tampering attempt detected
+        (user=%user.name file=%fd.name container=%container.name image=%container.image.repository)
+      priority: HIGH
+      tags: [log_tampering, itdo_erp]
+      
+    - rule: ITDO ERP Database Schema Modification
+      desc: Detect unauthorized database schema modifications
+      condition: >
+        spawned_process and
+        container.image.repository contains "postgres" and
+        (proc.cmdline contains "DROP TABLE" or
+         proc.cmdline contains "DROP DATABASE" or
+         proc.cmdline contains "ALTER TABLE" or
+         proc.cmdline contains "CREATE USER" or
+         proc.cmdline contains "GRANT ALL") and
+        not user.name=postgres
+      output: >
+        Unauthorized database schema modification detected
+        (user=%user.name command=%proc.cmdline container=%container.name image=%container.image.repository)
+      priority: CRITICAL
+      tags: [database_modification, itdo_erp]
+      
+    # Compliance-related rules
+    - rule: ITDO ERP PCI DSS Violation - Card Data Access
+      desc: Detect access to potential card data (PCI DSS compliance)
+      condition: >
+        open_read and
+        container.image.repository contains "itdo-erp" and
+        (fd.name contains "card" or
+         fd.name contains "credit" or
+         fd.name contains "payment" or
+         proc.cmdline contains "4[0-9]{12}(?:[0-9]{3})?" or
+         proc.cmdline contains "5[1-5][0-9]{14}" or
+         proc.cmdline contains "3[47][0-9]{13}")
+      output: >
+        Potential PCI DSS violation - card data access detected
+        (user=%user.name file=%fd.name container=%container.name image=%container.image.repository)
+      priority: CRITICAL
+      tags: [pci_dss, compliance, itdo_erp]
+      
+    - rule: ITDO ERP GDPR Violation - Personal Data Export
+      desc: Detect unauthorized personal data exports (GDPR compliance)
+      condition: >
+        spawned_process and
+        container.image.repository contains "itdo-erp" and
+        (proc.cmdline contains "SELECT * FROM users" or
+         proc.cmdline contains "COPY users" or
+         proc.cmdline contains "mysqldump" or
+         proc.cmdline contains "pg_dump") and
+        not user.name in (backup_user, admin)
+      output: >
+        Potential GDPR violation - unauthorized personal data export
+        (user=%user.name command=%proc.cmdline container=%container.name image=%container.image.repository)
+      priority: HIGH
+      tags: [gdpr, compliance, personal_data, itdo_erp]
+
+  # Integration with ITDO ERP monitoring
+  itdo_erp_outputs.yaml: |
+    # ITDO ERP Custom Outputs
+    # Send alerts to ITDO ERP monitoring infrastructure
+    
+    - rule: Send ITDO ERP Alerts to Prometheus
+      desc: Forward security alerts to Prometheus for monitoring
+      condition: >
+        falco_alert and
+        ka.target.tag contains "itdo_erp"
+      output: >
+        Security alert for ITDO ERP
+        (rule=%ka.rule.name priority=%ka.rule.priority tags=%ka.target.tag)
+      priority: INFO
+      tags: [prometheus_export, itdo_erp]
+      
+    outputs:
+      rate: 1
+      max_burst: 1000
+      
+    file_output:
+      enabled: true
+      keep_alive: false
+      filename: /var/log/falco/falco_events.log
+      
+    program_output:
+      enabled: true
+      keep_alive: false
+      program: |
+        curl -X POST http://alertmanager:9093/api/v1/alerts \
+        -H "Content-Type: application/json" \
+        -d '[{
+          "labels": {
+            "alertname": "FalcoSecurityAlert",
+            "severity": "critical",
+            "service": "security",
+            "rule": "%ka.rule.name"
+          },
+          "annotations": {
+            "summary": "%ka.rule.desc",
+            "description": "%output"
+          }
+        }]'
+        
+    http_output:
+      enabled: true
+      url: http://loki:3100/loki/api/v1/push
+      user_agent: "falco/0.34.1"

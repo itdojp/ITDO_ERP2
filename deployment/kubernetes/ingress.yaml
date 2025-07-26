@@ -1,0 +1,292 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: itdo-erp-ingress
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: itdo-erp
+    app.kubernetes.io/component: ingress
+  annotations:
+    # NGINX Ingress Controller annotations
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "128k"
+    nginx.ingress.kubernetes.io/proxy-buffers-number: "4"
+    nginx.ingress.kubernetes.io/proxy-buffering: "on"
+    
+    # Rate limiting
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    nginx.ingress.kubernetes.io/rate-limit-connections: "10"
+    
+    # Security headers
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      add_header X-Frame-Options DENY always;
+      add_header X-Content-Type-Options nosniff always;
+      add_header X-XSS-Protection "1; mode=block" always;
+      add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+      add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+      add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' https:; connect-src 'self' https: wss: ws:; frame-ancestors 'none';" always;
+    
+    # Enable CORS for API endpoints
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://itdo-erp.com,https://www.itdo-erp.com"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
+    nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
+    
+    # Certificate management (cert-manager)
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    cert-manager.io/acme-challenge-type: "http01"
+    
+    # Load balancing
+    nginx.ingress.kubernetes.io/upstream-hash-by: "$remote_addr consistent"
+    nginx.ingress.kubernetes.io/load-balance: "ewma"
+    
+    # WebSocket support
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/proxy-set-headers: "itdo-erp/websocket-headers"
+    
+    # Monitoring and logging
+    nginx.ingress.kubernetes.io/enable-access-log: "true"
+    nginx.ingress.kubernetes.io/enable-rewrite-log: "false"
+    
+spec:
+  tls:
+  - hosts:
+    - itdo-erp.com
+    - www.itdo-erp.com
+    - api.itdo-erp.com
+    secretName: itdo-erp-tls
+  - hosts:
+    - auth.itdo-erp.com
+    secretName: keycloak-tls
+  
+  rules:
+  # Main application domain
+  - host: itdo-erp.com
+    http:
+      paths:
+      # API endpoints
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: itdo-erp-backend-service
+            port:
+              number: 8000
+      # WebSocket endpoints
+      - path: /ws
+        pathType: Prefix
+        backend:
+          service:
+            name: itdo-erp-backend-service
+            port:
+              number: 8000
+      # Health check endpoint
+      - path: /health
+        pathType: Exact
+        backend:
+          service:
+            name: itdo-erp-backend-service
+            port:
+              number: 8000
+      # Metrics endpoint
+      - path: /metrics
+        pathType: Exact
+        backend:
+          service:
+            name: itdo-erp-backend-service
+            port:
+              number: 8000
+      # Frontend application (catch-all)
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: itdo-erp-frontend-service
+            port:
+              number: 8080
+  
+  # WWW redirect
+  - host: www.itdo-erp.com
+    http:
+      paths:
+      # API endpoints
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: itdo-erp-backend-service
+            port:
+              number: 8000
+      # WebSocket endpoints
+      - path: /ws
+        pathType: Prefix
+        backend:
+          service:
+            name: itdo-erp-backend-service
+            port:
+              number: 8000
+      # Frontend application (catch-all)
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: itdo-erp-frontend-service
+            port:
+              number: 8080
+  
+  # API subdomain
+  - host: api.itdo-erp.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: itdo-erp-backend-service
+            port:
+              number: 8000
+  
+  # Authentication subdomain (Keycloak)
+  - host: auth.itdo-erp.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: keycloak-service
+            port:
+              number: 8080
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: websocket-headers
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: itdo-erp
+    app.kubernetes.io/component: ingress-config
+data:
+  Upgrade: $http_upgrade
+  Connection: "upgrade"
+  Host: $host
+  X-Real-IP: $remote_addr
+  X-Forwarded-For: $proxy_add_x_forwarded_for
+  X-Forwarded-Proto: $scheme
+  X-Forwarded-Host: $host
+  X-Forwarded-Port: $server_port
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ingress-network-policy
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: itdo-erp
+    app.kubernetes.io/component: network-security
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: nginx-ingress
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from: []
+    ports:
+    - protocol: TCP
+      port: 80
+    - protocol: TCP
+      port: 443
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: itdo-erp-frontend
+    ports:
+    - protocol: TCP
+      port: 8080
+  - to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: itdo-erp-backend
+    ports:
+    - protocol: TCP
+      port: 8000
+  - to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: keycloak
+    ports:
+    - protocol: TCP
+      port: 8080
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53
+
+---
+# Certificate Issuer for Let's Encrypt
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+  labels:
+    app.kubernetes.io/name: itdo-erp
+    app.kubernetes.io/component: certificate-management
+spec:
+  acme:
+    email: admin@itdo-erp.com
+    server: https://acme-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: letsencrypt-prod-private-key
+    solvers:
+    - http01:
+        ingress:
+          class: nginx
+          podTemplate:
+            spec:
+              nodeSelector:
+                kubernetes.io/os: linux
+    - dns01:
+        cloudflare:
+          email: admin@itdo-erp.com
+          apiKeySecretRef:
+            name: cloudflare-api-key-secret
+            key: api-key
+
+---
+# Staging Certificate Issuer (for testing)
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+  labels:
+    app.kubernetes.io/name: itdo-erp
+    app.kubernetes.io/component: certificate-management
+spec:
+  acme:
+    email: admin@itdo-erp.com
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: letsencrypt-staging-private-key
+    solvers:
+    - http01:
+        ingress:
+          class: nginx
+          podTemplate:
+            spec:
+              nodeSelector:
+                kubernetes.io/os: linux

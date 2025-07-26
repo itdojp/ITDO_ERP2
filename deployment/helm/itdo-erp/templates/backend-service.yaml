@@ -1,0 +1,43 @@
+{{- if .Values.backend.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "itdo-erp.fullname" . }}-backend
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "itdo-erp.backend.labels" . | nindent 4 }}
+  {{- with .Values.backend.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.backend.service.type }}
+  sessionAffinity: None
+  ports:
+  - name: http
+    port: {{ .Values.backend.service.port }}
+    targetPort: {{ .Values.backend.service.targetPort }}
+    protocol: TCP
+  selector:
+    {{- include "itdo-erp.backend.selectorLabels" . | nindent 4 }}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "itdo-erp.fullname" . }}-backend-headless
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "itdo-erp.backend.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  clusterIP: None
+  publishNotReadyAddresses: false
+  ports:
+  - name: http
+    port: {{ .Values.backend.service.port }}
+    targetPort: {{ .Values.backend.service.targetPort }}
+    protocol: TCP
+  selector:
+    {{- include "itdo-erp.backend.selectorLabels" . | nindent 4 }}
+{{- end }}

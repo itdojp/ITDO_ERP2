@@ -1,0 +1,570 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: itdo-erp-backend
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: itdo-erp-backend
+    app.kubernetes.io/component: api
+    app.kubernetes.io/version: "v65.0"
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: itdo-erp-backend
+      app.kubernetes.io/component: api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: itdo-erp-backend
+        app.kubernetes.io/component: api
+        app.kubernetes.io/version: "v65.0"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      imagePullSecrets:
+      - name: registry-secret
+      containers:
+      - name: backend
+        image: registry.itdo-erp.com/itdo-erp-backend:v65.0
+        imagePullPolicy: Always
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          capabilities:
+            drop:
+            - ALL
+        env:
+        # Database Configuration
+        - name: DATABASE_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-config
+              key: DATABASE_HOST
+        - name: DATABASE_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-config
+              key: DATABASE_PORT
+        - name: DATABASE_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-config
+              key: DATABASE_NAME
+        - name: DATABASE_USER
+          valueFrom:
+            secretKeyRef:
+              name: itdo-erp-secrets
+              key: DATABASE_USER
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: itdo-erp-secrets
+              key: DATABASE_PASSWORD
+        - name: DATABASE_POOL_SIZE
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-config
+              key: DATABASE_POOL_SIZE
+        - name: DATABASE_MAX_OVERFLOW
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-config
+              key: DATABASE_MAX_OVERFLOW
+        
+        # Redis Configuration
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-config
+              key: REDIS_HOST
+        - name: REDIS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-config
+              key: REDIS_PORT
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: itdo-erp-secrets
+              key: REDIS_PASSWORD
+        - name: REDIS_DB
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-config
+              key: REDIS_DB
+        - name: REDIS_POOL_SIZE
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-config
+              key: REDIS_POOL_SIZE
+        
+        # API Configuration
+        - name: API_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-config
+              key: API_HOST
+        - name: API_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-config
+              key: API_PORT
+        - name: API_WORKERS
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-config
+              key: API_WORKERS
+        - name: API_TIMEOUT
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-config
+              key: API_TIMEOUT
+        
+        # Security Configuration
+        - name: JWT_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: itdo-erp-secrets
+              key: JWT_SECRET_KEY
+        - name: JWT_ALGORITHM
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-config
+              key: JWT_ALGORITHM
+        - name: JWT_EXPIRE_MINUTES
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-config
+              key: JWT_EXPIRE_MINUTES
+        - name: ENCRYPTION_KEY
+          valueFrom:
+            secretKeyRef:
+              name: itdo-erp-secrets
+              key: ENCRYPTION_KEY
+        
+        # Keycloak Configuration
+        - name: KEYCLOAK_SERVER_URL
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-config
+              key: KEYCLOAK_SERVER_URL
+        - name: KEYCLOAK_REALM
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-config
+              key: KEYCLOAK_REALM
+        - name: KEYCLOAK_CLIENT_ID
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-config
+              key: KEYCLOAK_CLIENT_ID
+        - name: KEYCLOAK_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: itdo-erp-secrets
+              key: KEYCLOAK_CLIENT_SECRET
+        
+        # Feature Flags
+        - name: ENABLE_ANALYTICS
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-config
+              key: ENABLE_ANALYTICS
+        - name: ENABLE_ML_FEATURES
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-config
+              key: ENABLE_ML_FEATURES
+        - name: ENABLE_REAL_TIME_DASHBOARD
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-config
+              key: ENABLE_REAL_TIME_DASHBOARD
+        - name: ENABLE_MESSAGE_QUEUE
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-config
+              key: ENABLE_MESSAGE_QUEUE
+        
+        # Performance Configuration
+        - name: MAX_REQUEST_SIZE
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-config
+              key: MAX_REQUEST_SIZE
+        - name: REQUEST_TIMEOUT
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-config
+              key: REQUEST_TIMEOUT
+        - name: CORS_ORIGINS
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-config
+              key: CORS_ORIGINS
+        
+        # Logging Configuration
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-config
+              key: LOG_LEVEL
+        - name: LOG_FORMAT
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-config
+              key: LOG_FORMAT
+        - name: ENABLE_REQUEST_LOGGING
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-config
+              key: ENABLE_REQUEST_LOGGING
+        
+        # Cache Configuration
+        - name: CACHE_TTL
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-config
+              key: CACHE_TTL
+        - name: CACHE_MAX_SIZE
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-config
+              key: CACHE_MAX_SIZE
+        
+        # Monitoring Configuration
+        - name: METRICS_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-config
+              key: METRICS_ENABLED
+        - name: HEALTH_CHECK_INTERVAL
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-config
+              key: HEALTH_CHECK_INTERVAL
+        
+        # External API Keys
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: itdo-erp-secrets
+              key: OPENAI_API_KEY
+        - name: STRIPE_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: itdo-erp-secrets
+              key: STRIPE_SECRET_KEY
+        - name: GOOGLE_OAUTH_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: itdo-erp-secrets
+              key: GOOGLE_OAUTH_SECRET
+        
+        # SMTP Configuration
+        - name: SMTP_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: itdo-erp-secrets
+              key: SMTP_PASSWORD
+        
+        # S3/Object Storage Configuration
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: itdo-erp-secrets
+              key: AWS_ACCESS_KEY_ID
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: itdo-erp-secrets
+              key: AWS_SECRET_ACCESS_KEY
+        
+        ports:
+        - name: http
+          containerPort: 8000
+          protocol: TCP
+        
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+          successThreshold: 1
+        
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+          successThreshold: 1
+        
+        startupProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 30
+          successThreshold: 1
+        
+        resources:
+          limits:
+            cpu: 2000m
+            memory: 4Gi
+            ephemeral-storage: 2Gi
+          requests:
+            cpu: 500m
+            memory: 1Gi
+            ephemeral-storage: 500Mi
+        
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: logs
+          mountPath: /app/logs
+        - name: uploads
+          mountPath: /app/uploads
+        
+      volumes:
+      - name: tmp
+        emptyDir:
+          sizeLimit: 1Gi
+      - name: logs
+        emptyDir:
+          sizeLimit: 10Gi
+      - name: uploads
+        persistentVolumeClaim:
+          claimName: uploads-pvc
+      
+      terminationGracePeriodSeconds: 30
+      restartPolicy: Always
+      
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: itdo-erp-backend
+              topologyKey: kubernetes.io/hostname
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: node.kubernetes.io/instance-type
+                operator: In
+                values: ["m5.large", "m5.xlarge", "c5.large", "c5.xlarge"]
+      
+      tolerations:
+      - key: "app.kubernetes.io/name"
+        operator: "Equal"
+        value: "itdo-erp"
+        effect: "NoSchedule"
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: uploads-pvc
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: itdo-erp-backend
+    app.kubernetes.io/component: storage
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: nfs-storage
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: itdo-erp-backend-service
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: itdo-erp-backend
+    app.kubernetes.io/component: api
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: http
+spec:
+  type: ClusterIP
+  sessionAffinity: None
+  ports:
+  - name: http
+    port: 8000
+    targetPort: http
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: itdo-erp-backend
+    app.kubernetes.io/component: api
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: itdo-erp-backend-headless
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: itdo-erp-backend
+    app.kubernetes.io/component: api
+spec:
+  type: ClusterIP
+  clusterIP: None
+  publishNotReadyAddresses: false
+  ports:
+  - name: http
+    port: 8000
+    targetPort: http
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: itdo-erp-backend
+    app.kubernetes.io/component: api
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: itdo-erp-backend-hpa
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: itdo-erp-backend
+    app.kubernetes.io/component: autoscaling
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: itdo-erp-backend
+  minReplicas: 3
+  maxReplicas: 20
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 15
+      - type: Pods
+        value: 4
+        periodSeconds: 15
+      selectPolicy: Max
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: itdo-erp-backend-pdb
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: itdo-erp-backend
+    app.kubernetes.io/component: availability
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: itdo-erp-backend
+      app.kubernetes.io/component: api
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: itdo-erp-backend-network-policy
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: itdo-erp-backend
+    app.kubernetes.io/component: network-security
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: itdo-erp-backend
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: itdo-erp
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: nginx-ingress
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: itdo-erp-frontend
+    ports:
+    - protocol: TCP
+      port: 8000
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: postgresql
+    ports:
+    - protocol: TCP
+      port: 5432
+  - to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: redis
+    ports:
+    - protocol: TCP
+      port: 6379
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 80
+    - protocol: TCP
+      port: 443

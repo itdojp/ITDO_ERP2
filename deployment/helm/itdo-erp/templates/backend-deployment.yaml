@@ -1,0 +1,82 @@
+{{- if .Values.backend.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "itdo-erp.fullname" . }}-backend
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "itdo-erp.backend.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.backend.replicaCount }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      {{- include "itdo-erp.backend.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "itdo-erp.backend.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secrets.yaml") . | sha256sum }}
+    spec:
+      {{- include "itdo-erp.securityContext" . | nindent 6 }}
+      {{- include "itdo-erp.imagePullSecrets" . | nindent 6 }}
+      containers:
+      - name: backend
+        image: {{ include "itdo-erp.backend.image" . }}
+        imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+        {{- include "itdo-erp.podSecurityContext" . | nindent 8 }}
+        {{- include "itdo-erp.backend.env" . | nindent 8 }}
+        ports:
+        - name: http
+          containerPort: 8000
+          protocol: TCP
+        {{- with .Values.backend.livenessProbe }}
+        livenessProbe:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .Values.backend.readinessProbe }}
+        readinessProbe:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .Values.backend.startupProbe }}
+        startupProbe:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- include "itdo-erp.resources" .Values.backend | nindent 8 }}
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: logs
+          mountPath: /app/logs
+        - name: uploads
+          mountPath: /app/uploads
+      volumes:
+      - name: tmp
+        emptyDir:
+          sizeLimit: 1Gi
+      - name: logs
+        emptyDir:
+          sizeLimit: 10Gi
+      - name: uploads
+        {{- if .Values.backend.persistence.enabled }}
+        persistentVolumeClaim:
+          claimName: {{ include "itdo-erp.fullname" . }}-uploads
+        {{- else }}
+        emptyDir:
+          sizeLimit: 50Gi
+        {{- end }}
+      terminationGracePeriodSeconds: 30
+      restartPolicy: Always
+      {{- include "itdo-erp.backend.affinity" . | nindent 6 }}
+      {{- include "itdo-erp.tolerations" . | nindent 6 }}
+{{- end }}

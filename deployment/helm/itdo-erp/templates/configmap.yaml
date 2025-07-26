@@ -1,0 +1,209 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "itdo-erp.fullname" . }}-config
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "itdo-erp.labels" . | nindent 4 }}
+    app.kubernetes.io/component: config
+data:
+  # Database Configuration
+  DATABASE_HOST: {{ include "itdo-erp.database.host" . | quote }}
+  DATABASE_PORT: {{ include "itdo-erp.database.port" . | quote }}
+  DATABASE_NAME: {{ include "itdo-erp.database.name" . | quote }}
+  DATABASE_POOL_SIZE: "20"
+  DATABASE_MAX_OVERFLOW: "30"
+  
+  # Redis Configuration
+  REDIS_HOST: {{ include "itdo-erp.redis.host" . | quote }}
+  REDIS_PORT: {{ include "itdo-erp.redis.port" . | quote }}
+  REDIS_DB: "0"
+  REDIS_POOL_SIZE: "10"
+  
+  # API Configuration
+  API_HOST: "0.0.0.0"
+  API_PORT: "8000"
+  API_WORKERS: "4"
+  API_TIMEOUT: "300"
+  
+  # Keycloak Configuration
+  {{- if .Values.external.keycloak.enabled }}
+  KEYCLOAK_SERVER_URL: {{ .Values.external.keycloak.url | quote }}
+  KEYCLOAK_REALM: {{ .Values.external.keycloak.realm | quote }}
+  KEYCLOAK_CLIENT_ID: {{ .Values.external.keycloak.clientId | quote }}
+  {{- else }}
+  KEYCLOAK_SERVER_URL: "http://keycloak-service:8080"
+  KEYCLOAK_REALM: "itdo-erp"
+  KEYCLOAK_CLIENT_ID: "itdo-erp-api"
+  {{- end }}
+  
+  # Feature Flags
+  {{- range $key, $value := .Values.backend.env }}
+  {{- if or (hasPrefix "ENABLE_" $key) (hasPrefix "REACT_APP_ENABLE_" $key) }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}
+  {{- end }}
+  
+  # Performance Configuration
+  MAX_REQUEST_SIZE: "50MB"
+  REQUEST_TIMEOUT: "120"
+  CORS_ORIGINS: "*"
+  
+  # Logging Configuration
+  LOG_LEVEL: {{ .Values.backend.env.LOG_LEVEL | default "INFO" | quote }}
+  LOG_FORMAT: {{ .Values.backend.env.LOG_FORMAT | default "json" | quote }}
+  ENABLE_REQUEST_LOGGING: "true"
+  
+  # Cache Configuration
+  CACHE_TTL: "3600"
+  CACHE_MAX_SIZE: "1000"
+  
+  # Security Configuration
+  JWT_ALGORITHM: "RS256"
+  JWT_EXPIRE_MINUTES: "60"
+  
+  # Monitoring Configuration
+  METRICS_ENABLED: {{ .Values.backend.env.METRICS_ENABLED | default "true" | quote }}
+  HEALTH_CHECK_INTERVAL: "30"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "itdo-erp.fullname" . }}-frontend-config
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "itdo-erp.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend-config
+data:
+  # Frontend Environment Variables
+  {{- range $key, $value := .Values.frontend.env }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}
+
+---
+{{- if .Values.ingress.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "itdo-erp.fullname" . }}-nginx-config
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "itdo-erp.labels" . | nindent 4 }}
+    app.kubernetes.io/component: nginx-config
+data:
+  nginx.conf: |
+    user nginx;
+    worker_processes auto;
+    error_log /var/log/nginx/error.log warn;
+    pid /var/run/nginx.pid;
+    
+    events {
+        worker_connections 1024;
+        use epoll;
+        multi_accept on;
+    }
+    
+    http {
+        include /etc/nginx/mime.types;
+        default_type application/octet-stream;
+        
+        # Logging
+        log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                        '$status $body_bytes_sent "$http_referer" '
+                        '"$http_user_agent" "$http_x_forwarded_for"';
+        access_log /var/log/nginx/access.log main;
+        
+        # Performance
+        sendfile on;
+        tcp_nopush on;
+        tcp_nodelay on;
+        keepalive_timeout 65;
+        types_hash_max_size 2048;
+        client_max_body_size 100M;
+        
+        # Compression
+        gzip on;
+        gzip_vary on;
+        gzip_min_length 1000;
+        gzip_proxied any;
+        gzip_comp_level 6;
+        gzip_types
+            application/atom+xml
+            application/javascript
+            application/json
+            application/ld+json
+            application/manifest+json
+            application/rss+xml
+            application/vnd.geo+json
+            application/vnd.ms-fontobject
+            application/x-font-ttf
+            application/x-web-app-manifest+json
+            application/xhtml+xml
+            application/xml
+            font/opentype
+            image/bmp
+            image/svg+xml
+            image/x-icon
+            text/cache-manifest
+            text/css
+            text/plain
+            text/vcard
+            text/vnd.rim.location.xloc
+            text/vtt
+            text/x-component
+            text/x-cross-domain-policy;
+        
+        # Security Headers
+        add_header X-Frame-Options DENY;
+        add_header X-Content-Type-Options nosniff;
+        add_header X-XSS-Protection "1; mode=block";
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+        
+        server {
+            listen 8080;
+            server_name _;
+            
+            # Frontend Static Files
+            location / {
+                root /usr/share/nginx/html;
+                index index.html index.htm;
+                try_files $uri $uri/ /index.html;
+                
+                # Cache static assets
+                location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+                    expires 1y;
+                    add_header Cache-Control "public, immutable";
+                }
+            }
+            
+            # Health check
+            location /health {
+                access_log off;
+                return 200 "healthy\n";
+                add_header Content-Type text/plain;
+            }
+        }
+    }
+{{- end }}
+
+---
+{{- if .Values.ingress.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "itdo-erp.fullname" . }}-websocket-headers
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- include "itdo-erp.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ingress-config
+data:
+  Upgrade: $http_upgrade
+  Connection: "upgrade"
+  Host: $host
+  X-Real-IP: $remote_addr
+  X-Forwarded-For: $proxy_add_x_forwarded_for
+  X-Forwarded-Proto: $scheme
+  X-Forwarded-Host: $host
+  X-Forwarded-Port: $server_port
+{{- end }}
