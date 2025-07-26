@@ -1,0 +1,381 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: itdo-erp-frontend
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: itdo-erp-frontend
+    app.kubernetes.io/component: web
+    app.kubernetes.io/version: "v65.0"
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 2
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: itdo-erp-frontend
+      app.kubernetes.io/component: web
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: itdo-erp-frontend
+        app.kubernetes.io/component: web
+        app.kubernetes.io/version: "v65.0"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+      imagePullSecrets:
+      - name: registry-secret
+      containers:
+      - name: frontend
+        image: registry.itdo-erp.com/itdo-erp-frontend:v65.0
+        imagePullPolicy: Always
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1001
+          runAsGroup: 1001
+          capabilities:
+            drop:
+            - ALL
+            add:
+            - NET_BIND_SERVICE
+        env:
+        # Frontend Configuration from ConfigMap
+        - name: REACT_APP_API_BASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-frontend-config
+              key: REACT_APP_API_BASE_URL
+        - name: REACT_APP_KEYCLOAK_URL
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-frontend-config
+              key: REACT_APP_KEYCLOAK_URL
+        - name: REACT_APP_KEYCLOAK_REALM
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-frontend-config
+              key: REACT_APP_KEYCLOAK_REALM
+        - name: REACT_APP_KEYCLOAK_CLIENT_ID
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-frontend-config
+              key: REACT_APP_KEYCLOAK_CLIENT_ID
+        
+        # Feature Flags
+        - name: REACT_APP_ENABLE_ANALYTICS
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-frontend-config
+              key: REACT_APP_ENABLE_ANALYTICS
+        - name: REACT_APP_ENABLE_REAL_TIME
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-frontend-config
+              key: REACT_APP_ENABLE_REAL_TIME
+        - name: REACT_APP_ENABLE_NOTIFICATIONS
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-frontend-config
+              key: REACT_APP_ENABLE_NOTIFICATIONS
+        
+        # Performance Configuration
+        - name: REACT_APP_REQUEST_TIMEOUT
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-frontend-config
+              key: REACT_APP_REQUEST_TIMEOUT
+        - name: REACT_APP_RETRY_ATTEMPTS
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-frontend-config
+              key: REACT_APP_RETRY_ATTEMPTS
+        
+        # UI Configuration
+        - name: REACT_APP_THEME
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-frontend-config
+              key: REACT_APP_THEME
+        - name: REACT_APP_LANGUAGE
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-frontend-config
+              key: REACT_APP_LANGUAGE
+        - name: REACT_APP_TIMEZONE
+          valueFrom:
+            configMapKeyRef:
+              name: itdo-erp-frontend-config
+              key: REACT_APP_TIMEZONE
+        
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+            httpHeaders:
+            - name: Host
+              value: localhost
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+          successThreshold: 1
+        
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+            httpHeaders:
+            - name: Host
+              value: localhost
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+          successThreshold: 1
+        
+        startupProbe:
+          httpGet:
+            path: /health
+            port: http
+            httpHeaders:
+            - name: Host
+              value: localhost
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 30
+          successThreshold: 1
+        
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+            ephemeral-storage: 1Gi
+          requests:
+            cpu: 100m
+            memory: 256Mi
+            ephemeral-storage: 100Mi
+        
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: var-cache-nginx
+          mountPath: /var/cache/nginx
+        - name: var-log-nginx
+          mountPath: /var/log/nginx
+        - name: var-run
+          mountPath: /var/run
+        - name: nginx-config
+          mountPath: /etc/nginx/conf.d/default.conf
+          subPath: nginx.conf
+          readOnly: true
+        
+      volumes:
+      - name: tmp
+        emptyDir:
+          sizeLimit: 100Mi
+      - name: var-cache-nginx
+        emptyDir:
+          sizeLimit: 100Mi
+      - name: var-log-nginx
+        emptyDir:
+          sizeLimit: 100Mi
+      - name: var-run
+        emptyDir:
+          sizeLimit: 10Mi
+      - name: nginx-config
+        configMap:
+          name: nginx-config
+          items:
+          - key: nginx.conf
+            path: nginx.conf
+      
+      terminationGracePeriodSeconds: 30
+      restartPolicy: Always
+      
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: itdo-erp-frontend
+              topologyKey: kubernetes.io/hostname
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: node.kubernetes.io/instance-type
+                operator: In
+                values: ["t3.medium", "t3.large", "m5.large"]
+      
+      tolerations:
+      - key: "app.kubernetes.io/name"
+        operator: "Equal"
+        value: "itdo-erp"
+        effect: "NoSchedule"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: itdo-erp-frontend-service
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: itdo-erp-frontend
+    app.kubernetes.io/component: web
+spec:
+  type: ClusterIP
+  sessionAffinity: None
+  ports:
+  - name: http
+    port: 8080
+    targetPort: http
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: itdo-erp-frontend
+    app.kubernetes.io/component: web
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: itdo-erp-frontend-headless
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: itdo-erp-frontend
+    app.kubernetes.io/component: web
+spec:
+  type: ClusterIP
+  clusterIP: None
+  publishNotReadyAddresses: false
+  ports:
+  - name: http
+    port: 8080
+    targetPort: http
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: itdo-erp-frontend
+    app.kubernetes.io/component: web
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: itdo-erp-frontend-hpa
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: itdo-erp-frontend
+    app.kubernetes.io/component: autoscaling
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: itdo-erp-frontend
+  minReplicas: 3
+  maxReplicas: 15
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 15
+      - type: Pods
+        value: 4
+        periodSeconds: 15
+      selectPolicy: Max
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: itdo-erp-frontend-pdb
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: itdo-erp-frontend
+    app.kubernetes.io/component: availability
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: itdo-erp-frontend
+      app.kubernetes.io/component: web
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: itdo-erp-frontend-network-policy
+  namespace: itdo-erp
+  labels:
+    app.kubernetes.io/name: itdo-erp-frontend
+    app.kubernetes.io/component: network-security
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: itdo-erp-frontend
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: itdo-erp
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: nginx-ingress
+    ports:
+    - protocol: TCP
+      port: 8080
+  egress:
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 80
+    - protocol: TCP
+      port: 443

@@ -1,0 +1,463 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/component: dashboards
+data:
+  # ITDO ERP Application Overview Dashboard
+  itdo-erp-overview.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "ITDO ERP - Application Overview",
+        "tags": ["itdo-erp", "application", "overview"],
+        "style": "dark",
+        "timezone": "browser",
+        "refresh": "30s",
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "panels": [
+          {
+            "id": 1,
+            "title": "Application Status",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "up{job=\"itdo-erp-backend\"}",
+                "legendFormat": "Backend",
+                "refId": "A"
+              },
+              {
+                "expr": "up{job=\"itdo-erp-frontend\"}",
+                "legendFormat": "Frontend",
+                "refId": "B"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "green", "value": 1}
+                  ]
+                },
+                "mappings": [
+                  {"options": {"0": {"text": "DOWN"}}, "type": "value"},
+                  {"options": {"1": {"text": "UP"}}, "type": "value"}
+                ]
+              }
+            },
+            "gridPos": {"h": 4, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Request Rate",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "sum(rate(http_requests_total{job=\"itdo-erp-backend\"}[5m]))",
+                "legendFormat": "Requests/sec",
+                "refId": "A"
+              }
+            ],
+            "yAxes": [
+              {"label": "Requests/sec", "min": 0},
+              {"show": false}
+            ],
+            "gridPos": {"h": 6, "w": 12, "x": 0, "y": 4}
+          },
+          {
+            "id": 3,
+            "title": "Response Time (95th percentile)",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"itdo-erp-backend\"}[5m])) by (le))",
+                "legendFormat": "95th percentile",
+                "refId": "A"
+              }
+            ],
+            "yAxes": [
+              {"label": "Seconds", "min": 0},
+              {"show": false}
+            ],
+            "gridPos": {"h": 6, "w": 12, "x": 12, "y": 4}
+          },
+          {
+            "id": 4,
+            "title": "Error Rate",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "sum(rate(http_requests_total{job=\"itdo-erp-backend\",status=~\"5..\"}[5m])) / sum(rate(http_requests_total{job=\"itdo-erp-backend\"}[5m])) * 100",
+                "legendFormat": "Error Rate %",
+                "refId": "A"
+              }
+            ],
+            "yAxes": [
+              {"label": "Percentage", "min": 0, "max": 100},
+              {"show": false}
+            ],
+            "gridPos": {"h": 6, "w": 12, "x": 0, "y": 10}
+          },
+          {
+            "id": 5,
+            "title": "Active Users",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "active_users_total{job=\"itdo-erp-backend\"}",
+                "legendFormat": "Active Users",
+                "refId": "A"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "short"
+              }
+            },
+            "gridPos": {"h": 6, "w": 12, "x": 12, "y": 10}
+          }
+        ],
+        "templating": {
+          "list": [
+            {
+              "name": "environment",
+              "type": "query",
+              "query": "label_values(up, environment)",
+              "current": {"text": "production", "value": "production"}
+            }
+          ]
+        }
+      }
+    }
+    
+  # Database Performance Dashboard
+  database-performance.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "ITDO ERP - Database Performance",
+        "tags": ["itdo-erp", "database", "postgresql"],
+        "style": "dark",
+        "timezone": "browser",
+        "refresh": "30s",
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "panels": [
+          {
+            "id": 1,
+            "title": "Database Connections",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "pg_stat_database_numbackends",
+                "legendFormat": "Active Connections",
+                "refId": "A"
+              },
+              {
+                "expr": "pg_settings_max_connections",
+                "legendFormat": "Max Connections",
+                "refId": "B"
+              }
+            ],
+            "yAxes": [
+              {"label": "Connections", "min": 0},
+              {"show": false}
+            ],
+            "gridPos": {"h": 6, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Query Performance",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(pg_stat_database_tup_fetched[5m])",
+                "legendFormat": "Rows Fetched/sec",
+                "refId": "A"
+              },
+              {
+                "expr": "rate(pg_stat_database_tup_inserted[5m])",
+                "legendFormat": "Rows Inserted/sec",
+                "refId": "B"
+              }
+            ],
+            "yAxes": [
+              {"label": "Rows/sec", "min": 0},
+              {"show": false}
+            ],
+            "gridPos": {"h": 6, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Database Size",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "pg_database_size_bytes",
+                "legendFormat": "Database Size",
+                "refId": "A"
+              }
+            ],
+            "yAxes": [
+              {"label": "Bytes", "min": 0},
+              {"show": false}
+            ],
+            "gridPos": {"h": 6, "w": 12, "x": 0, "y": 6}
+          },
+          {
+            "id": 4,
+            "title": "Cache Hit Ratio",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "pg_stat_database_blks_hit / (pg_stat_database_blks_hit + pg_stat_database_blks_read) * 100",
+                "legendFormat": "Cache Hit Ratio",
+                "refId": "A"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percent",
+                "min": 0,
+                "max": 100,
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "yellow", "value": 80},
+                    {"color": "green", "value": 95}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 6, "w": 12, "x": 12, "y": 6}
+          }
+        ]
+      }
+    }
+    
+  # Infrastructure Overview Dashboard
+  infrastructure-overview.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "ITDO ERP - Infrastructure Overview",
+        "tags": ["itdo-erp", "infrastructure", "kubernetes"],
+        "style": "dark",
+        "timezone": "browser",
+        "refresh": "30s",
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "panels": [
+          {
+            "id": 1,
+            "title": "CPU Usage by Node",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "100 - (avg by(instance) (irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+                "legendFormat": "{{instance}}",
+                "refId": "A"
+              }
+            ],
+            "yAxes": [
+              {"label": "CPU %", "min": 0, "max": 100},
+              {"show": false}
+            ],
+            "gridPos": {"h": 6, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Memory Usage by Node",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100",
+                "legendFormat": "{{instance}}",
+                "refId": "A"
+              }
+            ],
+            "yAxes": [
+              {"label": "Memory %", "min": 0, "max": 100},
+              {"show": false}
+            ],
+            "gridPos": {"h": 6, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Pod Status",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "kube_pod_status_phase{phase=\"Running\"}",
+                "legendFormat": "Running",
+                "refId": "A"
+              },
+              {
+                "expr": "kube_pod_status_phase{phase=\"Pending\"}",
+                "legendFormat": "Pending",
+                "refId": "B"
+              },
+              {
+                "expr": "kube_pod_status_phase{phase=\"Failed\"}",
+                "legendFormat": "Failed",
+                "refId": "C"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "short"
+              }
+            },
+            "gridPos": {"h": 6, "w": 12, "x": 0, "y": 6}
+          },
+          {
+            "id": 4,
+            "title": "Network I/O",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(node_network_receive_bytes_total[5m])",
+                "legendFormat": "Receive {{device}}",
+                "refId": "A"
+              },
+              {
+                "expr": "rate(node_network_transmit_bytes_total[5m])",
+                "legendFormat": "Transmit {{device}}",
+                "refId": "B"
+              }
+            ],
+            "yAxes": [
+              {"label": "Bytes/sec", "min": 0},
+              {"show": false}
+            ],
+            "gridPos": {"h": 6, "w": 12, "x": 12, "y": 6}
+          }
+        ]
+      }
+    }
+    
+  # Business Metrics Dashboard
+  business-metrics.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "ITDO ERP - Business Metrics",
+        "tags": ["itdo-erp", "business", "metrics"],
+        "style": "dark",
+        "timezone": "browser",
+        "refresh": "5m",
+        "time": {
+          "from": "now-24h",
+          "to": "now"
+        },
+        "panels": [
+          {
+            "id": 1,
+            "title": "Daily Active Users",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "daily_active_users_total{job=\"itdo-erp-backend\"}",
+                "legendFormat": "DAU",
+                "refId": "A"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "short",
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "yellow", "value": 100},
+                    {"color": "green", "value": 500}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 6, "w": 8, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Orders Created",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "increase(orders_created_total{job=\"itdo-erp-backend\"}[24h])",
+                "legendFormat": "Orders Today",
+                "refId": "A"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "short"
+              }
+            },
+            "gridPos": {"h": 6, "w": 8, "x": 8, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Revenue (Daily)",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "increase(revenue_total{job=\"itdo-erp-backend\"}[24h])",
+                "legendFormat": "Revenue Today",
+                "refId": "A"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "currencyUSD",
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "yellow", "value": 10000},
+                    {"color": "green", "value": 50000}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 6, "w": 8, "x": 16, "y": 0}
+          },
+          {
+            "id": 4,
+            "title": "API Usage by Endpoint",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "sum by (path) (rate(http_requests_total{job=\"itdo-erp-backend\"}[5m]))",
+                "legendFormat": "{{path}}",
+                "refId": "A"
+              }
+            ],
+            "yAxes": [
+              {"label": "Requests/sec", "min": 0},
+              {"show": false}
+            ],
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 6}
+          }
+        ]
+      }
+    }

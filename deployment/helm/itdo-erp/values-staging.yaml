@@ -1,0 +1,353 @@
+# ITDO ERP Staging Environment Values
+# Override production values for staging deployment
+
+# Global settings for staging
+global:
+  imageRegistry: "registry.itdo-erp.com"
+  imagePullSecrets:
+    - name: registry-secret
+  storageClass: "standard"
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1001
+    runAsGroup: 1001
+    fsGroup: 1001
+
+# Namespace configuration
+namespace:
+  create: true
+  name: "itdo-erp-staging"
+  labels:
+    app.kubernetes.io/name: "itdo-erp"
+    app.kubernetes.io/instance: "staging"
+    environment: "staging"
+
+# Backend configuration for staging
+backend:
+  enabled: true
+  
+  # Image configuration
+  image:
+    repository: "itdo-erp-backend"
+    tag: "latest"  # Will be overridden by CI/CD
+    pullPolicy: "Always"
+  
+  # Reduced resources for staging
+  replicaCount: 2
+  
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+      ephemeral-storage: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+      ephemeral-storage: 250Mi
+  
+  # Autoscaling for staging
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 85
+  
+  # Pod disruption budget
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+  
+  # Environment variables for staging
+  env:
+    LOG_LEVEL: "DEBUG"
+    LOG_FORMAT: "json"
+    METRICS_ENABLED: "true"
+    ENABLE_ANALYTICS: "true"
+    ENABLE_ML_FEATURES: "false"  # Disabled in staging
+    ENABLE_REAL_TIME_DASHBOARD: "true"
+    ENABLE_MESSAGE_QUEUE: "true"
+
+# Frontend configuration for staging
+frontend:
+  enabled: true
+  
+  # Image configuration
+  image:
+    repository: "itdo-erp-frontend"
+    tag: "latest"  # Will be overridden by CI/CD
+    pullPolicy: "Always"
+  
+  # Reduced resources for staging
+  replicaCount: 2
+  
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+      ephemeral-storage: 500Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+      ephemeral-storage: 50Mi
+  
+  # Autoscaling for staging
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 85
+  
+  # Pod disruption budget
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+  
+  # Environment variables for staging
+  env:
+    REACT_APP_API_BASE_URL: "https://staging-api.itdo-erp.com"
+    REACT_APP_KEYCLOAK_URL: "https://staging-auth.itdo-erp.com"
+    REACT_APP_KEYCLOAK_REALM: "itdo-erp-staging"
+    REACT_APP_KEYCLOAK_CLIENT_ID: "itdo-erp-web-staging"
+    REACT_APP_ENABLE_ANALYTICS: "true"
+    REACT_APP_ENABLE_REAL_TIME: "true"
+    REACT_APP_ENABLE_NOTIFICATIONS: "true"
+
+# PostgreSQL configuration for staging
+postgresql:
+  enabled: true
+  
+  # Bitnami PostgreSQL configuration
+  auth:
+    enablePostgresUser: true
+    username: "itdo_erp_staging"
+    database: "itdo_erp_staging"
+    existingSecret: "itdo-erp-staging-secrets"
+    secretKeys:
+      adminPasswordKey: "DATABASE_PASSWORD"
+      userPasswordKey: "DATABASE_PASSWORD"
+  
+  architecture: standalone
+  
+  primary:
+    persistence:
+      enabled: true
+      size: 50Gi
+      storageClass: "standard"
+    
+    resources:
+      limits:
+        memory: 1Gi
+        cpu: 500m
+      requests:
+        memory: 256Mi
+        cpu: 100m
+
+# Redis configuration for staging
+redis:
+  enabled: true
+  
+  # Bitnami Redis configuration
+  auth:
+    enabled: true
+    existingSecret: "itdo-erp-staging-secrets"
+    existingSecretPasswordKey: "REDIS_PASSWORD"
+  
+  architecture: standalone
+  
+  master:
+    persistence:
+      enabled: true
+      size: 10Gi
+      storageClass: "standard"
+    
+    resources:
+      limits:
+        memory: 512Mi
+        cpu: 250m
+      requests:
+        memory: 128Mi
+        cpu: 50m
+
+# Ingress configuration for staging
+ingress:
+  enabled: true
+  className: "nginx"
+  
+  # Annotations for staging
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/rate-limit: "50"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    cert-manager.io/cluster-issuer: "letsencrypt-staging"
+  
+  # Staging hosts
+  hosts:
+    - host: staging.itdo-erp.com
+      paths:
+        - path: /api
+          pathType: Prefix
+          service: backend
+        - path: /ws
+          pathType: Prefix
+          service: backend
+        - path: /
+          pathType: Prefix
+          service: frontend
+    - host: staging-api.itdo-erp.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service: backend
+  
+  # TLS configuration for staging
+  tls:
+    - secretName: itdo-erp-staging-tls
+      hosts:
+        - staging.itdo-erp.com
+        - staging-api.itdo-erp.com
+
+# NGINX Ingress Controller for staging
+nginx-ingress:
+  enabled: true
+  controller:
+    replicaCount: 2
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 50m
+        memory: 128Mi
+    
+    config:
+      use-gzip: "true"
+      gzip-level: "4"
+      client-max-body-size: "50m"
+
+# Certificate Manager for staging
+certManager:
+  enabled: true
+  installCRDs: true
+  
+  # Let's Encrypt staging configuration
+  clusterIssuer:
+    email: "dev@itdo-erp.com"
+    server: "https://acme-staging-v02.api.letsencrypt.org/directory"
+
+# Monitoring configuration for staging
+monitoring:
+  enabled: true
+  
+  # Prometheus configuration
+  prometheus:
+    enabled: true
+    retention: "7d"  # Shorter retention for staging
+    
+    server:
+      resources:
+        limits:
+          cpu: 1000m
+          memory: 2Gi
+        requests:
+          memory: 512Mi
+          cpu: 250m
+      
+      persistentVolume:
+        enabled: true
+        size: 20Gi
+        storageClass: "standard"
+  
+  # Grafana configuration
+  grafana:
+    enabled: true
+    
+    persistence:
+      enabled: true
+      size: 5Gi
+      storageClass: "standard"
+    
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 50m
+        memory: 128Mi
+
+# Logging configuration for staging
+logging:
+  enabled: true
+  
+  # Loki configuration
+  loki:
+    enabled: true
+    
+    persistence:
+      enabled: true
+      size: 20Gi
+      storageClass: "standard"
+    
+    resources:
+      limits:
+        cpu: 500m
+        memory: 1Gi
+      requests:
+        cpu: 50m
+        memory: 128Mi
+
+# Security configuration for staging
+security:
+  # Network policies
+  networkPolicy:
+    enabled: true
+    
+  # Pod security policy
+  podSecurityPolicy:
+    enabled: false  # Disabled for easier testing
+    
+  # Security scanning
+  securityScanning:
+    enabled: true
+
+# Backup configuration for staging
+backup:
+  enabled: false  # Disabled in staging
+
+# External services configuration for staging
+external:
+  # Keycloak (Authentication)
+  keycloak:
+    enabled: false
+    url: "https://staging-auth.itdo-erp.com"
+    realm: "itdo-erp-staging"
+    clientId: "itdo-erp-api-staging"
+  
+  # Email service (use test SMTP)
+  email:
+    enabled: true
+    smtp:
+      host: "smtp.mailtrap.io"
+      port: 587
+      username: "staging@itdo-erp.com"
+      tls: true
+  
+  # Object storage (use staging bucket)
+  objectStorage:
+    enabled: true
+    endpoint: "s3.amazonaws.com"
+    bucket: "itdo-erp-staging-storage"
+    region: "us-west-2"
+
+# Development and testing configuration
+development:
+  enabled: true
+  
+  # Debug mode
+  debug: true
+  
+  # Test data
+  seedData: true

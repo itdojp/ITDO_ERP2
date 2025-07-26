@@ -1,0 +1,356 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-config
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: alertmanager
+    app.kubernetes.io/component: config
+data:
+  alertmanager.yml: |
+    global:
+      smtp_smarthost: 'localhost:587'
+      smtp_from: 'alerts@itdo-erp.com'
+      smtp_auth_username: 'alerts@itdo-erp.com'
+      smtp_auth_password: 'smtp_password'
+      smtp_require_tls: true
+      
+    templates:
+      - '/etc/alertmanager/templates/*.tmpl'
+      
+    route:
+      group_by: ['alertname', 'cluster', 'service']
+      group_wait: 10s
+      group_interval: 10s
+      repeat_interval: 1h
+      receiver: 'web.hook.default'
+      routes:
+        # Critical alerts - immediate notification
+        - match:
+            severity: critical
+          receiver: 'critical-alerts'
+          group_wait: 0s
+          repeat_interval: 5m
+          
+        # Database alerts
+        - match_re:
+            service: database|cache
+          receiver: 'database-alerts'
+          group_wait: 30s
+          repeat_interval: 15m
+          
+        # Application alerts
+        - match_re:
+            service: backend|frontend
+          receiver: 'application-alerts'
+          group_wait: 30s
+          repeat_interval: 30m
+          
+        # Infrastructure alerts
+        - match_re:
+            alertname: 'Kubernetes.*|High.*Usage'
+          receiver: 'infrastructure-alerts'
+          group_wait: 1m
+          repeat_interval: 1h
+          
+        # Warning alerts
+        - match:
+            severity: warning
+          receiver: 'warning-alerts'
+          group_wait: 5m
+          repeat_interval: 2h
+          
+    inhibit_rules:
+      # Inhibit warning alerts if critical alerts are firing
+      - source_match:
+          severity: 'critical'
+        target_match:
+          severity: 'warning'
+        equal: ['alertname', 'cluster', 'service']
+        
+      # Inhibit node alerts if the entire cluster is down
+      - source_match:
+          alertname: 'KubernetesClusterDown'
+        target_match_re:
+          alertname: 'Kubernetes.*'
+        equal: ['cluster']
+        
+    receivers:
+      # Default webhook receiver
+      - name: 'web.hook.default'
+        webhook_configs:
+          - url: 'http://localhost:5001/webhook'
+            send_resolved: true
+            
+      # Critical alerts - multiple channels
+      - name: 'critical-alerts'
+        email_configs:
+          - to: 'devops-team@itdo-erp.com'
+            subject: '🚨 CRITICAL: {{ .GroupLabels.alertname }} - {{ .GroupLabels.cluster }}'
+            body: |
+              {{ range .Alerts }}
+              Alert: {{ .Annotations.summary }}
+              Description: {{ .Annotations.description }}
+              Labels:
+              {{ range .Labels.SortedPairs }}  {{ .Name }}: {{ .Value }}
+              {{ end }}
+              {{ end }}
+            headers:
+              Priority: 'high'
+              
+        slack_configs:
+          - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+            channel: '#alerts-critical'
+            color: 'danger'
+            title: '🚨 Critical Alert: {{ .GroupLabels.alertname }}'
+            text: |
+              {{ range .Alerts }}
+              *Alert:* {{ .Annotations.summary }}
+              *Description:* {{ .Annotations.description }}
+              *Severity:* {{ .Labels.severity }}
+              *Service:* {{ .Labels.service }}
+              {{ end }}
+            send_resolved: true
+            
+        pagerduty_configs:
+          - routing_key: 'YOUR_PAGERDUTY_INTEGRATION_KEY'
+            description: '{{ .GroupLabels.alertname }} - {{ .GroupLabels.cluster }}'
+            severity: 'critical'
+            
+      # Database alerts
+      - name: 'database-alerts'
+        email_configs:
+          - to: 'database-team@itdo-erp.com'
+            subject: '🗄️ Database Alert: {{ .GroupLabels.alertname }}'
+            body: |
+              Database Alert Details:
+              
+              {{ range .Alerts }}
+              Alert: {{ .Annotations.summary }}
+              Description: {{ .Annotations.description }}
+              Service: {{ .Labels.service }}
+              Severity: {{ .Labels.severity }}
+              
+              Labels:
+              {{ range .Labels.SortedPairs }}  {{ .Name }}: {{ .Value }}
+              {{ end }}
+              
+              {{ if .Annotations.runbook_url }}
+              Runbook: {{ .Annotations.runbook_url }}
+              {{ end }}
+              {{ end }}
+              
+        slack_configs:
+          - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+            channel: '#alerts-database'
+            color: '{{ if eq .Status "firing" }}warning{{ else }}good{{ end }}'
+            title: '🗄️ Database Alert: {{ .GroupLabels.alertname }}'
+            text: |
+              {{ range .Alerts }}
+              *Alert:* {{ .Annotations.summary }}
+              *Description:* {{ .Annotations.description }}
+              *Service:* {{ .Labels.service }}
+              {{ end }}
+            send_resolved: true
+            
+      # Application alerts
+      - name: 'application-alerts'
+        email_configs:
+          - to: 'development-team@itdo-erp.com'
+            subject: '🔧 Application Alert: {{ .GroupLabels.alertname }}'
+            body: |
+              Application Alert Details:
+              
+              {{ range .Alerts }}
+              Alert: {{ .Annotations.summary }}
+              Description: {{ .Annotations.description }}
+              Service: {{ .Labels.service }}
+              Severity: {{ .Labels.severity }}
+              
+              {{ if .Labels.pod }}
+              Pod: {{ .Labels.pod }}
+              {{ end }}
+              {{ if .Labels.namespace }}
+              Namespace: {{ .Labels.namespace }}
+              {{ end }}
+              
+              Labels:
+              {{ range .Labels.SortedPairs }}  {{ .Name }}: {{ .Value }}
+              {{ end }}
+              {{ end }}
+              
+        slack_configs:
+          - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+            channel: '#alerts-application'
+            color: '{{ if eq .Status "firing" }}warning{{ else }}good{{ end }}'
+            title: '🔧 Application Alert: {{ .GroupLabels.alertname }}'
+            text: |
+              {{ range .Alerts }}
+              *Alert:* {{ .Annotations.summary }}
+              *Description:* {{ .Annotations.description }}
+              *Service:* {{ .Labels.service }}
+              {{ end }}
+            send_resolved: true
+            
+      # Infrastructure alerts
+      - name: 'infrastructure-alerts'
+        email_configs:
+          - to: 'infrastructure-team@itdo-erp.com'
+            subject: '🏗️ Infrastructure Alert: {{ .GroupLabels.alertname }}'
+            body: |
+              Infrastructure Alert Details:
+              
+              {{ range .Alerts }}
+              Alert: {{ .Annotations.summary }}
+              Description: {{ .Annotations.description }}
+              Severity: {{ .Labels.severity }}
+              
+              {{ if .Labels.node }}
+              Node: {{ .Labels.node }}
+              {{ end }}
+              {{ if .Labels.instance }}
+              Instance: {{ .Labels.instance }}
+              {{ end }}
+              
+              Labels:
+              {{ range .Labels.SortedPairs }}  {{ .Name }}: {{ .Value }}
+              {{ end }}
+              {{ end }}
+              
+        slack_configs:
+          - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+            channel: '#alerts-infrastructure'
+            color: '{{ if eq .Status "firing" }}warning{{ else }}good{{ end }}'
+            title: '🏗️ Infrastructure Alert: {{ .GroupLabels.alertname }}'
+            text: |
+              {{ range .Alerts }}
+              *Alert:* {{ .Annotations.summary }}
+              *Description:* {{ .Annotations.description }}
+              {{ end }}
+            send_resolved: true
+            
+      # Warning alerts
+      - name: 'warning-alerts'
+        email_configs:
+          - to: 'monitoring-team@itdo-erp.com'
+            subject: '⚠️ Warning: {{ .GroupLabels.alertname }}'
+            body: |
+              Warning Alert Details:
+              
+              {{ range .Alerts }}
+              Alert: {{ .Annotations.summary }}
+              Description: {{ .Annotations.description }}
+              Severity: {{ .Labels.severity }}
+              
+              Labels:
+              {{ range .Labels.SortedPairs }}  {{ .Name }}: {{ .Value }}
+              {{ end }}
+              {{ end }}
+              
+        slack_configs:
+          - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+            channel: '#alerts-warnings'
+            color: 'warning'
+            title: '⚠️ Warning: {{ .GroupLabels.alertname }}'
+            text: |
+              {{ range .Alerts }}
+              *Alert:* {{ .Annotations.summary }}
+              *Description:* {{ .Annotations.description }}
+              {{ end }}
+            send_resolved: true
+            
+  # Email template
+  email.tmpl: |
+    {{ define "email.itdo.subject" }}
+    [{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] ITDO ERP Alert: {{ .GroupLabels.alertname }}
+    {{ end }}
+    
+    {{ define "email.itdo.html" }}
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            body { font-family: Arial, sans-serif; }
+            .header { background-color: #f4f4f4; padding: 20px; text-align: center; }
+            .alert { margin: 20px 0; padding: 15px; border-left: 5px solid; }
+            .critical { border-color: #d32f2f; background-color: #ffebee; }
+            .warning { border-color: #f57c00; background-color: #fff3e0; }
+            .resolved { border-color: #388e3c; background-color: #e8f5e8; }
+            .labels { margin-top: 10px; }
+            .label { background-color: #e0e0e0; padding: 2px 6px; margin: 2px; border-radius: 3px; font-size: 12px; }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h1>ITDO ERP Alert Notification</h1>
+            <p>Status: <strong>{{ .Status | toUpper }}</strong></p>
+            <p>Timestamp: {{ .Alerts.Firing | len }}{{ if .Alerts.Resolved | len }} / {{ .Alerts.Resolved | len }} resolved{{ end }}</p>
+        </div>
+        
+        {{ if .Alerts.Firing }}
+        <h2>🔥 Firing Alerts</h2>
+        {{ range .Alerts.Firing }}
+        <div class="alert {{ if eq .Labels.severity "critical" }}critical{{ else }}warning{{ end }}">
+            <h3>{{ .Annotations.summary }}</h3>
+            <p>{{ .Annotations.description }}</p>
+            <div class="labels">
+                {{ range .Labels.SortedPairs }}
+                <span class="label">{{ .Name }}: {{ .Value }}</span>
+                {{ end }}
+            </div>
+            {{ if .Annotations.runbook_url }}
+            <p><a href="{{ .Annotations.runbook_url }}">📖 Runbook</a></p>
+            {{ end }}
+        </div>
+        {{ end }}
+        {{ end }}
+        
+        {{ if .Alerts.Resolved }}
+        <h2>✅ Resolved Alerts</h2>
+        {{ range .Alerts.Resolved }}
+        <div class="alert resolved">
+            <h3>{{ .Annotations.summary }}</h3>
+            <p>{{ .Annotations.description }}</p>
+            <div class="labels">
+                {{ range .Labels.SortedPairs }}
+                <span class="label">{{ .Name }}: {{ .Value }}</span>
+                {{ end }}
+            </div>
+        </div>
+        {{ end }}
+        {{ end }}
+        
+        <div style="margin-top: 40px; padding: 20px; background-color: #f9f9f9; border-radius: 5px;">
+            <h3>📊 Monitoring Links</h3>
+            <ul>
+                <li><a href="https://grafana.itdo-erp.com">Grafana Dashboard</a></li>
+                <li><a href="https://prometheus.itdo-erp.com">Prometheus</a></li>
+                <li><a href="https://alertmanager.itdo-erp.com">Alert Manager</a></li>
+            </ul>
+        </div>
+    </body>
+    </html>
+    {{ end }}
+    
+  # Slack template
+  slack.tmpl: |
+    {{ define "slack.itdo.title" }}
+    {{ if eq .Status "firing" }}🚨{{ else }}✅{{ end }} {{ .GroupLabels.alertname }} - {{ .GroupLabels.cluster }}
+    {{ end }}
+    
+    {{ define "slack.itdo.text" }}
+    {{ if eq .Status "firing" }}
+    *Firing Alerts:* {{ .Alerts.Firing | len }}
+    {{ range .Alerts.Firing }}
+    • *{{ .Annotations.summary }}*
+      {{ .Annotations.description }}
+    {{ end }}
+    {{ else }}
+    *Resolved Alerts:* {{ .Alerts.Resolved | len }}
+    {{ range .Alerts.Resolved }}
+    • *{{ .Annotations.summary }}* - Resolved
+    {{ end }}
+    {{ end }}
+    
+    <https://grafana.itdo-erp.com|📊 View Dashboard>
+    {{ end }}
