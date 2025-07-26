@@ -1,0 +1,553 @@
+---
+# Cert-Manager SSL Certificate Management System
+# CC03 v68.0 Day 4: Automated SSL/TLS Certificate Management
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cert-manager
+  labels:
+    name: cert-manager
+
+---
+# Cert-Manager ClusterIssuer for Let's Encrypt Production
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+  namespace: cert-manager
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: ssl-admin@itdo-erp.com
+    privateKeySecretRef:
+      name: letsencrypt-prod-private-key
+    solvers:
+    - selector:
+        dnsZones:
+        - "itdo-erp.com"
+      dns01:
+        cloudflare:
+          email: ssl-admin@itdo-erp.com
+          apiTokenSecretRef:
+            name: cloudflare-api-token
+            key: api-token
+    - selector: {}
+      http01:
+        ingress:
+          class: nginx
+
+---
+# Cert-Manager ClusterIssuer for Let's Encrypt Staging
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+  namespace: cert-manager
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: ssl-admin@itdo-erp.com
+    privateKeySecretRef:
+      name: letsencrypt-staging-private-key
+    solvers:
+    - selector:
+        dnsZones:
+        - "itdo-erp.com"
+      dns01:
+        cloudflare:
+          email: ssl-admin@itdo-erp.com
+          apiTokenSecretRef:
+            name: cloudflare-api-token
+            key: api-token
+    - selector: {}
+      http01:
+        ingress:
+          class: nginx
+
+---
+# Self-Signed ClusterIssuer for Internal Services
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: selfsigned-issuer
+  namespace: cert-manager
+spec:
+  selfSigned: {}
+
+---
+# Internal CA ClusterIssuer
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: internal-ca-issuer
+  namespace: cert-manager
+spec:
+  ca:
+    secretName: internal-ca-secret
+
+---
+# Main SSL Certificate for ITDO ERP Domain
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: itdo-erp-tls-cert
+  namespace: itdo-erp-production
+spec:
+  secretName: itdo-erp-tls-secret
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  dnsNames:
+  - itdo-erp.com
+  - www.itdo-erp.com
+  - api.itdo-erp.com
+  - admin.itdo-erp.com
+  - app.itdo-erp.com
+  duration: 2160h  # 90 days
+  renewBefore: 360h  # 15 days before expiry
+  subject:
+    organizationalUnits:
+    - "ITDO ERP Production"
+    organizations:
+    - "ITDO Corporation"
+    countries:
+    - "JP"
+    localities:
+    - "Tokyo"
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS1
+    size: 2048
+  usages:
+  - digital signature
+  - key encipherment
+  - server auth
+
+---
+# Wildcard Certificate for Subdomains
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: itdo-erp-wildcard-cert
+  namespace: itdo-erp-production
+spec:
+  secretName: itdo-erp-wildcard-secret
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  dnsNames:
+  - "*.itdo-erp.com"
+  - itdo-erp.com
+  duration: 2160h  # 90 days
+  renewBefore: 360h  # 15 days before expiry
+  subject:
+    organizationalUnits:
+    - "ITDO ERP Production"
+    organizations:
+    - "ITDO Corporation"
+    countries:
+    - "JP"
+    localities:
+    - "Tokyo"
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS1
+    size: 2048
+  usages:
+  - digital signature
+  - key encipherment
+  - server auth
+
+---
+# Internal Services Certificate (PostgreSQL, Redis, etc.)
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: internal-services-cert
+  namespace: itdo-erp-production
+spec:
+  secretName: internal-services-tls-secret
+  issuerRef:
+    name: internal-ca-issuer
+    kind: ClusterIssuer
+  dnsNames:
+  - patroni-cluster-service.itdo-erp-production.svc.cluster.local
+  - redis-master-service.itdo-erp-production.svc.cluster.local
+  - redis-sentinel-service.itdo-erp-production.svc.cluster.local
+  - nginx-plus-primary-service.itdo-erp-production.svc.cluster.local
+  - nginx-plus-secondary-service.itdo-erp-production.svc.cluster.local
+  duration: 8760h  # 365 days for internal certs
+  renewBefore: 2160h  # 90 days before expiry
+  subject:
+    organizationalUnits:
+    - "ITDO ERP Internal Services"
+    organizations:
+    - "ITDO Corporation"
+    countries:
+    - "JP"
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS1
+    size: 2048
+  usages:
+  - digital signature
+  - key encipherment
+  - server auth
+  - client auth
+
+---
+# Certificate for Client Authentication (mTLS)
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: client-auth-cert
+  namespace: itdo-erp-production
+spec:
+  secretName: client-auth-tls-secret
+  issuerRef:
+    name: internal-ca-issuer
+    kind: ClusterIssuer
+  commonName: itdo-erp-client
+  duration: 8760h  # 365 days
+  renewBefore: 2160h  # 90 days before expiry
+  subject:
+    organizationalUnits:
+    - "ITDO ERP Client Authentication"
+    organizations:
+    - "ITDO Corporation"
+    countries:
+    - "JP"
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS1
+    size: 2048
+  usages:
+  - digital signature
+  - key encipherment
+  - client auth
+
+---
+# Cloudflare API Token Secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cloudflare-api-token
+  namespace: cert-manager
+type: Opaque
+stringData:
+  api-token: "your-cloudflare-api-token-here"
+
+---
+# Internal CA Root Certificate
+apiVersion: v1
+kind: Secret
+metadata:
+  name: internal-ca-secret
+  namespace: cert-manager
+type: kubernetes.io/tls
+stringData:
+  tls.crt: |
+    -----BEGIN CERTIFICATE-----
+    # Internal CA Root Certificate (placeholder)
+    # This should be replaced with actual internal CA certificate
+    # Generated with: openssl req -x509 -new -nodes -key ca.key -sha256 -days 3650 -out ca.crt
+    -----END CERTIFICATE-----
+  tls.key: |
+    -----BEGIN PRIVATE KEY-----
+    # Internal CA Private Key (placeholder)
+    # This should be replaced with actual internal CA private key
+    # Generated with: openssl genrsa -out ca.key 4096
+    -----END PRIVATE KEY-----
+
+---
+# Certificate Renewal Job
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cert-renewal-check
+  namespace: itdo-erp-production
+  labels:
+    app: cert-manager
+    component: renewal
+spec:
+  schedule: "0 6 * * *"  # Daily at 6 AM
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: cert-renewal-sa
+          containers:
+          - name: cert-renewal-check
+            image: alpine:3.18
+            command:
+            - /bin/sh
+            - -c
+            - |
+              apk add --no-cache curl openssl kubectl
+              
+              echo "Starting certificate renewal check..."
+              
+              # Check certificate expiry for main domain
+              echo "Checking main domain certificate..."
+              CERT_EXPIRY=$(kubectl get certificate itdo-erp-tls-cert -n itdo-erp-production -o jsonpath='{.status.notAfter}')
+              if [ -n "$CERT_EXPIRY" ]; then
+                EXPIRY_TIMESTAMP=$(date -d "$CERT_EXPIRY" +%s)
+                CURRENT_TIMESTAMP=$(date +%s)
+                DAYS_UNTIL_EXPIRY=$(( (EXPIRY_TIMESTAMP - CURRENT_TIMESTAMP) / 86400 ))
+                
+                echo "Main certificate expires in $DAYS_UNTIL_EXPIRY days"
+                
+                if [ $DAYS_UNTIL_EXPIRY -le 30 ]; then
+                  echo "Certificate expires in 30 days or less, forcing renewal..."
+                  kubectl annotate certificate itdo-erp-tls-cert -n itdo-erp-production \
+                    cert-manager.io/issue-temporary-certificate=true --overwrite
+                fi
+              fi
+              
+              # Check wildcard certificate
+              echo "Checking wildcard certificate..."
+              WILDCARD_EXPIRY=$(kubectl get certificate itdo-erp-wildcard-cert -n itdo-erp-production -o jsonpath='{.status.notAfter}')
+              if [ -n "$WILDCARD_EXPIRY" ]; then
+                EXPIRY_TIMESTAMP=$(date -d "$WILDCARD_EXPIRY" +%s)
+                CURRENT_TIMESTAMP=$(date +%s)
+                DAYS_UNTIL_EXPIRY=$(( (EXPIRY_TIMESTAMP - CURRENT_TIMESTAMP) / 86400 ))
+                
+                echo "Wildcard certificate expires in $DAYS_UNTIL_EXPIRY days"
+                
+                if [ $DAYS_UNTIL_EXPIRY -le 30 ]; then
+                  echo "Wildcard certificate expires in 30 days or less, forcing renewal..."
+                  kubectl annotate certificate itdo-erp-wildcard-cert -n itdo-erp-production \
+                    cert-manager.io/issue-temporary-certificate=true --overwrite
+                fi
+              fi
+              
+              # Check certificate statuses
+              echo "Checking certificate statuses..."
+              kubectl get certificates -n itdo-erp-production
+              
+              # Send notification if any certificates are not ready
+              NOT_READY=$(kubectl get certificates -n itdo-erp-production -o jsonpath='{.items[?(@.status.conditions[0].type=="Ready")].items[?(@.status.conditions[0].status=="False")].metadata.name}')
+              if [ -n "$NOT_READY" ]; then
+                echo "Certificates not ready: $NOT_READY"
+                # Send alert (webhook call)
+                curl -X POST \
+                  -H "Content-Type: application/json" \
+                  -d "{\"title\":\"Certificate Issue\",\"message\":\"Certificates not ready: $NOT_READY\",\"severity\":\"warning\"}" \
+                  "${ALERT_WEBHOOK_URL:-http://alertmanager:9093/api/v1/alerts}" \
+                  > /dev/null 2>&1 || true
+              fi
+              
+              echo "Certificate renewal check completed"
+            env:
+            - name: ALERT_WEBHOOK_URL
+              value: "http://alertmanager:9093/api/v1/alerts"
+            resources:
+              requests:
+                memory: "64Mi"
+                cpu: "50m"
+              limits:
+                memory: "128Mi"
+                cpu: "100m"
+
+---
+# ServiceAccount for Certificate Renewal
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cert-renewal-sa
+  namespace: itdo-erp-production
+
+---
+# ClusterRole for Certificate Management
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cert-renewal-role
+rules:
+- apiGroups: ["cert-manager.io"]
+  resources: ["certificates", "certificaterequests", "issuers", "clusterissuers"]
+  verbs: ["get", "list", "watch", "patch", "update"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+
+---
+# ClusterRoleBinding for Certificate Renewal
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cert-renewal-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cert-renewal-role
+subjects:
+- kind: ServiceAccount
+  name: cert-renewal-sa
+  namespace: itdo-erp-production
+
+---
+# Certificate Monitoring and Alerting
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: certificate-alerts
+  namespace: itdo-erp-production
+  labels:
+    app: cert-manager
+    component: alerting
+spec:
+  groups:
+  - name: certificate.rules
+    interval: 30s
+    rules:
+    # Certificate expiry alerts
+    - alert: CertificateExpiringSoon
+      expr: (certmanager_certificate_expiration_timestamp_seconds - time()) / 86400 < 30
+      for: 1h
+      labels:
+        severity: warning
+        service: cert-manager
+      annotations:
+        summary: "SSL certificate expiring soon"
+        description: "Certificate {{ $labels.name }} in namespace {{ $labels.namespace }} expires in {{ $value }} days."
+    
+    - alert: CertificateExpiryCritical
+      expr: (certmanager_certificate_expiration_timestamp_seconds - time()) / 86400 < 7
+      for: 1h
+      labels:
+        severity: critical
+        service: cert-manager
+      annotations:
+        summary: "SSL certificate expiring very soon"
+        description: "Certificate {{ $labels.name }} in namespace {{ $labels.namespace }} expires in {{ $value }} days."
+    
+    # Certificate renewal failure alerts
+    - alert: CertificateRenewalFailed
+      expr: certmanager_certificate_ready_status == 0
+      for: 1h
+      labels:
+        severity: critical
+        service: cert-manager
+      annotations:
+        summary: "Certificate renewal failed"
+        description: "Certificate {{ $labels.name }} in namespace {{ $labels.namespace }} renewal has failed."
+    
+    # ACME challenge failure alerts
+    - alert: ACMEChallengeError
+      expr: increase(certmanager_acme_client_request_count{status!~"2.."}[5m]) > 0
+      for: 15m
+      labels:
+        severity: warning
+        service: cert-manager
+      annotations:
+        summary: "ACME challenge errors detected"
+        description: "ACME challenge errors detected for cert-manager."
+
+---
+# Certificate Status Dashboard ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: certificate-dashboard-config
+  namespace: itdo-erp-production
+  labels:
+    app: grafana
+    component: dashboard
+data:
+  certificate-dashboard.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "SSL Certificate Management",
+        "tags": ["ssl", "certificates", "cert-manager"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Certificate Status",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "certmanager_certificate_ready_status",
+                "legendFormat": "{{ name }} - {{ namespace }}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "green", "value": 1}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 2,
+            "title": "Certificate Expiry (Days)",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "(certmanager_certificate_expiration_timestamp_seconds - time()) / 86400",
+                "legendFormat": "{{ name }} - {{ namespace }}"
+              }
+            ],
+            "yAxes": [
+              {
+                "unit": "days",
+                "min": 0
+              }
+            ],
+            "thresholds": [
+              {
+                "value": 30,
+                "colorMode": "critical",
+                "op": "lt"
+              },
+              {
+                "value": 7,
+                "colorMode": "critical",
+                "op": "lt"
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "title": "ACME Request Rate",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(certmanager_acme_client_request_count[5m])",
+                "legendFormat": "{{ method }} - {{ status }}"
+              }
+            ]
+          },
+          {
+            "id": 4,
+            "title": "Certificate Renewal Events",
+            "type": "table",
+            "targets": [
+              {
+                "expr": "increase(certmanager_certificate_renewal_count[24h])",
+                "legendFormat": "{{ name }} - {{ namespace }}"
+              }
+            ]
+          }
+        ],
+        "time": {
+          "from": "now-24h",
+          "to": "now"
+        },
+        "refresh": "5m"
+      }
+    }

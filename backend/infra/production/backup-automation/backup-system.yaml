@@ -1,0 +1,940 @@
+---
+# Enterprise Backup Automation System
+# CC03 v68.0 Day 4: Comprehensive Data Protection and Recovery
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: backup-system
+  labels:
+    name: backup-system
+
+---
+# Backup Storage Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backup-config
+  namespace: backup-system
+  labels:
+    app: backup-system
+    component: configuration
+data:
+  backup.conf: |
+    # Enterprise Backup Configuration
+    
+    # Storage Backend Configuration
+    BACKUP_STORAGE_TYPE="s3"
+    S3_BUCKET="itdo-erp-backups-production"
+    S3_REGION="ap-northeast-1"
+    S3_STORAGE_CLASS="STANDARD_IA"
+    
+    # Retention Policies
+    DAILY_RETENTION_DAYS="30"
+    WEEKLY_RETENTION_WEEKS="12"
+    MONTHLY_RETENTION_MONTHS="12"
+    YEARLY_RETENTION_YEARS="7"
+    
+    # PostgreSQL Backup Settings
+    PG_BACKUP_COMPRESSION="gzip"
+    PG_BACKUP_FORMAT="custom"
+    PG_PARALLEL_JOBS="4"
+    PG_VACUUM_BEFORE_BACKUP="true"
+    
+    # Redis Backup Settings
+    REDIS_BACKUP_TYPE="rdb"
+    REDIS_AOF_BACKUP="true"
+    
+    # Application Data Backup Settings
+    APP_DATA_PATHS="/app/uploads,/app/logs,/app/config"
+    APP_BACKUP_COMPRESSION="tar.gz"
+    
+    # Security Settings
+    BACKUP_ENCRYPTION="enabled"
+    ENCRYPTION_KEY_ID="backup-encryption-key"
+    
+    # Monitoring and Alerting
+    BACKUP_MONITORING="enabled"
+    ALERT_ON_FAILURE="true"
+    ALERT_WEBHOOK_URL="http://alertmanager:9093/api/v1/alerts"
+    
+    # Performance Settings
+    BACKUP_BANDWIDTH_LIMIT="100MB"
+    CONCURRENT_UPLOADS="3"
+    CHUNK_SIZE="64MB"
+
+---
+# PostgreSQL Backup CronJob
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgresql-backup
+  namespace: backup-system
+  labels:
+    app: postgresql-backup
+    component: database
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: backup-sa
+          containers:
+          - name: postgresql-backup
+            image: postgres:15.4-alpine
+            command:
+            - /bin/sh
+            - /scripts/postgresql-backup.sh
+            env:
+            - name: POSTGRES_HOST
+              value: "patroni-cluster-service.itdo-erp-production.svc.cluster.local"
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_DB
+              value: "itdo_erp_production"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgresql-backup-credentials
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgresql-backup-credentials
+                  key: password
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: backup-storage-credentials
+                  key: access_key_id
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: backup-storage-credentials
+                  key: secret_access_key
+            - name: BACKUP_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: backup-encryption-key
+                  key: key
+            volumeMounts:
+            - name: backup-scripts
+              mountPath: /scripts
+            - name: backup-config
+              mountPath: /config
+            - name: backup-temp
+              mountPath: /tmp/backup
+            resources:
+              requests:
+                memory: "512Mi"
+                cpu: "250m"
+              limits:
+                memory: "2Gi"
+                cpu: "1000m"
+          volumes:
+          - name: backup-scripts
+            configMap:
+              name: backup-scripts
+              defaultMode: 0755
+          - name: backup-config
+            configMap:
+              name: backup-config
+          - name: backup-temp
+            emptyDir:
+              sizeLimit: 10Gi
+
+---
+# Redis Backup CronJob
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: redis-backup
+  namespace: backup-system
+  labels:
+    app: redis-backup
+    component: cache
+spec:
+  schedule: "30 2 * * *"  # Daily at 2:30 AM
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: backup-sa
+          containers:
+          - name: redis-backup
+            image: redis:7.2.3-alpine
+            command:
+            - /bin/sh
+            - /scripts/redis-backup.sh
+            env:
+            - name: REDIS_HOST
+              value: "redis-master-service.itdo-erp-production.svc.cluster.local"
+            - name: REDIS_PORT
+              value: "6379"
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-backup-credentials
+                  key: password
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: backup-storage-credentials
+                  key: access_key_id
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: backup-storage-credentials
+                  key: secret_access_key
+            - name: BACKUP_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: backup-encryption-key
+                  key: key
+            volumeMounts:
+            - name: backup-scripts
+              mountPath: /scripts
+            - name: backup-config
+              mountPath: /config
+            - name: backup-temp
+              mountPath: /tmp/backup
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "100m"
+              limits:
+                memory: "512Mi"
+                cpu: "500m"
+          volumes:
+          - name: backup-scripts
+            configMap:
+              name: backup-scripts
+              defaultMode: 0755
+          - name: backup-config
+            configMap:
+              name: backup-config
+          - name: backup-temp
+            emptyDir:
+              sizeLimit: 5Gi
+
+---
+# Application Data Backup CronJob
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: application-data-backup
+  namespace: backup-system
+  labels:
+    app: application-data-backup
+    component: application
+spec:
+  schedule: "0 3 * * *"  # Daily at 3 AM
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: backup-sa
+          containers:
+          - name: app-data-backup
+            image: alpine:3.18
+            command:
+            - /bin/sh
+            - /scripts/application-backup.sh
+            env:
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: backup-storage-credentials
+                  key: access_key_id
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: backup-storage-credentials
+                  key: secret_access_key
+            - name: BACKUP_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: backup-encryption-key
+                  key: key
+            volumeMounts:
+            - name: backup-scripts
+              mountPath: /scripts
+            - name: backup-config
+              mountPath: /config
+            - name: app-data
+              mountPath: /app-data
+            - name: backup-temp
+              mountPath: /tmp/backup
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "100m"
+              limits:
+                memory: "1Gi"
+                cpu: "500m"
+          volumes:
+          - name: backup-scripts
+            configMap:
+              name: backup-scripts
+              defaultMode: 0755
+          - name: backup-config
+            configMap:
+              name: backup-config
+          - name: app-data
+            persistentVolumeClaim:
+              claimName: application-data-pvc
+          - name: backup-temp
+            emptyDir:
+              sizeLimit: 5Gi
+
+---
+# Configuration and SSL Certificates Backup CronJob
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: configuration-backup
+  namespace: backup-system
+  labels:
+    app: configuration-backup
+    component: system
+spec:
+  schedule: "0 4 * * 0"  # Weekly on Sunday at 4 AM
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: backup-sa
+          containers:
+          - name: config-backup
+            image: alpine:3.18
+            command:
+            - /bin/sh
+            - /scripts/configuration-backup.sh
+            env:
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: backup-storage-credentials
+                  key: access_key_id
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: backup-storage-credentials
+                  key: secret_access_key
+            - name: BACKUP_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: backup-encryption-key
+                  key: key
+            volumeMounts:
+            - name: backup-scripts
+              mountPath: /scripts
+            - name: backup-config
+              mountPath: /config
+            - name: backup-temp
+              mountPath: /tmp/backup
+            resources:
+              requests:
+                memory: "128Mi"
+                cpu: "50m"
+              limits:
+                memory: "256Mi"
+                cpu: "200m"
+          volumes:
+          - name: backup-scripts
+            configMap:
+              name: backup-scripts
+              defaultMode: 0755
+          - name: backup-config
+            configMap:
+              name: backup-config
+          - name: backup-temp
+            emptyDir:
+              sizeLimit: 1Gi
+
+---
+# Backup Scripts ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backup-scripts
+  namespace: backup-system
+  labels:
+    app: backup-system
+    component: scripts
+data:
+  postgresql-backup.sh: |
+    #!/bin/sh
+    # PostgreSQL Backup Script with Encryption and S3 Upload
+    
+    set -euo pipefail
+    
+    # Source configuration
+    . /config/backup.conf
+    
+    # Logging function
+    log() {
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - $1"
+    }
+    
+    # Error handling
+    error_exit() {
+        log "ERROR: $1"
+        send_alert "PostgreSQL Backup Failed" "$1" "critical"
+        exit 1
+    }
+    
+    # Send alert function
+    send_alert() {
+        local title="$1"
+        local message="$2"
+        local severity="${3:-warning}"
+        
+        curl -X POST \
+            -H "Content-Type: application/json" \
+            -d "{\"title\":\"$title\",\"message\":\"$message\",\"severity\":\"$severity\"}" \
+            "$ALERT_WEBHOOK_URL" \
+            > /dev/null 2>&1 || true
+    }
+    
+    # Install required packages
+    apk add --no-cache aws-cli gnupg
+    
+    # Setup directories
+    BACKUP_DIR="/tmp/backup/postgresql"
+    mkdir -p "$BACKUP_DIR"
+    
+    # Backup timestamp
+    TIMESTAMP=$(date '+%Y%m%d_%H%M%S')
+    BACKUP_FILE="postgresql_backup_${TIMESTAMP}.sql"
+    COMPRESSED_FILE="${BACKUP_FILE}.gz"
+    ENCRYPTED_FILE="${COMPRESSED_FILE}.gpg"
+    
+    log "Starting PostgreSQL backup..."
+    
+    # Test connection
+    pg_isready -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" || \
+        error_exit "Cannot connect to PostgreSQL server"
+    
+    # Create backup
+    log "Creating database dump..."
+    PGPASSWORD="$POSTGRES_PASSWORD" pg_dump \
+        -h "$POSTGRES_HOST" \
+        -p "$POSTGRES_PORT" \
+        -U "$POSTGRES_USER" \
+        -d "$POSTGRES_DB" \
+        --format=custom \
+        --compress=9 \
+        --verbose \
+        --no-password \
+        --file="${BACKUP_DIR}/${BACKUP_FILE}" || \
+        error_exit "pg_dump failed"
+    
+    # Compress backup
+    log "Compressing backup..."
+    gzip -9 "${BACKUP_DIR}/${BACKUP_FILE}" || \
+        error_exit "Compression failed"
+    
+    # Encrypt backup
+    log "Encrypting backup..."
+    echo "$BACKUP_ENCRYPTION_KEY" | gpg --batch --yes --passphrase-fd 0 \
+        --symmetric --cipher-algo AES256 \
+        --output "${BACKUP_DIR}/${ENCRYPTED_FILE}" \
+        "${BACKUP_DIR}/${COMPRESSED_FILE}" || \
+        error_exit "Encryption failed"
+    
+    # Upload to S3
+    log "Uploading to S3..."
+    S3_PATH="s3://${S3_BUCKET}/postgresql/daily/${TIMESTAMP}/${ENCRYPTED_FILE}"
+    aws s3 cp "${BACKUP_DIR}/${ENCRYPTED_FILE}" "$S3_PATH" \
+        --storage-class "$S3_STORAGE_CLASS" || \
+        error_exit "S3 upload failed"
+    
+    # Get backup size
+    BACKUP_SIZE=$(stat -c%s "${BACKUP_DIR}/${ENCRYPTED_FILE}")
+    BACKUP_SIZE_MB=$((BACKUP_SIZE / 1024 / 1024))
+    
+    # Cleanup local files
+    rm -rf "$BACKUP_DIR"
+    
+    log "PostgreSQL backup completed successfully"
+    log "Backup size: ${BACKUP_SIZE_MB}MB"
+    log "S3 location: $S3_PATH"
+    
+    # Send success notification
+    send_alert "PostgreSQL Backup Successful" \
+        "Backup completed. Size: ${BACKUP_SIZE_MB}MB. Location: $S3_PATH" \
+        "info"
+    
+    # Cleanup old backups (retain according to policy)
+    log "Cleaning up old backups..."
+    CUTOFF_DATE=$(date -d "${DAILY_RETENTION_DAYS} days ago" '+%Y%m%d')
+    aws s3 ls "s3://${S3_BUCKET}/postgresql/daily/" | \
+    while read -r line; do
+        BACKUP_DATE=$(echo "$line" | awk '{print $2}' | sed 's/\///g')
+        if [ "$BACKUP_DATE" -lt "$CUTOFF_DATE" ]; then
+            aws s3 rm "s3://${S3_BUCKET}/postgresql/daily/${BACKUP_DATE}/" --recursive
+            log "Deleted old backup: $BACKUP_DATE"
+        fi
+    done
+  
+  redis-backup.sh: |
+    #!/bin/sh
+    # Redis Backup Script with RDB and AOF Support
+    
+    set -euo pipefail
+    
+    # Source configuration
+    . /config/backup.conf
+    
+    # Logging function
+    log() {
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - $1"
+    }
+    
+    # Error handling
+    error_exit() {
+        log "ERROR: $1"
+        send_alert "Redis Backup Failed" "$1" "critical"
+        exit 1
+    }
+    
+    # Send alert function
+    send_alert() {
+        local title="$1"
+        local message="$2"
+        local severity="${3:-warning}"
+        
+        curl -X POST \
+            -H "Content-Type: application/json" \
+            -d "{\"title\":\"$title\",\"message\":\"$message\",\"severity\":\"$severity\"}" \
+            "$ALERT_WEBHOOK_URL" \
+            > /dev/null 2>&1 || true
+    }
+    
+    # Install required packages
+    apk add --no-cache aws-cli gnupg
+    
+    # Setup directories
+    BACKUP_DIR="/tmp/backup/redis"
+    mkdir -p "$BACKUP_DIR"
+    
+    # Backup timestamp
+    TIMESTAMP=$(date '+%Y%m%d_%H%M%S')
+    
+    log "Starting Redis backup..."
+    
+    # Test connection
+    redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" --no-auth-warning -a "$REDIS_PASSWORD" ping | grep -q PONG || \
+        error_exit "Cannot connect to Redis server"
+    
+    # Create RDB backup
+    log "Creating RDB backup..."
+    redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" --no-auth-warning -a "$REDIS_PASSWORD" BGSAVE || \
+        error_exit "BGSAVE command failed"
+    
+    # Wait for backup to complete
+    while [ "$(redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" --no-auth-warning -a "$REDIS_PASSWORD" LASTSAVE)" = "$(redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" --no-auth-warning -a "$REDIS_PASSWORD" LASTSAVE)" ]; do
+        sleep 1
+    done
+    
+    # Copy RDB file
+    kubectl cp "itdo-erp-production/redis-master-0:/data/dump.rdb" "${BACKUP_DIR}/redis_${TIMESTAMP}.rdb" || \
+        error_exit "Failed to copy RDB file"
+    
+    # Create AOF backup if enabled
+    if [ "$REDIS_AOF_BACKUP" = "true" ]; then
+        log "Creating AOF backup..."
+        kubectl cp "itdo-erp-production/redis-master-0:/data/appendonly.aof" "${BACKUP_DIR}/redis_${TIMESTAMP}.aof" || \
+            log "Warning: AOF file not found or could not be copied"
+    fi
+    
+    # Create backup archive
+    BACKUP_ARCHIVE="redis_backup_${TIMESTAMP}.tar.gz"
+    tar -czf "${BACKUP_DIR}/${BACKUP_ARCHIVE}" -C "$BACKUP_DIR" . || \
+        error_exit "Failed to create backup archive"
+    
+    # Encrypt backup
+    log "Encrypting backup..."
+    ENCRYPTED_FILE="${BACKUP_ARCHIVE}.gpg"
+    echo "$BACKUP_ENCRYPTION_KEY" | gpg --batch --yes --passphrase-fd 0 \
+        --symmetric --cipher-algo AES256 \
+        --output "${BACKUP_DIR}/${ENCRYPTED_FILE}" \
+        "${BACKUP_DIR}/${BACKUP_ARCHIVE}" || \
+        error_exit "Encryption failed"
+    
+    # Upload to S3
+    log "Uploading to S3..."
+    S3_PATH="s3://${S3_BUCKET}/redis/daily/${TIMESTAMP}/${ENCRYPTED_FILE}"
+    aws s3 cp "${BACKUP_DIR}/${ENCRYPTED_FILE}" "$S3_PATH" \
+        --storage-class "$S3_STORAGE_CLASS" || \
+        error_exit "S3 upload failed"
+    
+    # Get backup size
+    BACKUP_SIZE=$(stat -c%s "${BACKUP_DIR}/${ENCRYPTED_FILE}")
+    BACKUP_SIZE_MB=$((BACKUP_SIZE / 1024 / 1024))
+    
+    # Cleanup local files
+    rm -rf "$BACKUP_DIR"
+    
+    log "Redis backup completed successfully"
+    log "Backup size: ${BACKUP_SIZE_MB}MB"
+    log "S3 location: $S3_PATH"
+    
+    # Send success notification
+    send_alert "Redis Backup Successful" \
+        "Backup completed. Size: ${BACKUP_SIZE_MB}MB. Location: $S3_PATH" \
+        "info"
+  
+  application-backup.sh: |
+    #!/bin/sh
+    # Application Data Backup Script
+    
+    set -euo pipefail
+    
+    # Source configuration
+    . /config/backup.conf
+    
+    # Logging function
+    log() {
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - $1"
+    }
+    
+    # Error handling
+    error_exit() {
+        log "ERROR: $1"
+        send_alert "Application Data Backup Failed" "$1" "critical"
+        exit 1
+    }
+    
+    # Send alert function
+    send_alert() {
+        local title="$1"
+        local message="$2"
+        local severity="${3:-warning}"
+        
+        curl -X POST \
+            -H "Content-Type: application/json" \
+            -d "{\"title\":\"$title\",\"message\":\"$message\",\"severity\":\"$severity\"}" \
+            "$ALERT_WEBHOOK_URL" \
+            > /dev/null 2>&1 || true
+    }
+    
+    # Install required packages
+    apk add --no-cache aws-cli gnupg tar gzip
+    
+    # Setup directories
+    BACKUP_DIR="/tmp/backup/application"
+    mkdir -p "$BACKUP_DIR"
+    
+    # Backup timestamp
+    TIMESTAMP=$(date '+%Y%m%d_%H%M%S')
+    BACKUP_ARCHIVE="application_data_${TIMESTAMP}.tar.gz"
+    
+    log "Starting application data backup..."
+    
+    # Create backup archive
+    log "Creating application data archive..."
+    tar -czf "${BACKUP_DIR}/${BACKUP_ARCHIVE}" -C /app-data . || \
+        error_exit "Failed to create application data archive"
+    
+    # Encrypt backup
+    log "Encrypting backup..."
+    ENCRYPTED_FILE="${BACKUP_ARCHIVE}.gpg"
+    echo "$BACKUP_ENCRYPTION_KEY" | gpg --batch --yes --passphrase-fd 0 \
+        --symmetric --cipher-algo AES256 \
+        --output "${BACKUP_DIR}/${ENCRYPTED_FILE}" \
+        "${BACKUP_DIR}/${BACKUP_ARCHIVE}" || \
+        error_exit "Encryption failed"
+    
+    # Upload to S3
+    log "Uploading to S3..."
+    S3_PATH="s3://${S3_BUCKET}/application/daily/${TIMESTAMP}/${ENCRYPTED_FILE}"
+    aws s3 cp "${BACKUP_DIR}/${ENCRYPTED_FILE}" "$S3_PATH" \
+        --storage-class "$S3_STORAGE_CLASS" || \
+        error_exit "S3 upload failed"
+    
+    # Get backup size
+    BACKUP_SIZE=$(stat -c%s "${BACKUP_DIR}/${ENCRYPTED_FILE}")
+    BACKUP_SIZE_MB=$((BACKUP_SIZE / 1024 / 1024))
+    
+    # Cleanup local files
+    rm -rf "$BACKUP_DIR"
+    
+    log "Application data backup completed successfully"
+    log "Backup size: ${BACKUP_SIZE_MB}MB"
+    log "S3 location: $S3_PATH"
+    
+    # Send success notification
+    send_alert "Application Data Backup Successful" \
+        "Backup completed. Size: ${BACKUP_SIZE_MB}MB. Location: $S3_PATH" \
+        "info"
+  
+  configuration-backup.sh: |
+    #!/bin/sh
+    # Configuration and Certificates Backup Script
+    
+    set -euo pipefail
+    
+    # Source configuration
+    . /config/backup.conf
+    
+    # Logging function
+    log() {
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - $1"
+    }
+    
+    # Error handling
+    error_exit() {
+        log "ERROR: $1"
+        send_alert "Configuration Backup Failed" "$1" "critical"
+        exit 1
+    }
+    
+    # Send alert function
+    send_alert() {
+        local title="$1"
+        local message="$2"
+        local severity="${3:-warning}"
+        
+        curl -X POST \
+            -H "Content-Type: application/json" \
+            -d "{\"title\":\"$title\",\"message\":\"$message\",\"severity\":\"$severity\"}" \
+            "$ALERT_WEBHOOK_URL" \
+            > /dev/null 2>&1 || true
+    }
+    
+    # Install required packages
+    apk add --no-cache aws-cli gnupg tar gzip kubectl
+    
+    # Setup directories
+    BACKUP_DIR="/tmp/backup/configuration"
+    mkdir -p "$BACKUP_DIR"
+    
+    # Backup timestamp
+    TIMESTAMP=$(date '+%Y%m%d_%H%M%S')
+    
+    log "Starting configuration backup..."
+    
+    # Backup Kubernetes configurations
+    log "Backing up Kubernetes configurations..."
+    kubectl get configmaps -n itdo-erp-production -o yaml > "${BACKUP_DIR}/configmaps.yaml"
+    kubectl get secrets -n itdo-erp-production -o yaml > "${BACKUP_DIR}/secrets.yaml"
+    kubectl get services -n itdo-erp-production -o yaml > "${BACKUP_DIR}/services.yaml"
+    kubectl get deployments -n itdo-erp-production -o yaml > "${BACKUP_DIR}/deployments.yaml"
+    kubectl get statefulsets -n itdo-erp-production -o yaml > "${BACKUP_DIR}/statefulsets.yaml"
+    kubectl get ingresses -n itdo-erp-production -o yaml > "${BACKUP_DIR}/ingresses.yaml"
+    
+    # Backup SSL certificates
+    log "Backing up SSL certificates..."
+    kubectl get certificates -n itdo-erp-production -o yaml > "${BACKUP_DIR}/certificates.yaml"
+    kubectl get clusterissuers -o yaml > "${BACKUP_DIR}/clusterissuers.yaml"
+    
+    # Create backup archive
+    BACKUP_ARCHIVE="configuration_${TIMESTAMP}.tar.gz"
+    tar -czf "${BACKUP_DIR}/${BACKUP_ARCHIVE}" -C "$BACKUP_DIR" \
+        --exclude="${BACKUP_ARCHIVE}" . || \
+        error_exit "Failed to create configuration archive"
+    
+    # Encrypt backup
+    log "Encrypting backup..."
+    ENCRYPTED_FILE="${BACKUP_ARCHIVE}.gpg"
+    echo "$BACKUP_ENCRYPTION_KEY" | gpg --batch --yes --passphrase-fd 0 \
+        --symmetric --cipher-algo AES256 \
+        --output "${BACKUP_DIR}/${ENCRYPTED_FILE}" \
+        "${BACKUP_DIR}/${BACKUP_ARCHIVE}" || \
+        error_exit "Encryption failed"
+    
+    # Upload to S3
+    log "Uploading to S3..."
+    S3_PATH="s3://${S3_BUCKET}/configuration/weekly/${TIMESTAMP}/${ENCRYPTED_FILE}"
+    aws s3 cp "${BACKUP_DIR}/${ENCRYPTED_FILE}" "$S3_PATH" \
+        --storage-class "$S3_STORAGE_CLASS" || \
+        error_exit "S3 upload failed"
+    
+    # Get backup size
+    BACKUP_SIZE=$(stat -c%s "${BACKUP_DIR}/${ENCRYPTED_FILE}")
+    BACKUP_SIZE_MB=$((BACKUP_SIZE / 1024 / 1024))
+    
+    # Cleanup local files
+    rm -rf "$BACKUP_DIR"
+    
+    log "Configuration backup completed successfully"
+    log "Backup size: ${BACKUP_SIZE_MB}MB"
+    log "S3 location: $S3_PATH"
+    
+    # Send success notification
+    send_alert "Configuration Backup Successful" \
+        "Backup completed. Size: ${BACKUP_SIZE_MB}MB. Location: $S3_PATH" \
+        "info"
+
+---
+# Backup Storage Credentials Secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: backup-storage-credentials
+  namespace: backup-system
+type: Opaque
+stringData:
+  access_key_id: "your-aws-access-key-id"
+  secret_access_key: "your-aws-secret-access-key"
+
+---
+# Database Backup Credentials
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgresql-backup-credentials
+  namespace: backup-system
+type: Opaque
+stringData:
+  username: "postgres"
+  password: "your-postgres-password"
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: redis-backup-credentials
+  namespace: backup-system
+type: Opaque
+stringData:
+  password: "your-redis-password"
+
+---
+# Backup Encryption Key Secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: backup-encryption-key
+  namespace: backup-system
+type: Opaque
+stringData:
+  key: "your-backup-encryption-passphrase"
+
+---
+# ServiceAccount for Backup Operations
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: backup-sa
+  namespace: backup-system
+
+---
+# ClusterRole for Backup Operations
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: backup-role
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services", "configmaps", "secrets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "statefulsets", "replicasets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["networking.k8s.io"]
+  resources: ["ingresses"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["cert-manager.io"]
+  resources: ["certificates", "clusterissuers", "issuers"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["pods/exec"]
+  verbs: ["create"]
+
+---
+# ClusterRoleBinding for Backup Operations
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: backup-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: backup-role
+subjects:
+- kind: ServiceAccount
+  name: backup-sa
+  namespace: backup-system
+
+---
+# Backup Monitoring and Alerting
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: backup-alerts
+  namespace: backup-system
+  labels:
+    app: backup-system
+    component: alerting
+spec:
+  groups:
+  - name: backup.rules
+    interval: 60s
+    rules:
+    # Backup job failure alerts
+    - alert: BackupJobFailed
+      expr: kube_job_status_failed{namespace="backup-system"} > 0
+      for: 5m
+      labels:
+        severity: critical
+        service: backup
+      annotations:
+        summary: "Backup job failed"
+        description: "Backup job {{ $labels.job_name }} in namespace {{ $labels.namespace }} has failed."
+    
+    # Backup job duration alerts
+    - alert: BackupJobTooLong
+      expr: time() - kube_job_status_start_time{namespace="backup-system"} > 3600
+      for: 0m
+      labels:
+        severity: warning
+        service: backup
+      annotations:
+        summary: "Backup job running too long"
+        description: "Backup job {{ $labels.job_name }} has been running for more than 1 hour."
+    
+    # Missing backup alerts
+    - alert: BackupNotCompleted
+      expr: time() - kube_job_status_completion_time{namespace="backup-system"} > 86400
+      for: 1h
+      labels:
+        severity: critical
+        service: backup
+      annotations:
+        summary: "Backup not completed in 24 hours"
+        description: "Backup job {{ $labels.job_name }} has not completed successfully in the last 24 hours."
+
+---
+# Application Data PVC for Backup
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: application-data-pvc
+  namespace: backup-system
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: fast-ssd
+  resources:
+    requests:
+      storage: 100Gi

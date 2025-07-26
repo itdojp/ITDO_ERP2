@@ -1,0 +1,695 @@
+---
+# NGINX Plus Monitoring and Metrics Collection
+# CC03 v68.0 Day 3: Load Balancer Monitoring and Alerting
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-exporter-config
+  namespace: itdo-erp-production
+  labels:
+    app: nginx-exporter
+    component: monitoring
+data:
+  nginx-prometheus.conf: |
+    # NGINX Prometheus Metrics Configuration
+    server {
+        listen 9113;
+        server_name localhost;
+        
+        location /metrics {
+            stub_status on;
+            access_log off;
+            allow 127.0.0.1;
+            allow 10.0.0.0/8;
+            allow 172.16.0.0/12;
+            allow 192.168.0.0/16;
+            deny all;
+        }
+        
+        location /nginx_status {
+            stub_status on;
+            access_log off;
+            allow 127.0.0.1;
+            allow 10.0.0.0/8;
+            allow 172.16.0.0/12;
+            allow 192.168.0.0/16;
+            deny all;
+        }
+    }
+
+---
+# NGINX Prometheus Exporter Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-prometheus-exporter
+  namespace: itdo-erp-production
+  labels:
+    app: nginx-prometheus-exporter
+    component: monitoring
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx-prometheus-exporter
+  template:
+    metadata:
+      labels:
+        app: nginx-prometheus-exporter
+        component: monitoring
+    spec:
+      containers:
+      - name: nginx-exporter
+        image: nginx/nginx-prometheus-exporter:0.11.0
+        args:
+        - -nginx.scrape-uri=http://nginx-plus-primary-service:9113/metrics
+        - -web.listen-address=:9113
+        - -web.telemetry-path=/metrics
+        - -nginx.ssl-verify=false
+        - -nginx.timeout=10s
+        - -nginx.retries=3
+        env:
+        - name: SCRAPE_URI
+          value: "http://nginx-plus-primary-service:9113/metrics"
+        ports:
+        - name: metrics
+          containerPort: 9113
+          protocol: TCP
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+        livenessProbe:
+          httpGet:
+            path: /metrics
+            port: 9113
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /metrics
+            port: 9113
+          initialDelaySeconds: 15
+          periodSeconds: 15
+
+---
+# NGINX VTS (Virtual Host Traffic Status) Exporter
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-vts-exporter
+  namespace: itdo-erp-production
+  labels:
+    app: nginx-vts-exporter
+    component: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-vts-exporter
+  template:
+    metadata:
+      labels:
+        app: nginx-vts-exporter
+        component: monitoring
+    spec:
+      containers:
+      - name: nginx-vts-exporter
+        image: sophos/nginx-vts-exporter:v0.10.7
+        env:
+        - name: NGINX_STATUS
+          value: "http://nginx-plus-primary-service:8080/status/format/json"
+        - name: METRICS_ENDPOINT
+          value: "/metrics"
+        - name: METRICS_ADDR
+          value: "0.0.0.0"
+        - name: METRICS_PORT
+          value: "9114"
+        ports:
+        - name: metrics
+          containerPort: 9114
+          protocol: TCP
+        resources:
+          requests:
+            memory: "32Mi"
+            cpu: "25m"
+          limits:
+            memory: "64Mi"
+            cpu: "50m"
+        livenessProbe:
+          httpGet:
+            path: /metrics
+            port: 9114
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /metrics
+            port: 9114
+          initialDelaySeconds: 15
+          periodSeconds: 15
+
+---
+# NGINX Access Log Analyzer
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-log-analyzer
+  namespace: itdo-erp-production
+  labels:
+    app: nginx-log-analyzer
+    component: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-log-analyzer
+  template:
+    metadata:
+      labels:
+        app: nginx-log-analyzer
+        component: monitoring
+    spec:
+      containers:
+      - name: log-analyzer
+        image: fluent/fluent-bit:2.1.8
+        env:
+        - name: FLUENT_ELASTICSEARCH_HOST
+          value: "elasticsearch-service"
+        - name: FLUENT_ELASTICSEARCH_PORT
+          value: "9200"
+        volumeMounts:
+        - name: nginx-logs
+          mountPath: /var/log/nginx
+          readOnly: true
+        - name: fluent-bit-config
+          mountPath: /fluent-bit/etc/
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+      volumes:
+      - name: nginx-logs
+        persistentVolumeClaim:
+          claimName: nginx-logs-pvc
+      - name: fluent-bit-config
+        configMap:
+          name: nginx-log-analyzer-config
+
+---
+# Fluent Bit Configuration for NGINX Log Analysis
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-log-analyzer-config
+  namespace: itdo-erp-production
+  labels:
+    app: nginx-log-analyzer
+    component: configuration
+data:
+  fluent-bit.conf: |
+    [SERVICE]
+        Flush         5
+        Log_Level     info
+        Daemon        off
+        Parsers_File  parsers.conf
+        HTTP_Server   On
+        HTTP_Listen   0.0.0.0
+        HTTP_Port     2020
+    
+    [INPUT]
+        Name              tail
+        Path              /var/log/nginx/access.log
+        Parser            nginx_json
+        Tag               nginx.access.*
+        Refresh_Interval  5
+        Mem_Buf_Limit     5MB
+        Skip_Long_Lines   On
+    
+    [INPUT]
+        Name              tail
+        Path              /var/log/nginx/error.log
+        Parser            nginx_error
+        Tag               nginx.error.*
+        Refresh_Interval  5
+        Mem_Buf_Limit     5MB
+        Skip_Long_Lines   On
+    
+    [FILTER]
+        Name          record_modifier
+        Match         nginx.access.*
+        Record        service nginx
+        Record        environment production
+        Record        namespace itdo-erp-production
+    
+    [FILTER]
+        Name          lua
+        Match         nginx.access.*
+        Script        /fluent-bit/scripts/nginx_metrics.lua
+        Call          process_nginx_metrics
+    
+    [OUTPUT]
+        Name          es
+        Match         nginx.*
+        Host          ${FLUENT_ELASTICSEARCH_HOST}
+        Port          ${FLUENT_ELASTICSEARCH_PORT}
+        Index         nginx-logs
+        Type          _doc
+        Logstash_Format On
+        Logstash_Prefix nginx
+        Retry_Limit   False
+        Buffer_Size   False
+    
+    [OUTPUT]
+        Name          prometheus_exporter
+        Match         nginx.access.*
+        Host          0.0.0.0
+        Port          9115
+        Metrics_Path  /metrics
+  
+  parsers.conf: |
+    [PARSER]
+        Name        nginx_json
+        Format      json
+        Time_Key    time_local
+        Time_Format %d/%b/%Y:%H:%M:%S %z
+        Time_Keep   On
+    
+    [PARSER]
+        Name        nginx_error
+        Format      regex
+        Regex       ^(?<timestamp>\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) \[(?<level>\w+)\] (?<pid>\d+)#(?<tid>\d+): (?<message>.*)$
+        Time_Key    timestamp
+        Time_Format %Y/%m/%d %H:%M:%S
+  
+  nginx_metrics.lua: |
+    function process_nginx_metrics(tag, timestamp, record)
+        -- Extract response time metrics
+        if record["request_time"] then
+            record["response_time_ms"] = tonumber(record["request_time"]) * 1000
+        end
+        
+        -- Extract upstream response time
+        if record["upstream_response_time"] then
+            record["upstream_time_ms"] = tonumber(record["upstream_response_time"]) * 1000
+        end
+        
+        -- Calculate cache hit ratio
+        if record["upstream_cache_status"] then
+            if record["upstream_cache_status"] == "HIT" then
+                record["cache_hit"] = 1
+            else
+                record["cache_hit"] = 0
+            end
+        end
+        
+        -- Extract status code class
+        if record["status"] then
+            local status = tonumber(record["status"])
+            if status >= 200 and status < 300 then
+                record["status_class"] = "2xx"
+            elseif status >= 300 and status < 400 then
+                record["status_class"] = "3xx"
+            elseif status >= 400 and status < 500 then
+                record["status_class"] = "4xx"
+            elseif status >= 500 then
+                record["status_class"] = "5xx"
+            end
+        end
+        
+        return 1, timestamp, record
+    end
+
+---
+# NGINX Exporter Services
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-prometheus-exporter-service
+  namespace: itdo-erp-production
+  labels:
+    app: nginx-prometheus-exporter
+    component: monitoring
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9113"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  ports:
+  - name: metrics
+    port: 9113
+    targetPort: 9113
+    protocol: TCP
+  selector:
+    app: nginx-prometheus-exporter
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-vts-exporter-service
+  namespace: itdo-erp-production
+  labels:
+    app: nginx-vts-exporter
+    component: monitoring
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9114"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  ports:
+  - name: metrics
+    port: 9114
+    targetPort: 9114
+    protocol: TCP
+  selector:
+    app: nginx-vts-exporter
+
+---
+# ServiceMonitors for Prometheus
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: nginx-prometheus-exporter-servicemonitor
+  namespace: itdo-erp-production
+  labels:
+    app: nginx-prometheus-exporter
+    component: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: nginx-prometheus-exporter
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: nginx-vts-exporter-servicemonitor
+  namespace: itdo-erp-production
+  labels:
+    app: nginx-vts-exporter
+    component: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: nginx-vts-exporter
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+
+---
+# NGINX Alerting Rules
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: nginx-alerts
+  namespace: itdo-erp-production
+  labels:
+    app: nginx
+    component: alerting
+spec:
+  groups:
+  - name: nginx.rules
+    interval: 30s
+    rules:
+    # High-level availability alerts
+    - alert: NginxDown
+      expr: nginx_up == 0
+      for: 1m
+      labels:
+        severity: critical
+        service: nginx
+      annotations:
+        summary: "NGINX instance is down"
+        description: "NGINX instance {{ $labels.instance }} has been down for more than 1 minute."
+        runbook_url: "https://runbook.example.com/nginx-down"
+    
+    - alert: NginxHighResponseTime
+      expr: nginx_http_request_duration_seconds{quantile="0.95"} > 5
+      for: 5m
+      labels:
+        severity: warning
+        service: nginx
+      annotations:
+        summary: "NGINX response time is high"
+        description: "NGINX 95th percentile response time is {{ $value }}s on {{ $labels.instance }}."
+    
+    - alert: NginxHighResponseTimeCritical
+      expr: nginx_http_request_duration_seconds{quantile="0.95"} > 10
+      for: 2m
+      labels:
+        severity: critical
+        service: nginx
+      annotations:
+        summary: "NGINX response time is critical"
+        description: "NGINX 95th percentile response time is {{ $value }}s on {{ $labels.instance }}."
+    
+    # Traffic and load alerts
+    - alert: NginxHighRequestRate
+      expr: rate(nginx_http_requests_total[5m]) > 1000
+      for: 5m
+      labels:
+        severity: warning
+        service: nginx
+      annotations:
+        summary: "NGINX request rate is high"
+        description: "NGINX is receiving {{ $value }} requests per second on {{ $labels.instance }}."
+    
+    - alert: NginxHighErrorRate
+      expr: rate(nginx_http_requests_total{status=~"5.."}[5m]) / rate(nginx_http_requests_total[5m]) > 0.05
+      for: 5m
+      labels:
+        severity: warning
+        service: nginx
+      annotations:
+        summary: "NGINX error rate is high"
+        description: "NGINX error rate is {{ $value | humanizePercentage }} on {{ $labels.instance }}."
+    
+    - alert: NginxHighErrorRateCritical
+      expr: rate(nginx_http_requests_total{status=~"5.."}[5m]) / rate(nginx_http_requests_total[5m]) > 0.10
+      for: 2m
+      labels:
+        severity: critical
+        service: nginx
+      annotations:
+        summary: "NGINX error rate is critical"
+        description: "NGINX error rate is {{ $value | humanizePercentage }} on {{ $labels.instance }}."
+    
+    # Connection and resource alerts
+    - alert: NginxHighConnections
+      expr: nginx_connections_active > 1000
+      for: 5m
+      labels:
+        severity: warning
+        service: nginx
+      annotations:
+        summary: "NGINX active connections are high"
+        description: "NGINX has {{ $value }} active connections on {{ $labels.instance }}."
+    
+    - alert: NginxDroppedConnections
+      expr: rate(nginx_connections_dropped_total[5m]) > 1
+      for: 2m
+      labels:
+        severity: warning
+        service: nginx
+      annotations:
+        summary: "NGINX is dropping connections"
+        description: "NGINX is dropping {{ $value }} connections per second on {{ $labels.instance }}."
+    
+    # Upstream alerts
+    - alert: NginxUpstreamDown
+      expr: nginx_upstream_up == 0
+      for: 1m
+      labels:
+        severity: critical
+        service: nginx
+      annotations:
+        summary: "NGINX upstream is down"
+        description: "NGINX upstream {{ $labels.upstream }} on {{ $labels.instance }} is down."
+    
+    - alert: NginxUpstreamHighResponseTime
+      expr: nginx_upstream_response_time_seconds{quantile="0.95"} > 3
+      for: 5m
+      labels:
+        severity: warning
+        service: nginx
+      annotations:
+        summary: "NGINX upstream response time is high"
+        description: "NGINX upstream {{ $labels.upstream }} 95th percentile response time is {{ $value }}s."
+    
+    # SSL/TLS certificate alerts
+    - alert: NginxSSLCertificateExpiry
+      expr: nginx_ssl_certificate_expires_seconds < 86400 * 30
+      for: 1h
+      labels:
+        severity: warning
+        service: nginx
+      annotations:
+        summary: "NGINX SSL certificate expiring soon"
+        description: "NGINX SSL certificate for {{ $labels.server_name }} expires in {{ $value | humanizeDuration }}."
+    
+    - alert: NginxSSLCertificateExpiryCritical
+      expr: nginx_ssl_certificate_expires_seconds < 86400 * 7
+      for: 1h
+      labels:
+        severity: critical
+        service: nginx
+      annotations:
+        summary: "NGINX SSL certificate expiring soon"
+        description: "NGINX SSL certificate for {{ $labels.server_name }} expires in {{ $value | humanizeDuration }}."
+
+---
+# NGINX Dashboard ConfigMap for Grafana
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-dashboard-config
+  namespace: itdo-erp-production
+  labels:
+    app: grafana
+    component: dashboard
+data:
+  nginx-dashboard.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "NGINX Plus Load Balancer Monitoring",
+        "tags": ["nginx", "load-balancer", "monitoring"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "NGINX Status",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "nginx_up",
+                "legendFormat": "{{ instance }}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "green", "value": 1}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 2,
+            "title": "Request Rate",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(nginx_http_requests_total[5m])",
+                "legendFormat": "Requests/sec - {{ instance }}"
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "title": "Response Time",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "nginx_http_request_duration_seconds{quantile=\"0.50\"}",
+                "legendFormat": "50th percentile - {{ instance }}"
+              },
+              {
+                "expr": "nginx_http_request_duration_seconds{quantile=\"0.95\"}",
+                "legendFormat": "95th percentile - {{ instance }}"
+              },
+              {
+                "expr": "nginx_http_request_duration_seconds{quantile=\"0.99\"}",
+                "legendFormat": "99th percentile - {{ instance }}"
+              }
+            ],
+            "yAxes": [
+              {
+                "unit": "s",
+                "min": 0
+              }
+            ]
+          },
+          {
+            "id": 4,
+            "title": "Error Rate",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(nginx_http_requests_total{status=~\"4..\"}[5m])",
+                "legendFormat": "4xx errors - {{ instance }}"
+              },
+              {
+                "expr": "rate(nginx_http_requests_total{status=~\"5..\"}[5m])",
+                "legendFormat": "5xx errors - {{ instance }}"
+              }
+            ]
+          },
+          {
+            "id": 5,
+            "title": "Active Connections",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "nginx_connections_active",
+                "legendFormat": "Active - {{ instance }}"
+              },
+              {
+                "expr": "nginx_connections_waiting",
+                "legendFormat": "Waiting - {{ instance }}"
+              }
+            ]
+          },
+          {
+            "id": 6,
+            "title": "Upstream Status",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "nginx_upstream_up",
+                "legendFormat": "{{ upstream }} - {{ server }}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "green", "value": 1}
+                  ]
+                }
+              }
+            }
+          }
+        ],
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "refresh": "30s"
+      }
+    }
