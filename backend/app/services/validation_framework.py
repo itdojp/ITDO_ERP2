@@ -93,7 +93,9 @@ class ValidationSummary:
 class BaseValidator(ABC):
     """Base class for validators"""
 
-    def __init__(self, validation_type: ValidationType, config: Dict[str, Any] = None) -> dict:
+    def __init__(
+        self, validation_type: ValidationType, config: Dict[str, Any] = None
+    ) -> dict:
         self.validation_type = validation_type
         self.config = config or {}
 
@@ -387,7 +389,9 @@ class LengthValidator(BaseValidator):
 class PatternValidator(BaseValidator):
     """Pattern validation using regex"""
 
-    def __init__(self, pattern: str, flags: int = 0, config: Dict[str, Any] = None) -> dict:
+    def __init__(
+        self, pattern: str, flags: int = 0, config: Dict[str, Any] = None
+    ) -> dict:
         super().__init__(ValidationType.PATTERN, config)
         self.pattern = pattern
         self.regex = re.compile(pattern, flags)
@@ -544,7 +548,9 @@ class ValidationFramework:
         self.global_validators: List[BaseValidator] = []
         self.audit_service = AuditService()
 
-    def register_schema(self, entity_type: str, schema: Dict[str, List[BaseValidator]]) -> dict:
+    def register_schema(
+        self, entity_type: str, schema: Dict[str, List[BaseValidator]]
+    ) -> dict:
         """Register validation schema for an entity type"""
         self.schemas[entity_type] = schema
 
@@ -792,7 +798,9 @@ def register_validation_schema(
     validation_framework.register_schema(entity_type, schema)
 
 
-def add_field_validator(entity_type: str, field_name: str, validator: BaseValidator) -> dict:
+def add_field_validator(
+    entity_type: str, field_name: str, validator: BaseValidator
+) -> dict:
     """Add field validator"""
     validation_framework.add_field_validator(entity_type, field_name, validator)
 

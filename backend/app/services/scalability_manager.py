@@ -374,7 +374,9 @@ class LoadBalancer:
         self.health_check_interval = 30  # seconds
         self.health_check_timeout = 5  # seconds
 
-    async def add_instance(self, instance_id: str, endpoint: str, weight: float = 1.0) -> dict:
+    async def add_instance(
+        self, instance_id: str, endpoint: str, weight: float = 1.0
+    ) -> dict:
         """Add instance to load balancer"""
 
         instance = {
