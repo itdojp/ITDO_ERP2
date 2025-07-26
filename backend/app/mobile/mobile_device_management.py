@@ -778,7 +778,9 @@ class MDMCommandProcessor:
 class MobileDeviceManagement:
     """Main Mobile Device Management system."""
 
-    def __init__(self, sdk: MobileERPSDK, auth_system: EnterpriseAuthenticationSystem) -> dict:
+    def __init__(
+        self, sdk: MobileERPSDK, auth_system: EnterpriseAuthenticationSystem
+    ) -> dict:
         self.sdk = sdk
         self.auth_system = auth_system
 

@@ -598,7 +598,9 @@ class ApprovalGateManager:
             "approvals_required": len(approval_request["required_approvers"]),
         }
 
-    async def _send_approval_notifications(self, approval_request: Dict[str, Any]) -> dict:
+    async def _send_approval_notifications(
+        self, approval_request: Dict[str, Any]
+    ) -> dict:
         """Send approval notifications to stakeholders."""
         # Simulate sending notifications (email, Slack, etc.)
         logger.info(
@@ -1359,7 +1361,9 @@ class CICDPipelineOrchestrationSystem:
                 logger.error(f"Error cleaning up executions: {e}")
                 await asyncio.sleep(43200)
 
-    async def _update_pipeline_metrics(self, pipeline_execution: PipelineExecution) -> dict:
+    async def _update_pipeline_metrics(
+        self, pipeline_execution: PipelineExecution
+    ) -> dict:
         """Update metrics based on pipeline execution."""
         # This method is called after each pipeline execution
         pass

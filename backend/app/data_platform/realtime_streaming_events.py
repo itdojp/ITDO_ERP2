@@ -229,7 +229,9 @@ class EventProducer:
 class EventConsumer:
     """High-performance event consumer"""
 
-    def __init__(self, consumer_group: str, bootstrap_servers: str = "localhost:9092") -> dict:
+    def __init__(
+        self, consumer_group: str, bootstrap_servers: str = "localhost:9092"
+    ) -> dict:
         self.consumer_group = consumer_group
         self.bootstrap_servers = bootstrap_servers
         self.consumer: Optional[AIOKafkaConsumer] = None
@@ -778,7 +780,9 @@ class StreamAnalytics:
         # Detect anomalies
         await self._detect_anomalies(event, current_time)
 
-    async def _update_event_metrics(self, event: StreamEvent, current_time: datetime) -> dict:
+    async def _update_event_metrics(
+        self, event: StreamEvent, current_time: datetime
+    ) -> dict:
         """Update basic event metrics"""
         # Event counts by type
         self.metrics["event_counts"][event.type.value] += 1
@@ -843,7 +847,9 @@ class StreamAnalytics:
         window_start = int(current_time.timestamp() // window_seconds) * window_seconds
         return f"window_{window_seconds}_{window_start}"
 
-    async def _detect_anomalies(self, event: StreamEvent, current_time: datetime) -> dict:
+    async def _detect_anomalies(
+        self, event: StreamEvent, current_time: datetime
+    ) -> dict:
         """Detect anomalies in stream data"""
         # Simple anomaly detection based on historical patterns
 
@@ -883,7 +889,9 @@ class StreamAnalytics:
         avg_throughput = sum(throughput_values) / len(throughput_values)
         return avg_throughput * 3  # 3x average as threshold
 
-    async def _trigger_anomaly_alert(self, anomaly_type: str, details: Dict[str, Any]) -> dict:
+    async def _trigger_anomaly_alert(
+        self, anomaly_type: str, details: Dict[str, Any]
+    ) -> dict:
         """Trigger anomaly alert"""
         logging.warning(f"Anomaly detected: {anomaly_type} - {details}")
 
@@ -927,7 +935,9 @@ class StreamAnalytics:
 class RealtimeStreamingSystem:
     """Main real-time streaming and event processing system"""
 
-    def __init__(self, sdk: MobileERPSDK, kafka_servers: str = "localhost:9092") -> dict:
+    def __init__(
+        self, sdk: MobileERPSDK, kafka_servers: str = "localhost:9092"
+    ) -> dict:
         self.sdk = sdk
         self.kafka_servers = kafka_servers
         self.producer = EventProducer(kafka_servers)

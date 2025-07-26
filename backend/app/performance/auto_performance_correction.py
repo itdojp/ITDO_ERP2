@@ -146,7 +146,9 @@ class AnomalyDetector:
             "cache_hit_ratio": 0.8,
         }
 
-    async def train_anomaly_model(self, historical_metrics: List[Dict[str, float]]) -> dict:
+    async def train_anomaly_model(
+        self, historical_metrics: List[Dict[str, float]]
+    ) -> dict:
         """Train anomaly detection model with historical data."""
         if len(historical_metrics) < 100:
             logger.warning("Insufficient historical data for anomaly training")
@@ -567,7 +569,9 @@ class PredictiveMaintenanceEngine:
             "storage": 1.0,
         }
 
-    async def train_predictive_models(self, historical_data: List[Dict[str, Any]]) -> dict:
+    async def train_predictive_models(
+        self, historical_data: List[Dict[str, Any]]
+    ) -> dict:
         """Train predictive maintenance models."""
         if len(historical_data) < 100:
             logger.warning("Insufficient data for predictive maintenance training")
@@ -1123,7 +1127,9 @@ class AutoPerformanceCorrectionSystem:
                 logger.error(f"Error in scheduled maintenance execution: {e}")
                 await asyncio.sleep(600)
 
-    async def _execute_maintenance_schedule(self, schedule: MaintenanceSchedule) -> dict:
+    async def _execute_maintenance_schedule(
+        self, schedule: MaintenanceSchedule
+    ) -> dict:
         """Execute individual maintenance schedule."""
         logger.info(
             f"Executing {schedule.maintenance_type.value} maintenance for {schedule.target_component}"

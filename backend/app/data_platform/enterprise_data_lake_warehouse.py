@@ -957,7 +957,9 @@ class DataWarehouse:
             logging.error(f"Aggregation job creation failed: {e}")
             return False
 
-    def _create_aggregation_table(self, table_name: str, config: Dict[str, Any]) -> dict:
+    def _create_aggregation_table(
+        self, table_name: str, config: Dict[str, Any]
+    ) -> dict:
         """Create table for aggregated data"""
         try:
             with self.engine.begin() as conn:

@@ -662,7 +662,9 @@ class AutoScalingEngine:
 
             return False
 
-    async def train_predictive_model(self, historical_data: List[Dict[str, Any]]) -> dict:
+    async def train_predictive_model(
+        self, historical_data: List[Dict[str, Any]]
+    ) -> dict:
         """Train predictive scaling model."""
         if len(historical_data) < 100:
             logger.warning("Insufficient historical data for predictive model training")

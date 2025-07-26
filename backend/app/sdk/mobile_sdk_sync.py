@@ -1079,7 +1079,9 @@ class ConflictError(Exception):
 class DataSyncModule:
     """Main data synchronization module for SDK."""
 
-    def __init__(self, sdk: MobileERPSDK, storage_path: str = "offline_storage.db") -> dict:
+    def __init__(
+        self, sdk: MobileERPSDK, storage_path: str = "offline_storage.db"
+    ) -> dict:
         self.sdk = sdk
         self.storage = OfflineStorage(storage_path)
         self.sync_engine = SyncEngine(sdk, self.storage)

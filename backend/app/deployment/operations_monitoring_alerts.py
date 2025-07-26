@@ -540,7 +540,9 @@ class NotificationManager:
                     }
                 )
 
-    async def _send_notification(self, target: NotificationTarget, alert: Alert) -> dict:
+    async def _send_notification(
+        self, target: NotificationTarget, alert: Alert
+    ) -> dict:
         """Send notification to specific target"""
         if target.channel == NotificationChannel.EMAIL:
             await self._send_email_notification(target, alert)
@@ -550,12 +552,16 @@ class NotificationManager:
             await self._send_webhook_notification(target, alert)
         # Add more notification channels as needed
 
-    async def _send_email_notification(self, target: NotificationTarget, alert: Alert) -> dict:
+    async def _send_email_notification(
+        self, target: NotificationTarget, alert: Alert
+    ) -> dict:
         """Send email notification"""
         # Email implementation would go here
         logging.info(f"Email notification sent for alert: {alert.title}")
 
-    async def _send_slack_notification(self, target: NotificationTarget, alert: Alert) -> dict:
+    async def _send_slack_notification(
+        self, target: NotificationTarget, alert: Alert
+    ) -> dict:
         """Send Slack notification"""
         webhook_url = target.config.get("webhook_url")
         if not webhook_url:
@@ -639,7 +645,9 @@ class DashboardManager:
         self.widgets: Dict[str, Dict[str, Any]] = {}
         self.dashboards: Dict[str, Dict[str, Any]] = {}
 
-    def create_dashboard(self, dashboard_id: str, title: str, description: str = "") -> dict:
+    def create_dashboard(
+        self, dashboard_id: str, title: str, description: str = ""
+    ) -> dict:
         """Create monitoring dashboard"""
         self.dashboards[dashboard_id] = {
             "id": dashboard_id,

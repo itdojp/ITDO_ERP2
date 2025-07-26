@@ -201,7 +201,9 @@ class HealthMonitor:
 
             await asyncio.sleep(5)  # Check for new tasks every 5 seconds
 
-    async def _execute_health_check(self, check_id: str, health_check: HealthCheck) -> dict:
+    async def _execute_health_check(
+        self, check_id: str, health_check: HealthCheck
+    ) -> dict:
         """Execute individual health check"""
         try:
             start_time = time.time()
@@ -401,7 +403,9 @@ class BackupManager:
             backup_record["error"] = str(e)
             logging.error(f"Backup failed: {backup_id} - {e}")
 
-    async def _perform_backup_operation(self, policy: BackupPolicy, backup_id: str) -> dict:
+    async def _perform_backup_operation(
+        self, policy: BackupPolicy, backup_id: str
+    ) -> dict:
         """Perform actual backup operation"""
         # Simulate backup process
         await asyncio.sleep(random.uniform(1, 5))  # Simulated backup time
@@ -489,7 +493,9 @@ class ReplicationManager:
 
             await asyncio.sleep(30)  # Monitor every 30 seconds
 
-    async def _monitor_replication(self, config_id: str, config: ReplicationConfig) -> dict:
+    async def _monitor_replication(
+        self, config_id: str, config: ReplicationConfig
+    ) -> dict:
         """Monitor replication status"""
         try:
             status = self.replication_status[config_id]

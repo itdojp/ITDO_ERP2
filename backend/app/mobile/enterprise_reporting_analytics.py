@@ -1177,7 +1177,9 @@ class AnalyticsEngine:
 class EnterpriseReportingAnalytics:
     """Main enterprise reporting and analytics system."""
 
-    def __init__(self, sdk: MobileERPSDK, auth_system: EnterpriseAuthenticationSystem) -> dict:
+    def __init__(
+        self, sdk: MobileERPSDK, auth_system: EnterpriseAuthenticationSystem
+    ) -> dict:
         self.sdk = sdk
         self.auth_system = auth_system
 
