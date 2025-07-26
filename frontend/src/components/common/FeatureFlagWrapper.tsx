@@ -4,9 +4,12 @@
  */
 
 // @ts-nocheck
-import React from 'react';
-import { useFeatureFlag, FeatureFlagContext } from '../../services/featureFlags';
-import { Box, Typography, CircularProgress } from '@mui/material';
+import React from "react";
+import {
+  useFeatureFlag,
+  FeatureFlagContext,
+} from "../../services/featureFlags";
+import { Box, Typography, CircularProgress } from "@mui/material";
 
 interface FeatureFlagWrapperProps {
   flagKey: string;
@@ -25,7 +28,7 @@ const FeatureFlagWrapper: React.FC<FeatureFlagWrapperProps> = ({
   loadingFallback,
   errorFallback,
   children,
-  invert = false
+  invert = false,
 }) => {
   const { isEnabled, isLoading, error } = useFeatureFlag(flagKey, context);
 
@@ -34,9 +37,9 @@ const FeatureFlagWrapper: React.FC<FeatureFlagWrapperProps> = ({
     if (loadingFallback) {
       return <>{loadingFallback}</>;
     }
-    
+
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+      <Box sx={{ display: "flex", justifyContent: "center", p: 2 }}>
         <CircularProgress size={20} />
       </Box>
     );
@@ -47,14 +50,14 @@ const FeatureFlagWrapper: React.FC<FeatureFlagWrapperProps> = ({
     if (errorFallback) {
       return <>{errorFallback}</>;
     }
-    
+
     // Fail safe: show fallback or nothing
     return <>{fallback}</>;
   }
 
   // Determine whether to show children
   const shouldShow = invert ? !isEnabled : isEnabled;
-  
+
   if (shouldShow) {
     return <>{children}</>;
   }
@@ -74,7 +77,7 @@ export function withFeatureFlag<P extends object>(
     context?: FeatureFlagContext;
     fallback?: React.ReactNode;
     invert?: boolean;
-  } = {}
+  } = {},
 ) {
   const WrappedComponent: React.FC<P> = (props) => {
     return (
@@ -90,7 +93,7 @@ export function withFeatureFlag<P extends object>(
   };
 
   WrappedComponent.displayName = `withFeatureFlag(${Component.displayName || Component.name})`;
-  
+
   return WrappedComponent;
 }
 
@@ -110,7 +113,7 @@ export const FeatureFlagToggle: React.FC<FeatureFlagToggleProps> = ({
   context = {},
   enabled,
   disabled,
-  loading
+  loading,
 }) => {
   const { isEnabled, isLoading, error } = useFeatureFlag(flagKey, context);
 
@@ -136,34 +139,41 @@ interface FeatureFlagDebugProps {
 
 export const FeatureFlagDebug: React.FC<FeatureFlagDebugProps> = ({
   flagKey,
-  context = {}
+  context = {},
 }) => {
   const { isEnabled, isLoading, error } = useFeatureFlag(flagKey, context);
 
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV === "production") {
     return null;
   }
 
   return (
     <Box
       sx={{
-        position: 'fixed',
+        position: "fixed",
         bottom: 16,
         right: 16,
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        color: 'white',
+        backgroundColor: "rgba(0, 0, 0, 0.8)",
+        color: "white",
         padding: 1,
         borderRadius: 1,
-        fontSize: '0.75rem',
+        fontSize: "0.75rem",
         zIndex: 9999,
-        fontFamily: 'monospace'
+        fontFamily: "monospace",
       }}
     >
       <Typography variant="caption" display="block">
         🎛️ {flagKey}
       </Typography>
       <Typography variant="caption" display="block">
-        Status: {isLoading ? 'Loading...' : error ? 'Error' : (isEnabled ? 'Enabled' : 'Disabled')}
+        Status:{" "}
+        {isLoading
+          ? "Loading..."
+          : error
+            ? "Error"
+            : isEnabled
+              ? "Enabled"
+              : "Disabled"}
       </Typography>
       {error && (
         <Typography variant="caption" display="block" color="error.main">

@@ -24,20 +24,13 @@ class Budget(SoftDeletableModel):
 
     # Basic fields
     code: Mapped[str] = mapped_column(
-        String(50),
-        nullable=False,
-        index=True,
-        comment="Budget code"
+        String(50), nullable=False, index=True, comment="Budget code"
     )
     name: Mapped[str] = mapped_column(
-        String(200),
-        nullable=False,
-        comment="Budget name"
+        String(200), nullable=False, comment="Budget name"
     )
     description: Mapped[str | None] = mapped_column(
-        Text,
-        nullable=True,
-        comment="Budget description"
+        Text, nullable=True, comment="Budget description"
     )
 
     # Foreign keys
@@ -45,157 +38,112 @@ class Budget(SoftDeletableModel):
         Integer,
         ForeignKey("organizations.id"),
         nullable=False,
-        comment="Organization ID for multi-tenant support"
+        comment="Organization ID for multi-tenant support",
     )
     project_id: Mapped[int | None] = mapped_column(
         Integer,
         ForeignKey("projects.id"),
         nullable=True,
-        comment="Project ID for project-specific budgets"
+        comment="Project ID for project-specific budgets",
     )
     department_id: Mapped[DepartmentId | None] = mapped_column(
         Integer,
         ForeignKey("departments.id"),
         nullable=True,
-        comment="Department ID for department-specific budgets"
+        comment="Department ID for department-specific budgets",
     )
 
     # Budget details
     budget_type: Mapped[str] = mapped_column(
         String(50),
         nullable=False,
-        comment="Budget type: project/department/annual/quarterly/monthly"
+        comment="Budget type: project/department/annual/quarterly/monthly",
     )
     fiscal_year: Mapped[int] = mapped_column(
-        Integer,
-        nullable=False,
-        comment="Fiscal year"
+        Integer, nullable=False, comment="Fiscal year"
     )
     budget_period: Mapped[str] = mapped_column(
         String(20),
         nullable=False,
         default="annual",
-        comment="Budget period: annual/quarterly/monthly"
+        comment="Budget period: annual/quarterly/monthly",
     )
     start_date: Mapped[date] = mapped_column(
-        Date,
-        nullable=False,
-        comment="Budget start date"
+        Date, nullable=False, comment="Budget start date"
     )
     end_date: Mapped[date] = mapped_column(
-        Date,
-        nullable=False,
-        comment="Budget end date"
+        Date, nullable=False, comment="Budget end date"
     )
 
     # Financial amounts (in organization's base currency)
     total_amount: Mapped[float] = mapped_column(
-        Float,
-        nullable=False,
-        comment="Total budget amount"
+        Float, nullable=False, comment="Total budget amount"
     )
     approved_amount: Mapped[float | None] = mapped_column(
-        Float,
-        nullable=True,
-        comment="Approved budget amount"
+        Float, nullable=True, comment="Approved budget amount"
     )
     actual_amount: Mapped[float] = mapped_column(
-        Float,
-        default=0.0,
-        comment="Actual spent amount"
+        Float, default=0.0, comment="Actual spent amount"
     )
     committed_amount: Mapped[float] = mapped_column(
-        Float,
-        default=0.0,
-        comment="Committed amount (pending expenses)"
+        Float, default=0.0, comment="Committed amount (pending expenses)"
     )
     remaining_amount: Mapped[float] = mapped_column(
-        Float,
-        default=0.0,
-        comment="Remaining budget amount"
+        Float, default=0.0, comment="Remaining budget amount"
     )
 
     # Currency
     currency: Mapped[str] = mapped_column(
-        String(3),
-        default="JPY",
-        comment="Currency code"
+        String(3), default="JPY", comment="Currency code"
     )
 
     # Status and approval
     status: Mapped[str] = mapped_column(
         String(50),
         default="draft",
-        comment="Budget status: draft/submitted/approved/rejected/active/closed"
+        comment="Budget status: draft/submitted/approved/rejected/active/closed",
     )
     approval_level: Mapped[int] = mapped_column(
-        Integer,
-        default=0,
-        comment="Current approval level"
+        Integer, default=0, comment="Current approval level"
     )
     approved_by: Mapped[UserId | None] = mapped_column(
         Integer,
         ForeignKey("users.id"),
         nullable=True,
-        comment="User who approved the budget"
+        comment="User who approved the budget",
     )
     approved_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True),
-        nullable=True,
-        comment="Budget approval timestamp"
+        DateTime(timezone=True), nullable=True, comment="Budget approval timestamp"
     )
     submitted_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True),
-        nullable=True,
-        comment="Budget submission timestamp"
+        DateTime(timezone=True), nullable=True, comment="Budget submission timestamp"
     )
 
     # Variance tracking
     variance_amount: Mapped[float] = mapped_column(
-        Float,
-        default=0.0,
-        comment="Variance amount (actual - budget)"
+        Float, default=0.0, comment="Variance amount (actual - budget)"
     )
     variance_percentage: Mapped[float] = mapped_column(
-        Float,
-        default=0.0,
-        comment="Variance percentage"
+        Float, default=0.0, comment="Variance percentage"
     )
 
     # Alert settings
     alert_threshold: Mapped[float] = mapped_column(
-        Float,
-        default=80.0,
-        comment="Alert threshold percentage (0-100)"
+        Float, default=80.0, comment="Alert threshold percentage (0-100)"
     )
     is_alert_enabled: Mapped[bool] = mapped_column(
-        Boolean,
-        default=True,
-        comment="Whether budget alerts are enabled"
+        Boolean, default=True, comment="Whether budget alerts are enabled"
     )
 
     # Relationships
-    organization: Mapped["Organization"] = relationship(
-        "Organization",
-        lazy="select"
-    )
-    project: Mapped["Project | None"] = relationship(
-        "Project",
-        lazy="select"
-    )
-    department: Mapped["Department | None"] = relationship(
-        "Department",
-        lazy="select"
-    )
+    organization: Mapped["Organization"] = relationship("Organization", lazy="select")
+    project: Mapped["Project | None"] = relationship("Project", lazy="select")
+    department: Mapped["Department | None"] = relationship("Department", lazy="select")
     approved_by_user: Mapped["User | None"] = relationship(
-        "User",
-        foreign_keys=[approved_by],
-        lazy="select"
+        "User", foreign_keys=[approved_by], lazy="select"
     )
     budget_items: Mapped[List["BudgetItem"]] = relationship(
-        "BudgetItem",
-        back_populates="budget",
-        cascade="all, delete-orphan"
+        "BudgetItem", back_populates="budget", cascade="all, delete-orphan"
     )
     # TODO: Add relationship to expense allocations when expense model is implemented
 
@@ -270,7 +218,9 @@ class Budget(SoftDeletableModel):
         else:
             self.variance_percentage = 0.0
 
-        self.remaining_amount = self.total_amount - self.actual_amount - self.committed_amount
+        self.remaining_amount = (
+            self.total_amount - self.actual_amount - self.committed_amount
+        )
 
     def submit_for_approval(self, submitted_by: UserId) -> None:
         """Submit budget for approval."""
@@ -330,96 +280,59 @@ class BudgetItem(SoftDeletableModel):
 
     # Foreign keys
     budget_id: Mapped[int] = mapped_column(
-        Integer,
-        ForeignKey("budgets.id"),
-        nullable=False,
-        comment="Budget ID"
+        Integer, ForeignKey("budgets.id"), nullable=False, comment="Budget ID"
     )
     expense_category_id: Mapped[int] = mapped_column(
         Integer,
         ForeignKey("expense_categories.id"),
         nullable=False,
-        comment="Expense category ID"
+        comment="Expense category ID",
     )
 
     # Item details
     name: Mapped[str] = mapped_column(
-        String(200),
-        nullable=False,
-        comment="Budget item name"
+        String(200), nullable=False, comment="Budget item name"
     )
     description: Mapped[str | None] = mapped_column(
-        Text,
-        nullable=True,
-        comment="Budget item description"
+        Text, nullable=True, comment="Budget item description"
     )
 
     # Quantity and unit
-    quantity: Mapped[float] = mapped_column(
-        Float,
-        default=1.0,
-        comment="Quantity"
-    )
+    quantity: Mapped[float] = mapped_column(Float, default=1.0, comment="Quantity")
     unit: Mapped[str | None] = mapped_column(
-        String(50),
-        nullable=True,
-        comment="Unit of measurement"
+        String(50), nullable=True, comment="Unit of measurement"
     )
-    unit_price: Mapped[float] = mapped_column(
-        Float,
-        default=0.0,
-        comment="Unit price"
-    )
+    unit_price: Mapped[float] = mapped_column(Float, default=0.0, comment="Unit price")
 
     # Financial amounts
     budgeted_amount: Mapped[float] = mapped_column(
-        Float,
-        nullable=False,
-        comment="Budgeted amount"
+        Float, nullable=False, comment="Budgeted amount"
     )
     actual_amount: Mapped[float] = mapped_column(
-        Float,
-        default=0.0,
-        comment="Actual spent amount"
+        Float, default=0.0, comment="Actual spent amount"
     )
     committed_amount: Mapped[float] = mapped_column(
-        Float,
-        default=0.0,
-        comment="Committed amount"
+        Float, default=0.0, comment="Committed amount"
     )
     variance_amount: Mapped[float] = mapped_column(
-        Float,
-        default=0.0,
-        comment="Variance amount"
+        Float, default=0.0, comment="Variance amount"
     )
     variance_percentage: Mapped[float] = mapped_column(
-        Float,
-        default=0.0,
-        comment="Variance percentage"
+        Float, default=0.0, comment="Variance percentage"
     )
 
     # Monthly breakdown (JSON)
     monthly_breakdown: Mapped[str | None] = mapped_column(
-        Text,
-        nullable=True,
-        comment="Monthly budget breakdown (JSON)"
+        Text, nullable=True, comment="Monthly budget breakdown (JSON)"
     )
 
     # Sort order
-    sort_order: Mapped[int] = mapped_column(
-        Integer,
-        default=0,
-        comment="Sort order"
-    )
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, comment="Sort order")
 
     # Relationships
-    budget: Mapped["Budget"] = relationship(
-        "Budget",
-        back_populates="budget_items"
-    )
+    budget: Mapped["Budget"] = relationship("Budget", back_populates="budget_items")
     expense_category: Mapped["ExpenseCategory"] = relationship(
-        "ExpenseCategory",
-        lazy="select"
+        "ExpenseCategory", lazy="select"
     )
 
     # Computed properties
@@ -444,7 +357,9 @@ class BudgetItem(SoftDeletableModel):
         """Calculate variance amounts."""
         self.variance_amount = self.actual_amount - self.budgeted_amount
         if self.budgeted_amount > 0:
-            self.variance_percentage = (self.variance_amount / self.budgeted_amount) * 100
+            self.variance_percentage = (
+                self.variance_amount / self.budgeted_amount
+            ) * 100
         else:
             self.variance_percentage = 0.0
 

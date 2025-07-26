@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 
 interface UserEditFormProps {
   user?: {
@@ -10,10 +10,13 @@ interface UserEditFormProps {
   onSubmit: (data: any) => void;
 }
 
-export const UserEditForm: React.FC<UserEditFormProps> = ({ user, onSubmit }) => {
-  const [email, setEmail] = useState(user?.email || '');
-  const [username, setUsername] = useState(user?.username || '');
-  const [fullName, setFullName] = useState(user?.fullName || '');
+export const UserEditForm: React.FC<UserEditFormProps> = ({
+  user,
+  onSubmit,
+}) => {
+  const [email, setEmail] = useState(user?.email || "");
+  const [username, setUsername] = useState(user?.username || "");
+  const [fullName, setFullName] = useState(user?.fullName || "");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

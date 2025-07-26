@@ -4,37 +4,38 @@ Enterprise-grade Security Administration and Monitoring System
 Day 3 of 7-day intensive backend development
 """
 
-from typing import List, Dict, Any, Optional, Union
+from datetime import date, datetime, timedelta
+from typing import Any, Dict, List, Optional
 from uuid import UUID, uuid4
-from datetime import datetime, date, timedelta
-from decimal import Decimal
-from enum import Enum
-import asyncio
 
-from fastapi import APIRouter, HTTPException, Depends, Query, Path, Body, status, BackgroundTasks
-from fastapi.responses import JSONResponse
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, delete, func, and_, or_, desc
-from sqlalchemy.orm import selectinload, joinedload
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field, validator
+from sqlalchemy import and_, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.security import get_current_active_user
-from app.core.exceptions import SecurityError, AuthenticationError, AuthorizationError
 from app.models.security import (
-    SecurityPolicy, AccessToken, RefreshToken, LoginAttempt, SecurityAudit,
-    RolePermission, UserRole, SecurityAlert, TwoFactorAuth, ApiKey
+    ApiKey,
+    LoginAttempt,
+    RolePermission,
+    SecurityAlert,
+    SecurityAudit,
+    SecurityPolicy,
+    TwoFactorAuth,
+    UserRole,
 )
-from app.models.user import User
 from app.services.advanced_security import (
-    security_manager, SecurityContext, SecurityLevel, ThreatLevel,
-    SecurityEventType, PermissionType, AuthenticationMethod
+    AuthenticationMethod,
+    SecurityContext,
+    SecurityLevel,
+    ThreatLevel,
+    security_manager,
 )
-from app.services.audit_service import AuditService
 
 router = APIRouter(prefix="/security", tags=["security-management"])
 security_scheme = HTTPBearer()
+
 
 # Request/Response Models
 class SecurityPolicyCreate(BaseModel):
@@ -44,6 +45,7 @@ class SecurityPolicyCreate(BaseModel):
     rules: Dict[str, Any] = Field(default_factory=dict)
     is_enforced: bool = Field(default=True)
     severity_level: SecurityLevel = Field(default=SecurityLevel.AUTHENTICATED)
+
 
 class SecurityPolicyResponse(BaseModel):
     id: UUID
@@ -61,11 +63,13 @@ class SecurityPolicyResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
 class RoleCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     description: Optional[str] = Field(None, max_length=500)
     permissions: List[str] = Field(default_factory=list)
     is_system_role: bool = Field(default=False)
+
 
 class RoleResponse(BaseModel):
     id: UUID
@@ -80,10 +84,12 @@ class RoleResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
 class PermissionCreate(BaseModel):
     resource: str = Field(..., min_length=1, max_length=100)
     action: str = Field(..., min_length=1, max_length=50)
     description: Optional[str] = Field(None, max_length=500)
+
 
 class PermissionResponse(BaseModel):
     id: UUID
@@ -97,6 +103,7 @@ class PermissionResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
 class SecurityAlertCreate(BaseModel):
     alert_type: str = Field(..., min_length=1, max_length=50)
     severity: ThreatLevel
@@ -105,6 +112,7 @@ class SecurityAlertCreate(BaseModel):
     source_ip: Optional[str] = Field(None, max_length=45)
     affected_user_id: Optional[UUID] = None
     alert_data: Dict[str, Any] = Field(default_factory=dict)
+
 
 class SecurityAlertResponse(BaseModel):
     id: UUID
@@ -125,6 +133,7 @@ class SecurityAlertResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
 class LoginAttemptResponse(BaseModel):
     id: UUID
     username: str
@@ -137,6 +146,7 @@ class LoginAttemptResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 class SecurityAuditResponse(BaseModel):
     id: UUID
@@ -154,21 +164,24 @@ class SecurityAuditResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
 class PasswordChangeRequest(BaseModel):
     current_password: str = Field(..., min_length=1)
     new_password: str = Field(..., min_length=8, max_length=128)
     confirm_password: str = Field(..., min_length=8, max_length=128)
 
-    @validator('confirm_password')
-    def passwords_match(cls, v, values):
-        if 'new_password' in values and v != values['new_password']:
-            raise ValueError('Passwords do not match')
+    @validator("confirm_password")
+    def passwords_match(cls, v, values) -> dict:
+        if "new_password" in values and v != values["new_password"]:
+            raise ValueError("Passwords do not match")
         return v
+
 
 class TwoFactorSetupRequest(BaseModel):
     method: AuthenticationMethod = Field(default=AuthenticationMethod.TWO_FACTOR)
     phone_number: Optional[str] = Field(None, max_length=20)
     backup_codes_count: int = Field(default=10, ge=5, le=20)
+
 
 class TwoFactorResponse(BaseModel):
     enabled: bool
@@ -180,12 +193,14 @@ class TwoFactorResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
 class ApiKeyCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     description: Optional[str] = Field(None, max_length=500)
     permissions: List[str] = Field(default_factory=list)
     expires_at: Optional[datetime] = None
     rate_limit: int = Field(default=1000, ge=1, le=10000)
+
 
 class ApiKeyResponse(BaseModel):
     id: UUID
@@ -203,56 +218,63 @@ class ApiKeyResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
 # Helper Functions
 async def get_current_security_context(
     credentials: HTTPAuthorizationCredentials = Depends(security_scheme),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ) -> SecurityContext:
     """Get current security context from token"""
-    
+
     token = credentials.credentials
     is_valid, payload = await security_manager.validate_token(token)
-    
+
     if not is_valid or not payload:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token"
         )
-    
-    user_id = UUID(payload.get('user_id'))
-    permissions = set(payload.get('permissions', []))
-    roles = set(payload.get('roles', []))
-    
+
+    user_id = UUID(payload.get("user_id"))
+    permissions = set(payload.get("permissions", []))
+    roles = set(payload.get("roles", []))
+
     return SecurityContext(
         user_id=user_id,
         permissions=permissions,
         roles=roles,
-        security_level=SecurityLevel.AUTHENTICATED
+        security_level=SecurityLevel.AUTHENTICATED,
     )
 
-async def require_permission(permission: str):
+
+async def require_permission(permission: str) -> dict:
     """Dependency to require specific permission"""
+
     async def permission_checker(
-        context: SecurityContext = Depends(get_current_security_context)
+        context: SecurityContext = Depends(get_current_security_context),
     ):
         if permission not in context.permissions and "*" not in context.permissions:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Permission '{permission}' required"
+                detail=f"Permission '{permission}' required",
             )
         return context
-    
+
     return permission_checker
 
+
 # Security Policy Management
-@router.post("/policies", response_model=SecurityPolicyResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/policies",
+    response_model=SecurityPolicyResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_security_policy(
     policy: SecurityPolicyCreate,
     db: AsyncSession = Depends(get_db),
-    context: SecurityContext = Depends(require_permission("security:admin"))
+    context: SecurityContext = Depends(require_permission("security:admin")),
 ):
     """Create a new security policy"""
-    
+
     db_policy = SecurityPolicy(
         id=uuid4(),
         name=policy.name,
@@ -263,13 +285,13 @@ async def create_security_policy(
         severity_level=policy.severity_level,
         created_by=context.user_id,
         created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow()
+        updated_at=datetime.utcnow(),
     )
-    
+
     db.add(db_policy)
     await db.commit()
     await db.refresh(db_policy)
-    
+
     return SecurityPolicyResponse(
         id=db_policy.id,
         name=db_policy.name,
@@ -281,8 +303,9 @@ async def create_security_policy(
         violations_count=0,
         created_by=db_policy.created_by,
         created_at=db_policy.created_at,
-        updated_at=db_policy.updated_at
+        updated_at=db_policy.updated_at,
     )
+
 
 @router.get("/policies", response_model=List[SecurityPolicyResponse])
 async def list_security_policies(
@@ -291,23 +314,23 @@ async def list_security_policies(
     policy_type: Optional[str] = Query(None),
     is_enforced: Optional[bool] = Query(None),
     db: AsyncSession = Depends(get_db),
-    context: SecurityContext = Depends(require_permission("security:read"))
+    context: SecurityContext = Depends(require_permission("security:read")),
 ):
     """List security policies"""
-    
+
     query = select(SecurityPolicy)
-    
+
     if policy_type:
         query = query.where(SecurityPolicy.policy_type == policy_type)
-    
+
     if is_enforced is not None:
         query = query.where(SecurityPolicy.is_enforced == is_enforced)
-    
+
     query = query.offset(skip).limit(limit).order_by(SecurityPolicy.created_at.desc())
-    
+
     result = await db.execute(query)
     policies = result.scalars().all()
-    
+
     return [
         SecurityPolicyResponse(
             id=policy.id,
@@ -320,38 +343,36 @@ async def list_security_policies(
             violations_count=0,  # Would calculate from audit logs
             created_by=policy.created_by,
             created_at=policy.created_at,
-            updated_at=policy.updated_at
+            updated_at=policy.updated_at,
         )
         for policy in policies
     ]
+
 
 # Role Management
 @router.post("/roles", response_model=RoleResponse, status_code=status.HTTP_201_CREATED)
 async def create_role(
     role: RoleCreate,
     db: AsyncSession = Depends(get_db),
-    context: SecurityContext = Depends(require_permission("security:admin"))
+    context: SecurityContext = Depends(require_permission("security:admin")),
 ):
     """Create a new role"""
-    
+
     # Check if role name already exists
-    existing = await db.execute(
-        select(UserRole).where(UserRole.role_name == role.name)
-    )
+    existing = await db.execute(select(UserRole).where(UserRole.role_name == role.name))
     if existing.scalar_one_or_none():
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Role name already exists"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Role name already exists"
         )
-    
+
     role_id = uuid4()
-    
+
     # Create role permissions
     for permission in role.permissions:
-        parts = permission.split(':')
+        parts = permission.split(":")
         if len(parts) != 2:
             continue
-        
+
         resource, action = parts
         role_permission = RolePermission(
             id=uuid4(),
@@ -359,12 +380,12 @@ async def create_role(
             resource=resource,
             permission=action,
             granted_by=context.user_id,
-            granted_at=datetime.utcnow()
+            granted_at=datetime.utcnow(),
         )
         db.add(role_permission)
-    
+
     await db.commit()
-    
+
     return RoleResponse(
         id=role_id,
         name=role.name,
@@ -373,8 +394,9 @@ async def create_role(
         user_count=0,
         is_system_role=role.is_system_role,
         created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow()
+        updated_at=datetime.utcnow(),
     )
+
 
 @router.get("/roles", response_model=List[RoleResponse])
 async def list_roles(
@@ -382,62 +404,72 @@ async def list_roles(
     limit: int = Query(50, ge=1, le=500),
     include_system: bool = Query(True),
     db: AsyncSession = Depends(get_db),
-    context: SecurityContext = Depends(require_permission("security:read"))
+    context: SecurityContext = Depends(require_permission("security:read")),
 ):
     """List roles"""
-    
+
     # Get unique roles with user counts
     query = select(
-        UserRole.role_name,
-        func.count(UserRole.user_id).label('user_count')
+        UserRole.role_name, func.count(UserRole.user_id).label("user_count")
     ).group_by(UserRole.role_name)
-    
+
     if not include_system:
         # Would filter system roles if we had that field
         pass
-    
+
     query = query.offset(skip).limit(limit)
-    
+
     result = await db.execute(query)
     roles_data = result.fetchall()
-    
+
     roles = []
     for role_name, user_count in roles_data:
         # Get permissions for this role
         perms_result = await db.execute(
-            select(RolePermission.resource, RolePermission.permission)
-            .where(RolePermission.role_id.in_(
-                select(UserRole.role_id).where(UserRole.role_name == role_name)
-            ))
+            select(RolePermission.resource, RolePermission.permission).where(
+                RolePermission.role_id.in_(
+                    select(UserRole.role_id).where(UserRole.role_name == role_name)
+                )
+            )
         )
-        
-        permissions = [f"{resource}:{permission}" for resource, permission in perms_result.fetchall()]
-        
-        roles.append(RoleResponse(
-            id=uuid4(),  # Would use actual role ID
-            name=role_name,
-            description=None,
-            permissions=permissions,
-            user_count=user_count,
-            is_system_role=False,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
-        ))
-    
+
+        permissions = [
+            f"{resource}:{permission}"
+            for resource, permission in perms_result.fetchall()
+        ]
+
+        roles.append(
+            RoleResponse(
+                id=uuid4(),  # Would use actual role ID
+                name=role_name,
+                description=None,
+                permissions=permissions,
+                user_count=user_count,
+                is_system_role=False,
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow(),
+            )
+        )
+
     return roles
 
+
 # Permission Management
-@router.post("/permissions", response_model=PermissionResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/permissions",
+    response_model=PermissionResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_permission(
     permission: PermissionCreate,
     db: AsyncSession = Depends(get_db),
-    context: SecurityContext = Depends(require_permission("security:admin"))
+    context: SecurityContext = Depends(require_permission("security:admin")),
 ):
     """Create a new permission"""
-    
+
     permission_id = uuid4()
     full_permission = f"{permission.resource}:{permission.action}"
-    
+
     return PermissionResponse(
         id=permission_id,
         resource=permission.resource,
@@ -445,8 +477,9 @@ async def create_permission(
         description=permission.description,
         full_permission=full_permission,
         granted_roles=[],
-        granted_users=[]
+        granted_users=[],
     )
+
 
 @router.get("/permissions", response_model=List[PermissionResponse])
 async def list_permissions(
@@ -454,59 +487,65 @@ async def list_permissions(
     limit: int = Query(50, ge=1, le=500),
     resource: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
-    context: SecurityContext = Depends(require_permission("security:read"))
+    context: SecurityContext = Depends(require_permission("security:read")),
 ):
     """List permissions"""
-    
+
     query = select(RolePermission.resource, RolePermission.permission).distinct()
-    
+
     if resource:
         query = query.where(RolePermission.resource == resource)
-    
+
     query = query.offset(skip).limit(limit)
-    
+
     result = await db.execute(query)
     permissions_data = result.fetchall()
-    
+
     permissions = []
     for resource_name, action in permissions_data:
         permission_id = uuid4()
         full_permission = f"{resource_name}:{action}"
-        
+
         # Get roles with this permission
         roles_result = await db.execute(
-            select(UserRole.role_name).distinct()
+            select(UserRole.role_name)
+            .distinct()
             .join(RolePermission)
             .where(
                 and_(
                     RolePermission.resource == resource_name,
-                    RolePermission.permission == action
+                    RolePermission.permission == action,
                 )
             )
         )
         granted_roles = [role[0] for role in roles_result.fetchall()]
-        
-        permissions.append(PermissionResponse(
-            id=permission_id,
-            resource=resource_name,
-            action=action,
-            description=None,
-            full_permission=full_permission,
-            granted_roles=granted_roles,
-            granted_users=[]
-        ))
-    
+
+        permissions.append(
+            PermissionResponse(
+                id=permission_id,
+                resource=resource_name,
+                action=action,
+                description=None,
+                full_permission=full_permission,
+                granted_roles=granted_roles,
+                granted_users=[],
+            )
+        )
+
     return permissions
 
+
 # Security Alerts
-@router.post("/alerts", response_model=SecurityAlertResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/alerts", response_model=SecurityAlertResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_security_alert(
     alert: SecurityAlertCreate,
     db: AsyncSession = Depends(get_db),
-    context: SecurityContext = Depends(require_permission("security:admin"))
+    context: SecurityContext = Depends(require_permission("security:admin")),
 ):
     """Create a security alert"""
-    
+
     db_alert = SecurityAlert(
         id=uuid4(),
         alert_type=alert.alert_type,
@@ -518,13 +557,13 @@ async def create_security_alert(
         alert_data=alert.alert_data,
         status="open",
         acknowledged=False,
-        created_at=datetime.utcnow()
+        created_at=datetime.utcnow(),
     )
-    
+
     db.add(db_alert)
     await db.commit()
     await db.refresh(db_alert)
-    
+
     return SecurityAlertResponse(
         id=db_alert.id,
         alert_type=db_alert.alert_type,
@@ -539,8 +578,9 @@ async def create_security_alert(
         acknowledged=db_alert.acknowledged,
         acknowledged_by=db_alert.acknowledged_by,
         acknowledged_at=db_alert.acknowledged_at,
-        created_at=db_alert.created_at
+        created_at=db_alert.created_at,
     )
+
 
 @router.get("/alerts", response_model=List[SecurityAlertResponse])
 async def list_security_alerts(
@@ -551,29 +591,29 @@ async def list_security_alerts(
     date_from: Optional[date] = Query(None),
     date_to: Optional[date] = Query(None),
     db: AsyncSession = Depends(get_db),
-    context: SecurityContext = Depends(require_permission("security:read"))
+    context: SecurityContext = Depends(require_permission("security:read")),
 ):
     """List security alerts"""
-    
+
     query = select(SecurityAlert)
-    
+
     if severity:
         query = query.where(SecurityAlert.severity == severity)
-    
+
     if acknowledged is not None:
         query = query.where(SecurityAlert.acknowledged == acknowledged)
-    
+
     if date_from:
         query = query.where(SecurityAlert.created_at >= date_from)
-    
+
     if date_to:
         query = query.where(SecurityAlert.created_at <= date_to)
-    
+
     query = query.offset(skip).limit(limit).order_by(SecurityAlert.created_at.desc())
-    
+
     result = await db.execute(query)
     alerts = result.scalars().all()
-    
+
     return [
         SecurityAlertResponse(
             id=alert.id,
@@ -589,37 +629,38 @@ async def list_security_alerts(
             acknowledged=alert.acknowledged,
             acknowledged_by=alert.acknowledged_by,
             acknowledged_at=alert.acknowledged_at,
-            created_at=alert.created_at
+            created_at=alert.created_at,
         )
         for alert in alerts
     ]
+
 
 @router.patch("/alerts/{alert_id}/acknowledge")
 async def acknowledge_alert(
     alert_id: UUID = Path(...),
     db: AsyncSession = Depends(get_db),
-    context: SecurityContext = Depends(require_permission("security:admin"))
+    context: SecurityContext = Depends(require_permission("security:admin")),
 ):
     """Acknowledge a security alert"""
-    
+
     alert_result = await db.execute(
         select(SecurityAlert).where(SecurityAlert.id == alert_id)
     )
     alert = alert_result.scalar_one_or_none()
-    
+
     if not alert:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Alert not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Alert not found"
         )
-    
+
     alert.acknowledged = True
     alert.acknowledged_by = context.user_id
     alert.acknowledged_at = datetime.utcnow()
-    
+
     await db.commit()
-    
+
     return {"message": "Alert acknowledged successfully"}
+
 
 # Login Attempts and Audit
 @router.get("/login-attempts", response_model=List[LoginAttemptResponse])
@@ -632,32 +673,32 @@ async def list_login_attempts(
     date_from: Optional[date] = Query(None),
     date_to: Optional[date] = Query(None),
     db: AsyncSession = Depends(get_db),
-    context: SecurityContext = Depends(require_permission("security:read"))
+    context: SecurityContext = Depends(require_permission("security:read")),
 ):
     """List login attempts"""
-    
+
     query = select(LoginAttempt)
-    
+
     if username:
         query = query.where(LoginAttempt.username.ilike(f"%{username}%"))
-    
+
     if ip_address:
         query = query.where(LoginAttempt.ip_address == ip_address)
-    
+
     if success is not None:
         query = query.where(LoginAttempt.success == success)
-    
+
     if date_from:
         query = query.where(LoginAttempt.attempted_at >= date_from)
-    
+
     if date_to:
         query = query.where(LoginAttempt.attempted_at <= date_to)
-    
+
     query = query.offset(skip).limit(limit).order_by(LoginAttempt.attempted_at.desc())
-    
+
     result = await db.execute(query)
     attempts = result.scalars().all()
-    
+
     return [
         LoginAttemptResponse(
             id=attempt.id,
@@ -667,10 +708,11 @@ async def list_login_attempts(
             success=attempt.success,
             failure_reason=attempt.failure_reason,
             geolocation=attempt.geolocation,
-            attempted_at=attempt.attempted_at
+            attempted_at=attempt.attempted_at,
         )
         for attempt in attempts
     ]
+
 
 @router.get("/audit-log", response_model=List[SecurityAuditResponse])
 async def get_security_audit_log(
@@ -682,32 +724,32 @@ async def get_security_audit_log(
     date_from: Optional[date] = Query(None),
     date_to: Optional[date] = Query(None),
     db: AsyncSession = Depends(get_db),
-    context: SecurityContext = Depends(require_permission("security:audit"))
+    context: SecurityContext = Depends(require_permission("security:audit")),
 ):
     """Get security audit log"""
-    
+
     query = select(SecurityAudit)
-    
+
     if user_id:
         query = query.where(SecurityAudit.user_id == user_id)
-    
+
     if event_type:
         query = query.where(SecurityAudit.event_type == event_type)
-    
+
     if resource:
         query = query.where(SecurityAudit.resource == resource)
-    
+
     if date_from:
         query = query.where(SecurityAudit.created_at >= date_from)
-    
+
     if date_to:
         query = query.where(SecurityAudit.created_at <= date_to)
-    
+
     query = query.offset(skip).limit(limit).order_by(SecurityAudit.created_at.desc())
-    
+
     result = await db.execute(query)
     audits = result.scalars().all()
-    
+
     return [
         SecurityAuditResponse(
             id=audit.id,
@@ -720,51 +762,48 @@ async def get_security_audit_log(
             success=audit.success,
             details=audit.details,
             risk_score=audit.risk_score or 0,
-            created_at=audit.created_at
+            created_at=audit.created_at,
         )
         for audit in audits
     ]
+
 
 # Password Management
 @router.post("/password/change")
 async def change_password(
     request: PasswordChangeRequest,
     db: AsyncSession = Depends(get_db),
-    context: SecurityContext = Depends(get_current_security_context)
+    context: SecurityContext = Depends(get_current_security_context),
 ):
     """Change user password"""
-    
+
     success, errors = await security_manager.change_password(
-        context.user_id,
-        request.current_password,
-        request.new_password,
-        context,
-        db
+        context.user_id, request.current_password, request.new_password, context, db
     )
-    
+
     if not success:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"errors": errors}
+            status_code=status.HTTP_400_BAD_REQUEST, detail={"errors": errors}
         )
-    
+
     return {"message": "Password changed successfully"}
+
 
 # Two-Factor Authentication
 @router.post("/2fa/setup", response_model=TwoFactorResponse)
 async def setup_two_factor_auth(
     request: TwoFactorSetupRequest,
     db: AsyncSession = Depends(get_db),
-    context: SecurityContext = Depends(get_current_security_context)
+    context: SecurityContext = Depends(get_current_security_context),
 ):
     """Setup two-factor authentication"""
-    
+
     # Generate backup codes
     backup_codes = [secrets.token_hex(8) for _ in range(request.backup_codes_count)]
-    
+
     # Generate TOTP secret
     secret_key = secrets.token_urlsafe(32)
-    
+
     # Create 2FA record
     two_fa = TwoFactorAuth(
         id=uuid4(),
@@ -774,36 +813,41 @@ async def setup_two_factor_auth(
         backup_codes=backup_codes,
         phone_number=request.phone_number,
         enabled=True,
-        created_at=datetime.utcnow()
+        created_at=datetime.utcnow(),
     )
-    
+
     db.add(two_fa)
     await db.commit()
-    
+
     # Generate QR code URL for TOTP
-    qr_code_url = f"otpauth://totp/ITDO_ERP:{context.user_id}?secret={secret_key}&issuer=ITDO_ERP"
-    
+    qr_code_url = (
+        f"otpauth://totp/ITDO_ERP:{context.user_id}?secret={secret_key}&issuer=ITDO_ERP"
+    )
+
     return TwoFactorResponse(
         enabled=True,
         method=request.method,
         backup_codes=backup_codes,
         qr_code_url=qr_code_url,
-        secret_key=secret_key
+        secret_key=secret_key,
     )
 
+
 # API Key Management
-@router.post("/api-keys", response_model=ApiKeyResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/api-keys", response_model=ApiKeyResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_api_key(
     request: ApiKeyCreate,
     db: AsyncSession = Depends(get_db),
-    context: SecurityContext = Depends(require_permission("security:admin"))
+    context: SecurityContext = Depends(require_permission("security:admin")),
 ):
     """Create a new API key"""
-    
+
     # Generate API key
     key = f"itdo_{secrets.token_urlsafe(32)}"
     key_prefix = key[:12] + "..."
-    
+
     db_key = ApiKey(
         id=uuid4(),
         name=request.name,
@@ -816,13 +860,13 @@ async def create_api_key(
         usage_count=0,
         is_active=True,
         created_by=context.user_id,
-        created_at=datetime.utcnow()
+        created_at=datetime.utcnow(),
     )
-    
+
     db.add(db_key)
     await db.commit()
     await db.refresh(db_key)
-    
+
     return ApiKeyResponse(
         id=db_key.id,
         name=db_key.name,
@@ -834,8 +878,9 @@ async def create_api_key(
         usage_count=db_key.usage_count,
         last_used=db_key.last_used,
         is_active=db_key.is_active,
-        created_at=db_key.created_at
+        created_at=db_key.created_at,
     )
+
 
 @router.get("/api-keys", response_model=List[ApiKeyResponse])
 async def list_api_keys(
@@ -843,20 +888,20 @@ async def list_api_keys(
     limit: int = Query(50, ge=1, le=500),
     is_active: Optional[bool] = Query(None),
     db: AsyncSession = Depends(get_db),
-    context: SecurityContext = Depends(require_permission("security:read"))
+    context: SecurityContext = Depends(require_permission("security:read")),
 ):
     """List API keys"""
-    
+
     query = select(ApiKey)
-    
+
     if is_active is not None:
         query = query.where(ApiKey.is_active == is_active)
-    
+
     query = query.offset(skip).limit(limit).order_by(ApiKey.created_at.desc())
-    
+
     result = await db.execute(query)
     keys = result.scalars().all()
-    
+
     return [
         ApiKeyResponse(
             id=key.id,
@@ -869,34 +914,36 @@ async def list_api_keys(
             usage_count=key.usage_count,
             last_used=key.last_used,
             is_active=key.is_active,
-            created_at=key.created_at
+            created_at=key.created_at,
         )
         for key in keys
     ]
+
 
 # Security Metrics and Dashboard
 @router.get("/metrics")
 async def get_security_metrics(
     period_days: int = Query(7, ge=1, le=365),
-    context: SecurityContext = Depends(require_permission("security:read"))
+    context: SecurityContext = Depends(require_permission("security:read")),
 ):
     """Get security metrics"""
-    
+
     metrics = security_manager.get_security_metrics()
-    
+
     return {
         "period_days": period_days,
         "metrics": metrics,
-        "generated_at": datetime.utcnow().isoformat()
+        "generated_at": datetime.utcnow().isoformat(),
     }
+
 
 @router.get("/dashboard")
 async def get_security_dashboard(
     db: AsyncSession = Depends(get_db),
-    context: SecurityContext = Depends(require_permission("security:read"))
+    context: SecurityContext = Depends(require_permission("security:read")),
 ):
     """Get security dashboard data"""
-    
+
     # Get recent alerts
     recent_alerts = await db.execute(
         select(SecurityAlert)
@@ -904,36 +951,35 @@ async def get_security_dashboard(
         .order_by(SecurityAlert.created_at.desc())
         .limit(10)
     )
-    
+
     # Get failed login attempts
     failed_logins = await db.execute(
-        select(func.count(LoginAttempt.id))
-        .where(
+        select(func.count(LoginAttempt.id)).where(
             and_(
-                LoginAttempt.success == False,
-                LoginAttempt.attempted_at >= datetime.utcnow() - timedelta(hours=24)
+                not LoginAttempt.success,
+                LoginAttempt.attempted_at >= datetime.utcnow() - timedelta(hours=24),
             )
         )
     )
-    
+
     # Get active sessions count (would be from session storage)
     active_sessions = 0
-    
+
     return {
         "alerts": {
             "recent_count": len(recent_alerts.scalars().all()),
             "critical_count": 0,  # Would calculate
-            "unacknowledged_count": 0  # Would calculate
+            "unacknowledged_count": 0,  # Would calculate
         },
         "authentication": {
             "failed_logins_24h": failed_logins.scalar() or 0,
             "active_sessions": active_sessions,
-            "locked_accounts": 0  # Would calculate
+            "locked_accounts": 0,  # Would calculate
         },
         "threats": security_manager.get_security_metrics(),
         "compliance": {
             "password_policy_violations": 0,
             "inactive_users": 0,
-            "expired_api_keys": 0
-        }
+            "expired_api_keys": 0,
+        },
     }

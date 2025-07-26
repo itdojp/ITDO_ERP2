@@ -59,7 +59,9 @@ async def get_customer(
 ):
     """顧客詳細取得"""
     service = CustomerService(db)
-    customer = await service.get_customer_by_id(customer_id, current_user.organization_id)
+    customer = await service.get_customer_by_id(
+        customer_id, current_user.organization_id
+    )
     if not customer:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Customer not found"
@@ -75,7 +77,9 @@ async def create_customer(
 ):
     """顧客新規作成"""
     service = CustomerService(db)
-    customer = await service.create_customer(customer_data, current_user.organization_id)
+    customer = await service.create_customer(
+        customer_data, current_user.organization_id
+    )
     return customer
 
 

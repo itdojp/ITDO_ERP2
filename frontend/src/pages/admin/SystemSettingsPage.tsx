@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Box,
   Paper,
@@ -46,8 +46,8 @@ import {
   ListItemText,
   ListItemSecondaryAction,
   Slider,
-  InputAdornment
-} from '@mui/material';
+  InputAdornment,
+} from "@mui/material";
 import {
   Settings as SettingsIcon,
   Save as SaveIcon,
@@ -75,9 +75,9 @@ import {
   Upload as UploadIcon,
   Download as DownloadIcon,
   RestartAlt as RestartIcon,
-  Build as MaintenanceIcon
-} from '@mui/icons-material';
-import { apiClient } from '@/services/api';
+  Build as MaintenanceIcon,
+} from "@mui/icons-material";
+import { apiClient } from "@/services/api";
 
 interface SystemConfiguration {
   general: {
@@ -148,7 +148,7 @@ interface SystemConfiguration {
 }
 
 interface SystemHealth {
-  overall_status: 'healthy' | 'warning' | 'critical';
+  overall_status: "healthy" | "warning" | "critical";
   uptime_hours: number;
   cpu_usage: number;
   memory_usage: number;
@@ -161,7 +161,7 @@ interface SystemHealth {
   last_backup: string;
   services: Array<{
     name: string;
-    status: 'running' | 'stopped' | 'error';
+    status: "running" | "stopped" | "error";
     uptime: string;
     memory_mb: number;
   }>;
@@ -170,7 +170,7 @@ interface SystemHealth {
 interface SystemLog {
   id: number;
   timestamp: string;
-  level: 'info' | 'warning' | 'error' | 'critical';
+  level: "info" | "warning" | "error" | "critical";
   category: string;
   message: string;
   user_id?: number;
@@ -195,7 +195,7 @@ const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => {
 export const SystemSettingsPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  
+
   const [currentTab, setCurrentTab] = useState(0);
   const [configChanged, setConfigChanged] = useState(false);
   const [showPasswords, setShowPasswords] = useState(false);
@@ -206,15 +206,15 @@ export const SystemSettingsPage: React.FC = () => {
   // Mock system configuration data
   const mockConfig: SystemConfiguration = {
     general: {
-      app_name: 'ITDO ERP System',
-      app_description: 'Comprehensive Enterprise Resource Planning Solution',
-      company_name: 'ITDO Corporation',
-      company_logo_url: '/logo.png',
-      timezone: 'America/New_York',
-      language: 'en',
-      currency: 'USD',
-      date_format: 'MM/DD/YYYY',
-      time_format: '12h'
+      app_name: "ITDO ERP System",
+      app_description: "Comprehensive Enterprise Resource Planning Solution",
+      company_name: "ITDO Corporation",
+      company_logo_url: "/logo.png",
+      timezone: "America/New_York",
+      language: "en",
+      currency: "USD",
+      date_format: "MM/DD/YYYY",
+      time_format: "12h",
     },
     security: {
       password_min_length: 8,
@@ -228,52 +228,52 @@ export const SystemSettingsPage: React.FC = () => {
       session_timeout_minutes: 60,
       two_factor_required: false,
       ip_whitelist_enabled: false,
-      allowed_ips: ['192.168.1.0/24', '10.0.0.0/8']
+      allowed_ips: ["192.168.1.0/24", "10.0.0.0/8"],
     },
     email: {
-      smtp_host: 'smtp.company.com',
+      smtp_host: "smtp.company.com",
       smtp_port: 587,
-      smtp_username: 'noreply@company.com',
-      smtp_password: '***********',
+      smtp_username: "noreply@company.com",
+      smtp_password: "***********",
       smtp_use_tls: true,
-      from_email: 'noreply@company.com',
-      from_name: 'ITDO ERP System',
-      reply_to_email: 'support@company.com'
+      from_email: "noreply@company.com",
+      from_name: "ITDO ERP System",
+      reply_to_email: "support@company.com",
     },
     database: {
       backup_enabled: true,
-      backup_frequency: 'daily',
+      backup_frequency: "daily",
       backup_retention_days: 30,
-      backup_location: '/backups/',
-      maintenance_window: '02:00-04:00',
+      backup_location: "/backups/",
+      maintenance_window: "02:00-04:00",
       query_timeout_seconds: 30,
-      connection_pool_size: 50
+      connection_pool_size: 50,
     },
     performance: {
       cache_enabled: true,
       cache_ttl_minutes: 60,
       max_file_upload_mb: 100,
       api_rate_limit_per_minute: 1000,
-      log_level: 'INFO',
+      log_level: "INFO",
       log_retention_days: 90,
-      enable_compression: true
+      enable_compression: true,
     },
     notifications: {
       system_alerts_enabled: true,
       email_notifications_enabled: true,
-      slack_webhook_url: 'https://hooks.slack.com/services/...',
-      notification_channels: ['email', 'slack'],
+      slack_webhook_url: "https://hooks.slack.com/services/...",
+      notification_channels: ["email", "slack"],
       alert_thresholds: {
         cpu_usage: 80,
         memory_usage: 85,
         disk_usage: 90,
-        error_rate: 5
-      }
-    }
+        error_rate: 5,
+      },
+    },
   };
 
   const mockSystemHealth: SystemHealth = {
-    overall_status: 'healthy',
+    overall_status: "healthy",
     uptime_hours: 72.5,
     cpu_usage: 45,
     memory_usage: 68,
@@ -283,67 +283,96 @@ export const SystemSettingsPage: React.FC = () => {
     queue_length: 3,
     error_rate: 0.1,
     response_time_ms: 245,
-    last_backup: '2024-01-20T02:30:00Z',
+    last_backup: "2024-01-20T02:30:00Z",
     services: [
-      { name: 'Web Server', status: 'running', uptime: '72h 30m', memory_mb: 512 },
-      { name: 'Database', status: 'running', uptime: '72h 30m', memory_mb: 1024 },
-      { name: 'Cache Service', status: 'running', uptime: '72h 30m', memory_mb: 256 },
-      { name: 'Queue Worker', status: 'running', uptime: '24h 15m', memory_mb: 128 },
-      { name: 'Backup Service', status: 'running', uptime: '72h 30m', memory_mb: 64 }
-    ]
+      {
+        name: "Web Server",
+        status: "running",
+        uptime: "72h 30m",
+        memory_mb: 512,
+      },
+      {
+        name: "Database",
+        status: "running",
+        uptime: "72h 30m",
+        memory_mb: 1024,
+      },
+      {
+        name: "Cache Service",
+        status: "running",
+        uptime: "72h 30m",
+        memory_mb: 256,
+      },
+      {
+        name: "Queue Worker",
+        status: "running",
+        uptime: "24h 15m",
+        memory_mb: 128,
+      },
+      {
+        name: "Backup Service",
+        status: "running",
+        uptime: "72h 30m",
+        memory_mb: 64,
+      },
+    ],
   };
 
   const mockLogs: SystemLog[] = [
     {
       id: 1,
-      timestamp: '2024-01-20T14:30:00Z',
-      level: 'info',
-      category: 'Authentication',
-      message: 'User login successful',
+      timestamp: "2024-01-20T14:30:00Z",
+      level: "info",
+      category: "Authentication",
+      message: "User login successful",
       user_id: 123,
-      ip_address: '192.168.1.100'
+      ip_address: "192.168.1.100",
     },
     {
       id: 2,
-      timestamp: '2024-01-20T14:25:00Z',
-      level: 'warning',
-      category: 'Performance',
-      message: 'High CPU usage detected',
-      details: { cpu_usage: 85, threshold: 80 }
+      timestamp: "2024-01-20T14:25:00Z",
+      level: "warning",
+      category: "Performance",
+      message: "High CPU usage detected",
+      details: { cpu_usage: 85, threshold: 80 },
     },
     {
       id: 3,
-      timestamp: '2024-01-20T14:20:00Z',
-      level: 'error',
-      category: 'Database',
-      message: 'Connection timeout',
-      details: { query: 'SELECT * FROM large_table', duration_ms: 30000 }
+      timestamp: "2024-01-20T14:20:00Z",
+      level: "error",
+      category: "Database",
+      message: "Connection timeout",
+      details: { query: "SELECT * FROM large_table", duration_ms: 30000 },
     },
     {
       id: 4,
-      timestamp: '2024-01-20T14:15:00Z',
-      level: 'info',
-      category: 'Backup',
-      message: 'Automated backup completed successfully',
-      details: { backup_size_mb: 2048, duration_minutes: 15 }
-    }
+      timestamp: "2024-01-20T14:15:00Z",
+      level: "info",
+      category: "Backup",
+      message: "Automated backup completed successfully",
+      details: { backup_size_mb: 2048, duration_minutes: 15 },
+    },
   ];
 
   // Fetch system configuration
-  const { data: config, isLoading: configLoading, refetch } = useQuery({
-    queryKey: ['system-config'],
+  const {
+    data: config,
+    isLoading: configLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ["system-config"],
     queryFn: async (): Promise<SystemConfiguration> => {
       // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await new Promise((resolve) => setTimeout(resolve, 800));
       return mockConfig;
     },
   });
 
   // Fetch system health
   const { data: healthData } = useQuery({
-    queryKey: ['system-health'],
+    queryKey: ["system-health"],
     queryFn: async (): Promise<SystemHealth> => {
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
       return mockSystemHealth;
     },
     refetchInterval: 30000, // Refresh every 30 seconds
@@ -351,9 +380,9 @@ export const SystemSettingsPage: React.FC = () => {
 
   // Fetch system logs
   const { data: logsData } = useQuery({
-    queryKey: ['system-logs'],
+    queryKey: ["system-logs"],
     queryFn: async (): Promise<SystemLog[]> => {
-      await new Promise(resolve => setTimeout(resolve, 600));
+      await new Promise((resolve) => setTimeout(resolve, 600));
       return mockLogs;
     },
   });
@@ -361,11 +390,11 @@ export const SystemSettingsPage: React.FC = () => {
   // Save configuration mutation
   const saveConfigMutation = useMutation({
     mutationFn: async (newConfig: SystemConfiguration) => {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      console.log('Saving configuration:', newConfig);
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      console.log("Saving configuration:", newConfig);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['system-config'] });
+      queryClient.invalidateQueries({ queryKey: ["system-config"] });
       setConfigChanged(false);
     },
   });
@@ -373,20 +402,24 @@ export const SystemSettingsPage: React.FC = () => {
   // Test email mutation
   const testEmailMutation = useMutation({
     mutationFn: async (testEmail: string) => {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      console.log('Sending test email to:', testEmail);
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      console.log("Sending test email to:", testEmail);
     },
   });
 
   // Backup operations
   const backupMutation = useMutation({
-    mutationFn: async (action: 'create' | 'restore') => {
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      console.log('Backup action:', action);
+    mutationFn: async (action: "create" | "restore") => {
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      console.log("Backup action:", action);
     },
   });
 
-  const handleConfigChange = (section: keyof SystemConfiguration, field: string, value: any) => {
+  const handleConfigChange = (
+    section: keyof SystemConfiguration,
+    field: string,
+    value: any,
+  ) => {
     setConfigChanged(true);
     // Update configuration logic would go here
   };
@@ -402,55 +435,77 @@ export const SystemSettingsPage: React.FC = () => {
     setTestEmailOpen(false);
   };
 
-  const handleBackup = async (action: 'create' | 'restore') => {
+  const handleBackup = async (action: "create" | "restore") => {
     await backupMutation.mutateAsync(action);
     setBackupDialogOpen(false);
   };
 
   const getHealthStatusColor = (status: string) => {
     switch (status) {
-      case 'healthy': return 'success';
-      case 'warning': return 'warning';
-      case 'critical': return 'error';
-      default: return 'default';
+      case "healthy":
+        return "success";
+      case "warning":
+        return "warning";
+      case "critical":
+        return "error";
+      default:
+        return "default";
     }
   };
 
   const getLogLevelIcon = (level: string) => {
     switch (level) {
-      case 'info': return <InfoIcon color="info" />;
-      case 'warning': return <WarningIcon color="warning" />;
-      case 'error': return <ErrorIcon color="error" />;
-      case 'critical': return <ErrorIcon color="error" />;
-      default: return <InfoIcon />;
+      case "info":
+        return <InfoIcon color="info" />;
+      case "warning":
+        return <WarningIcon color="warning" />;
+      case "error":
+        return <ErrorIcon color="error" />;
+      case "critical":
+        return <ErrorIcon color="error" />;
+      default:
+        return <InfoIcon />;
     }
   };
 
   return (
-    <Box sx={{ maxWidth: 1400, mx: 'auto', p: 3 }}>
+    <Box sx={{ maxWidth: 1400, mx: "auto", p: 3 }}>
       {/* Header */}
       <Paper sx={{ p: 3, mb: 3 }}>
-        <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
-          <Typography variant="h4" component="h1" sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Avatar sx={{ bgcolor: 'primary.main', width: 48, height: 48 }}>
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          alignItems="center"
+          mb={3}
+        >
+          <Typography
+            variant="h4"
+            component="h1"
+            sx={{ display: "flex", alignItems: "center", gap: 2 }}
+          >
+            <Avatar sx={{ bgcolor: "primary.main", width: 48, height: 48 }}>
               <SettingsIcon />
             </Avatar>
             System Settings & Administration
           </Typography>
-          
+
           <Stack direction="row" spacing={2}>
             <IconButton onClick={() => refetch()} disabled={configLoading}>
               <RefreshIcon />
             </IconButton>
-            
+
             <Button
               variant="outlined"
               startIcon={<HealthIcon />}
-              color={getHealthStatusColor(healthData?.overall_status || 'healthy') as any}
+              color={
+                getHealthStatusColor(
+                  healthData?.overall_status || "healthy",
+                ) as any
+              }
             >
-              System {healthData?.overall_status || 'Healthy'}
+              System {healthData?.overall_status || "Healthy"}
             </Button>
-            
+
             <Button
               variant="outlined"
               startIcon={<MaintenanceIcon />}
@@ -458,102 +513,139 @@ export const SystemSettingsPage: React.FC = () => {
             >
               Maintenance
             </Button>
-            
+
             <Button
               variant="contained"
               startIcon={<SaveIcon />}
               onClick={handleSaveConfig}
               disabled={!configChanged || saveConfigMutation.isPending}
             >
-              {saveConfigMutation.isPending ? 'Saving...' : 'Save Changes'}
+              {saveConfigMutation.isPending ? "Saving..." : "Save Changes"}
             </Button>
           </Stack>
         </Stack>
 
         {configChanged && (
           <Alert severity="warning" sx={{ mb: 2 }}>
-            You have unsaved changes. Click "Save Changes" to apply your modifications.
+            You have unsaved changes. Click "Save Changes" to apply your
+            modifications.
           </Alert>
         )}
 
         {/* System Health Overview */}
         <Grid container spacing={3}>
           <Grid item xs={12} md={2}>
-            <Card sx={{ bgcolor: 'primary.50' }}>
-              <CardContent sx={{ display: 'flex', alignItems: 'center', py: 2 }}>
-                <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
+            <Card sx={{ bgcolor: "primary.50" }}>
+              <CardContent
+                sx={{ display: "flex", alignItems: "center", py: 2 }}
+              >
+                <Avatar sx={{ bgcolor: "primary.main", mr: 2 }}>
                   <HealthIcon />
                 </Avatar>
                 <Box>
-                  <Typography variant="h6">{healthData?.uptime_hours?.toFixed(1) || '0.0'}h</Typography>
-                  <Typography variant="caption" color="text.secondary">Uptime</Typography>
+                  <Typography variant="h6">
+                    {healthData?.uptime_hours?.toFixed(1) || "0.0"}h
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Uptime
+                  </Typography>
                 </Box>
               </CardContent>
             </Card>
           </Grid>
           <Grid item xs={12} md={2}>
-            <Card sx={{ bgcolor: 'info.50' }}>
-              <CardContent sx={{ display: 'flex', alignItems: 'center', py: 2 }}>
-                <Avatar sx={{ bgcolor: 'info.main', mr: 2 }}>
+            <Card sx={{ bgcolor: "info.50" }}>
+              <CardContent
+                sx={{ display: "flex", alignItems: "center", py: 2 }}
+              >
+                <Avatar sx={{ bgcolor: "info.main", mr: 2 }}>
                   <PerformanceIcon />
                 </Avatar>
                 <Box>
-                  <Typography variant="h6">{healthData?.cpu_usage || 0}%</Typography>
-                  <Typography variant="caption" color="text.secondary">CPU Usage</Typography>
+                  <Typography variant="h6">
+                    {healthData?.cpu_usage || 0}%
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    CPU Usage
+                  </Typography>
                 </Box>
               </CardContent>
             </Card>
           </Grid>
           <Grid item xs={12} md={2}>
-            <Card sx={{ bgcolor: 'warning.50' }}>
-              <CardContent sx={{ display: 'flex', alignItems: 'center', py: 2 }}>
-                <Avatar sx={{ bgcolor: 'warning.main', mr: 2 }}>
+            <Card sx={{ bgcolor: "warning.50" }}>
+              <CardContent
+                sx={{ display: "flex", alignItems: "center", py: 2 }}
+              >
+                <Avatar sx={{ bgcolor: "warning.main", mr: 2 }}>
                   <DatabaseIcon />
                 </Avatar>
                 <Box>
-                  <Typography variant="h6">{healthData?.memory_usage || 0}%</Typography>
-                  <Typography variant="caption" color="text.secondary">Memory</Typography>
+                  <Typography variant="h6">
+                    {healthData?.memory_usage || 0}%
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Memory
+                  </Typography>
                 </Box>
               </CardContent>
             </Card>
           </Grid>
           <Grid item xs={12} md={2}>
-            <Card sx={{ bgcolor: 'success.50' }}>
-              <CardContent sx={{ display: 'flex', alignItems: 'center', py: 2 }}>
-                <Avatar sx={{ bgcolor: 'success.main', mr: 2 }}>
+            <Card sx={{ bgcolor: "success.50" }}>
+              <CardContent
+                sx={{ display: "flex", alignItems: "center", py: 2 }}
+              >
+                <Avatar sx={{ bgcolor: "success.main", mr: 2 }}>
                   <AdminIcon />
                 </Avatar>
                 <Box>
-                  <Typography variant="h6">{healthData?.active_users || 0}</Typography>
-                  <Typography variant="caption" color="text.secondary">Active Users</Typography>
+                  <Typography variant="h6">
+                    {healthData?.active_users || 0}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Active Users
+                  </Typography>
                 </Box>
               </CardContent>
             </Card>
           </Grid>
           <Grid item xs={12} md={2}>
-            <Card sx={{ bgcolor: 'error.50' }}>
-              <CardContent sx={{ display: 'flex', alignItems: 'center', py: 2 }}>
-                <Avatar sx={{ bgcolor: 'error.main', mr: 2 }}>
+            <Card sx={{ bgcolor: "error.50" }}>
+              <CardContent
+                sx={{ display: "flex", alignItems: "center", py: 2 }}
+              >
+                <Avatar sx={{ bgcolor: "error.main", mr: 2 }}>
                   <ErrorIcon />
                 </Avatar>
                 <Box>
-                  <Typography variant="h6">{healthData?.error_rate?.toFixed(1) || '0.0'}%</Typography>
-                  <Typography variant="caption" color="text.secondary">Error Rate</Typography>
+                  <Typography variant="h6">
+                    {healthData?.error_rate?.toFixed(1) || "0.0"}%
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Error Rate
+                  </Typography>
                 </Box>
               </CardContent>
             </Card>
           </Grid>
           <Grid item xs={12} md={2}>
-            <Card sx={{ bgcolor: 'secondary.50' }}>
-              <CardContent sx={{ display: 'flex', alignItems: 'center', py: 2 }}>
-                <Avatar sx={{ bgcolor: 'secondary.main', mr: 2 }}>
+            <Card sx={{ bgcolor: "secondary.50" }}>
+              <CardContent
+                sx={{ display: "flex", alignItems: "center", py: 2 }}
+              >
+                <Avatar sx={{ bgcolor: "secondary.main", mr: 2 }}>
                   <BackupIcon />
                 </Avatar>
                 <Box>
                   <Typography variant="body2" fontWeight="medium">
-                    {healthData?.last_backup ? new Date(healthData.last_backup).toLocaleDateString() : 'Never'}
+                    {healthData?.last_backup
+                      ? new Date(healthData.last_backup).toLocaleDateString()
+                      : "Never"}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">Last Backup</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Last Backup
+                  </Typography>
                 </Box>
               </CardContent>
             </Card>
@@ -590,28 +682,52 @@ export const SystemSettingsPage: React.FC = () => {
                     <Stack spacing={3}>
                       <TextField
                         label="Application Name"
-                        value={config?.general.app_name || ''}
-                        onChange={(e) => handleConfigChange('general', 'app_name', e.target.value)}
+                        value={config?.general.app_name || ""}
+                        onChange={(e) =>
+                          handleConfigChange(
+                            "general",
+                            "app_name",
+                            e.target.value,
+                          )
+                        }
                         fullWidth
                       />
                       <TextField
                         label="Application Description"
-                        value={config?.general.app_description || ''}
-                        onChange={(e) => handleConfigChange('general', 'app_description', e.target.value)}
+                        value={config?.general.app_description || ""}
+                        onChange={(e) =>
+                          handleConfigChange(
+                            "general",
+                            "app_description",
+                            e.target.value,
+                          )
+                        }
                         multiline
                         rows={3}
                         fullWidth
                       />
                       <TextField
                         label="Company Name"
-                        value={config?.general.company_name || ''}
-                        onChange={(e) => handleConfigChange('general', 'company_name', e.target.value)}
+                        value={config?.general.company_name || ""}
+                        onChange={(e) =>
+                          handleConfigChange(
+                            "general",
+                            "company_name",
+                            e.target.value,
+                          )
+                        }
                         fullWidth
                       />
                       <TextField
                         label="Company Logo URL"
-                        value={config?.general.company_logo_url || ''}
-                        onChange={(e) => handleConfigChange('general', 'company_logo_url', e.target.value)}
+                        value={config?.general.company_logo_url || ""}
+                        onChange={(e) =>
+                          handleConfigChange(
+                            "general",
+                            "company_logo_url",
+                            e.target.value,
+                          )
+                        }
                         fullWidth
                         InputProps={{
                           endAdornment: (
@@ -620,7 +736,7 @@ export const SystemSettingsPage: React.FC = () => {
                                 Upload
                               </Button>
                             </InputAdornment>
-                          )
+                          ),
                         }}
                       />
                     </Stack>
@@ -636,14 +752,28 @@ export const SystemSettingsPage: React.FC = () => {
                       <FormControl fullWidth>
                         <InputLabel>Timezone</InputLabel>
                         <Select
-                          value={config?.general.timezone || ''}
-                          onChange={(e) => handleConfigChange('general', 'timezone', e.target.value)}
+                          value={config?.general.timezone || ""}
+                          onChange={(e) =>
+                            handleConfigChange(
+                              "general",
+                              "timezone",
+                              e.target.value,
+                            )
+                          }
                           label="Timezone"
                         >
-                          <MenuItem value="America/New_York">Eastern (New York)</MenuItem>
-                          <MenuItem value="America/Chicago">Central (Chicago)</MenuItem>
-                          <MenuItem value="America/Denver">Mountain (Denver)</MenuItem>
-                          <MenuItem value="America/Los_Angeles">Pacific (Los Angeles)</MenuItem>
+                          <MenuItem value="America/New_York">
+                            Eastern (New York)
+                          </MenuItem>
+                          <MenuItem value="America/Chicago">
+                            Central (Chicago)
+                          </MenuItem>
+                          <MenuItem value="America/Denver">
+                            Mountain (Denver)
+                          </MenuItem>
+                          <MenuItem value="America/Los_Angeles">
+                            Pacific (Los Angeles)
+                          </MenuItem>
                           <MenuItem value="UTC">UTC</MenuItem>
                         </Select>
                       </FormControl>
@@ -651,8 +781,14 @@ export const SystemSettingsPage: React.FC = () => {
                       <FormControl fullWidth>
                         <InputLabel>Language</InputLabel>
                         <Select
-                          value={config?.general.language || ''}
-                          onChange={(e) => handleConfigChange('general', 'language', e.target.value)}
+                          value={config?.general.language || ""}
+                          onChange={(e) =>
+                            handleConfigChange(
+                              "general",
+                              "language",
+                              e.target.value,
+                            )
+                          }
                           label="Language"
                         >
                           <MenuItem value="en">English</MenuItem>
@@ -666,8 +802,14 @@ export const SystemSettingsPage: React.FC = () => {
                       <FormControl fullWidth>
                         <InputLabel>Currency</InputLabel>
                         <Select
-                          value={config?.general.currency || ''}
-                          onChange={(e) => handleConfigChange('general', 'currency', e.target.value)}
+                          value={config?.general.currency || ""}
+                          onChange={(e) =>
+                            handleConfigChange(
+                              "general",
+                              "currency",
+                              e.target.value,
+                            )
+                          }
                           label="Currency"
                         >
                           <MenuItem value="USD">USD - US Dollar</MenuItem>
@@ -681,8 +823,14 @@ export const SystemSettingsPage: React.FC = () => {
                       <FormControl fullWidth>
                         <InputLabel>Date Format</InputLabel>
                         <Select
-                          value={config?.general.date_format || ''}
-                          onChange={(e) => handleConfigChange('general', 'date_format', e.target.value)}
+                          value={config?.general.date_format || ""}
+                          onChange={(e) =>
+                            handleConfigChange(
+                              "general",
+                              "date_format",
+                              e.target.value,
+                            )
+                          }
                           label="Date Format"
                         >
                           <MenuItem value="MM/DD/YYYY">MM/DD/YYYY</MenuItem>
@@ -712,15 +860,30 @@ export const SystemSettingsPage: React.FC = () => {
                         label="Minimum Password Length"
                         type="number"
                         value={config?.security.password_min_length || 8}
-                        onChange={(e) => handleConfigChange('security', 'password_min_length', parseInt(e.target.value))}
+                        onChange={(e) =>
+                          handleConfigChange(
+                            "security",
+                            "password_min_length",
+                            parseInt(e.target.value),
+                          )
+                        }
                         inputProps={{ min: 6, max: 50 }}
                         fullWidth
                       />
                       <FormControlLabel
                         control={
                           <Switch
-                            checked={config?.security.password_require_uppercase || false}
-                            onChange={(e) => handleConfigChange('security', 'password_require_uppercase', e.target.checked)}
+                            checked={
+                              config?.security.password_require_uppercase ||
+                              false
+                            }
+                            onChange={(e) =>
+                              handleConfigChange(
+                                "security",
+                                "password_require_uppercase",
+                                e.target.checked,
+                              )
+                            }
                           />
                         }
                         label="Require uppercase letters"
@@ -728,8 +891,17 @@ export const SystemSettingsPage: React.FC = () => {
                       <FormControlLabel
                         control={
                           <Switch
-                            checked={config?.security.password_require_lowercase || false}
-                            onChange={(e) => handleConfigChange('security', 'password_require_lowercase', e.target.checked)}
+                            checked={
+                              config?.security.password_require_lowercase ||
+                              false
+                            }
+                            onChange={(e) =>
+                              handleConfigChange(
+                                "security",
+                                "password_require_lowercase",
+                                e.target.checked,
+                              )
+                            }
                           />
                         }
                         label="Require lowercase letters"
@@ -737,8 +909,16 @@ export const SystemSettingsPage: React.FC = () => {
                       <FormControlLabel
                         control={
                           <Switch
-                            checked={config?.security.password_require_numbers || false}
-                            onChange={(e) => handleConfigChange('security', 'password_require_numbers', e.target.checked)}
+                            checked={
+                              config?.security.password_require_numbers || false
+                            }
+                            onChange={(e) =>
+                              handleConfigChange(
+                                "security",
+                                "password_require_numbers",
+                                e.target.checked,
+                              )
+                            }
                           />
                         }
                         label="Require numbers"
@@ -746,8 +926,16 @@ export const SystemSettingsPage: React.FC = () => {
                       <FormControlLabel
                         control={
                           <Switch
-                            checked={config?.security.password_require_symbols || false}
-                            onChange={(e) => handleConfigChange('security', 'password_require_symbols', e.target.checked)}
+                            checked={
+                              config?.security.password_require_symbols || false
+                            }
+                            onChange={(e) =>
+                              handleConfigChange(
+                                "security",
+                                "password_require_symbols",
+                                e.target.checked,
+                              )
+                            }
                           />
                         }
                         label="Require special characters"
@@ -756,7 +944,13 @@ export const SystemSettingsPage: React.FC = () => {
                         label="Password Expiry (days)"
                         type="number"
                         value={config?.security.password_expiry_days || 90}
-                        onChange={(e) => handleConfigChange('security', 'password_expiry_days', parseInt(e.target.value))}
+                        onChange={(e) =>
+                          handleConfigChange(
+                            "security",
+                            "password_expiry_days",
+                            parseInt(e.target.value),
+                          )
+                        }
                         inputProps={{ min: 0, max: 365 }}
                         fullWidth
                         helperText="Set to 0 for no expiry"
@@ -775,7 +969,13 @@ export const SystemSettingsPage: React.FC = () => {
                         label="Max Login Attempts"
                         type="number"
                         value={config?.security.max_login_attempts || 5}
-                        onChange={(e) => handleConfigChange('security', 'max_login_attempts', parseInt(e.target.value))}
+                        onChange={(e) =>
+                          handleConfigChange(
+                            "security",
+                            "max_login_attempts",
+                            parseInt(e.target.value),
+                          )
+                        }
                         inputProps={{ min: 1, max: 20 }}
                         fullWidth
                       />
@@ -783,7 +983,13 @@ export const SystemSettingsPage: React.FC = () => {
                         label="Lockout Duration (minutes)"
                         type="number"
                         value={config?.security.lockout_duration_minutes || 15}
-                        onChange={(e) => handleConfigChange('security', 'lockout_duration_minutes', parseInt(e.target.value))}
+                        onChange={(e) =>
+                          handleConfigChange(
+                            "security",
+                            "lockout_duration_minutes",
+                            parseInt(e.target.value),
+                          )
+                        }
                         inputProps={{ min: 1, max: 1440 }}
                         fullWidth
                       />
@@ -791,15 +997,29 @@ export const SystemSettingsPage: React.FC = () => {
                         label="Session Timeout (minutes)"
                         type="number"
                         value={config?.security.session_timeout_minutes || 60}
-                        onChange={(e) => handleConfigChange('security', 'session_timeout_minutes', parseInt(e.target.value))}
+                        onChange={(e) =>
+                          handleConfigChange(
+                            "security",
+                            "session_timeout_minutes",
+                            parseInt(e.target.value),
+                          )
+                        }
                         inputProps={{ min: 5, max: 1440 }}
                         fullWidth
                       />
                       <FormControlLabel
                         control={
                           <Switch
-                            checked={config?.security.two_factor_required || false}
-                            onChange={(e) => handleConfigChange('security', 'two_factor_required', e.target.checked)}
+                            checked={
+                              config?.security.two_factor_required || false
+                            }
+                            onChange={(e) =>
+                              handleConfigChange(
+                                "security",
+                                "two_factor_required",
+                                e.target.checked,
+                              )
+                            }
                           />
                         }
                         label="Require Two-Factor Authentication"
@@ -807,8 +1027,16 @@ export const SystemSettingsPage: React.FC = () => {
                       <FormControlLabel
                         control={
                           <Switch
-                            checked={config?.security.ip_whitelist_enabled || false}
-                            onChange={(e) => handleConfigChange('security', 'ip_whitelist_enabled', e.target.checked)}
+                            checked={
+                              config?.security.ip_whitelist_enabled || false
+                            }
+                            onChange={(e) =>
+                              handleConfigChange(
+                                "security",
+                                "ip_whitelist_enabled",
+                                e.target.checked,
+                              )
+                            }
                           />
                         }
                         label="Enable IP Whitelist"
@@ -827,7 +1055,7 @@ export const SystemSettingsPage: React.FC = () => {
             <Grid container spacing={3}>
               <Grid item xs={12} md={6}>
                 <Card>
-                  <CardHeader 
+                  <CardHeader
                     title="SMTP Configuration"
                     action={
                       <Button
@@ -842,44 +1070,80 @@ export const SystemSettingsPage: React.FC = () => {
                     <Stack spacing={3}>
                       <TextField
                         label="SMTP Host"
-                        value={config?.email.smtp_host || ''}
-                        onChange={(e) => handleConfigChange('email', 'smtp_host', e.target.value)}
+                        value={config?.email.smtp_host || ""}
+                        onChange={(e) =>
+                          handleConfigChange(
+                            "email",
+                            "smtp_host",
+                            e.target.value,
+                          )
+                        }
                         fullWidth
                       />
                       <TextField
                         label="SMTP Port"
                         type="number"
                         value={config?.email.smtp_port || 587}
-                        onChange={(e) => handleConfigChange('email', 'smtp_port', parseInt(e.target.value))}
+                        onChange={(e) =>
+                          handleConfigChange(
+                            "email",
+                            "smtp_port",
+                            parseInt(e.target.value),
+                          )
+                        }
                         fullWidth
                       />
                       <TextField
                         label="SMTP Username"
-                        value={config?.email.smtp_username || ''}
-                        onChange={(e) => handleConfigChange('email', 'smtp_username', e.target.value)}
+                        value={config?.email.smtp_username || ""}
+                        onChange={(e) =>
+                          handleConfigChange(
+                            "email",
+                            "smtp_username",
+                            e.target.value,
+                          )
+                        }
                         fullWidth
                       />
                       <TextField
                         label="SMTP Password"
-                        type={showPasswords ? 'text' : 'password'}
-                        value={config?.email.smtp_password || ''}
-                        onChange={(e) => handleConfigChange('email', 'smtp_password', e.target.value)}
+                        type={showPasswords ? "text" : "password"}
+                        value={config?.email.smtp_password || ""}
+                        onChange={(e) =>
+                          handleConfigChange(
+                            "email",
+                            "smtp_password",
+                            e.target.value,
+                          )
+                        }
                         fullWidth
                         InputProps={{
                           endAdornment: (
                             <InputAdornment position="end">
-                              <IconButton onClick={() => setShowPasswords(!showPasswords)}>
-                                {showPasswords ? <VisibilityOff /> : <Visibility />}
+                              <IconButton
+                                onClick={() => setShowPasswords(!showPasswords)}
+                              >
+                                {showPasswords ? (
+                                  <VisibilityOff />
+                                ) : (
+                                  <Visibility />
+                                )}
                               </IconButton>
                             </InputAdornment>
-                          )
+                          ),
                         }}
                       />
                       <FormControlLabel
                         control={
                           <Switch
                             checked={config?.email.smtp_use_tls || false}
-                            onChange={(e) => handleConfigChange('email', 'smtp_use_tls', e.target.checked)}
+                            onChange={(e) =>
+                              handleConfigChange(
+                                "email",
+                                "smtp_use_tls",
+                                e.target.checked,
+                              )
+                            }
                           />
                         }
                         label="Use TLS Encryption"
@@ -896,20 +1160,38 @@ export const SystemSettingsPage: React.FC = () => {
                     <Stack spacing={3}>
                       <TextField
                         label="From Email"
-                        value={config?.email.from_email || ''}
-                        onChange={(e) => handleConfigChange('email', 'from_email', e.target.value)}
+                        value={config?.email.from_email || ""}
+                        onChange={(e) =>
+                          handleConfigChange(
+                            "email",
+                            "from_email",
+                            e.target.value,
+                          )
+                        }
                         fullWidth
                       />
                       <TextField
                         label="From Name"
-                        value={config?.email.from_name || ''}
-                        onChange={(e) => handleConfigChange('email', 'from_name', e.target.value)}
+                        value={config?.email.from_name || ""}
+                        onChange={(e) =>
+                          handleConfigChange(
+                            "email",
+                            "from_name",
+                            e.target.value,
+                          )
+                        }
                         fullWidth
                       />
                       <TextField
                         label="Reply-To Email"
-                        value={config?.email.reply_to_email || ''}
-                        onChange={(e) => handleConfigChange('email', 'reply_to_email', e.target.value)}
+                        value={config?.email.reply_to_email || ""}
+                        onChange={(e) =>
+                          handleConfigChange(
+                            "email",
+                            "reply_to_email",
+                            e.target.value,
+                          )
+                        }
                         fullWidth
                       />
                     </Stack>
@@ -951,7 +1233,11 @@ export const SystemSettingsPage: React.FC = () => {
                                 <Chip
                                   label={service.status}
                                   size="small"
-                                  color={service.status === 'running' ? 'success' : 'error'}
+                                  color={
+                                    service.status === "running"
+                                      ? "success"
+                                      : "error"
+                                  }
                                 />
                               </TableCell>
                               <TableCell>{service.uptime}</TableCell>
@@ -982,7 +1268,11 @@ export const SystemSettingsPage: React.FC = () => {
                         <LinearProgress
                           variant="determinate"
                           value={healthData?.cpu_usage || 0}
-                          color={healthData?.cpu_usage && healthData.cpu_usage > 80 ? 'error' : 'primary'}
+                          color={
+                            healthData?.cpu_usage && healthData.cpu_usage > 80
+                              ? "error"
+                              : "primary"
+                          }
                           sx={{ height: 8, borderRadius: 4 }}
                         />
                       </Box>
@@ -993,7 +1283,12 @@ export const SystemSettingsPage: React.FC = () => {
                         <LinearProgress
                           variant="determinate"
                           value={healthData?.memory_usage || 0}
-                          color={healthData?.memory_usage && healthData.memory_usage > 85 ? 'warning' : 'primary'}
+                          color={
+                            healthData?.memory_usage &&
+                            healthData.memory_usage > 85
+                              ? "warning"
+                              : "primary"
+                          }
                           sx={{ height: 8, borderRadius: 4 }}
                         />
                       </Box>
@@ -1004,18 +1299,30 @@ export const SystemSettingsPage: React.FC = () => {
                         <LinearProgress
                           variant="determinate"
                           value={healthData?.disk_usage || 0}
-                          color={healthData?.disk_usage && healthData.disk_usage > 90 ? 'error' : 'success'}
+                          color={
+                            healthData?.disk_usage && healthData.disk_usage > 90
+                              ? "error"
+                              : "success"
+                          }
                           sx={{ height: 8, borderRadius: 4 }}
                         />
                       </Box>
                       <Divider />
                       <Box>
-                        <Typography variant="subtitle2" color="text.secondary">Response Time</Typography>
-                        <Typography variant="h6">{healthData?.response_time_ms}ms</Typography>
+                        <Typography variant="subtitle2" color="text.secondary">
+                          Response Time
+                        </Typography>
+                        <Typography variant="h6">
+                          {healthData?.response_time_ms}ms
+                        </Typography>
                       </Box>
                       <Box>
-                        <Typography variant="subtitle2" color="text.secondary">Queue Length</Typography>
-                        <Typography variant="h6">{healthData?.queue_length}</Typography>
+                        <Typography variant="subtitle2" color="text.secondary">
+                          Queue Length
+                        </Typography>
+                        <Typography variant="h6">
+                          {healthData?.queue_length}
+                        </Typography>
                       </Box>
                     </Stack>
                   </CardContent>
@@ -1029,12 +1336,10 @@ export const SystemSettingsPage: React.FC = () => {
         <TabPanel value={currentTab} index={7}>
           <Box sx={{ p: 3 }}>
             <Card>
-              <CardHeader 
+              <CardHeader
                 title="Recent System Logs"
                 action={
-                  <Button startIcon={<DownloadIcon />}>
-                    Export Logs
-                  </Button>
+                  <Button startIcon={<DownloadIcon />}>Export Logs</Button>
                 }
               />
               <CardContent>
@@ -1060,13 +1365,20 @@ export const SystemSettingsPage: React.FC = () => {
                           <TableCell>
                             <Box display="flex" alignItems="center" gap={1}>
                               {getLogLevelIcon(log.level)}
-                              <Typography variant="body2" textTransform="uppercase">
+                              <Typography
+                                variant="body2"
+                                textTransform="uppercase"
+                              >
                                 {log.level}
                               </Typography>
                             </Box>
                           </TableCell>
                           <TableCell>
-                            <Chip label={log.category} size="small" variant="outlined" />
+                            <Chip
+                              label={log.category}
+                              size="small"
+                              variant="outlined"
+                            />
                           </TableCell>
                           <TableCell>
                             <Typography variant="body2">
@@ -1075,13 +1387,15 @@ export const SystemSettingsPage: React.FC = () => {
                           </TableCell>
                           <TableCell>
                             {log.details ? (
-                              <Tooltip title={JSON.stringify(log.details, null, 2)}>
+                              <Tooltip
+                                title={JSON.stringify(log.details, null, 2)}
+                              >
                                 <IconButton size="small">
                                   <ViewIcon />
                                 </IconButton>
                               </Tooltip>
                             ) : (
-                              '—'
+                              "—"
                             )}
                           </TableCell>
                         </TableRow>
@@ -1110,17 +1424,20 @@ export const SystemSettingsPage: React.FC = () => {
         <DialogActions>
           <Button onClick={() => setTestEmailOpen(false)}>Cancel</Button>
           <Button
-            onClick={() => handleTestEmail('test@example.com')}
+            onClick={() => handleTestEmail("test@example.com")}
             variant="contained"
             disabled={testEmailMutation.isPending}
           >
-            {testEmailMutation.isPending ? 'Sending...' : 'Send Test Email'}
+            {testEmailMutation.isPending ? "Sending..." : "Send Test Email"}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Maintenance Dialog */}
-      <Dialog open={maintenanceDialogOpen} onClose={() => setMaintenanceDialogOpen(false)}>
+      <Dialog
+        open={maintenanceDialogOpen}
+        onClose={() => setMaintenanceDialogOpen(false)}
+      >
         <DialogTitle>System Maintenance</DialogTitle>
         <DialogContent>
           <Typography gutterBottom>
@@ -1135,18 +1452,10 @@ export const SystemSettingsPage: React.FC = () => {
             >
               Create System Backup
             </Button>
-            <Button
-              variant="outlined"
-              startIcon={<RestartIcon />}
-              fullWidth
-            >
+            <Button variant="outlined" startIcon={<RestartIcon />} fullWidth>
               Restart Services
             </Button>
-            <Button
-              variant="outlined"
-              startIcon={<UpdateIcon />}
-              fullWidth
-            >
+            <Button variant="outlined" startIcon={<UpdateIcon />} fullWidth>
               Check for Updates
             </Button>
           </Stack>

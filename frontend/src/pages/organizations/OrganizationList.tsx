@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 interface Organization {
   id: string;
@@ -8,10 +8,10 @@ interface Organization {
 }
 
 const mockOrganizations: Organization[] = [
-  { id: '1', name: '営業部', code: 'SALES', isActive: true },
-  { id: '2', name: '開発部', code: 'DEV', isActive: true },
-  { id: '3', name: 'マーケティング部', code: 'MKT', isActive: true },
-  { id: '4', name: '人事部', code: 'HR', isActive: false },
+  { id: "1", name: "営業部", code: "SALES", isActive: true },
+  { id: "2", name: "開発部", code: "DEV", isActive: true },
+  { id: "3", name: "マーケティング部", code: "MKT", isActive: true },
+  { id: "4", name: "人事部", code: "HR", isActive: false },
 ];
 
 export const OrganizationList: React.FC = () => {
@@ -42,13 +42,21 @@ export const OrganizationList: React.FC = () => {
           <tbody className="divide-y divide-gray-200">
             {mockOrganizations.map((org) => (
               <tr key={org.id}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{org.name}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{org.code}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {org.name}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
+                  {org.code}
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 py-1 text-xs rounded-full ${
-                    org.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                  }`}>
-                    {org.isActive ? '有効' : '無効'}
+                  <span
+                    className={`px-2 py-1 text-xs rounded-full ${
+                      org.isActive
+                        ? "bg-green-100 text-green-800"
+                        : "bg-gray-100 text-gray-800"
+                    }`}
+                  >
+                    {org.isActive ? "有効" : "無効"}
                   </span>
                 </td>
               </tr>

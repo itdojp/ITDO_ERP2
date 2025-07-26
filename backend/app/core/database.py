@@ -1,6 +1,8 @@
-from collections.abc import Generator
+from collections.abc import AsyncGenerator, Generator
 
 from sqlalchemy import create_engine
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import settings
@@ -15,6 +17,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 # Async engine and session (only for PostgreSQL)
 async_engine = None
 AsyncSessionLocal = None
+
 
 def get_db() -> Generator[Session]:
     db = SessionLocal()

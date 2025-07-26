@@ -377,10 +377,9 @@ class TaskService:
         # User can view history of tasks they created or are assigned to
         # (owner-based access)
         # or if they have general task.view permission
-        has_general_permission = permission_service.has_permission(
+        permission_service.has_permission(
             user, "task.view", organization_id=user.organization_id, db=db
         )
-        is_task_owner = task.reporter_id == user.id or task.assignee_id == user.id
 
         # Retrieve actual audit log entries for this task
         from app.models.audit import AuditLog

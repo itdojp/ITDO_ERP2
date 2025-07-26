@@ -15,7 +15,6 @@ from app.core.exceptions import (
 from app.models.organization import Organization
 from app.models.permission import Permission
 from app.models.role import Role, RolePermission, UserRole
-from app.models.user import User
 from app.repositories.role import RoleRepository
 from app.schemas.role import (
     BulkRoleAssignment,

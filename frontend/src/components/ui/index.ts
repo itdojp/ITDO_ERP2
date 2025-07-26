@@ -1,1 +1,1 @@
-export { default as DesignSystemPrototype } from './DesignSystemPrototype';
+export { default as DesignSystemPrototype } from "./DesignSystemPrototype";
