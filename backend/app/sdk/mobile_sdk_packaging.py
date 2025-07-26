@@ -82,7 +82,7 @@ class DistributionConfig(BaseModel):
 class PackageBuilder:
     """Multi-platform package builder."""
     
-    def __init__(self, metadata: PackageMetadata, build_config: BuildConfiguration):
+    def __init__(self, metadata: PackageMetadata, build_config: BuildConfiguration) -> dict:
         self.metadata = metadata
         self.build_config = build_config
         self.build_artifacts: Dict[str, List[str]] = {}
@@ -1127,7 +1127,7 @@ class ITDOERPMobileSDK {{
 class DistributionManager:
     """Manage package distribution to various registries."""
     
-    def __init__(self, distribution_config: DistributionConfig):
+    def __init__(self, distribution_config: DistributionConfig) -> dict:
         self.config = distribution_config
         self.publish_results: Dict[str, Dict[str, Any]] = {}
     
@@ -1312,7 +1312,7 @@ class DistributionManager:
 class SDKPackagingManager:
     """Main SDK packaging and distribution manager."""
     
-    def __init__(self):
+    def __init__(self) -> dict:
         self.metadata = PackageMetadata(
             name="ITDOERPMobileSDK",
             version="1.0.0",

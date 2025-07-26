@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
@@ -14,6 +13,7 @@ from pydantic import BaseModel, Field
 
 class DocumentationType(str, Enum):
     """Documentation types."""
+
     API_REFERENCE = "api_reference"
     QUICK_START = "quick_start"
     TUTORIAL = "tutorial"
@@ -25,6 +25,7 @@ class DocumentationType(str, Enum):
 
 class PlatformType(str, Enum):
     """Supported platforms."""
+
     IOS = "ios"
     ANDROID = "android"
     REACT_NATIVE = "react_native"
@@ -34,6 +35,7 @@ class PlatformType(str, Enum):
 
 class CodeSample(BaseModel):
     """Code sample definition."""
+
     sample_id: str
     title: str
     description: str
@@ -48,10 +50,11 @@ class CodeSample(BaseModel):
 
 class DocumentationSection(BaseModel):
     """Documentation section."""
+
     section_id: str
     title: str
     content: str
-    subsections: List['DocumentationSection'] = Field(default_factory=list)
+    subsections: List["DocumentationSection"] = Field(default_factory=list)
     code_samples: List[CodeSample] = Field(default_factory=list)
     links: List[Dict[str, str]] = Field(default_factory=list)
     order: int = 0
@@ -59,6 +62,7 @@ class DocumentationSection(BaseModel):
 
 class APIEndpoint(BaseModel):
     """API endpoint documentation."""
+
     endpoint: str
     method: str
     description: str
@@ -71,14 +75,14 @@ class APIEndpoint(BaseModel):
 
 class SDKDocumentationGenerator:
     """Generate comprehensive SDK documentation."""
-    
-    def __init__(self, output_dir: str = "docs/sdk"):
+
+    def __init__(self, output_dir: str = "docs/sdk") -> dict:
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.sections: Dict[str, DocumentationSection] = {}
         self.code_samples: Dict[str, List[CodeSample]] = {}
         self.api_endpoints: List[APIEndpoint] = []
-    
+
     def generate_quick_start_guide(self) -> DocumentationSection:
         """Generate quick start guide."""
         ios_sample = CodeSample(
@@ -87,11 +91,8 @@ class SDKDocumentationGenerator:
             description="Initialize and authenticate with the ITDO ERP SDK on iOS",
             platform=PlatformType.IOS,
             language="swift",
-            imports=[
-                "import Foundation",
-                "import ITDOERPMobileSDK"
-            ],
-            code='''
+            imports=["import Foundation", "import ITDOERPMobileSDK"],
+            code="""
 // 1. Configure the SDK
 let config = SDKConfig(
     apiBaseUrl: "https://api.your-org.com",
@@ -136,31 +137,24 @@ do {
 } catch {
     print("API call failed: \\(error)")
 }
-''',
-            prerequisites=[
-                "iOS 13.0+",
-                "Xcode 12.0+",
-                "Valid ITDO ERP account"
-            ],
+""",
+            prerequisites=["iOS 13.0+", "Xcode 12.0+", "Valid ITDO ERP account"],
             notes=[
                 "Replace placeholder values with your actual credentials",
                 "Store API keys securely using Keychain",
-                "Handle authentication errors gracefully"
+                "Handle authentication errors gracefully",
             ],
-            tags=["quickstart", "ios", "authentication"]
+            tags=["quickstart", "ios", "authentication"],
         )
-        
+
         android_sample = CodeSample(
             sample_id="android_quick_start",
             title="Android Quick Start",
             description="Initialize and authenticate with the ITDO ERP SDK on Android",
             platform=PlatformType.ANDROID,
             language="kotlin",
-            imports=[
-                "import com.itdo.erp.mobile.sdk.*",
-                "import kotlinx.coroutines.*"
-            ],
-            code='''
+            imports=["import com.itdo.erp.mobile.sdk.*", "import kotlinx.coroutines.*"],
+            code="""
 // 1. Configure the SDK
 val config = SDKConfig(
     apiBaseUrl = "https://api.your-org.com",
@@ -188,36 +182,32 @@ val deviceInfo = DeviceInfo(
 lifecycleScope.launch {
     try {
         sdk.initialize(deviceInfo)
-        
+
         // 5. Authenticate user
         val token = sdk.authenticate(
             username = "user@example.com",
             password = "password123"
         )
         println("Authentication successful: ${token.accessToken}")
-        
+
         // 6. Make authenticated API calls
         val profile = sdk.httpClient.get("auth/profile")
         println("User profile: $profile")
-        
+
     } catch (e: Exception) {
         println("SDK operation failed: ${e.message}")
     }
 }
-''',
-            prerequisites=[
-                "Android API 21+",
-                "Kotlin 1.7+",
-                "Valid ITDO ERP account"
-            ],
+""",
+            prerequisites=["Android API 21+", "Kotlin 1.7+", "Valid ITDO ERP account"],
             notes=[
                 "Add required permissions to AndroidManifest.xml",
                 "Use lifecycle-aware coroutines for async operations",
-                "Store sensitive data in Android Keystore"
+                "Store sensitive data in Android Keystore",
             ],
-            tags=["quickstart", "android", "authentication"]
+            tags=["quickstart", "android", "authentication"],
         )
-        
+
         return DocumentationSection(
             section_id="quick_start",
             title="Quick Start Guide",
@@ -259,9 +249,9 @@ The SDK provides a simple, consistent API across all platforms. Follow these ste
 Choose your platform to see detailed implementation examples:
 """,
             code_samples=[ios_sample, android_sample],
-            order=1
+            order=1,
         )
-    
+
     def generate_authentication_guide(self) -> DocumentationSection:
         """Generate authentication guide."""
         credential_auth_sample = CodeSample(
@@ -270,18 +260,18 @@ Choose your platform to see detailed implementation examples:
             description="Authenticate users with username and password",
             platform=PlatformType.IOS,
             language="swift",
-            code='''
+            code="""
 // Basic authentication
 do {
     let token = try await sdk.authenticate(
         username: "user@company.com",
         password: "securePassword123"
     )
-    
+
     // Token is automatically stored and managed by SDK
     print("Access token: \\(token.accessToken)")
     print("Expires at: \\(token.expiresAt)")
-    
+
 } catch AuthenticationError.invalidCredentials {
     // Handle invalid credentials
     showAlert("Invalid username or password")
@@ -301,17 +291,17 @@ if sdk.isAuthenticated() {
     // Show login screen
     showLoginScreen()
 }
-''',
-            tags=["authentication", "credentials"]
+""",
+            tags=["authentication", "credentials"],
         )
-        
+
         biometric_auth_sample = CodeSample(
             sample_id="biometric_auth",
             title="Biometric Authentication",
             description="Authenticate users with biometric data (Face ID, Touch ID, Fingerprint)",
             platform=PlatformType.IOS,
             language="swift",
-            code='''
+            code="""
 import LocalAuthentication
 
 // Check biometric availability
@@ -319,7 +309,7 @@ let context = LAContext()
 var error: NSError?
 
 if context.canEvaluatePolicy(.biometricAuthentication, error: &error) {
-    
+
     // Collect biometric data (simplified - actual implementation would use proper biometric APIs)
     let biometricData: [String: Any] = [
         "type": "face_id", // or "touch_id", "fingerprint"
@@ -327,15 +317,15 @@ if context.canEvaluatePolicy(.biometricAuthentication, error: &error) {
         "liveness_score": 0.88,
         "template_data": "encrypted_biometric_template"
     ]
-    
+
     do {
         let token = try await sdk.authenticateBiometric(
             deviceId: deviceInfo.deviceId,
             biometricData: biometricData
         )
-        
+
         print("Biometric authentication successful")
-        
+
         // Optional: Set up biometric for future quick access
         try await sdk.authSecurityModule.biometricManager.enrollBiometric(
             biometricType: "face_id",
@@ -343,7 +333,7 @@ if context.canEvaluatePolicy(.biometricAuthentication, error: &error) {
             userId: token.userId,
             deviceId: deviceInfo.deviceId
         )
-        
+
     } catch {
         print("Biometric authentication failed: \\(error)")
         // Fall back to credential authentication
@@ -353,39 +343,39 @@ if context.canEvaluatePolicy(.biometricAuthentication, error: &error) {
     // Biometric not available, use credential authentication
     showCredentialLogin()
 }
-''',
+""",
             prerequisites=[
                 "Biometric hardware (Face ID, Touch ID, Fingerprint sensor)",
                 "User enrolled biometrics on device",
-                "App permissions for biometric access"
+                "App permissions for biometric access",
             ],
-            tags=["authentication", "biometric", "security"]
+            tags=["authentication", "biometric", "security"],
         )
-        
+
         mfa_sample = CodeSample(
             sample_id="mfa_auth",
             title="Multi-Factor Authentication",
             description="Implement multi-factor authentication with TOTP",
             platform=PlatformType.IOS,
             language="swift",
-            code='''
+            code="""
 // Step 1: Initiate MFA after successful primary authentication
 do {
     let primaryToken = try await sdk.authenticate(
         username: "user@company.com",
         password: "password123"
     )
-    
+
     // Step 2: Initiate MFA challenge
     let mfaChallenge = try await sdk.authSecurityModule.mfaManager.initiateMFA(
         userId: primaryToken.userId,
         primaryAuthToken: primaryToken.accessToken,
         requestedFactors: ["totp", "sms"] // Request TOTP and SMS backup
     )
-    
+
     print("MFA Challenge ID: \\(mfaChallenge.challengeId)")
     print("Send code to: \\(mfaChallenge.maskedDestination)")
-    
+
     // Step 3: Show MFA input UI
     showMFACodeInput { code in
         Task {
@@ -396,7 +386,7 @@ do {
                     factorType: "totp",
                     factorValue: code
                 )
-                
+
                 if result.verificationSuccessful {
                     print("MFA verification successful")
                     // Update SDK with final authentication token
@@ -405,30 +395,30 @@ do {
                 } else {
                     showAlert("Invalid verification code. Please try again.")
                 }
-                
+
             } catch {
                 showAlert("MFA verification failed: \\(error.localizedDescription)")
             }
         }
     }
-    
+
 } catch {
     showAlert("Primary authentication failed: \\(error.localizedDescription)")
 }
-''',
+""",
             prerequisites=[
                 "MFA enabled for organization",
                 "User has configured TOTP app (Google Authenticator, Authy, etc.)",
-                "Valid phone number for SMS backup"
+                "Valid phone number for SMS backup",
             ],
             notes=[
                 "Always provide backup MFA methods",
                 "Handle MFA challenge expiration gracefully",
-                "Store MFA preferences securely"
+                "Store MFA preferences securely",
             ],
-            tags=["authentication", "mfa", "security", "totp"]
+            tags=["authentication", "mfa", "security", "totp"],
         )
-        
+
         return DocumentationSection(
             section_id="authentication",
             title="Authentication Guide",
@@ -460,9 +450,9 @@ The ITDO ERP Mobile SDK supports multiple authentication methods to ensure secur
 - Implement proper logout and session cleanup
 """,
             code_samples=[credential_auth_sample, biometric_auth_sample, mfa_sample],
-            order=2
+            order=2,
         )
-    
+
     def generate_data_sync_guide(self) -> DocumentationSection:
         """Generate data synchronization guide."""
         sync_sample = CodeSample(
@@ -471,7 +461,7 @@ The ITDO ERP Mobile SDK supports multiple authentication methods to ensure secur
             description="Sync data between local storage and server",
             platform=PlatformType.IOS,
             language="swift",
-            code='''
+            code="""
 // Initialize sync module
 let syncModule = sdk.getModule("sync") as! DataSyncModule
 
@@ -490,9 +480,9 @@ do {
         entityTypes: ["users", "projects", "tasks", "documents"],
         forceFULLSync: false
     )
-    
+
     print("Sync started - Session ID: \\(syncSession.sessionId)")
-    
+
     // Monitor sync progress
     syncModule.onSyncProgress { progress in
         DispatchQueue.main.async {
@@ -500,7 +490,7 @@ do {
             updateStatusLabel("Syncing \\(progress.currentEntity)...")
         }
     }
-    
+
     // Handle sync completion
     syncModule.onSyncComplete { result in
         DispatchQueue.main.async {
@@ -512,7 +502,7 @@ do {
             }
         }
     }
-    
+
 } catch {
     showAlert("Failed to start sync: \\(error.localizedDescription)")
 }
@@ -540,20 +530,20 @@ try await syncModule.createLocal(
 )
 
 print("Project created locally, will sync when online")
-''',
+""",
             prerequisites=[
                 "Network connectivity for initial sync",
                 "Sufficient local storage space",
-                "Proper data access permissions"
+                "Proper data access permissions",
             ],
             notes=[
                 "Sync works automatically in background",
                 "Data remains accessible offline",
-                "Conflicts are resolved based on configuration"
+                "Conflicts are resolved based on configuration",
             ],
-            tags=["sync", "offline", "data"]
+            tags=["sync", "offline", "data"],
         )
-        
+
         return DocumentationSection(
             section_id="data_sync",
             title="Data Synchronization",
@@ -582,97 +572,175 @@ Keep your mobile app data in sync with the ERP server, even when offline.
 When the same data is modified both locally and on server:
 
 - **Client Wins** - Local changes take precedence
-- **Server Wins** - Server changes take precedence  
+- **Server Wins** - Server changes take precedence
 - **Merge** - Attempt to merge changes automatically
 - **Manual** - Prompt user to resolve conflicts
 """,
             code_samples=[sync_sample],
-            order=3
+            order=3,
         )
-    
+
     def generate_api_reference(self) -> DocumentationSection:
         """Generate comprehensive API reference."""
         # Core SDK APIs
-        self.api_endpoints.extend([
-            APIEndpoint(
-                endpoint="/api/v1/auth/token",
-                method="POST",
-                description="Authenticate user and obtain access token",
-                parameters=[
-                    {"name": "grant_type", "type": "string", "required": True, "description": "Authentication grant type"},
-                    {"name": "username", "type": "string", "required": True, "description": "User's username or email"},
-                    {"name": "password", "type": "string", "required": True, "description": "User's password"},
-                    {"name": "organization_id", "type": "string", "required": True, "description": "Organization identifier"},
-                    {"name": "app_id", "type": "string", "required": True, "description": "Application identifier"}
-                ],
-                request_body={
-                    "type": "object",
-                    "properties": {
-                        "grant_type": {"type": "string", "example": "password"},
-                        "username": {"type": "string", "example": "user@company.com"},
-                        "password": {"type": "string", "example": "securePassword123"},
-                        "organization_id": {"type": "string", "example": "org_123456"},
-                        "app_id": {"type": "string", "example": "mobile_app_v1"}
-                    }
-                },
-                response_schema={
-                    "type": "object",
-                    "properties": {
-                        "access_token": {"type": "string"},
-                        "refresh_token": {"type": "string"},
-                        "token_type": {"type": "string", "example": "Bearer"},
-                        "expires_at": {"type": "string", "format": "datetime"},
-                        "scope": {"type": "array", "items": {"type": "string"}}
-                    }
-                },
-                error_codes=[
-                    {"code": 400, "description": "Invalid request parameters"},
-                    {"code": 401, "description": "Invalid credentials"},
-                    {"code": 403, "description": "Account locked or disabled"},
-                    {"code": 429, "description": "Too many authentication attempts"}
-                ]
-            ),
-            APIEndpoint(
-                endpoint="/api/v1/mobile-erp/security/biometric/authenticate",
-                method="POST",
-                description="Authenticate user with biometric data",
-                parameters=[
-                    {"name": "device_id", "type": "string", "required": True, "description": "Device identifier"},
-                    {"name": "biometric_type", "type": "string", "required": True, "description": "Type of biometric (fingerprint, face, voice)"},
-                    {"name": "biometric_template", "type": "string", "required": True, "description": "Encrypted biometric template"},
-                    {"name": "challenge_response", "type": "string", "required": True, "description": "Challenge response"}
-                ],
-                response_schema={
-                    "type": "object", 
-                    "properties": {
-                        "authentication_successful": {"type": "boolean"},
-                        "session_token": {"type": "string"},
-                        "expires_at": {"type": "string", "format": "datetime"},
-                        "trust_score": {"type": "number", "minimum": 0, "maximum": 1}
-                    }
-                }
-            ),
-            APIEndpoint(
-                endpoint="/api/v1/data/sync",
-                method="POST",
-                description="Initiate data synchronization session",
-                parameters=[
-                    {"name": "entity_types", "type": "array", "required": False, "description": "Entity types to sync"},
-                    {"name": "force_full_sync", "type": "boolean", "required": False, "description": "Force full synchronization"},
-                    {"name": "batch_size", "type": "integer", "required": False, "description": "Sync batch size"}
-                ],
-                response_schema={
-                    "type": "object",
-                    "properties": {
-                        "session_id": {"type": "string"},
-                        "sync_url": {"type": "string"},
-                        "estimated_duration_ms": {"type": "integer"},
-                        "total_entities": {"type": "integer"}
-                    }
-                }
-            )
-        ])
-        
+        self.api_endpoints.extend(
+            [
+                APIEndpoint(
+                    endpoint="/api/v1/auth/token",
+                    method="POST",
+                    description="Authenticate user and obtain access token",
+                    parameters=[
+                        {
+                            "name": "grant_type",
+                            "type": "string",
+                            "required": True,
+                            "description": "Authentication grant type",
+                        },
+                        {
+                            "name": "username",
+                            "type": "string",
+                            "required": True,
+                            "description": "User's username or email",
+                        },
+                        {
+                            "name": "password",
+                            "type": "string",
+                            "required": True,
+                            "description": "User's password",
+                        },
+                        {
+                            "name": "organization_id",
+                            "type": "string",
+                            "required": True,
+                            "description": "Organization identifier",
+                        },
+                        {
+                            "name": "app_id",
+                            "type": "string",
+                            "required": True,
+                            "description": "Application identifier",
+                        },
+                    ],
+                    request_body={
+                        "type": "object",
+                        "properties": {
+                            "grant_type": {"type": "string", "example": "password"},
+                            "username": {
+                                "type": "string",
+                                "example": "user@company.com",
+                            },
+                            "password": {
+                                "type": "string",
+                                "example": "securePassword123",
+                            },
+                            "organization_id": {
+                                "type": "string",
+                                "example": "org_123456",
+                            },
+                            "app_id": {"type": "string", "example": "mobile_app_v1"},
+                        },
+                    },
+                    response_schema={
+                        "type": "object",
+                        "properties": {
+                            "access_token": {"type": "string"},
+                            "refresh_token": {"type": "string"},
+                            "token_type": {"type": "string", "example": "Bearer"},
+                            "expires_at": {"type": "string", "format": "datetime"},
+                            "scope": {"type": "array", "items": {"type": "string"}},
+                        },
+                    },
+                    error_codes=[
+                        {"code": 400, "description": "Invalid request parameters"},
+                        {"code": 401, "description": "Invalid credentials"},
+                        {"code": 403, "description": "Account locked or disabled"},
+                        {
+                            "code": 429,
+                            "description": "Too many authentication attempts",
+                        },
+                    ],
+                ),
+                APIEndpoint(
+                    endpoint="/api/v1/mobile-erp/security/biometric/authenticate",
+                    method="POST",
+                    description="Authenticate user with biometric data",
+                    parameters=[
+                        {
+                            "name": "device_id",
+                            "type": "string",
+                            "required": True,
+                            "description": "Device identifier",
+                        },
+                        {
+                            "name": "biometric_type",
+                            "type": "string",
+                            "required": True,
+                            "description": "Type of biometric (fingerprint, face, voice)",
+                        },
+                        {
+                            "name": "biometric_template",
+                            "type": "string",
+                            "required": True,
+                            "description": "Encrypted biometric template",
+                        },
+                        {
+                            "name": "challenge_response",
+                            "type": "string",
+                            "required": True,
+                            "description": "Challenge response",
+                        },
+                    ],
+                    response_schema={
+                        "type": "object",
+                        "properties": {
+                            "authentication_successful": {"type": "boolean"},
+                            "session_token": {"type": "string"},
+                            "expires_at": {"type": "string", "format": "datetime"},
+                            "trust_score": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1,
+                            },
+                        },
+                    },
+                ),
+                APIEndpoint(
+                    endpoint="/api/v1/data/sync",
+                    method="POST",
+                    description="Initiate data synchronization session",
+                    parameters=[
+                        {
+                            "name": "entity_types",
+                            "type": "array",
+                            "required": False,
+                            "description": "Entity types to sync",
+                        },
+                        {
+                            "name": "force_full_sync",
+                            "type": "boolean",
+                            "required": False,
+                            "description": "Force full synchronization",
+                        },
+                        {
+                            "name": "batch_size",
+                            "type": "integer",
+                            "required": False,
+                            "description": "Sync batch size",
+                        },
+                    ],
+                    response_schema={
+                        "type": "object",
+                        "properties": {
+                            "session_id": {"type": "string"},
+                            "sync_url": {"type": "string"},
+                            "estimated_duration_ms": {"type": "integer"},
+                            "total_entities": {"type": "integer"},
+                        },
+                    },
+                ),
+            ]
+        )
+
         api_content = """
 # API Reference
 
@@ -710,7 +778,7 @@ All errors follow consistent format:
 
 ## Endpoints
 """
-        
+
         for endpoint in self.api_endpoints:
             api_content += f"""
 ### {endpoint.method} {endpoint.endpoint}
@@ -722,37 +790,37 @@ All errors follow consistent format:
             for param in endpoint.parameters:
                 required = "✅" if param.get("required") else "⚪"
                 api_content += f"- {required} `{param['name']}` ({param['type']}): {param['description']}\n"
-            
+
             if endpoint.request_body:
                 api_content += f"""
 **Request Body:**
 ```json
-{json.dumps(endpoint.request_body.get('properties', {}), indent=2)}
+{json.dumps(endpoint.request_body.get("properties", {}), indent=2)}
 ```
 """
-            
+
             if endpoint.response_schema:
                 api_content += f"""
 **Response Schema:**
 ```json
-{json.dumps(endpoint.response_schema.get('properties', {}), indent=2)}
+{json.dumps(endpoint.response_schema.get("properties", {}), indent=2)}
 ```
 """
-            
+
             if endpoint.error_codes:
                 api_content += "\n**Error Codes:**\n"
                 for error in endpoint.error_codes:
                     api_content += f"- `{error['code']}`: {error['description']}\n"
-            
+
             api_content += "\n---\n"
-        
+
         return DocumentationSection(
             section_id="api_reference",
             title="API Reference",
             content=api_content,
-            order=4
+            order=4,
         )
-    
+
     def generate_integration_examples(self) -> DocumentationSection:
         """Generate platform integration examples."""
         react_native_sample = CodeSample(
@@ -764,9 +832,9 @@ All errors follow consistent format:
             imports=[
                 "import { MobileERPSDK, SDKConfig, DeviceInfo } from '@itdo/erp-mobile-sdk';",
                 "import AsyncStorage from '@react-native-async-storage/async-storage';",
-                "import DeviceInfo from 'react-native-device-info';"
+                "import DeviceInfo from 'react-native-device-info';",
             ],
-            code='''
+            code="""
 import React, { useEffect, useState, useContext, createContext } from 'react';
 import { Alert, ActivityIndicator } from 'react-native';
 
@@ -833,11 +901,11 @@ export const SDKProvider = ({ children }) => {
   const authenticate = async (username, password) => {
     try {
       const token = await sdk.authenticate(username, password);
-      
+
       // Store token securely
       await AsyncStorage.setItem('auth_token', JSON.stringify(token));
       setIsAuthenticated(true);
-      
+
       return token;
     } catch (error) {
       Alert.alert('Authentication Error', error.message);
@@ -926,22 +994,22 @@ const LoginScreen = () => {
     </View>
   );
 };
-''',
+""",
             prerequisites=[
                 "React Native 0.66+",
                 "@react-native-async-storage/async-storage",
-                "react-native-device-info"
+                "react-native-device-info",
             ],
-            tags=["integration", "react-native", "authentication"]
+            tags=["integration", "react-native", "authentication"],
         )
-        
+
         flutter_sample = CodeSample(
-            sample_id="flutter_integration", 
+            sample_id="flutter_integration",
             title="Flutter Integration",
             description="Flutter integration with state management",
             platform=PlatformType.FLUTTER,
             language="dart",
-            code='''
+            code="""
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:itdo_erp_mobile_sdk/itdo_erp_mobile_sdk.dart';
@@ -951,7 +1019,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 // SDK Service Class
 class SDKService extends ChangeNotifier {
   MobileERPSDK? _sdk;
-  bool _isInitialized = false; 
+  bool _isInitialized = false;
   bool _isAuthenticated = false;
   String? _error;
 
@@ -976,7 +1044,7 @@ class SDKService extends ChangeNotifier {
       // 3. Get device info
       final deviceInfoPlugin = DeviceInfoPlugin();
       final deviceInfo = await deviceInfoPlugin.deviceInfo;
-      
+
       final sdkDeviceInfo = DeviceInfo(
         deviceId: deviceInfo.identifierForVendor ?? '',
         platform: 'flutter',
@@ -1038,7 +1106,7 @@ class SDKService extends ChangeNotifier {
   Future<void> logout() async {
     try {
       await _sdk!.logout();
-      
+
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('auth_token');
 
@@ -1064,13 +1132,13 @@ class MyApp extends StatelessWidget {
             if (!sdkService.isInitialized) {
               return const SplashScreen();
             }
-            
+
             if (sdkService.error != null) {
               return ErrorScreen(error: sdkService.error!);
             }
-            
-            return sdkService.isAuthenticated 
-                ? const MainScreen() 
+
+            return sdkService.isAuthenticated
+                ? const MainScreen()
                 : const LoginScreen();
           },
         ),
@@ -1115,7 +1183,7 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: _isLoading ? null : () => _handleLogin(sdkService),
-              child: _isLoading 
+              child: _isLoading
                   ? const CircularProgressIndicator()
                   : const Text('Login'),
             ),
@@ -1135,7 +1203,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _handleLogin(SDKService sdkService) async {
     setState(() => _isLoading = true);
-    
+
     try {
       await sdkService.authenticate(
         _usernameController.text,
@@ -1148,16 +1216,16 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 }
-''',
+""",
             prerequisites=[
                 "Flutter 3.0+",
                 "provider package",
                 "device_info_plus package",
-                "shared_preferences package"
+                "shared_preferences package",
             ],
-            tags=["integration", "flutter", "state-management"]
+            tags=["integration", "flutter", "state-management"],
         )
-        
+
         return DocumentationSection(
             section_id="integration_examples",
             title="Platform Integration Examples",
@@ -1191,9 +1259,9 @@ Native Android integration with Kotlin and Android Keystore.
 - Follow platform UI guidelines
 """,
             code_samples=[react_native_sample, flutter_sample],
-            order=5
+            order=5,
         )
-    
+
     def generate_troubleshooting_guide(self) -> DocumentationSection:
         """Generate troubleshooting guide."""
         return DocumentationSection(
@@ -1298,7 +1366,7 @@ Common issues and solutions when using the ITDO ERP Mobile SDK.
 
 **Solutions**:
 1. Implement exponential backoff retry logic
-2. Cache responses to reduce API calls  
+2. Cache responses to reduce API calls
 3. Optimize API usage patterns
 4. Contact support to increase rate limits
 
@@ -1404,13 +1472,13 @@ BiometricAuthenticationError: Quality score 0.65 below threshold 0.75
 **Additional Context**: Issue occurs in bright lighting conditions
 ```
 """,
-            order=6
+            order=6,
         )
-    
+
     def generate_changelog(self) -> DocumentationSection:
         """Generate changelog."""
         return DocumentationSection(
-            section_id="changelog", 
+            section_id="changelog",
             title="Changelog",
             content="""
 # Changelog
@@ -1464,7 +1532,7 @@ All notable changes to the ITDO ERP Mobile SDK will be documented here.
 
 ### Platform Support
 - Native iOS (Swift)
-- Native Android (Kotlin) 
+- Native Android (Kotlin)
 - React Native (JavaScript/TypeScript)
 - Flutter (Dart)
 - Web (JavaScript/TypeScript)
@@ -1501,7 +1569,7 @@ All notable changes to the ITDO ERP Mobile SDK will be documented here.
 This project follows [Semantic Versioning](https://semver.org/):
 
 - **MAJOR** version for incompatible API changes
-- **MINOR** version for new backwards-compatible functionality  
+- **MINOR** version for new backwards-compatible functionality
 - **PATCH** version for backwards-compatible bug fixes
 
 ## Support Policy
@@ -1520,13 +1588,13 @@ This is the initial stable release. No migration required.
 
 Detailed upgrade guides will be provided for each major version release.
 """,
-            order=7
+            order=7,
         )
-    
+
     def add_section(self, section: DocumentationSection) -> None:
         """Add documentation section."""
         self.sections[section.section_id] = section
-    
+
     def generate_all_documentation(self) -> Dict[str, DocumentationSection]:
         """Generate complete documentation suite."""
         # Generate all sections
@@ -1537,90 +1605,90 @@ Detailed upgrade guides will be provided for each major version release.
         self.add_section(self.generate_integration_examples())
         self.add_section(self.generate_troubleshooting_guide())
         self.add_section(self.generate_changelog())
-        
+
         return self.sections
-    
+
     def export_to_files(self) -> Dict[str, str]:
         """Export documentation to files."""
         generated_files = {}
-        
+
         for section_id, section in self.sections.items():
             # Create markdown file for each section
             filename = f"{section_id}.md"
             filepath = self.output_dir / filename
-            
+
             # Write section content
-            with open(filepath, 'w', encoding='utf-8') as f:
+            with open(filepath, "w", encoding="utf-8") as f:
                 f.write(f"# {section.title}\n\n")
                 f.write(section.content)
-                
+
                 # Add code samples
                 for sample in section.code_samples:
                     f.write(f"\n\n## {sample.title}\n\n")
                     f.write(f"{sample.description}\n\n")
-                    
+
                     if sample.prerequisites:
                         f.write("**Prerequisites:**\n")
                         for prereq in sample.prerequisites:
                             f.write(f"- {prereq}\n")
                         f.write("\n")
-                    
+
                     if sample.imports:
                         f.write("**Imports:**\n")
                         f.write("```" + sample.language + "\n")
                         for imp in sample.imports:
                             f.write(f"{imp}\n")
                         f.write("```\n\n")
-                    
+
                     f.write("**Code:**\n")
                     f.write("```" + sample.language + "\n")
                     f.write(sample.code)
                     f.write("\n```\n")
-                    
+
                     if sample.notes:
                         f.write("\n**Notes:**\n")
                         for note in sample.notes:
                             f.write(f"- {note}\n")
-            
+
             generated_files[filename] = str(filepath)
-        
+
         # Generate main README
         readme_path = self.output_dir / "README.md"
-        with open(readme_path, 'w', encoding='utf-8') as f:
+        with open(readme_path, "w", encoding="utf-8") as f:
             f.write("# ITDO ERP Mobile SDK Documentation\n\n")
             f.write("Complete documentation for the ITDO ERP Mobile SDK.\n\n")
             f.write("## Table of Contents\n\n")
-            
+
             # Sort sections by order
             sorted_sections = sorted(self.sections.values(), key=lambda x: x.order)
             for section in sorted_sections:
                 f.write(f"- [{section.title}]({section.section_id}.md)\n")
-            
+
             f.write(f"\n---\n\nGenerated on {datetime.now().isoformat()}\n")
-        
+
         generated_files["README.md"] = str(readme_path)
-        
+
         # Generate JSON API reference
         api_json_path = self.output_dir / "api_reference.json"
-        with open(api_json_path, 'w', encoding='utf-8') as f:
+        with open(api_json_path, "w", encoding="utf-8") as f:
             api_data = {
                 "version": "1.0.0",
                 "title": "ITDO ERP Mobile SDK API",
                 "description": "Complete API reference for ITDO ERP Mobile SDK",
                 "base_url": "https://api.your-organization.com/api/v1",
                 "endpoints": [endpoint.dict() for endpoint in self.api_endpoints],
-                "generated_at": datetime.now().isoformat()
+                "generated_at": datetime.now().isoformat(),
             }
             json.dump(api_data, f, indent=2)
-        
+
         generated_files["api_reference.json"] = str(api_json_path)
-        
+
         return generated_files
-    
+
     def generate_sample_project(self, platform: PlatformType) -> Dict[str, str]:
         """Generate complete sample project for platform."""
         sample_files = {}
-        
+
         if platform == PlatformType.REACT_NATIVE:
             # Package.json
             package_json = {
@@ -1629,19 +1697,19 @@ Detailed upgrade guides will be provided for each major version release.
                 "private": True,
                 "scripts": {
                     "android": "react-native run-android",
-                    "ios": "react-native run-ios", 
-                    "start": "react-native start"
+                    "ios": "react-native run-ios",
+                    "start": "react-native start",
                 },
                 "dependencies": {
                     "react": "18.2.0",
                     "react-native": "0.72.0",
                     "@itdo/erp-mobile-sdk": "^1.0.0",
                     "@react-native-async-storage/async-storage": "^1.19.0",
-                    "react-native-device-info": "^10.9.0"
-                }
+                    "react-native-device-info": "^10.9.0",
+                },
             }
             sample_files["package.json"] = json.dumps(package_json, indent=2)
-            
+
         elif platform == PlatformType.FLUTTER:
             # pubspec.yaml
             pubspec_yaml = """
@@ -1670,5 +1738,5 @@ flutter:
   uses-material-design: true
 """
             sample_files["pubspec.yaml"] = pubspec_yaml.strip()
-        
+
         return sample_files

@@ -232,7 +232,7 @@ class TestInventoryBalanceManagement:
             inventory_service.redis.incr = AsyncMock(return_value=1)
             inventory_service.redis.expire = AsyncMock()
 
-            updated_balance = await inventory_service.update_inventory_balance(
+            await inventory_service.update_inventory_balance(
                 product_id=product_id,
                 location_id=location_id,
                 quantity_change=Decimal("25.00"),
@@ -467,9 +467,7 @@ class TestStockAdjustments:
             inventory_service.redis.incr = AsyncMock(return_value=1)
             inventory_service.redis.expire = AsyncMock()
 
-            with patch.object(
-                inventory_service, "update_inventory_balance"
-            ) as mock_update:
+            with patch.object(inventory_service, "update_inventory_balance"):
                 with patch.object(inventory_service.db, "add") as mock_add:
                     adjustment = await inventory_service.create_stock_adjustment(
                         adjustment_data
@@ -697,7 +695,7 @@ class TestInventoryReporting:
 
     async def test_get_inventory_alerts_endpoint(self, async_client, mock_db):
         """Test inventory alerts endpoint"""
-        with patch("app.api.v1.inventory_management_v67.select") as mock_select:
+        with patch("app.api.v1.inventory_management_v67.select"):
             mock_alert = Mock(
                 id=uuid.uuid4(),
                 product_id=uuid.uuid4(),

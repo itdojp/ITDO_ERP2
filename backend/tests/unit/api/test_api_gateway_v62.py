@@ -447,7 +447,7 @@ class TestCircuitBreaker:
         mock_redis.hget.return_value = "4"  # One below threshold
 
         # Execute failure recording
-        state = await circuit_breaker.record_failure("test-service", "/api/test")
+        await circuit_breaker.record_failure("test-service", "/api/test")
 
         # Verify pipeline operations
         mock_pipeline.hincrby.assert_called()
@@ -465,7 +465,7 @@ class TestCircuitBreaker:
             can_execute = await circuit_breaker.can_execute("test-service", "/api/test")
 
             # Should allow execution
-            assert can_execute == True
+            assert can_execute
 
     @pytest.mark.asyncio
     async def test_can_execute_open_before_timeout(self, circuit_breaker, mock_redis):
@@ -482,7 +482,7 @@ class TestCircuitBreaker:
             can_execute = await circuit_breaker.can_execute("test-service", "/api/test")
 
             # Should not allow execution
-            assert can_execute == False
+            assert not can_execute
 
     @pytest.mark.asyncio
     async def test_can_execute_open_after_timeout(self, circuit_breaker, mock_redis):
@@ -499,7 +499,7 @@ class TestCircuitBreaker:
             can_execute = await circuit_breaker.can_execute("test-service", "/api/test")
 
             # Should allow execution and transition to half-open
-            assert can_execute == True
+            assert can_execute
             mock_redis.hset.assert_called()
 
 
@@ -520,8 +520,8 @@ class TestRateLimiter:
         allowed, info = await rate_limiter.is_allowed("test-key", limit=10, window=60)
 
         # Assertions
-        assert allowed == True
-        assert info["allowed"] == True
+        assert allowed
+        assert info["allowed"]
         assert info["limit"] == 10
         assert info["remaining"] == 4  # 10 - 5 - 1
 
@@ -540,8 +540,8 @@ class TestRateLimiter:
         allowed, info = await rate_limiter.is_allowed("test-key", limit=10, window=60)
 
         # Assertions
-        assert allowed == False
-        assert info["allowed"] == False
+        assert not allowed
+        assert not info["allowed"]
         assert info["remaining"] == 0
 
     @pytest.mark.asyncio
@@ -555,7 +555,7 @@ class TestRateLimiter:
         allowed, info = await rate_limiter.is_allowed("test-key", limit=10, window=60)
 
         # Should fail open
-        assert allowed == True
+        assert allowed
         assert "error" in info
 
 
@@ -864,7 +864,7 @@ class TestRequestModels:
         assert valid_request.service_name == "order-service"
         assert valid_request.strategy == RoutingStrategy.WEIGHTED_ROUND_ROBIN
         assert valid_request.health_check_interval == 60
-        assert valid_request.sticky_sessions == True
+        assert valid_request.sticky_sessions
 
         # Test health check interval validation
         with pytest.raises(ValueError):
@@ -903,7 +903,7 @@ class TestRequestModels:
         assert valid_request.policy_name == "Production API Policy"
         assert len(valid_request.allowed_origins) == 2
         assert len(valid_request.rate_limits) == 3
-        assert valid_request.require_https == True
+        assert valid_request.require_https
         assert valid_request.max_request_size == 52428800
 
         # Test max request size validation
@@ -1038,7 +1038,7 @@ class TestGatewayIntegration:
             can_execute = await gateway_core.circuit_breaker.can_execute(
                 "test-service", "/api/test"
             )
-            assert can_execute == True
+            assert can_execute
 
     @pytest.mark.asyncio
     async def test_rate_limiting_integration(self, gateway_core, mock_redis):
@@ -1055,7 +1055,7 @@ class TestGatewayIntegration:
             "user:123", limit=10, window=60
         )
 
-        assert allowed == True
+        assert allowed
         assert info["remaining"] == 4
 
         # Test rate limiting over limit
@@ -1065,7 +1065,7 @@ class TestGatewayIntegration:
             "user:123", limit=10, window=60
         )
 
-        assert allowed == False
+        assert not allowed
         assert info["remaining"] == 0
 
 

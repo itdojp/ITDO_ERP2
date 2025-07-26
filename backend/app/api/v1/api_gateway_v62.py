@@ -208,7 +208,7 @@ class CircuitBreakerResponse(BaseModel):
 class ServiceRegistry:
     """Service registry for microservice discovery"""
 
-    def __init__(self, redis_client: redis.Redis):
+    def __init__(self, redis_client: redis.Redis) -> dict:
         self.redis = redis_client
         self.services: Dict[str, List[Dict[str, Any]]] = {}
 
@@ -307,7 +307,7 @@ class ServiceRegistry:
 class LoadBalancer:
     """Load balancer with multiple strategies"""
 
-    def __init__(self, service_registry: ServiceRegistry):
+    def __init__(self, service_registry: ServiceRegistry) -> dict:
         self.registry = service_registry
         self.round_robin_counters: Dict[str, int] = {}
 
@@ -390,7 +390,7 @@ class LoadBalancer:
 class CircuitBreaker:
     """Circuit breaker pattern implementation"""
 
-    def __init__(self, redis_client: redis.Redis):
+    def __init__(self, redis_client: redis.Redis) -> dict:
         self.redis = redis_client
 
     async def get_state(
@@ -491,7 +491,7 @@ class CircuitBreaker:
 class RateLimiter:
     """Rate limiting with multiple strategies"""
 
-    def __init__(self, redis_client: redis.Redis):
+    def __init__(self, redis_client: redis.Redis) -> dict:
         self.redis = redis_client
 
     async def is_allowed(
@@ -544,7 +544,7 @@ class RateLimiter:
 class APIGatewayCore:
     """Core API Gateway functionality"""
 
-    def __init__(self, redis_client: redis.Redis):
+    def __init__(self, redis_client: redis.Redis) -> dict:
         self.redis = redis_client
         self.service_registry = ServiceRegistry(redis_client)
         self.load_balancer = LoadBalancer(self.service_registry)
@@ -641,7 +641,7 @@ class APIGatewayCore:
 class GatewayMetrics:
     """Gateway metrics collection and reporting"""
 
-    def __init__(self, redis_client: redis.Redis):
+    def __init__(self, redis_client: redis.Redis) -> dict:
         self.redis = redis_client
 
     async def record_request(
@@ -737,7 +737,7 @@ class GatewayMetrics:
 class GatewayMiddleware(BaseHTTPMiddleware):
     """API Gateway middleware for request processing"""
 
-    def __init__(self, app, gateway_core: APIGatewayCore, metrics: GatewayMetrics):
+    def __init__(self, app, gateway_core: APIGatewayCore, metrics: GatewayMetrics) -> dict:
         super().__init__(app)
         self.gateway = gateway_core
         self.metrics = metrics
@@ -806,7 +806,7 @@ async def discover_services(service_name: str, db: AsyncSession = Depends(get_db
 
 
 @router.get("/health", response_model=Dict[str, Any])
-async def gateway_health():
+async def gateway_health() -> None:
     """Get gateway health status"""
     return {
         "status": "healthy",
@@ -822,7 +822,7 @@ async def gateway_health():
 
 
 @router.get("/metrics", response_model=Dict[str, Any])
-async def get_gateway_metrics():
+async def get_gateway_metrics() -> None:
     """Get gateway performance metrics"""
     if not gateway_metrics:
         raise HTTPException(status_code=503, detail="Metrics not available")
@@ -1050,7 +1050,7 @@ async def create_security_policy(
 
 
 @router.get("/admin/dashboard", response_model=Dict[str, Any])
-async def get_admin_dashboard():
+async def get_admin_dashboard() -> None:
     """Get administrative dashboard data"""
     try:
         if not gateway_metrics:
@@ -1096,7 +1096,7 @@ async def run_health_checks(
 ):
     """Run health checks on all services"""
 
-    async def health_check_task():
+    async def health_check_task() -> None:
         """Background task for health checking"""
         try:
             if not gateway_core:
@@ -1146,14 +1146,14 @@ async def cleanup_expired_data(
 ):
     """Cleanup expired data and metrics"""
 
-    async def cleanup_task():
+    async def cleanup_task() -> None:
         """Background cleanup task"""
         try:
             if not redis_client:
                 return
 
             # Cleanup expired service registrations
-            current_time = datetime.utcnow()
+            datetime.utcnow()
 
             # This would clean up expired services, old metrics, etc.
             logger.info("Cleanup task completed")
