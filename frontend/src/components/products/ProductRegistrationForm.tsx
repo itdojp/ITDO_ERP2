@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 
 interface ProductFormData {
   code: string;
@@ -12,7 +12,7 @@ interface ProductFormData {
   maxStock: number;
   unit: string;
   supplier: string;
-  status: 'active' | 'inactive';
+  status: "active" | "inactive";
   tags: string[];
 }
 
@@ -23,63 +23,72 @@ interface ProductRegistrationFormProps {
   isEdit?: boolean;
 }
 
-export const ProductRegistrationForm: React.FC<ProductRegistrationFormProps> = ({
-  initialData,
-  onSubmit,
-  onCancel,
-  isEdit = false
-}) => {
+export const ProductRegistrationForm: React.FC<
+  ProductRegistrationFormProps
+> = ({ initialData, onSubmit, onCancel, isEdit = false }) => {
   const [formData, setFormData] = useState<ProductFormData>({
-    code: initialData?.code || '',
-    name: initialData?.name || '',
-    description: initialData?.description || '',
-    category: initialData?.category || '',
+    code: initialData?.code || "",
+    name: initialData?.name || "",
+    description: initialData?.description || "",
+    category: initialData?.category || "",
     price: initialData?.price || 0,
     costPrice: initialData?.costPrice || 0,
     stock: initialData?.stock || 0,
     minStock: initialData?.minStock || 10,
     maxStock: initialData?.maxStock || 1000,
-    unit: initialData?.unit || '個',
-    supplier: initialData?.supplier || '',
-    status: initialData?.status || 'active',
-    tags: initialData?.tags || []
+    unit: initialData?.unit || "個",
+    supplier: initialData?.supplier || "",
+    status: initialData?.status || "active",
+    tags: initialData?.tags || [],
   });
 
-  const [tagInput, setTagInput] = useState('');
+  const [tagInput, setTagInput] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const categories = [
-    'ラップトップ', 'デスクトップ', 'モニター', 'キーボード', 'マウス', 
-    'アクセサリー', 'ソフトウェア', 'サービス'
+    "ラップトップ",
+    "デスクトップ",
+    "モニター",
+    "キーボード",
+    "マウス",
+    "アクセサリー",
+    "ソフトウェア",
+    "サービス",
   ];
 
-  const units = ['個', '台', 'セット', 'ライセンス', 'GB', 'TB', 'kg', 'm'];
+  const units = ["個", "台", "セット", "ライセンス", "GB", "TB", "kg", "m"];
 
   const suppliers = [
-    'Lenovo Japan', 'Dell Japan', 'Apple Japan', 'Microsoft Japan', 
-    'PFU Limited', 'Anker Japan', 'Logitech Japan', 'その他'
+    "Lenovo Japan",
+    "Dell Japan",
+    "Apple Japan",
+    "Microsoft Japan",
+    "PFU Limited",
+    "Anker Japan",
+    "Logitech Japan",
+    "その他",
   ];
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
     if (!formData.code.trim()) {
-      newErrors.code = '商品コードは必須です';
+      newErrors.code = "商品コードは必須です";
     }
     if (!formData.name.trim()) {
-      newErrors.name = '商品名は必須です';
+      newErrors.name = "商品名は必須です";
     }
     if (!formData.category) {
-      newErrors.category = 'カテゴリを選択してください';
+      newErrors.category = "カテゴリを選択してください";
     }
     if (formData.price <= 0) {
-      newErrors.price = '価格は0より大きい値を入力してください';
+      newErrors.price = "価格は0より大きい値を入力してください";
     }
     if (formData.costPrice < 0) {
-      newErrors.costPrice = '原価は0以上の値を入力してください';
+      newErrors.costPrice = "原価は0以上の値を入力してください";
     }
     if (formData.stock < 0) {
-      newErrors.stock = '在庫数は0以上の値を入力してください';
+      newErrors.stock = "在庫数は0以上の値を入力してください";
     }
 
     setErrors(newErrors);
@@ -95,25 +104,25 @@ export const ProductRegistrationForm: React.FC<ProductRegistrationFormProps> = (
 
   const addTag = () => {
     if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        tags: [...prev.tags, tagInput.trim()]
+        tags: [...prev.tags, tagInput.trim()],
       }));
-      setTagInput('');
+      setTagInput("");
     }
   };
 
   const removeTag = (tagToRemove: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      tags: prev.tags.filter(tag => tag !== tagToRemove)
+      tags: prev.tags.filter((tag) => tag !== tagToRemove),
     }));
   };
 
   const handleInputChange = (field: keyof ProductFormData, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+      setErrors((prev) => ({ ...prev, [field]: "" }));
     }
   };
 
@@ -122,10 +131,10 @@ export const ProductRegistrationForm: React.FC<ProductRegistrationFormProps> = (
       <div className="bg-white shadow rounded-lg">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900">
-            {isEdit ? '商品情報編集' : '新規商品登録'}
+            {isEdit ? "商品情報編集" : "新規商品登録"}
           </h2>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="p-6">
           {/* 基本情報 */}
           <div className="mb-8">
@@ -138,15 +147,19 @@ export const ProductRegistrationForm: React.FC<ProductRegistrationFormProps> = (
                 <input
                   type="text"
                   value={formData.code}
-                  onChange={(e) => handleInputChange('code', e.target.value.toUpperCase())}
+                  onChange={(e) =>
+                    handleInputChange("code", e.target.value.toUpperCase())
+                  }
                   className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.code ? 'border-red-300' : 'border-gray-300'
+                    errors.code ? "border-red-300" : "border-gray-300"
                   }`}
                   placeholder="例: LT-001"
                 />
-                {errors.code && <p className="text-red-500 text-xs mt-1">{errors.code}</p>}
+                {errors.code && (
+                  <p className="text-red-500 text-xs mt-1">{errors.code}</p>
+                )}
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   商品名 <span className="text-red-500">*</span>
@@ -154,21 +167,27 @@ export const ProductRegistrationForm: React.FC<ProductRegistrationFormProps> = (
                 <input
                   type="text"
                   value={formData.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
+                  onChange={(e) => handleInputChange("name", e.target.value)}
                   className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.name ? 'border-red-300' : 'border-gray-300'
+                    errors.name ? "border-red-300" : "border-gray-300"
                   }`}
                   placeholder="例: ThinkPad X1 Carbon"
                 />
-                {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+                {errors.name && (
+                  <p className="text-red-500 text-xs mt-1">{errors.name}</p>
+                )}
               </div>
             </div>
-            
+
             <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">商品説明</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                商品説明
+              </label>
               <textarea
                 value={formData.description}
-                onChange={(e) => handleInputChange('description', e.target.value)}
+                onChange={(e) =>
+                  handleInputChange("description", e.target.value)
+                }
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="商品の詳細説明を入力してください"
@@ -186,29 +205,41 @@ export const ProductRegistrationForm: React.FC<ProductRegistrationFormProps> = (
                 </label>
                 <select
                   value={formData.category}
-                  onChange={(e) => handleInputChange('category', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("category", e.target.value)
+                  }
                   className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.category ? 'border-red-300' : 'border-gray-300'
+                    errors.category ? "border-red-300" : "border-gray-300"
                   }`}
                 >
                   <option value="">カテゴリを選択</option>
-                  {categories.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
+                  {categories.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
                   ))}
                 </select>
-                {errors.category && <p className="text-red-500 text-xs mt-1">{errors.category}</p>}
+                {errors.category && (
+                  <p className="text-red-500 text-xs mt-1">{errors.category}</p>
+                )}
               </div>
-              
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">サプライヤー</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  サプライヤー
+                </label>
                 <select
                   value={formData.supplier}
-                  onChange={(e) => handleInputChange('supplier', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("supplier", e.target.value)
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">サプライヤーを選択</option>
-                  {suppliers.map(sup => (
-                    <option key={sup} value={sup}>{sup}</option>
+                  {suppliers.map((sup) => (
+                    <option key={sup} value={sup}>
+                      {sup}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -227,26 +258,41 @@ export const ProductRegistrationForm: React.FC<ProductRegistrationFormProps> = (
                   type="number"
                   min="0"
                   value={formData.price}
-                  onChange={(e) => handleInputChange('price', parseFloat(e.target.value) || 0)}
+                  onChange={(e) =>
+                    handleInputChange("price", parseFloat(e.target.value) || 0)
+                  }
                   className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.price ? 'border-red-300' : 'border-gray-300'
+                    errors.price ? "border-red-300" : "border-gray-300"
                   }`}
                 />
-                {errors.price && <p className="text-red-500 text-xs mt-1">{errors.price}</p>}
+                {errors.price && (
+                  <p className="text-red-500 text-xs mt-1">{errors.price}</p>
+                )}
               </div>
-              
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">原価</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  原価
+                </label>
                 <input
                   type="number"
                   min="0"
                   value={formData.costPrice}
-                  onChange={(e) => handleInputChange('costPrice', parseFloat(e.target.value) || 0)}
+                  onChange={(e) =>
+                    handleInputChange(
+                      "costPrice",
+                      parseFloat(e.target.value) || 0,
+                    )
+                  }
                   className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.costPrice ? 'border-red-300' : 'border-gray-300'
+                    errors.costPrice ? "border-red-300" : "border-gray-300"
                   }`}
                 />
-                {errors.costPrice && <p className="text-red-500 text-xs mt-1">{errors.costPrice}</p>}
+                {errors.costPrice && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.costPrice}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -256,47 +302,69 @@ export const ProductRegistrationForm: React.FC<ProductRegistrationFormProps> = (
             <h3 className="text-lg font-medium text-gray-900 mb-4">在庫情報</h3>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">現在在庫数</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  現在在庫数
+                </label>
                 <input
                   type="number"
                   min="0"
                   value={formData.stock}
-                  onChange={(e) => handleInputChange('stock', parseFloat(e.target.value) || 0)}
+                  onChange={(e) =>
+                    handleInputChange("stock", parseFloat(e.target.value) || 0)
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-              
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">最小在庫</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  最小在庫
+                </label>
                 <input
                   type="number"
                   min="0"
                   value={formData.minStock}
-                  onChange={(e) => handleInputChange('minStock', parseFloat(e.target.value) || 0)}
+                  onChange={(e) =>
+                    handleInputChange(
+                      "minStock",
+                      parseFloat(e.target.value) || 0,
+                    )
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-              
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">最大在庫</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  最大在庫
+                </label>
                 <input
                   type="number"
                   min="0"
                   value={formData.maxStock}
-                  onChange={(e) => handleInputChange('maxStock', parseFloat(e.target.value) || 0)}
+                  onChange={(e) =>
+                    handleInputChange(
+                      "maxStock",
+                      parseFloat(e.target.value) || 0,
+                    )
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-              
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">単位</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  単位
+                </label>
                 <select
                   value={formData.unit}
-                  onChange={(e) => handleInputChange('unit', e.target.value)}
+                  onChange={(e) => handleInputChange("unit", e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  {units.map(unit => (
-                    <option key={unit} value={unit}>{unit}</option>
+                  {units.map((unit) => (
+                    <option key={unit} value={unit}>
+                      {unit}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -307,7 +375,7 @@ export const ProductRegistrationForm: React.FC<ProductRegistrationFormProps> = (
           <div className="mb-8">
             <h3 className="text-lg font-medium text-gray-900 mb-4">タグ</h3>
             <div className="mb-3">
-              {formData.tags.map(tag => (
+              {formData.tags.map((tag) => (
                 <span
                   key={tag}
                   className="inline-flex items-center px-2 py-1 mr-2 mb-2 text-xs font-medium bg-blue-100 text-blue-800 rounded-full"
@@ -328,7 +396,9 @@ export const ProductRegistrationForm: React.FC<ProductRegistrationFormProps> = (
                 type="text"
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+                onKeyPress={(e) =>
+                  e.key === "Enter" && (e.preventDefault(), addTag())
+                }
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="タグを入力してEnterキー"
               />
@@ -344,15 +414,17 @@ export const ProductRegistrationForm: React.FC<ProductRegistrationFormProps> = (
 
           {/* ステータス */}
           <div className="mb-8">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">ステータス</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              ステータス
+            </h3>
             <div className="flex gap-4">
               <label className="flex items-center">
                 <input
                   type="radio"
                   name="status"
                   value="active"
-                  checked={formData.status === 'active'}
-                  onChange={(e) => handleInputChange('status', e.target.value)}
+                  checked={formData.status === "active"}
+                  onChange={(e) => handleInputChange("status", e.target.value)}
                   className="mr-2"
                 />
                 アクティブ
@@ -362,8 +434,8 @@ export const ProductRegistrationForm: React.FC<ProductRegistrationFormProps> = (
                   type="radio"
                   name="status"
                   value="inactive"
-                  checked={formData.status === 'inactive'}
-                  onChange={(e) => handleInputChange('status', e.target.value)}
+                  checked={formData.status === "inactive"}
+                  onChange={(e) => handleInputChange("status", e.target.value)}
                   className="mr-2"
                 />
                 無効
@@ -384,7 +456,7 @@ export const ProductRegistrationForm: React.FC<ProductRegistrationFormProps> = (
               type="submit"
               className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
             >
-              {isEdit ? '更新' : '登録'}
+              {isEdit ? "更新" : "登録"}
             </button>
           </div>
         </form>

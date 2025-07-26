@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Box,
   Paper,
@@ -29,8 +29,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField
-} from '@mui/material';
+  TextField,
+} from "@mui/material";
 import {
   Edit as EditIcon,
   Delete as DeleteIcon,
@@ -45,9 +45,9 @@ import {
   Print as PrintIcon,
   ContentCopy as CopyIcon,
   QrCodeScanner as QrIcon,
-  Refresh as RefreshIcon
-} from '@mui/icons-material';
-import { apiClient } from '@/services/api';
+  Refresh as RefreshIcon,
+} from "@mui/icons-material";
+import { apiClient } from "@/services/api";
 
 interface Product {
   id: number;
@@ -58,8 +58,8 @@ interface Product {
   standard_price: number;
   cost_price?: number;
   sale_price?: number;
-  status: 'active' | 'inactive' | 'discontinued';
-  product_type: 'product' | 'service' | 'kit';
+  status: "active" | "inactive" | "discontinued";
+  product_type: "product" | "service" | "kit";
   description?: string;
   category?: string;
   weight?: number;
@@ -87,7 +87,7 @@ interface Product {
 
 interface StockMovement {
   id: number;
-  type: 'in' | 'out' | 'adjustment';
+  type: "in" | "out" | "adjustment";
   quantity: number;
   reference: string;
   date: string;
@@ -131,18 +131,25 @@ export const ProductDetailPage: React.FC = () => {
   const { productId } = useParams<{ productId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  
+
   const [currentTab, setCurrentTab] = useState(0);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [stockAdjustmentOpen, setStockAdjustmentOpen] = useState(false);
-  const [adjustmentQuantity, setAdjustmentQuantity] = useState('');
-  const [adjustmentNotes, setAdjustmentNotes] = useState('');
+  const [adjustmentQuantity, setAdjustmentQuantity] = useState("");
+  const [adjustmentNotes, setAdjustmentNotes] = useState("");
 
   // Fetch product data
-  const { data: product, isLoading, error, refetch } = useQuery({
-    queryKey: ['product-detail', productId],
+  const {
+    data: product,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ["product-detail", productId],
     queryFn: async (): Promise<Product> => {
-      const response = await apiClient.get(`/api/v1/products-basic/${productId}`);
+      const response = await apiClient.get(
+        `/api/v1/products-basic/${productId}`,
+      );
       return response.data;
     },
     enabled: !!productId,
@@ -150,9 +157,11 @@ export const ProductDetailPage: React.FC = () => {
 
   // Fetch stock movements
   const { data: stockMovements } = useQuery({
-    queryKey: ['stock-movements', productId],
+    queryKey: ["stock-movements", productId],
     queryFn: async (): Promise<StockMovement[]> => {
-      const response = await apiClient.get(`/api/v1/products-basic/${productId}/stock-movements`);
+      const response = await apiClient.get(
+        `/api/v1/products-basic/${productId}/stock-movements`,
+      );
       return response.data || [];
     },
     enabled: !!productId,
@@ -160,9 +169,11 @@ export const ProductDetailPage: React.FC = () => {
 
   // Fetch sales records
   const { data: salesRecords } = useQuery({
-    queryKey: ['sales-records', productId],
+    queryKey: ["sales-records", productId],
     queryFn: async (): Promise<SalesRecord[]> => {
-      const response = await apiClient.get(`/api/v1/products-basic/${productId}/sales`);
+      const response = await apiClient.get(
+        `/api/v1/products-basic/${productId}/sales`,
+      );
       return response.data || [];
     },
     enabled: !!productId,
@@ -170,17 +181,21 @@ export const ProductDetailPage: React.FC = () => {
 
   // Fetch analytics
   const { data: analytics } = useQuery({
-    queryKey: ['product-analytics', productId],
+    queryKey: ["product-analytics", productId],
     queryFn: async (): Promise<ProductAnalytics> => {
-      const response = await apiClient.get(`/api/v1/products-basic/${productId}/analytics`);
-      return response.data || {
-        total_sales: 0,
-        total_revenue: 0,
-        avg_monthly_sales: 0,
-        stock_turnover_rate: 0,
-        days_of_inventory: 0,
-        profit_margin: 0,
-      };
+      const response = await apiClient.get(
+        `/api/v1/products-basic/${productId}/analytics`,
+      );
+      return (
+        response.data || {
+          total_sales: 0,
+          total_revenue: 0,
+          avg_monthly_sales: 0,
+          stock_turnover_rate: 0,
+          days_of_inventory: 0,
+          profit_margin: 0,
+        }
+      );
     },
     enabled: !!productId,
   });
@@ -191,22 +206,29 @@ export const ProductDetailPage: React.FC = () => {
       await apiClient.delete(`/api/v1/products-basic/${productId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products-list'] });
-      navigate('/products');
+      queryClient.invalidateQueries({ queryKey: ["products-list"] });
+      navigate("/products");
     },
   });
 
   // Stock adjustment mutation
   const stockAdjustmentMutation = useMutation({
     mutationFn: async (data: { quantity: number; notes: string }) => {
-      await apiClient.post(`/api/v1/products-basic/${productId}/stock-adjustment`, data);
+      await apiClient.post(
+        `/api/v1/products-basic/${productId}/stock-adjustment`,
+        data,
+      );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['product-detail', productId] });
-      queryClient.invalidateQueries({ queryKey: ['stock-movements', productId] });
+      queryClient.invalidateQueries({
+        queryKey: ["product-detail", productId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["stock-movements", productId],
+      });
       setStockAdjustmentOpen(false);
-      setAdjustmentQuantity('');
-      setAdjustmentNotes('');
+      setAdjustmentQuantity("");
+      setAdjustmentNotes("");
     },
   });
 
@@ -231,7 +253,7 @@ export const ProductDetailPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <Box sx={{ maxWidth: 1200, mx: 'auto', p: 3 }}>
+      <Box sx={{ maxWidth: 1200, mx: "auto", p: 3 }}>
         <LinearProgress />
         <Typography sx={{ mt: 2 }}>Loading product details...</Typography>
       </Box>
@@ -240,7 +262,7 @@ export const ProductDetailPage: React.FC = () => {
 
   if (error || !product) {
     return (
-      <Box sx={{ maxWidth: 1200, mx: 'auto', p: 3 }}>
+      <Box sx={{ maxWidth: 1200, mx: "auto", p: 3 }}>
         <Alert severity="error">
           Failed to load product details. Please try again.
           <Button onClick={() => refetch()} sx={{ ml: 2 }}>
@@ -251,16 +273,25 @@ export const ProductDetailPage: React.FC = () => {
     );
   }
 
-  const stockStatus = product.current_stock === 0 ? 'out_of_stock' : 
-    (product.current_stock || 0) <= (product.minimum_stock_level || 0) ? 'low_stock' : 'in_stock';
+  const stockStatus =
+    product.current_stock === 0
+      ? "out_of_stock"
+      : (product.current_stock || 0) <= (product.minimum_stock_level || 0)
+        ? "low_stock"
+        : "in_stock";
 
   return (
-    <Box sx={{ maxWidth: 1200, mx: 'auto', p: 3 }}>
+    <Box sx={{ maxWidth: 1200, mx: "auto", p: 3 }}>
       {/* Header */}
       <Paper sx={{ p: 3, mb: 3 }}>
-        <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          alignItems="center"
+          mb={2}
+        >
           <Stack direction="row" alignItems="center" spacing={2}>
-            <IconButton onClick={() => navigate('/products')}>
+            <IconButton onClick={() => navigate("/products")}>
               <BackIcon />
             </IconButton>
             <Box>
@@ -272,7 +303,7 @@ export const ProductDetailPage: React.FC = () => {
               </Typography>
             </Box>
           </Stack>
-          
+
           <Stack direction="row" spacing={2}>
             <IconButton onClick={() => refetch()}>
               <RefreshIcon />
@@ -311,8 +342,8 @@ export const ProductDetailPage: React.FC = () => {
         <Stack direction="row" spacing={1} flexWrap="wrap">
           <Chip
             label={product.status}
-            color={product.status === 'active' ? 'success' : 'default'}
-            variant={product.status === 'active' ? 'filled' : 'outlined'}
+            color={product.status === "active" ? "success" : "default"}
+            variant={product.status === "active" ? "filled" : "outlined"}
           />
           <Chip
             label={product.product_type}
@@ -320,14 +351,28 @@ export const ProductDetailPage: React.FC = () => {
             color="primary"
           />
           <Chip
-            label={stockStatus.replace('_', ' ')}
-            color={stockStatus === 'in_stock' ? 'success' : stockStatus === 'low_stock' ? 'warning' : 'error'}
+            label={stockStatus.replace("_", " ")}
+            color={
+              stockStatus === "in_stock"
+                ? "success"
+                : stockStatus === "low_stock"
+                  ? "warning"
+                  : "error"
+            }
             variant="filled"
           />
-          {product.is_active && <Chip label="Active" color="success" size="small" />}
-          {product.is_purchasable && <Chip label="Purchasable" color="info" size="small" />}
-          {product.is_sellable && <Chip label="Sellable" color="info" size="small" />}
-          {product.is_trackable && <Chip label="Trackable" color="info" size="small" />}
+          {product.is_active && (
+            <Chip label="Active" color="success" size="small" />
+          )}
+          {product.is_purchasable && (
+            <Chip label="Purchasable" color="info" size="small" />
+          )}
+          {product.is_sellable && (
+            <Chip label="Sellable" color="info" size="small" />
+          )}
+          {product.is_trackable && (
+            <Chip label="Trackable" color="info" size="small" />
+          )}
         </Stack>
       </Paper>
 
@@ -337,12 +382,16 @@ export const ProductDetailPage: React.FC = () => {
           <Card>
             <CardContent>
               <Stack direction="row" alignItems="center" spacing={2}>
-                <Avatar sx={{ bgcolor: 'primary.main' }}>
+                <Avatar sx={{ bgcolor: "primary.main" }}>
                   <PriceIcon />
                 </Avatar>
                 <Box>
-                  <Typography variant="h5">${product.standard_price?.toFixed(2)}</Typography>
-                  <Typography variant="body2" color="text.secondary">Standard Price</Typography>
+                  <Typography variant="h5">
+                    ${product.standard_price?.toFixed(2)}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Standard Price
+                  </Typography>
                 </Box>
               </Stack>
             </CardContent>
@@ -353,12 +402,16 @@ export const ProductDetailPage: React.FC = () => {
           <Card>
             <CardContent>
               <Stack direction="row" alignItems="center" spacing={2}>
-                <Avatar sx={{ bgcolor: 'success.main' }}>
+                <Avatar sx={{ bgcolor: "success.main" }}>
                   <InventoryIcon />
                 </Avatar>
                 <Box>
-                  <Typography variant="h5">{product.current_stock || 0}</Typography>
-                  <Typography variant="body2" color="text.secondary">Current Stock</Typography>
+                  <Typography variant="h5">
+                    {product.current_stock || 0}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Current Stock
+                  </Typography>
                 </Box>
               </Stack>
             </CardContent>
@@ -369,12 +422,16 @@ export const ProductDetailPage: React.FC = () => {
           <Card>
             <CardContent>
               <Stack direction="row" alignItems="center" spacing={2}>
-                <Avatar sx={{ bgcolor: 'info.main' }}>
+                <Avatar sx={{ bgcolor: "info.main" }}>
                   <AnalyticsIcon />
                 </Avatar>
                 <Box>
-                  <Typography variant="h5">{analytics?.total_sales || 0}</Typography>
-                  <Typography variant="body2" color="text.secondary">Total Sales</Typography>
+                  <Typography variant="h5">
+                    {analytics?.total_sales || 0}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Total Sales
+                  </Typography>
                 </Box>
               </Stack>
             </CardContent>
@@ -385,12 +442,16 @@ export const ProductDetailPage: React.FC = () => {
           <Card>
             <CardContent>
               <Stack direction="row" alignItems="center" spacing={2}>
-                <Avatar sx={{ bgcolor: 'warning.main' }}>
+                <Avatar sx={{ bgcolor: "warning.main" }}>
                   <ShippingIcon />
                 </Avatar>
                 <Box>
-                  <Typography variant="h5">${analytics?.total_revenue?.toFixed(2) || '0.00'}</Typography>
-                  <Typography variant="body2" color="text.secondary">Total Revenue</Typography>
+                  <Typography variant="h5">
+                    ${analytics?.total_revenue?.toFixed(2) || "0.00"}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Total Revenue
+                  </Typography>
                 </Box>
               </Stack>
             </CardContent>
@@ -422,36 +483,66 @@ export const ProductDetailPage: React.FC = () => {
               <CardContent>
                 <Grid container spacing={3}>
                   <Grid item xs={12} md={6}>
-                    <Typography variant="subtitle2" color="text.secondary">Product Code</Typography>
-                    <Typography variant="body1" fontFamily="monospace" fontWeight="medium">{product.code}</Typography>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Product Code
+                    </Typography>
+                    <Typography
+                      variant="body1"
+                      fontFamily="monospace"
+                      fontWeight="medium"
+                    >
+                      {product.code}
+                    </Typography>
                   </Grid>
                   <Grid item xs={12} md={6}>
-                    <Typography variant="subtitle2" color="text.secondary">SKU</Typography>
-                    <Typography variant="body1" fontFamily="monospace">{product.sku}</Typography>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      SKU
+                    </Typography>
+                    <Typography variant="body1" fontFamily="monospace">
+                      {product.sku}
+                    </Typography>
                   </Grid>
                   <Grid item xs={12}>
-                    <Typography variant="subtitle2" color="text.secondary">Name</Typography>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Name
+                    </Typography>
                     <Typography variant="body1">{product.name}</Typography>
                   </Grid>
                   {product.display_name !== product.name && (
                     <Grid item xs={12}>
-                      <Typography variant="subtitle2" color="text.secondary">Display Name</Typography>
-                      <Typography variant="body1">{product.display_name}</Typography>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Display Name
+                      </Typography>
+                      <Typography variant="body1">
+                        {product.display_name}
+                      </Typography>
                     </Grid>
                   )}
                   {product.description && (
                     <Grid item xs={12}>
-                      <Typography variant="subtitle2" color="text.secondary">Description</Typography>
-                      <Typography variant="body1">{product.description}</Typography>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Description
+                      </Typography>
+                      <Typography variant="body1">
+                        {product.description}
+                      </Typography>
                     </Grid>
                   )}
                   <Grid item xs={12} md={6}>
-                    <Typography variant="subtitle2" color="text.secondary">Category</Typography>
-                    <Typography variant="body1">{product.category || '—'}</Typography>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Category
+                    </Typography>
+                    <Typography variant="body1">
+                      {product.category || "—"}
+                    </Typography>
                   </Grid>
                   <Grid item xs={12} md={6}>
-                    <Typography variant="subtitle2" color="text.secondary">Barcode</Typography>
-                    <Typography variant="body1" fontFamily="monospace">{product.barcode || '—'}</Typography>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Barcode
+                    </Typography>
+                    <Typography variant="body1" fontFamily="monospace">
+                      {product.barcode || "—"}
+                    </Typography>
                   </Grid>
                 </Grid>
               </CardContent>
@@ -462,25 +553,46 @@ export const ProductDetailPage: React.FC = () => {
               <CardContent>
                 <Grid container spacing={3}>
                   <Grid item xs={12} md={4}>
-                    <Typography variant="subtitle2" color="text.secondary">Standard Price</Typography>
-                    <Typography variant="h6" color="primary">${product.standard_price?.toFixed(2)}</Typography>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Standard Price
+                    </Typography>
+                    <Typography variant="h6" color="primary">
+                      ${product.standard_price?.toFixed(2)}
+                    </Typography>
                   </Grid>
                   {product.cost_price && (
                     <Grid item xs={12} md={4}>
-                      <Typography variant="subtitle2" color="text.secondary">Cost Price</Typography>
-                      <Typography variant="h6">${product.cost_price.toFixed(2)}</Typography>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Cost Price
+                      </Typography>
+                      <Typography variant="h6">
+                        ${product.cost_price.toFixed(2)}
+                      </Typography>
                     </Grid>
                   )}
                   {product.sale_price && (
                     <Grid item xs={12} md={4}>
-                      <Typography variant="subtitle2" color="text.secondary">Sale Price</Typography>
-                      <Typography variant="h6" color="error">${product.sale_price.toFixed(2)}</Typography>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Sale Price
+                      </Typography>
+                      <Typography variant="h6" color="error">
+                        ${product.sale_price.toFixed(2)}
+                      </Typography>
                     </Grid>
                   )}
                   {analytics && (
                     <Grid item xs={12}>
-                      <Typography variant="subtitle2" color="text.secondary">Profit Margin</Typography>
-                      <Typography variant="h6" color={analytics.profit_margin > 0 ? 'success.main' : 'error.main'}>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Profit Margin
+                      </Typography>
+                      <Typography
+                        variant="h6"
+                        color={
+                          analytics.profit_margin > 0
+                            ? "success.main"
+                            : "error.main"
+                        }
+                      >
                         {analytics.profit_margin.toFixed(1)}%
                       </Typography>
                     </Grid>
@@ -497,26 +609,42 @@ export const ProductDetailPage: React.FC = () => {
                 <Grid container spacing={2}>
                   {product.weight && (
                     <Grid item xs={6}>
-                      <Typography variant="subtitle2" color="text.secondary">Weight</Typography>
-                      <Typography variant="body1">{product.weight} kg</Typography>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Weight
+                      </Typography>
+                      <Typography variant="body1">
+                        {product.weight} kg
+                      </Typography>
                     </Grid>
                   )}
                   {product.length && (
                     <Grid item xs={6}>
-                      <Typography variant="subtitle2" color="text.secondary">Length</Typography>
-                      <Typography variant="body1">{product.length} cm</Typography>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Length
+                      </Typography>
+                      <Typography variant="body1">
+                        {product.length} cm
+                      </Typography>
                     </Grid>
                   )}
                   {product.width && (
                     <Grid item xs={6}>
-                      <Typography variant="subtitle2" color="text.secondary">Width</Typography>
-                      <Typography variant="body1">{product.width} cm</Typography>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Width
+                      </Typography>
+                      <Typography variant="body1">
+                        {product.width} cm
+                      </Typography>
                     </Grid>
                   )}
                   {product.height && (
                     <Grid item xs={6}>
-                      <Typography variant="subtitle2" color="text.secondary">Height</Typography>
-                      <Typography variant="body1">{product.height} cm</Typography>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Height
+                      </Typography>
+                      <Typography variant="body1">
+                        {product.height} cm
+                      </Typography>
                     </Grid>
                   )}
                 </Grid>
@@ -528,13 +656,21 @@ export const ProductDetailPage: React.FC = () => {
               <CardContent>
                 <Grid container spacing={2}>
                   <Grid item xs={12}>
-                    <Typography variant="subtitle2" color="text.secondary">Supplier</Typography>
-                    <Typography variant="body1">{product.supplier || '—'}</Typography>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Supplier
+                    </Typography>
+                    <Typography variant="body1">
+                      {product.supplier || "—"}
+                    </Typography>
                   </Grid>
                   {product.lead_time_days && (
                     <Grid item xs={12}>
-                      <Typography variant="subtitle2" color="text.secondary">Lead Time</Typography>
-                      <Typography variant="body1">{product.lead_time_days} days</Typography>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Lead Time
+                      </Typography>
+                      <Typography variant="body1">
+                        {product.lead_time_days} days
+                      </Typography>
                     </Grid>
                   )}
                 </Grid>
@@ -546,7 +682,12 @@ export const ProductDetailPage: React.FC = () => {
               <CardContent>
                 <Stack direction="row" spacing={1} flexWrap="wrap">
                   {product.tags?.map((tag, index) => (
-                    <Chip key={index} label={tag} size="small" variant="outlined" />
+                    <Chip
+                      key={index}
+                      label={tag}
+                      size="small"
+                      variant="outlined"
+                    />
                   )) || <Typography color="text.secondary">No tags</Typography>}
                 </Stack>
               </CardContent>
@@ -560,7 +701,7 @@ export const ProductDetailPage: React.FC = () => {
         <Grid container spacing={3}>
           <Grid item xs={12} md={8}>
             <Card>
-              <CardHeader 
+              <CardHeader
                 title="Stock Information"
                 action={
                   <Button
@@ -575,24 +716,44 @@ export const ProductDetailPage: React.FC = () => {
               <CardContent>
                 <Grid container spacing={3}>
                   <Grid item xs={12} md={4}>
-                    <Typography variant="subtitle2" color="text.secondary">Current Stock</Typography>
-                    <Typography variant="h4">{product.current_stock || 0}</Typography>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Current Stock
+                    </Typography>
+                    <Typography variant="h4">
+                      {product.current_stock || 0}
+                    </Typography>
                   </Grid>
                   <Grid item xs={12} md={4}>
-                    <Typography variant="subtitle2" color="text.secondary">Reserved</Typography>
-                    <Typography variant="h4">{product.reserved_stock || 0}</Typography>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Reserved
+                    </Typography>
+                    <Typography variant="h4">
+                      {product.reserved_stock || 0}
+                    </Typography>
                   </Grid>
                   <Grid item xs={12} md={4}>
-                    <Typography variant="subtitle2" color="text.secondary">Available</Typography>
-                    <Typography variant="h4">{product.available_stock || (product.current_stock || 0)}</Typography>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Available
+                    </Typography>
+                    <Typography variant="h4">
+                      {product.available_stock || product.current_stock || 0}
+                    </Typography>
                   </Grid>
                   <Grid item xs={12} md={6}>
-                    <Typography variant="subtitle2" color="text.secondary">Minimum Level</Typography>
-                    <Typography variant="body1">{product.minimum_stock_level || '—'}</Typography>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Minimum Level
+                    </Typography>
+                    <Typography variant="body1">
+                      {product.minimum_stock_level || "—"}
+                    </Typography>
                   </Grid>
                   <Grid item xs={12} md={6}>
-                    <Typography variant="subtitle2" color="text.secondary">Reorder Point</Typography>
-                    <Typography variant="body1">{product.reorder_point || '—'}</Typography>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Reorder Point
+                    </Typography>
+                    <Typography variant="body1">
+                      {product.reorder_point || "—"}
+                    </Typography>
                   </Grid>
                 </Grid>
               </CardContent>
@@ -606,12 +767,20 @@ export const ProductDetailPage: React.FC = () => {
                 {analytics && (
                   <Grid container spacing={2}>
                     <Grid item xs={12}>
-                      <Typography variant="subtitle2" color="text.secondary">Turnover Rate</Typography>
-                      <Typography variant="h6">{analytics.stock_turnover_rate.toFixed(2)}x</Typography>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Turnover Rate
+                      </Typography>
+                      <Typography variant="h6">
+                        {analytics.stock_turnover_rate.toFixed(2)}x
+                      </Typography>
                     </Grid>
                     <Grid item xs={12}>
-                      <Typography variant="subtitle2" color="text.secondary">Days of Inventory</Typography>
-                      <Typography variant="h6">{Math.round(analytics.days_of_inventory)} days</Typography>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Days of Inventory
+                      </Typography>
+                      <Typography variant="h6">
+                        {Math.round(analytics.days_of_inventory)} days
+                      </Typography>
                     </Grid>
                   </Grid>
                 )}
@@ -638,22 +807,32 @@ export const ProductDetailPage: React.FC = () => {
                 <TableBody>
                   {stockMovements?.slice(0, 10).map((movement) => (
                     <TableRow key={movement.id}>
-                      <TableCell>{new Date(movement.date).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        {new Date(movement.date).toLocaleDateString()}
+                      </TableCell>
                       <TableCell>
                         <Chip
                           label={movement.type}
                           size="small"
-                          color={movement.type === 'in' ? 'success' : movement.type === 'out' ? 'error' : 'default'}
+                          color={
+                            movement.type === "in"
+                              ? "success"
+                              : movement.type === "out"
+                                ? "error"
+                                : "default"
+                          }
                         />
                       </TableCell>
                       <TableCell align="right">{movement.quantity}</TableCell>
                       <TableCell>{movement.reference}</TableCell>
-                      <TableCell>{movement.notes || '—'}</TableCell>
+                      <TableCell>{movement.notes || "—"}</TableCell>
                     </TableRow>
                   )) || (
                     <TableRow>
                       <TableCell colSpan={5} align="center">
-                        <Typography color="text.secondary">No stock movements found</Typography>
+                        <Typography color="text.secondary">
+                          No stock movements found
+                        </Typography>
                       </TableCell>
                     </TableRow>
                   )}
@@ -684,17 +863,25 @@ export const ProductDetailPage: React.FC = () => {
                 <TableBody>
                   {salesRecords?.map((sale) => (
                     <TableRow key={sale.id}>
-                      <TableCell>{new Date(sale.date).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        {new Date(sale.date).toLocaleDateString()}
+                      </TableCell>
                       <TableCell>{sale.order_id}</TableCell>
                       <TableCell>{sale.customer}</TableCell>
                       <TableCell align="right">{sale.quantity}</TableCell>
-                      <TableCell align="right">${sale.unit_price.toFixed(2)}</TableCell>
-                      <TableCell align="right">${sale.total.toFixed(2)}</TableCell>
+                      <TableCell align="right">
+                        ${sale.unit_price.toFixed(2)}
+                      </TableCell>
+                      <TableCell align="right">
+                        ${sale.total.toFixed(2)}
+                      </TableCell>
                     </TableRow>
                   )) || (
                     <TableRow>
                       <TableCell colSpan={6} align="center">
-                        <Typography color="text.secondary">No sales records found</Typography>
+                        <Typography color="text.secondary">
+                          No sales records found
+                        </Typography>
                       </TableCell>
                     </TableRow>
                   )}
@@ -715,16 +902,28 @@ export const ProductDetailPage: React.FC = () => {
                 {analytics && (
                   <Grid container spacing={3}>
                     <Grid item xs={6}>
-                      <Typography variant="subtitle2" color="text.secondary">Total Sales</Typography>
-                      <Typography variant="h5">{analytics.total_sales}</Typography>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Total Sales
+                      </Typography>
+                      <Typography variant="h5">
+                        {analytics.total_sales}
+                      </Typography>
                     </Grid>
                     <Grid item xs={6}>
-                      <Typography variant="subtitle2" color="text.secondary">Total Revenue</Typography>
-                      <Typography variant="h5">${analytics.total_revenue.toFixed(2)}</Typography>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Total Revenue
+                      </Typography>
+                      <Typography variant="h5">
+                        ${analytics.total_revenue.toFixed(2)}
+                      </Typography>
                     </Grid>
                     <Grid item xs={12}>
-                      <Typography variant="subtitle2" color="text.secondary">Average Monthly Sales</Typography>
-                      <Typography variant="h6">{analytics.avg_monthly_sales.toFixed(1)} units</Typography>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Average Monthly Sales
+                      </Typography>
+                      <Typography variant="h6">
+                        {analytics.avg_monthly_sales.toFixed(1)} units
+                      </Typography>
                     </Grid>
                   </Grid>
                 )}
@@ -739,16 +938,33 @@ export const ProductDetailPage: React.FC = () => {
                 {analytics && (
                   <Grid container spacing={3}>
                     <Grid item xs={6}>
-                      <Typography variant="subtitle2" color="text.secondary">Stock Turnover</Typography>
-                      <Typography variant="h5">{analytics.stock_turnover_rate.toFixed(2)}x</Typography>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Stock Turnover
+                      </Typography>
+                      <Typography variant="h5">
+                        {analytics.stock_turnover_rate.toFixed(2)}x
+                      </Typography>
                     </Grid>
                     <Grid item xs={6}>
-                      <Typography variant="subtitle2" color="text.secondary">Days of Inventory</Typography>
-                      <Typography variant="h5">{Math.round(analytics.days_of_inventory)}</Typography>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Days of Inventory
+                      </Typography>
+                      <Typography variant="h5">
+                        {Math.round(analytics.days_of_inventory)}
+                      </Typography>
                     </Grid>
                     <Grid item xs={12}>
-                      <Typography variant="subtitle2" color="text.secondary">Profit Margin</Typography>
-                      <Typography variant="h6" color={analytics.profit_margin > 0 ? 'success.main' : 'error.main'}>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Profit Margin
+                      </Typography>
+                      <Typography
+                        variant="h6"
+                        color={
+                          analytics.profit_margin > 0
+                            ? "success.main"
+                            : "error.main"
+                        }
+                      >
                         {analytics.profit_margin.toFixed(1)}%
                       </Typography>
                     </Grid>
@@ -764,12 +980,20 @@ export const ProductDetailPage: React.FC = () => {
               <CardContent>
                 <Grid container spacing={2}>
                   <Grid item xs={12} md={6}>
-                    <Typography variant="subtitle2" color="text.secondary">Created</Typography>
-                    <Typography variant="body1">{new Date(product.created_at).toLocaleString()}</Typography>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Created
+                    </Typography>
+                    <Typography variant="body1">
+                      {new Date(product.created_at).toLocaleString()}
+                    </Typography>
                   </Grid>
                   <Grid item xs={12} md={6}>
-                    <Typography variant="subtitle2" color="text.secondary">Last Updated</Typography>
-                    <Typography variant="body1">{new Date(product.updated_at).toLocaleString()}</Typography>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Last Updated
+                    </Typography>
+                    <Typography variant="body1">
+                      {new Date(product.updated_at).toLocaleString()}
+                    </Typography>
                   </Grid>
                 </Grid>
               </CardContent>
@@ -779,11 +1003,15 @@ export const ProductDetailPage: React.FC = () => {
       </TabPanel>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+      >
         <DialogTitle>Delete Product</DialogTitle>
         <DialogContent>
           <Typography>
-            Are you sure you want to delete "{product.name}"? This action cannot be undone.
+            Are you sure you want to delete "{product.name}"? This action cannot
+            be undone.
           </Typography>
         </DialogContent>
         <DialogActions>
@@ -794,13 +1022,16 @@ export const ProductDetailPage: React.FC = () => {
             variant="contained"
             disabled={deleteMutation.isPending}
           >
-            {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+            {deleteMutation.isPending ? "Deleting..." : "Delete"}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Stock Adjustment Dialog */}
-      <Dialog open={stockAdjustmentOpen} onClose={() => setStockAdjustmentOpen(false)}>
+      <Dialog
+        open={stockAdjustmentOpen}
+        onClose={() => setStockAdjustmentOpen(false)}
+      >
         <DialogTitle>Adjust Stock</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
@@ -836,7 +1067,9 @@ export const ProductDetailPage: React.FC = () => {
             variant="contained"
             disabled={stockAdjustmentMutation.isPending || !adjustmentQuantity}
           >
-            {stockAdjustmentMutation.isPending ? 'Adjusting...' : 'Adjust Stock'}
+            {stockAdjustmentMutation.isPending
+              ? "Adjusting..."
+              : "Adjust Stock"}
           </Button>
         </DialogActions>
       </Dialog>

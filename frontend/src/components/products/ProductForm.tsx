@@ -1,17 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 
 interface ProductFormProps {
   onSubmit: (product: any) => void;
   onCancel: () => void;
 }
 
-export const ProductForm: React.FC<ProductFormProps> = ({ onSubmit, onCancel }) => {
+export const ProductForm: React.FC<ProductFormProps> = ({
+  onSubmit,
+  onCancel,
+}) => {
   const [formData, setFormData] = useState({
-    code: '',
-    name: '',
-    price: '',
-    stock: '',
-    description: ''
+    code: "",
+    name: "",
+    price: "",
+    stock: "",
+    description: "",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -19,19 +22,24 @@ export const ProductForm: React.FC<ProductFormProps> = ({ onSubmit, onCancel }) 
     onSubmit({
       ...formData,
       price: parseFloat(formData.price),
-      stock: parseInt(formData.stock)
+      stock: parseInt(formData.stock),
     });
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-lg mx-auto p-6 bg-white rounded-lg shadow">
+    <form
+      onSubmit={handleSubmit}
+      className="max-w-lg mx-auto p-6 bg-white rounded-lg shadow"
+    >
       <h2 className="text-2xl font-bold mb-6">商品登録</h2>
 
       <div className="mb-4">

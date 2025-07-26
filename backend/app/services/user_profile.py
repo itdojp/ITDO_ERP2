@@ -46,7 +46,7 @@ class UserProfileService:
     # Thumbnail size
     THUMBNAIL_SIZE = (100, 100)
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         """Initialize service."""
         self.db = db
 

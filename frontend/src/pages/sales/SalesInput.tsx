@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 
 interface Product {
   id: string;
@@ -27,32 +27,90 @@ interface Customer {
 }
 
 const mockProducts: Product[] = [
-  { id: '1', code: 'LT-001', name: 'ThinkPad X1 Carbon Gen 11', price: 198000, stock: 25, unit: '台' },
-  { id: '2', code: 'MN-001', name: 'Dell UltraSharp U2723QE', price: 85000, stock: 15, unit: '台' },
-  { id: '3', code: 'KB-001', name: 'HHKB Professional HYBRID', price: 35000, stock: 8, unit: '個' },
-  { id: '4', code: 'SW-001', name: 'Microsoft Office 365', price: 12984, stock: 100, unit: 'ライセンス' },
-  { id: '5', code: 'ACC-001', name: 'USB-C Hub 7-in-1', price: 8500, stock: 45, unit: '個' },
+  {
+    id: "1",
+    code: "LT-001",
+    name: "ThinkPad X1 Carbon Gen 11",
+    price: 198000,
+    stock: 25,
+    unit: "台",
+  },
+  {
+    id: "2",
+    code: "MN-001",
+    name: "Dell UltraSharp U2723QE",
+    price: 85000,
+    stock: 15,
+    unit: "台",
+  },
+  {
+    id: "3",
+    code: "KB-001",
+    name: "HHKB Professional HYBRID",
+    price: 35000,
+    stock: 8,
+    unit: "個",
+  },
+  {
+    id: "4",
+    code: "SW-001",
+    name: "Microsoft Office 365",
+    price: 12984,
+    stock: 100,
+    unit: "ライセンス",
+  },
+  {
+    id: "5",
+    code: "ACC-001",
+    name: "USB-C Hub 7-in-1",
+    price: 8500,
+    stock: 45,
+    unit: "個",
+  },
 ];
 
 const mockCustomers: Customer[] = [
-  { id: '1', code: 'CUST-001', name: '株式会社サンプル', email: 'info@sample.co.jp', phone: '03-1234-5678' },
-  { id: '2', code: 'CUST-002', name: 'テスト商事株式会社', email: 'sales@test-corp.co.jp', phone: '03-9876-5432' },
-  { id: '3', code: 'CUST-003', name: 'デモ株式会社', email: 'contact@demo.co.jp', phone: '03-5555-1234' },
+  {
+    id: "1",
+    code: "CUST-001",
+    name: "株式会社サンプル",
+    email: "info@sample.co.jp",
+    phone: "03-1234-5678",
+  },
+  {
+    id: "2",
+    code: "CUST-002",
+    name: "テスト商事株式会社",
+    email: "sales@test-corp.co.jp",
+    phone: "03-9876-5432",
+  },
+  {
+    id: "3",
+    code: "CUST-003",
+    name: "デモ株式会社",
+    email: "contact@demo.co.jp",
+    phone: "03-5555-1234",
+  },
 ];
 
 export const SalesInput: React.FC = () => {
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
+    null,
+  );
   const [salesItems, setSalesItems] = useState<SalesItem[]>([]);
-  const [productSearch, setProductSearch] = useState('');
+  const [productSearch, setProductSearch] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [discount, setDiscount] = useState(0);
-  const [notes, setNotes] = useState('');
-  const [salesDate, setSalesDate] = useState(new Date().toISOString().split('T')[0]);
+  const [notes, setNotes] = useState("");
+  const [salesDate, setSalesDate] = useState(
+    new Date().toISOString().split("T")[0],
+  );
 
-  const filteredProducts = mockProducts.filter(product =>
-    product.name.toLowerCase().includes(productSearch.toLowerCase()) ||
-    product.code.toLowerCase().includes(productSearch.toLowerCase())
+  const filteredProducts = mockProducts.filter(
+    (product) =>
+      product.name.toLowerCase().includes(productSearch.toLowerCase()) ||
+      product.code.toLowerCase().includes(productSearch.toLowerCase()),
   );
 
   const addSalesItem = () => {
@@ -60,7 +118,7 @@ export const SalesInput: React.FC = () => {
 
     const unitPrice = selectedProduct.price;
     const discountAmount = (unitPrice * quantity * discount) / 100;
-    const subtotal = (unitPrice * quantity) - discountAmount;
+    const subtotal = unitPrice * quantity - discountAmount;
 
     const newItem: SalesItem = {
       id: Date.now().toString(),
@@ -75,45 +133,55 @@ export const SalesInput: React.FC = () => {
     setSelectedProduct(null);
     setQuantity(1);
     setDiscount(0);
-    setProductSearch('');
+    setProductSearch("");
   };
 
   const removeSalesItem = (itemId: string) => {
-    setSalesItems(salesItems.filter(item => item.id !== itemId));
+    setSalesItems(salesItems.filter((item) => item.id !== itemId));
   };
 
   const updateItemQuantity = (itemId: string, newQuantity: number) => {
-    setSalesItems(salesItems.map(item => {
-      if (item.id === itemId) {
-        const discountAmount = (item.unitPrice * newQuantity * item.discount) / 100;
-        const subtotal = (item.unitPrice * newQuantity) - discountAmount;
-        return { ...item, quantity: newQuantity, subtotal };
-      }
-      return item;
-    }));
+    setSalesItems(
+      salesItems.map((item) => {
+        if (item.id === itemId) {
+          const discountAmount =
+            (item.unitPrice * newQuantity * item.discount) / 100;
+          const subtotal = item.unitPrice * newQuantity - discountAmount;
+          return { ...item, quantity: newQuantity, subtotal };
+        }
+        return item;
+      }),
+    );
   };
 
   const updateItemDiscount = (itemId: string, newDiscount: number) => {
-    setSalesItems(salesItems.map(item => {
-      if (item.id === itemId) {
-        const discountAmount = (item.unitPrice * item.quantity * newDiscount) / 100;
-        const subtotal = (item.unitPrice * item.quantity) - discountAmount;
-        return { ...item, discount: newDiscount, subtotal };
-      }
-      return item;
-    }));
+    setSalesItems(
+      salesItems.map((item) => {
+        if (item.id === itemId) {
+          const discountAmount =
+            (item.unitPrice * item.quantity * newDiscount) / 100;
+          const subtotal = item.unitPrice * item.quantity - discountAmount;
+          return { ...item, discount: newDiscount, subtotal };
+        }
+        return item;
+      }),
+    );
   };
 
   const totalAmount = salesItems.reduce((sum, item) => sum + item.subtotal, 0);
-  const totalQuantity = salesItems.reduce((sum, item) => sum + item.quantity, 0);
-  const totalDiscountAmount = salesItems.reduce((sum, item) => 
-    sum + ((item.unitPrice * item.quantity * item.discount) / 100), 0
+  const totalQuantity = salesItems.reduce(
+    (sum, item) => sum + item.quantity,
+    0,
+  );
+  const totalDiscountAmount = salesItems.reduce(
+    (sum, item) => sum + (item.unitPrice * item.quantity * item.discount) / 100,
+    0,
   );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCustomer || salesItems.length === 0) {
-      alert('顧客と商品を選択してください');
+      alert("顧客と商品を選択してください");
       return;
     }
 
@@ -126,14 +194,14 @@ export const SalesInput: React.FC = () => {
       notes,
     };
 
-    console.log('Sales data:', salesData);
-    alert('売上データが登録されました！');
-    
+    console.log("Sales data:", salesData);
+    alert("売上データが登録されました！");
+
     // Reset form
     setSelectedCustomer(null);
     setSalesItems([]);
-    setNotes('');
-    setSalesDate(new Date().toISOString().split('T')[0]);
+    setNotes("");
+    setSalesDate(new Date().toISOString().split("T")[0]);
   };
 
   return (
@@ -144,7 +212,7 @@ export const SalesInput: React.FC = () => {
           <p className="text-gray-600 mt-1">新規売上データの登録</p>
         </div>
         <div className="text-sm text-gray-500">
-          売上日: {new Date(salesDate).toLocaleDateString('ja-JP')}
+          売上日: {new Date(salesDate).toLocaleDateString("ja-JP")}
         </div>
       </div>
 
@@ -158,16 +226,18 @@ export const SalesInput: React.FC = () => {
                 顧客 <span className="text-red-500">*</span>
               </label>
               <select
-                value={selectedCustomer?.id || ''}
+                value={selectedCustomer?.id || ""}
                 onChange={(e) => {
-                  const customer = mockCustomers.find(c => c.id === e.target.value);
+                  const customer = mockCustomers.find(
+                    (c) => c.id === e.target.value,
+                  );
                   setSelectedCustomer(customer || null);
                 }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               >
                 <option value="">顧客を選択してください</option>
-                {mockCustomers.map(customer => (
+                {mockCustomers.map((customer) => (
                   <option key={customer.id} value={customer.id}>
                     {customer.code} - {customer.name}
                   </option>
@@ -175,7 +245,9 @@ export const SalesInput: React.FC = () => {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">売上日</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                売上日
+              </label>
               <input
                 type="date"
                 value={salesDate}
@@ -185,13 +257,17 @@ export const SalesInput: React.FC = () => {
               />
             </div>
           </div>
-          
+
           {selectedCustomer && (
             <div className="mt-4 p-4 bg-blue-50 rounded-md">
               <div className="flex items-center space-x-4">
                 <div>
-                  <p className="font-medium text-blue-900">{selectedCustomer.name}</p>
-                  <p className="text-sm text-blue-700">顧客コード: {selectedCustomer.code}</p>
+                  <p className="font-medium text-blue-900">
+                    {selectedCustomer.name}
+                  </p>
+                  <p className="text-sm text-blue-700">
+                    顧客コード: {selectedCustomer.code}
+                  </p>
                 </div>
                 <div className="text-sm text-blue-700">
                   <p>📧 {selectedCustomer.email}</p>
@@ -207,7 +283,9 @@ export const SalesInput: React.FC = () => {
           <h2 className="text-xl font-semibold mb-4">商品追加</h2>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">商品検索</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                商品検索
+              </label>
               <input
                 type="text"
                 value={productSearch}
@@ -217,7 +295,7 @@ export const SalesInput: React.FC = () => {
               />
               {productSearch && filteredProducts.length > 0 && (
                 <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
-                  {filteredProducts.map(product => (
+                  {filteredProducts.map((product) => (
                     <button
                       key={product.id}
                       type="button"
@@ -229,7 +307,9 @@ export const SalesInput: React.FC = () => {
                     >
                       <div className="font-medium">{product.name}</div>
                       <div className="text-sm text-gray-500">
-                        {product.code} - ¥{product.price.toLocaleString()} - 在庫: {product.stock}{product.unit}
+                        {product.code} - ¥{product.price.toLocaleString()} -
+                        在庫: {product.stock}
+                        {product.unit}
                       </div>
                     </button>
                   ))}
@@ -237,7 +317,9 @@ export const SalesInput: React.FC = () => {
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">数量</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                数量
+              </label>
               <input
                 type="number"
                 min="1"
@@ -247,7 +329,9 @@ export const SalesInput: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">割引 (%)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                割引 (%)
+              </label>
               <input
                 type="number"
                 min="0"
@@ -278,7 +362,7 @@ export const SalesInput: React.FC = () => {
               {salesItems.length}品目 / 合計{totalQuantity}点
             </div>
           </div>
-          
+
           {salesItems.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <p>商品が追加されていません</p>
@@ -289,31 +373,56 @@ export const SalesInput: React.FC = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">商品</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">単価</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">数量</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">割引</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">小計</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      商品
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      単価
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      数量
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      割引
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      小計
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      操作
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {salesItems.map((item) => (
                     <tr key={item.id}>
                       <td className="px-4 py-4">
-                        <div className="font-medium text-sm">{item.product.name}</div>
-                        <div className="text-xs text-gray-500">{item.product.code}</div>
+                        <div className="font-medium text-sm">
+                          {item.product.name}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {item.product.code}
+                        </div>
                       </td>
-                      <td className="px-4 py-4 text-sm">¥{item.unitPrice.toLocaleString()}</td>
+                      <td className="px-4 py-4 text-sm">
+                        ¥{item.unitPrice.toLocaleString()}
+                      </td>
                       <td className="px-4 py-4">
                         <input
                           type="number"
                           min="1"
                           value={item.quantity}
-                          onChange={(e) => updateItemQuantity(item.id, parseInt(e.target.value) || 1)}
+                          onChange={(e) =>
+                            updateItemQuantity(
+                              item.id,
+                              parseInt(e.target.value) || 1,
+                            )
+                          }
                           className="w-20 px-2 py-1 text-sm border border-gray-300 rounded"
                         />
-                        <span className="ml-1 text-xs text-gray-500">{item.product.unit}</span>
+                        <span className="ml-1 text-xs text-gray-500">
+                          {item.product.unit}
+                        </span>
                       </td>
                       <td className="px-4 py-4">
                         <input
@@ -321,12 +430,19 @@ export const SalesInput: React.FC = () => {
                           min="0"
                           max="100"
                           value={item.discount}
-                          onChange={(e) => updateItemDiscount(item.id, parseFloat(e.target.value) || 0)}
+                          onChange={(e) =>
+                            updateItemDiscount(
+                              item.id,
+                              parseFloat(e.target.value) || 0,
+                            )
+                          }
                           className="w-16 px-2 py-1 text-sm border border-gray-300 rounded"
                         />
                         <span className="ml-1 text-xs">%</span>
                       </td>
-                      <td className="px-4 py-4 text-sm font-medium">¥{item.subtotal.toLocaleString()}</td>
+                      <td className="px-4 py-4 text-sm font-medium">
+                        ¥{item.subtotal.toLocaleString()}
+                      </td>
                       <td className="px-4 py-4">
                         <button
                           type="button"
@@ -349,13 +465,19 @@ export const SalesInput: React.FC = () => {
           <div className="bg-white p-6 rounded-lg shadow border-l-4 border-green-500">
             <div className="flex justify-between items-center">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">売上合計</h3>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  売上合計
+                </h3>
                 {totalDiscountAmount > 0 && (
-                  <p className="text-sm text-gray-600">割引合計: ¥{totalDiscountAmount.toLocaleString()}</p>
+                  <p className="text-sm text-gray-600">
+                    割引合計: ¥{totalDiscountAmount.toLocaleString()}
+                  </p>
                 )}
               </div>
               <div className="text-right">
-                <div className="text-2xl font-bold text-green-600">¥{totalAmount.toLocaleString()}</div>
+                <div className="text-2xl font-bold text-green-600">
+                  ¥{totalAmount.toLocaleString()}
+                </div>
                 <div className="text-sm text-gray-500">(税抜)</div>
               </div>
             </div>
@@ -382,8 +504,8 @@ export const SalesInput: React.FC = () => {
             onClick={() => {
               setSelectedCustomer(null);
               setSalesItems([]);
-              setNotes('');
-              setSalesDate(new Date().toISOString().split('T')[0]);
+              setNotes("");
+              setSalesDate(new Date().toISOString().split("T")[0]);
             }}
           >
             クリア

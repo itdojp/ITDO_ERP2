@@ -1,4 +1,4 @@
-import { apiClient } from './client';
+import { apiClient } from "./client";
 
 export interface Product {
   id: string;
@@ -9,7 +9,7 @@ export interface Product {
   cost: number;
   stock_quantity: number;
   min_stock_level: number;
-  status: 'active' | 'inactive' | 'discontinued';
+  status: "active" | "inactive" | "discontinued";
   description?: string;
   supplier_id?: string;
   created_at: string;
@@ -29,7 +29,7 @@ export interface ProductCreateRequest {
 }
 
 export interface ProductUpdateRequest extends Partial<ProductCreateRequest> {
-  status?: 'active' | 'inactive' | 'discontinued';
+  status?: "active" | "inactive" | "discontinued";
 }
 
 export interface ProductsListResponse {
@@ -45,18 +45,20 @@ export interface ProductsQueryParams {
   per_page?: number;
   search?: string;
   category?: string;
-  status?: 'active' | 'inactive' | 'discontinued';
+  status?: "active" | "inactive" | "discontinued";
   min_price?: number;
   max_price?: number;
   low_stock?: boolean;
-  sort_by?: 'name' | 'price' | 'stock_quantity' | 'created_at';
-  sort_order?: 'asc' | 'desc';
+  sort_by?: "name" | "price" | "stock_quantity" | "created_at";
+  sort_order?: "asc" | "desc";
 }
 
 export const productsApi = {
   // Get all products with filtering and pagination
-  getProducts: async (params: ProductsQueryParams = {}): Promise<ProductsListResponse> => {
-    const response = await apiClient.get('/api/v1/products', { params });
+  getProducts: async (
+    params: ProductsQueryParams = {},
+  ): Promise<ProductsListResponse> => {
+    const response = await apiClient.get("/api/v1/products", { params });
     return response.data;
   },
 
@@ -68,12 +70,15 @@ export const productsApi = {
 
   // Create new product
   createProduct: async (data: ProductCreateRequest): Promise<Product> => {
-    const response = await apiClient.post('/api/v1/products', data);
+    const response = await apiClient.post("/api/v1/products", data);
     return response.data;
   },
 
   // Update existing product
-  updateProduct: async (id: string, data: ProductUpdateRequest): Promise<Product> => {
+  updateProduct: async (
+    id: string,
+    data: ProductUpdateRequest,
+  ): Promise<Product> => {
     const response = await apiClient.put(`/api/v1/products/${id}`, data);
     return response.data;
   },
@@ -84,8 +89,11 @@ export const productsApi = {
   },
 
   // Bulk operations
-  bulkUpdateProducts: async (ids: string[], data: ProductUpdateRequest): Promise<Product[]> => {
-    const response = await apiClient.patch('/api/v1/products/bulk', {
+  bulkUpdateProducts: async (
+    ids: string[],
+    data: ProductUpdateRequest,
+  ): Promise<Product[]> => {
+    const response = await apiClient.patch("/api/v1/products/bulk", {
       product_ids: ids,
       update_data: data,
     });
@@ -93,19 +101,23 @@ export const productsApi = {
   },
 
   bulkDeleteProducts: async (ids: string[]): Promise<void> => {
-    await apiClient.delete('/api/v1/products/bulk', {
+    await apiClient.delete("/api/v1/products/bulk", {
       data: { product_ids: ids },
     });
   },
 
   // Get product categories
   getCategories: async (): Promise<string[]> => {
-    const response = await apiClient.get('/api/v1/products/categories');
+    const response = await apiClient.get("/api/v1/products/categories");
     return response.data.categories;
   },
 
   // Stock management
-  updateStock: async (id: string, quantity: number, reason?: string): Promise<Product> => {
+  updateStock: async (
+    id: string,
+    quantity: number,
+    reason?: string,
+  ): Promise<Product> => {
     const response = await apiClient.post(`/api/v1/products/${id}/stock`, {
       quantity,
       reason,
@@ -115,7 +127,7 @@ export const productsApi = {
 
   // Low stock alerts
   getLowStockProducts: async (): Promise<Product[]> => {
-    const response = await apiClient.get('/api/v1/products/low-stock');
+    const response = await apiClient.get("/api/v1/products/low-stock");
     return response.data.items;
   },
 };

@@ -1,7 +1,14 @@
-import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { DataGrid, GridColDef, GridRowSelectionModel, GridToolbar, GridActionsCellItem, GridRenderCellParams } from '@mui/x-data-grid';
+import React, { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  DataGrid,
+  GridColDef,
+  GridRowSelectionModel,
+  GridToolbar,
+  GridActionsCellItem,
+  GridRenderCellParams,
+} from "@mui/x-data-grid";
 import {
   Box,
   Paper,
@@ -48,8 +55,8 @@ import {
   ListItemSecondaryAction,
   Accordion,
   AccordionSummary,
-  AccordionDetails
-} from '@mui/material';
+  AccordionDetails,
+} from "@mui/material";
 import {
   Person as UserIcon,
   Add as AddIcon,
@@ -79,9 +86,9 @@ import {
   ExpandMore as ExpandMoreIcon,
   SupervisorAccount as SupervisorIcon,
   Work as WorkIcon,
-  AccountBox as ProfileIcon
-} from '@mui/icons-material';
-import { apiClient } from '@/services/api';
+  AccountBox as ProfileIcon,
+} from "@mui/icons-material";
+import { apiClient } from "@/services/api";
 
 interface User {
   id: number;
@@ -96,7 +103,7 @@ interface User {
   position: string;
   manager_id?: number;
   manager_name?: string;
-  status: 'active' | 'inactive' | 'pending' | 'suspended';
+  status: "active" | "inactive" | "pending" | "suspended";
   is_admin: boolean;
   is_superuser: boolean;
   roles: string[];
@@ -161,7 +168,7 @@ interface UserActivity {
   ip_address: string;
   user_agent: string;
   timestamp: string;
-  risk_level: 'low' | 'medium' | 'high';
+  risk_level: "low" | "medium" | "high";
 }
 
 interface TabPanelProps {
@@ -181,7 +188,7 @@ const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => {
 export const UserManagementPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  
+
   const [selectedRows, setSelectedRows] = useState<GridRowSelectionModel>([]);
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [userDetailOpen, setUserDetailOpen] = useState(false);
@@ -189,254 +196,277 @@ export const UserManagementPage: React.FC = () => {
   const [bulkActionOpen, setBulkActionOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [currentTab, setCurrentTab] = useState(0);
-  const [bulkAction, setBulkAction] = useState('');
-  
+  const [bulkAction, setBulkAction] = useState("");
+
   const [paginationModel, setPaginationModel] = useState({
     page: 0,
     pageSize: 25,
   });
-  
+
   const [filters, setFilters] = useState<UserFilters>({
-    search: '',
-    status: '',
-    department: '',
-    role: '',
-    is_admin: '',
-    last_login_days: '',
-    email_verified: '',
-    two_factor_enabled: ''
+    search: "",
+    status: "",
+    department: "",
+    role: "",
+    is_admin: "",
+    last_login_days: "",
+    email_verified: "",
+    two_factor_enabled: "",
   });
 
   // Mock data for rapid development
   const mockUsers: User[] = [
     {
       id: 1,
-      username: 'john.smith',
-      email: 'john.smith@company.com',
-      first_name: 'John',
-      last_name: 'Smith',
-      full_name: 'John Smith',
-      avatar_url: '/avatars/john.jpg',
-      phone: '+1-555-0123',
-      department: 'Engineering',
-      position: 'Senior Software Engineer',
+      username: "john.smith",
+      email: "john.smith@company.com",
+      first_name: "John",
+      last_name: "Smith",
+      full_name: "John Smith",
+      avatar_url: "/avatars/john.jpg",
+      phone: "+1-555-0123",
+      department: "Engineering",
+      position: "Senior Software Engineer",
       manager_id: 5,
-      manager_name: 'Alice Johnson',
-      status: 'active',
+      manager_name: "Alice Johnson",
+      status: "active",
       is_admin: false,
       is_superuser: false,
-      roles: ['Developer', 'Code Reviewer'],
-      permissions: ['read_code', 'write_code', 'review_code', 'deploy_dev'],
-      last_login: '2024-01-20T14:30:00Z',
+      roles: ["Developer", "Code Reviewer"],
+      permissions: ["read_code", "write_code", "review_code", "deploy_dev"],
+      last_login: "2024-01-20T14:30:00Z",
       login_count: 234,
-      password_expires_at: '2024-07-15T00:00:00Z',
+      password_expires_at: "2024-07-15T00:00:00Z",
       two_factor_enabled: true,
       email_verified: true,
-      created_at: '2023-03-15T09:00:00Z',
-      updated_at: '2024-01-20T14:30:00Z',
-      last_activity: '2024-01-20T16:45:00Z'
+      created_at: "2023-03-15T09:00:00Z",
+      updated_at: "2024-01-20T14:30:00Z",
+      last_activity: "2024-01-20T16:45:00Z",
     },
     {
       id: 2,
-      username: 'sarah.johnson',
-      email: 'sarah.johnson@company.com',
-      first_name: 'Sarah',
-      last_name: 'Johnson',
-      full_name: 'Sarah Johnson',
-      phone: '+1-555-0124',
-      department: 'Marketing',
-      position: 'Marketing Manager',
-      status: 'active',
+      username: "sarah.johnson",
+      email: "sarah.johnson@company.com",
+      first_name: "Sarah",
+      last_name: "Johnson",
+      full_name: "Sarah Johnson",
+      phone: "+1-555-0124",
+      department: "Marketing",
+      position: "Marketing Manager",
+      status: "active",
       is_admin: true,
       is_superuser: false,
-      roles: ['Marketing Manager', 'Content Admin'],
-      permissions: ['manage_marketing', 'create_campaigns', 'view_analytics', 'manage_content'],
-      last_login: '2024-01-20T09:15:00Z',
+      roles: ["Marketing Manager", "Content Admin"],
+      permissions: [
+        "manage_marketing",
+        "create_campaigns",
+        "view_analytics",
+        "manage_content",
+      ],
+      last_login: "2024-01-20T09:15:00Z",
       login_count: 186,
-      password_expires_at: '2024-06-20T00:00:00Z',
+      password_expires_at: "2024-06-20T00:00:00Z",
       two_factor_enabled: true,
       email_verified: true,
-      created_at: '2023-01-10T10:30:00Z',
-      updated_at: '2024-01-20T09:15:00Z',
-      last_activity: '2024-01-20T15:20:00Z'
+      created_at: "2023-01-10T10:30:00Z",
+      updated_at: "2024-01-20T09:15:00Z",
+      last_activity: "2024-01-20T15:20:00Z",
     },
     {
       id: 3,
-      username: 'robert.chen',
-      email: 'robert.chen@company.com',
-      first_name: 'Robert',
-      last_name: 'Chen',
-      full_name: 'Robert Chen',
-      phone: '+1-555-0125',
-      department: 'Finance',
-      position: 'Financial Analyst',
+      username: "robert.chen",
+      email: "robert.chen@company.com",
+      first_name: "Robert",
+      last_name: "Chen",
+      full_name: "Robert Chen",
+      phone: "+1-555-0125",
+      department: "Finance",
+      position: "Financial Analyst",
       manager_id: 6,
-      manager_name: 'David Wilson',
-      status: 'active',
+      manager_name: "David Wilson",
+      status: "active",
       is_admin: false,
       is_superuser: false,
-      roles: ['Finance User', 'Report Viewer'],
-      permissions: ['view_financials', 'create_reports', 'approve_expenses'],
-      last_login: '2024-01-19T16:45:00Z',
+      roles: ["Finance User", "Report Viewer"],
+      permissions: ["view_financials", "create_reports", "approve_expenses"],
+      last_login: "2024-01-19T16:45:00Z",
       login_count: 98,
-      password_expires_at: '2024-05-10T00:00:00Z',
+      password_expires_at: "2024-05-10T00:00:00Z",
       two_factor_enabled: false,
       email_verified: true,
-      created_at: '2023-06-01T14:20:00Z',
-      updated_at: '2024-01-19T16:45:00Z',
-      last_activity: '2024-01-19T17:30:00Z'
+      created_at: "2023-06-01T14:20:00Z",
+      updated_at: "2024-01-19T16:45:00Z",
+      last_activity: "2024-01-19T17:30:00Z",
     },
     {
       id: 4,
-      username: 'emily.watson',
-      email: 'emily.watson@company.com',
-      first_name: 'Emily',
-      last_name: 'Watson',
-      full_name: 'Emily Watson',
-      phone: '+1-555-0126',
-      department: 'HR',
-      position: 'HR Specialist',
-      status: 'pending',
+      username: "emily.watson",
+      email: "emily.watson@company.com",
+      first_name: "Emily",
+      last_name: "Watson",
+      full_name: "Emily Watson",
+      phone: "+1-555-0126",
+      department: "HR",
+      position: "HR Specialist",
+      status: "pending",
       is_admin: false,
       is_superuser: false,
-      roles: ['HR User'],
-      permissions: ['view_employees', 'manage_timeoff'],
+      roles: ["HR User"],
+      permissions: ["view_employees", "manage_timeoff"],
       login_count: 0,
-      password_expires_at: '2024-08-01T00:00:00Z',
+      password_expires_at: "2024-08-01T00:00:00Z",
       two_factor_enabled: false,
       email_verified: false,
-      created_at: '2024-01-18T11:00:00Z',
-      updated_at: '2024-01-18T11:00:00Z'
+      created_at: "2024-01-18T11:00:00Z",
+      updated_at: "2024-01-18T11:00:00Z",
     },
     {
       id: 5,
-      username: 'alice.johnson',
-      email: 'alice.johnson@company.com',
-      first_name: 'Alice',
-      last_name: 'Johnson',
-      full_name: 'Alice Johnson',
-      phone: '+1-555-0127',
-      department: 'Engineering',
-      position: 'Engineering Manager',
-      status: 'active',
+      username: "alice.johnson",
+      email: "alice.johnson@company.com",
+      first_name: "Alice",
+      last_name: "Johnson",
+      full_name: "Alice Johnson",
+      phone: "+1-555-0127",
+      department: "Engineering",
+      position: "Engineering Manager",
+      status: "active",
       is_admin: true,
       is_superuser: true,
-      roles: ['Engineering Manager', 'System Admin'],
-      permissions: ['manage_users', 'system_config', 'deploy_prod', 'manage_team'],
-      last_login: '2024-01-20T08:00:00Z',
+      roles: ["Engineering Manager", "System Admin"],
+      permissions: [
+        "manage_users",
+        "system_config",
+        "deploy_prod",
+        "manage_team",
+      ],
+      last_login: "2024-01-20T08:00:00Z",
       login_count: 412,
-      password_expires_at: '2024-09-15T00:00:00Z',
+      password_expires_at: "2024-09-15T00:00:00Z",
       two_factor_enabled: true,
       email_verified: true,
-      created_at: '2022-11-01T09:00:00Z',
-      updated_at: '2024-01-20T08:00:00Z',
-      last_activity: '2024-01-20T17:00:00Z'
-    }
+      created_at: "2022-11-01T09:00:00Z",
+      updated_at: "2024-01-20T08:00:00Z",
+      last_activity: "2024-01-20T17:00:00Z",
+    },
   ];
 
   const mockRoles: Role[] = [
     {
       id: 1,
-      name: 'System Administrator',
-      code: 'SYSTEM_ADMIN',
-      description: 'Full system access with all administrative privileges',
+      name: "System Administrator",
+      code: "SYSTEM_ADMIN",
+      description: "Full system access with all administrative privileges",
       is_system_role: true,
       permissions: [],
       user_count: 2,
-      created_at: '2022-01-01T00:00:00Z'
+      created_at: "2022-01-01T00:00:00Z",
     },
     {
       id: 2,
-      name: 'Engineering Manager',
-      code: 'ENG_MANAGER',
-      description: 'Manage engineering team and technical resources',
+      name: "Engineering Manager",
+      code: "ENG_MANAGER",
+      description: "Manage engineering team and technical resources",
       is_system_role: false,
       permissions: [],
       user_count: 3,
-      created_at: '2022-01-01T00:00:00Z'
+      created_at: "2022-01-01T00:00:00Z",
     },
     {
       id: 3,
-      name: 'Developer',
-      code: 'DEVELOPER',
-      description: 'Software development and code review access',
+      name: "Developer",
+      code: "DEVELOPER",
+      description: "Software development and code review access",
       is_system_role: false,
       permissions: [],
       user_count: 12,
-      created_at: '2022-01-01T00:00:00Z'
+      created_at: "2022-01-01T00:00:00Z",
     },
     {
       id: 4,
-      name: 'Marketing Manager',
-      code: 'MARKETING_MANAGER',
-      description: 'Marketing campaigns and content management',
+      name: "Marketing Manager",
+      code: "MARKETING_MANAGER",
+      description: "Marketing campaigns and content management",
       is_system_role: false,
       permissions: [],
       user_count: 4,
-      created_at: '2022-01-01T00:00:00Z'
+      created_at: "2022-01-01T00:00:00Z",
     },
     {
       id: 5,
-      name: 'Finance User',
-      code: 'FINANCE_USER',
-      description: 'Financial data access and reporting',
+      name: "Finance User",
+      code: "FINANCE_USER",
+      description: "Financial data access and reporting",
       is_system_role: false,
       permissions: [],
       user_count: 6,
-      created_at: '2022-01-01T00:00:00Z'
-    }
+      created_at: "2022-01-01T00:00:00Z",
+    },
   ];
 
   // Fetch users with mock data
-  const { data: userData, isLoading, error, refetch } = useQuery({
-    queryKey: ['users', filters, paginationModel],
+  const {
+    data: userData,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ["users", filters, paginationModel],
     queryFn: async () => {
       // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
+      await new Promise((resolve) => setTimeout(resolve, 800));
+
       // Filter mock data based on current filters
       let filteredUsers = mockUsers;
-      
+
       if (filters.search) {
         const searchLower = filters.search.toLowerCase();
-        filteredUsers = filteredUsers.filter(user => 
-          user.full_name.toLowerCase().includes(searchLower) ||
-          user.email.toLowerCase().includes(searchLower) ||
-          user.username.toLowerCase().includes(searchLower) ||
-          user.department.toLowerCase().includes(searchLower)
+        filteredUsers = filteredUsers.filter(
+          (user) =>
+            user.full_name.toLowerCase().includes(searchLower) ||
+            user.email.toLowerCase().includes(searchLower) ||
+            user.username.toLowerCase().includes(searchLower) ||
+            user.department.toLowerCase().includes(searchLower),
         );
       }
-      
+
       if (filters.status) {
-        filteredUsers = filteredUsers.filter(user => user.status === filters.status);
+        filteredUsers = filteredUsers.filter(
+          (user) => user.status === filters.status,
+        );
       }
-      
+
       if (filters.department) {
-        filteredUsers = filteredUsers.filter(user => user.department === filters.department);
+        filteredUsers = filteredUsers.filter(
+          (user) => user.department === filters.department,
+        );
       }
-      
-      if (filters.is_admin === 'true') {
-        filteredUsers = filteredUsers.filter(user => user.is_admin);
-      } else if (filters.is_admin === 'false') {
-        filteredUsers = filteredUsers.filter(user => !user.is_admin);
+
+      if (filters.is_admin === "true") {
+        filteredUsers = filteredUsers.filter((user) => user.is_admin);
+      } else if (filters.is_admin === "false") {
+        filteredUsers = filteredUsers.filter((user) => !user.is_admin);
       }
-      
+
       // Calculate summary
       const summary: UserSummary = {
         total_users: mockUsers.length,
-        active_users: mockUsers.filter(u => u.status === 'active').length,
-        admin_users: mockUsers.filter(u => u.is_admin).length,
-        pending_users: mockUsers.filter(u => u.status === 'pending').length,
-        suspended_users: mockUsers.filter(u => u.status === 'suspended').length,
-        unverified_emails: mockUsers.filter(u => !u.email_verified).length,
-        without_2fa: mockUsers.filter(u => !u.two_factor_enabled).length,
-        avg_login_frequency: mockUsers.reduce((sum, u) => sum + u.login_count, 0) / mockUsers.length
+        active_users: mockUsers.filter((u) => u.status === "active").length,
+        admin_users: mockUsers.filter((u) => u.is_admin).length,
+        pending_users: mockUsers.filter((u) => u.status === "pending").length,
+        suspended_users: mockUsers.filter((u) => u.status === "suspended")
+          .length,
+        unverified_emails: mockUsers.filter((u) => !u.email_verified).length,
+        without_2fa: mockUsers.filter((u) => !u.two_factor_enabled).length,
+        avg_login_frequency:
+          mockUsers.reduce((sum, u) => sum + u.login_count, 0) /
+          mockUsers.length,
       };
-      
+
       return {
         users: filteredUsers,
         total: filteredUsers.length,
-        summary
+        summary,
       };
     },
     refetchInterval: 30000, // Auto-refresh every 30 seconds
@@ -444,247 +474,273 @@ export const UserManagementPage: React.FC = () => {
 
   // Fetch roles
   const { data: rolesData } = useQuery({
-    queryKey: ['roles'],
+    queryKey: ["roles"],
     queryFn: async () => {
-      await new Promise(resolve => setTimeout(resolve, 400));
+      await new Promise((resolve) => setTimeout(resolve, 400));
       return mockRoles;
     },
   });
 
   // Bulk action mutation
   const bulkActionMutation = useMutation({
-    mutationFn: async ({ action, userIds }: { action: string; userIds: number[] }) => {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      console.log('Bulk action:', action, 'on users:', userIds);
+    mutationFn: async ({
+      action,
+      userIds,
+    }: {
+      action: string;
+      userIds: number[];
+    }) => {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      console.log("Bulk action:", action, "on users:", userIds);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ["users"] });
       setBulkActionOpen(false);
       setSelectedRows([]);
     },
   });
 
   // DataGrid columns with advanced features
-  const columns: GridColDef[] = useMemo(() => [
-    {
-      field: 'avatar',
-      headerName: '',
-      width: 60,
-      sortable: false,
-      filterable: false,
-      renderCell: (params: GridRenderCellParams) => (
-        <Avatar
-          src={params.row.avatar_url}
-          sx={{ width: 36, height: 36 }}
-        >
-          {params.row.first_name?.[0]}{params.row.last_name?.[0]}
-        </Avatar>
-      ),
-    },
-    {
-      field: 'full_name',
-      headerName: 'User',
-      width: 200,
-      renderCell: (params: GridRenderCellParams) => (
-        <Box>
-          <Typography variant="body2" fontWeight="medium" noWrap>
-            {params.value}
-            {params.row.is_superuser && <SupervisorIcon color="error" sx={{ ml: 0.5, fontSize: 16 }} />}
-            {params.row.is_admin && !params.row.is_superuser && <AdminIcon color="warning" sx={{ ml: 0.5, fontSize: 16 }} />}
-          </Typography>
-          <Typography variant="caption" color="text.secondary" noWrap>
-            @{params.row.username} • {params.row.email}
-          </Typography>
-        </Box>
-      ),
-    },
-    {
-      field: 'department',
-      headerName: 'Department',
-      width: 140,
-      renderCell: (params: GridRenderCellParams) => (
-        <Box>
-          <Typography variant="body2" fontWeight="medium">
-            {params.value}
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            {params.row.position}
-          </Typography>
-        </Box>
-      ),
-    },
-    {
-      field: 'roles',
-      headerName: 'Roles',
-      width: 200,
-      renderCell: (params: GridRenderCellParams) => (
-        <Stack direction="row" spacing={0.5} flexWrap="wrap">
-          {params.value.slice(0, 2).map((role: string, index: number) => (
-            <Chip
-              key={index}
-              label={role}
-              size="small"
-              variant="outlined"
-              color="primary"
-            />
-          ))}
-          {params.value.length > 2 && (
-            <Chip
-              label={`+${params.value.length - 2}`}
-              size="small"
-              variant="outlined"
-              color="default"
-            />
-          )}
-        </Stack>
-      ),
-    },
-    {
-      field: 'status',
-      headerName: 'Status',
-      width: 120,
-      renderCell: (params: GridRenderCellParams) => {
-        const statusConfig = {
-          active: { color: 'success' as const, icon: <ActiveIcon /> },
-          inactive: { color: 'default' as const, icon: <InactiveIcon /> },
-          pending: { color: 'warning' as const, icon: <PendingIcon /> },
-          suspended: { color: 'error' as const, icon: <LockIcon /> }
-        };
-        
-        const config = statusConfig[params.value as keyof typeof statusConfig];
-        
-        return (
-          <Chip
-            label={params.value.toUpperCase()}
-            size="small"
-            color={config.color}
-            variant="filled"
-            icon={config.icon}
-          />
-        );
+  const columns: GridColDef[] = useMemo(
+    () => [
+      {
+        field: "avatar",
+        headerName: "",
+        width: 60,
+        sortable: false,
+        filterable: false,
+        renderCell: (params: GridRenderCellParams) => (
+          <Avatar src={params.row.avatar_url} sx={{ width: 36, height: 36 }}>
+            {params.row.first_name?.[0]}
+            {params.row.last_name?.[0]}
+          </Avatar>
+        ),
       },
-    },
-    {
-      field: 'security',
-      headerName: 'Security',
-      width: 140,
-      renderCell: (params: GridRenderCellParams) => (
-        <Stack direction="row" spacing={0.5}>
-          <Tooltip title={params.row.email_verified ? 'Email Verified' : 'Email Not Verified'}>
+      {
+        field: "full_name",
+        headerName: "User",
+        width: 200,
+        renderCell: (params: GridRenderCellParams) => (
+          <Box>
+            <Typography variant="body2" fontWeight="medium" noWrap>
+              {params.value}
+              {params.row.is_superuser && (
+                <SupervisorIcon color="error" sx={{ ml: 0.5, fontSize: 16 }} />
+              )}
+              {params.row.is_admin && !params.row.is_superuser && (
+                <AdminIcon color="warning" sx={{ ml: 0.5, fontSize: 16 }} />
+              )}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" noWrap>
+              @{params.row.username} • {params.row.email}
+            </Typography>
+          </Box>
+        ),
+      },
+      {
+        field: "department",
+        headerName: "Department",
+        width: 140,
+        renderCell: (params: GridRenderCellParams) => (
+          <Box>
+            <Typography variant="body2" fontWeight="medium">
+              {params.value}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {params.row.position}
+            </Typography>
+          </Box>
+        ),
+      },
+      {
+        field: "roles",
+        headerName: "Roles",
+        width: 200,
+        renderCell: (params: GridRenderCellParams) => (
+          <Stack direction="row" spacing={0.5} flexWrap="wrap">
+            {params.value.slice(0, 2).map((role: string, index: number) => (
+              <Chip
+                key={index}
+                label={role}
+                size="small"
+                variant="outlined"
+                color="primary"
+              />
+            ))}
+            {params.value.length > 2 && (
+              <Chip
+                label={`+${params.value.length - 2}`}
+                size="small"
+                variant="outlined"
+                color="default"
+              />
+            )}
+          </Stack>
+        ),
+      },
+      {
+        field: "status",
+        headerName: "Status",
+        width: 120,
+        renderCell: (params: GridRenderCellParams) => {
+          const statusConfig = {
+            active: { color: "success" as const, icon: <ActiveIcon /> },
+            inactive: { color: "default" as const, icon: <InactiveIcon /> },
+            pending: { color: "warning" as const, icon: <PendingIcon /> },
+            suspended: { color: "error" as const, icon: <LockIcon /> },
+          };
+
+          const config =
+            statusConfig[params.value as keyof typeof statusConfig];
+
+          return (
             <Chip
-              label="Email"
+              label={params.value.toUpperCase()}
               size="small"
-              color={params.row.email_verified ? 'success' : 'error'}
-              variant="outlined"
+              color={config.color}
+              variant="filled"
+              icon={config.icon}
             />
-          </Tooltip>
-          <Tooltip title={params.row.two_factor_enabled ? '2FA Enabled' : '2FA Disabled'}>
-            <Chip
-              label="2FA"
-              size="small"
-              color={params.row.two_factor_enabled ? 'success' : 'warning'}
-              variant="outlined"
-            />
-          </Tooltip>
-        </Stack>
-      ),
-    },
-    {
-      field: 'last_login',
-      headerName: 'Last Login',
-      width: 140,
-      renderCell: (params: GridRenderCellParams) => (
-        <Box>
-          <Typography variant="body2">
-            {params.value ? new Date(params.value).toLocaleDateString() : 'Never'}
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            {params.row.login_count} logins
-          </Typography>
-        </Box>
-      ),
-    },
-    {
-      field: 'actions',
-      type: 'actions',
-      headerName: 'Actions',
-      width: 150,
-      getActions: (params) => [
-        <GridActionsCellItem
-          icon={<ViewIcon />}
-          label="View Details"
-          onClick={() => {
-            setSelectedUser(params.row);
-            setUserDetailOpen(true);
-          }}
-          showInMenu
-        />,
-        <GridActionsCellItem
-          icon={<EditIcon />}
-          label="Edit User"
-          onClick={() => navigate(`/admin/users/${params.id}/edit`)}
-          showInMenu
-        />,
-        <GridActionsCellItem
-          icon={<SecurityIcon />}
-          label="Security Settings"
-          onClick={() => navigate(`/admin/users/${params.id}/security`)}
-          showInMenu
-        />,
-        <GridActionsCellItem
-          icon={<EmailIcon />}
-          label="Send Email"
-          onClick={() => handleSendEmail(params.row)}
-          showInMenu
-        />,
-        <GridActionsCellItem
-          icon={params.row.status === 'active' ? <LockIcon /> : <UnlockIcon />}
-          label={params.row.status === 'active' ? 'Suspend' : 'Activate'}
-          onClick={() => handleToggleStatus(params.row)}
-          showInMenu
-        />,
-        <GridActionsCellItem
-          icon={<DeleteIcon />}
-          label="Delete User"
-          onClick={() => handleDeleteUser(params.row)}
-          color="error"
-          showInMenu
-        />,
-      ],
-    },
-  ], [navigate]);
+          );
+        },
+      },
+      {
+        field: "security",
+        headerName: "Security",
+        width: 140,
+        renderCell: (params: GridRenderCellParams) => (
+          <Stack direction="row" spacing={0.5}>
+            <Tooltip
+              title={
+                params.row.email_verified
+                  ? "Email Verified"
+                  : "Email Not Verified"
+              }
+            >
+              <Chip
+                label="Email"
+                size="small"
+                color={params.row.email_verified ? "success" : "error"}
+                variant="outlined"
+              />
+            </Tooltip>
+            <Tooltip
+              title={
+                params.row.two_factor_enabled ? "2FA Enabled" : "2FA Disabled"
+              }
+            >
+              <Chip
+                label="2FA"
+                size="small"
+                color={params.row.two_factor_enabled ? "success" : "warning"}
+                variant="outlined"
+              />
+            </Tooltip>
+          </Stack>
+        ),
+      },
+      {
+        field: "last_login",
+        headerName: "Last Login",
+        width: 140,
+        renderCell: (params: GridRenderCellParams) => (
+          <Box>
+            <Typography variant="body2">
+              {params.value
+                ? new Date(params.value).toLocaleDateString()
+                : "Never"}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {params.row.login_count} logins
+            </Typography>
+          </Box>
+        ),
+      },
+      {
+        field: "actions",
+        type: "actions",
+        headerName: "Actions",
+        width: 150,
+        getActions: (params) => [
+          <GridActionsCellItem
+            icon={<ViewIcon />}
+            label="View Details"
+            onClick={() => {
+              setSelectedUser(params.row);
+              setUserDetailOpen(true);
+            }}
+            showInMenu
+          />,
+          <GridActionsCellItem
+            icon={<EditIcon />}
+            label="Edit User"
+            onClick={() => navigate(`/admin/users/${params.id}/edit`)}
+            showInMenu
+          />,
+          <GridActionsCellItem
+            icon={<SecurityIcon />}
+            label="Security Settings"
+            onClick={() => navigate(`/admin/users/${params.id}/security`)}
+            showInMenu
+          />,
+          <GridActionsCellItem
+            icon={<EmailIcon />}
+            label="Send Email"
+            onClick={() => handleSendEmail(params.row)}
+            showInMenu
+          />,
+          <GridActionsCellItem
+            icon={
+              params.row.status === "active" ? <LockIcon /> : <UnlockIcon />
+            }
+            label={params.row.status === "active" ? "Suspend" : "Activate"}
+            onClick={() => handleToggleStatus(params.row)}
+            showInMenu
+          />,
+          <GridActionsCellItem
+            icon={<DeleteIcon />}
+            label="Delete User"
+            onClick={() => handleDeleteUser(params.row)}
+            color="error"
+            showInMenu
+          />,
+        ],
+      },
+    ],
+    [navigate],
+  );
 
   // Event handlers
   const handleFilterChange = (field: keyof UserFilters, value: string) => {
-    setFilters(prev => ({ ...prev, [field]: value }));
-    setPaginationModel(prev => ({ ...prev, page: 0 }));
+    setFilters((prev) => ({ ...prev, [field]: value }));
+    setPaginationModel((prev) => ({ ...prev, page: 0 }));
   };
 
   const handleClearFilters = () => {
     setFilters({
-      search: '',
-      status: '',
-      department: '',
-      role: '',
-      is_admin: '',
-      last_login_days: '',
-      email_verified: '',
-      two_factor_enabled: ''
+      search: "",
+      status: "",
+      department: "",
+      role: "",
+      is_admin: "",
+      last_login_days: "",
+      email_verified: "",
+      two_factor_enabled: "",
     });
   };
 
   const handleSendEmail = (user: User) => {
-    console.log('Sending email to:', user.email);
+    console.log("Sending email to:", user.email);
     // Implement email functionality
   };
 
   const handleToggleStatus = (user: User) => {
-    console.log('Toggling status for user:', user.id);
+    console.log("Toggling status for user:", user.id);
     // Implement status toggle
   };
 
   const handleDeleteUser = (user: User) => {
-    console.log('Deleting user:', user.id);
+    console.log("Deleting user:", user.id);
     // Implement delete functionality
   };
 
@@ -697,12 +753,12 @@ export const UserManagementPage: React.FC = () => {
   const confirmBulkAction = async () => {
     await bulkActionMutation.mutateAsync({
       action: bulkAction,
-      userIds: selectedRows as number[]
+      userIds: selectedRows as number[],
     });
   };
 
   const handleExport = () => {
-    console.log('Exporting users with filters:', filters);
+    console.log("Exporting users with filters:", filters);
     // Implement export functionality
   };
 
@@ -717,15 +773,17 @@ export const UserManagementPage: React.FC = () => {
       <Typography variant="h6" gutterBottom>
         Filter Users
       </Typography>
-      
+
       <Stack spacing={3}>
         <TextField
           label="Search"
           placeholder="Search by name, email, username..."
           value={filters.search}
-          onChange={(e) => handleFilterChange('search', e.target.value)}
+          onChange={(e) => handleFilterChange("search", e.target.value)}
           InputProps={{
-            startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />
+            startAdornment: (
+              <SearchIcon sx={{ mr: 1, color: "text.secondary" }} />
+            ),
           }}
           fullWidth
         />
@@ -734,7 +792,7 @@ export const UserManagementPage: React.FC = () => {
           <InputLabel>Status</InputLabel>
           <Select
             value={filters.status}
-            onChange={(e) => handleFilterChange('status', e.target.value)}
+            onChange={(e) => handleFilterChange("status", e.target.value)}
             label="Status"
           >
             <MenuItem value="">All Status</MenuItem>
@@ -749,7 +807,7 @@ export const UserManagementPage: React.FC = () => {
           <InputLabel>Department</InputLabel>
           <Select
             value={filters.department}
-            onChange={(e) => handleFilterChange('department', e.target.value)}
+            onChange={(e) => handleFilterChange("department", e.target.value)}
             label="Department"
           >
             <MenuItem value="">All Departments</MenuItem>
@@ -765,7 +823,7 @@ export const UserManagementPage: React.FC = () => {
           <InputLabel>Admin Status</InputLabel>
           <Select
             value={filters.is_admin}
-            onChange={(e) => handleFilterChange('is_admin', e.target.value)}
+            onChange={(e) => handleFilterChange("is_admin", e.target.value)}
             label="Admin Status"
           >
             <MenuItem value="">All Users</MenuItem>
@@ -778,7 +836,9 @@ export const UserManagementPage: React.FC = () => {
           <InputLabel>Email Verification</InputLabel>
           <Select
             value={filters.email_verified}
-            onChange={(e) => handleFilterChange('email_verified', e.target.value)}
+            onChange={(e) =>
+              handleFilterChange("email_verified", e.target.value)
+            }
             label="Email Verification"
           >
             <MenuItem value="">All Users</MenuItem>
@@ -791,7 +851,9 @@ export const UserManagementPage: React.FC = () => {
           <InputLabel>Two-Factor Auth</InputLabel>
           <Select
             value={filters.two_factor_enabled}
-            onChange={(e) => handleFilterChange('two_factor_enabled', e.target.value)}
+            onChange={(e) =>
+              handleFilterChange("two_factor_enabled", e.target.value)
+            }
             label="Two-Factor Auth"
           >
             <MenuItem value="">All Users</MenuItem>
@@ -804,7 +866,9 @@ export const UserManagementPage: React.FC = () => {
           <InputLabel>Last Login</InputLabel>
           <Select
             value={filters.last_login_days}
-            onChange={(e) => handleFilterChange('last_login_days', e.target.value)}
+            onChange={(e) =>
+              handleFilterChange("last_login_days", e.target.value)
+            }
             label="Last Login"
           >
             <MenuItem value="">Any Time</MenuItem>
@@ -818,11 +882,7 @@ export const UserManagementPage: React.FC = () => {
         <Divider />
 
         <Stack direction="row" spacing={2}>
-          <Button
-            variant="outlined"
-            onClick={handleClearFilters}
-            fullWidth
-          >
+          <Button variant="outlined" onClick={handleClearFilters} fullWidth>
             Clear All
           </Button>
           <Button
@@ -837,7 +897,9 @@ export const UserManagementPage: React.FC = () => {
     </Drawer>
   );
 
-  const activeFiltersCount = Object.values(filters).filter(value => value !== '').length;
+  const activeFiltersCount = Object.values(filters).filter(
+    (value) => value !== "",
+  ).length;
 
   if (error) {
     return (
@@ -853,24 +915,33 @@ export const UserManagementPage: React.FC = () => {
   }
 
   return (
-    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ height: "100vh", display: "flex", flexDirection: "column" }}>
       {/* Header */}
       <Paper sx={{ p: 3, mb: 2 }}>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-          <Typography variant="h4" component="h1" sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Avatar sx={{ bgcolor: 'primary.main' }}>
+        <Box
+          display="flex"
+          justifyContent="space-between"
+          alignItems="center"
+          mb={2}
+        >
+          <Typography
+            variant="h4"
+            component="h1"
+            sx={{ display: "flex", alignItems: "center", gap: 2 }}
+          >
+            <Avatar sx={{ bgcolor: "primary.main" }}>
               <UserIcon />
             </Avatar>
             User Management
           </Typography>
-          
+
           <Stack direction="row" spacing={2}>
             <Tooltip title="Refresh data">
               <IconButton onClick={() => refetch()} disabled={isLoading}>
                 <RefreshIcon />
               </IconButton>
             </Tooltip>
-            
+
             <Badge badgeContent={activeFiltersCount} color="primary">
               <Button
                 variant="outlined"
@@ -880,7 +951,7 @@ export const UserManagementPage: React.FC = () => {
                 Filters
               </Button>
             </Badge>
-            
+
             <Button
               variant="outlined"
               startIcon={<RoleIcon />}
@@ -888,7 +959,7 @@ export const UserManagementPage: React.FC = () => {
             >
               Manage Roles
             </Button>
-            
+
             <Button
               variant="outlined"
               startIcon={<ExportIcon />}
@@ -896,11 +967,11 @@ export const UserManagementPage: React.FC = () => {
             >
               Export
             </Button>
-            
+
             <Button
               variant="contained"
               startIcon={<AddIcon />}
-              onClick={() => navigate('/admin/users/new')}
+              onClick={() => navigate("/admin/users/new")}
               size="large"
             >
               Add User
@@ -911,79 +982,115 @@ export const UserManagementPage: React.FC = () => {
         {/* Key Metrics Dashboard */}
         <Grid container spacing={3} sx={{ mb: 2 }}>
           <Grid item xs={12} md={2}>
-            <Card sx={{ bgcolor: 'primary.50' }}>
-              <CardContent sx={{ display: 'flex', alignItems: 'center', py: 2 }}>
-                <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
+            <Card sx={{ bgcolor: "primary.50" }}>
+              <CardContent
+                sx={{ display: "flex", alignItems: "center", py: 2 }}
+              >
+                <Avatar sx={{ bgcolor: "primary.main", mr: 2 }}>
                   <UserIcon />
                 </Avatar>
                 <Box>
-                  <Typography variant="h6">{userData?.summary.total_users || 0}</Typography>
-                  <Typography variant="caption" color="text.secondary">Total Users</Typography>
+                  <Typography variant="h6">
+                    {userData?.summary.total_users || 0}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Total Users
+                  </Typography>
                 </Box>
               </CardContent>
             </Card>
           </Grid>
           <Grid item xs={12} md={2}>
-            <Card sx={{ bgcolor: 'success.50' }}>
-              <CardContent sx={{ display: 'flex', alignItems: 'center', py: 2 }}>
-                <Avatar sx={{ bgcolor: 'success.main', mr: 2 }}>
+            <Card sx={{ bgcolor: "success.50" }}>
+              <CardContent
+                sx={{ display: "flex", alignItems: "center", py: 2 }}
+              >
+                <Avatar sx={{ bgcolor: "success.main", mr: 2 }}>
                   <ActiveIcon />
                 </Avatar>
                 <Box>
-                  <Typography variant="h6">{userData?.summary.active_users || 0}</Typography>
-                  <Typography variant="caption" color="text.secondary">Active Users</Typography>
+                  <Typography variant="h6">
+                    {userData?.summary.active_users || 0}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Active Users
+                  </Typography>
                 </Box>
               </CardContent>
             </Card>
           </Grid>
           <Grid item xs={12} md={2}>
-            <Card sx={{ bgcolor: 'warning.50' }}>
-              <CardContent sx={{ display: 'flex', alignItems: 'center', py: 2 }}>
-                <Avatar sx={{ bgcolor: 'warning.main', mr: 2 }}>
+            <Card sx={{ bgcolor: "warning.50" }}>
+              <CardContent
+                sx={{ display: "flex", alignItems: "center", py: 2 }}
+              >
+                <Avatar sx={{ bgcolor: "warning.main", mr: 2 }}>
                   <AdminIcon />
                 </Avatar>
                 <Box>
-                  <Typography variant="h6">{userData?.summary.admin_users || 0}</Typography>
-                  <Typography variant="caption" color="text.secondary">Administrators</Typography>
+                  <Typography variant="h6">
+                    {userData?.summary.admin_users || 0}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Administrators
+                  </Typography>
                 </Box>
               </CardContent>
             </Card>
           </Grid>
           <Grid item xs={12} md={2}>
-            <Card sx={{ bgcolor: 'info.50' }}>
-              <CardContent sx={{ display: 'flex', alignItems: 'center', py: 2 }}>
-                <Avatar sx={{ bgcolor: 'info.main', mr: 2 }}>
+            <Card sx={{ bgcolor: "info.50" }}>
+              <CardContent
+                sx={{ display: "flex", alignItems: "center", py: 2 }}
+              >
+                <Avatar sx={{ bgcolor: "info.main", mr: 2 }}>
                   <PendingIcon />
                 </Avatar>
                 <Box>
-                  <Typography variant="h6">{userData?.summary.pending_users || 0}</Typography>
-                  <Typography variant="caption" color="text.secondary">Pending</Typography>
+                  <Typography variant="h6">
+                    {userData?.summary.pending_users || 0}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Pending
+                  </Typography>
                 </Box>
               </CardContent>
             </Card>
           </Grid>
           <Grid item xs={12} md={2}>
-            <Card sx={{ bgcolor: 'error.50' }}>
-              <CardContent sx={{ display: 'flex', alignItems: 'center', py: 2 }}>
-                <Avatar sx={{ bgcolor: 'error.main', mr: 2 }}>
+            <Card sx={{ bgcolor: "error.50" }}>
+              <CardContent
+                sx={{ display: "flex", alignItems: "center", py: 2 }}
+              >
+                <Avatar sx={{ bgcolor: "error.main", mr: 2 }}>
                   <SecurityIcon />
                 </Avatar>
                 <Box>
-                  <Typography variant="h6">{userData?.summary.without_2fa || 0}</Typography>
-                  <Typography variant="caption" color="text.secondary">Without 2FA</Typography>
+                  <Typography variant="h6">
+                    {userData?.summary.without_2fa || 0}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Without 2FA
+                  </Typography>
                 </Box>
               </CardContent>
             </Card>
           </Grid>
           <Grid item xs={12} md={2}>
-            <Card sx={{ bgcolor: 'secondary.50' }}>
-              <CardContent sx={{ display: 'flex', alignItems: 'center', py: 2 }}>
-                <Avatar sx={{ bgcolor: 'secondary.main', mr: 2 }}>
+            <Card sx={{ bgcolor: "secondary.50" }}>
+              <CardContent
+                sx={{ display: "flex", alignItems: "center", py: 2 }}
+              >
+                <Avatar sx={{ bgcolor: "secondary.main", mr: 2 }}>
                   <ActivityIcon />
                 </Avatar>
                 <Box>
-                  <Typography variant="h6">{userData?.summary.avg_login_frequency?.toFixed(0) || '0'}</Typography>
-                  <Typography variant="caption" color="text.secondary">Avg Logins</Typography>
+                  <Typography variant="h6">
+                    {userData?.summary.avg_login_frequency?.toFixed(0) || "0"}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Avg Logins
+                  </Typography>
                 </Box>
               </CardContent>
             </Card>
@@ -994,22 +1101,29 @@ export const UserManagementPage: React.FC = () => {
         <TextField
           placeholder="Quick search users..."
           value={filters.search}
-          onChange={(e) => handleFilterChange('search', e.target.value)}
+          onChange={(e) => handleFilterChange("search", e.target.value)}
           InputProps={{
-            startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />
+            startAdornment: (
+              <SearchIcon sx={{ mr: 1, color: "text.secondary" }} />
+            ),
           }}
           sx={{ width: 400 }}
         />
 
         {/* Bulk Actions */}
         {selectedRows.length > 0 && (
-          <Card sx={{ mt: 2, bgcolor: 'primary.50' }}>
+          <Card sx={{ mt: 2, bgcolor: "primary.50" }}>
             <CardContent sx={{ py: 2 }}>
-              <Stack direction="row" justifyContent="space-between" alignItems="center">
+              <Stack
+                direction="row"
+                justifyContent="space-between"
+                alignItems="center"
+              >
                 <Typography>
-                  {selectedRows.length} user{selectedRows.length > 1 ? 's' : ''} selected
+                  {selectedRows.length} user{selectedRows.length > 1 ? "s" : ""}{" "}
+                  selected
                 </Typography>
-                
+
                 <Stack direction="row" spacing={2}>
                   <FormControl size="small" sx={{ minWidth: 150 }}>
                     <Select
@@ -1020,12 +1134,14 @@ export const UserManagementPage: React.FC = () => {
                       <MenuItem value="">Select Action</MenuItem>
                       <MenuItem value="activate">Activate Users</MenuItem>
                       <MenuItem value="deactivate">Deactivate Users</MenuItem>
-                      <MenuItem value="require_password_reset">Require Password Reset</MenuItem>
+                      <MenuItem value="require_password_reset">
+                        Require Password Reset
+                      </MenuItem>
                       <MenuItem value="send_email">Send Email</MenuItem>
                       <MenuItem value="export">Export Selected</MenuItem>
                     </Select>
                   </FormControl>
-                  
+
                   <Button
                     variant="outlined"
                     size="small"
@@ -1033,7 +1149,7 @@ export const UserManagementPage: React.FC = () => {
                   >
                     Clear Selection
                   </Button>
-                  
+
                   <Button
                     variant="contained"
                     size="small"
@@ -1050,9 +1166,9 @@ export const UserManagementPage: React.FC = () => {
       </Paper>
 
       {/* Data Grid */}
-      <Paper sx={{ flex: 1, overflow: 'hidden' }}>
+      <Paper sx={{ flex: 1, overflow: "hidden" }}>
         {isLoading && <LinearProgress />}
-        
+
         <DataGrid
           rows={userData?.users || []}
           columns={columns}
@@ -1076,15 +1192,15 @@ export const UserManagementPage: React.FC = () => {
           }}
           sx={{
             border: 0,
-            '& .MuiDataGrid-cell:focus': {
-              outline: 'none',
+            "& .MuiDataGrid-cell:focus": {
+              outline: "none",
             },
-            '& .MuiDataGrid-row:hover': {
-              backgroundColor: 'action.hover',
+            "& .MuiDataGrid-row:hover": {
+              backgroundColor: "action.hover",
             },
-            '& .MuiDataGrid-columnHeaders': {
-              backgroundColor: 'grey.50',
-              fontSize: '0.875rem',
+            "& .MuiDataGrid-columnHeaders": {
+              backgroundColor: "grey.50",
+              fontSize: "0.875rem",
               fontWeight: 600,
             },
           }}
@@ -1102,14 +1218,22 @@ export const UserManagementPage: React.FC = () => {
       >
         <DialogTitle>
           <Stack direction="row" alignItems="center" spacing={2}>
-            <Avatar src={selectedUser?.avatar_url} sx={{ width: 48, height: 48 }}>
-              {selectedUser?.first_name?.[0]}{selectedUser?.last_name?.[0]}
+            <Avatar
+              src={selectedUser?.avatar_url}
+              sx={{ width: 48, height: 48 }}
+            >
+              {selectedUser?.first_name?.[0]}
+              {selectedUser?.last_name?.[0]}
             </Avatar>
             <Box>
               <Typography variant="h6">
                 {selectedUser?.full_name}
-                {selectedUser?.is_superuser && <SupervisorIcon color="error" sx={{ ml: 1 }} />}
-                {selectedUser?.is_admin && !selectedUser?.is_superuser && <AdminIcon color="warning" sx={{ ml: 1 }} />}
+                {selectedUser?.is_superuser && (
+                  <SupervisorIcon color="error" sx={{ ml: 1 }} />
+                )}
+                {selectedUser?.is_admin && !selectedUser?.is_superuser && (
+                  <AdminIcon color="warning" sx={{ ml: 1 }} />
+                )}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 {selectedUser?.email} • {selectedUser?.department}
@@ -1119,7 +1243,10 @@ export const UserManagementPage: React.FC = () => {
         </DialogTitle>
         <DialogContent>
           {selectedUser && (
-            <Tabs value={currentTab} onChange={(_, newValue) => setCurrentTab(newValue)}>
+            <Tabs
+              value={currentTab}
+              onChange={(_, newValue) => setCurrentTab(newValue)}
+            >
               <Tab icon={<ProfileIcon />} label="Profile" />
               <Tab icon={<SecurityIcon />} label="Security" />
               <Tab icon={<RoleIcon />} label="Roles & Permissions" />
@@ -1137,28 +1264,60 @@ export const UserManagementPage: React.FC = () => {
                     <CardContent>
                       <Stack spacing={2}>
                         <Box>
-                          <Typography variant="subtitle2" color="text.secondary">Full Name</Typography>
+                          <Typography
+                            variant="subtitle2"
+                            color="text.secondary"
+                          >
+                            Full Name
+                          </Typography>
                           <Typography>{selectedUser.full_name}</Typography>
                         </Box>
                         <Box>
-                          <Typography variant="subtitle2" color="text.secondary">Email</Typography>
+                          <Typography
+                            variant="subtitle2"
+                            color="text.secondary"
+                          >
+                            Email
+                          </Typography>
                           <Typography>{selectedUser.email}</Typography>
                         </Box>
                         <Box>
-                          <Typography variant="subtitle2" color="text.secondary">Phone</Typography>
-                          <Typography>{selectedUser.phone || '—'}</Typography>
+                          <Typography
+                            variant="subtitle2"
+                            color="text.secondary"
+                          >
+                            Phone
+                          </Typography>
+                          <Typography>{selectedUser.phone || "—"}</Typography>
                         </Box>
                         <Box>
-                          <Typography variant="subtitle2" color="text.secondary">Department</Typography>
+                          <Typography
+                            variant="subtitle2"
+                            color="text.secondary"
+                          >
+                            Department
+                          </Typography>
                           <Typography>{selectedUser.department}</Typography>
                         </Box>
                         <Box>
-                          <Typography variant="subtitle2" color="text.secondary">Position</Typography>
+                          <Typography
+                            variant="subtitle2"
+                            color="text.secondary"
+                          >
+                            Position
+                          </Typography>
                           <Typography>{selectedUser.position}</Typography>
                         </Box>
                         <Box>
-                          <Typography variant="subtitle2" color="text.secondary">Manager</Typography>
-                          <Typography>{selectedUser.manager_name || '—'}</Typography>
+                          <Typography
+                            variant="subtitle2"
+                            color="text.secondary"
+                          >
+                            Manager
+                          </Typography>
+                          <Typography>
+                            {selectedUser.manager_name || "—"}
+                          </Typography>
                         </Box>
                       </Stack>
                     </CardContent>
@@ -1170,28 +1329,75 @@ export const UserManagementPage: React.FC = () => {
                     <CardContent>
                       <Stack spacing={2}>
                         <Box>
-                          <Typography variant="subtitle2" color="text.secondary">Status</Typography>
+                          <Typography
+                            variant="subtitle2"
+                            color="text.secondary"
+                          >
+                            Status
+                          </Typography>
                           <Chip
                             label={selectedUser.status.toUpperCase()}
-                            color={selectedUser.status === 'active' ? 'success' : 'error'}
+                            color={
+                              selectedUser.status === "active"
+                                ? "success"
+                                : "error"
+                            }
                             size="small"
                           />
                         </Box>
                         <Box>
-                          <Typography variant="subtitle2" color="text.secondary">Account Type</Typography>
+                          <Typography
+                            variant="subtitle2"
+                            color="text.secondary"
+                          >
+                            Account Type
+                          </Typography>
                           <Stack direction="row" spacing={1}>
-                            {selectedUser.is_superuser && <Chip label="Super Admin" color="error" size="small" />}
-                            {selectedUser.is_admin && !selectedUser.is_superuser && <Chip label="Administrator" color="warning" size="small" />}
-                            {!selectedUser.is_admin && <Chip label="Regular User" color="primary" size="small" />}
+                            {selectedUser.is_superuser && (
+                              <Chip
+                                label="Super Admin"
+                                color="error"
+                                size="small"
+                              />
+                            )}
+                            {selectedUser.is_admin &&
+                              !selectedUser.is_superuser && (
+                                <Chip
+                                  label="Administrator"
+                                  color="warning"
+                                  size="small"
+                                />
+                              )}
+                            {!selectedUser.is_admin && (
+                              <Chip
+                                label="Regular User"
+                                color="primary"
+                                size="small"
+                              />
+                            )}
                           </Stack>
                         </Box>
                         <Box>
-                          <Typography variant="subtitle2" color="text.secondary">Created</Typography>
-                          <Typography>{new Date(selectedUser.created_at).toLocaleString()}</Typography>
+                          <Typography
+                            variant="subtitle2"
+                            color="text.secondary"
+                          >
+                            Created
+                          </Typography>
+                          <Typography>
+                            {new Date(selectedUser.created_at).toLocaleString()}
+                          </Typography>
                         </Box>
                         <Box>
-                          <Typography variant="subtitle2" color="text.secondary">Last Updated</Typography>
-                          <Typography>{new Date(selectedUser.updated_at).toLocaleString()}</Typography>
+                          <Typography
+                            variant="subtitle2"
+                            color="text.secondary"
+                          >
+                            Last Updated
+                          </Typography>
+                          <Typography>
+                            {new Date(selectedUser.updated_at).toLocaleString()}
+                          </Typography>
                         </Box>
                       </Stack>
                     </CardContent>
@@ -1211,28 +1417,58 @@ export const UserManagementPage: React.FC = () => {
                     <CardContent>
                       <Stack spacing={3}>
                         <Box>
-                          <Typography variant="subtitle2" color="text.secondary">Email Verification</Typography>
+                          <Typography
+                            variant="subtitle2"
+                            color="text.secondary"
+                          >
+                            Email Verification
+                          </Typography>
                           <Chip
-                            label={selectedUser.email_verified ? 'Verified' : 'Not Verified'}
-                            color={selectedUser.email_verified ? 'success' : 'error'}
-                            size="small"
-                          />
-                        </Box>
-                        <Box>
-                          <Typography variant="subtitle2" color="text.secondary">Two-Factor Authentication</Typography>
-                          <Chip
-                            label={selectedUser.two_factor_enabled ? 'Enabled' : 'Disabled'}
-                            color={selectedUser.two_factor_enabled ? 'success' : 'warning'}
-                            size="small"
-                          />
-                        </Box>
-                        <Box>
-                          <Typography variant="subtitle2" color="text.secondary">Password Expires</Typography>
-                          <Typography>
-                            {selectedUser.password_expires_at 
-                              ? new Date(selectedUser.password_expires_at).toLocaleDateString()
-                              : 'Never'
+                            label={
+                              selectedUser.email_verified
+                                ? "Verified"
+                                : "Not Verified"
                             }
+                            color={
+                              selectedUser.email_verified ? "success" : "error"
+                            }
+                            size="small"
+                          />
+                        </Box>
+                        <Box>
+                          <Typography
+                            variant="subtitle2"
+                            color="text.secondary"
+                          >
+                            Two-Factor Authentication
+                          </Typography>
+                          <Chip
+                            label={
+                              selectedUser.two_factor_enabled
+                                ? "Enabled"
+                                : "Disabled"
+                            }
+                            color={
+                              selectedUser.two_factor_enabled
+                                ? "success"
+                                : "warning"
+                            }
+                            size="small"
+                          />
+                        </Box>
+                        <Box>
+                          <Typography
+                            variant="subtitle2"
+                            color="text.secondary"
+                          >
+                            Password Expires
+                          </Typography>
+                          <Typography>
+                            {selectedUser.password_expires_at
+                              ? new Date(
+                                  selectedUser.password_expires_at,
+                                ).toLocaleDateString()
+                              : "Never"}
                           </Typography>
                         </Box>
                       </Stack>
@@ -1245,25 +1481,42 @@ export const UserManagementPage: React.FC = () => {
                     <CardContent>
                       <Stack spacing={2}>
                         <Box>
-                          <Typography variant="subtitle2" color="text.secondary">Last Login</Typography>
+                          <Typography
+                            variant="subtitle2"
+                            color="text.secondary"
+                          >
+                            Last Login
+                          </Typography>
                           <Typography>
-                            {selectedUser.last_login 
-                              ? new Date(selectedUser.last_login).toLocaleString()
-                              : 'Never'
-                            }
+                            {selectedUser.last_login
+                              ? new Date(
+                                  selectedUser.last_login,
+                                ).toLocaleString()
+                              : "Never"}
                           </Typography>
                         </Box>
                         <Box>
-                          <Typography variant="subtitle2" color="text.secondary">Total Logins</Typography>
+                          <Typography
+                            variant="subtitle2"
+                            color="text.secondary"
+                          >
+                            Total Logins
+                          </Typography>
                           <Typography>{selectedUser.login_count}</Typography>
                         </Box>
                         <Box>
-                          <Typography variant="subtitle2" color="text.secondary">Last Activity</Typography>
+                          <Typography
+                            variant="subtitle2"
+                            color="text.secondary"
+                          >
+                            Last Activity
+                          </Typography>
                           <Typography>
-                            {selectedUser.last_activity 
-                              ? new Date(selectedUser.last_activity).toLocaleString()
-                              : '—'
-                            }
+                            {selectedUser.last_activity
+                              ? new Date(
+                                  selectedUser.last_activity,
+                                ).toLocaleString()
+                              : "—"}
                           </Typography>
                         </Box>
                       </Stack>
@@ -1341,10 +1594,12 @@ export const UserManagementPage: React.FC = () => {
         <DialogTitle>Confirm Bulk Action</DialogTitle>
         <DialogContent>
           <Typography>
-            Are you sure you want to {bulkAction.replace('_', ' ')} {selectedRows.length} selected users?
+            Are you sure you want to {bulkAction.replace("_", " ")}{" "}
+            {selectedRows.length} selected users?
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            This action will be applied to all selected users and cannot be undone.
+            This action will be applied to all selected users and cannot be
+            undone.
           </Typography>
         </DialogContent>
         <DialogActions>
@@ -1355,7 +1610,7 @@ export const UserManagementPage: React.FC = () => {
             variant="contained"
             disabled={bulkActionMutation.isPending}
           >
-            {bulkActionMutation.isPending ? 'Processing...' : 'Confirm'}
+            {bulkActionMutation.isPending ? "Processing..." : "Confirm"}
           </Button>
         </DialogActions>
       </Dialog>

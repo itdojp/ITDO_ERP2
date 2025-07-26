@@ -93,7 +93,7 @@ class FeatureFlag(Base):
 class FeatureFlagService:
     """Service for managing and evaluating feature flags"""
 
-    def __init__(self, redis_client: Optional[redis.Redis] = None):
+    def __init__(self, redis_client: Optional[redis.Redis] = None) -> dict:
         self.redis = redis_client or get_redis()
         self.settings = get_settings()
         self.cache_ttl = 300  # 5 minutes default cache

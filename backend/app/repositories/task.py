@@ -14,7 +14,7 @@ from app.schemas.task import TaskSearchParams
 class TaskRepository(BaseRepository[Task]):
     """Repository for task database operations."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         """Initialize repository."""
         super().__init__(Task, db)
 

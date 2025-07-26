@@ -3,14 +3,26 @@
  * Displays user profile information with privacy-aware rendering
  */
 
-import React from 'react'
-import { User, Mail, Phone, MapPin, Globe, Calendar, Users, Building } from 'lucide-react'
-import { useUserProfile, useCheckProfileVisibility } from '../../hooks/useUserProfile'
+import React from "react";
+import {
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Globe,
+  Calendar,
+  Users,
+  Building,
+} from "lucide-react";
+import {
+  useUserProfile,
+  useCheckProfileVisibility,
+} from "../../hooks/useUserProfile";
 
 interface UserProfileViewProps {
-  userId: number
-  showEditButton?: boolean
-  onEdit?: () => void
+  userId: number;
+  showEditButton?: boolean;
+  onEdit?: () => void;
 }
 
 export const UserProfileView: React.FC<UserProfileViewProps> = ({
@@ -18,15 +30,15 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
   showEditButton = false,
   onEdit,
 }) => {
-  const { data: user, isLoading, error } = useUserProfile(userId)
-  const { data: profileVisibility } = useCheckProfileVisibility(userId)
+  const { data: user, isLoading, error } = useUserProfile(userId);
+  const { data: profileVisibility } = useCheckProfileVisibility(userId);
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
-    )
+    );
   }
 
   if (error) {
@@ -34,7 +46,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
       <div className="bg-red-50 border border-red-200 rounded-lg p-4">
         <p className="text-red-600">プロフィールの読み込みに失敗しました。</p>
       </div>
-    )
+    );
   }
 
   if (!user) {
@@ -42,7 +54,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
         <p className="text-gray-600">ユーザーが見つかりません。</p>
       </div>
-    )
+    );
   }
 
   if (profileVisibility && !profileVisibility.visible) {
@@ -53,7 +65,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
           {profileVisibility.reason && ` (${profileVisibility.reason})`}
         </p>
       </div>
-    )
+    );
   }
 
   return (
@@ -89,7 +101,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
               </div>
             )}
           </div>
-          
+
           <div className="flex-1 min-w-0">
             <h3 className="text-2xl font-bold text-gray-900 mb-1">
               {user.full_name}
@@ -106,7 +118,7 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
                 </div>
               )}
             </div>
-            
+
             {user.bio && (
               <p className="text-gray-700 text-sm leading-relaxed">
                 {user.bio}
@@ -143,7 +155,8 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
               {user.last_login_at && (
                 <div className="flex items-center text-sm text-gray-600">
                   <Calendar className="w-4 h-4 mr-2" />
-                  最終ログイン: {new Date(user.last_login_at).toLocaleDateString('ja-JP')}
+                  最終ログイン:{" "}
+                  {new Date(user.last_login_at).toLocaleDateString("ja-JP")}
                 </div>
               )}
             </div>
@@ -151,14 +164,21 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
 
           {/* Organization & Roles */}
           <div>
-            <h4 className="text-sm font-medium text-gray-900 mb-3">組織・役職</h4>
+            <h4 className="text-sm font-medium text-gray-900 mb-3">
+              組織・役職
+            </h4>
             <div className="space-y-3">
               {user.organizations.length > 0 && (
                 <div>
-                  <h5 className="text-xs font-medium text-gray-700 mb-1">所属組織</h5>
+                  <h5 className="text-xs font-medium text-gray-700 mb-1">
+                    所属組織
+                  </h5>
                   <div className="space-y-1">
                     {user.organizations.map((org) => (
-                      <div key={org.id} className="flex items-center text-sm text-gray-600">
+                      <div
+                        key={org.id}
+                        className="flex items-center text-sm text-gray-600"
+                      >
                         <Building className="w-4 h-4 mr-2" />
                         {org.name}
                       </div>
@@ -166,13 +186,18 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
                   </div>
                 </div>
               )}
-              
+
               {user.departments.length > 0 && (
                 <div>
-                  <h5 className="text-xs font-medium text-gray-700 mb-1">所属部門</h5>
+                  <h5 className="text-xs font-medium text-gray-700 mb-1">
+                    所属部門
+                  </h5>
                   <div className="space-y-1">
                     {user.departments.map((dept) => (
-                      <div key={dept.id} className="flex items-center text-sm text-gray-600">
+                      <div
+                        key={dept.id}
+                        className="flex items-center text-sm text-gray-600"
+                      >
                         <Users className="w-4 h-4 mr-2" />
                         {dept.name}
                       </div>
@@ -183,11 +208,15 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
 
               {user.roles.length > 0 && (
                 <div>
-                  <h5 className="text-xs font-medium text-gray-700 mb-1">役職</h5>
+                  <h5 className="text-xs font-medium text-gray-700 mb-1">
+                    役職
+                  </h5>
                   <div className="space-y-1">
                     {user.roles.map((userRole, index) => (
                       <div key={index} className="text-sm text-gray-600">
-                        <span className="font-medium">{userRole.role.name}</span>
+                        <span className="font-medium">
+                          {userRole.role.name}
+                        </span>
                         {userRole.organization && (
                           <span className="text-gray-500 ml-1">
                             @ {userRole.organization.name}
@@ -212,24 +241,26 @@ export const UserProfileView: React.FC<UserProfileViewProps> = ({
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center space-x-4">
               <div className="flex items-center">
-                <div 
+                <div
                   className={`w-2 h-2 rounded-full mr-2 ${
-                    user.is_active ? 'bg-green-400' : 'bg-red-400'
+                    user.is_active ? "bg-green-400" : "bg-red-400"
                   }`}
                 />
-                <span className={user.is_active ? 'text-green-600' : 'text-red-600'}>
-                  {user.is_active ? 'アクティブ' : '無効'}
+                <span
+                  className={user.is_active ? "text-green-600" : "text-red-600"}
+                >
+                  {user.is_active ? "アクティブ" : "無効"}
                 </span>
               </div>
             </div>
             <div className="text-gray-500">
-              作成日: {new Date(user.created_at).toLocaleDateString('ja-JP')}
+              作成日: {new Date(user.created_at).toLocaleDateString("ja-JP")}
             </div>
           </div>
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default UserProfileView
+export default UserProfileView;

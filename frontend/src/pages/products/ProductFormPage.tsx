@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useForm, Controller } from 'react-hook-form';
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useForm, Controller } from "react-hook-form";
 import {
   Box,
   Paper,
@@ -26,17 +26,17 @@ import {
   Tabs,
   Tab,
   Autocomplete,
-  Stack
-} from '@mui/material';
+  Stack,
+} from "@mui/material";
 import {
   Save as SaveIcon,
   Cancel as CancelIcon,
   CloudUpload as UploadIcon,
   Image as ImageIcon,
   AttachFile as AttachIcon,
-  Delete as DeleteIcon
-} from '@mui/icons-material';
-import { apiClient } from '@/services/api';
+  Delete as DeleteIcon,
+} from "@mui/icons-material";
+import { apiClient } from "@/services/api";
 
 interface ProductFormData {
   code: string;
@@ -46,8 +46,8 @@ interface ProductFormData {
   standard_price: number;
   cost_price?: number;
   sale_price?: number;
-  status: 'active' | 'inactive' | 'discontinued';
-  product_type: 'product' | 'service' | 'kit';
+  status: "active" | "inactive" | "discontinued";
+  product_type: "product" | "service" | "kit";
   description?: string;
   category?: string;
   weight?: number;
@@ -93,7 +93,7 @@ export const ProductFormPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isEditing = !!productId;
-  
+
   const [currentTab, setCurrentTab] = useState(0);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
@@ -107,8 +107,8 @@ export const ProductFormPage: React.FC = () => {
     formState: { errors, isDirty, isSubmitting },
   } = useForm<ProductFormData>({
     defaultValues: {
-      status: 'active',
-      product_type: 'product',
+      status: "active",
+      product_type: "product",
       is_active: true,
       is_purchasable: true,
       is_sellable: true,
@@ -118,14 +118,16 @@ export const ProductFormPage: React.FC = () => {
   });
 
   // Watch fields for dynamic updates
-  const watchedName = watch('name');
-  const watchedType = watch('product_type');
+  const watchedName = watch("name");
+  const watchedType = watch("product_type");
 
   // Fetch product data for editing
   const { data: product, isLoading } = useQuery({
-    queryKey: ['product', productId],
+    queryKey: ["product", productId],
     queryFn: async (): Promise<Product> => {
-      const response = await apiClient.get(`/api/v1/products-basic/${productId}`);
+      const response = await apiClient.get(
+        `/api/v1/products-basic/${productId}`,
+      );
       return response.data;
     },
     enabled: isEditing,
@@ -133,18 +135,18 @@ export const ProductFormPage: React.FC = () => {
 
   // Fetch categories for autocomplete
   const { data: categories } = useQuery({
-    queryKey: ['product-categories'],
+    queryKey: ["product-categories"],
     queryFn: async () => {
-      const response = await apiClient.get('/api/v1/products-basic/categories');
+      const response = await apiClient.get("/api/v1/products-basic/categories");
       return response.data || [];
     },
   });
 
   // Fetch suppliers for autocomplete
   const { data: suppliers } = useQuery({
-    queryKey: ['suppliers'],
+    queryKey: ["suppliers"],
     queryFn: async () => {
-      const response = await apiClient.get('/api/v1/suppliers');
+      const response = await apiClient.get("/api/v1/suppliers");
       return response.data || [];
     },
   });
@@ -162,14 +164,14 @@ export const ProductFormPage: React.FC = () => {
         sale_price: product.sale_price,
         status: product.status,
         product_type: product.product_type,
-        description: product.description || '',
-        category: product.category || '',
+        description: product.description || "",
+        category: product.category || "",
         weight: product.weight,
         length: product.length,
         width: product.width,
         height: product.height,
-        barcode: product.barcode || '',
-        supplier: product.supplier || '',
+        barcode: product.barcode || "",
+        supplier: product.supplier || "",
         lead_time_days: product.lead_time_days,
         minimum_stock_level: product.minimum_stock_level,
         reorder_point: product.reorder_point,
@@ -184,8 +186,8 @@ export const ProductFormPage: React.FC = () => {
 
   // Auto-generate display name from name
   useEffect(() => {
-    if (watchedName && !watch('display_name')) {
-      setValue('display_name', watchedName, { shouldDirty: true });
+    if (watchedName && !watch("display_name")) {
+      setValue("display_name", watchedName, { shouldDirty: true });
     }
   }, [watchedName, setValue, watch]);
 
@@ -193,7 +195,7 @@ export const ProductFormPage: React.FC = () => {
   const mutation = useMutation({
     mutationFn: async (data: ProductFormData) => {
       const formData = new FormData();
-      
+
       // Append form fields
       Object.entries(data).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
@@ -211,26 +213,34 @@ export const ProductFormPage: React.FC = () => {
       imageFiles.forEach((file, index) => {
         formData.append(`images[${index}]`, file);
       });
-      
+
       attachmentFiles.forEach((file, index) => {
         formData.append(`attachments[${index}]`, file);
       });
 
       if (isEditing) {
-        const response = await apiClient.put(`/api/v1/products-basic/${productId}`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
+        const response = await apiClient.put(
+          `/api/v1/products-basic/${productId}`,
+          formData,
+          {
+            headers: { "Content-Type": "multipart/form-data" },
+          },
+        );
         return response.data;
       } else {
-        const response = await apiClient.post('/api/v1/products-basic', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
+        const response = await apiClient.post(
+          "/api/v1/products-basic",
+          formData,
+          {
+            headers: { "Content-Type": "multipart/form-data" },
+          },
+        );
         return response.data;
       }
     },
     onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ['products-list'] });
-      queryClient.invalidateQueries({ queryKey: ['product', productId] });
+      queryClient.invalidateQueries({ queryKey: ["products-list"] });
+      queryClient.invalidateQueries({ queryKey: ["product", productId] });
       navigate(isEditing ? `/products/${productId}` : `/products/${result.id}`);
     },
   });
@@ -240,25 +250,27 @@ export const ProductFormPage: React.FC = () => {
   };
 
   const handleCancel = () => {
-    navigate(isEditing ? `/products/${productId}` : '/products');
+    navigate(isEditing ? `/products/${productId}` : "/products");
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
-    setImageFiles(prev => [...prev, ...files]);
+    setImageFiles((prev) => [...prev, ...files]);
   };
 
-  const handleAttachmentUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAttachmentUpload = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const files = Array.from(event.target.files || []);
-    setAttachmentFiles(prev => [...prev, ...files]);
+    setAttachmentFiles((prev) => [...prev, ...files]);
   };
 
   const removeImage = (index: number) => {
-    setImageFiles(prev => prev.filter((_, i) => i !== index));
+    setImageFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const removeAttachment = (index: number) => {
-    setAttachmentFiles(prev => prev.filter((_, i) => i !== index));
+    setAttachmentFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   if (isEditing && isLoading) {
@@ -271,14 +283,16 @@ export const ProductFormPage: React.FC = () => {
   }
 
   return (
-    <Box sx={{ maxWidth: 1200, mx: 'auto', p: 3 }}>
+    <Box sx={{ maxWidth: 1200, mx: "auto", p: 3 }}>
       {/* Header */}
       <Paper sx={{ p: 3, mb: 3 }}>
         <Typography variant="h4" component="h1" gutterBottom>
-          {isEditing ? 'Edit Product' : 'Create New Product'}
+          {isEditing ? "Edit Product" : "Create New Product"}
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          {isEditing ? 'Update product information' : 'Add a new product to your catalog'}
+          {isEditing
+            ? "Update product information"
+            : "Add a new product to your catalog"}
         </Typography>
       </Paper>
 
@@ -310,12 +324,13 @@ export const ProductFormPage: React.FC = () => {
                   <Controller
                     name="code"
                     control={control}
-                    rules={{ 
-                      required: 'Product code is required',
+                    rules={{
+                      required: "Product code is required",
                       pattern: {
                         value: /^[A-Z0-9_-]+$/,
-                        message: 'Code must contain only uppercase letters, numbers, hyphens, and underscores'
-                      }
+                        message:
+                          "Code must contain only uppercase letters, numbers, hyphens, and underscores",
+                      },
                     }}
                     render={({ field }) => (
                       <TextField
@@ -334,7 +349,7 @@ export const ProductFormPage: React.FC = () => {
                   <Controller
                     name="sku"
                     control={control}
-                    rules={{ required: 'SKU is required' }}
+                    rules={{ required: "SKU is required" }}
                     render={({ field }) => (
                       <TextField
                         {...field}
@@ -352,7 +367,7 @@ export const ProductFormPage: React.FC = () => {
                   <Controller
                     name="name"
                     control={control}
-                    rules={{ required: 'Product name is required' }}
+                    rules={{ required: "Product name is required" }}
                     render={({ field }) => (
                       <TextField
                         {...field}
@@ -392,11 +407,7 @@ export const ProductFormPage: React.FC = () => {
                         freeSolo
                         onChange={(_, value) => field.onChange(value)}
                         renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label="Category"
-                            fullWidth
-                          />
+                          <TextField {...params} label="Category" fullWidth />
                         )}
                       />
                     )}
@@ -408,11 +419,7 @@ export const ProductFormPage: React.FC = () => {
                     name="barcode"
                     control={control}
                     render={({ field }) => (
-                      <TextField
-                        {...field}
-                        label="Barcode"
-                        fullWidth
-                      />
+                      <TextField {...field} label="Barcode" fullWidth />
                     )}
                   />
                 </Grid>
@@ -446,7 +453,11 @@ export const ProductFormPage: React.FC = () => {
                         onChange={(_, value) => field.onChange(value)}
                         renderTags={(value, getTagProps) =>
                           value.map((option, index) => (
-                            <Chip variant="outlined" label={option} {...getTagProps({ index })} />
+                            <Chip
+                              variant="outlined"
+                              label={option}
+                              {...getTagProps({ index })}
+                            />
                           ))
                         }
                         renderInput={(params) => (
@@ -476,9 +487,9 @@ export const ProductFormPage: React.FC = () => {
                   <Controller
                     name="standard_price"
                     control={control}
-                    rules={{ 
-                      required: 'Standard price is required',
-                      min: { value: 0, message: 'Price must be positive' }
+                    rules={{
+                      required: "Standard price is required",
+                      min: { value: 0, message: "Price must be positive" },
                     }}
                     render={({ field }) => (
                       <TextField
@@ -486,7 +497,9 @@ export const ProductFormPage: React.FC = () => {
                         label="Standard Price"
                         type="number"
                         InputProps={{
-                          startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                          startAdornment: (
+                            <InputAdornment position="start">$</InputAdornment>
+                          ),
                         }}
                         error={!!errors.standard_price}
                         helperText={errors.standard_price?.message}
@@ -501,14 +514,18 @@ export const ProductFormPage: React.FC = () => {
                   <Controller
                     name="cost_price"
                     control={control}
-                    rules={{ min: { value: 0, message: 'Cost price must be positive' } }}
+                    rules={{
+                      min: { value: 0, message: "Cost price must be positive" },
+                    }}
                     render={({ field }) => (
                       <TextField
                         {...field}
                         label="Cost Price"
                         type="number"
                         InputProps={{
-                          startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                          startAdornment: (
+                            <InputAdornment position="start">$</InputAdornment>
+                          ),
                         }}
                         error={!!errors.cost_price}
                         helperText={errors.cost_price?.message}
@@ -522,14 +539,18 @@ export const ProductFormPage: React.FC = () => {
                   <Controller
                     name="sale_price"
                     control={control}
-                    rules={{ min: { value: 0, message: 'Sale price must be positive' } }}
+                    rules={{
+                      min: { value: 0, message: "Sale price must be positive" },
+                    }}
                     render={({ field }) => (
                       <TextField
                         {...field}
                         label="Sale Price"
                         type="number"
                         InputProps={{
-                          startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                          startAdornment: (
+                            <InputAdornment position="start">$</InputAdornment>
+                          ),
                         }}
                         error={!!errors.sale_price}
                         helperText={errors.sale_price?.message}
@@ -560,11 +581,7 @@ export const ProductFormPage: React.FC = () => {
                         freeSolo
                         onChange={(_, value) => field.onChange(value)}
                         renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label="Supplier"
-                            fullWidth
-                          />
+                          <TextField {...params} label="Supplier" fullWidth />
                         )}
                       />
                     )}
@@ -636,7 +653,9 @@ export const ProductFormPage: React.FC = () => {
                         label="Weight"
                         type="number"
                         InputProps={{
-                          endAdornment: <InputAdornment position="end">kg</InputAdornment>,
+                          endAdornment: (
+                            <InputAdornment position="end">kg</InputAdornment>
+                          ),
                         }}
                         fullWidth
                       />
@@ -654,7 +673,9 @@ export const ProductFormPage: React.FC = () => {
                         label="Length"
                         type="number"
                         InputProps={{
-                          endAdornment: <InputAdornment position="end">cm</InputAdornment>,
+                          endAdornment: (
+                            <InputAdornment position="end">cm</InputAdornment>
+                          ),
                         }}
                         fullWidth
                       />
@@ -672,7 +693,9 @@ export const ProductFormPage: React.FC = () => {
                         label="Width"
                         type="number"
                         InputProps={{
-                          endAdornment: <InputAdornment position="end">cm</InputAdornment>,
+                          endAdornment: (
+                            <InputAdornment position="end">cm</InputAdornment>
+                          ),
                         }}
                         fullWidth
                       />
@@ -690,7 +713,9 @@ export const ProductFormPage: React.FC = () => {
                         label="Height"
                         type="number"
                         InputProps={{
-                          endAdornment: <InputAdornment position="end">cm</InputAdornment>,
+                          endAdornment: (
+                            <InputAdornment position="end">cm</InputAdornment>
+                          ),
                         }}
                         fullWidth
                       />
@@ -708,7 +733,7 @@ export const ProductFormPage: React.FC = () => {
             {/* Images */}
             <Grid item xs={12} md={6}>
               <Card>
-                <CardHeader 
+                <CardHeader
                   title="Product Images"
                   action={
                     <Button
@@ -731,7 +756,12 @@ export const ProductFormPage: React.FC = () => {
                 <CardContent>
                   <Stack spacing={2}>
                     {imageFiles.map((file, index) => (
-                      <Box key={index} display="flex" alignItems="center" justifyContent="space-between">
+                      <Box
+                        key={index}
+                        display="flex"
+                        alignItems="center"
+                        justifyContent="space-between"
+                      >
                         <Typography variant="body2">{file.name}</Typography>
                         <Button
                           size="small"
@@ -755,7 +785,7 @@ export const ProductFormPage: React.FC = () => {
             {/* Attachments */}
             <Grid item xs={12} md={6}>
               <Card>
-                <CardHeader 
+                <CardHeader
                   title="Attachments"
                   action={
                     <Button
@@ -777,7 +807,12 @@ export const ProductFormPage: React.FC = () => {
                 <CardContent>
                   <Stack spacing={2}>
                     {attachmentFiles.map((file, index) => (
-                      <Box key={index} display="flex" alignItems="center" justifyContent="space-between">
+                      <Box
+                        key={index}
+                        display="flex"
+                        alignItems="center"
+                        justifyContent="space-between"
+                      >
                         <Typography variant="body2">{file.name}</Typography>
                         <Button
                           size="small"
@@ -914,14 +949,20 @@ export const ProductFormPage: React.FC = () => {
               <CancelIcon sx={{ mr: 1 }} />
               Cancel
             </Button>
-            
+
             <Button
               type="submit"
               variant="contained"
               disabled={isSubmitting || !isDirty}
-              startIcon={isSubmitting ? <LinearProgress size={20} /> : <SaveIcon />}
+              startIcon={
+                isSubmitting ? <LinearProgress size={20} /> : <SaveIcon />
+              }
             >
-              {isSubmitting ? 'Saving...' : isEditing ? 'Update Product' : 'Create Product'}
+              {isSubmitting
+                ? "Saving..."
+                : isEditing
+                  ? "Update Product"
+                  : "Create Product"}
             </Button>
           </Stack>
         </Paper>
@@ -929,7 +970,9 @@ export const ProductFormPage: React.FC = () => {
         {/* Error Display */}
         {mutation.error && (
           <Alert severity="error" sx={{ mt: 2 }}>
-            {mutation.error instanceof Error ? mutation.error.message : 'An error occurred'}
+            {mutation.error instanceof Error
+              ? mutation.error.message
+              : "An error occurred"}
           </Alert>
         )}
       </form>

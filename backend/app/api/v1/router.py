@@ -10,6 +10,7 @@ from app.api.v1 import (
     health,
     multi_tenant,
     organizations,
+    payment_processing,
     permission_inheritance,
     pm_automation,
     role_permission_ui,
@@ -20,13 +21,9 @@ from app.api.v1 import (
     user_profile,
     users,
     users_extended,
-    workflows,
 )
-from app.api.v1.endpoints import feature_flags
-from app.api.v1.endpoints.monitoring.performance import router as performance_router
 
 # New CC02 v35.0 API modules
-from app.api.v1.endpoints.security.audit import router as security_audit_router
 from app.core.database import get_db
 
 api_router = APIRouter()
@@ -75,6 +72,8 @@ api_router.include_router(
     user_privacy.router, prefix="/users/privacy", tags=["user-privacy"]
 )
 api_router.include_router(pm_automation.router)
+# CC02 v60.0 - Payment Processing API
+api_router.include_router(payment_processing.router)
 
 
 @api_router.get("/ping")

@@ -209,7 +209,7 @@ class CostAlertRecord(Base):
 class CostMonitoringService:
     """Comprehensive cost monitoring and optimization service"""
 
-    def __init__(self, redis_client: Optional[redis.Redis] = None):
+    def __init__(self, redis_client: Optional[redis.Redis] = None) -> dict:
         self.redis = redis_client or get_redis()
         self.settings = get_settings()
         self.cache_ttl = 300  # 5 minutes

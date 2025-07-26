@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Box,
   Paper,
@@ -38,8 +38,8 @@ import {
   Badge,
   Stepper,
   Step,
-  StepLabel
-} from '@mui/material';
+  StepLabel,
+} from "@mui/material";
 import {
   QrCodeScanner as QrIcon,
   Add as AddIcon,
@@ -58,22 +58,22 @@ import {
   Person as PersonIcon,
   CalendarToday as DateIcon,
   Receipt as ReceiptIcon,
-  Refresh as RefreshIcon
-} from '@mui/icons-material';
-import { apiClient } from '@/services/api';
+  Refresh as RefreshIcon,
+} from "@mui/icons-material";
+import { apiClient } from "@/services/api";
 
 interface StockMovement {
   id: number;
   product_id: number;
   product_code: string;
   product_name: string;
-  movement_type: 'receive' | 'ship' | 'transfer' | 'adjustment' | 'cycle_count';
+  movement_type: "receive" | "ship" | "transfer" | "adjustment" | "cycle_count";
   quantity: number;
   from_location?: string;
   to_location?: string;
   reference_number: string;
   operator: string;
-  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+  status: "pending" | "in_progress" | "completed" | "cancelled";
   timestamp: string;
   completed_at?: string;
   notes?: string;
@@ -95,12 +95,12 @@ interface PendingMovement {
   scanned_quantity: number;
   location: string;
   operator: string;
-  status: 'pending' | 'partial' | 'completed';
+  status: "pending" | "partial" | "completed";
   created_at: string;
 }
 
 interface QRScanResult {
-  type: 'product' | 'location' | 'batch';
+  type: "product" | "location" | "batch";
   data: {
     product_id?: number;
     product_code?: string;
@@ -129,39 +129,44 @@ export const StockMovementPage: React.FC = () => {
   const queryClient = useQueryClient();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  
+
   const [currentTab, setCurrentTab] = useState(0);
   const [qrScannerOpen, setQrScannerOpen] = useState(false);
   const [movementDialogOpen, setMovementDialogOpen] = useState(false);
   const [scanStream, setScanStream] = useState<MediaStream | null>(null);
-  
+
   const [newMovement, setNewMovement] = useState({
-    product_id: '',
-    movement_type: 'receive',
-    quantity: '',
-    location: '',
-    reference: '',
-    notes: '',
-    supplier: '',
-    unit_cost: ''
+    product_id: "",
+    movement_type: "receive",
+    quantity: "",
+    location: "",
+    reference: "",
+    notes: "",
+    supplier: "",
+    unit_cost: "",
   });
 
   const [batchMovement, setBatchMovement] = useState({
-    movement_type: 'receive',
-    location: '',
-    reference: '',
-    operator: '',
-    items: [] as any[]
+    movement_type: "receive",
+    location: "",
+    reference: "",
+    operator: "",
+    items: [] as any[],
   });
 
   const [currentStep, setCurrentStep] = useState(0);
-  const movementSteps = ['Scan Items', 'Verify Quantities', 'Confirm Location', 'Complete'];
+  const movementSteps = [
+    "Scan Items",
+    "Verify Quantities",
+    "Confirm Location",
+    "Complete",
+  ];
 
   // Fetch stock movements
   const { data: movements, isLoading: movementsLoading } = useQuery({
-    queryKey: ['stock-movements'],
+    queryKey: ["stock-movements"],
     queryFn: async (): Promise<StockMovement[]> => {
-      const response = await apiClient.get('/api/v1/stock-movements');
+      const response = await apiClient.get("/api/v1/stock-movements");
       return response.data || [];
     },
     refetchInterval: 5000, // Refresh every 5 seconds for real-time updates
@@ -169,9 +174,9 @@ export const StockMovementPage: React.FC = () => {
 
   // Fetch pending movements
   const { data: pendingMovements } = useQuery({
-    queryKey: ['pending-movements'],
+    queryKey: ["pending-movements"],
     queryFn: async (): Promise<PendingMovement[]> => {
-      const response = await apiClient.get('/api/v1/stock-movements/pending');
+      const response = await apiClient.get("/api/v1/stock-movements/pending");
       return response.data || [];
     },
     refetchInterval: 3000,
@@ -179,18 +184,18 @@ export const StockMovementPage: React.FC = () => {
 
   // Fetch products for autocomplete
   const { data: products } = useQuery({
-    queryKey: ['products-basic'],
+    queryKey: ["products-basic"],
     queryFn: async () => {
-      const response = await apiClient.get('/api/v1/products-basic');
+      const response = await apiClient.get("/api/v1/products-basic");
       return response.data || [];
     },
   });
 
   // Fetch locations for autocomplete
   const { data: locations } = useQuery({
-    queryKey: ['warehouse-locations-all'],
+    queryKey: ["warehouse-locations-all"],
     queryFn: async () => {
-      const response = await apiClient.get('/api/v1/warehouses/locations');
+      const response = await apiClient.get("/api/v1/warehouses/locations");
       return response.data || [];
     },
   });
@@ -198,22 +203,25 @@ export const StockMovementPage: React.FC = () => {
   // Create movement mutation
   const createMovementMutation = useMutation({
     mutationFn: async (movement: any) => {
-      const response = await apiClient.post('/api/v1/stock-movements', movement);
+      const response = await apiClient.post(
+        "/api/v1/stock-movements",
+        movement,
+      );
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
-      queryClient.invalidateQueries({ queryKey: ['inventory-list'] });
+      queryClient.invalidateQueries({ queryKey: ["stock-movements"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory-list"] });
       setMovementDialogOpen(false);
       setNewMovement({
-        product_id: '',
-        movement_type: 'receive',
-        quantity: '',
-        location: '',
-        reference: '',
-        notes: '',
-        supplier: '',
-        unit_cost: ''
+        product_id: "",
+        movement_type: "receive",
+        quantity: "",
+        location: "",
+        reference: "",
+        notes: "",
+        supplier: "",
+        unit_cost: "",
       });
     },
   });
@@ -224,8 +232,8 @@ export const StockMovementPage: React.FC = () => {
       await apiClient.post(`/api/v1/stock-movements/${movementId}/complete`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
-      queryClient.invalidateQueries({ queryKey: ['pending-movements'] });
+      queryClient.invalidateQueries({ queryKey: ["stock-movements"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-movements"] });
     },
   });
 
@@ -233,7 +241,7 @@ export const StockMovementPage: React.FC = () => {
   const startQRScanner = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' }
+        video: { facingMode: "environment" },
       });
       setScanStream(stream);
       if (videoRef.current) {
@@ -241,13 +249,13 @@ export const StockMovementPage: React.FC = () => {
       }
       setQrScannerOpen(true);
     } catch (error) {
-      console.error('Error starting camera:', error);
+      console.error("Error starting camera:", error);
     }
   };
 
   const stopQRScanner = () => {
     if (scanStream) {
-      scanStream.getTracks().forEach(track => track.stop());
+      scanStream.getTracks().forEach((track) => track.stop());
       setScanStream(null);
     }
     setQrScannerOpen(false);
@@ -257,74 +265,90 @@ export const StockMovementPage: React.FC = () => {
     if (videoRef.current && canvasRef.current) {
       const canvas = canvasRef.current;
       const video = videoRef.current;
-      const context = canvas.getContext('2d');
-      
+      const context = canvas.getContext("2d");
+
       if (context) {
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         context.drawImage(video, 0, 0);
-        
+
         // In a real implementation, you would use a QR code library here
         // For now, we'll simulate a scan result
         const mockScanResult: QRScanResult = {
-          type: 'product',
+          type: "product",
           data: {
             product_id: 1,
-            product_code: 'PROD001'
-          }
+            product_code: "PROD001",
+          },
         };
-        
+
         handleQRScanResult(mockScanResult);
       }
     }
   };
 
   const handleQRScanResult = (result: QRScanResult) => {
-    console.log('QR Scan Result:', result);
-    
-    if (result.type === 'product' && result.data.product_id) {
-      setNewMovement(prev => ({
+    console.log("QR Scan Result:", result);
+
+    if (result.type === "product" && result.data.product_id) {
+      setNewMovement((prev) => ({
         ...prev,
-        product_id: result.data.product_id!.toString()
+        product_id: result.data.product_id!.toString(),
       }));
-    } else if (result.type === 'location' && result.data.location) {
-      setNewMovement(prev => ({
+    } else if (result.type === "location" && result.data.location) {
+      setNewMovement((prev) => ({
         ...prev,
-        location: result.data.location!
+        location: result.data.location!,
       }));
     }
-    
+
     stopQRScanner();
   };
 
   const handleSubmitMovement = async () => {
-    if (newMovement.product_id && newMovement.quantity && newMovement.location) {
+    if (
+      newMovement.product_id &&
+      newMovement.quantity &&
+      newMovement.location
+    ) {
       await createMovementMutation.mutateAsync({
         ...newMovement,
         product_id: parseInt(newMovement.product_id),
         quantity: parseFloat(newMovement.quantity),
-        unit_cost: newMovement.unit_cost ? parseFloat(newMovement.unit_cost) : undefined
+        unit_cost: newMovement.unit_cost
+          ? parseFloat(newMovement.unit_cost)
+          : undefined,
       });
     }
   };
 
   const getMovementTypeIcon = (type: string) => {
     switch (type) {
-      case 'receive': return <ReceiveIcon />;
-      case 'ship': return <ShipIcon />;
-      case 'transfer': return <TransferIcon />;
-      case 'adjustment': return <AdjustIcon />;
-      default: return <InventoryIcon />;
+      case "receive":
+        return <ReceiveIcon />;
+      case "ship":
+        return <ShipIcon />;
+      case "transfer":
+        return <TransferIcon />;
+      case "adjustment":
+        return <AdjustIcon />;
+      default:
+        return <InventoryIcon />;
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return 'success';
-      case 'in_progress': return 'warning';
-      case 'pending': return 'info';
-      case 'cancelled': return 'error';
-      default: return 'default';
+      case "completed":
+        return "success";
+      case "in_progress":
+        return "warning";
+      case "pending":
+        return "info";
+      case "cancelled":
+        return "error";
+      default:
+        return "default";
     }
   };
 
@@ -332,20 +356,25 @@ export const StockMovementPage: React.FC = () => {
   useEffect(() => {
     return () => {
       if (scanStream) {
-        scanStream.getTracks().forEach(track => track.stop());
+        scanStream.getTracks().forEach((track) => track.stop());
       }
     };
   }, [scanStream]);
 
   return (
-    <Box sx={{ maxWidth: 1400, mx: 'auto', p: 3 }}>
+    <Box sx={{ maxWidth: 1400, mx: "auto", p: 3 }}>
       {/* Header */}
       <Paper sx={{ p: 3, mb: 3 }}>
-        <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          alignItems="center"
+          mb={2}
+        >
           <Typography variant="h4" component="h1">
             Stock Movement
           </Typography>
-          
+
           <Stack direction="row" spacing={2}>
             <Button
               variant="outlined"
@@ -357,7 +386,7 @@ export const StockMovementPage: React.FC = () => {
             <Button
               variant="outlined"
               startIcon={<SearchIcon />}
-              onClick={() => navigate('/inventory/search')}
+              onClick={() => navigate("/inventory/search")}
             >
               Search Products
             </Button>
@@ -375,58 +404,79 @@ export const StockMovementPage: React.FC = () => {
         <Grid container spacing={3}>
           <Grid item xs={12} md={3}>
             <Card>
-              <CardContent sx={{ display: 'flex', alignItems: 'center', py: 2 }}>
-                <Avatar sx={{ bgcolor: 'warning.main', mr: 2 }}>
+              <CardContent
+                sx={{ display: "flex", alignItems: "center", py: 2 }}
+              >
+                <Avatar sx={{ bgcolor: "warning.main", mr: 2 }}>
                   <PendingIcon />
                 </Avatar>
                 <Box>
-                  <Typography variant="h6">{pendingMovements?.length || 0}</Typography>
-                  <Typography variant="caption" color="text.secondary">Pending</Typography>
+                  <Typography variant="h6">
+                    {pendingMovements?.length || 0}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Pending
+                  </Typography>
                 </Box>
               </CardContent>
             </Card>
           </Grid>
           <Grid item xs={12} md={3}>
             <Card>
-              <CardContent sx={{ display: 'flex', alignItems: 'center', py: 2 }}>
-                <Avatar sx={{ bgcolor: 'success.main', mr: 2 }}>
+              <CardContent
+                sx={{ display: "flex", alignItems: "center", py: 2 }}
+              >
+                <Avatar sx={{ bgcolor: "success.main", mr: 2 }}>
                   <CompleteIcon />
                 </Avatar>
                 <Box>
                   <Typography variant="h6">
-                    {movements?.filter(m => m.status === 'completed').length || 0}
+                    {movements?.filter((m) => m.status === "completed")
+                      .length || 0}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">Completed Today</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Completed Today
+                  </Typography>
                 </Box>
               </CardContent>
             </Card>
           </Grid>
           <Grid item xs={12} md={3}>
             <Card>
-              <CardContent sx={{ display: 'flex', alignItems: 'center', py: 2 }}>
-                <Avatar sx={{ bgcolor: 'info.main', mr: 2 }}>
+              <CardContent
+                sx={{ display: "flex", alignItems: "center", py: 2 }}
+              >
+                <Avatar sx={{ bgcolor: "info.main", mr: 2 }}>
                   <ReceiveIcon />
                 </Avatar>
                 <Box>
                   <Typography variant="h6">
-                    {movements?.filter(m => m.movement_type === 'receive').length || 0}
+                    {movements?.filter((m) => m.movement_type === "receive")
+                      .length || 0}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">Received</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Received
+                  </Typography>
                 </Box>
               </CardContent>
             </Card>
           </Grid>
           <Grid item xs={12} md={3}>
             <Card>
-              <CardContent sx={{ display: 'flex', alignItems: 'center', py: 2 }}>
-                <Avatar sx={{ bgcolor: 'error.main', mr: 2 }}>
+              <CardContent
+                sx={{ display: "flex", alignItems: "center", py: 2 }}
+              >
+                <Avatar sx={{ bgcolor: "error.main", mr: 2 }}>
                   <ShipIcon />
                 </Avatar>
                 <Box>
                   <Typography variant="h6">
-                    {movements?.filter(m => m.movement_type === 'ship').length || 0}
+                    {movements?.filter((m) => m.movement_type === "ship")
+                      .length || 0}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">Shipped</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Shipped
+                  </Typography>
                 </Box>
               </CardContent>
             </Card>
@@ -442,9 +492,13 @@ export const StockMovementPage: React.FC = () => {
           variant="scrollable"
           scrollButtons="auto"
         >
-          <Tab 
-            icon={<Badge badgeContent={pendingMovements?.length} color="warning"><PendingIcon /></Badge>} 
-            label="Pending" 
+          <Tab
+            icon={
+              <Badge badgeContent={pendingMovements?.length} color="warning">
+                <PendingIcon />
+              </Badge>
+            }
+            label="Pending"
           />
           <Tab icon={<InventoryIcon />} label="All Movements" />
           <Tab icon={<QrIcon />} label="Batch Processing" />
@@ -455,10 +509,16 @@ export const StockMovementPage: React.FC = () => {
       {/* Pending Movements Tab */}
       <TabPanel value={currentTab} index={0}>
         <Card>
-          <CardHeader 
+          <CardHeader
             title="Pending Movements"
             action={
-              <IconButton onClick={() => queryClient.invalidateQueries({ queryKey: ['pending-movements'] })}>
+              <IconButton
+                onClick={() =>
+                  queryClient.invalidateQueries({
+                    queryKey: ["pending-movements"],
+                  })
+                }
+              >
                 <RefreshIcon />
               </IconButton>
             }
@@ -484,8 +544,12 @@ export const StockMovementPage: React.FC = () => {
                     <TableRow key={movement.id}>
                       <TableCell>
                         <Box>
-                          <Typography variant="body2" fontWeight="medium">{movement.product_name}</Typography>
-                          <Typography variant="caption" color="text.secondary">{movement.product_code}</Typography>
+                          <Typography variant="body2" fontWeight="medium">
+                            {movement.product_name}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {movement.product_code}
+                          </Typography>
                         </Box>
                       </TableCell>
                       <TableCell>
@@ -507,9 +571,14 @@ export const StockMovementPage: React.FC = () => {
                         </Typography>
                       </TableCell>
                       <TableCell align="right">
-                        <Typography 
-                          variant="body2" 
-                          color={movement.scanned_quantity === movement.expected_quantity ? 'success.main' : 'warning.main'}
+                        <Typography
+                          variant="body2"
+                          color={
+                            movement.scanned_quantity ===
+                            movement.expected_quantity
+                              ? "success.main"
+                              : "warning.main"
+                          }
                           fontWeight="medium"
                         >
                           {movement.scanned_quantity}
@@ -523,7 +592,9 @@ export const StockMovementPage: React.FC = () => {
                         />
                       </TableCell>
                       <TableCell>
-                        <Typography variant="body2">{movement.operator}</Typography>
+                        <Typography variant="body2">
+                          {movement.operator}
+                        </Typography>
                       </TableCell>
                       <TableCell>
                         <Typography variant="caption">
@@ -544,8 +615,13 @@ export const StockMovementPage: React.FC = () => {
                             size="small"
                             variant="contained"
                             startIcon={<CompleteIcon />}
-                            onClick={() => completeMovementMutation.mutate(movement.id)}
-                            disabled={movement.scanned_quantity !== movement.expected_quantity}
+                            onClick={() =>
+                              completeMovementMutation.mutate(movement.id)
+                            }
+                            disabled={
+                              movement.scanned_quantity !==
+                              movement.expected_quantity
+                            }
                           >
                             Complete
                           </Button>
@@ -593,8 +669,15 @@ export const StockMovementPage: React.FC = () => {
                         </TableCell>
                         <TableCell>
                           <Box>
-                            <Typography variant="body2" fontWeight="medium">{movement.product_name}</Typography>
-                            <Typography variant="caption" color="text.secondary">{movement.product_code}</Typography>
+                            <Typography variant="body2" fontWeight="medium">
+                              {movement.product_name}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              {movement.product_code}
+                            </Typography>
                           </Box>
                         </TableCell>
                         <TableCell>
@@ -607,12 +690,12 @@ export const StockMovementPage: React.FC = () => {
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2" fontFamily="monospace">
-                            {movement.from_location || '—'}
+                            {movement.from_location || "—"}
                           </Typography>
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2" fontFamily="monospace">
-                            {movement.to_location || '—'}
+                            {movement.to_location || "—"}
                           </Typography>
                         </TableCell>
                         <TableCell align="right">
@@ -621,10 +704,14 @@ export const StockMovementPage: React.FC = () => {
                           </Typography>
                         </TableCell>
                         <TableCell>
-                          <Typography variant="body2">{movement.reference_number}</Typography>
+                          <Typography variant="body2">
+                            {movement.reference_number}
+                          </Typography>
                         </TableCell>
                         <TableCell>
-                          <Typography variant="body2">{movement.operator}</Typography>
+                          <Typography variant="body2">
+                            {movement.operator}
+                          </Typography>
                         </TableCell>
                         <TableCell>
                           <Chip
@@ -658,10 +745,20 @@ export const StockMovementPage: React.FC = () => {
 
             {currentStep === 0 && (
               <Box textAlign="center" py={4}>
-                <Avatar sx={{ bgcolor: 'primary.main', width: 80, height: 80, mx: 'auto', mb: 2 }}>
+                <Avatar
+                  sx={{
+                    bgcolor: "primary.main",
+                    width: 80,
+                    height: 80,
+                    mx: "auto",
+                    mb: 2,
+                  }}
+                >
                   <QrIcon sx={{ fontSize: 40 }} />
                 </Avatar>
-                <Typography variant="h5" gutterBottom>Start Scanning Items</Typography>
+                <Typography variant="h5" gutterBottom>
+                  Start Scanning Items
+                </Typography>
                 <Typography variant="body1" color="text.secondary" paragraph>
                   Use the QR scanner to scan products for batch processing
                 </Typography>
@@ -678,7 +775,8 @@ export const StockMovementPage: React.FC = () => {
 
             {currentStep > 0 && (
               <Alert severity="info">
-                Batch processing steps would be implemented here with real QR scanning integration.
+                Batch processing steps would be implemented here with real QR
+                scanning integration.
               </Alert>
             )}
           </CardContent>
@@ -698,7 +796,12 @@ export const StockMovementPage: React.FC = () => {
       </TabPanel>
 
       {/* New Movement Dialog */}
-      <Dialog open={movementDialogOpen} onClose={() => setMovementDialogOpen(false)} maxWidth="md" fullWidth>
+      <Dialog
+        open={movementDialogOpen}
+        onClose={() => setMovementDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
         <DialogTitle>Create New Stock Movement</DialogTitle>
         <DialogContent>
           <Grid container spacing={3} sx={{ mt: 1 }}>
@@ -707,7 +810,12 @@ export const StockMovementPage: React.FC = () => {
                 <InputLabel>Movement Type</InputLabel>
                 <Select
                   value={newMovement.movement_type}
-                  onChange={(e) => setNewMovement(prev => ({ ...prev, movement_type: e.target.value }))}
+                  onChange={(e) =>
+                    setNewMovement((prev) => ({
+                      ...prev,
+                      movement_type: e.target.value,
+                    }))
+                  }
                   label="Movement Type"
                 >
                   <MenuItem value="receive">Receive</MenuItem>
@@ -727,9 +835,9 @@ export const StockMovementPage: React.FC = () => {
                   <TextField {...params} label="Product" fullWidth />
                 )}
                 onChange={(_, value) => {
-                  setNewMovement(prev => ({
+                  setNewMovement((prev) => ({
                     ...prev,
-                    product_id: value?.id?.toString() || ''
+                    product_id: value?.id?.toString() || "",
                   }));
                 }}
               />
@@ -741,7 +849,12 @@ export const StockMovementPage: React.FC = () => {
                 type="number"
                 fullWidth
                 value={newMovement.quantity}
-                onChange={(e) => setNewMovement(prev => ({ ...prev, quantity: e.target.value }))}
+                onChange={(e) =>
+                  setNewMovement((prev) => ({
+                    ...prev,
+                    quantity: e.target.value,
+                  }))
+                }
               />
             </Grid>
 
@@ -753,9 +866,9 @@ export const StockMovementPage: React.FC = () => {
                   <TextField {...params} label="Location" fullWidth />
                 )}
                 onChange={(_, value) => {
-                  setNewMovement(prev => ({
+                  setNewMovement((prev) => ({
                     ...prev,
-                    location: value?.full_location || value || ''
+                    location: value?.full_location || value || "",
                   }));
                 }}
               />
@@ -766,7 +879,12 @@ export const StockMovementPage: React.FC = () => {
                 label="Reference Number"
                 fullWidth
                 value={newMovement.reference}
-                onChange={(e) => setNewMovement(prev => ({ ...prev, reference: e.target.value }))}
+                onChange={(e) =>
+                  setNewMovement((prev) => ({
+                    ...prev,
+                    reference: e.target.value,
+                  }))
+                }
               />
             </Grid>
 
@@ -776,17 +894,27 @@ export const StockMovementPage: React.FC = () => {
                 type="number"
                 fullWidth
                 value={newMovement.unit_cost}
-                onChange={(e) => setNewMovement(prev => ({ ...prev, unit_cost: e.target.value }))}
+                onChange={(e) =>
+                  setNewMovement((prev) => ({
+                    ...prev,
+                    unit_cost: e.target.value,
+                  }))
+                }
               />
             </Grid>
 
-            {newMovement.movement_type === 'receive' && (
+            {newMovement.movement_type === "receive" && (
               <Grid item xs={12}>
                 <TextField
                   label="Supplier (optional)"
                   fullWidth
                   value={newMovement.supplier}
-                  onChange={(e) => setNewMovement(prev => ({ ...prev, supplier: e.target.value }))}
+                  onChange={(e) =>
+                    setNewMovement((prev) => ({
+                      ...prev,
+                      supplier: e.target.value,
+                    }))
+                  }
                 />
               </Grid>
             )}
@@ -798,7 +926,9 @@ export const StockMovementPage: React.FC = () => {
                 multiline
                 rows={3}
                 value={newMovement.notes}
-                onChange={(e) => setNewMovement(prev => ({ ...prev, notes: e.target.value }))}
+                onChange={(e) =>
+                  setNewMovement((prev) => ({ ...prev, notes: e.target.value }))
+                }
               />
             </Grid>
           </Grid>
@@ -815,7 +945,9 @@ export const StockMovementPage: React.FC = () => {
               !newMovement.location
             }
           >
-            {createMovementMutation.isPending ? 'Creating...' : 'Create Movement'}
+            {createMovementMutation.isPending
+              ? "Creating..."
+              : "Create Movement"}
           </Button>
         </DialogActions>
       </Dialog>
@@ -829,15 +961,23 @@ export const StockMovementPage: React.FC = () => {
       >
         <DialogTitle>QR Code Scanner</DialogTitle>
         <DialogContent>
-          <Box position="relative" width="100%" height={300} bgcolor="black" display="flex" alignItems="center" justifyContent="center">
+          <Box
+            position="relative"
+            width="100%"
+            height={300}
+            bgcolor="black"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+          >
             <video
               ref={videoRef}
               autoPlay
               playsInline
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
             />
-            <canvas ref={canvasRef} style={{ display: 'none' }} />
-            
+            <canvas ref={canvasRef} style={{ display: "none" }} />
+
             {/* Scan overlay */}
             <Box
               position="absolute"
@@ -848,23 +988,28 @@ export const StockMovementPage: React.FC = () => {
               border="2px solid white"
               borderRadius={2}
               sx={{
-                transform: 'translate(-50%, -50%)',
-                '&::before': {
+                transform: "translate(-50%, -50%)",
+                "&::before": {
                   content: '""',
-                  position: 'absolute',
+                  position: "absolute",
                   top: -2,
                   left: -2,
                   right: -2,
                   bottom: -2,
-                  border: '2px solid red',
+                  border: "2px solid red",
                   borderRadius: 2,
-                  animation: 'pulse 2s infinite'
-                }
+                  animation: "pulse 2s infinite",
+                },
               }}
             />
           </Box>
-          
-          <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ mt: 2 }}>
+
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            textAlign="center"
+            sx={{ mt: 2 }}
+          >
             Position the QR code within the scanning area
           </Typography>
         </DialogContent>

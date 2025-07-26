@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import {
   Box,
   Paper,
@@ -30,8 +30,8 @@ import {
   LinearProgress,
   Avatar,
   Divider,
-  Alert
-} from '@mui/material';
+  Alert,
+} from "@mui/material";
 import {
   Assessment as ReportsIcon,
   TrendingUp as TrendingUpIcon,
@@ -50,8 +50,8 @@ import {
   CheckCircle as CheckIcon,
   Error as ErrorIcon,
   Category as CategoryIcon,
-  Business as SupplierIcon
-} from '@mui/icons-material';
+  Business as SupplierIcon,
+} from "@mui/icons-material";
 import {
   LineChart,
   Line,
@@ -67,9 +67,9 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  ResponsiveContainer
-} from 'recharts';
-import { apiClient } from '@/services/api';
+  ResponsiveContainer,
+} from "recharts";
+import { apiClient } from "@/services/api";
 
 interface InventoryAnalytics {
   total_items: number;
@@ -93,7 +93,7 @@ interface TurnoverAnalysis {
   avg_monthly_sales: number;
   turnover_rate: number;
   days_of_inventory: number;
-  classification: 'fast' | 'medium' | 'slow' | 'dead';
+  classification: "fast" | "medium" | "slow" | "dead";
   last_sale_date?: string;
 }
 
@@ -120,7 +120,7 @@ interface ABCAnalysis {
   annual_usage_value: number;
   percentage_of_total: number;
   cumulative_percentage: number;
-  abc_class: 'A' | 'B' | 'C';
+  abc_class: "A" | "B" | "C";
 }
 
 interface ReorderReport {
@@ -132,7 +132,7 @@ interface ReorderReport {
   recommended_order_qty: number;
   supplier: string;
   lead_time_days: number;
-  priority: 'urgent' | 'normal' | 'low';
+  priority: "urgent" | "normal" | "low";
 }
 
 interface TabPanelProps {
@@ -149,94 +149,116 @@ const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => {
   );
 };
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
+const COLORS = [
+  "#0088FE",
+  "#00C49F",
+  "#FFBB28",
+  "#FF8042",
+  "#8884D8",
+  "#82CA9D",
+];
 
 export const InventoryReportsPage: React.FC = () => {
   const navigate = useNavigate();
-  
+
   const [currentTab, setCurrentTab] = useState(0);
   const [dateRange, setDateRange] = useState({
-    start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    end: new Date().toISOString().split('T')[0]
+    start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split("T")[0],
+    end: new Date().toISOString().split("T")[0],
   });
-  const [selectedWarehouse, setSelectedWarehouse] = useState('all');
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedWarehouse, setSelectedWarehouse] = useState("all");
+  const [selectedCategory, setSelectedCategory] = useState("all");
 
   // Fetch inventory analytics
   const { data: analytics, isLoading: analyticsLoading } = useQuery({
-    queryKey: ['inventory-analytics', dateRange, selectedWarehouse, selectedCategory],
+    queryKey: [
+      "inventory-analytics",
+      dateRange,
+      selectedWarehouse,
+      selectedCategory,
+    ],
     queryFn: async (): Promise<InventoryAnalytics> => {
       const params = new URLSearchParams({
         start_date: dateRange.start,
         end_date: dateRange.end,
         warehouse: selectedWarehouse,
-        category: selectedCategory
+        category: selectedCategory,
       });
-      const response = await apiClient.get(`/api/v1/inventory/analytics?${params}`);
-      return response.data || {
-        total_items: 0,
-        total_value: 0,
-        avg_turnover_rate: 0,
-        low_stock_items: 0,
-        out_of_stock_items: 0,
-        overstock_items: 0,
-        dead_stock_items: 0,
-        carrying_cost: 0,
-        stockout_cost: 0,
-        accuracy_rate: 0
-      };
+      const response = await apiClient.get(
+        `/api/v1/inventory/analytics?${params}`,
+      );
+      return (
+        response.data || {
+          total_items: 0,
+          total_value: 0,
+          avg_turnover_rate: 0,
+          low_stock_items: 0,
+          out_of_stock_items: 0,
+          overstock_items: 0,
+          dead_stock_items: 0,
+          carrying_cost: 0,
+          stockout_cost: 0,
+          accuracy_rate: 0,
+        }
+      );
     },
   });
 
   // Fetch turnover analysis
   const { data: turnoverData } = useQuery({
-    queryKey: ['inventory-turnover', dateRange],
+    queryKey: ["inventory-turnover", dateRange],
     queryFn: async (): Promise<TurnoverAnalysis[]> => {
       const params = new URLSearchParams({
         start_date: dateRange.start,
-        end_date: dateRange.end
+        end_date: dateRange.end,
       });
-      const response = await apiClient.get(`/api/v1/inventory/turnover-analysis?${params}`);
+      const response = await apiClient.get(
+        `/api/v1/inventory/turnover-analysis?${params}`,
+      );
       return response.data || [];
     },
   });
 
   // Fetch stock value analysis
   const { data: stockValueData } = useQuery({
-    queryKey: ['inventory-value-analysis'],
+    queryKey: ["inventory-value-analysis"],
     queryFn: async (): Promise<StockValueAnalysis[]> => {
-      const response = await apiClient.get('/api/v1/inventory/value-analysis');
+      const response = await apiClient.get("/api/v1/inventory/value-analysis");
       return response.data || [];
     },
   });
 
   // Fetch movement trends
   const { data: movementTrends } = useQuery({
-    queryKey: ['inventory-movement-trends', dateRange],
+    queryKey: ["inventory-movement-trends", dateRange],
     queryFn: async (): Promise<MovementTrend[]> => {
       const params = new URLSearchParams({
         start_date: dateRange.start,
-        end_date: dateRange.end
+        end_date: dateRange.end,
       });
-      const response = await apiClient.get(`/api/v1/inventory/movement-trends?${params}`);
+      const response = await apiClient.get(
+        `/api/v1/inventory/movement-trends?${params}`,
+      );
       return response.data || [];
     },
   });
 
   // Fetch ABC analysis
   const { data: abcAnalysis } = useQuery({
-    queryKey: ['inventory-abc-analysis'],
+    queryKey: ["inventory-abc-analysis"],
     queryFn: async (): Promise<ABCAnalysis[]> => {
-      const response = await apiClient.get('/api/v1/inventory/abc-analysis');
+      const response = await apiClient.get("/api/v1/inventory/abc-analysis");
       return response.data || [];
     },
   });
 
   // Fetch reorder report
   const { data: reorderReport } = useQuery({
-    queryKey: ['inventory-reorder-report'],
+    queryKey: ["inventory-reorder-report"],
     queryFn: async (): Promise<ReorderReport[]> => {
-      const response = await apiClient.get('/api/v1/inventory/reorder-report');
+      const response = await apiClient.get("/api/v1/inventory/reorder-report");
       return response.data || [];
     },
   });
@@ -244,45 +266,51 @@ export const InventoryReportsPage: React.FC = () => {
   // Process data for charts
   const turnoverChartData = useMemo(() => {
     if (!turnoverData) return [];
-    
+
     const grouped = turnoverData.reduce((acc, item) => {
       const key = item.classification;
       if (!acc[key]) {
         acc[key] = { classification: key, count: 0, total_value: 0 };
       }
       acc[key].count += 1;
-      acc[key].total_value += item.current_stock * (item.avg_monthly_sales || 0);
+      acc[key].total_value +=
+        item.current_stock * (item.avg_monthly_sales || 0);
       return acc;
     }, {} as any);
-    
+
     return Object.values(grouped);
   }, [turnoverData]);
 
-  const exportReport = (type: 'pdf' | 'excel' | 'csv') => {
+  const exportReport = (type: "pdf" | "excel" | "csv") => {
     const params = new URLSearchParams({
       type,
       start_date: dateRange.start,
       end_date: dateRange.end,
       warehouse: selectedWarehouse,
-      category: selectedCategory
+      category: selectedCategory,
     });
-    window.open(`/api/v1/inventory/export-report?${params}`, '_blank');
+    window.open(`/api/v1/inventory/export-report?${params}`, "_blank");
   };
 
   const scheduleReport = () => {
     // Schedule report functionality
-    console.log('Schedule report');
+    console.log("Schedule report");
   };
 
   return (
-    <Box sx={{ maxWidth: 1400, mx: 'auto', p: 3 }}>
+    <Box sx={{ maxWidth: 1400, mx: "auto", p: 3 }}>
       {/* Header */}
       <Paper sx={{ p: 3, mb: 3 }}>
-        <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          alignItems="center"
+          mb={3}
+        >
           <Typography variant="h4" component="h1">
             Inventory Reports & Analytics
           </Typography>
-          
+
           <Stack direction="row" spacing={2}>
             <Button
               variant="outlined"
@@ -291,22 +319,16 @@ export const InventoryReportsPage: React.FC = () => {
             >
               Schedule
             </Button>
-            <Button
-              variant="outlined"
-              startIcon={<EmailIcon />}
-            >
+            <Button variant="outlined" startIcon={<EmailIcon />}>
               Email
             </Button>
-            <Button
-              variant="outlined"
-              startIcon={<PrintIcon />}
-            >
+            <Button variant="outlined" startIcon={<PrintIcon />}>
               Print
             </Button>
             <Button
               variant="contained"
               startIcon={<DownloadIcon />}
-              onClick={() => exportReport('pdf')}
+              onClick={() => exportReport("pdf")}
             >
               Export
             </Button>
@@ -321,7 +343,9 @@ export const InventoryReportsPage: React.FC = () => {
               type="date"
               fullWidth
               value={dateRange.start}
-              onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
+              onChange={(e) =>
+                setDateRange((prev) => ({ ...prev, start: e.target.value }))
+              }
               InputLabelProps={{ shrink: true }}
             />
           </Grid>
@@ -331,7 +355,9 @@ export const InventoryReportsPage: React.FC = () => {
               type="date"
               fullWidth
               value={dateRange.end}
-              onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
+              onChange={(e) =>
+                setDateRange((prev) => ({ ...prev, end: e.target.value }))
+              }
               InputLabelProps={{ shrink: true }}
             />
           </Grid>
@@ -373,12 +399,16 @@ export const InventoryReportsPage: React.FC = () => {
           <Card>
             <CardContent>
               <Stack direction="row" alignItems="center" spacing={2}>
-                <Avatar sx={{ bgcolor: 'primary.main' }}>
+                <Avatar sx={{ bgcolor: "primary.main" }}>
                   <InventoryIcon />
                 </Avatar>
                 <Box>
-                  <Typography variant="h4">{analytics?.total_items || 0}</Typography>
-                  <Typography variant="body2" color="text.secondary">Total Items</Typography>
+                  <Typography variant="h4">
+                    {analytics?.total_items || 0}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Total Items
+                  </Typography>
                 </Box>
               </Stack>
             </CardContent>
@@ -388,12 +418,16 @@ export const InventoryReportsPage: React.FC = () => {
           <Card>
             <CardContent>
               <Stack direction="row" alignItems="center" spacing={2}>
-                <Avatar sx={{ bgcolor: 'success.main' }}>
+                <Avatar sx={{ bgcolor: "success.main" }}>
                   <MoneyIcon />
                 </Avatar>
                 <Box>
-                  <Typography variant="h4">${analytics?.total_value?.toFixed(0) || '0'}</Typography>
-                  <Typography variant="body2" color="text.secondary">Total Value</Typography>
+                  <Typography variant="h4">
+                    ${analytics?.total_value?.toFixed(0) || "0"}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Total Value
+                  </Typography>
                 </Box>
               </Stack>
             </CardContent>
@@ -403,12 +437,16 @@ export const InventoryReportsPage: React.FC = () => {
           <Card>
             <CardContent>
               <Stack direction="row" alignItems="center" spacing={2}>
-                <Avatar sx={{ bgcolor: 'info.main' }}>
+                <Avatar sx={{ bgcolor: "info.main" }}>
                   <VelocityIcon />
                 </Avatar>
                 <Box>
-                  <Typography variant="h4">{analytics?.avg_turnover_rate?.toFixed(1) || '0.0'}x</Typography>
-                  <Typography variant="body2" color="text.secondary">Avg Turnover</Typography>
+                  <Typography variant="h4">
+                    {analytics?.avg_turnover_rate?.toFixed(1) || "0.0"}x
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Avg Turnover
+                  </Typography>
                 </Box>
               </Stack>
             </CardContent>
@@ -418,12 +456,16 @@ export const InventoryReportsPage: React.FC = () => {
           <Card>
             <CardContent>
               <Stack direction="row" alignItems="center" spacing={2}>
-                <Avatar sx={{ bgcolor: 'warning.main' }}>
+                <Avatar sx={{ bgcolor: "warning.main" }}>
                   <WarningIcon />
                 </Avatar>
                 <Box>
-                  <Typography variant="h4">{analytics?.low_stock_items || 0}</Typography>
-                  <Typography variant="body2" color="text.secondary">Low Stock</Typography>
+                  <Typography variant="h4">
+                    {analytics?.low_stock_items || 0}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Low Stock
+                  </Typography>
                 </Box>
               </Stack>
             </CardContent>
@@ -435,55 +477,82 @@ export const InventoryReportsPage: React.FC = () => {
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid item xs={12} md={2}>
           <Card>
-            <CardContent sx={{ textAlign: 'center' }}>
+            <CardContent sx={{ textAlign: "center" }}>
               <ErrorIcon color="error" sx={{ fontSize: 32, mb: 1 }} />
-              <Typography variant="h6">{analytics?.out_of_stock_items || 0}</Typography>
-              <Typography variant="caption" color="text.secondary">Out of Stock</Typography>
+              <Typography variant="h6">
+                {analytics?.out_of_stock_items || 0}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Out of Stock
+              </Typography>
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} md={2}>
           <Card>
-            <CardContent sx={{ textAlign: 'center' }}>
+            <CardContent sx={{ textAlign: "center" }}>
               <TrendingUpIcon color="info" sx={{ fontSize: 32, mb: 1 }} />
-              <Typography variant="h6">{analytics?.overstock_items || 0}</Typography>
-              <Typography variant="caption" color="text.secondary">Overstock</Typography>
+              <Typography variant="h6">
+                {analytics?.overstock_items || 0}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Overstock
+              </Typography>
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} md={2}>
           <Card>
-            <CardContent sx={{ textAlign: 'center' }}>
-              <TrendingDownIcon color="secondary" sx={{ fontSize: 32, mb: 1 }} />
-              <Typography variant="h6">{analytics?.dead_stock_items || 0}</Typography>
-              <Typography variant="caption" color="text.secondary">Dead Stock</Typography>
+            <CardContent sx={{ textAlign: "center" }}>
+              <TrendingDownIcon
+                color="secondary"
+                sx={{ fontSize: 32, mb: 1 }}
+              />
+              <Typography variant="h6">
+                {analytics?.dead_stock_items || 0}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Dead Stock
+              </Typography>
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} md={2}>
           <Card>
-            <CardContent sx={{ textAlign: 'center' }}>
+            <CardContent sx={{ textAlign: "center" }}>
               <MoneyIcon color="warning" sx={{ fontSize: 32, mb: 1 }} />
-              <Typography variant="h6">${analytics?.carrying_cost?.toFixed(0) || '0'}</Typography>
-              <Typography variant="caption" color="text.secondary">Carrying Cost</Typography>
+              <Typography variant="h6">
+                ${analytics?.carrying_cost?.toFixed(0) || "0"}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Carrying Cost
+              </Typography>
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} md={2}>
           <Card>
-            <CardContent sx={{ textAlign: 'center' }}>
+            <CardContent sx={{ textAlign: "center" }}>
               <ErrorIcon color="error" sx={{ fontSize: 32, mb: 1 }} />
-              <Typography variant="h6">${analytics?.stockout_cost?.toFixed(0) || '0'}</Typography>
-              <Typography variant="caption" color="text.secondary">Stockout Cost</Typography>
+              <Typography variant="h6">
+                ${analytics?.stockout_cost?.toFixed(0) || "0"}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Stockout Cost
+              </Typography>
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} md={2}>
           <Card>
-            <CardContent sx={{ textAlign: 'center' }}>
+            <CardContent sx={{ textAlign: "center" }}>
               <CheckIcon color="success" sx={{ fontSize: 32, mb: 1 }} />
-              <Typography variant="h6">{analytics?.accuracy_rate?.toFixed(1) || '0.0'}%</Typography>
-              <Typography variant="caption" color="text.secondary">Accuracy</Typography>
+              <Typography variant="h6">
+                {analytics?.accuracy_rate?.toFixed(1) || "0.0"}%
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Accuracy
+              </Typography>
             </CardContent>
           </Card>
         </Grid>
@@ -518,14 +587,36 @@ export const InventoryReportsPage: React.FC = () => {
                   <YAxis />
                   <Tooltip />
                   <Legend />
-                  <Line type="monotone" dataKey="receipts" stroke="#00C49F" name="Receipts" />
-                  <Line type="monotone" dataKey="shipments" stroke="#FF8042" name="Shipments" />
-                  <Line type="monotone" dataKey="adjustments" stroke="#8884D8" name="Adjustments" />
-                  <Line type="monotone" dataKey="net_movement" stroke="#0088FE" name="Net Movement" />
+                  <Line
+                    type="monotone"
+                    dataKey="receipts"
+                    stroke="#00C49F"
+                    name="Receipts"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="shipments"
+                    stroke="#FF8042"
+                    name="Shipments"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="adjustments"
+                    stroke="#8884D8"
+                    name="Adjustments"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="net_movement"
+                    stroke="#0088FE"
+                    name="Net Movement"
+                  />
                 </LineChart>
               </ResponsiveContainer>
             ) : (
-              <Alert severity="info">No movement data available for the selected period.</Alert>
+              <Alert severity="info">
+                No movement data available for the selected period.
+              </Alert>
             )}
           </CardContent>
         </Card>
@@ -546,16 +637,26 @@ export const InventoryReportsPage: React.FC = () => {
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={(entry) => `${entry.category}: ${entry.percentage.toFixed(1)}%`}
+                        label={(entry) =>
+                          `${entry.category}: ${entry.percentage.toFixed(1)}%`
+                        }
                         outerRadius={80}
                         fill="#8884d8"
                         dataKey="total_value"
                       >
                         {stockValueData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={COLORS[index % COLORS.length]}
+                          />
                         ))}
                       </Pie>
-                      <Tooltip formatter={(value: number) => [`$${value.toFixed(0)}`, 'Value']} />
+                      <Tooltip
+                        formatter={(value: number) => [
+                          `$${value.toFixed(0)}`,
+                          "Value",
+                        ]}
+                      />
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
@@ -584,8 +685,12 @@ export const InventoryReportsPage: React.FC = () => {
                         <TableRow key={row.category}>
                           <TableCell>{row.category}</TableCell>
                           <TableCell align="right">{row.item_count}</TableCell>
-                          <TableCell align="right">${row.total_value.toFixed(0)}</TableCell>
-                          <TableCell align="right">{row.percentage.toFixed(1)}%</TableCell>
+                          <TableCell align="right">
+                            ${row.total_value.toFixed(0)}
+                          </TableCell>
+                          <TableCell align="right">
+                            {row.percentage.toFixed(1)}%
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -636,19 +741,39 @@ export const InventoryReportsPage: React.FC = () => {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {turnoverData?.filter(item => item.classification === 'slow' || item.classification === 'dead').slice(0, 10).map((item) => (
-                        <TableRow key={item.product_id}>
-                          <TableCell>
-                            <Box>
-                              <Typography variant="body2" fontWeight="medium">{item.product_name}</Typography>
-                              <Typography variant="caption" color="text.secondary">{item.product_code}</Typography>
-                            </Box>
-                          </TableCell>
-                          <TableCell align="right">{item.current_stock}</TableCell>
-                          <TableCell align="right">{item.turnover_rate.toFixed(2)}x</TableCell>
-                          <TableCell align="right">{Math.round(item.days_of_inventory)}d</TableCell>
-                        </TableRow>
-                      ))}
+                      {turnoverData
+                        ?.filter(
+                          (item) =>
+                            item.classification === "slow" ||
+                            item.classification === "dead",
+                        )
+                        .slice(0, 10)
+                        .map((item) => (
+                          <TableRow key={item.product_id}>
+                            <TableCell>
+                              <Box>
+                                <Typography variant="body2" fontWeight="medium">
+                                  {item.product_name}
+                                </Typography>
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                >
+                                  {item.product_code}
+                                </Typography>
+                              </Box>
+                            </TableCell>
+                            <TableCell align="right">
+                              {item.current_stock}
+                            </TableCell>
+                            <TableCell align="right">
+                              {item.turnover_rate.toFixed(2)}x
+                            </TableCell>
+                            <TableCell align="right">
+                              {Math.round(item.days_of_inventory)}d
+                            </TableCell>
+                          </TableRow>
+                        ))}
                     </TableBody>
                   </Table>
                 </TableContainer>
@@ -682,8 +807,15 @@ export const InventoryReportsPage: React.FC = () => {
                       <TableRow key={item.product_id}>
                         <TableCell>
                           <Box>
-                            <Typography variant="body2" fontWeight="medium">{item.product_name}</Typography>
-                            <Typography variant="caption" color="text.secondary">{item.product_code}</Typography>
+                            <Typography variant="body2" fontWeight="medium">
+                              {item.product_name}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              {item.product_code}
+                            </Typography>
                           </Box>
                         </TableCell>
                         <TableCell>
@@ -691,15 +823,23 @@ export const InventoryReportsPage: React.FC = () => {
                             label={`Class ${item.abc_class}`}
                             size="small"
                             color={
-                              item.abc_class === 'A' ? 'error' :
-                              item.abc_class === 'B' ? 'warning' :
-                              'info'
+                              item.abc_class === "A"
+                                ? "error"
+                                : item.abc_class === "B"
+                                  ? "warning"
+                                  : "info"
                             }
                           />
                         </TableCell>
-                        <TableCell align="right">${item.annual_usage_value.toFixed(0)}</TableCell>
-                        <TableCell align="right">{item.percentage_of_total.toFixed(1)}%</TableCell>
-                        <TableCell align="right">{item.cumulative_percentage.toFixed(1)}%</TableCell>
+                        <TableCell align="right">
+                          ${item.annual_usage_value.toFixed(0)}
+                        </TableCell>
+                        <TableCell align="right">
+                          {item.percentage_of_total.toFixed(1)}%
+                        </TableCell>
+                        <TableCell align="right">
+                          {item.cumulative_percentage.toFixed(1)}%
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -713,8 +853,8 @@ export const InventoryReportsPage: React.FC = () => {
       {/* Reorder Report Tab */}
       <TabPanel value={currentTab} index={4}>
         <Card>
-          <CardHeader 
-            title="Reorder Report" 
+          <CardHeader
+            title="Reorder Report"
             subheader="Items that need to be reordered based on current stock levels"
           />
           <CardContent>
@@ -736,12 +876,23 @@ export const InventoryReportsPage: React.FC = () => {
                     <TableRow key={item.product_id}>
                       <TableCell>
                         <Box>
-                          <Typography variant="body2" fontWeight="medium">{item.product_name}</Typography>
-                          <Typography variant="caption" color="text.secondary">{item.product_code}</Typography>
+                          <Typography variant="body2" fontWeight="medium">
+                            {item.product_name}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {item.product_code}
+                          </Typography>
                         </Box>
                       </TableCell>
                       <TableCell align="right">
-                        <Typography variant="body2" color={item.current_stock <= item.reorder_point ? 'error.main' : 'text.primary'}>
+                        <Typography
+                          variant="body2"
+                          color={
+                            item.current_stock <= item.reorder_point
+                              ? "error.main"
+                              : "text.primary"
+                          }
+                        >
                           {item.current_stock}
                         </Typography>
                       </TableCell>
@@ -752,15 +903,19 @@ export const InventoryReportsPage: React.FC = () => {
                         </Typography>
                       </TableCell>
                       <TableCell>{item.supplier}</TableCell>
-                      <TableCell align="right">{item.lead_time_days} days</TableCell>
+                      <TableCell align="right">
+                        {item.lead_time_days} days
+                      </TableCell>
                       <TableCell>
                         <Chip
                           label={item.priority}
                           size="small"
                           color={
-                            item.priority === 'urgent' ? 'error' :
-                            item.priority === 'normal' ? 'warning' :
-                            'info'
+                            item.priority === "urgent"
+                              ? "error"
+                              : item.priority === "normal"
+                                ? "warning"
+                                : "info"
                           }
                         />
                       </TableCell>

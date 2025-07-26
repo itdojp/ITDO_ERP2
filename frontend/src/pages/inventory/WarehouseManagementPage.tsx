@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Box,
   Paper,
@@ -36,8 +36,8 @@ import {
   Divider,
   TreeView,
   TreeItem,
-  Autocomplete
-} from '@mui/material';
+  Autocomplete,
+} from "@mui/material";
 import {
   Warehouse as WarehouseIcon,
   LocationOn as LocationIcon,
@@ -58,9 +58,9 @@ import {
   Warning as WarningIcon,
   Room as BinIcon,
   LocalShipping as ShippingIcon,
-  AccountTree as HierarchyIcon
-} from '@mui/icons-material';
-import { apiClient } from '@/services/api';
+  AccountTree as HierarchyIcon,
+} from "@mui/icons-material";
+import { apiClient } from "@/services/api";
 
 interface Warehouse {
   id: number;
@@ -91,7 +91,12 @@ interface WarehouseLocation {
   shelf: string;
   bin: string;
   full_location: string;
-  location_type: 'storage' | 'receiving' | 'shipping' | 'quality_control' | 'staging';
+  location_type:
+    | "storage"
+    | "receiving"
+    | "shipping"
+    | "quality_control"
+    | "staging";
   capacity: number;
   current_usage: number;
   is_occupied: boolean;
@@ -114,7 +119,7 @@ interface LocationMovement {
   from_location?: string;
   to_location: string;
   quantity: number;
-  movement_type: 'receive' | 'ship' | 'transfer' | 'cycle_count' | 'adjustment';
+  movement_type: "receive" | "ship" | "transfer" | "cycle_count" | "adjustment";
   reference: string;
   operator: string;
   timestamp: string;
@@ -138,35 +143,40 @@ const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => {
 export const WarehouseManagementPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  
+
   const [currentTab, setCurrentTab] = useState(0);
-  const [selectedWarehouse, setSelectedWarehouse] = useState<number | null>(null);
+  const [selectedWarehouse, setSelectedWarehouse] = useState<number | null>(
+    null,
+  );
   const [locationDialogOpen, setLocationDialogOpen] = useState(false);
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState<WarehouseLocation | null>(null);
+  const [selectedLocation, setSelectedLocation] =
+    useState<WarehouseLocation | null>(null);
   const [transferData, setTransferData] = useState({
-    product_id: '',
-    from_location: '',
-    to_location: '',
-    quantity: '',
-    notes: ''
+    product_id: "",
+    from_location: "",
+    to_location: "",
+    quantity: "",
+    notes: "",
   });
 
   // Fetch warehouses
   const { data: warehouses, isLoading: warehousesLoading } = useQuery({
-    queryKey: ['warehouses'],
+    queryKey: ["warehouses"],
     queryFn: async (): Promise<Warehouse[]> => {
-      const response = await apiClient.get('/api/v1/warehouses');
+      const response = await apiClient.get("/api/v1/warehouses");
       return response.data || [];
     },
   });
 
   // Fetch warehouse locations
   const { data: locations, isLoading: locationsLoading } = useQuery({
-    queryKey: ['warehouse-locations', selectedWarehouse],
+    queryKey: ["warehouse-locations", selectedWarehouse],
     queryFn: async (): Promise<WarehouseLocation[]> => {
       if (!selectedWarehouse) return [];
-      const response = await apiClient.get(`/api/v1/warehouses/${selectedWarehouse}/locations`);
+      const response = await apiClient.get(
+        `/api/v1/warehouses/${selectedWarehouse}/locations`,
+      );
       return response.data || [];
     },
     enabled: !!selectedWarehouse,
@@ -174,10 +184,12 @@ export const WarehouseManagementPage: React.FC = () => {
 
   // Fetch location movements
   const { data: movements } = useQuery({
-    queryKey: ['location-movements', selectedWarehouse],
+    queryKey: ["location-movements", selectedWarehouse],
     queryFn: async (): Promise<LocationMovement[]> => {
       if (!selectedWarehouse) return [];
-      const response = await apiClient.get(`/api/v1/warehouses/${selectedWarehouse}/movements`);
+      const response = await apiClient.get(
+        `/api/v1/warehouses/${selectedWarehouse}/movements`,
+      );
       return response.data || [];
     },
     enabled: !!selectedWarehouse,
@@ -186,18 +198,18 @@ export const WarehouseManagementPage: React.FC = () => {
   // Location transfer mutation
   const transferMutation = useMutation({
     mutationFn: async (transfer: any) => {
-      await apiClient.post('/api/v1/warehouses/transfer', transfer);
+      await apiClient.post("/api/v1/warehouses/transfer", transfer);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['warehouse-locations'] });
-      queryClient.invalidateQueries({ queryKey: ['location-movements'] });
+      queryClient.invalidateQueries({ queryKey: ["warehouse-locations"] });
+      queryClient.invalidateQueries({ queryKey: ["location-movements"] });
       setTransferDialogOpen(false);
       setTransferData({
-        product_id: '',
-        from_location: '',
-        to_location: '',
-        quantity: '',
-        notes: ''
+        product_id: "",
+        from_location: "",
+        to_location: "",
+        quantity: "",
+        notes: "",
       });
     },
   });
@@ -205,32 +217,42 @@ export const WarehouseManagementPage: React.FC = () => {
   // Location creation mutation
   const createLocationMutation = useMutation({
     mutationFn: async (location: Partial<WarehouseLocation>) => {
-      await apiClient.post(`/api/v1/warehouses/${selectedWarehouse}/locations`, location);
+      await apiClient.post(
+        `/api/v1/warehouses/${selectedWarehouse}/locations`,
+        location,
+      );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['warehouse-locations'] });
+      queryClient.invalidateQueries({ queryKey: ["warehouse-locations"] });
       setLocationDialogOpen(false);
     },
   });
 
   const handleTransfer = async () => {
-    if (transferData.product_id && transferData.from_location && transferData.to_location && transferData.quantity) {
+    if (
+      transferData.product_id &&
+      transferData.from_location &&
+      transferData.to_location &&
+      transferData.quantity
+    ) {
       await transferMutation.mutateAsync({
         ...transferData,
         warehouse_id: selectedWarehouse,
-        quantity: parseFloat(transferData.quantity)
+        quantity: parseFloat(transferData.quantity),
       });
     }
   };
 
-  const selectedWarehouseData = warehouses?.find(w => w.id === selectedWarehouse);
+  const selectedWarehouseData = warehouses?.find(
+    (w) => w.id === selectedWarehouse,
+  );
 
   // Generate location hierarchy for TreeView
   const locationHierarchy = useMemo(() => {
     if (!locations) return {};
-    
+
     const hierarchy: any = {};
-    locations.forEach(location => {
+    locations.forEach((location) => {
       if (!hierarchy[location.zone]) {
         hierarchy[location.zone] = {};
       }
@@ -240,12 +262,18 @@ export const WarehouseManagementPage: React.FC = () => {
       if (!hierarchy[location.zone][location.aisle][location.rack]) {
         hierarchy[location.zone][location.aisle][location.rack] = {};
       }
-      if (!hierarchy[location.zone][location.aisle][location.rack][location.shelf]) {
-        hierarchy[location.zone][location.aisle][location.rack][location.shelf] = [];
+      if (
+        !hierarchy[location.zone][location.aisle][location.rack][location.shelf]
+      ) {
+        hierarchy[location.zone][location.aisle][location.rack][
+          location.shelf
+        ] = [];
       }
-      hierarchy[location.zone][location.aisle][location.rack][location.shelf].push(location);
+      hierarchy[location.zone][location.aisle][location.rack][
+        location.shelf
+      ].push(location);
     });
-    
+
     return hierarchy;
   }, [locations]);
 
@@ -253,25 +281,49 @@ export const WarehouseManagementPage: React.FC = () => {
     return Object.entries(hierarchy).map(([zone, aisles]: [string, any]) => (
       <TreeItem key={zone} nodeId={zone} label={`Zone: ${zone}`}>
         {Object.entries(aisles).map(([aisle, racks]: [string, any]) => (
-          <TreeItem key={`${zone}-${aisle}`} nodeId={`${zone}-${aisle}`} label={`Aisle: ${aisle}`}>
+          <TreeItem
+            key={`${zone}-${aisle}`}
+            nodeId={`${zone}-${aisle}`}
+            label={`Aisle: ${aisle}`}
+          >
             {Object.entries(racks).map(([rack, shelves]: [string, any]) => (
-              <TreeItem key={`${zone}-${aisle}-${rack}`} nodeId={`${zone}-${aisle}-${rack}`} label={`Rack: ${rack}`}>
+              <TreeItem
+                key={`${zone}-${aisle}-${rack}`}
+                nodeId={`${zone}-${aisle}-${rack}`}
+                label={`Rack: ${rack}`}
+              >
                 {Object.entries(shelves).map(([shelf, bins]: [string, any]) => (
-                  <TreeItem key={`${zone}-${aisle}-${rack}-${shelf}`} nodeId={`${zone}-${aisle}-${rack}-${shelf}`} label={`Shelf: ${shelf}`}>
+                  <TreeItem
+                    key={`${zone}-${aisle}-${rack}-${shelf}`}
+                    nodeId={`${zone}-${aisle}-${rack}-${shelf}`}
+                    label={`Shelf: ${shelf}`}
+                  >
                     {bins.map((location: WarehouseLocation) => (
                       <TreeItem
                         key={location.id}
                         nodeId={location.id.toString()}
                         label={
-                          <Box display="flex" alignItems="center" justifyContent="space-between">
+                          <Box
+                            display="flex"
+                            alignItems="center"
+                            justifyContent="space-between"
+                          >
                             <Typography variant="body2">
                               Bin: {location.bin}
                               {location.is_occupied && (
-                                <Chip label="Occupied" size="small" color="warning" sx={{ ml: 1 }} />
+                                <Chip
+                                  label="Occupied"
+                                  size="small"
+                                  color="warning"
+                                  sx={{ ml: 1 }}
+                                />
                               )}
                             </Typography>
                             {location.product_name && (
-                              <Typography variant="caption" color="text.secondary">
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
                                 {location.product_name} ({location.quantity})
                               </Typography>
                             )}
@@ -290,26 +342,31 @@ export const WarehouseManagementPage: React.FC = () => {
   };
 
   return (
-    <Box sx={{ maxWidth: 1400, mx: 'auto', p: 3 }}>
+    <Box sx={{ maxWidth: 1400, mx: "auto", p: 3 }}>
       {/* Header */}
       <Paper sx={{ p: 3, mb: 3 }}>
-        <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          alignItems="center"
+          mb={2}
+        >
           <Typography variant="h4" component="h1">
             Warehouse Management
           </Typography>
-          
+
           <Stack direction="row" spacing={2}>
             <Button
               variant="outlined"
               startIcon={<QrIcon />}
-              onClick={() => navigate('/warehouse/scan')}
+              onClick={() => navigate("/warehouse/scan")}
             >
               QR Scanner
             </Button>
             <Button
               variant="outlined"
               startIcon={<MapIcon />}
-              onClick={() => navigate('/warehouse/map')}
+              onClick={() => navigate("/warehouse/map")}
             >
               Warehouse Map
             </Button>
@@ -329,47 +386,71 @@ export const WarehouseManagementPage: React.FC = () => {
             <Grid item xs={12} md={6} lg={4} key={warehouse.id}>
               <Card
                 sx={{
-                  cursor: 'pointer',
+                  cursor: "pointer",
                   border: selectedWarehouse === warehouse.id ? 2 : 1,
-                  borderColor: selectedWarehouse === warehouse.id ? 'primary.main' : 'divider',
-                  '&:hover': { bgcolor: 'action.hover' }
+                  borderColor:
+                    selectedWarehouse === warehouse.id
+                      ? "primary.main"
+                      : "divider",
+                  "&:hover": { bgcolor: "action.hover" },
                 }}
                 onClick={() => setSelectedWarehouse(warehouse.id)}
               >
                 <CardContent>
                   <Stack direction="row" alignItems="center" spacing={2} mb={2}>
-                    <Avatar sx={{ bgcolor: 'primary.main' }}>
+                    <Avatar sx={{ bgcolor: "primary.main" }}>
                       <WarehouseIcon />
                     </Avatar>
                     <Box>
                       <Typography variant="h6">{warehouse.name}</Typography>
-                      <Typography variant="body2" color="text.secondary">{warehouse.code}</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {warehouse.code}
+                      </Typography>
                     </Box>
                     <Chip
-                      label={warehouse.is_active ? 'Active' : 'Inactive'}
-                      color={warehouse.is_active ? 'success' : 'default'}
+                      label={warehouse.is_active ? "Active" : "Inactive"}
+                      color={warehouse.is_active ? "success" : "default"}
                       size="small"
                     />
                   </Stack>
-                  
+
                   <Grid container spacing={2}>
                     <Grid item xs={6}>
-                      <Typography variant="body2" color="text.secondary">Locations</Typography>
-                      <Typography variant="h6">{warehouse.occupied_locations}/{warehouse.total_locations}</Typography>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="body2" color="text.secondary">Items</Typography>
-                      <Typography variant="h6">{warehouse.total_items}</Typography>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="body2" color="text.secondary">Capacity</Typography>
-                      <Typography variant="body2">
-                        {((warehouse.used_capacity / warehouse.total_capacity) * 100).toFixed(1)}%
+                      <Typography variant="body2" color="text.secondary">
+                        Locations
+                      </Typography>
+                      <Typography variant="h6">
+                        {warehouse.occupied_locations}/
+                        {warehouse.total_locations}
                       </Typography>
                     </Grid>
                     <Grid item xs={6}>
-                      <Typography variant="body2" color="text.secondary">Value</Typography>
-                      <Typography variant="body2">${warehouse.total_value.toFixed(0)}</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Items
+                      </Typography>
+                      <Typography variant="h6">
+                        {warehouse.total_items}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" color="text.secondary">
+                        Capacity
+                      </Typography>
+                      <Typography variant="body2">
+                        {(
+                          (warehouse.used_capacity / warehouse.total_capacity) *
+                          100
+                        ).toFixed(1)}
+                        %
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" color="text.secondary">
+                        Value
+                      </Typography>
+                      <Typography variant="body2">
+                        ${warehouse.total_value.toFixed(0)}
+                      </Typography>
                     </Grid>
                   </Grid>
                 </CardContent>
@@ -383,8 +464,15 @@ export const WarehouseManagementPage: React.FC = () => {
         <>
           {/* Selected Warehouse Details */}
           <Paper sx={{ p: 3, mb: 3 }}>
-            <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
-              <Typography variant="h5">{selectedWarehouseData.name} - Details</Typography>
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              alignItems="center"
+              mb={2}
+            >
+              <Typography variant="h5">
+                {selectedWarehouseData.name} - Details
+              </Typography>
               <Stack direction="row" spacing={2}>
                 <Button
                   variant="outlined"
@@ -393,10 +481,7 @@ export const WarehouseManagementPage: React.FC = () => {
                 >
                   Transfer Stock
                 </Button>
-                <Button
-                  variant="outlined"
-                  startIcon={<EditIcon />}
-                >
+                <Button variant="outlined" startIcon={<EditIcon />}>
                   Edit Warehouse
                 </Button>
               </Stack>
@@ -405,12 +490,16 @@ export const WarehouseManagementPage: React.FC = () => {
             <Grid container spacing={3}>
               <Grid item xs={12} md={3}>
                 <Card>
-                  <CardContent sx={{ textAlign: 'center' }}>
-                    <Avatar sx={{ bgcolor: 'success.main', mx: 'auto', mb: 1 }}>
+                  <CardContent sx={{ textAlign: "center" }}>
+                    <Avatar sx={{ bgcolor: "success.main", mx: "auto", mb: 1 }}>
                       <LocationIcon />
                     </Avatar>
-                    <Typography variant="h4">{selectedWarehouseData.occupied_locations}</Typography>
-                    <Typography variant="body2" color="text.secondary">Occupied Locations</Typography>
+                    <Typography variant="h4">
+                      {selectedWarehouseData.occupied_locations}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Occupied Locations
+                    </Typography>
                     <Typography variant="caption">
                       of {selectedWarehouseData.total_locations} total
                     </Typography>
@@ -419,36 +508,51 @@ export const WarehouseManagementPage: React.FC = () => {
               </Grid>
               <Grid item xs={12} md={3}>
                 <Card>
-                  <CardContent sx={{ textAlign: 'center' }}>
-                    <Avatar sx={{ bgcolor: 'info.main', mx: 'auto', mb: 1 }}>
+                  <CardContent sx={{ textAlign: "center" }}>
+                    <Avatar sx={{ bgcolor: "info.main", mx: "auto", mb: 1 }}>
                       <InventoryIcon />
                     </Avatar>
-                    <Typography variant="h4">{selectedWarehouseData.total_items}</Typography>
-                    <Typography variant="body2" color="text.secondary">Total Items</Typography>
+                    <Typography variant="h4">
+                      {selectedWarehouseData.total_items}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Total Items
+                    </Typography>
                   </CardContent>
                 </Card>
               </Grid>
               <Grid item xs={12} md={3}>
                 <Card>
-                  <CardContent sx={{ textAlign: 'center' }}>
-                    <Avatar sx={{ bgcolor: 'warning.main', mx: 'auto', mb: 1 }}>
+                  <CardContent sx={{ textAlign: "center" }}>
+                    <Avatar sx={{ bgcolor: "warning.main", mx: "auto", mb: 1 }}>
                       <TrendingUpIcon />
                     </Avatar>
                     <Typography variant="h4">
-                      {((selectedWarehouseData.used_capacity / selectedWarehouseData.total_capacity) * 100).toFixed(1)}%
+                      {(
+                        (selectedWarehouseData.used_capacity /
+                          selectedWarehouseData.total_capacity) *
+                        100
+                      ).toFixed(1)}
+                      %
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">Capacity Used</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Capacity Used
+                    </Typography>
                   </CardContent>
                 </Card>
               </Grid>
               <Grid item xs={12} md={3}>
                 <Card>
-                  <CardContent sx={{ textAlign: 'center' }}>
-                    <Avatar sx={{ bgcolor: 'primary.main', mx: 'auto', mb: 1 }}>
+                  <CardContent sx={{ textAlign: "center" }}>
+                    <Avatar sx={{ bgcolor: "primary.main", mx: "auto", mb: 1 }}>
                       <ShippingIcon />
                     </Avatar>
-                    <Typography variant="h4">${selectedWarehouseData.total_value.toFixed(0)}</Typography>
-                    <Typography variant="body2" color="text.secondary">Total Value</Typography>
+                    <Typography variant="h4">
+                      ${selectedWarehouseData.total_value.toFixed(0)}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Total Value
+                    </Typography>
                   </CardContent>
                 </Card>
               </Grid>
@@ -481,7 +585,7 @@ export const WarehouseManagementPage: React.FC = () => {
                   <TreeView
                     defaultCollapseIcon={<ExpandMoreIcon />}
                     defaultExpandIcon={<ChevronRightIcon />}
-                    sx={{ flexGrow: 1, maxWidth: 400, overflowY: 'auto' }}
+                    sx={{ flexGrow: 1, maxWidth: 400, overflowY: "auto" }}
                   >
                     {renderLocationTree(locationHierarchy)}
                   </TreeView>
@@ -493,7 +597,7 @@ export const WarehouseManagementPage: React.FC = () => {
           {/* Location Grid Tab */}
           <TabPanel value={currentTab} index={1}>
             <Card>
-              <CardHeader 
+              <CardHeader
                 title="All Locations"
                 action={
                   <Stack direction="row" spacing={2}>
@@ -501,7 +605,9 @@ export const WarehouseManagementPage: React.FC = () => {
                       size="small"
                       placeholder="Search locations..."
                       InputProps={{
-                        startAdornment: <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} />
+                        startAdornment: (
+                          <SearchIcon sx={{ color: "text.secondary", mr: 1 }} />
+                        ),
                       }}
                     />
                     <IconButton>
@@ -534,31 +640,53 @@ export const WarehouseManagementPage: React.FC = () => {
                             </Typography>
                           </TableCell>
                           <TableCell>
-                            <Chip label={location.location_type} size="small" variant="outlined" />
+                            <Chip
+                              label={location.location_type}
+                              size="small"
+                              variant="outlined"
+                            />
                           </TableCell>
                           <TableCell>
                             <Stack direction="row" spacing={1}>
                               {location.is_occupied && (
-                                <Chip label="Occupied" size="small" color="warning" />
+                                <Chip
+                                  label="Occupied"
+                                  size="small"
+                                  color="warning"
+                                />
                               )}
                               {location.is_reserved && (
-                                <Chip label="Reserved" size="small" color="info" />
+                                <Chip
+                                  label="Reserved"
+                                  size="small"
+                                  color="info"
+                                />
                               )}
-                              {!location.is_occupied && !location.is_reserved && (
-                                <Chip label="Available" size="small" color="success" />
-                              )}
+                              {!location.is_occupied &&
+                                !location.is_reserved && (
+                                  <Chip
+                                    label="Available"
+                                    size="small"
+                                    color="success"
+                                  />
+                                )}
                             </Stack>
                           </TableCell>
                           <TableCell>
                             {location.product_name ? (
                               <Box>
-                                <Typography variant="body2">{location.product_name}</Typography>
-                                <Typography variant="caption" color="text.secondary">
+                                <Typography variant="body2">
+                                  {location.product_name}
+                                </Typography>
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                >
                                   {location.product_code}
                                 </Typography>
                               </Box>
                             ) : (
-                              '—'
+                              "—"
                             )}
                           </TableCell>
                           <TableCell align="right">
@@ -573,10 +701,11 @@ export const WarehouseManagementPage: React.FC = () => {
                           </TableCell>
                           <TableCell>
                             <Typography variant="caption">
-                              {location.last_movement_date ? 
-                                new Date(location.last_movement_date).toLocaleDateString() : 
-                                '—'
-                              }
+                              {location.last_movement_date
+                                ? new Date(
+                                    location.last_movement_date,
+                                  ).toLocaleDateString()
+                                : "—"}
                             </Typography>
                           </TableCell>
                           <TableCell>
@@ -630,8 +759,13 @@ export const WarehouseManagementPage: React.FC = () => {
                           </TableCell>
                           <TableCell>
                             <Box>
-                              <Typography variant="body2">{movement.product_name}</Typography>
-                              <Typography variant="caption" color="text.secondary">
+                              <Typography variant="body2">
+                                {movement.product_name}
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
                                 {movement.product_code}
                               </Typography>
                             </Box>
@@ -641,15 +775,17 @@ export const WarehouseManagementPage: React.FC = () => {
                               label={movement.movement_type}
                               size="small"
                               color={
-                                movement.movement_type === 'receive' ? 'success' :
-                                movement.movement_type === 'ship' ? 'error' :
-                                'info'
+                                movement.movement_type === "receive"
+                                  ? "success"
+                                  : movement.movement_type === "ship"
+                                    ? "error"
+                                    : "info"
                               }
                             />
                           </TableCell>
                           <TableCell>
                             <Typography variant="body2" fontFamily="monospace">
-                              {movement.from_location || '—'}
+                              {movement.from_location || "—"}
                             </Typography>
                           </TableCell>
                           <TableCell>
@@ -663,10 +799,14 @@ export const WarehouseManagementPage: React.FC = () => {
                             </Typography>
                           </TableCell>
                           <TableCell>
-                            <Typography variant="body2">{movement.operator}</Typography>
+                            <Typography variant="body2">
+                              {movement.operator}
+                            </Typography>
                           </TableCell>
                           <TableCell>
-                            <Typography variant="body2">{movement.reference}</Typography>
+                            <Typography variant="body2">
+                              {movement.reference}
+                            </Typography>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -683,9 +823,20 @@ export const WarehouseManagementPage: React.FC = () => {
               <CardHeader title="Warehouse Layout" />
               <CardContent>
                 <Alert severity="info">
-                  Interactive warehouse map coming soon. This will show a visual representation of the warehouse layout with real-time location status.
+                  Interactive warehouse map coming soon. This will show a visual
+                  representation of the warehouse layout with real-time location
+                  status.
                 </Alert>
-                <Box sx={{ height: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'grey.50', mt: 2 }}>
+                <Box
+                  sx={{
+                    height: 400,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    bgcolor: "grey.50",
+                    mt: 2,
+                  }}
+                >
                   <Typography variant="h6" color="text.secondary">
                     Warehouse Map Placeholder
                   </Typography>
@@ -697,54 +848,68 @@ export const WarehouseManagementPage: React.FC = () => {
       )}
 
       {/* Transfer Dialog */}
-      <Dialog open={transferDialogOpen} onClose={() => setTransferDialogOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog
+        open={transferDialogOpen}
+        onClose={() => setTransferDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle>Transfer Stock</DialogTitle>
         <DialogContent>
           <Stack spacing={3} sx={{ mt: 1 }}>
             <Autocomplete
-              options={locations?.filter(l => l.is_occupied) || []}
-              getOptionLabel={(option) => `${option.full_location} - ${option.product_name} (${option.quantity})`}
+              options={locations?.filter((l) => l.is_occupied) || []}
+              getOptionLabel={(option) =>
+                `${option.full_location} - ${option.product_name} (${option.quantity})`
+              }
               renderInput={(params) => (
                 <TextField {...params} label="From Location" fullWidth />
               )}
               onChange={(_, value) => {
-                setTransferData(prev => ({
+                setTransferData((prev) => ({
                   ...prev,
-                  from_location: value?.full_location || '',
-                  product_id: value?.product_id?.toString() || ''
+                  from_location: value?.full_location || "",
+                  product_id: value?.product_id?.toString() || "",
                 }));
               }}
             />
-            
+
             <Autocomplete
-              options={locations?.filter(l => !l.is_occupied) || []}
+              options={locations?.filter((l) => !l.is_occupied) || []}
               getOptionLabel={(option) => option.full_location}
               renderInput={(params) => (
                 <TextField {...params} label="To Location" fullWidth />
               )}
               onChange={(_, value) => {
-                setTransferData(prev => ({
+                setTransferData((prev) => ({
                   ...prev,
-                  to_location: value?.full_location || ''
+                  to_location: value?.full_location || "",
                 }));
               }}
             />
-            
+
             <TextField
               label="Quantity"
               type="number"
               fullWidth
               value={transferData.quantity}
-              onChange={(e) => setTransferData(prev => ({ ...prev, quantity: e.target.value }))}
+              onChange={(e) =>
+                setTransferData((prev) => ({
+                  ...prev,
+                  quantity: e.target.value,
+                }))
+              }
             />
-            
+
             <TextField
               label="Notes (optional)"
               fullWidth
               multiline
               rows={3}
               value={transferData.notes}
-              onChange={(e) => setTransferData(prev => ({ ...prev, notes: e.target.value }))}
+              onChange={(e) =>
+                setTransferData((prev) => ({ ...prev, notes: e.target.value }))
+              }
             />
           </Stack>
         </DialogContent>
@@ -761,13 +926,18 @@ export const WarehouseManagementPage: React.FC = () => {
               !transferData.quantity
             }
           >
-            {transferMutation.isPending ? 'Transferring...' : 'Transfer'}
+            {transferMutation.isPending ? "Transferring..." : "Transfer"}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Add Location Dialog */}
-      <Dialog open={locationDialogOpen} onClose={() => setLocationDialogOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog
+        open={locationDialogOpen}
+        onClose={() => setLocationDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle>Add New Location</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" paragraph>
