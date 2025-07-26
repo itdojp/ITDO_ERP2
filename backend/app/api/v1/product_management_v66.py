@@ -609,7 +609,7 @@ class ProductListResponse(BaseModel):
 class ProductManagementService:
     """Product management service with comprehensive functionality"""
 
-    def __init__(self, db: AsyncSession, redis_client: aioredis.Redis):
+    def __init__(self, db: AsyncSession, redis_client: aioredis.Redis) -> dict:
         self.db = db
         self.redis = redis_client
         self.settings = get_settings()
@@ -1254,7 +1254,7 @@ async def update_product_inventory(
 
 # Health check endpoint
 @router.get("/health", response_model=Dict[str, Any])
-async def health_check():
+async def health_check() -> None:
     """Product management service health check"""
     return {
         "status": "healthy",

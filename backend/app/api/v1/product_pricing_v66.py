@@ -406,7 +406,7 @@ class DiscountCreate(BaseModel):
     bulk_pricing_tiers: Optional[List[Dict[str, Any]]] = None
 
     @validator("valid_until")
-    def validate_dates(cls, v, values):
+    def validate_dates(cls, v, values) -> dict:
         if "valid_from" in values and v <= values["valid_from"]:
             raise ValueError("valid_until must be after valid_from")
         return v
@@ -428,7 +428,7 @@ class PromotionalCampaignCreate(BaseModel):
     email_template_id: Optional[str] = Field(None, max_length=100)
 
     @validator("end_date")
-    def validate_dates(cls, v, values):
+    def validate_dates(cls, v, values) -> dict:
         if "start_date" in values and v <= values["start_date"]:
             raise ValueError("end_date must be after start_date")
         return v
@@ -468,7 +468,7 @@ class BulkPricingResponse(BaseModel):
 class PricingEngine:
     """Advanced pricing engine with dynamic pricing capabilities"""
 
-    def __init__(self, db: AsyncSession, redis_client: aioredis.Redis):
+    def __init__(self, db: AsyncSession, redis_client: aioredis.Redis) -> dict:
         self.db = db
         self.redis = redis_client
 
@@ -484,8 +484,8 @@ class PricingEngine:
 
         # Get base product price (assuming products table exists)
         base_price_query = text("""
-            SELECT base_price, compare_at_price, cost_price 
-            FROM products 
+            SELECT base_price, compare_at_price, cost_price
+            FROM products
             WHERE id = :product_id
         """)
 
@@ -648,7 +648,7 @@ class PricingEngine:
             and_(
                 CustomerPricing.customer_id == customer_id,
                 CustomerPricing.product_id == product_id,
-                CustomerPricing.is_active == True,
+                CustomerPricing.is_active,
                 CustomerPricing.min_quantity <= quantity,
                 or_(
                     CustomerPricing.valid_until.is_(None),
@@ -677,7 +677,7 @@ class PricingEngine:
             select(PricingRule)
             .where(
                 and_(
-                    PricingRule.is_active == True,
+                    PricingRule.is_active,
                     or_(
                         PricingRule.start_date.is_(None),
                         PricingRule.start_date <= datetime.utcnow(),
@@ -828,7 +828,7 @@ class PricingEngine:
             .where(
                 and_(
                     CampaignDiscount.campaign_id == campaign_id,
-                    Discount.is_active == True,
+                    Discount.is_active,
                     Discount.valid_from <= datetime.utcnow(),
                     Discount.valid_until > datetime.utcnow(),
                 )
@@ -910,7 +910,7 @@ class PricingEngine:
         query = select(Discount).where(
             and_(
                 Discount.code == code,
-                Discount.is_active == True,
+                Discount.is_active,
                 Discount.valid_from <= datetime.utcnow(),
                 Discount.valid_until > datetime.utcnow(),
             )
@@ -1024,7 +1024,7 @@ class PricingEngine:
         bulk_rules_query = select(Discount).where(
             and_(
                 Discount.discount_type == DiscountType.BULK_PRICING,
-                Discount.is_active == True,
+                Discount.is_active,
                 Discount.valid_from <= datetime.utcnow(),
                 Discount.valid_until > datetime.utcnow(),
             )
@@ -1127,7 +1127,7 @@ class PricingEngine:
         query = select(Discount).where(
             and_(
                 Discount.discount_scope == DiscountScope.ORDER_TOTAL,
-                Discount.is_active == True,
+                Discount.is_active,
                 Discount.valid_from <= datetime.utcnow(),
                 Discount.valid_until > datetime.utcnow(),
                 or_(
@@ -1263,7 +1263,7 @@ async def create_pricing_rule(
 
 
 @router.get("/health", response_model=Dict[str, Any])
-async def health_check():
+async def health_check() -> None:
     """Pricing service health check"""
     return {
         "status": "healthy",

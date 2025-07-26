@@ -891,7 +891,7 @@ class TestOLAPCubeManager:
         assert "product_quantity" in result
 
         for agg in result.values():
-            assert agg["pre_calculated"] == True
+            assert agg["pre_calculated"]
             assert "storage_size_mb" in agg
 
 
@@ -1591,7 +1591,7 @@ class TestAnalyticsIntegration:
             patch.object(olap_manager_instance, "_build_dimensions") as mock_dims,
             patch.object(olap_manager_instance, "_process_fact_data") as mock_facts,
             patch.object(olap_manager_instance, "_create_aggregations") as mock_agg,
-            patch.object(olap_manager_instance, "_store_cube_data") as mock_store,
+            patch.object(olap_manager_instance, "_store_cube_data"),
         ):
             mock_dims.return_value = {"customer": {"cardinality": 100}}
             mock_facts.return_value = {"sales_amount": {"total": 100000}}
@@ -1634,7 +1634,7 @@ class TestAnalyticsIntegration:
         with (
             patch.object(ml_engine_instance, "_load_training_data") as mock_load,
             patch.object(ml_engine_instance, "_train_ml_model") as mock_train,
-            patch.object(ml_engine_instance, "_store_trained_model") as mock_store,
+            patch.object(ml_engine_instance, "_store_trained_model"),
         ):
             mock_load.return_value = {"records": 1000, "features": [], "target": []}
             mock_train.return_value = {

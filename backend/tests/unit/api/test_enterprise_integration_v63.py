@@ -510,7 +510,7 @@ class TestIntegrationPatternEngine:
                 pattern.pattern_id, message
             )
 
-            assert result["filtered"] == False
+            assert not result["filtered"]
             assert result["message"] == message
             mock_metrics.assert_called_once()
 
@@ -544,7 +544,7 @@ class TestIntegrationPatternEngine:
                 pattern.pattern_id, message
             )
 
-            assert result["translated"] == True
+            assert result["translated"]
             translated_message = result["message"]
             assert "new_field" in translated_message
             assert "old_field" not in translated_message
@@ -569,7 +569,7 @@ class TestIntegrationPatternEngine:
                 sample_integration_pattern.pattern_id, message
             )
 
-            assert result["routed"] == True
+            assert result["routed"]
             assert result["target_endpoint"] == "premium-queue"
             assert result["message"] == message
 
@@ -599,7 +599,7 @@ class TestIntegrationPatternEngine:
                 pattern.pattern_id, message
             )
 
-            assert result["split"] == True
+            assert result["split"]
             assert len(result["messages"]) == 2
             assert result["messages"][0]["_split_index"] == 0
             assert result["messages"][1]["_split_index"] == 1
@@ -638,7 +638,7 @@ class TestIntegrationPatternEngine:
                     pattern.pattern_id, message
                 )
 
-                assert result["aggregated"] == True
+                assert result["aggregated"]
                 assert result["message_count"] == 2
                 assert "payload" in result
 
@@ -670,8 +670,8 @@ class TestIntegrationPatternEngine:
                     pattern.pattern_id, message
                 )
 
-                assert result["scattered"] == True
-                assert result["gathered"] == True
+                assert result["scattered"]
+                assert result["gathered"]
                 assert result["endpoint_count"] == 3
                 assert "responses" in result
 
@@ -923,10 +923,10 @@ class TestSagaOrchestrator:
 
         result = await saga_orchestrator_instance._execute_http_call_step(step, context)
 
-        assert result["success"] == True
+        assert result["success"]
         assert result["response_status"] == 200
         assert "context_updates" in result
-        assert result["context_updates"]["step_reserve_inventory_completed"] == True
+        assert result["context_updates"]["step_reserve_inventory_completed"]
 
     @pytest.mark.asyncio
     async def test_execute_database_step(self, saga_orchestrator_instance):
@@ -943,9 +943,9 @@ class TestSagaOrchestrator:
 
         result = await saga_orchestrator_instance._execute_database_step(step, context)
 
-        assert result["success"] == True
+        assert result["success"]
         assert "context_updates" in result
-        assert result["context_updates"]["db_update_completed"] == True
+        assert result["context_updates"]["db_update_completed"]
 
     @pytest.mark.asyncio
     async def test_execute_message_step(self, saga_orchestrator_instance):
@@ -973,9 +973,9 @@ class TestSagaOrchestrator:
                 step, context
             )
 
-            assert result["success"] == True
+            assert result["success"]
             assert "context_updates" in result
-            assert result["context_updates"]["message_sent"] == True
+            assert result["context_updates"]["message_sent"]
             mock_send.assert_called_once()
 
     @pytest.mark.asyncio
@@ -1154,7 +1154,7 @@ class TestIntegrationWorkflows:
                 )
             )
 
-            assert process_result["routed"] == True
+            assert process_result["routed"]
             assert process_result["target_endpoint"] == "high-priority-queue"
 
     @pytest.mark.asyncio
@@ -1191,9 +1191,7 @@ class TestIntegrationWorkflows:
             assert define_result["status"] == "defined"
 
         # Execute SAGA
-        with patch.object(
-            saga_orchestrator_instance, "_execute_saga_step"
-        ) as mock_step:
+        with patch.object(saga_orchestrator_instance, "_execute_saga_step"):
             execute_result = await saga_orchestrator_instance.execute_saga(
                 saga.saga_id, {"test": "data"}
             )
@@ -1277,7 +1275,7 @@ class TestPerformance:
 
             # Verify all processing succeeded
             for i, result in enumerate(process_results):
-                assert result["filtered"] == False  # All should pass filter
+                assert not result["filtered"]  # All should pass filter
 
 
 # Error Handling and Edge Cases
@@ -1319,7 +1317,7 @@ class TestErrorHandlingEdgeCases:
             )
 
             # Should use default routing
-            assert result["routed"] == True
+            assert result["routed"]
             assert result["target_endpoint"] == "output"
 
     @pytest.mark.asyncio

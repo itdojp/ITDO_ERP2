@@ -352,9 +352,9 @@ class TestPredictionEngine:
             # Assertions
             assert len(predictions) == 2
             assert predictions[0]["product_id"] == product_ids[0]
-            assert predictions[0]["reorder_recommendation"] == False
+            assert not predictions[0]["reorder_recommendation"]
             assert predictions[1]["product_id"] == product_ids[1]
-            assert predictions[1]["reorder_recommendation"] == True
+            assert predictions[1]["reorder_recommendation"]
 
             # Verify prediction method was called for each product
             assert mock_predict.call_count == 2
@@ -531,7 +531,7 @@ class TestSupplierIntegrator:
             assert result["name"] == request.name
             assert result["contact_email"] == request.contact_email
             assert result["status"] == request.status
-            assert result["api_connected"] == True
+            assert result["api_connected"]
 
             # Verify database operations
             assert mock_db_session.execute.call_count == 2  # Check existing + insert
@@ -617,7 +617,7 @@ class TestSupplierIntegrator:
             assert result["quantity"] == 10
             assert result["estimated_cost"] == Decimal("250.00")  # 25 * 10
             assert result["status"] == "pending"
-            assert result["api_sent"] == True
+            assert result["api_sent"]
 
             # Verify database operations
             assert mock_db_session.execute.call_count == 3
@@ -682,7 +682,7 @@ class TestSupplierIntegrator:
         )
 
         # Should return True (simplified for demo)
-        assert result == True
+        assert result
 
     @pytest.mark.asyncio
     async def test_send_po_to_supplier_api(self, supplier_integrator):
@@ -701,7 +701,7 @@ class TestSupplierIntegrator:
         )
 
         # Should return True (simplified for demo)
-        assert result == True
+        assert result
 
 
 # Unit Tests for InventoryIntegrationManager
@@ -1217,7 +1217,7 @@ class TestInventoryIntegrationWorkflow:
                 )
             )
             assert len(predictions) == 1
-            assert predictions[0]["reorder_recommendation"] == True
+            assert predictions[0]["reorder_recommendation"]
 
         # Step 4: Create reorder based on prediction
         reorder_request = ReorderRequest(
@@ -1299,7 +1299,7 @@ class TestPerformanceAndScalability:
             patch.object(
                 inventory_tracker, "get_real_time_inventory"
             ) as mock_inventory,
-            patch.object(inventory_tracker, "_check_inventory_alerts") as mock_alerts,
+            patch.object(inventory_tracker, "_check_inventory_alerts"),
         ):
             mock_inventory.return_value = {
                 "product_id": product_id,

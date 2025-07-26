@@ -1,0 +1,657 @@
+---
+# Redis Monitoring and Metrics Collection
+# CC03 v68.0 Day 2: Comprehensive Redis and Sentinel Monitoring
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-exporter-config
+  namespace: itdo-erp-production
+  labels:
+    app: redis-exporter
+    component: monitoring
+data:
+  redis_exporter.yml: |
+    # Redis Exporter Configuration for Prometheus
+    redis_addr: "redis://redis-master-service:6379"
+    redis_password_file: "/etc/redis-exporter/password"
+    
+    # Sentinel Configuration
+    sentinel_addr: "redis://redis-sentinel-service:26379"
+    sentinel_password_file: "/etc/redis-exporter/sentinel_password"
+    
+    # Export Options
+    check_keys: "itdo:*,session:*,cache:*"
+    check_single_keys: "system:health,app:version"
+    export_client_list: true
+    export_client_port: true
+    count_keys: true
+    
+    # Performance Settings
+    connection_timeout: "15s"
+    web_listen_address: ":9121"
+    log_format: "json"
+    debug: false
+    
+    # Custom Lua Scripts for Advanced Metrics
+    script_path: "/etc/redis-exporter/scripts"
+
+---
+# Redis Exporter Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-exporter
+  namespace: itdo-erp-production
+  labels:
+    app: redis-exporter
+    component: monitoring
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: redis-exporter
+  template:
+    metadata:
+      labels:
+        app: redis-exporter
+        component: monitoring
+    spec:
+      containers:
+      - name: redis-exporter
+        image: oliver006/redis_exporter:v1.55.0
+        env:
+        - name: REDIS_ADDR
+          value: "redis://redis-master-service:6379"
+        - name: REDIS_PASSWORD_FILE
+          value: "/etc/redis-exporter/password"
+        - name: REDIS_EXPORTER_CHECK_KEYS
+          value: "itdo:*,session:*,cache:*"
+        - name: REDIS_EXPORTER_CHECK_SINGLE_KEYS
+          value: "system:health,app:version,stats:*"
+        - name: REDIS_EXPORTER_EXPORT_CLIENT_LIST
+          value: "true"
+        - name: REDIS_EXPORTER_COUNT_KEYS
+          value: "true"
+        - name: REDIS_EXPORTER_LOG_FORMAT
+          value: "json"
+        ports:
+        - name: metrics
+          containerPort: 9121
+          protocol: TCP
+        volumeMounts:
+        - name: redis-password
+          mountPath: /etc/redis-exporter/password
+          subPath: password
+        - name: sentinel-password
+          mountPath: /etc/redis-exporter/sentinel_password
+          subPath: sentinel_password
+        - name: redis-exporter-config
+          mountPath: /etc/redis-exporter/config
+        - name: redis-scripts
+          mountPath: /etc/redis-exporter/scripts
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /metrics
+            port: 9121
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /metrics
+            port: 9121
+          initialDelaySeconds: 15
+          periodSeconds: 15
+      volumes:
+      - name: redis-password
+        secret:
+          secretName: redis-secrets
+      - name: sentinel-password
+        secret:
+          secretName: redis-secrets
+      - name: redis-exporter-config
+        configMap:
+          name: redis-exporter-config
+      - name: redis-scripts
+        configMap:
+          name: redis-monitoring-scripts
+
+---
+# Redis Sentinel Exporter
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-sentinel-exporter
+  namespace: itdo-erp-production
+  labels:
+    app: redis-sentinel-exporter
+    component: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis-sentinel-exporter
+  template:
+    metadata:
+      labels:
+        app: redis-sentinel-exporter
+        component: monitoring
+    spec:
+      containers:
+      - name: sentinel-exporter
+        image: oliver006/redis_exporter:v1.55.0
+        env:
+        - name: REDIS_ADDR
+          value: "redis://redis-sentinel-service:26379"
+        - name: REDIS_PASSWORD_FILE
+          value: "/etc/redis-exporter/sentinel_password"
+        - name: REDIS_EXPORTER_IS_SENTINEL
+          value: "true"
+        - name: REDIS_EXPORTER_LOG_FORMAT
+          value: "json"
+        - name: REDIS_EXPORTER_WEB_LISTEN_ADDRESS
+          value: ":9122"
+        ports:
+        - name: metrics
+          containerPort: 9122
+          protocol: TCP
+        volumeMounts:
+        - name: sentinel-password
+          mountPath: /etc/redis-exporter/sentinel_password
+          subPath: sentinel_password
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+        livenessProbe:
+          httpGet:
+            path: /metrics
+            port: 9122
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /metrics
+            port: 9122
+          initialDelaySeconds: 15
+          periodSeconds: 15
+      volumes:
+      - name: sentinel-password
+        secret:
+          secretName: redis-secrets
+
+---
+# Redis Monitoring Scripts
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-monitoring-scripts
+  namespace: itdo-erp-production
+  labels:
+    app: redis-exporter
+    component: scripts
+data:
+  memory_analysis.lua: |
+    -- Redis Memory Analysis Script
+    local info = redis.call('INFO', 'memory')
+    local stats = redis.call('INFO', 'stats')
+    local keyspace = redis.call('INFO', 'keyspace')
+    
+    local result = {}
+    
+    -- Parse memory info
+    for line in info:gmatch("[^\r\n]+") do
+      local key, value = line:match("([^:]+):([^:]+)")
+      if key and value then
+        result[key] = value
+      end
+    end
+    
+    -- Add keyspace info
+    result['total_keys'] = 0
+    for line in keyspace:gmatch("[^\r\n]+") do
+      local db, info = line:match("(db%d+):(.+)")
+      if db and info then
+        local keys = info:match("keys=(%d+)")
+        if keys then
+          result['total_keys'] = result['total_keys'] + tonumber(keys)
+        end
+      end
+    end
+    
+    return cjson.encode(result)
+  
+  performance_metrics.lua: |
+    -- Redis Performance Metrics Script
+    local info_server = redis.call('INFO', 'server')
+    local info_stats = redis.call('INFO', 'stats')
+    local info_commandstats = redis.call('INFO', 'commandstats')
+    local info_clients = redis.call('INFO', 'clients')
+    
+    local result = {
+      timestamp = redis.call('TIME')[1],
+      metrics = {}
+    }
+    
+    -- Parse command statistics
+    for line in info_commandstats:gmatch("[^\r\n]+") do
+      local cmd, stats = line:match("cmdstat_([^:]+):(.+)")
+      if cmd and stats then
+        local calls = stats:match("calls=(%d+)")
+        local usec = stats:match("usec=(%d+)")
+        if calls and usec then
+          result.metrics[cmd] = {
+            calls = tonumber(calls),
+            total_time_usec = tonumber(usec),
+            avg_time_usec = tonumber(usec) / tonumber(calls)
+          }
+        end
+      end
+    end
+    
+    return cjson.encode(result)
+  
+  replication_status.lua: |
+    -- Redis Replication Status Script
+    local info_replication = redis.call('INFO', 'replication')
+    local role = nil
+    local connected_slaves = 0
+    local master_link_status = nil
+    local slaves = {}
+    
+    for line in info_replication:gmatch("[^\r\n]+") do
+      local key, value = line:match("([^:]+):([^:]+)")
+      if key == "role" then
+        role = value
+      elseif key == "connected_slaves" then
+        connected_slaves = tonumber(value)
+      elseif key == "master_link_status" then
+        master_link_status = value
+      elseif key:match("slave%d+") then
+        slaves[key] = value
+      end
+    end
+    
+    local result = {
+      role = role,
+      connected_slaves = connected_slaves,
+      master_link_status = master_link_status,
+      slaves = slaves,
+      timestamp = redis.call('TIME')[1]
+    }
+    
+    return cjson.encode(result)
+
+---
+# Redis Exporter Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-exporter-service
+  namespace: itdo-erp-production
+  labels:
+    app: redis-exporter
+    component: monitoring
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9121"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  ports:
+  - name: metrics
+    port: 9121
+    targetPort: 9121
+    protocol: TCP
+  selector:
+    app: redis-exporter
+
+---
+# Redis Sentinel Exporter Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-sentinel-exporter-service
+  namespace: itdo-erp-production
+  labels:
+    app: redis-sentinel-exporter
+    component: monitoring
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9122"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  ports:
+  - name: metrics
+    port: 9122
+    targetPort: 9122
+    protocol: TCP
+  selector:
+    app: redis-sentinel-exporter
+
+---
+# ServiceMonitor for Prometheus (Redis)
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: redis-exporter-servicemonitor
+  namespace: itdo-erp-production
+  labels:
+    app: redis-exporter
+    component: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: redis-exporter
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+
+---
+# ServiceMonitor for Prometheus (Sentinel)
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: redis-sentinel-exporter-servicemonitor
+  namespace: itdo-erp-production
+  labels:
+    app: redis-sentinel-exporter
+    component: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: redis-sentinel-exporter
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+
+---
+# Redis Alerting Rules
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: redis-alerts
+  namespace: itdo-erp-production
+  labels:
+    app: redis
+    component: alerting
+spec:
+  groups:
+  - name: redis.rules
+    interval: 30s
+    rules:
+    # High-level availability alerts
+    - alert: RedisDown
+      expr: redis_up == 0
+      for: 1m
+      labels:
+        severity: critical
+        service: redis
+      annotations:
+        summary: "Redis instance is down"
+        description: "Redis instance {{ $labels.instance }} has been down for more than 1 minute."
+        runbook_url: "https://runbook.example.com/redis-down"
+    
+    - alert: RedisSentinelDown
+      expr: redis_sentinel_up == 0
+      for: 1m
+      labels:
+        severity: critical
+        service: redis
+      annotations:
+        summary: "Redis Sentinel is down"
+        description: "Redis Sentinel instance {{ $labels.instance }} has been down for more than 1 minute."
+    
+    # Memory alerts
+    - alert: RedisMemoryHigh
+      expr: (redis_memory_used_bytes / redis_memory_max_bytes) > 0.8
+      for: 5m
+      labels:
+        severity: warning
+        service: redis
+      annotations:
+        summary: "Redis memory usage is high"
+        description: "Redis instance {{ $labels.instance }} is using {{ $value | humanizePercentage }} of available memory."
+    
+    - alert: RedisMemoryCritical
+      expr: (redis_memory_used_bytes / redis_memory_max_bytes) > 0.95
+      for: 1m
+      labels:
+        severity: critical
+        service: redis
+      annotations:
+        summary: "Redis memory usage is critical"
+        description: "Redis instance {{ $labels.instance }} is using {{ $value | humanizePercentage }} of available memory."
+    
+    # Connection alerts
+    - alert: RedisTooManyConnections
+      expr: redis_connected_clients > (redis_config_maxclients * 0.8)
+      for: 5m
+      labels:
+        severity: warning
+        service: redis
+      annotations:
+        summary: "Redis connection count is high"
+        description: "Redis instance {{ $labels.instance }} has {{ $value }} connections (> 80% of max)."
+    
+    - alert: RedisRejectedConnections
+      expr: rate(redis_rejected_connections_total[5m]) > 0
+      for: 2m
+      labels:
+        severity: critical
+        service: redis
+      annotations:
+        summary: "Redis is rejecting connections"
+        description: "Redis instance {{ $labels.instance }} is rejecting {{ $value }} connections per second."
+    
+    # Replication alerts
+    - alert: RedisReplicationBroken
+      expr: redis_connected_slaves == 0 and redis_instance_info{role="master"} == 1
+      for: 2m
+      labels:
+        severity: critical
+        service: redis
+      annotations:
+        summary: "Redis master has no connected replicas"
+        description: "Redis master {{ $labels.instance }} has no connected replicas."
+    
+    - alert: RedisReplicationLag
+      expr: redis_master_repl_offset - redis_slave_repl_offset > 1000000
+      for: 5m
+      labels:
+        severity: warning
+        service: redis
+      annotations:
+        summary: "Redis replication lag is high"
+        description: "Redis replica {{ $labels.instance }} is lagging behind master by {{ $value }} bytes."
+    
+    # Performance alerts
+    - alert: RedisSlowQueries
+      expr: rate(redis_slowlog_length[5m]) > 0.1
+      for: 5m
+      labels:
+        severity: warning
+        service: redis
+      annotations:
+        summary: "Redis slow queries detected"
+        description: "Redis instance {{ $labels.instance }} has {{ $value }} slow queries per second."
+    
+    - alert: RedisKeyspaceHitRateLow
+      expr: (rate(redis_keyspace_hits_total[5m]) / (rate(redis_keyspace_hits_total[5m]) + rate(redis_keyspace_misses_total[5m]))) < 0.8
+      for: 10m
+      labels:
+        severity: warning
+        service: redis
+      annotations:
+        summary: "Redis keyspace hit rate is low"
+        description: "Redis instance {{ $labels.instance }} has a keyspace hit rate of {{ $value | humanizePercentage }}."
+    
+    # Sentinel specific alerts
+    - alert: RedisSentinelMasterDown
+      expr: redis_sentinel_master_ok == 0
+      for: 1m
+      labels:
+        severity: critical
+        service: redis
+      annotations:
+        summary: "Redis master reported as down by Sentinel"
+        description: "Redis master is reported as down by Sentinel {{ $labels.instance }}."
+    
+    - alert: RedisSentinelFailover
+      expr: increase(redis_sentinel_failovers_total[1h]) > 0
+      labels:
+        severity: warning
+        service: redis
+      annotations:
+        summary: "Redis Sentinel performed failover"
+        description: "Redis Sentinel performed {{ $value }} failover(s) in the last hour."
+
+---
+# Redis Dashboard ConfigMap for Grafana
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-dashboard-config
+  namespace: itdo-erp-production
+  labels:
+    app: grafana
+    component: dashboard
+data:
+  redis-dashboard.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Redis Cluster Monitoring",
+        "tags": ["redis", "cache", "monitoring"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Redis Status",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "redis_up",
+                "legendFormat": "{{ instance }}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "green", "value": 1}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 2,
+            "title": "Memory Usage",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "redis_memory_used_bytes",
+                "legendFormat": "Used Memory - {{ instance }}"
+              },
+              {
+                "expr": "redis_memory_max_bytes",
+                "legendFormat": "Max Memory - {{ instance }}"
+              }
+            ],
+            "yAxes": [
+              {
+                "unit": "bytes",
+                "min": 0
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "title": "Connected Clients",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "redis_connected_clients",
+                "legendFormat": "Connected Clients - {{ instance }}"
+              }
+            ]
+          },
+          {
+            "id": 4,
+            "title": "Commands per Second",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(redis_commands_processed_total[5m])",
+                "legendFormat": "Commands/sec - {{ instance }}"
+              }
+            ]
+          },
+          {
+            "id": 5,
+            "title": "Keyspace Hit Rate",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "rate(redis_keyspace_hits_total[5m]) / (rate(redis_keyspace_hits_total[5m]) + rate(redis_keyspace_misses_total[5m])) * 100",
+                "legendFormat": "Hit Rate - {{ instance }}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percent",
+                "min": 0,
+                "max": 100,
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "yellow", "value": 80},
+                    {"color": "green", "value": 95}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 6,
+            "title": "Replication Lag",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "redis_master_repl_offset - redis_slave_repl_offset",
+                "legendFormat": "Replication Lag - {{ instance }}"
+              }
+            ],
+            "yAxes": [
+              {
+                "unit": "bytes",
+                "min": 0
+              }
+            ]
+          }
+        ],
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "refresh": "30s"
+      }
+    }
