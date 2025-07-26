@@ -56,7 +56,7 @@ class TestUnifiedProductsAPI:
 
     @pytest.fixture
     def mock_redis(self):
-        with patch("aioredis.from_url") as mock:
+        with patch("redis.asyncio.Redis.from_url") as mock:
             redis_client = AsyncMock()
             mock.return_value = redis_client
             yield redis_client
@@ -244,6 +244,18 @@ class TestUnifiedInventoryAPI:
     """Test unified inventory API functionality"""
 
     @pytest.fixture
+    def mock_db(self):
+        with patch("app.core.database.get_db") as mock:
+            yield mock
+
+    @pytest.fixture
+    def mock_redis(self):
+        with patch("redis.asyncio.Redis.from_url") as mock:
+            redis_client = AsyncMock()
+            mock.return_value = redis_client
+            yield redis_client
+
+    @pytest.fixture
     def inventory_service(self, mock_db, mock_redis):
         return UnifiedInventoryService(mock_db, mock_redis)
 
@@ -364,6 +376,18 @@ class TestUnifiedInventoryAPI:
 
 class TestUnifiedSalesAPI:
     """Test unified sales API functionality"""
+
+    @pytest.fixture
+    def mock_db(self):
+        with patch("app.core.database.get_db") as mock:
+            yield mock
+
+    @pytest.fixture
+    def mock_redis(self):
+        with patch("redis.asyncio.Redis.from_url") as mock:
+            redis_client = AsyncMock()
+            mock.return_value = redis_client
+            yield redis_client
 
     @pytest.fixture
     def sales_service(self, mock_db, mock_redis):
@@ -636,7 +660,7 @@ class TestUnifiedAPIPerformance:
     async def test_concurrent_product_operations(self):
         """Test concurrent product operations"""
         with patch("app.core.database.get_db") as mock_db:
-            with patch("aioredis.from_url") as mock_redis:
+            with patch("redis.asyncio.Redis.from_url") as mock_redis:
                 redis_client = AsyncMock()
                 mock_redis.return_value = redis_client
 
