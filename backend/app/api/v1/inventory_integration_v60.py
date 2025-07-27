@@ -96,7 +96,7 @@ class InventoryItemRequest(BaseModel):
     safety_stock: int = Field(default=5, ge=0)
 
     @validator("max_stock_level")
-    def validate_max_stock_level(cls, v, values):
+    def validate_max_stock_level(cls, v, values) -> dict:
         if "reorder_point" in values and v <= values["reorder_point"]:
             raise ValueError("max_stock_level must be greater than reorder_point")
         return v
@@ -275,7 +275,7 @@ class SupplierIntegrationResponse(BaseModel):
 class InventoryTracker:
     """Real-time inventory tracking system"""
 
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: AsyncSession) -> dict:
         self.db = db
 
     async def get_real_time_inventory(self, product_id: UUID) -> Dict[str, Any]:
@@ -283,12 +283,12 @@ class InventoryTracker:
         try:
             # Query current inventory status
             query = text("""
-                SELECT 
+                SELECT
                     p.id as product_id,
                     p.name as product_name,
                     p.sku as product_sku,
-                    COALESCE(SUM(CASE WHEN sm.movement_type IN ('purchase', 'adjustment', 'return') 
-                                     THEN sm.quantity 
+                    COALESCE(SUM(CASE WHEN sm.movement_type IN ('purchase', 'adjustment', 'return')
+                                     THEN sm.quantity
                                      ELSE -sm.quantity END), 0) as current_quantity,
                     COALESCE(i.reorder_point, 10) as reorder_point,
                     COALESCE(i.max_stock_level, 100) as max_stock_level,
@@ -299,8 +299,8 @@ class InventoryTracker:
                 LEFT JOIN stock_movements sm ON p.id = sm.product_id
                 LEFT JOIN (
                     SELECT product_id, SUM(quantity) as reserved_qty
-                    FROM stock_movements 
-                    WHERE movement_type = 'reservation' 
+                    FROM stock_movements
+                    WHERE movement_type = 'reservation'
                     GROUP BY product_id
                 ) reserved ON p.id = reserved.product_id
                 WHERE p.id = :product_id
@@ -365,8 +365,8 @@ class InventoryTracker:
             # Insert stock movement record
             movement_query = text("""
                 INSERT INTO stock_movements (
-                    id, product_id, movement_type, quantity, unit_cost, 
-                    reference_id, location_from, location_to, notes, 
+                    id, product_id, movement_type, quantity, unit_cost,
+                    reference_id, location_from, location_to, notes,
                     batch_number, expiry_date, created_by, created_at
                 ) VALUES (
                     :id, :product_id, :movement_type, :quantity, :unit_cost,
@@ -470,7 +470,7 @@ class InventoryTracker:
         try:
             alert_query = text("""
                 INSERT INTO inventory_alerts (
-                    id, product_id, alert_type, severity, message, 
+                    id, product_id, alert_type, severity, message,
                     current_stock, threshold, suggested_action, created_at
                 ) VALUES (
                     :id, :product_id, :alert_type, :severity, :message,
@@ -500,7 +500,7 @@ class InventoryTracker:
 class PredictionEngine:
     """Inventory prediction and demand forecasting"""
 
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: AsyncSession) -> dict:
         self.db = db
 
     async def generate_stock_predictions(
@@ -605,8 +605,8 @@ class PredictionEngine:
         """Get historical demand data"""
         query = text("""
             SELECT DATE(created_at) as date, SUM(quantity) as daily_demand
-            FROM stock_movements 
-            WHERE product_id = :product_id 
+            FROM stock_movements
+            WHERE product_id = :product_id
             AND movement_type = 'sale'
             AND created_at >= :start_date
             GROUP BY DATE(created_at)
@@ -698,10 +698,10 @@ class PredictionEngine:
     async def _get_current_stock(self, product_id: UUID) -> int:
         """Get current stock level"""
         query = text("""
-            SELECT COALESCE(SUM(CASE WHEN movement_type IN ('purchase', 'adjustment', 'return') 
-                                    THEN quantity 
+            SELECT COALESCE(SUM(CASE WHEN movement_type IN ('purchase', 'adjustment', 'return')
+                                    THEN quantity
                                     ELSE -quantity END), 0) as current_stock
-            FROM stock_movements 
+            FROM stock_movements
             WHERE product_id = :product_id
         """)
 
@@ -724,8 +724,8 @@ class PredictionEngine:
         """Calculate optimal reorder quantity"""
         # Get max stock level and lead time
         query = text("""
-            SELECT max_stock_level, lead_time_days, safety_stock 
-            FROM inventory_items 
+            SELECT max_stock_level, lead_time_days, safety_stock
+            FROM inventory_items
             WHERE product_id = :product_id
         """)
         result = await self.db.execute(query, {"product_id": str(product_id)})
@@ -750,7 +750,7 @@ class PredictionEngine:
 class SupplierIntegrator:
     """Supplier integration and management"""
 
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: AsyncSession) -> dict:
         self.db = db
 
     async def register_supplier(
@@ -772,7 +772,7 @@ class SupplierIntegrator:
             # Insert supplier
             supplier_query = text("""
                 INSERT INTO suppliers (
-                    id, name, contact_email, contact_phone, api_endpoint, 
+                    id, name, contact_email, contact_phone, api_endpoint,
                     api_key, lead_time_days, minimum_order_value, status, created_at
                 ) VALUES (
                     :id, :name, :contact_email, :contact_phone, :api_endpoint,
@@ -829,7 +829,7 @@ class SupplierIntegrator:
             # Get supplier info
             supplier_query = text("""
                 SELECT name, contact_email, api_endpoint, api_key, minimum_order_value
-                FROM suppliers 
+                FROM suppliers
                 WHERE id = :supplier_id AND status = 'active'
             """)
 
@@ -952,7 +952,7 @@ class SupplierIntegrator:
 class InventoryIntegrationManager:
     """Main manager for inventory integration operations"""
 
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: AsyncSession) -> dict:
         self.db = db
         self.tracker = InventoryTracker(db)
         self.predictor = PredictionEngine(db)
@@ -1181,7 +1181,7 @@ async def acknowledge_alert(
     """Acknowledge inventory alert"""
     try:
         query = text("""
-            UPDATE inventory_alerts 
+            UPDATE inventory_alerts
             SET acknowledged = true, acknowledged_by = :user_id, acknowledged_at = :ack_time
             WHERE id = :alert_id
         """)
@@ -1219,7 +1219,7 @@ async def get_inventory_analytics_dashboard(db: AsyncSession = Depends(get_db)):
     try:
         # Get summary statistics
         summary_query = text("""
-            SELECT 
+            SELECT
                 COUNT(DISTINCT p.id) as total_products,
                 COUNT(CASE WHEN sm.current_stock = 0 THEN 1 END) as out_of_stock_count,
                 COUNT(CASE WHEN sm.current_stock <= i.reorder_point THEN 1 END) as low_stock_count,
@@ -1228,9 +1228,9 @@ async def get_inventory_analytics_dashboard(db: AsyncSession = Depends(get_db)):
             LEFT JOIN inventory_items i ON p.id = i.product_id
             LEFT JOIN (
                 SELECT product_id,
-                       SUM(CASE WHEN movement_type IN ('purchase', 'adjustment', 'return') 
+                       SUM(CASE WHEN movement_type IN ('purchase', 'adjustment', 'return')
                                THEN quantity ELSE -quantity END) as current_stock
-                FROM stock_movements 
+                FROM stock_movements
                 GROUP BY product_id
             ) sm ON p.id = sm.product_id
             WHERE p.status = 'active'
@@ -1241,7 +1241,7 @@ async def get_inventory_analytics_dashboard(db: AsyncSession = Depends(get_db)):
 
         # Get recent movement trends
         trends_query = text("""
-            SELECT DATE(created_at) as date, 
+            SELECT DATE(created_at) as date,
                    movement_type,
                    SUM(quantity) as total_quantity
             FROM stock_movements
@@ -1290,7 +1290,7 @@ async def run_automated_predictions(
 ):
     """Run automated inventory predictions"""
 
-    async def prediction_task():
+    async def prediction_task() -> None:
         """Background task to run predictions"""
         try:
             engine = PredictionEngine(db)
@@ -1318,7 +1318,7 @@ async def check_automated_reorders(
 ):
     """Check for automated reorder requirements"""
 
-    async def reorder_task():
+    async def reorder_task() -> None:
         """Background task to check reorders"""
         try:
             # Find products needing reorder
@@ -1328,12 +1328,12 @@ async def check_automated_reorders(
                 JOIN inventory_items i ON p.id = i.product_id
                 LEFT JOIN (
                     SELECT product_id,
-                           SUM(CASE WHEN movement_type IN ('purchase', 'adjustment', 'return') 
+                           SUM(CASE WHEN movement_type IN ('purchase', 'adjustment', 'return')
                                    THEN quantity ELSE -quantity END) as current_stock
-                    FROM stock_movements 
+                    FROM stock_movements
                     GROUP BY product_id
                 ) sm ON p.id = sm.product_id
-                WHERE p.status = 'active' 
+                WHERE p.status = 'active'
                 AND i.supplier_id IS NOT NULL
                 AND (sm.current_stock IS NULL OR sm.current_stock <= i.reorder_point)
             """)

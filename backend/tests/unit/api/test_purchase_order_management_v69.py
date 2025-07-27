@@ -67,7 +67,7 @@ class TestVendorManagement:
             "country": "USA",
             "payment_terms": "net_30",
             "credit_limit": 50000.00,
-            "currency": "USD"
+            "currency": "USD",
         }
 
         with patch(
@@ -80,13 +80,12 @@ class TestVendorManagement:
                 status=VendorStatus.ACTIVE,
                 payment_terms=PaymentTerms.NET_30,
                 created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow()
+                updated_at=datetime.utcnow(),
             )
             mock_create.return_value = mock_vendor
 
             response = await async_client.post(
-                "/api/v1/purchase-orders/vendors",
-                json=vendor_data
+                "/api/v1/purchase-orders/vendors", json=vendor_data
             )
 
             assert response.status_code == 200
@@ -95,26 +94,23 @@ class TestVendorManagement:
             assert result["name"] == "ABC Manufacturing Co."
             assert result["status"] == "active"
 
-    async def test_create_vendor_duplicate_code(self, async_client, mock_db, mock_redis):
+    async def test_create_vendor_duplicate_code(
+        self, async_client, mock_db, mock_redis
+    ):
         """Test vendor creation with duplicate code"""
-        vendor_data = {
-            "code": "VEN001",
-            "name": "Duplicate Vendor",
-            "status": "active"
-        }
+        vendor_data = {"code": "VEN001", "name": "Duplicate Vendor", "status": "active"}
 
         with patch(
             "app.api.v1.purchase_order_management_v69.PurchaseOrderManagementService.create_vendor"
         ) as mock_create:
             from fastapi import HTTPException
+
             mock_create.side_effect = HTTPException(
-                status_code=400,
-                detail="Vendor code already exists"
+                status_code=400, detail="Vendor code already exists"
             )
 
             response = await async_client.post(
-                "/api/v1/purchase-orders/vendors",
-                json=vendor_data
+                "/api/v1/purchase-orders/vendors", json=vendor_data
             )
 
             assert response.status_code == 400
@@ -131,7 +127,7 @@ class TestVendorManagement:
                     name="Active Vendor 1",
                     status=VendorStatus.ACTIVE,
                     rating=Decimal("4.5"),
-                    on_time_delivery_rate=Decimal("95.0")
+                    on_time_delivery_rate=Decimal("95.0"),
                 ),
                 Mock(
                     id=uuid.uuid4(),
@@ -139,20 +135,20 @@ class TestVendorManagement:
                     name="Active Vendor 2",
                     status=VendorStatus.ACTIVE,
                     rating=Decimal("4.2"),
-                    on_time_delivery_rate=Decimal("88.0")
-                )
+                    on_time_delivery_rate=Decimal("88.0"),
+                ),
             ]
 
             mock_get.return_value = {
                 "vendors": mock_vendors,
                 "total": 2,
                 "skip": 0,
-                "limit": 100
+                "limit": 100,
             }
 
             response = await async_client.get(
                 "/api/v1/purchase-orders/vendors",
-                params={"status": "active", "search": "Active"}
+                params={"status": "active", "search": "Active"},
             )
 
             assert response.status_code == 200
@@ -170,20 +166,24 @@ class TestVendorManagement:
                 id=vendor_id,
                 on_time_delivery_rate=Decimal("90.0"),
                 quality_rating=Decimal("4.0"),
-                rating=Decimal("4.5")
+                rating=Decimal("4.5"),
             )
             mock_get.return_value = mock_vendor
 
             with patch.object(mock_db, "execute") as mock_execute:
-                mock_execute.return_value.scalar.return_value = 10  # 10 completed orders
+                mock_execute.return_value.scalar.return_value = (
+                    10  # 10 completed orders
+                )
 
                 updated_vendor = await service.update_vendor_performance(
                     vendor_id=vendor_id,
                     on_time_delivery=True,
-                    quality_rating=Decimal("4.5")
+                    quality_rating=Decimal("4.5"),
                 )
 
-                assert updated_vendor.quality_rating == Decimal("4.25")  # Average of 4.0 and 4.5
+                assert updated_vendor.quality_rating == Decimal(
+                    "4.25"
+                )  # Average of 4.0 and 4.5
                 assert updated_vendor.on_time_delivery_rate > Decimal("90.0")
 
 
@@ -214,7 +214,7 @@ class TestPurchaseRequisitionManagement:
                     quantity=Decimal("100"),
                     unit_of_measure="box",
                     estimated_unit_price=Decimal("25.50"),
-                    required_date=datetime.utcnow() + timedelta(days=30)
+                    required_date=datetime.utcnow() + timedelta(days=30),
                 ),
                 Mock(
                     line_number="002",
@@ -222,9 +222,9 @@ class TestPurchaseRequisitionManagement:
                     quantity=Decimal("50"),
                     unit_of_measure="piece",
                     estimated_unit_price=Decimal("1.25"),
-                    required_date=datetime.utcnow() + timedelta(days=30)
-                )
-            ]
+                    required_date=datetime.utcnow() + timedelta(days=30),
+                ),
+            ],
         )
 
         # Mock Redis counter
@@ -248,16 +248,12 @@ class TestPurchaseRequisitionManagement:
 
         with patch.object(po_service.db, "get") as mock_get:
             mock_requisition = Mock(
-                id=requisition_id,
-                approval_status="pending",
-                status="draft"
+                id=requisition_id, approval_status="pending", status="draft"
             )
             mock_get.return_value = mock_requisition
 
             with patch.object(po_service.db, "commit") as mock_commit:
-                await po_service.approve_requisition(
-                    requisition_id, approved_by
-                )
+                await po_service.approve_requisition(requisition_id, approved_by)
 
                 assert mock_requisition.approval_status == "approved"
                 assert mock_requisition.approved_by == approved_by
@@ -271,7 +267,7 @@ class TestPurchaseRequisitionManagement:
         with patch.object(po_service.db, "get") as mock_get:
             mock_requisition = Mock(
                 id=requisition_id,
-                approval_status="approved"  # Already approved
+                approval_status="approved",  # Already approved
             )
             mock_get.return_value = mock_requisition
 
@@ -307,7 +303,7 @@ class TestPurchaseOrderManagement:
                     unit_price=Decimal("15.75"),
                     discount_percentage=Decimal("5.0"),
                     tax_rate=Decimal("8.25"),
-                    required_date=datetime.utcnow() + timedelta(days=14)
+                    required_date=datetime.utcnow() + timedelta(days=14),
                 ),
                 Mock(
                     line_number="002",
@@ -317,9 +313,9 @@ class TestPurchaseOrderManagement:
                     unit_price=Decimal("0.85"),
                     discount_percentage=Decimal("0.0"),
                     tax_rate=Decimal("8.25"),
-                    required_date=datetime.utcnow() + timedelta(days=14)
-                )
-            ]
+                    required_date=datetime.utcnow() + timedelta(days=14),
+                ),
+            ],
         )
 
         # Mock vendor validation
@@ -328,7 +324,7 @@ class TestPurchaseOrderManagement:
                 id=vendor_id,
                 name="Test Vendor",
                 status=VendorStatus.ACTIVE,
-                payment_terms=PaymentTerms.NET_30
+                payment_terms=PaymentTerms.NET_30,
             )
             mock_get.return_value = mock_vendor
 
@@ -355,7 +351,7 @@ class TestPurchaseOrderManagement:
         with patch.object(po_service.db, "get") as mock_get:
             mock_vendor = Mock(
                 id=vendor_id,
-                status=VendorStatus.INACTIVE  # Inactive vendor
+                status=VendorStatus.INACTIVE,  # Inactive vendor
             )
             mock_get.return_value = mock_vendor
 
@@ -381,8 +377,9 @@ class TestPurchaseOrderManagement:
                     status=PurchaseOrderStatus.APPROVED,
                     total_amount=Decimal("1500.00"),
                     order_date=datetime.utcnow(),
-                    vendor=Mock(name="Test Vendor")
-                ) for _ in range(5)
+                    vendor=Mock(name="Test Vendor"),
+                )
+                for _ in range(5)
             ]
             mock_execute.return_value.scalars.return_value.all.return_value = mock_pos
 
@@ -392,7 +389,7 @@ class TestPurchaseOrderManagement:
                 start_date=start_date,
                 end_date=end_date,
                 skip=0,
-                limit=10
+                limit=10,
             )
 
             assert result["total"] == 5
@@ -406,10 +403,7 @@ class TestPurchaseOrderManagement:
         approved_by = "Procurement Manager"
 
         with patch.object(po_service.db, "get") as mock_get:
-            mock_po = Mock(
-                id=po_id,
-                status=PurchaseOrderStatus.PENDING_APPROVAL
-            )
+            mock_po = Mock(id=po_id, status=PurchaseOrderStatus.PENDING_APPROVAL)
             mock_get.return_value = mock_po
 
             with patch.object(po_service.db, "commit") as mock_commit:
@@ -428,7 +422,7 @@ class TestPurchaseOrderManagement:
             mock_po = Mock(
                 id=po_id,
                 po_number="PO-20241126-000001",
-                status=PurchaseOrderStatus.APPROVED
+                status=PurchaseOrderStatus.APPROVED,
             )
             mock_get.return_value = mock_po
 
@@ -448,7 +442,7 @@ class TestPurchaseOrderManagement:
         with patch.object(po_service.db, "get") as mock_get:
             mock_po = Mock(
                 id=po_id,
-                status=PurchaseOrderStatus.DRAFT  # Not approved
+                status=PurchaseOrderStatus.DRAFT,  # Not approved
             )
             mock_get.return_value = mock_po
 
@@ -484,17 +478,14 @@ class TestPurchaseReceiptManagement:
                     unit_of_measure="piece",
                     lot_number="LOT20241126001",
                     quality_status="passed",
-                    received_location="WAREHOUSE-A-01"
+                    received_location="WAREHOUSE-A-01",
                 )
-            ]
+            ],
         )
 
         # Mock PO validation
         with patch.object(po_service.db, "get") as mock_get:
-            mock_po = Mock(
-                id=po_id,
-                status=PurchaseOrderStatus.SENT
-            )
+            mock_po = Mock(id=po_id, status=PurchaseOrderStatus.SENT)
             mock_get.return_value = mock_po
 
             # Mock Redis counter
@@ -504,7 +495,9 @@ class TestPurchaseReceiptManagement:
             with patch.object(po_service.db, "add") as mock_add:
                 with patch.object(po_service.db, "flush") as mock_flush:
                     with patch.object(po_service.db, "commit") as mock_commit:
-                        with patch.object(po_service, "_update_po_receiving_status") as mock_update:
+                        with patch.object(
+                            po_service, "_update_po_receiving_status"
+                        ) as mock_update:
                             await po_service.create_purchase_receipt(receipt_data)
 
                             assert mock_add.call_count >= 2  # Receipt + line
@@ -520,7 +513,7 @@ class TestPurchaseReceiptManagement:
         with patch.object(po_service.db, "get") as mock_get:
             mock_po = Mock(
                 id=po_id,
-                status=PurchaseOrderStatus.DRAFT  # Invalid status for receiving
+                status=PurchaseOrderStatus.DRAFT,  # Invalid status for receiving
             )
             mock_get.return_value = mock_po
 
@@ -538,7 +531,7 @@ class TestPurchaseReceiptManagement:
             mock_receipt = Mock(
                 id=receipt_id,
                 inspection_completed=False,
-                status=ReceivingStatus.PENDING
+                status=ReceivingStatus.PENDING,
             )
             mock_get.return_value = mock_receipt
 
@@ -559,10 +552,7 @@ class TestPurchaseReceiptManagement:
         receipt_id = uuid.uuid4()
 
         with patch.object(po_service.db, "get") as mock_get:
-            mock_receipt = Mock(
-                id=receipt_id,
-                inspection_completed=False
-            )
+            mock_receipt = Mock(id=receipt_id, inspection_completed=False)
             mock_get.return_value = mock_receipt
 
             with patch.object(po_service.db, "commit") as mock_commit:
@@ -588,7 +578,7 @@ class TestCostAnalysis:
             start_date=datetime.utcnow() - timedelta(days=90),
             end_date=datetime.utcnow(),
             analysis_type="variance",
-            group_by="vendor"
+            group_by="vendor",
         )
 
         # Mock query results
@@ -596,13 +586,13 @@ class TestCostAnalysis:
             Mock(
                 PurchaseOrder=Mock(id=uuid.uuid4(), order_date=datetime.utcnow()),
                 PurchaseOrderLine=Mock(line_total=Decimal("100.00")),
-                Vendor=Mock(name="Test Vendor 1")
+                Vendor=Mock(name="Test Vendor 1"),
             ),
             Mock(
                 PurchaseOrder=Mock(id=uuid.uuid4(), order_date=datetime.utcnow()),
                 PurchaseOrderLine=Mock(line_total=Decimal("150.00")),
-                Vendor=Mock(name="Test Vendor 1")
-            )
+                Vendor=Mock(name="Test Vendor 1"),
+            ),
         ]
 
         with patch.object(po_service.db, "execute") as mock_execute:
@@ -623,7 +613,7 @@ class TestCostAnalysis:
             analysis_type="trend",
             group_by="month",
             start_date=datetime.utcnow() - timedelta(days=180),
-            end_date=datetime.utcnow()
+            end_date=datetime.utcnow(),
         )
 
         with patch.object(po_service.db, "execute") as mock_execute:
@@ -640,7 +630,7 @@ class TestCostAnalysis:
         request = Mock(
             analysis_type="comparison",
             group_by="vendor",
-            vendor_ids=[uuid.uuid4(), uuid.uuid4()]
+            vendor_ids=[uuid.uuid4(), uuid.uuid4()],
         )
 
         with patch.object(po_service.db, "execute") as mock_execute:
@@ -700,14 +690,14 @@ class TestHelperMethods:
                 quantity=Decimal("10"),
                 unit_price=Decimal("100.00"),
                 discount_percentage=Decimal("5.0"),
-                tax_rate=Decimal("8.25")
+                tax_rate=Decimal("8.25"),
             ),
             Mock(
                 quantity=Decimal("5"),
                 unit_price=Decimal("200.00"),
                 discount_percentage=Decimal("10.0"),
-                tax_rate=Decimal("8.25")
-            )
+                tax_rate=Decimal("8.25"),
+            ),
         ]
 
         totals = po_service._calculate_po_totals(lines)
@@ -746,7 +736,7 @@ class TestHelperMethods:
             code="VEN001",
             name="Test Vendor",
             status=VendorStatus.ACTIVE,
-            payment_terms=PaymentTerms.NET_30
+            payment_terms=PaymentTerms.NET_30,
         )
 
         po_service.redis.setex = AsyncMock()
@@ -765,7 +755,7 @@ class TestHelperMethods:
             po_number="PO-20241126-000001",
             vendor_id=uuid.uuid4(),
             status=PurchaseOrderStatus.APPROVED,
-            total_amount=Decimal("1500.00")
+            total_amount=Decimal("1500.00"),
         )
 
         po_service.redis.setex = AsyncMock()
@@ -788,7 +778,7 @@ class TestIntegrationScenarios:
             "code": "WORKFLOW_VEN",
             "name": "Workflow Test Vendor",
             "status": "active",
-            "payment_terms": "net_30"
+            "payment_terms": "net_30",
         }
 
         with patch(
@@ -796,15 +786,12 @@ class TestIntegrationScenarios:
         ) as mock_create_vendor:
             vendor_id = uuid.uuid4()
             mock_vendor = Mock(
-                id=vendor_id,
-                code="WORKFLOW_VEN",
-                name="Workflow Test Vendor"
+                id=vendor_id, code="WORKFLOW_VEN", name="Workflow Test Vendor"
             )
             mock_create_vendor.return_value = mock_vendor
 
             vendor_response = await async_client.post(
-                "/api/v1/purchase-orders/vendors",
-                json=vendor_data
+                "/api/v1/purchase-orders/vendors", json=vendor_data
             )
             assert vendor_response.status_code == 200
 
@@ -820,9 +807,9 @@ class TestIntegrationScenarios:
                     "description": "Test Item",
                     "quantity": 10.0,
                     "unit_of_measure": "piece",
-                    "estimated_unit_price": 25.00
+                    "estimated_unit_price": 25.00,
                 }
-            ]
+            ],
         }
 
         with patch(
@@ -833,8 +820,7 @@ class TestIntegrationScenarios:
             mock_create_req.return_value = mock_req
 
             req_response = await async_client.post(
-                "/api/v1/purchase-orders/requisitions",
-                json=requisition_data
+                "/api/v1/purchase-orders/requisitions", json=requisition_data
             )
             assert req_response.status_code == 200
 
@@ -852,9 +838,9 @@ class TestIntegrationScenarios:
                     "unit_of_measure": "piece",
                     "unit_price": 25.00,
                     "discount_percentage": 0.0,
-                    "tax_rate": 8.25
+                    "tax_rate": 8.25,
                 }
-            ]
+            ],
         }
 
         with patch(
@@ -874,13 +860,12 @@ class TestIntegrationScenarios:
                 total_amount=Decimal("270.63"),
                 currency="USD",
                 created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow()
+                updated_at=datetime.utcnow(),
             )
             mock_create_po.return_value = mock_po
 
             po_response = await async_client.post(
-                "/api/v1/purchase-orders/",
-                json=po_data
+                "/api/v1/purchase-orders/", json=po_data
             )
             assert po_response.status_code == 200
             po_result = po_response.json()
@@ -906,24 +891,20 @@ class TestIntegrationScenarios:
                     "quantity_accepted": 10.0,
                     "quantity_rejected": 0.0,
                     "unit_of_measure": "piece",
-                    "quality_status": "passed"
+                    "quality_status": "passed",
                 }
-            ]
+            ],
         }
 
         with patch(
             "app.api.v1.purchase_order_management_v69.PurchaseOrderManagementService.create_purchase_receipt"
         ) as mock_create_receipt:
             receipt_id = uuid.uuid4()
-            mock_receipt = Mock(
-                id=receipt_id,
-                receipt_number="GRN-20241126-000001"
-            )
+            mock_receipt = Mock(id=receipt_id, receipt_number="GRN-20241126-000001")
             mock_create_receipt.return_value = mock_receipt
 
             receipt_response = await async_client.post(
-                "/api/v1/purchase-orders/receipts",
-                json=receipt_data
+                "/api/v1/purchase-orders/receipts", json=receipt_data
             )
             assert receipt_response.status_code == 200
 
@@ -945,12 +926,15 @@ class TestPerformanceAndEdgeCases:
                     id=uuid.uuid4(),
                     code=f"VEN{i:03d}",
                     name=f"Vendor {i}",
-                    status=VendorStatus.ACTIVE
-                ) for i in range(1000)
+                    status=VendorStatus.ACTIVE,
+                )
+                for i in range(1000)
             ]
 
             mock_execute.return_value.scalar.return_value = 1000  # Total count
-            mock_execute.return_value.scalars.return_value.all.return_value = mock_vendors
+            mock_execute.return_value.scalars.return_value.all.return_value = (
+                mock_vendors
+            )
 
             result = await po_service.get_vendors(limit=1000)
 
@@ -966,7 +950,7 @@ class TestPerformanceAndEdgeCases:
             mock_vendor = Mock(
                 id=vendor_id,
                 status=VendorStatus.ACTIVE,
-                payment_terms=PaymentTerms.NET_30
+                payment_terms=PaymentTerms.NET_30,
             )
             mock_get.return_value = mock_vendor
 
@@ -984,7 +968,8 @@ class TestPerformanceAndEdgeCases:
                             for i in range(10):
                                 po_data = Mock(
                                     vendor_id=vendor_id,
-                                    required_date=datetime.utcnow() + timedelta(days=14),
+                                    required_date=datetime.utcnow()
+                                    + timedelta(days=14),
                                     procurement_type=ProcurementType.STANDARD,
                                     lines=[
                                         Mock(
@@ -992,16 +977,20 @@ class TestPerformanceAndEdgeCases:
                                             quantity=Decimal("10"),
                                             unit_price=Decimal("25.00"),
                                             discount_percentage=Decimal("0"),
-                                            tax_rate=Decimal("8.25")
+                                            tax_rate=Decimal("8.25"),
                                         )
-                                    ]
+                                    ],
                                 )
                                 tasks.append(po_service.create_purchase_order(po_data))
 
-                            results = await asyncio.gather(*tasks, return_exceptions=True)
+                            results = await asyncio.gather(
+                                *tasks, return_exceptions=True
+                            )
 
                             # All should succeed
-                            successful_results = [r for r in results if not isinstance(r, Exception)]
+                            successful_results = [
+                                r for r in results if not isinstance(r, Exception)
+                            ]
                             assert len(successful_results) == 10
 
     async def test_large_po_line_calculation(self, po_service):
@@ -1010,10 +999,11 @@ class TestPerformanceAndEdgeCases:
         lines = [
             Mock(
                 quantity=Decimal("1"),
-                unit_price=Decimal(f"{i+1}.99"),
+                unit_price=Decimal(f"{i + 1}.99"),
                 discount_percentage=Decimal("2.5"),
-                tax_rate=Decimal("8.25")
-            ) for i in range(1000)
+                tax_rate=Decimal("8.25"),
+            )
+            for i in range(1000)
         ]
 
         totals = po_service._calculate_po_totals(lines)
@@ -1030,7 +1020,7 @@ class TestPerformanceAndEdgeCases:
                 quantity=Decimal("0"),  # Zero quantity
                 unit_price=Decimal("100.00"),
                 discount_percentage=Decimal("5.0"),
-                tax_rate=Decimal("8.25")
+                tax_rate=Decimal("8.25"),
             )
         ]
 
@@ -1046,7 +1036,7 @@ class TestPerformanceAndEdgeCases:
                 quantity=Decimal("10"),
                 unit_price=Decimal("100.00"),
                 discount_percentage=Decimal("100.0"),  # 100% discount
-                tax_rate=Decimal("8.25")
+                tax_rate=Decimal("8.25"),
             )
         ]
 
@@ -1059,11 +1049,13 @@ class TestPerformanceAndEdgeCases:
 
 # Test execution and coverage reporting
 if __name__ == "__main__":
-    pytest.main([
-        __file__,
-        "-v",
-        "--cov=app.api.v1.purchase_order_management_v69",
-        "--cov-report=html",
-        "--cov-report=term-missing",
-        "--cov-fail-under=85"
-    ])
+    pytest.main(
+        [
+            __file__,
+            "-v",
+            "--cov=app.api.v1.purchase_order_management_v69",
+            "--cov-report=html",
+            "--cov-report=term-missing",
+            "--cov-fail-under=85",
+        ]
+    )
