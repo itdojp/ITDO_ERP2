@@ -41,6 +41,15 @@ check_phase_gate() {
                 echo -e "${RED}Error: Test files not found${NC}"
                 return 1
             fi
+            # Check prerequisites
+            if [[ ! -d "backend" ]]; then
+                echo -e "${RED}Error: 'backend' directory does not exist${NC}"
+                return 1
+            fi
+            if ! command -v uv &> /dev/null; then
+                echo -e "${RED}Error: 'uv' command not found. Please install it.${NC}"
+                return 1
+            fi
             # テストが失敗することを確認
             if cd backend && uv run pytest -k "$feature" 2>/dev/null; then
                 echo -e "${RED}Error: Tests should fail in Phase 3${NC}"
@@ -48,6 +57,15 @@ check_phase_gate() {
             fi
             ;;
         "phase-4")
+            # Check prerequisites
+            if [[ ! -d "backend" ]]; then
+                echo -e "${RED}Error: 'backend' directory does not exist${NC}"
+                return 1
+            fi
+            if ! command -v uv &> /dev/null; then
+                echo -e "${RED}Error: 'uv' command not found. Please ensure it is installed and in your PATH.${NC}"
+                return 1
+            fi
             # テストが成功することを確認
             if ! (cd backend && uv run pytest -k "$feature"); then
                 echo -e "${RED}Error: Tests should pass in Phase 4${NC}"
@@ -66,6 +84,9 @@ generate_task_packet() {
     local feature=$2
     local agent=$3
     local date=$(date +%Y%m%d)
+    
+    # Ensure the task-packets directory exists
+    mkdir -p task-packets
     
     cat > "task-packets/ITDO-ERP2-${phase}-${feature}-${date}-${agent}.yaml" << EOF
 Task_ID: ITDO-ERP2-${phase}-${feature}-${date}

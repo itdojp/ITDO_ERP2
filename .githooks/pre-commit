@@ -115,9 +115,10 @@ if [[ -n $python_files ]]; then
     echo "Checking Python files..."
     cd backend
     for file in $python_files; do
-        if [[ -f "../$file" ]]; then
+        abs_path=$(realpath "../$file")
+        if [[ -f "$abs_path" ]]; then
             # Ruff チェック
-            if ! uv run ruff check "../$file"; then
+            if ! uv run ruff check "$abs_path"; then
                 echo -e "${RED}Error: Ruff check failed for $file${NC}"
                 echo -e "${YELLOW}Run: cd backend && uv run ruff check --fix${NC}"
                 exit 1
