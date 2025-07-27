@@ -1002,7 +1002,7 @@ class TestScheduledReportManager:
         # Assertions
         assert "schedule_id" in result
         assert result["schedule_name"] == "Daily Sales Report"
-        assert result["enabled"] == True
+        assert result["enabled"]
         assert "next_run" in result
         assert "created_at" in result
 
@@ -1544,7 +1544,7 @@ class TestReportingAnalyticsIntegration:
 
         assert "schedule_id" in schedule_result
         assert schedule_result["schedule_name"] == "Monthly Sales Schedule"
-        assert schedule_result["enabled"] == True
+        assert schedule_result["enabled"]
 
     @pytest.mark.asyncio
     async def test_complete_analytics_workflow(

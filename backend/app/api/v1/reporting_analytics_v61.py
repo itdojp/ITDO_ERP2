@@ -155,7 +155,7 @@ class ReportScheduleRequest(BaseModel):
     parameters: Dict[str, Any] = Field(default_factory=dict)
 
     @validator("cron_expression")
-    def validate_cron(cls, v):
+    def validate_cron(cls, v) -> dict:
         """Basic cron expression validation"""
         parts = v.split()
         if len(parts) != 5:
@@ -296,7 +296,7 @@ class BusinessIntelligenceInsight(BaseModel):
 class DashboardEngine:
     """Real-time dashboard management engine"""
 
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: AsyncSession) -> dict:
         self.db = db
 
     async def create_dashboard_widget(
@@ -363,7 +363,7 @@ class DashboardEngine:
             widgets_query = text("""
                 SELECT id, title, chart_type, data_source, metrics, dimensions,
                        filters, time_range, refresh_interval, position, updated_at
-                FROM dashboard_widgets 
+                FROM dashboard_widgets
                 WHERE dashboard_id = :dashboard_id OR dashboard_id IS NULL
                 ORDER BY position
             """)
@@ -439,7 +439,7 @@ class DashboardEngine:
     ) -> Dict[str, Any]:
         """Generate sales-specific widget data"""
         base_query = """
-            SELECT 
+            SELECT
                 DATE(o.created_at) as date,
                 COUNT(*) as order_count,
                 SUM(o.total_amount) as total_revenue,
@@ -485,7 +485,7 @@ class DashboardEngine:
     ) -> Dict[str, Any]:
         """Generate inventory-specific widget data"""
         base_query = """
-            SELECT 
+            SELECT
                 p.name as product_name,
                 COALESCE(i.current_stock, 0) as stock_level,
                 COALESCE(i.reorder_point, 10) as reorder_point,
@@ -527,7 +527,7 @@ class DashboardEngine:
     ) -> Dict[str, Any]:
         """Generate customer-specific widget data"""
         base_query = """
-            SELECT 
+            SELECT
                 DATE(c.created_at) as registration_date,
                 COUNT(*) as new_customers,
                 COUNT(CASE WHEN c.status = 'active' THEN 1 END) as active_customers
@@ -594,7 +594,7 @@ class DashboardEngine:
 class ReportBuilder:
     """Custom report builder engine"""
 
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: AsyncSession) -> dict:
         self.db = db
 
     async def create_custom_report(
@@ -685,7 +685,7 @@ class ReportBuilder:
     ) -> List[Dict[str, Any]]:
         """Query orders data for reporting"""
         base_query = """
-            SELECT 
+            SELECT
                 o.id as order_id,
                 o.order_number,
                 o.total_amount,
@@ -731,7 +731,7 @@ class ReportBuilder:
     ) -> List[Dict[str, Any]]:
         """Query customers data for reporting"""
         base_query = """
-            SELECT 
+            SELECT
                 c.id as customer_id,
                 c.full_name,
                 c.email,
@@ -770,7 +770,7 @@ class ReportBuilder:
     ) -> List[Dict[str, Any]]:
         """Query products data for reporting"""
         base_query = """
-            SELECT 
+            SELECT
                 p.id as product_id,
                 p.name,
                 p.sku,
@@ -805,7 +805,7 @@ class ReportBuilder:
     ) -> List[Dict[str, Any]]:
         """Query inventory data for reporting"""
         base_query = """
-            SELECT 
+            SELECT
                 p.name as product_name,
                 p.sku,
                 COALESCE(i.current_stock, 0) as stock_level,
@@ -839,7 +839,7 @@ class ReportBuilder:
 class BusinessIntelligenceEngine:
     """Business intelligence and insights generation"""
 
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: AsyncSession) -> dict:
         self.db = db
 
     async def generate_insights(self, time_period: str = "30d") -> List[Dict[str, Any]]:
@@ -883,11 +883,11 @@ class BusinessIntelligenceEngine:
 
         # Current period sales
         current_query = text("""
-            SELECT 
+            SELECT
                 COUNT(*) as order_count,
                 SUM(total_amount) as total_revenue,
                 AVG(total_amount) as avg_order_value
-            FROM orders 
+            FROM orders
             WHERE created_at BETWEEN :start_date AND :end_date
         """)
 
@@ -954,14 +954,14 @@ class BusinessIntelligenceEngine:
         start_date = datetime.utcnow() - timedelta(days=days)
 
         customer_query = text("""
-            SELECT 
+            SELECT
                 COUNT(*) as new_customers,
                 COUNT(CASE WHEN c.status = 'active' THEN 1 END) as active_customers,
                 AVG(customer_orders.order_count) as avg_orders_per_customer
             FROM customers c
             LEFT JOIN (
                 SELECT customer_id, COUNT(*) as order_count
-                FROM orders 
+                FROM orders
                 WHERE created_at >= :start_date
                 GROUP BY customer_id
             ) customer_orders ON c.id = customer_orders.customer_id
@@ -1005,7 +1005,7 @@ class BusinessIntelligenceEngine:
 
         # Check for low stock or overstock situations
         inventory_query = text("""
-            SELECT 
+            SELECT
                 COUNT(CASE WHEN i.current_stock <= i.reorder_point THEN 1 END) as low_stock_items,
                 COUNT(CASE WHEN i.current_stock > i.max_stock_level THEN 1 END) as overstock_items,
                 COUNT(*) as total_items,
@@ -1081,7 +1081,7 @@ class BusinessIntelligenceEngine:
 class KPIManager:
     """KPI definition and calculation management"""
 
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: AsyncSession) -> dict:
         self.db = db
 
     async def calculate_kpi(self, kpi_id: UUID) -> Dict[str, Any]:
@@ -1091,7 +1091,7 @@ class KPIManager:
             kpi_query = text("""
                 SELECT kpi_name, calculation_formula, data_sources, target_value,
                        warning_threshold, critical_threshold, unit, frequency
-                FROM kpi_definitions 
+                FROM kpi_definitions
                 WHERE id = :kpi_id
             """)
 
@@ -1183,9 +1183,9 @@ class KPIManager:
         """Get previous period KPI value"""
         try:
             query = text("""
-                SELECT value FROM kpi_history 
-                WHERE kpi_id = :kpi_id 
-                ORDER BY calculated_at DESC 
+                SELECT value FROM kpi_history
+                WHERE kpi_id = :kpi_id
+                ORDER BY calculated_at DESC
                 LIMIT 1 OFFSET 1
             """)
 
@@ -1219,7 +1219,7 @@ class KPIManager:
 class ScheduledReportManager:
     """Scheduled report management and delivery"""
 
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: AsyncSession) -> dict:
         self.db = db
 
     async def create_report_schedule(
@@ -1305,7 +1305,7 @@ class ScheduledReportManager:
 class ReportingAnalyticsManager:
     """Main manager for reporting and analytics operations"""
 
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: AsyncSession) -> dict:
         self.db = db
         self.dashboard_engine = DashboardEngine(db)
         self.report_builder = ReportBuilder(db)
@@ -1342,11 +1342,11 @@ class ReportingAnalyticsManager:
         try:
             # Revenue metrics
             revenue_query = text("""
-                SELECT 
+                SELECT
                     COUNT(*) as total_orders,
                     SUM(total_amount) as total_revenue,
                     AVG(total_amount) as avg_order_value
-                FROM orders 
+                FROM orders
                 WHERE created_at >= :start_date
             """)
 
@@ -1358,7 +1358,7 @@ class ReportingAnalyticsManager:
 
             # Customer metrics
             customer_query = text("""
-                SELECT 
+                SELECT
                     COUNT(*) as total_customers,
                     COUNT(CASE WHEN status = 'active' THEN 1 END) as active_customers
                 FROM customers
@@ -1637,15 +1637,15 @@ async def run_scheduled_reports(
 ):
     """Run scheduled report generation"""
 
-    async def report_generation_task():
+    async def report_generation_task() -> None:
         """Background task for report generation"""
         try:
-            manager = ReportingAnalyticsManager(db)
+            ReportingAnalyticsManager(db)
 
             # Find due scheduled reports
             due_reports_query = text("""
                 SELECT id, report_id, format, delivery_method, recipients
-                FROM report_schedules 
+                FROM report_schedules
                 WHERE enabled = true AND next_run <= :now
                 LIMIT 10
             """)
@@ -1683,13 +1683,13 @@ async def refresh_dashboard_data(
 ):
     """Refresh dashboard data in background"""
 
-    async def dashboard_refresh_task():
+    async def dashboard_refresh_task() -> None:
         """Background task for dashboard refresh"""
         try:
             # Find dashboards that need refresh
-            refresh_query = text("""
-                SELECT DISTINCT dashboard_id 
-                FROM dashboard_widgets 
+            text("""
+                SELECT DISTINCT dashboard_id
+                FROM dashboard_widgets
                 WHERE refresh_interval <= :seconds_since_update
             """)
 
