@@ -187,7 +187,7 @@ class SagaExecutionResponse(BaseModel):
 class MessageQueue:
     """High-performance message queue with Redis backend"""
 
-    def __init__(self, redis_client: redis.Redis):
+    def __init__(self, redis_client: redis.Redis) -> dict:
         self.redis = redis_client
         self.queues: Dict[str, QueueConfiguration] = {}
 
@@ -465,7 +465,7 @@ class MessageQueue:
             # Get current queue lengths
             pending_count = self.redis.zcard(f"queue:pending:{queue_name}")
             processing_count = self.redis.zcard(f"queue:processing:{queue_name}")
-            retry_count = self.redis.zcard(f"queue:retry:{queue_name}")
+            self.redis.zcard(f"queue:retry:{queue_name}")
 
             # Calculate rates
             total_messages = int(metrics_data.get("total_messages", 0))
@@ -554,7 +554,7 @@ class MessageQueue:
 class IntegrationPatternEngine:
     """Enterprise Integration Patterns implementation"""
 
-    def __init__(self, message_queue: MessageQueue):
+    def __init__(self, message_queue: MessageQueue) -> dict:
         self.message_queue = message_queue
         self.patterns: Dict[UUID, IntegrationPatternRequest] = {}
         self.active_processors: Dict[UUID, asyncio.Task] = {}
@@ -804,11 +804,10 @@ class IntegrationPatternEngine:
     ) -> Dict[str, Any]:
         """Apply scatter-gather pattern"""
         scatter_endpoints = pattern.target_endpoints
-        gather_timeout = pattern.configuration.get("gather_timeout_seconds", 30)
+        pattern.configuration.get("gather_timeout_seconds", 30)
 
         # Scatter - send to all endpoints
         scatter_id = str(uuid4())
-        scatter_key = f"scatter:{pattern.pattern_id}:{scatter_id}"
 
         responses = {}
         for endpoint in scatter_endpoints:
@@ -900,7 +899,7 @@ class IntegrationPatternEngine:
 class SagaOrchestrator:
     """SAGA pattern implementation for distributed transactions"""
 
-    def __init__(self, message_queue: MessageQueue):
+    def __init__(self, message_queue: MessageQueue) -> dict:
         self.message_queue = message_queue
         self.sagas: Dict[UUID, SagaDefinition] = {}
         self.executions: Dict[UUID, Dict[str, Any]] = {}
@@ -1063,8 +1062,8 @@ class SagaOrchestrator:
     ) -> Dict[str, Any]:
         """Execute HTTP call step"""
         # Simulate HTTP call
-        endpoint = step.get("endpoint", "http://localhost/api")
-        method = step.get("method", "POST")
+        step.get("endpoint", "http://localhost/api")
+        step.get("method", "POST")
 
         # In real implementation, would make actual HTTP call
         return {
@@ -1081,7 +1080,7 @@ class SagaOrchestrator:
     ) -> Dict[str, Any]:
         """Execute database operation step"""
         operation = step.get("operation", "insert")
-        table = step.get("table", "default")
+        step.get("table", "default")
 
         # Simulate database operation
         return {
@@ -1154,7 +1153,7 @@ class SagaOrchestrator:
             execution = self.executions[execution_id]
 
             # Execute compensation action
-            result = await self._execute_step_action(
+            await self._execute_step_action(
                 compensation_step, execution["execution_context"]
             )
 

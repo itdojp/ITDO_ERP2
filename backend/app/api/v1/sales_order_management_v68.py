@@ -107,7 +107,7 @@ class OrderLineItem(BaseModel):
     notes: Optional[str] = None
 
     @validator("line_total", always=True)
-    def calculate_line_total(cls, v, values):
+    def calculate_line_total(cls, v, values) -> dict:
         """Calculate line total including discounts and taxes"""
         quantity = values.get("quantity", 0)
         unit_price = values.get("unit_price", 0)
@@ -232,7 +232,7 @@ class OrderHistory:
 class SalesOrderManagementService:
     """Comprehensive sales order management service"""
 
-    def __init__(self, db: AsyncSession, redis_client: aioredis.Redis):
+    def __init__(self, db: AsyncSession, redis_client: aioredis.Redis) -> dict:
         self.db = db
         self.redis = redis_client
         self.cache_ttl = 3600  # 1 hour
@@ -1056,7 +1056,7 @@ class SalesOrderManagementService:
         # Mock implementation - would integrate with inventory system
         pass
 
-    async def _release_inventory_allocations(self, order_id: uuid.UUID):
+    async def _release_inventory_allocations(self, order_id: uuid.UUID) -> dict:
         """Release inventory allocations"""
         # Mock implementation
         pass
@@ -1096,7 +1096,7 @@ class SalesOrderManagementService:
 
         return new_status in valid_transitions.get(current_status, [])
 
-    async def _execute_status_actions(self, order_id: uuid.UUID, status: OrderStatus):
+    async def _execute_status_actions(self, order_id: uuid.UUID, status: OrderStatus) -> dict:
         """Execute actions specific to status change"""
         # Mock implementation - would execute status-specific logic
         pass
@@ -1112,7 +1112,7 @@ class SalesOrderManagementService:
         # Mock implementation - would save to order history table
         pass
 
-    async def _send_order_notifications(self, order_id: uuid.UUID, event_type: str):
+    async def _send_order_notifications(self, order_id: uuid.UUID, event_type: str) -> dict:
         """Send order notifications"""
         # Mock implementation - would send notifications
         pass
@@ -1160,12 +1160,12 @@ class SalesOrderManagementService:
             "status": "created",
         }
 
-    async def _cancel_pending_shipments(self, order_id: uuid.UUID):
+    async def _cancel_pending_shipments(self, order_id: uuid.UUID) -> dict:
         """Cancel pending shipments"""
         # Mock implementation
         pass
 
-    async def _process_refund(self, order_id: uuid.UUID, reason: str):
+    async def _process_refund(self, order_id: uuid.UUID, reason: str) -> dict:
         """Process refund for cancelled order"""
         # Mock implementation - would integrate with payment system
         pass
@@ -1326,7 +1326,7 @@ async def get_order_analytics(
 
 
 @router.get("/health")
-async def health_check():
+async def health_check() -> None:
     """Health check endpoint"""
     return {
         "status": "healthy",
@@ -1337,7 +1337,7 @@ async def health_check():
 
 
 # Include router in main application
-def setup_sales_order_routes(app):
+def setup_sales_order_routes(app) -> dict:
     """Setup sales order management routes"""
     app.include_router(router)
     return app

@@ -375,7 +375,7 @@ class BulkMediaOperation(BaseModel):
 class MediaStorageService:
     """Media storage service with multiple backend support"""
 
-    def __init__(self, db: AsyncSession, redis_client: aioredis.Redis):
+    def __init__(self, db: AsyncSession, redis_client: aioredis.Redis) -> dict:
         self.db = db
         self.redis = redis_client
         self.settings = get_settings()
@@ -388,7 +388,7 @@ class MediaStorageService:
             query = select(MediaStorage).where(MediaStorage.id == storage_id)
         else:
             query = select(MediaStorage).where(
-                and_(MediaStorage.is_default == True, MediaStorage.is_active == True)
+                and_(MediaStorage.is_default, MediaStorage.is_active)
             )
 
         result = await self.db.execute(query)
@@ -525,7 +525,7 @@ class MediaStorageService:
 class MediaProcessingService:
     """Media processing service for images and videos"""
 
-    def __init__(self, db: AsyncSession, redis_client: aioredis.Redis):
+    def __init__(self, db: AsyncSession, redis_client: aioredis.Redis) -> dict:
         self.db = db
         self.redis = redis_client
 
@@ -700,7 +700,7 @@ class MediaProcessingService:
 
             return {"status": "error", "error": str(e)}
 
-    async def _create_video_thumbnail(self, media_file: MediaFile, video_path: Path):
+    async def _create_video_thumbnail(self, media_file: MediaFile, video_path: Path) -> dict:
         """Create video thumbnail"""
         try:
             thumbnail_filename = f"{Path(media_file.filename).stem}_thumbnail.jpg"
@@ -795,7 +795,7 @@ class MediaProcessingService:
 class MediaManagementService:
     """Comprehensive media management service"""
 
-    def __init__(self, db: AsyncSession, redis_client: aioredis.Redis):
+    def __init__(self, db: AsyncSession, redis_client: aioredis.Redis) -> dict:
         self.db = db
         self.redis = redis_client
         self.storage_service = MediaStorageService(db, redis_client)
@@ -881,7 +881,7 @@ class MediaManagementService:
             processing_status=media_file.processing_status,
         )
 
-    async def _validate_upload(self, file: UploadFile):
+    async def _validate_upload(self, file: UploadFile) -> dict:
         """Validate uploaded file"""
         if not file.filename:
             raise HTTPException(status_code=400, detail="No filename provided")
@@ -917,7 +917,7 @@ class MediaManagementService:
         else:
             return MediaType.DOCUMENT
 
-    async def _queue_processing_job(self, media_file: MediaFile):
+    async def _queue_processing_job(self, media_file: MediaFile) -> dict:
         """Queue media processing job"""
         job_config = {
             "media_type": media_file.media_type,
@@ -1195,7 +1195,7 @@ async def associate_product_media(
 
 
 @router.get("/serve/{file_path:path}")
-async def serve_media(file_path: str):
+async def serve_media(file_path: str) -> dict:
     """Serve media file"""
     full_path = Path(MEDIA_CONFIG["upload_path"]) / file_path
 
@@ -1231,7 +1231,7 @@ async def process_media(
 
 
 @router.get("/health", response_model=Dict[str, Any])
-async def health_check():
+async def health_check() -> None:
     """Media service health check"""
     return {
         "status": "healthy",

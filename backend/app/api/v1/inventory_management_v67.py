@@ -800,7 +800,7 @@ class InventoryReportRequest(BaseModel):
 class InventoryManagementService:
     """Comprehensive inventory management service"""
 
-    def __init__(self, db: AsyncSession, redis_client: aioredis.Redis):
+    def __init__(self, db: AsyncSession, redis_client: aioredis.Redis) -> dict:
         self.db = db
         self.redis = redis_client
 
@@ -1211,7 +1211,7 @@ class InventoryManagementService:
         return f"ADJ-{today}-{counter:06d}"
 
     # Alert Management
-    async def _check_inventory_alerts(self, balance: InventoryBalance):
+    async def _check_inventory_alerts(self, balance: InventoryBalance) -> dict:
         """Check and create inventory alerts"""
         alerts = []
 
@@ -1736,7 +1736,7 @@ async def get_inventory_alerts(
 
 
 @router.get("/health", response_model=Dict[str, Any])
-async def health_check():
+async def health_check() -> None:
     """Inventory management service health check"""
     return {
         "status": "healthy",

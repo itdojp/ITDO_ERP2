@@ -639,7 +639,7 @@ class CostAnalysisRequest(BaseModel):
 class PurchaseOrderManagementService:
     """Comprehensive purchase order management service"""
 
-    def __init__(self, db: AsyncSession, redis_client: aioredis.Redis):
+    def __init__(self, db: AsyncSession, redis_client: aioredis.Redis) -> dict:
         self.db = db
         self.redis = redis_client
 
@@ -1400,6 +1400,6 @@ async def generate_cost_analysis(
 
 
 # Include router in main app
-def get_router():
+def get_router() -> None:
     """Get the purchase order management router"""
     return router
