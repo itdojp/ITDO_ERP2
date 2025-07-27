@@ -37,7 +37,7 @@ graph TD
 
     subgraph Phase4["Phase 4: 完全統合と最適化"]
         H --> I[SDADが<br>デフォルトプロセスに]
-        I --> J[継続的な<br>プロセス改善(Kaizen)]
+        I --> J[継続的な<br>プロセス改善 Kaizen]
     end
 ```
 
