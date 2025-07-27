@@ -412,13 +412,13 @@ class SearchAnalytics(BaseModel):
 class ElasticsearchService:
     """Elasticsearch service for product search"""
 
-    def __init__(self, db: AsyncSession, redis_client: aioredis.Redis):
+    def __init__(self, db: AsyncSession, redis_client: aioredis.Redis) -> dict:
         self.db = db
         self.redis = redis_client
         self.es = AsyncElasticsearch(ES_CONFIG["hosts"])
         self.index_name = ES_CONFIG["index_name"]
 
-    async def ensure_index_exists(self):
+    async def ensure_index_exists(self) -> dict:
         """Ensure Elasticsearch index exists with proper mapping"""
         if not await self.es.indices.exists(index=self.index_name):
             await self.es.indices.create(
@@ -911,7 +911,7 @@ class ElasticsearchService:
         aggregations = {}
 
         # Get active facets from database
-        facets_query = select(SearchFacet).where(SearchFacet.is_active == True)
+        facets_query = select(SearchFacet).where(SearchFacet.is_active)
         if requested_facets:
             facets_query = facets_query.where(SearchFacet.name.in_(requested_facets))
 
@@ -1208,7 +1208,7 @@ async def get_search_facets(db: AsyncSession = Depends(get_db)):
     """Get available search facets"""
     query = (
         select(SearchFacet)
-        .where(SearchFacet.is_active == True)
+        .where(SearchFacet.is_active)
         .order_by(SearchFacet.sort_order)
     )
     result = await db.execute(query)
@@ -1332,7 +1332,7 @@ async def get_search_analytics(
 
 
 @router.get("/health", response_model=Dict[str, Any])
-async def health_check():
+async def health_check() -> None:
     """Search service health check"""
     return {
         "status": "healthy",

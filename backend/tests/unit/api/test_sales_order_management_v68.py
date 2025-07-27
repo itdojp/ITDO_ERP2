@@ -217,7 +217,7 @@ class TestOrderQuoteGeneration:
 
             result = response.json()
             availability = result["line_items"][0]["availability"]
-            assert availability["available"] == False
+            assert not availability["available"]
             assert availability["available_quantity"] == 50.0
 
 
@@ -482,33 +482,21 @@ class TestOrderStatusManagement:
     async def test_status_transition_validation(self, sales_service):
         """Test status transition validation logic"""
         # Test valid transitions
-        assert (
-            await sales_service._validate_status_transition(
-                OrderStatus.PENDING, OrderStatus.CONFIRMED
-            )
-            == True
+        assert await sales_service._validate_status_transition(
+            OrderStatus.PENDING, OrderStatus.CONFIRMED
         )
 
-        assert (
-            await sales_service._validate_status_transition(
-                OrderStatus.FULFILLED, OrderStatus.SHIPPED
-            )
-            == True
+        assert await sales_service._validate_status_transition(
+            OrderStatus.FULFILLED, OrderStatus.SHIPPED
         )
 
         # Test invalid transitions
-        assert (
-            await sales_service._validate_status_transition(
-                OrderStatus.COMPLETED, OrderStatus.PENDING
-            )
-            == False
+        assert not await sales_service._validate_status_transition(
+            OrderStatus.COMPLETED, OrderStatus.PENDING
         )
 
-        assert (
-            await sales_service._validate_status_transition(
-                OrderStatus.CANCELLED, OrderStatus.CONFIRMED
-            )
-            == False
+        assert not await sales_service._validate_status_transition(
+            OrderStatus.CANCELLED, OrderStatus.CONFIRMED
         )
 
 

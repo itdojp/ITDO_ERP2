@@ -263,7 +263,7 @@ class PredictiveModelResponse(BaseModel):
 class RealtimeDashboardManager:
     """Real-time dashboard management system"""
 
-    def __init__(self, redis_client: redis.Redis):
+    def __init__(self, redis_client: redis.Redis) -> dict:
         self.redis = redis_client
         self.dashboards: Dict[UUID, DashboardRequest] = {}
         self.active_subscriptions: Dict[UUID, List[str]] = {}
@@ -409,7 +409,7 @@ class RealtimeDashboardManager:
     ) -> Dict[str, Any]:
         """Generate data for widget based on configuration"""
         widget_type = widget_config.get("widget_type")
-        data_source = widget_config.get("data_source")
+        widget_config.get("data_source")
 
         if widget_type == "chart":
             return await self._generate_chart_data(widget_config, filters)
@@ -527,7 +527,7 @@ class RealtimeDashboardManager:
     ) -> Dict[str, Any]:
         """Generate metric data"""
         # Simulate KPI metrics
-        metric_name = config.get("title", "Sales")
+        config.get("title", "Sales")
 
         current_value = np.random.randint(1000, 10000)
         previous_value = np.random.randint(800, 9500)
@@ -626,7 +626,7 @@ class RealtimeDashboardManager:
 class DataWarehouseManager:
     """Data warehouse and ETL management system"""
 
-    def __init__(self, redis_client: redis.Redis):
+    def __init__(self, redis_client: redis.Redis) -> dict:
         self.redis = redis_client
         self.warehouses: Dict[UUID, DataWarehouseRequest] = {}
 
@@ -910,7 +910,7 @@ class DataWarehouseManager:
 class OLAPCubeManager:
     """OLAP cube management and multidimensional analysis"""
 
-    def __init__(self, redis_client: redis.Redis):
+    def __init__(self, redis_client: redis.Redis) -> dict:
         self.redis = redis_client
         self.cubes: Dict[UUID, OLAPCubeRequest] = {}
 
@@ -1285,7 +1285,7 @@ class OLAPCubeManager:
 class QueryBuilderEngine:
     """Ad-hoc query builder and execution engine"""
 
-    def __init__(self, redis_client: redis.Redis):
+    def __init__(self, redis_client: redis.Redis) -> dict:
         self.redis = redis_client
         self.queries: Dict[UUID, QueryBuilderRequest] = {}
         self.query_cache: Dict[str, Any] = {}
@@ -1570,7 +1570,7 @@ class QueryBuilderEngine:
 class PredictiveAnalyticsEngine:
     """Machine learning and predictive analytics integration"""
 
-    def __init__(self, redis_client: redis.Redis):
+    def __init__(self, redis_client: redis.Redis) -> dict:
         self.redis = redis_client
         self.models: Dict[UUID, PredictiveModelRequest] = {}
 
