@@ -19,23 +19,23 @@
 
 ```mermaid
 graph TD
-    subgraph "Phase 1: 準備と合意形成"
+    subgraph Phase1["Phase 1: 準備と合意形成"]
         A[現状の課題分析] --> B[チームの合意形成]
         B --> C[パイロット機能の選定]
     end
 
-    subgraph "Phase 2: パイロット実行"
-        C --> D["リバースBDD"による<br>現状仕様の可視化]
+    subgraph Phase2["Phase 2: パイロット実行"]
+        C --> D[リバースBDDによる<br>現状仕様の可視化]
         D --> E[パイロット機能への<br>SDAD適用]
         E --> F[効果測定と<br>成功体験の共有]
     end
 
-    subgraph "Phase 3: 横展開と習慣化"
+    subgraph Phase3["Phase 3: 横展開と習慣化"]
         F --> G[移行ガイドラインの<br>チーム内整備]
         G --> H[新規開発機能への<br>SDAD適用拡大]
     end
 
-    subgraph "Phase 4: 完全統合と最適化"
+    subgraph Phase4["Phase 4: 完全統合と最適化"]
         H --> I[SDADが<br>デフォルトプロセスに]
         I --> J[継続的な<br>プロセス改善(Kaizen)]
     end

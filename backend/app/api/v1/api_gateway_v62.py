@@ -737,7 +737,9 @@ class GatewayMetrics:
 class GatewayMiddleware(BaseHTTPMiddleware):
     """API Gateway middleware for request processing"""
 
-    def __init__(self, app, gateway_core: APIGatewayCore, metrics: GatewayMetrics) -> dict:
+    def __init__(
+        self, app, gateway_core: APIGatewayCore, metrics: GatewayMetrics
+    ) -> dict:
         super().__init__(app)
         self.gateway = gateway_core
         self.metrics = metrics
