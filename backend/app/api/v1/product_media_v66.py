@@ -700,7 +700,9 @@ class MediaProcessingService:
 
             return {"status": "error", "error": str(e)}
 
-    async def _create_video_thumbnail(self, media_file: MediaFile, video_path: Path) -> dict:
+    async def _create_video_thumbnail(
+        self, media_file: MediaFile, video_path: Path
+    ) -> dict:
         """Create video thumbnail"""
         try:
             thumbnail_filename = f"{Path(media_file.filename).stem}_thumbnail.jpg"

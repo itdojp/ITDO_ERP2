@@ -1096,7 +1096,9 @@ class SalesOrderManagementService:
 
         return new_status in valid_transitions.get(current_status, [])
 
-    async def _execute_status_actions(self, order_id: uuid.UUID, status: OrderStatus) -> dict:
+    async def _execute_status_actions(
+        self, order_id: uuid.UUID, status: OrderStatus
+    ) -> dict:
         """Execute actions specific to status change"""
         # Mock implementation - would execute status-specific logic
         pass
@@ -1112,7 +1114,9 @@ class SalesOrderManagementService:
         # Mock implementation - would save to order history table
         pass
 
-    async def _send_order_notifications(self, order_id: uuid.UUID, event_type: str) -> dict:
+    async def _send_order_notifications(
+        self, order_id: uuid.UUID, event_type: str
+    ) -> dict:
         """Send order notifications"""
         # Mock implementation - would send notifications
         pass
