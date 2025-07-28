@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_session, get_current_user, get_db
@@ -31,7 +31,7 @@ async def list_sessions(
     """
     session_service = SessionService(db)
     sessions = session_service.get_active_sessions(current_user)
-    
+
     return SessionListResponse(
         sessions=[
             SessionResponse(
@@ -78,25 +78,25 @@ async def extend_current_session(
 ) -> SessionResponse:
     """
     Extend the current session.
-    
+
     - **hours**: Number of hours to extend (uses user's default if not specified)
     """
     session_service = SessionService(db)
     config = session_service.get_or_create_session_config(current_user)
-    
+
     # Use provided hours or user's configured timeout
     extend_hours = hours or config.session_timeout_hours
-    
+
     # Validate hours
     if extend_hours < 1 or extend_hours > config.max_session_timeout_hours:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"延長時間は1〜{config.max_session_timeout_hours}時間の間で指定してください",
         )
-    
+
     # Extend session
     current_session.extend_session(db, extend_hours)
-    
+
     # Log activity
     session_service.log_activity(
         current_session,
@@ -105,7 +105,7 @@ async def extend_current_session(
         current_session.user_agent,
         {"hours": extend_hours},
     )
-    
+
     return SessionResponse(
         id=current_session.id,
         ip_address=current_session.ip_address,
@@ -126,27 +126,25 @@ async def revoke_session(
 ) -> None:
     """
     Revoke a specific session.
-    
+
     Users can only revoke their own sessions.
     """
     # Find the session
-    session = db.query(UserSession).filter(
-        UserSession.id == session_id
-    ).first()
-    
+    session = db.query(UserSession).filter(UserSession.id == session_id).first()
+
     if not session:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="セッションが見つかりません",
         )
-    
+
     # Check ownership
     if session.user_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="このセッションを無効化する権限がありません",
         )
-    
+
     # Revoke the session
     session_service = SessionService(db)
     session_service.revoke_session(
@@ -165,17 +163,17 @@ async def revoke_all_sessions(
 ) -> None:
     """
     Revoke all sessions for the current user.
-    
+
     - **keep_current**: Whether to keep the current session active
     """
     session_service = SessionService(db)
-    
+
     count = session_service.revoke_all_user_sessions(
         current_user,
         except_session=current_session if keep_current else None,
         reason="User requested all sessions revoked",
     )
-    
+
     # If not keeping current session, the user will be logged out
     if not keep_current:
         raise HTTPException(
@@ -194,7 +192,7 @@ async def get_session_config(
     """
     session_service = SessionService(db)
     config = session_service.get_or_create_session_config(current_user)
-    
+
     return SessionConfigurationResponse(
         session_timeout_hours=config.session_timeout_hours,
         max_session_timeout_hours=config.max_session_timeout_hours,
@@ -217,13 +215,13 @@ async def update_session_config(
     Update user's session configuration.
     """
     session_service = SessionService(db)
-    
+
     try:
         config = session_service.update_session_config(
             current_user,
             **config_update.dict(exclude_unset=True),
         )
-        
+
         return SessionConfigurationResponse(
             session_timeout_hours=config.session_timeout_hours,
             max_session_timeout_hours=config.max_session_timeout_hours,
@@ -252,19 +250,19 @@ async def add_trusted_device(
     Add current device as a trusted device.
     """
     session_service = SessionService(db)
-    
+
     # Use current session's device ID or provided one
     device_id = request.device_id or current_session.device_id
-    
+
     if not device_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="デバイスIDが必要です",
         )
-    
+
     # Add to trusted devices
     session_service.add_trusted_device(current_user, device_id)
-    
+
     # Update current session if needed
     if not current_session.device_id and request.device_id:
         current_session.device_id = request.device_id
@@ -282,35 +280,35 @@ async def get_session_activities(
 ) -> list[dict]:
     """
     Get session activities for the current user.
-    
+
     - **session_id**: Filter by specific session
     - **limit**: Maximum number of activities to return
     """
     from app.models.session import SessionActivity
-    
-    query = db.query(SessionActivity).filter(
-        SessionActivity.user_id == current_user.id
-    )
-    
+
+    query = db.query(SessionActivity).filter(SessionActivity.user_id == current_user.id)
+
     if session_id:
         # Verify session belongs to user
-        session = db.query(UserSession).filter(
-            UserSession.id == session_id,
-            UserSession.user_id == current_user.id,
-        ).first()
-        
+        session = (
+            db.query(UserSession)
+            .filter(
+                UserSession.id == session_id,
+                UserSession.user_id == current_user.id,
+            )
+            .first()
+        )
+
         if not session:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="セッションが見つかりません",
             )
-        
+
         query = query.filter(SessionActivity.session_id == session_id)
-    
-    activities = query.order_by(
-        SessionActivity.created_at.desc()
-    ).limit(limit).all()
-    
+
+    activities = query.order_by(SessionActivity.created_at.desc()).limit(limit).all()
+
     return [
         {
             "id": activity.id,

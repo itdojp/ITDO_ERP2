@@ -1,6 +1,5 @@
 """User management service."""
 
-from datetime import datetime
 from typing import Optional, Tuple
 
 from sqlalchemy import func, or_
@@ -14,7 +13,7 @@ from app.schemas.user_auth import UserActivitySummary, UserMFAStatus, UserProfil
 class UserService:
     """Service for user management operations."""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         """Initialize user service."""
         self.db = db
 
@@ -29,7 +28,7 @@ class UserService:
     ) -> User:
         """
         Create a new user.
-        
+
         Args:
             email: User email
             password: User password (plain text)
@@ -37,10 +36,10 @@ class UserService:
             phone: User phone number
             is_active: Whether user is active
             created_by: ID of user creating this user
-            
+
         Returns:
             Created user
-            
+
         Raises:
             BusinessLogicError: If user already exists
         """
@@ -48,7 +47,7 @@ class UserService:
         existing = self.db.query(User).filter(User.email == email).first()
         if existing:
             raise BusinessLogicError("このメールアドレスは既に使用されています")
-        
+
         # Create user
         user = User.create(
             db=self.db,
@@ -58,7 +57,7 @@ class UserService:
             phone=phone,
             is_active=is_active,
         )
-        
+
         # Log activity
         if created_by:
             creator = self.db.query(User).filter(User.id == created_by).first()
@@ -68,7 +67,7 @@ class UserService:
                     action="user_created",
                     details={"created_user_id": user.id, "email": email},
                 )
-        
+
         self.db.commit()
         return user
 
@@ -81,18 +80,18 @@ class UserService:
     ) -> Tuple[list[User], int]:
         """
         List users with pagination and filters.
-        
+
         Args:
             skip: Number of records to skip
             limit: Maximum number of records to return
             search: Search term for email or name
             is_active: Filter by active status
-            
+
         Returns:
             Tuple of (users, total_count)
         """
         query = self.db.query(User)
-        
+
         # Apply filters
         if search:
             search_term = f"%{search}%"
@@ -102,16 +101,16 @@ class UserService:
                     User.full_name.ilike(search_term),
                 )
             )
-        
+
         if is_active is not None:
             query = query.filter(User.is_active == is_active)
-        
+
         # Get total count
         total = query.count()
-        
+
         # Apply pagination and get results
         users = query.offset(skip).limit(limit).all()
-        
+
         return users, total
 
     def update_user_profile(
@@ -121,11 +120,11 @@ class UserService:
     ) -> User:
         """
         Update user profile.
-        
+
         Args:
             user: User to update
             profile_data: Profile update data
-            
+
         Returns:
             Updated user
         """
@@ -134,14 +133,14 @@ class UserService:
         for field, value in update_data.items():
             if hasattr(user, field):
                 setattr(user, field, value)
-        
+
         # Log activity
         user.log_activity(
             self.db,
             action="profile_updated",
             details={"updated_fields": list(update_data.keys())},
         )
-        
+
         self.db.commit()
         self.db.refresh(user)
         return user
@@ -149,34 +148,30 @@ class UserService:
     def get_mfa_status(self, user: User) -> UserMFAStatus:
         """
         Get user MFA status.
-        
+
         Args:
             user: User
-            
+
         Returns:
             MFA status
         """
         # Count active MFA devices
         mfa_devices_count = len([d for d in user.mfa_devices if d.is_active])
-        
+
         # Check for backup codes
         has_backup_codes = any(
-            device.backup_codes
-            for device in user.mfa_devices
-            if device.is_active
+            device.backup_codes for device in user.mfa_devices if device.is_active
         )
-        
+
         # Get last MFA verification
         last_verified_at = None
         if user.mfa_devices:
             last_used_times = [
-                d.last_used_at
-                for d in user.mfa_devices
-                if d.last_used_at
+                d.last_used_at for d in user.mfa_devices if d.last_used_at
             ]
             if last_used_times:
                 last_verified_at = max(last_used_times)
-        
+
         return UserMFAStatus(
             mfa_enabled=user.mfa_required,
             mfa_devices_count=mfa_devices_count,
@@ -187,10 +182,10 @@ class UserService:
     def get_activity_summary(self, user: User) -> UserActivitySummary:
         """
         Get user activity summary.
-        
+
         Args:
             user: User
-            
+
         Returns:
             Activity summary
         """
@@ -201,12 +196,13 @@ class UserService:
                 User.id == user.id,
                 User.last_login_at.isnot(None),
             )
-            .scalar() or 0
+            .scalar()
+            or 0
         )
-        
+
         # Count active sessions
         active_sessions = len(user.active_sessions)
-        
+
         return UserActivitySummary(
             total_logins=total_logins,
             last_login_at=user.last_login_at,

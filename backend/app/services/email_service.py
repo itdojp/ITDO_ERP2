@@ -15,7 +15,7 @@ class EmailService:
     ) -> bool:
         """
         Send email (stub implementation).
-        
+
         In production, this would integrate with an email service
         like SendGrid, AWS SES, or similar.
         """
@@ -42,7 +42,7 @@ class EmailService:
 
 このメールに心当たりがない場合は、無視してください。
         """
-        
+
         return EmailService.send_email(email, subject, body)
 
     @staticmethod
@@ -59,7 +59,7 @@ class EmailService:
 
 この操作に心当たりがない場合は、すぐにサポートにご連絡ください。
         """
-        
+
         return EmailService.send_email(email, subject, body)
 
     @staticmethod
@@ -73,10 +73,10 @@ class EmailService:
         body = f"""
 新しいデバイスからログインがありました。
 
-デバイス: {device_info.get('browser', 'Unknown')} on {device_info.get('os', 'Unknown')}
+デバイス: {device_info.get("browser", "Unknown")} on {device_info.get("os", "Unknown")}
 IPアドレス: {ip_address}
 
 このログインに心当たりがない場合は、パスワードを変更してください。
         """
-        
+
         return EmailService.send_email(email, subject, body)

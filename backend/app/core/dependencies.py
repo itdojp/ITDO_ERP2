@@ -82,20 +82,20 @@ def get_current_session(
 ) -> UserSession:
     """Get current session from token."""
     token = credentials.credentials
-    
+
     # Get session from token
     from app.services.session_service import SessionService
-    
+
     session_service = SessionService(db)
     session = session_service.get_session_by_token(token)
-    
+
     if not session or not session.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired session",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     # Validate session
     if not session_service.validate_session(session):
         raise HTTPException(
@@ -103,5 +103,5 @@ def get_current_session(
             detail="Session expired",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     return session

@@ -2,6 +2,7 @@
 """Simple test for password reset functionality."""
 
 import os
+
 os.environ["DATABASE_URL"] = "sqlite:///test_password_reset_simple.db"
 os.environ["SECRET_KEY"] = "test-secret-key"
 os.environ["ALGORITHM"] = "HS256"

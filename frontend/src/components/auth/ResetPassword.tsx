@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Button } from '../ui/Button';
-import { Input } from '../ui/Input';
-import { Alert } from '../ui/Alert';
-import { Card } from '../ui/Card';
-import { Form } from '../ui/Form';
-import { useAuth } from '../../hooks/useAuth';
+import React, { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Button } from "../ui/Button";
+import { Input } from "../ui/Input";
+import { Alert } from "../ui/Alert";
+import { Card } from "../ui/Card";
+import { Form } from "../ui/Form";
+import { useAuth } from "../../hooks/useAuth";
 
 interface PasswordStrength {
   score: number;
@@ -17,11 +17,11 @@ export const ResetPassword: React.FC = () => {
   const [searchParams] = useSearchParams();
   const { resetPassword, verifyResetToken } = useAuth();
   const [formData, setFormData] = useState({
-    password: '',
-    confirmPassword: '',
-    verificationCode: '',
+    password: "",
+    confirmPassword: "",
+    verificationCode: "",
   });
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [tokenValid, setTokenValid] = useState(false);
   const [verifying, setVerifying] = useState(true);
@@ -30,11 +30,11 @@ export const ResetPassword: React.FC = () => {
     feedback: [],
   });
 
-  const token = searchParams.get('token');
+  const token = searchParams.get("token");
 
   useEffect(() => {
     if (!token) {
-      navigate('/auth/forgot-password');
+      navigate("/auth/forgot-password");
       return;
     }
 
@@ -43,7 +43,7 @@ export const ResetPassword: React.FC = () => {
         await verifyResetToken(token);
         setTokenValid(true);
       } catch (err) {
-        setError('無効または期限切れのリンクです');
+        setError("無効または期限切れのリンクです");
       } finally {
         setVerifying(false);
       }
@@ -57,19 +57,19 @@ export const ResetPassword: React.FC = () => {
     let score = 0;
 
     if (password.length >= 8) score++;
-    else feedback.push('8文字以上必要です');
+    else feedback.push("8文字以上必要です");
 
     if (/[A-Z]/.test(password)) score++;
-    else feedback.push('大文字を含めてください');
+    else feedback.push("大文字を含めてください");
 
     if (/[a-z]/.test(password)) score++;
-    else feedback.push('小文字を含めてください');
+    else feedback.push("小文字を含めてください");
 
     if (/\d/.test(password)) score++;
-    else feedback.push('数字を含めてください');
+    else feedback.push("数字を含めてください");
 
     if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) score++;
-    else feedback.push('特殊文字を含めてください');
+    else feedback.push("特殊文字を含めてください");
 
     return { score, feedback };
   };
@@ -81,16 +81,18 @@ export const ResetPassword: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     // Validation
     if (formData.password !== formData.confirmPassword) {
-      setError('パスワードが一致しません');
+      setError("パスワードが一致しません");
       return;
     }
 
     if (passwordStrength.score < 3) {
-      setError('パスワードが弱すぎます。より強力なパスワードを設定してください');
+      setError(
+        "パスワードが弱すぎます。より強力なパスワードを設定してください",
+      );
       return;
     }
 
@@ -100,24 +102,27 @@ export const ResetPassword: React.FC = () => {
       await resetPassword(
         token!,
         formData.password,
-        formData.verificationCode || undefined
+        formData.verificationCode || undefined,
       );
-      
+
       // Reset successful
-      navigate('/auth/login', { 
-        state: { message: 'パスワードがリセットされました。新しいパスワードでログインしてください。' } 
+      navigate("/auth/login", {
+        state: {
+          message:
+            "パスワードがリセットされました。新しいパスワードでログインしてください。",
+        },
       });
     } catch (err: any) {
-      setError(err.message || 'パスワードのリセットに失敗しました');
+      setError(err.message || "パスワードのリセットに失敗しました");
     } finally {
       setLoading(false);
     }
   };
 
   const getPasswordStrengthColor = () => {
-    if (passwordStrength.score <= 2) return 'bg-red-500';
-    if (passwordStrength.score === 3) return 'bg-yellow-500';
-    return 'bg-green-500';
+    if (passwordStrength.score <= 2) return "bg-red-500";
+    if (passwordStrength.score === 3) return "bg-yellow-500";
+    return "bg-green-500";
   };
 
   if (verifying) {
@@ -157,7 +162,7 @@ export const ResetPassword: React.FC = () => {
             </h2>
             <p className="text-gray-600 mb-6">{error}</p>
             <Button
-              onClick={() => navigate('/auth/forgot-password')}
+              onClick={() => navigate("/auth/forgot-password")}
               variant="primary"
               className="w-full"
             >
@@ -183,9 +188,12 @@ export const ResetPassword: React.FC = () => {
         <Card className="mt-8">
           <Form onSubmit={handleSubmit} className="space-y-6">
             {error && <Alert type="error" message={error} />}
-            
+
             <div>
-              <label htmlFor="verificationCode" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="verificationCode"
+                className="block text-sm font-medium text-gray-700"
+              >
                 確認コード（メールに記載）
               </label>
               <Input
@@ -193,7 +201,9 @@ export const ResetPassword: React.FC = () => {
                 name="verificationCode"
                 type="text"
                 value={formData.verificationCode}
-                onChange={(e) => setFormData({ ...formData, verificationCode: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, verificationCode: e.target.value })
+                }
                 className="mt-1"
                 placeholder="123456"
                 maxLength={6}
@@ -205,7 +215,10 @@ export const ResetPassword: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700"
+              >
                 新しいパスワード
               </label>
               <Input
@@ -225,12 +238,17 @@ export const ResetPassword: React.FC = () => {
                     <div className="flex-1 bg-gray-200 rounded-full h-2">
                       <div
                         className={`h-2 rounded-full transition-all ${getPasswordStrengthColor()}`}
-                        style={{ width: `${(passwordStrength.score / 5) * 100}%` }}
+                        style={{
+                          width: `${(passwordStrength.score / 5) * 100}%`,
+                        }}
                       />
                     </div>
                     <span className="text-xs text-gray-600">
-                      {passwordStrength.score <= 2 ? '弱い' : 
-                       passwordStrength.score === 3 ? '普通' : '強い'}
+                      {passwordStrength.score <= 2
+                        ? "弱い"
+                        : passwordStrength.score === 3
+                          ? "普通"
+                          : "強い"}
                     </span>
                   </div>
                   {passwordStrength.feedback.length > 0 && (
@@ -245,7 +263,10 @@ export const ResetPassword: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="confirmPassword"
+                className="block text-sm font-medium text-gray-700"
+              >
                 新しいパスワード（確認）
               </label>
               <Input
@@ -255,13 +276,18 @@ export const ResetPassword: React.FC = () => {
                 autoComplete="new-password"
                 required
                 value={formData.confirmPassword}
-                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, confirmPassword: e.target.value })
+                }
                 className="mt-1"
                 placeholder="••••••••"
               />
-              {formData.confirmPassword && formData.password !== formData.confirmPassword && (
-                <p className="mt-1 text-sm text-red-600">パスワードが一致しません</p>
-              )}
+              {formData.confirmPassword &&
+                formData.password !== formData.confirmPassword && (
+                  <p className="mt-1 text-sm text-red-600">
+                    パスワードが一致しません
+                  </p>
+                )}
             </div>
 
             <div>
@@ -271,7 +297,7 @@ export const ResetPassword: React.FC = () => {
                 className="w-full"
                 disabled={loading}
               >
-                {loading ? 'パスワードを変更中...' : 'パスワードを変更'}
+                {loading ? "パスワードを変更中..." : "パスワードを変更"}
               </Button>
             </div>
           </Form>

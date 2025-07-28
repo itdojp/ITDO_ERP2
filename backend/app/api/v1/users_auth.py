@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_user, get_db
-from app.core.exceptions import BusinessLogicError, PermissionDenied
+from app.core.exceptions import BusinessLogicError
 from app.models.user import User
 from app.schemas.user import UserCreate, UserResponse, UserUpdate
 from app.schemas.user_auth import (
@@ -34,7 +34,7 @@ async def list_users(
 ) -> UserListResponse:
     """
     List users (admin only).
-    
+
     - **skip**: Number of users to skip
     - **limit**: Maximum number of users to return
     - **search**: Search by email or name
@@ -45,7 +45,7 @@ async def list_users(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="権限がありません",
         )
-    
+
     user_service = UserService(db)
     users, total = user_service.list_users(
         skip=skip,
@@ -53,7 +53,7 @@ async def list_users(
         search=search,
         is_active=is_active,
     )
-    
+
     return UserListResponse(
         users=[UserResponse.from_orm(user) for user in users],
         total=total,
@@ -76,9 +76,9 @@ async def create_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="権限がありません",
         )
-    
+
     user_service = UserService(db)
-    
+
     try:
         user = user_service.create_user(
             email=user_data.email,
@@ -112,12 +112,12 @@ async def update_current_user_profile(
 ) -> UserAuthResponse:
     """Update current user profile."""
     user_service = UserService(db)
-    
+
     updated_user = user_service.update_user_profile(
         user=current_user,
         profile_data=profile_data,
     )
-    
+
     return UserAuthResponse.from_orm(updated_user)
 
 
@@ -170,7 +170,7 @@ async def get_user(
 ) -> UserAuthResponse:
     """
     Get user by ID.
-    
+
     Regular users can only view their own profile.
     Admins can view any user.
     """
@@ -179,14 +179,14 @@ async def get_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="権限がありません",
         )
-    
+
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="ユーザーが見つかりません",
         )
-    
+
     return UserAuthResponse.from_orm(user)
 
 
@@ -205,22 +205,22 @@ async def update_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="権限がありません",
         )
-    
+
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="ユーザーが見つかりません",
         )
-    
+
     # Update user fields
     update_data = user_data.dict(exclude_unset=True)
     for field, value in update_data.items():
         setattr(user, field, value)
-    
+
     db.commit()
     db.refresh(user)
-    
+
     return UserAuthResponse.from_orm(user)
 
 
@@ -232,7 +232,7 @@ async def delete_user(
 ) -> None:
     """
     Delete user (admin only).
-    
+
     Actually performs a soft delete.
     """
     if not current_user.is_superuser:
@@ -240,20 +240,20 @@ async def delete_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="権限がありません",
         )
-    
+
     if user_id == current_user.id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="自分自身を削除することはできません",
         )
-    
+
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="ユーザーが見つかりません",
         )
-    
+
     # Soft delete
     user.soft_delete(deleted_by=current_user.id)
     db.commit()
@@ -274,27 +274,27 @@ async def admin_reset_password(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="権限がありません",
         )
-    
+
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="ユーザーが見つかりません",
         )
-    
+
     # Reset password
     from app.core.security import hash_password
-    
+
     user.hashed_password = hash_password(reset_data.new_password)
     user.password_must_change = reset_data.must_change
     user.failed_login_attempts = 0
     user.locked_until = None
-    
+
     # Log activity
     user.log_activity(
         db=db,
         action="password_reset_by_admin",
         details={"admin_id": current_user.id, "must_change": reset_data.must_change},
     )
-    
+
     db.commit()

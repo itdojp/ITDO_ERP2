@@ -1,23 +1,23 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Button } from '../ui/Button';
-import { Input } from '../ui/Input';
-import { Alert } from '../ui/Alert';
-import { Card } from '../ui/Card';
-import { Form } from '../ui/Form';
-import { useAuth } from '../../hooks/useAuth';
+import React, { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { Button } from "../ui/Button";
+import { Input } from "../ui/Input";
+import { Alert } from "../ui/Alert";
+import { Card } from "../ui/Card";
+import { Form } from "../ui/Form";
+import { useAuth } from "../../hooks/useAuth";
 
 export const ForgotPassword: React.FC = () => {
   const navigate = useNavigate();
   const { requestPasswordReset } = useAuth();
-  const [email, setEmail] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
 
     try {
@@ -25,7 +25,7 @@ export const ForgotPassword: React.FC = () => {
       setSuccess(true);
     } catch (err: any) {
       // Don't show specific errors to prevent user enumeration
-      setError('リクエストの処理中にエラーが発生しました');
+      setError("リクエストの処理中にエラーが発生しました");
     } finally {
       setLoading(false);
     }
@@ -63,7 +63,7 @@ export const ForgotPassword: React.FC = () => {
               メールが届かない場合は、迷惑メールフォルダもご確認ください。
             </p>
             <Button
-              onClick={() => navigate('/auth/login')}
+              onClick={() => navigate("/auth/login")}
               variant="primary"
               className="w-full"
             >
@@ -89,9 +89,12 @@ export const ForgotPassword: React.FC = () => {
         <Card className="mt-8">
           <Form onSubmit={handleSubmit} className="space-y-6">
             {error && <Alert type="error" message={error} />}
-            
+
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700"
+              >
                 メールアドレス
               </label>
               <Input
@@ -114,7 +117,7 @@ export const ForgotPassword: React.FC = () => {
                 className="w-full"
                 disabled={loading}
               >
-                {loading ? '送信中...' : 'リセットメールを送信'}
+                {loading ? "送信中..." : "リセットメールを送信"}
               </Button>
             </div>
 

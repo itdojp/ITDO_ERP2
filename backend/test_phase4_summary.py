@@ -3,9 +3,9 @@
 
 print("🎉 Phase 4: Generation - Steps 1-9 COMPLETED! 🎉\n")
 
-print("="*60)
+print("=" * 60)
 print("📋 IMPLEMENTATION SUMMARY")
-print("="*60)
+print("=" * 60)
 
 print("\n✅ Step 1: Data Models & Schemas")
 print("  - User model extended with MFA fields")
@@ -66,9 +66,9 @@ print("  - SecuritySettings page")
 print("  - ProtectedRoute wrapper")
 print("  - useAuth hook")
 
-print("\n"+"="*60)
+print("\n" + "=" * 60)
 print("🔒 SECURITY FEATURES IMPLEMENTED")
-print("="*60)
+print("=" * 60)
 
 security_features = [
     "✓ Password complexity requirements (8+ chars, 3/4 categories)",
@@ -91,9 +91,9 @@ security_features = [
 for feature in security_features:
     print(f"  {feature}")
 
-print("\n"+"="*60)
+print("\n" + "=" * 60)
 print("📊 IMPLEMENTATION METRICS")
-print("="*60)
+print("=" * 60)
 
 metrics = {
     "Backend Files Created": 25,
@@ -108,9 +108,9 @@ metrics = {
 for metric, value in metrics.items():
     print(f"  {metric:.<30} {value}")
 
-print("\n"+"="*60)
+print("\n" + "=" * 60)
 print("🚀 NEXT STEPS")
-print("="*60)
+print("=" * 60)
 
 print("\n⏳ Step 10: E2E Tests")
 print("  - Complete authentication flow testing")

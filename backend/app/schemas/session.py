@@ -57,14 +57,28 @@ class SessionListResponse(BaseModel):
 class SessionConfigurationResponse(BaseModel):
     """Session configuration response."""
 
-    session_timeout_hours: int = Field(..., description="Default session timeout in hours")
-    max_session_timeout_hours: int = Field(..., description="Maximum allowed session timeout")
+    session_timeout_hours: int = Field(
+        ..., description="Default session timeout in hours"
+    )
+    max_session_timeout_hours: int = Field(
+        ..., description="Maximum allowed session timeout"
+    )
     refresh_token_days: int = Field(..., description="Refresh token validity in days")
-    allow_multiple_sessions: bool = Field(..., description="Whether multiple sessions are allowed")
-    max_concurrent_sessions: int = Field(..., description="Maximum number of concurrent sessions")
-    require_mfa_for_new_device: bool = Field(..., description="Require MFA for new devices")
-    notify_new_device_login: bool = Field(..., description="Send notification for new device login")
-    notify_suspicious_activity: bool = Field(..., description="Send notification for suspicious activity")
+    allow_multiple_sessions: bool = Field(
+        ..., description="Whether multiple sessions are allowed"
+    )
+    max_concurrent_sessions: int = Field(
+        ..., description="Maximum number of concurrent sessions"
+    )
+    require_mfa_for_new_device: bool = Field(
+        ..., description="Require MFA for new devices"
+    )
+    notify_new_device_login: bool = Field(
+        ..., description="Send notification for new device login"
+    )
+    notify_suspicious_activity: bool = Field(
+        ..., description="Send notification for suspicious activity"
+    )
 
 
 class SessionConfigUpdate(BaseModel):

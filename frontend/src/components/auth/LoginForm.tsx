@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Button } from '../ui/Button';
-import { Input } from '../ui/Input';
-import { Alert } from '../ui/Alert';
-import { Card } from '../ui/Card';
-import { Form } from '../ui/Form';
-import { Checkbox } from '../ui/Checkbox';
-import { useAuth } from '../../hooks/useAuth';
+import React, { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { Button } from "../ui/Button";
+import { Input } from "../ui/Input";
+import { Alert } from "../ui/Alert";
+import { Card } from "../ui/Card";
+import { Form } from "../ui/Form";
+import { Checkbox } from "../ui/Checkbox";
+import { useAuth } from "../../hooks/useAuth";
 
 interface LoginFormData {
   email: string;
@@ -18,45 +18,49 @@ export const LoginForm: React.FC = () => {
   const navigate = useNavigate();
   const { login, loginWithGoogle } = useAuth();
   const [formData, setFormData] = useState<LoginFormData>({
-    email: '',
-    password: '',
+    email: "",
+    password: "",
     rememberMe: false,
   });
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
 
     try {
-      const response = await login(formData.email, formData.password, formData.rememberMe);
-      
+      const response = await login(
+        formData.email,
+        formData.password,
+        formData.rememberMe,
+      );
+
       if (response.requires_mfa) {
         // Redirect to MFA verification
-        navigate('/auth/mfa-verify', { 
-          state: { mfaToken: response.mfa_token, email: formData.email } 
+        navigate("/auth/mfa-verify", {
+          state: { mfaToken: response.mfa_token, email: formData.email },
         });
       } else {
         // Login successful
-        navigate('/dashboard');
+        navigate("/dashboard");
       }
     } catch (err: any) {
-      setError(err.message || 'ログインに失敗しました');
+      setError(err.message || "ログインに失敗しました");
     } finally {
       setLoading(false);
     }
   };
 
   const handleGoogleLogin = async () => {
-    setError('');
+    setError("");
     setLoading(true);
 
     try {
       await loginWithGoogle();
     } catch (err: any) {
-      setError(err.message || 'Googleログインに失敗しました');
+      setError(err.message || "Googleログインに失敗しました");
       setLoading(false);
     }
   };
@@ -69,8 +73,11 @@ export const LoginForm: React.FC = () => {
             アカウントにログイン
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            または{' '}
-            <Link to="/auth/register" className="font-medium text-blue-600 hover:text-blue-500">
+            または{" "}
+            <Link
+              to="/auth/register"
+              className="font-medium text-blue-600 hover:text-blue-500"
+            >
               新規アカウントを作成
             </Link>
           </p>
@@ -78,9 +85,12 @@ export const LoginForm: React.FC = () => {
         <Card className="mt-8">
           <Form onSubmit={handleSubmit} className="space-y-6">
             {error && <Alert type="error" message={error} />}
-            
+
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700"
+              >
                 メールアドレス
               </label>
               <Input
@@ -90,14 +100,19 @@ export const LoginForm: React.FC = () => {
                 autoComplete="email"
                 required
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
                 className="mt-1"
                 placeholder="email@example.com"
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700"
+              >
                 パスワード
               </label>
               <Input
@@ -107,7 +122,9 @@ export const LoginForm: React.FC = () => {
                 autoComplete="current-password"
                 required
                 value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, password: e.target.value })
+                }
                 className="mt-1"
                 placeholder="••••••••"
               />
@@ -118,7 +135,9 @@ export const LoginForm: React.FC = () => {
                 id="remember-me"
                 name="remember-me"
                 checked={formData.rememberMe}
-                onChange={(e) => setFormData({ ...formData, rememberMe: e.target.checked })}
+                onChange={(e) =>
+                  setFormData({ ...formData, rememberMe: e.target.checked })
+                }
                 label="ログイン状態を保持"
               />
 
@@ -137,7 +156,7 @@ export const LoginForm: React.FC = () => {
                 className="w-full"
                 disabled={loading}
               >
-                {loading ? 'ログイン中...' : 'ログイン'}
+                {loading ? "ログイン中..." : "ログイン"}
               </Button>
             </div>
 

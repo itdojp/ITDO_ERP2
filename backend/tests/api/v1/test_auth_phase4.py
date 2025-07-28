@@ -2,7 +2,9 @@
 Phase 4 implementation tests for authentication API.
 These tests are designed to pass with the current implementation.
 """
+
 import os
+
 os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 
 from datetime import datetime, timedelta
@@ -14,12 +16,11 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.core.security import create_access_token, hash_password, generate_session_token
+from app.core.security import create_access_token, generate_session_token, hash_password
 from app.models.base import Base
+from app.models.mfa import MFAChallenge
 from app.models.user import User
 from app.models.user_session import UserSession
-from app.models.mfa import MFADevice, MFAChallenge
-
 
 # Create test database
 engine = create_engine("sqlite:///:memory:")
@@ -83,7 +84,7 @@ def auth_headers(test_user, db_session):
     )
     db_session.add(session)
     db_session.commit()
-    
+
     token = create_access_token(
         data={
             "sub": str(test_user.id),
@@ -96,7 +97,7 @@ def auth_headers(test_user, db_session):
 
 class TestLogin:
     """Test login endpoint."""
-    
+
     def test_login_success(self, client: TestClient, test_user: User, db_session):
         """Test successful login."""
         response = client.post(
@@ -107,15 +108,17 @@ class TestLogin:
                 "remember_me": False,
             },
         )
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert "access_token" in data
         assert data["token_type"] == "bearer"
         assert data["expires_in"] == 86400
         assert data["requires_mfa"] is False
-        
-    def test_login_with_mfa_required(self, client: TestClient, test_user_with_mfa: User):
+
+    def test_login_with_mfa_required(
+        self, client: TestClient, test_user_with_mfa: User
+    ):
         """Test login with MFA required."""
         response = client.post(
             "/api/v1/auth/login",
@@ -124,13 +127,13 @@ class TestLogin:
                 "password": "SecurePass123!",
             },
         )
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["requires_mfa"] is True
         assert "mfa_token" in data
         assert data["access_token"] == ""
-        
+
     def test_login_invalid_credentials(self, client: TestClient, test_user: User):
         """Test login with invalid credentials."""
         response = client.post(
@@ -140,10 +143,13 @@ class TestLogin:
                 "password": "WrongPassword",
             },
         )
-        
+
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
-        assert "メールアドレスまたはパスワードが正しくありません" in response.json()["detail"]
-        
+        assert (
+            "メールアドレスまたはパスワードが正しくありません"
+            in response.json()["detail"]
+        )
+
     def test_login_account_locked(self, client: TestClient, db_session):
         """Test login with locked account."""
         # Create locked user
@@ -157,7 +163,7 @@ class TestLogin:
         )
         db_session.add(user)
         db_session.commit()
-        
+
         response = client.post(
             "/api/v1/auth/login",
             json={
@@ -165,16 +171,18 @@ class TestLogin:
                 "password": "password",
             },
         )
-        
+
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         assert "アカウントがロックされています" in response.json()["detail"]
 
 
 class TestMFAVerify:
     """Test MFA verification endpoint."""
-    
+
     @patch("app.services.mfa_service.pyotp.TOTP")
-    def test_mfa_verify_success(self, mock_totp, client: TestClient, test_user_with_mfa: User, db_session):
+    def test_mfa_verify_success(
+        self, mock_totp, client: TestClient, test_user_with_mfa: User, db_session
+    ):
         """Test successful MFA verification."""
         # Create MFA challenge
         challenge = MFAChallenge(
@@ -185,12 +193,12 @@ class TestMFAVerify:
         )
         db_session.add(challenge)
         db_session.commit()
-        
+
         # Mock TOTP verification
         mock_totp_instance = Mock()
         mock_totp_instance.verify.return_value = True
         mock_totp.return_value = mock_totp_instance
-        
+
         response = client.post(
             "/api/v1/auth/mfa/verify",
             json={
@@ -198,7 +206,7 @@ class TestMFAVerify:
                 "challenge_token": "test-challenge-token",
             },
         )
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert "access_token" in data
@@ -208,8 +216,10 @@ class TestMFAVerify:
 
 class TestRefreshToken:
     """Test token refresh endpoint."""
-    
-    def test_refresh_token_success(self, client: TestClient, test_user: User, db_session):
+
+    def test_refresh_token_success(
+        self, client: TestClient, test_user: User, db_session
+    ):
         """Test successful token refresh."""
         # Create session
         session = UserSession(
@@ -220,7 +230,7 @@ class TestRefreshToken:
         )
         db_session.add(session)
         db_session.commit()
-        
+
         # Create refresh token
         refresh_token = create_access_token(
             data={
@@ -230,12 +240,12 @@ class TestRefreshToken:
             },
             expires_delta=timedelta(days=7),
         )
-        
+
         response = client.post(
             "/api/v1/auth/refresh",
             json={"refresh_token": refresh_token},
         )
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert "access_token" in data
@@ -244,11 +254,13 @@ class TestRefreshToken:
 
 class TestGetCurrentUser:
     """Test get current user endpoint."""
-    
-    def test_get_current_user(self, client: TestClient, test_user: User, auth_headers: dict):
+
+    def test_get_current_user(
+        self, client: TestClient, test_user: User, auth_headers: dict
+    ):
         """Test getting current user info."""
         response = client.get("/api/v1/auth/me", headers=auth_headers)
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["id"] == test_user.id
@@ -259,13 +271,14 @@ class TestGetCurrentUser:
 
 if __name__ == "__main__":
     # Create a minimal test client
-    from fastapi import FastAPI, Depends
+    from fastapi import FastAPI
+
     from app.api.v1.auth import router
     from app.core.dependencies import get_db
-    
+
     app = FastAPI()
     app.include_router(router, prefix="/api/v1")
-    
+
     # Override database dependency
     def override_get_db():
         session = TestSessionLocal()
@@ -273,12 +286,12 @@ if __name__ == "__main__":
             yield session
         finally:
             session.close()
-    
+
     app.dependency_overrides[get_db] = override_get_db
-    
+
     # Run tests
     test_client = TestClient(app)
-    
+
     # Create test data
     session = TestSessionLocal()
     test_user = User(
@@ -290,7 +303,7 @@ if __name__ == "__main__":
     session.add(test_user)
     session.commit()
     session.close()
-    
+
     print("Testing login endpoint...")
     response = test_client.post(
         "/api/v1/auth/login",
@@ -301,7 +314,7 @@ if __name__ == "__main__":
     )
     print(f"Status: {response.status_code}")
     print(f"Response: {response.json()}")
-    
+
     if response.status_code == 200:
         print("✓ Login test passed!")
     else:

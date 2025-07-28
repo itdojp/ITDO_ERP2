@@ -1,7 +1,6 @@
 """Password reset schemas."""
 
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel, EmailStr, Field
 
@@ -23,7 +22,9 @@ class VerifyResetTokenRequest(BaseModel):
     """Verify reset token request."""
 
     token: str = Field(..., description="Reset token")
-    verification_code: str | None = Field(None, description="Optional verification code")
+    verification_code: str | None = Field(
+        None, description="Optional verification code"
+    )
 
 
 class VerifyResetTokenResponse(BaseModel):
@@ -39,7 +40,9 @@ class ResetPasswordRequest(BaseModel):
 
     token: str = Field(..., description="Reset token")
     new_password: str = Field(..., min_length=8, description="New password")
-    verification_code: str | None = Field(None, description="Optional verification code")
+    verification_code: str | None = Field(
+        None, description="Optional verification code"
+    )
 
 
 class PasswordPolicyResponse(BaseModel):
@@ -50,5 +53,9 @@ class PasswordPolicyResponse(BaseModel):
     require_lowercase: bool = Field(default=True)
     require_numbers: bool = Field(default=True)
     require_special: bool = Field(default=True)
-    min_categories: int = Field(default=3, description="Minimum number of character categories")
-    prevent_reuse_count: int = Field(default=3, description="Number of previous passwords to check")
+    min_categories: int = Field(
+        default=3, description="Minimum number of character categories"
+    )
+    prevent_reuse_count: int = Field(
+        default=3, description="Number of previous passwords to check"
+    )

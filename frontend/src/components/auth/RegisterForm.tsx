@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Button } from '../ui/Button';
-import { Input } from '../ui/Input';
-import { Alert } from '../ui/Alert';
-import { Card } from '../ui/Card';
-import { Form } from '../ui/Form';
-import { useAuth } from '../../hooks/useAuth';
+import React, { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { Button } from "../ui/Button";
+import { Input } from "../ui/Input";
+import { Alert } from "../ui/Alert";
+import { Card } from "../ui/Card";
+import { Form } from "../ui/Form";
+import { useAuth } from "../../hooks/useAuth";
 
 interface RegisterFormData {
   email: string;
@@ -23,12 +23,12 @@ export const RegisterForm: React.FC = () => {
   const navigate = useNavigate();
   const { register } = useAuth();
   const [formData, setFormData] = useState<RegisterFormData>({
-    email: '',
-    password: '',
-    confirmPassword: '',
-    fullName: '',
+    email: "",
+    password: "",
+    confirmPassword: "",
+    fullName: "",
   });
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState<PasswordStrength>({
     score: 0,
@@ -40,19 +40,19 @@ export const RegisterForm: React.FC = () => {
     let score = 0;
 
     if (password.length >= 8) score++;
-    else feedback.push('8文字以上必要です');
+    else feedback.push("8文字以上必要です");
 
     if (/[A-Z]/.test(password)) score++;
-    else feedback.push('大文字を含めてください');
+    else feedback.push("大文字を含めてください");
 
     if (/[a-z]/.test(password)) score++;
-    else feedback.push('小文字を含めてください');
+    else feedback.push("小文字を含めてください");
 
     if (/\d/.test(password)) score++;
-    else feedback.push('数字を含めてください');
+    else feedback.push("数字を含めてください");
 
     if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) score++;
-    else feedback.push('特殊文字を含めてください');
+    else feedback.push("特殊文字を含めてください");
 
     return { score, feedback };
   };
@@ -64,16 +64,18 @@ export const RegisterForm: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     // Validation
     if (formData.password !== formData.confirmPassword) {
-      setError('パスワードが一致しません');
+      setError("パスワードが一致しません");
       return;
     }
 
     if (passwordStrength.score < 3) {
-      setError('パスワードが弱すぎます。より強力なパスワードを設定してください');
+      setError(
+        "パスワードが弱すぎます。より強力なパスワードを設定してください",
+      );
       return;
     }
 
@@ -85,22 +87,24 @@ export const RegisterForm: React.FC = () => {
         password: formData.password,
         full_name: formData.fullName,
       });
-      
+
       // Registration successful
-      navigate('/auth/login', { 
-        state: { message: 'アカウントが作成されました。ログインしてください。' } 
+      navigate("/auth/login", {
+        state: {
+          message: "アカウントが作成されました。ログインしてください。",
+        },
       });
     } catch (err: any) {
-      setError(err.message || 'アカウント作成に失敗しました');
+      setError(err.message || "アカウント作成に失敗しました");
     } finally {
       setLoading(false);
     }
   };
 
   const getPasswordStrengthColor = () => {
-    if (passwordStrength.score <= 2) return 'bg-red-500';
-    if (passwordStrength.score === 3) return 'bg-yellow-500';
-    return 'bg-green-500';
+    if (passwordStrength.score <= 2) return "bg-red-500";
+    if (passwordStrength.score === 3) return "bg-yellow-500";
+    return "bg-green-500";
   };
 
   return (
@@ -111,8 +115,11 @@ export const RegisterForm: React.FC = () => {
             新規アカウント作成
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            すでにアカウントをお持ちの方は{' '}
-            <Link to="/auth/login" className="font-medium text-blue-600 hover:text-blue-500">
+            すでにアカウントをお持ちの方は{" "}
+            <Link
+              to="/auth/login"
+              className="font-medium text-blue-600 hover:text-blue-500"
+            >
               ログイン
             </Link>
           </p>
@@ -120,9 +127,12 @@ export const RegisterForm: React.FC = () => {
         <Card className="mt-8">
           <Form onSubmit={handleSubmit} className="space-y-6">
             {error && <Alert type="error" message={error} />}
-            
+
             <div>
-              <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="fullName"
+                className="block text-sm font-medium text-gray-700"
+              >
                 お名前
               </label>
               <Input
@@ -132,14 +142,19 @@ export const RegisterForm: React.FC = () => {
                 autoComplete="name"
                 required
                 value={formData.fullName}
-                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, fullName: e.target.value })
+                }
                 className="mt-1"
                 placeholder="山田 太郎"
               />
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700"
+              >
                 メールアドレス
               </label>
               <Input
@@ -149,14 +164,19 @@ export const RegisterForm: React.FC = () => {
                 autoComplete="email"
                 required
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
                 className="mt-1"
                 placeholder="email@example.com"
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700"
+              >
                 パスワード
               </label>
               <Input
@@ -176,12 +196,17 @@ export const RegisterForm: React.FC = () => {
                     <div className="flex-1 bg-gray-200 rounded-full h-2">
                       <div
                         className={`h-2 rounded-full transition-all ${getPasswordStrengthColor()}`}
-                        style={{ width: `${(passwordStrength.score / 5) * 100}%` }}
+                        style={{
+                          width: `${(passwordStrength.score / 5) * 100}%`,
+                        }}
                       />
                     </div>
                     <span className="text-xs text-gray-600">
-                      {passwordStrength.score <= 2 ? '弱い' : 
-                       passwordStrength.score === 3 ? '普通' : '強い'}
+                      {passwordStrength.score <= 2
+                        ? "弱い"
+                        : passwordStrength.score === 3
+                          ? "普通"
+                          : "強い"}
                     </span>
                   </div>
                   {passwordStrength.feedback.length > 0 && (
@@ -196,7 +221,10 @@ export const RegisterForm: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="confirmPassword"
+                className="block text-sm font-medium text-gray-700"
+              >
                 パスワード（確認）
               </label>
               <Input
@@ -206,20 +234,29 @@ export const RegisterForm: React.FC = () => {
                 autoComplete="new-password"
                 required
                 value={formData.confirmPassword}
-                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, confirmPassword: e.target.value })
+                }
                 className="mt-1"
                 placeholder="••••••••"
               />
-              {formData.confirmPassword && formData.password !== formData.confirmPassword && (
-                <p className="mt-1 text-sm text-red-600">パスワードが一致しません</p>
-              )}
+              {formData.confirmPassword &&
+                formData.password !== formData.confirmPassword && (
+                  <p className="mt-1 text-sm text-red-600">
+                    パスワードが一致しません
+                  </p>
+                )}
             </div>
 
             <div className="text-sm text-gray-600">
               アカウントを作成することで、
-              <Link to="/terms" className="text-blue-600 hover:text-blue-500">利用規約</Link>
+              <Link to="/terms" className="text-blue-600 hover:text-blue-500">
+                利用規約
+              </Link>
               および
-              <Link to="/privacy" className="text-blue-600 hover:text-blue-500">プライバシーポリシー</Link>
+              <Link to="/privacy" className="text-blue-600 hover:text-blue-500">
+                プライバシーポリシー
+              </Link>
               に同意したものとみなされます。
             </div>
 
@@ -230,7 +267,7 @@ export const RegisterForm: React.FC = () => {
                 className="w-full"
                 disabled={loading}
               >
-                {loading ? 'アカウント作成中...' : 'アカウントを作成'}
+                {loading ? "アカウント作成中..." : "アカウントを作成"}
               </Button>
             </div>
           </Form>

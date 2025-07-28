@@ -45,7 +45,9 @@ api_router.include_router(audit.router, prefix="/audit", tags=["audit"])
 api_router.include_router(sessions.router, prefix="/sessions", tags=["sessions"])
 api_router.include_router(mfa.router, prefix="/mfa", tags=["mfa"])
 api_router.include_router(security.router, prefix="/security", tags=["security"])
-api_router.include_router(password_reset.router, prefix="/password-reset", tags=["password-reset"])
+api_router.include_router(
+    password_reset.router, prefix="/password-reset", tags=["password-reset"]
+)
 api_router.include_router(users.router)
 api_router.include_router(users_basic.router)  # ERP v17.0 basic user API
 api_router.include_router(users_extended.router)

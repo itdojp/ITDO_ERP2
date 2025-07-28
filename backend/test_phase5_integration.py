@@ -2,6 +2,7 @@
 """Phase 5 Integration Test - Verify authentication system functionality."""
 
 import os
+
 os.environ["DATABASE_URL"] = "sqlite:///test_integration.db"
 
 print("🧪 Phase 5 Integration Test")
@@ -12,11 +13,11 @@ print("1. Testing Basic Imports...")
 try:
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
+
+    from app.core.security import hash_password
     from app.models.base import Base
     from app.models.user import User
-    from app.models.mfa import MFADevice
-    from app.models.session import UserSession, SessionConfiguration
-    from app.core.security import hash_password, verify_password
+
     print("✅ All basic imports successful")
 except Exception as e:
     print(f"❌ Import error: {e}")
@@ -46,12 +47,12 @@ print(f"✅ User created: {user.email}")
 # Test authentication service
 print("\n4. Testing Authentication Service...")
 from app.services.auth import AuthService
+
 auth_service = AuthService(db)
 
 # Test login
 login_result = auth_service.authenticate_user(
-    email="test@example.com",
-    password="SecurePass123!"
+    email="test@example.com", password="SecurePass123!"
 )
 if login_result:
     print("✅ Authentication successful")
@@ -61,6 +62,7 @@ else:
 # Test session creation
 print("\n5. Testing Session Management...")
 from app.services.session_service import SessionService
+
 session_service = SessionService(db)
 
 session = session_service.create_session(
@@ -73,6 +75,7 @@ print(f"✅ Session created: {session.session_token[:20]}...")
 # Test MFA service
 print("\n6. Testing MFA Service...")
 from app.services.mfa_service import MFAService
+
 mfa_service = MFAService(db)
 
 # Generate secret
@@ -83,6 +86,7 @@ print(f"✅ MFA secret generated: {secret[:10]}...")
 print("\n7. Testing Google Auth Service...")
 try:
     from app.services.google_auth_service import GoogleAuthService
+
     google_service = GoogleAuthService(db)
     print("✅ Google Auth service initialized")
 except Exception as e:
@@ -91,6 +95,7 @@ except Exception as e:
 # Test Password Reset service
 print("\n8. Testing Password Reset Service...")
 from app.services.password_reset_service import PasswordResetService
+
 reset_service = PasswordResetService(db)
 
 token = reset_service.create_reset_token(
@@ -106,6 +111,7 @@ else:
 # Test API endpoints
 print("\n9. Testing API Endpoints...")
 from fastapi.testclient import TestClient
+
 from app.main import app
 
 client = TestClient(app)
@@ -117,10 +123,7 @@ print(f"   Health check: {response.status_code}")
 # Test login endpoint
 response = client.post(
     "/api/v1/auth/login",
-    json={
-        "username": "test@example.com",
-        "password": "SecurePass123!"
-    }
+    json={"username": "test@example.com", "password": "SecurePass123!"},
 )
 print(f"   Login endpoint: {response.status_code}")
 

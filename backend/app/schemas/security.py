@@ -12,7 +12,9 @@ class RiskAssessmentResponse(BaseModel):
     risk_level: str = Field(..., pattern="^(low|medium|high)$")
     require_mfa: bool = Field(..., description="Whether MFA should be required")
     risk_factors: list[str] = Field(..., description="Identified risk factors")
-    recommendations: list[str | None] = Field(..., description="Security recommendations")
+    recommendations: list[str | None] = Field(
+        ..., description="Security recommendations"
+    )
 
 
 class SessionAnalyticsResponse(BaseModel):
@@ -24,7 +26,9 @@ class SessionAnalyticsResponse(BaseModel):
     unique_locations: int
     device_breakdown: dict[str, int] = Field(..., description="Sessions by device type")
     location_breakdown: dict[str, int] = Field(..., description="Sessions by location")
-    recent_activities: dict[str, int] = Field(..., description="Activity counts by type")
+    recent_activities: dict[str, int] = Field(
+        ..., description="Activity counts by type"
+    )
 
 
 class SecurityEventResponse(BaseModel):

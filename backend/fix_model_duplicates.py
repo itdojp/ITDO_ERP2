@@ -40,12 +40,12 @@ with open("app/models/user_session.py", "r") as f:
     user_session_content = f.read()
     user_session_lines = len(user_session_content.splitlines())
 
-print(f"\n  app/models/session.py:")
+print("\n  app/models/session.py:")
 print(f"    - Lines: {session_lines}")
 print(f"    - Has SessionConfiguration: {has_session_config}")
 print(f"    - Has SessionActivity: {has_session_activity}")
 
-print(f"\n  app/models/user_session.py:")
+print("\n  app/models/user_session.py:")
 print(f"    - Lines: {user_session_lines}")
 
 # Check imports
@@ -55,7 +55,7 @@ import subprocess
 result = subprocess.run(
     ["grep", "-r", "from app.models.user_session import", "app/"],
     capture_output=True,
-    text=True
+    text=True,
 )
 
 if result.stdout:
@@ -66,7 +66,7 @@ if result.stdout:
 result = subprocess.run(
     ["grep", "-r", "from app.models.session import", "app/"],
     capture_output=True,
-    text=True
+    text=True,
 )
 
 if result.stdout:

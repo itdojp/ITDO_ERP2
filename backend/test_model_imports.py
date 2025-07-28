@@ -2,6 +2,7 @@
 """Test model imports to identify dependency issues."""
 
 import os
+
 os.environ["DATABASE_URL"] = "sqlite:///test_models.db"
 
 print("🔍 Testing Model Imports")
@@ -9,6 +10,7 @@ print("========================\n")
 
 # Track import results
 import_results = []
+
 
 def test_import(module_path, description):
     """Test importing a module."""
@@ -22,6 +24,7 @@ def test_import(module_path, description):
     except Exception as e:
         import_results.append((description, "⚠️", str(e)))
         print(f"⚠️ {description}: {e}")
+
 
 # Test core imports
 print("1. Testing Core Imports")
@@ -98,5 +101,6 @@ if warning_count > 0:
 
 # Cleanup
 import os
+
 if os.path.exists("test_models.db"):
     os.remove("test_models.db")

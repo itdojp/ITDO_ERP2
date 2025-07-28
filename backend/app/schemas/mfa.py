@@ -45,7 +45,9 @@ class MFAVerifySetupRequest(BaseModel):
     """MFA setup verification request."""
 
     code: str = Field(..., min_length=6, max_length=6, description="TOTP code")
-    device_name: str = Field(..., min_length=1, max_length=100, description="Device name")
+    device_name: str = Field(
+        ..., min_length=1, max_length=100, description="Device name"
+    )
 
 
 class MFAEnableRequest(BaseModel):
@@ -65,7 +67,9 @@ class MFADisableRequest(BaseModel):
 class MFAVerifyRequest(BaseModel):
     """MFA verification request."""
 
-    code: str = Field(..., min_length=6, max_length=6, description="TOTP or backup code")
+    code: str = Field(
+        ..., min_length=6, max_length=6, description="TOTP or backup code"
+    )
     trust_device: bool = Field(default=False, description="Trust this device")
 
 
@@ -80,7 +84,9 @@ class MFARecoveryRequest(BaseModel):
     """MFA recovery request using backup code."""
 
     backup_code: str = Field(..., description="Backup code")
-    new_device_name: str | None = Field(None, description="Name for new device after recovery")
+    new_device_name: str | None = Field(
+        None, description="Name for new device after recovery"
+    )
 
 
 # Legacy schemas for compatibility
@@ -97,7 +103,9 @@ class MFABackupCodesResponse(BaseModel):
 
     codes: list[str]
     created_at: datetime
-    warning: str = "Please store these codes in a safe place. Each code can only be used once."
+    warning: str = (
+        "Please store these codes in a safe place. Each code can only be used once."
+    )
 
 
 class MFAChallengeRequest(BaseModel):

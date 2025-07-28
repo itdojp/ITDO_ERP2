@@ -1,33 +1,35 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '../ui/Button';
-import { Card } from '../ui/Card';
-import { Alert } from '../ui/Alert';
-import { Badge } from '../ui/Badge';
-import { Modal } from '../ui/Modal';
-import { Input } from '../ui/Input';
-import { useAuth } from '../../hooks/useAuth';
-import { SessionManager } from './SessionManager';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "../ui/Button";
+import { Card } from "../ui/Card";
+import { Alert } from "../ui/Alert";
+import { Badge } from "../ui/Badge";
+import { Modal } from "../ui/Modal";
+import { Input } from "../ui/Input";
+import { useAuth } from "../../hooks/useAuth";
+import { SessionManager } from "./SessionManager";
 
 export const SecuritySettings: React.FC = () => {
   const navigate = useNavigate();
   const { user, disableMFA } = useAuth();
-  const [activeTab, setActiveTab] = useState<'overview' | 'mfa' | 'sessions'>('overview');
+  const [activeTab, setActiveTab] = useState<"overview" | "mfa" | "sessions">(
+    "overview",
+  );
   const [showDisableMFAModal, setShowDisableMFAModal] = useState(false);
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useState("");
   const [disablingMFA, setDisablingMFA] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const handleDisableMFA = async () => {
-    setError('');
+    setError("");
     setDisablingMFA(true);
 
     try {
       await disableMFA(password);
       setShowDisableMFAModal(false);
-      setPassword('');
+      setPassword("");
     } catch (err: any) {
-      setError(err.message || 'MFAの無効化に失敗しました');
+      setError(err.message || "MFAの無効化に失敗しました");
     } finally {
       setDisablingMFA(false);
     }
@@ -45,8 +47,8 @@ export const SecuritySettings: React.FC = () => {
                 アカウントの不正アクセスを防ぎます
               </p>
             </div>
-            <Badge variant={user?.mfa_required ? 'success' : 'warning'}>
-              {user?.mfa_required ? '有効' : '無効'}
+            <Badge variant={user?.mfa_required ? "success" : "warning"}>
+              {user?.mfa_required ? "有効" : "無効"}
             </Badge>
           </div>
 
@@ -57,8 +59,8 @@ export const SecuritySettings: React.FC = () => {
                 Googleアカウントでログインできます
               </p>
             </div>
-            <Badge variant={user?.has_google_account ? 'info' : 'default'}>
-              {user?.has_google_account ? '連携済み' : '未連携'}
+            <Badge variant={user?.has_google_account ? "info" : "default"}>
+              {user?.has_google_account ? "連携済み" : "未連携"}
             </Badge>
           </div>
 
@@ -72,7 +74,7 @@ export const SecuritySettings: React.FC = () => {
             <Button
               variant="outline"
               size="small"
-              onClick={() => navigate('/settings/change-password')}
+              onClick={() => navigate("/settings/change-password")}
             >
               パスワードを変更
             </Button>
@@ -95,7 +97,7 @@ export const SecuritySettings: React.FC = () => {
                   variant="primary"
                   size="small"
                   className="mt-2"
-                  onClick={() => navigate('/settings/security/mfa-setup')}
+                  onClick={() => navigate("/settings/security/mfa-setup")}
                 >
                   今すぐ設定
                 </Button>
@@ -131,10 +133,7 @@ export const SecuritySettings: React.FC = () => {
         <h3 className="text-lg font-semibold mb-4">2段階認証設定</h3>
         {user?.mfa_required ? (
           <div className="space-y-4">
-            <Alert
-              type="success"
-              message="2段階認証が有効になっています"
-            />
+            <Alert type="success" message="2段階認証が有効になっています" />
             <div className="p-4 bg-gray-50 rounded-lg">
               <p className="font-medium mb-2">認証方法</p>
               <div className="flex items-center space-x-2">
@@ -144,13 +143,13 @@ export const SecuritySettings: React.FC = () => {
             <div className="flex space-x-3">
               <Button
                 variant="outline"
-                onClick={() => navigate('/settings/security/mfa-devices')}
+                onClick={() => navigate("/settings/security/mfa-devices")}
               >
                 デバイスを管理
               </Button>
               <Button
                 variant="outline"
-                onClick={() => navigate('/settings/security/backup-codes')}
+                onClick={() => navigate("/settings/security/backup-codes")}
               >
                 バックアップコード
               </Button>
@@ -188,7 +187,7 @@ export const SecuritySettings: React.FC = () => {
             </p>
             <Button
               variant="primary"
-              onClick={() => navigate('/settings/security/mfa-setup')}
+              onClick={() => navigate("/settings/security/mfa-setup")}
             >
               2段階認証を設定
             </Button>
@@ -206,47 +205,47 @@ export const SecuritySettings: React.FC = () => {
         <nav className="flex space-x-4 border-b">
           <button
             className={`pb-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'overview'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+              activeTab === "overview"
+                ? "border-blue-500 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
             }`}
-            onClick={() => setActiveTab('overview')}
+            onClick={() => setActiveTab("overview")}
           >
             概要
           </button>
           <button
             className={`pb-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'mfa'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+              activeTab === "mfa"
+                ? "border-blue-500 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
             }`}
-            onClick={() => setActiveTab('mfa')}
+            onClick={() => setActiveTab("mfa")}
           >
             2段階認証
           </button>
           <button
             className={`pb-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'sessions'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+              activeTab === "sessions"
+                ? "border-blue-500 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
             }`}
-            onClick={() => setActiveTab('sessions')}
+            onClick={() => setActiveTab("sessions")}
           >
             セッション管理
           </button>
         </nav>
       </div>
 
-      {activeTab === 'overview' && <SecurityOverview />}
-      {activeTab === 'mfa' && <MFASettings />}
-      {activeTab === 'sessions' && <SessionManager />}
+      {activeTab === "overview" && <SecurityOverview />}
+      {activeTab === "mfa" && <MFASettings />}
+      {activeTab === "sessions" && <SessionManager />}
 
       <Modal
         isOpen={showDisableMFAModal}
         onClose={() => {
           setShowDisableMFAModal(false);
-          setPassword('');
-          setError('');
+          setPassword("");
+          setError("");
         }}
         title="2段階認証を無効化"
       >
@@ -255,7 +254,7 @@ export const SecuritySettings: React.FC = () => {
           message="2段階認証を無効化すると、アカウントのセキュリティが低下します"
           className="mb-4"
         />
-        
+
         {error && <Alert type="error" message={error} className="mb-4" />}
 
         <p className="text-gray-600 mb-4">
@@ -275,8 +274,8 @@ export const SecuritySettings: React.FC = () => {
             variant="outline"
             onClick={() => {
               setShowDisableMFAModal(false);
-              setPassword('');
-              setError('');
+              setPassword("");
+              setError("");
             }}
           >
             キャンセル
@@ -287,7 +286,7 @@ export const SecuritySettings: React.FC = () => {
             disabled={!password || disablingMFA}
             className="bg-red-600 hover:bg-red-700"
           >
-            {disablingMFA ? '無効化中...' : '無効化'}
+            {disablingMFA ? "無効化中..." : "無効化"}
           </Button>
         </div>
       </Modal>

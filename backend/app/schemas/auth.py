@@ -36,14 +36,14 @@ class MFASetupRequest(BaseModel):
     email: Optional[EmailStr] = None
 
     @validator("phone_number")
-    def validate_phone_for_sms(cls, v, values):
+    def validate_phone_for_sms(cls, v, values) -> dict:
         """Validate phone number is provided for SMS type."""
         if values.get("device_type") == "sms" and not v:
             raise ValueError("Phone number is required for SMS MFA")
         return v
 
     @validator("email")
-    def validate_email_for_email_type(cls, v, values):
+    def validate_email_for_email_type(cls, v, values) -> dict:
         """Validate email is provided for email type."""
         if values.get("device_type") == "email" and not v:
             raise ValueError("Email is required for email MFA")

@@ -1,15 +1,13 @@
 """Authentication endpoints."""
 
-from datetime import datetime, timedelta
-from typing import Optional
-
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPBearer
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_user, get_db
 from app.core.exceptions import BusinessLogicError
+from app.models.user import User
 from app.schemas.auth import (
     AuthenticatedUser,
     LoginRequest,
@@ -19,11 +17,9 @@ from app.schemas.auth import (
     PasswordResetRequest,
     RefreshRequest,
     TokenResponse,
-    MFAChallengeResponse,
 )
 from app.schemas.error import ErrorResponse
 from app.services.auth import AuthService
-from app.models.user import User
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 security = HTTPBearer()
@@ -44,11 +40,11 @@ async def login(
 ) -> TokenResponse | JSONResponse:
     """User login endpoint."""
     auth_service = AuthService(db)
-    
+
     # Get client info
     client_ip = http_request.client.host if http_request.client else None
     user_agent = http_request.headers.get("user-agent")
-    
+
     try:
         # Authenticate user
         user = auth_service.authenticate_user(
@@ -57,11 +53,12 @@ async def login(
             ip_address=client_ip,
             user_agent=user_agent,
         )
-        
+
         # Check if MFA is required
         if user.mfa_required or auth_service.is_mfa_required_for_ip(user, client_ip):
             # Create MFA challenge
             from app.services.mfa_service import MFAService
+
             mfa_service = MFAService(db)
             challenge = mfa_service.create_challenge(
                 user_id=user.id,
@@ -69,7 +66,7 @@ async def login(
                 ip_address=client_ip,
                 user_agent=user_agent,
             )
-            
+
             # Return MFA challenge response
             return TokenResponse(
                 access_token="",  # Empty until MFA is completed
@@ -78,7 +75,7 @@ async def login(
                 requires_mfa=True,
                 mfa_token=challenge.challenge_token,
             )
-        
+
         # Create session and tokens
         session = auth_service.create_user_session(
             user=user,
@@ -86,16 +83,16 @@ async def login(
             user_agent=user_agent,
             remember_me=request.remember_me,
         )
-        
+
         # Generate tokens
         tokens = auth_service.create_tokens(
             user=user,
             session_id=session.id,
             remember_me=request.remember_me,
         )
-        
+
         return tokens
-        
+
     except BusinessLogicError as e:
         return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -104,7 +101,7 @@ async def login(
                 code="AUTH001",
             ).model_dump(),
         )
-    except Exception as e:
+    except Exception:
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content=ErrorResponse(
@@ -126,7 +123,7 @@ async def refresh_token(
 ) -> TokenResponse | JSONResponse:
     """Refresh access token."""
     auth_service = AuthService(db)
-    
+
     try:
         # Refresh tokens
         tokens = auth_service.refresh_tokens(request.refresh_token)
@@ -157,36 +154,37 @@ async def verify_mfa(
 ) -> TokenResponse:
     """Verify MFA code and complete login."""
     from app.services.mfa_service import MFAService
+
     mfa_service = MFAService(db)
     auth_service = AuthService(db)
-    
+
     try:
         # Verify MFA challenge
         user = mfa_service.verify_challenge(
             challenge_token=mfa_data.challenge_token or mfa_data.challenge_token,
             code=mfa_data.code,
         )
-        
+
         # Create session
         client_ip = request.client.host if request.client else None
         user_agent = request.headers.get("user-agent")
-        
+
         session = auth_service.create_user_session(
             user=user,
             ip_address=client_ip,
             user_agent=user_agent,
             remember_me=True,  # Default to remember after MFA
         )
-        
+
         # Generate tokens
         tokens = auth_service.create_tokens(
             user=user,
             session_id=session.id,
             remember_me=True,
         )
-        
+
         return tokens
-        
+
     except BusinessLogicError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -202,7 +200,7 @@ async def logout(
 ) -> None:
     """Logout current session or all sessions."""
     auth_service = AuthService(db)
-    
+
     if logout_data.all_sessions:
         # Invalidate all user sessions
         auth_service.invalidate_all_sessions(current_user)
@@ -211,7 +209,7 @@ async def logout(
         # Get session from token context
         # This would need to be implemented in get_current_user
         pass
-    
+
     db.commit()
 
 
@@ -240,7 +238,7 @@ async def request_password_reset(
 ) -> dict:
     """Request password reset email."""
     auth_service = AuthService(db)
-    
+
     try:
         auth_service.request_password_reset(reset_data.email)
         return {"message": "パスワードリセットメールを送信しました"}
@@ -256,7 +254,7 @@ async def confirm_password_reset(
 ) -> None:
     """Confirm password reset with token."""
     auth_service = AuthService(db)
-    
+
     try:
         auth_service.reset_password(
             token=confirm_data.token,

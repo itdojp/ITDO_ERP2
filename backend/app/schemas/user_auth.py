@@ -29,7 +29,7 @@ class PasswordChange(BaseModel):
         values = info.data
         if "current_password" in values and v == values["current_password"]:
             raise ValueError("New password must be different from current password")
-        
+
         # Same validation as UserCreate
         checks = [
             bool(re.search(r"[A-Z]", v)),
@@ -37,12 +37,12 @@ class PasswordChange(BaseModel):
             bool(re.search(r"\d", v)),
             bool(re.search(r"[!@#$%^&*(),.?\":{}|<>]", v)),
         ]
-        
+
         if sum(checks) < 3:
             raise ValueError(
                 "Password must contain at least 3 of: uppercase, lowercase, digit, special character"
             )
-        
+
         return v
 
 

@@ -23,7 +23,9 @@ class GoogleLoginRequest(BaseModel):
     """Google login request with authorization code."""
 
     code: str = Field(..., description="Google OAuth2 authorization code")
-    state: str | None = Field(None, description="OAuth2 state parameter for CSRF protection")
+    state: str | None = Field(
+        None, description="OAuth2 state parameter for CSRF protection"
+    )
     device_id: str | None = Field(None, description="Device identifier")
     device_name: str | None = Field(None, description="Device name")
 

@@ -1,7 +1,5 @@
 """Password reset API endpoints."""
 
-from typing import Optional
-
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
@@ -28,23 +26,23 @@ def request_password_reset(
 ):
     """
     Request password reset.
-    
+
     Sends a reset email if the user exists.
     Always returns success to prevent user enumeration.
     """
     service = PasswordResetService(db)
-    
+
     # Get client info
     ip_address = request.client.host if request.client else "unknown"
     user_agent = request.headers.get("User-Agent", "unknown")
-    
+
     try:
         token = service.request_password_reset(
             email=data.email,
             ip_address=ip_address,
             user_agent=user_agent,
         )
-        
+
         if token:
             return PasswordResetResponse(
                 success=True,
@@ -53,7 +51,7 @@ def request_password_reset(
     except BusinessLogicError as e:
         # Log error but don't expose to user
         print(f"Password reset error: {e}")
-    
+
     # Always return success to prevent user enumeration
     return PasswordResetResponse(
         success=True,
@@ -68,17 +66,17 @@ def verify_reset_token(
 ):
     """
     Verify password reset token.
-    
+
     Optionally verify the email code for additional security.
     """
     service = PasswordResetService(db)
-    
+
     try:
         reset_token = service.verify_reset_token(
             token=data.token,
             verification_code=data.verification_code,
         )
-        
+
         return VerifyResetTokenResponse(
             valid=True,
             user_email=reset_token.user.email,
@@ -99,24 +97,24 @@ def reset_password(
 ):
     """
     Reset password with token.
-    
+
     Validates token, updates password, and invalidates all sessions.
     """
     service = PasswordResetService(db)
-    
+
     # Get client info
     ip_address = request.client.host if request.client else "unknown"
     user_agent = request.headers.get("User-Agent", "unknown")
-    
+
     try:
-        user = service.reset_password(
+        service.reset_password(
             token=data.token,
             new_password=data.new_password,
             verification_code=data.verification_code,
             ip_address=ip_address,
             user_agent=user_agent,
         )
-        
+
         return MessageResponse(
             message="パスワードがリセットされました。新しいパスワードでログインしてください。"
         )
