@@ -1,0 +1,627 @@
+openapi: 3.0.3
+info:
+  title: ITDO ERP Authentication API
+  description: 認証・認可システムのAPI仕様
+  version: 1.0.0
+  contact:
+    name: ITDO Development Team
+    email: dev@itdo.jp
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Development server
+  - url: https://api.itdo-erp.jp/api/v1
+    description: Production server
+
+paths:
+  /auth/login:
+    post:
+      summary: ユーザー認証（メール/パスワード）
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: 認証成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          description: 認証失敗
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '423':
+          description: アカウントロック（5回連続失敗）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login/google:
+    post:
+      summary: Google OAuth認証
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id_token
+              properties:
+                id_token:
+                  type: string
+                  description: GoogleのIDトークン
+      responses:
+        '200':
+          description: 認証成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+
+  /auth/mfa/verify:
+    post:
+      summary: MFA認証（TOTP）
+      tags:
+        - Authentication
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+              properties:
+                code:
+                  type: string
+                  pattern: '^[0-9]{6}$'
+                  description: 6桁のTOTPコード
+      responses:
+        '200':
+          description: MFA認証成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          description: 無効なコード
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/mfa/setup:
+    post:
+      summary: MFA設定（QRコード生成）
+      tags:
+        - Authentication
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: QRコード生成成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  qr_code:
+                    type: string
+                    description: Base64エンコードされたQRコード画像
+                  secret:
+                    type: string
+                    description: シークレットキー（手動入力用）
+                  backup_codes:
+                    type: array
+                    items:
+                      type: string
+                    description: バックアップコード（10個）
+
+  /auth/refresh:
+    post:
+      summary: トークンリフレッシュ
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refresh_token
+              properties:
+                refresh_token:
+                  type: string
+      responses:
+        '200':
+          description: トークン更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+
+  /auth/logout:
+    post:
+      summary: ログアウト
+      tags:
+        - Authentication
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: ログアウト成功
+
+  /auth/password/reset:
+    post:
+      summary: パスワードリセット要求
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '204':
+          description: リセットメール送信完了（成功/失敗に関わらず同じレスポンス）
+
+  /auth/password/reset/confirm:
+    post:
+      summary: パスワードリセット実行
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+                - new_password
+              properties:
+                token:
+                  type: string
+                  description: リセットトークン
+                new_password:
+                  type: string
+                  minLength: 8
+                  description: 新しいパスワード
+      responses:
+        '204':
+          description: パスワード変更成功
+        '400':
+          description: 無効なトークンまたはパスワードポリシー違反
+
+  /users:
+    get:
+      summary: ユーザー一覧取得
+      tags:
+        - User Management
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        '200':
+          description: ユーザー一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  per_page:
+                    type: integer
+
+    post:
+      summary: ユーザー新規登録（管理者のみ）
+      tags:
+        - User Management
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: ユーザー作成成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '409':
+          description: メールアドレス重複
+
+  /users/{user_id}:
+    get:
+      summary: ユーザー詳細取得
+      tags:
+        - User Management
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: ユーザー情報
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+    patch:
+      summary: ユーザー情報更新
+      tags:
+        - User Management
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+    delete:
+      summary: ユーザー無効化（論理削除）
+      tags:
+        - User Management
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: 無効化成功
+
+  /users/me:
+    get:
+      summary: 自分のユーザー情報取得
+      tags:
+        - User Management
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: ユーザー情報
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /users/me/sessions:
+    get:
+      summary: 自分のセッション一覧取得
+      tags:
+        - Session Management
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: セッション一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sessions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Session'
+
+  /users/me/sessions/settings:
+    get:
+      summary: セッション設定取得
+      tags:
+        - Session Management
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: セッション設定
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionSettings'
+
+    put:
+      summary: セッション設定更新
+      tags:
+        - Session Management
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SessionSettings'
+      responses:
+        '200':
+          description: 設定更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionSettings'
+
+  /admin/sessions:
+    get:
+      summary: 全アクティブセッション取得（管理者のみ）
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 200
+      responses:
+        '200':
+          description: セッション一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sessions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AdminSession'
+                  total:
+                    type: integer
+
+  /admin/sessions/{session_id}:
+    delete:
+      summary: セッション強制終了（管理者のみ）
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: セッション終了成功
+
+components:
+  schemas:
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+
+    TokenResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+          description: JWTアクセストークン
+        refresh_token:
+          type: string
+          description: リフレッシュトークン
+        token_type:
+          type: string
+          default: Bearer
+        expires_in:
+          type: integer
+          description: アクセストークンの有効期限（秒）
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+          format: email
+        full_name:
+          type: string
+        department:
+          type: string
+        role:
+          type: string
+        is_active:
+          type: boolean
+        mfa_enabled:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateUserRequest:
+      type: object
+      required:
+        - email
+        - full_name
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        full_name:
+          type: string
+        department:
+          type: string
+        role:
+          type: string
+          enum: [user, admin]
+          default: user
+        password:
+          type: string
+          minLength: 8
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        full_name:
+          type: string
+        department:
+          type: string
+        role:
+          type: string
+          enum: [user, admin]
+
+    Session:
+      type: object
+      properties:
+        id:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        last_accessed_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+        ip_address:
+          type: string
+        user_agent:
+          type: string
+        is_current:
+          type: boolean
+
+    AdminSession:
+      allOf:
+        - $ref: '#/components/schemas/Session'
+        - type: object
+          properties:
+            user_id:
+              type: integer
+            user_email:
+              type: string
+            user_name:
+              type: string
+
+    SessionSettings:
+      type: object
+      properties:
+        session_timeout_hours:
+          type: integer
+          minimum: 1
+          maximum: 24
+          default: 8
+          description: セッション有効時間（時間）
+        idle_timeout_minutes:
+          type: integer
+          minimum: 15
+          maximum: 120
+          default: 30
+          description: アイドルタイムアウト（分）
+
+    ErrorResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+          description: エラーメッセージ
+        code:
+          type: string
+          description: エラーコード（例: AUTH001）
+        timestamp:
+          type: string
+          format: date-time
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+tags:
+  - name: Authentication
+    description: 認証関連のエンドポイント
+  - name: User Management
+    description: ユーザー管理機能
+  - name: Session Management
+    description: セッション管理機能
+  - name: Admin
+    description: 管理者専用機能
