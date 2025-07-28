@@ -2,13 +2,13 @@
 
 Phase 3: Validation - 失敗するテストを先に作成
 """
+
 from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import pytest
 from fastapi import status
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.models.user import User
@@ -28,12 +28,9 @@ class TestLogin:
         """
         response = await async_client.post(
             "/api/v1/auth/login",
-            json={
-                "email": "test@example.com",
-                "password": "SecurePass123!"
-            }
+            json={"email": "test@example.com", "password": "SecurePass123!"},
         )
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert "access_token" in data
@@ -52,21 +49,16 @@ class TestLogin:
         """
         response = await async_client.post(
             "/api/v1/auth/login",
-            json={
-                "email": "test@example.com",
-                "password": "WrongPassword123!"
-            }
+            json={"email": "test@example.com", "password": "WrongPassword123!"},
         )
-        
+
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         data = response.json()
         assert data["detail"] == "Invalid authentication credentials"
         assert data["code"] == "AUTH001"
 
     @pytest.mark.asyncio
-    async def test_login_with_nonexistent_email(
-        self, async_client: AsyncClient
-    ):
+    async def test_login_with_nonexistent_email(self, async_client: AsyncClient):
         """
         Given: 存在しないメールアドレス
         When: ログインを試みる
@@ -74,12 +66,9 @@ class TestLogin:
         """
         response = await async_client.post(
             "/api/v1/auth/login",
-            json={
-                "email": "nonexistent@example.com",
-                "password": "SecurePass123!"
-            }
+            json={"email": "nonexistent@example.com", "password": "SecurePass123!"},
         )
-        
+
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         data = response.json()
         assert data["detail"] == "Invalid authentication credentials"
@@ -97,22 +86,16 @@ class TestLogin:
         for _ in range(5):
             response = await async_client.post(
                 "/api/v1/auth/login",
-                json={
-                    "email": "test@example.com",
-                    "password": "WrongPassword"
-                }
+                json={"email": "test@example.com", "password": "WrongPassword"},
             )
             assert response.status_code == status.HTTP_401_UNAUTHORIZED
-        
+
         # 6回目の試行（正しいパスワードでも失敗）
         response = await async_client.post(
             "/api/v1/auth/login",
-            json={
-                "email": "test@example.com",
-                "password": "SecurePass123!"
-            }
+            json={"email": "test@example.com", "password": "SecurePass123!"},
         )
-        
+
         assert response.status_code == status.HTTP_423_LOCKED
         data = response.json()
         assert "locked" in data["detail"].lower()
@@ -123,9 +106,7 @@ class TestGoogleSSO:
     """Google OAuth認証のテスト"""
 
     @pytest.mark.asyncio
-    async def test_google_login_with_valid_token(
-        self, async_client: AsyncClient
-    ):
+    async def test_google_login_with_valid_token(self, async_client: AsyncClient):
         """
         Given: 有効なGoogle IDトークン
         When: Googleログインを実行する
@@ -136,23 +117,20 @@ class TestGoogleSSO:
                 "email": "user@example.com",
                 "email_verified": True,
                 "name": "Test User",
-                "sub": "google-user-id-123"
+                "sub": "google-user-id-123",
             }
-            
+
             response = await async_client.post(
-                "/api/v1/auth/login/google",
-                json={"id_token": "valid-google-token"}
+                "/api/v1/auth/login/google", json={"id_token": "valid-google-token"}
             )
-            
+
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
             assert "access_token" in data
             assert "refresh_token" in data
 
     @pytest.mark.asyncio
-    async def test_google_login_with_invalid_token(
-        self, async_client: AsyncClient
-    ):
+    async def test_google_login_with_invalid_token(self, async_client: AsyncClient):
         """
         Given: 無効なGoogle IDトークン
         When: Googleログインを試みる
@@ -160,12 +138,11 @@ class TestGoogleSSO:
         """
         with patch("app.services.auth.verify_google_token") as mock_verify:
             mock_verify.side_effect = ValueError("Invalid token")
-            
+
             response = await async_client.post(
-                "/api/v1/auth/login/google",
-                json={"id_token": "invalid-google-token"}
+                "/api/v1/auth/login/google", json={"id_token": "invalid-google-token"}
             )
-            
+
             assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
@@ -183,16 +160,13 @@ class TestMFA:
         """
         # 社外IPアドレスをシミュレート
         headers = {"X-Forwarded-For": "203.0.113.10"}
-        
+
         response = await async_client.post(
             "/api/v1/auth/login",
-            json={
-                "email": "mfa@example.com",
-                "password": "SecurePass123!"
-            },
-            headers=headers
+            json={"email": "mfa@example.com", "password": "SecurePass123!"},
+            headers=headers,
         )
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["mfa_required"] is True
@@ -210,13 +184,13 @@ class TestMFA:
         """
         with patch("app.services.auth.verify_totp") as mock_verify:
             mock_verify.return_value = True
-            
+
             response = await async_client.post(
                 "/api/v1/auth/mfa/verify",
                 json={"code": "123456"},
-                headers={"Authorization": f"Bearer {mfa_token}"}
+                headers={"Authorization": f"Bearer {mfa_token}"},
             )
-            
+
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
             assert "access_token" in data
@@ -233,13 +207,13 @@ class TestMFA:
         """
         with patch("app.services.auth.verify_totp") as mock_verify:
             mock_verify.return_value = False
-            
+
             response = await async_client.post(
                 "/api/v1/auth/mfa/verify",
                 json={"code": "000000"},
-                headers={"Authorization": f"Bearer {mfa_token}"}
+                headers={"Authorization": f"Bearer {mfa_token}"},
             )
-            
+
             assert response.status_code == status.HTTP_401_UNAUTHORIZED
             data = response.json()
             assert data["code"] == "AUTH003"
@@ -254,10 +228,9 @@ class TestMFA:
         Then: QRコードとバックアップコードが生成される
         """
         response = await async_client.post(
-            "/api/v1/auth/mfa/setup",
-            headers=auth_headers
+            "/api/v1/auth/mfa/setup", headers=auth_headers
         )
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert "qr_code" in data
@@ -279,10 +252,9 @@ class TestTokenRefresh:
         Then: 新しいアクセストークンが発行される
         """
         response = await async_client.post(
-            "/api/v1/auth/refresh",
-            json={"refresh_token": valid_refresh_token}
+            "/api/v1/auth/refresh", json={"refresh_token": valid_refresh_token}
         )
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert "access_token" in data
@@ -299,10 +271,9 @@ class TestTokenRefresh:
         Then: 401エラーが返される
         """
         response = await async_client.post(
-            "/api/v1/auth/refresh",
-            json={"refresh_token": expired_refresh_token}
+            "/api/v1/auth/refresh", json={"refresh_token": expired_refresh_token}
         )
-        
+
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         data = response.json()
         assert data["code"] == "AUTH002"
@@ -322,12 +293,11 @@ class TestPasswordReset:
         """
         with patch("app.services.email.send_password_reset_email") as mock_send:
             mock_send.return_value = None
-            
+
             response = await async_client.post(
-                "/api/v1/auth/password/reset",
-                json={"email": "test@example.com"}
+                "/api/v1/auth/password/reset", json={"email": "test@example.com"}
             )
-            
+
             assert response.status_code == status.HTTP_204_NO_CONTENT
             mock_send.assert_called_once()
 
@@ -341,10 +311,9 @@ class TestPasswordReset:
         Then: 204レスポンスが返される（セキュリティのため同じレスポンス）
         """
         response = await async_client.post(
-            "/api/v1/auth/password/reset",
-            json={"email": "nonexistent@example.com"}
+            "/api/v1/auth/password/reset", json={"email": "nonexistent@example.com"}
         )
-        
+
         assert response.status_code == status.HTTP_204_NO_CONTENT
 
     @pytest.mark.asyncio
@@ -358,21 +327,15 @@ class TestPasswordReset:
         """
         response = await async_client.post(
             "/api/v1/auth/password/reset/confirm",
-            json={
-                "token": password_reset_token,
-                "new_password": "NewSecurePass456!"
-            }
+            json={"token": password_reset_token, "new_password": "NewSecurePass456!"},
         )
-        
+
         assert response.status_code == status.HTTP_204_NO_CONTENT
-        
+
         # 新しいパスワードでログイン可能
         login_response = await async_client.post(
             "/api/v1/auth/login",
-            json={
-                "email": "test@example.com",
-                "password": "NewSecurePass456!"
-            }
+            json={"email": "test@example.com", "password": "NewSecurePass456!"},
         )
         assert login_response.status_code == status.HTTP_200_OK
 
@@ -387,12 +350,9 @@ class TestPasswordReset:
         """
         response = await async_client.post(
             "/api/v1/auth/password/reset/confirm",
-            json={
-                "token": password_reset_token,
-                "new_password": "weak"
-            }
+            json={"token": password_reset_token, "new_password": "weak"},
         )
-        
+
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         data = response.json()
         assert "password" in data["detail"].lower()
@@ -402,26 +362,18 @@ class TestLogout:
     """ログアウトのテスト"""
 
     @pytest.mark.asyncio
-    async def test_logout_success(
-        self, async_client: AsyncClient, auth_headers: dict
-    ):
+    async def test_logout_success(self, async_client: AsyncClient, auth_headers: dict):
         """
         Given: ログイン済みユーザー
         When: ログアウトする
         Then: セッションが終了する
         """
-        response = await async_client.post(
-            "/api/v1/auth/logout",
-            headers=auth_headers
-        )
-        
+        response = await async_client.post("/api/v1/auth/logout", headers=auth_headers)
+
         assert response.status_code == status.HTTP_204_NO_CONTENT
-        
+
         # 同じトークンでアクセスできない
-        test_response = await async_client.get(
-            "/api/v1/users/me",
-            headers=auth_headers
-        )
+        test_response = await async_client.get("/api/v1/users/me", headers=auth_headers)
         assert test_response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
@@ -429,9 +381,7 @@ class TestSessionTimeout:
     """セッションタイムアウトのテスト"""
 
     @pytest.mark.asyncio
-    async def test_idle_timeout(
-        self, async_client: AsyncClient, auth_headers: dict
-    ):
+    async def test_idle_timeout(self, async_client: AsyncClient, auth_headers: dict):
         """
         Given: ログイン済みユーザー（アイドルタイムアウト30分）
         When: 30分間操作を行わない
@@ -439,13 +389,12 @@ class TestSessionTimeout:
         """
         # 時間を30分進める
         with patch("app.core.security.datetime") as mock_datetime:
-            mock_datetime.utcnow.return_value = datetime.utcnow() + timedelta(minutes=31)
-            
-            response = await async_client.get(
-                "/api/v1/users/me",
-                headers=auth_headers
+            mock_datetime.utcnow.return_value = datetime.utcnow() + timedelta(
+                minutes=31
             )
-            
+
+            response = await async_client.get("/api/v1/users/me", headers=auth_headers)
+
             assert response.status_code == status.HTTP_401_UNAUTHORIZED
             data = response.json()
             assert "timeout" in data["detail"].lower()

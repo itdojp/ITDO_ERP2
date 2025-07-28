@@ -2,12 +2,12 @@
 
 Phase 3: Validation - 失敗するテストを先に作成
 """
+
 from typing import List
 
 import pytest
 from fastapi import status
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
 
@@ -24,11 +24,8 @@ class TestUserList:
         When: ユーザー一覧を取得
         Then: ページネーション付きでユーザーリストが返される
         """
-        response = await async_client.get(
-            "/api/v1/users",
-            headers=admin_headers
-        )
-        
+        response = await async_client.get("/api/v1/users", headers=admin_headers)
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert "users" in data
@@ -47,10 +44,9 @@ class TestUserList:
         Then: 指定されたページのユーザーが返される
         """
         response = await async_client.get(
-            "/api/v1/users?page=2&per_page=10",
-            headers=admin_headers
+            "/api/v1/users?page=2&per_page=10", headers=admin_headers
         )
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["page"] == 2
@@ -65,11 +61,8 @@ class TestUserList:
         When: ユーザー一覧を取得しようとする
         Then: 403エラーが返される（権限不足）
         """
-        response = await async_client.get(
-            "/api/v1/users",
-            headers=user_headers
-        )
-        
+        response = await async_client.get("/api/v1/users", headers=user_headers)
+
         assert response.status_code == status.HTTP_403_FORBIDDEN
         data = response.json()
         assert data["code"] == "AUTH004"
@@ -92,15 +85,13 @@ class TestUserCreate:
             "full_name": "新規 ユーザー",
             "department": "営業部",
             "role": "user",
-            "password": "SecurePass123!"
+            "password": "SecurePass123!",
         }
-        
+
         response = await async_client.post(
-            "/api/v1/users",
-            json=new_user,
-            headers=admin_headers
+            "/api/v1/users", json=new_user, headers=admin_headers
         )
-        
+
         assert response.status_code == status.HTTP_201_CREATED
         data = response.json()
         assert data["email"] == new_user["email"]
@@ -122,15 +113,13 @@ class TestUserCreate:
         new_user = {
             "email": test_user.email,
             "full_name": "重複 ユーザー",
-            "password": "SecurePass123!"
+            "password": "SecurePass123!",
         }
-        
+
         response = await async_client.post(
-            "/api/v1/users",
-            json=new_user,
-            headers=admin_headers
+            "/api/v1/users", json=new_user, headers=admin_headers
         )
-        
+
         assert response.status_code == status.HTTP_409_CONFLICT
         data = response.json()
         assert data["code"] == "USER001"
@@ -147,15 +136,13 @@ class TestUserCreate:
         new_user = {
             "email": "weakpass@example.com",
             "full_name": "弱パス ユーザー",
-            "password": "weak"
+            "password": "weak",
         }
-        
+
         response = await async_client.post(
-            "/api/v1/users",
-            json=new_user,
-            headers=admin_headers
+            "/api/v1/users", json=new_user, headers=admin_headers
         )
-        
+
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         data = response.json()
         assert "password" in str(data["detail"]).lower()
@@ -174,10 +161,9 @@ class TestUserDetail:
         Then: ユーザー情報が返される
         """
         response = await async_client.get(
-            f"/api/v1/users/{test_user.id}",
-            headers=admin_headers
+            f"/api/v1/users/{test_user.id}", headers=admin_headers
         )
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["id"] == test_user.id
@@ -192,11 +178,8 @@ class TestUserDetail:
         When: 存在しないユーザーIDで取得を試みる
         Then: 404エラーが返される
         """
-        response = await async_client.get(
-            "/api/v1/users/99999",
-            headers=admin_headers
-        )
-        
+        response = await async_client.get("/api/v1/users/99999", headers=admin_headers)
+
         assert response.status_code == status.HTTP_404_NOT_FOUND
         data = response.json()
         assert data["code"] == "USER002"
@@ -214,17 +197,12 @@ class TestUserUpdate:
         When: ユーザー情報を更新
         Then: 更新されたユーザー情報が返される
         """
-        update_data = {
-            "full_name": "更新された 名前",
-            "department": "開発部"
-        }
-        
+        update_data = {"full_name": "更新された 名前", "department": "開発部"}
+
         response = await async_client.patch(
-            f"/api/v1/users/{test_user.id}",
-            json=update_data,
-            headers=admin_headers
+            f"/api/v1/users/{test_user.id}", json=update_data, headers=admin_headers
         )
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["full_name"] == update_data["full_name"]
@@ -240,13 +218,11 @@ class TestUserUpdate:
         Then: ロールが更新される
         """
         update_data = {"role": "admin"}
-        
+
         response = await async_client.patch(
-            f"/api/v1/users/{test_user.id}",
-            json=update_data,
-            headers=admin_headers
+            f"/api/v1/users/{test_user.id}", json=update_data, headers=admin_headers
         )
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["role"] == "admin"
@@ -261,13 +237,11 @@ class TestUserUpdate:
         Then: 403エラーが返される
         """
         update_data = {"full_name": "不正な更新"}
-        
+
         response = await async_client.patch(
-            f"/api/v1/users/{test_user.id}",
-            json=update_data,
-            headers=user_headers
+            f"/api/v1/users/{test_user.id}", json=update_data, headers=user_headers
         )
-        
+
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
@@ -284,19 +258,15 @@ class TestUserDelete:
         Then: ユーザーが無効化される
         """
         response = await async_client.delete(
-            f"/api/v1/users/{test_user.id}",
-            headers=admin_headers
+            f"/api/v1/users/{test_user.id}", headers=admin_headers
         )
-        
+
         assert response.status_code == status.HTTP_204_NO_CONTENT
-        
+
         # 無効化されたユーザーでログインできない
         login_response = await async_client.post(
             "/api/v1/auth/login",
-            json={
-                "email": test_user.email,
-                "password": "SecurePass123!"
-            }
+            json={"email": test_user.email, "password": "SecurePass123!"},
         )
         assert login_response.status_code == status.HTTP_401_UNAUTHORIZED
 
@@ -310,10 +280,9 @@ class TestUserDelete:
         Then: 400エラーが返される
         """
         response = await async_client.delete(
-            f"/api/v1/users/{admin_user.id}",
-            headers=admin_headers
+            f"/api/v1/users/{admin_user.id}", headers=admin_headers
         )
-        
+
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         data = response.json()
         assert "self" in data["detail"].lower()
@@ -331,11 +300,8 @@ class TestUserMe:
         When: 自分のプロフィールを取得
         Then: 自分のユーザー情報が返される
         """
-        response = await async_client.get(
-            "/api/v1/users/me",
-            headers=user_headers
-        )
-        
+        response = await async_client.get("/api/v1/users/me", headers=user_headers)
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["email"] == test_user.email
@@ -350,17 +316,12 @@ class TestUserMe:
         When: 自分のプロフィールを更新
         Then: 更新された情報が返される
         """
-        update_data = {
-            "full_name": "自己更新 名前",
-            "department": "マーケティング部"
-        }
-        
+        update_data = {"full_name": "自己更新 名前", "department": "マーケティング部"}
+
         response = await async_client.patch(
-            "/api/v1/users/me",
-            json=update_data,
-            headers=user_headers
+            "/api/v1/users/me", json=update_data, headers=user_headers
         )
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["full_name"] == update_data["full_name"]
@@ -376,13 +337,11 @@ class TestUserMe:
         Then: 403エラーが返される（権限昇格の防止）
         """
         update_data = {"role": "admin"}
-        
+
         response = await async_client.patch(
-            "/api/v1/users/me",
-            json=update_data,
-            headers=user_headers
+            "/api/v1/users/me", json=update_data, headers=user_headers
         )
-        
+
         assert response.status_code == status.HTTP_403_FORBIDDEN
         data = response.json()
         assert "role" in data["detail"].lower()
@@ -402,24 +361,19 @@ class TestUserPasswordChange:
         """
         password_data = {
             "current_password": "SecurePass123!",
-            "new_password": "NewSecurePass456!"
+            "new_password": "NewSecurePass456!",
         }
-        
+
         response = await async_client.post(
-            "/api/v1/users/me/password",
-            json=password_data,
-            headers=user_headers
+            "/api/v1/users/me/password", json=password_data, headers=user_headers
         )
-        
+
         assert response.status_code == status.HTTP_204_NO_CONTENT
-        
+
         # 新しいパスワードでログイン可能
         login_response = await async_client.post(
             "/api/v1/auth/login",
-            json={
-                "email": "test@example.com",
-                "password": "NewSecurePass456!"
-            }
+            json={"email": "test@example.com", "password": "NewSecurePass456!"},
         )
         assert login_response.status_code == status.HTTP_200_OK
 
@@ -434,15 +388,13 @@ class TestUserPasswordChange:
         """
         password_data = {
             "current_password": "WrongPassword123!",
-            "new_password": "NewSecurePass456!"
+            "new_password": "NewSecurePass456!",
         }
-        
+
         response = await async_client.post(
-            "/api/v1/users/me/password",
-            json=password_data,
-            headers=user_headers
+            "/api/v1/users/me/password", json=password_data, headers=user_headers
         )
-        
+
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     @pytest.mark.asyncio
@@ -457,15 +409,13 @@ class TestUserPasswordChange:
         # 履歴に同じパスワードがある前提
         password_data = {
             "current_password": "SecurePass123!",
-            "new_password": "SecurePass123!"  # 同じパスワード
+            "new_password": "SecurePass123!",  # 同じパスワード
         }
-        
+
         response = await async_client.post(
-            "/api/v1/users/me/password",
-            json=password_data,
-            headers=user_headers
+            "/api/v1/users/me/password", json=password_data, headers=user_headers
         )
-        
+
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         data = response.json()
         assert "history" in data["detail"].lower() or "reuse" in data["detail"].lower()

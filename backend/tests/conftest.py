@@ -440,7 +440,11 @@ def auth_headers(test_user: User) -> dict:
 def admin_headers(test_admin: User) -> dict:
     """Create auth headers for admin user."""
     token = create_access_token(
-        data={"sub": str(test_admin.id), "email": test_admin.email, "is_superuser": True}
+        data={
+            "sub": str(test_admin.id),
+            "email": test_admin.email,
+            "is_superuser": True,
+        }
     )
     return {"Authorization": f"Bearer {token}"}
 
@@ -450,7 +454,7 @@ def valid_refresh_token(test_user: User) -> str:
     """Create a valid refresh token."""
     return create_access_token(
         data={"sub": str(test_user.id), "type": "refresh"},
-        expires_delta=timedelta(days=7)
+        expires_delta=timedelta(days=7),
     )
 
 
@@ -459,7 +463,7 @@ def expired_refresh_token(test_user: User) -> str:
     """Create an expired refresh token."""
     return create_access_token(
         data={"sub": str(test_user.id), "type": "refresh"},
-        expires_delta=timedelta(days=-1)
+        expires_delta=timedelta(days=-1),
     )
 
 
@@ -468,7 +472,7 @@ def mfa_token(test_user_with_mfa: User) -> str:
     """Create a temporary MFA token."""
     return create_access_token(
         data={"sub": str(test_user_with_mfa.id), "type": "mfa_pending"},
-        expires_delta=timedelta(minutes=5)
+        expires_delta=timedelta(minutes=5),
     )
 
 
@@ -477,5 +481,5 @@ def password_reset_token(test_user: User) -> str:
     """Create a password reset token."""
     return create_access_token(
         data={"sub": str(test_user.id), "type": "password_reset"},
-        expires_delta=timedelta(hours=1)
+        expires_delta=timedelta(hours=1),
     )
