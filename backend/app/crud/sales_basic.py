@@ -34,13 +34,7 @@ from app.schemas.sales_basic import (
 
 # Customer CRUD operations
 def create_customer(
-<<<<<<< HEAD
     db: Session, customer_data: CustomerCreate, created_by: int
-=======
-    db: Session,
-    customer_data: CustomerCreate,
-    created_by: int
->>>>>>> main
 ) -> Customer:
     """Create a new customer with validation."""
     # Check if customer number exists
@@ -53,7 +47,6 @@ def create_customer(
                 Customer.deleted_at.is_(None),
             )
         )
-<<<<<<< HEAD
         .first()
     )
 
@@ -61,12 +54,6 @@ def create_customer(
         raise BusinessLogicError(
             "Customer with this number already exists in the organization"
         )
-=======
-    ).first()
-
-    if existing_customer:
-        raise BusinessLogicError("Customer with this number already exists in the organization")
->>>>>>> main
 
     # Check email uniqueness if provided
     if customer_data.email:
@@ -86,11 +73,7 @@ def create_customer(
 
     # Create customer
     customer_dict = customer_data.dict()
-<<<<<<< HEAD
     customer_dict["created_by"] = created_by
-=======
-    customer_dict['created_by'] = created_by
->>>>>>> main
 
     customer = Customer(**customer_dict)
 
@@ -271,7 +254,6 @@ def create_sales_order(
         raise BusinessLogicError("Customer not found")
 
     # Create order
-<<<<<<< HEAD
     order_dict = order_data.dict(exclude={"order_items"})
     order_dict["order_number"] = order_number
     order_dict["created_by"] = created_by
@@ -283,19 +265,6 @@ def create_sales_order(
     # Set currency from customer if not specified
     if not order_dict.get("currency"):
         order_dict["currency"] = customer.currency
-=======
-    order_dict = order_data.dict(exclude={'order_items'})
-    order_dict['order_number'] = order_number
-    order_dict['created_by'] = created_by
-
-    # Set payment terms from customer if not specified
-    if not order_dict.get('payment_terms'):
-        order_dict['payment_terms'] = customer.payment_terms
-
-    # Set currency from customer if not specified
-    if not order_dict.get('currency'):
-        order_dict['currency'] = customer.currency
->>>>>>> main
 
     sales_order = SalesOrder(**order_dict)
 
@@ -484,24 +453,14 @@ def create_sales_order_item(
 
     # Create item
     item_dict = item_data.dict()
-<<<<<<< HEAD
     item_dict["sales_order_id"] = sales_order_id
     item_dict["line_number"] = line_number
     item_dict["created_by"] = created_by
-=======
-    item_dict['sales_order_id'] = sales_order_id
-    item_dict['line_number'] = line_number
-    item_dict['created_by'] = created_by
->>>>>>> main
 
     # Get organization_id from the sales order
     sales_order = get_sales_order_by_id(db, sales_order_id)
     if sales_order:
-<<<<<<< HEAD
         item_dict["organization_id"] = sales_order.organization_id
-=======
-        item_dict['organization_id'] = sales_order.organization_id
->>>>>>> main
 
     order_item = SalesOrderItem(**item_dict)
 
@@ -536,27 +495,17 @@ def update_order_item(
     db: Session, item_id: int, item_data: SalesOrderItemCreate, updated_by: int
 ) -> Optional[SalesOrderItem]:
     """Update sales order item."""
-<<<<<<< HEAD
     item = (
         db.query(SalesOrderItem)
         .filter(and_(SalesOrderItem.id == item_id, SalesOrderItem.deleted_at.is_(None)))
         .first()
     )
-=======
-    item = db.query(SalesOrderItem).filter(
-        and_(
-            SalesOrderItem.id == item_id,
-            SalesOrderItem.deleted_at.is_(None)
-        )
-    ).first()
->>>>>>> main
 
     if not item:
         return None
 
     # Check if order can be updated
     sales_order = get_sales_order_by_id(db, item.sales_order_id)
-<<<<<<< HEAD
     if sales_order and sales_order.status in [
         OrderStatus.COMPLETED.value,
         OrderStatus.CANCELLED.value,
@@ -564,10 +513,6 @@ def update_order_item(
         raise BusinessLogicError(
             "Cannot update items for completed or cancelled orders"
         )
-=======
-    if sales_order and sales_order.status in [OrderStatus.COMPLETED.value, OrderStatus.CANCELLED.value]:
-        raise BusinessLogicError("Cannot update items for completed or cancelled orders")
->>>>>>> main
 
     # Update fields
     update_dict = item_data.dict(exclude_unset=True)
@@ -608,13 +553,9 @@ def generate_order_number(db: Session, organization_id: int) -> str:
                 SalesOrder.organization_id == organization_id,
             )
         )
-<<<<<<< HEAD
         .order_by(desc(SalesOrder.id))
         .first()
     )
-=======
-    ).order_by(desc(SalesOrder.id)).first()
->>>>>>> main
 
     if last_order and last_order.order_number:
         try:
@@ -639,13 +580,9 @@ def generate_customer_number(db: Session, organization_id: int) -> str:
                 Customer.organization_id == organization_id,
             )
         )
-<<<<<<< HEAD
         .order_by(desc(Customer.id))
         .first()
     )
-=======
-    ).order_by(desc(Customer.id)).first()
->>>>>>> main
 
     if last_customer and last_customer.customer_number:
         try:
@@ -679,17 +616,12 @@ def get_sales_statistics(
 
     # Basic counts
     total_orders = query.count()
-<<<<<<< HEAD
     completed_orders = query.filter(
         SalesOrder.status == OrderStatus.COMPLETED.value
     ).count()
     pending_orders = query.filter(
         SalesOrder.status == OrderStatus.PENDING.value
     ).count()
-=======
-    completed_orders = query.filter(SalesOrder.status == OrderStatus.COMPLETED.value).count()
-    pending_orders = query.filter(SalesOrder.status == OrderStatus.PENDING.value).count()
->>>>>>> main
 
     # Revenue calculations
     total_revenue = db.query(func.sum(SalesOrder.total_amount)).filter(
@@ -725,12 +657,8 @@ def get_sales_statistics(
                 else True,
             )
         )
-<<<<<<< HEAD
         .count()
     )
-=======
-    ).count()
->>>>>>> main
 
     return {
         "total_orders": total_orders,
@@ -827,9 +755,5 @@ def convert_sales_order_to_response(order: SalesOrder) -> SalesOrderResponse:
         is_overdue=order.is_overdue,
         days_until_due=order.days_until_due,
         created_at=order.created_at,
-<<<<<<< HEAD
         updated_at=order.updated_at,
-=======
-        updated_at=order.updated_at
->>>>>>> main
     )

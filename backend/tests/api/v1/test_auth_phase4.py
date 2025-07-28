@@ -20,7 +20,7 @@ from app.core.security import create_access_token, generate_session_token, hash_
 from app.models.base import Base
 from app.models.mfa import MFAChallenge
 from app.models.user import User
-from app.models.user_session import UserSession
+from app.models.session import UserSession
 
 # Create test database
 engine = create_engine("sqlite:///:memory:")

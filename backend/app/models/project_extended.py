@@ -167,7 +167,7 @@ class ProjectExtended(Base):
     total_sprints = Column(Integer)
 
     # Client information
-    client_id = Column(String, ForeignKey("customers.id"))
+    client_id = Column(String, ForeignKey("customers_extended.id"))
     client_contact_id = Column(String)
 
     # Documentation

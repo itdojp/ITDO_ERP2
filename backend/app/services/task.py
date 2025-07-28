@@ -1,7 +1,7 @@
 """Task management service."""
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Dict, Optional
 
 from sqlalchemy.orm import Session, joinedload
 

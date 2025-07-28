@@ -65,22 +65,7 @@ class PasswordResetToken(Base):
         self.attempts += 1
 
 
-class PasswordHistory(Base):
-    """Password history for preventing reuse."""
-
-    __tablename__ = "password_history"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    user_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("users.id"), nullable=False
-    )
-    password_hash: Mapped[str] = mapped_column(String(128), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(UTC)
-    )
-
-    # Relationships
-    user: Mapped["User"] = relationship("User", back_populates="password_history")
+# PasswordHistory model is defined in app.models.password_history
 
 
 # Import User type for relationships

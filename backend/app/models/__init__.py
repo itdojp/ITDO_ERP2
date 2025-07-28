@@ -23,6 +23,19 @@ from app.models.analytics_extended import (
     AnalyticsReportExecution,
 )
 from app.models.audit import AuditLog
+
+# CC02 v31.0 Phase 2 - Audit Log System Models
+from app.models.audit_extended import (
+    AuditLogEntry,
+    AuditRule,
+    AuditAlert,
+    AuditReport,
+    AuditSession,
+    AuditDataRetention,
+    AuditCompliance,
+    AuditConfiguration,
+    AuditMetrics,
+)
 from app.models.cross_tenant_permissions import (
     CrossTenantAuditLog,
     CrossTenantPermissionRule,
@@ -63,18 +76,19 @@ from app.models.finance_extended import (
 from app.models.finance_extended import Budget as FinanceBudget
 
 # CC02 v31.0 Phase 2 - HR Management Models
-from app.models.hr_extended import (
-    Employee,
-    EmployeeBenefit,
-    HRAnalytics,
-    JobPosting,
-    LeaveRequest,
-    OnboardingRecord,
-    PayrollRecord,
-    PerformanceReview,
-    Position,
-    TrainingRecord,
-)
+# Temporarily commented out due to foreign key issues
+# from app.models.hr_extended import (
+#     Employee,
+#     EmployeeBenefit,
+#     HRAnalytics,
+#     JobPosting,
+#     LeaveRequest,
+#     OnboardingRecord,
+#     PayrollRecord,
+#     PerformanceReview,
+#     Position,
+#     TrainingRecord,
+# )
 
 # CC02 v31.0 Phase 2 - Integration System Models
 from app.models.integration_extended import (
@@ -105,6 +119,18 @@ from app.models.notification_extended import (
 )
 from app.models.organization import Organization
 from app.models.password_history import PasswordHistory
+
+# CC02 v31.0 Phase 2 - CRM Management Models
+from app.models.crm_extended import (
+    CampaignExtended,
+    ContactExtended,
+    CRMActivity,
+    CRMAnalytics,
+    CustomerExtended,
+    LeadExtended,
+    OpportunityExtended,
+    SupportTicket,
+)
 
 # CC02 v60.0 - Payment Processing Models
 from app.models.payment_processing import (
@@ -212,15 +238,15 @@ __all__ = [
     "TaskDependency",
     "TaskHistory",
     # Phase 4-7 Models
-    "Budget",
-    "BudgetItem",
+    # "Budget",  # Use FinanceBudget instead
+    # "BudgetItem",  # Use BudgetLine instead
     "ExpenseCategory",
     "Expense",
     "ExpenseApprovalFlow",
-    "Customer",
-    "CustomerContact",
-    "Opportunity",
-    "CustomerActivity",
+    # "Customer",  # Use CustomerExtended instead
+    # "CustomerContact",  # Use ContactExtended instead
+    # "Opportunity",  # Use OpportunityExtended instead
+    # "CustomerActivity",  # Use CRMActivity instead
     "Workflow",
     "WorkflowNode",
     "WorkflowConnection",
@@ -244,16 +270,16 @@ __all__ = [
     "JournalEntryLine",
     "TaxConfiguration",
     # CC02 v31.0 Phase 2 - HR Management Models
-    "Employee",
-    "EmployeeBenefit",
-    "HRAnalytics",
-    "JobPosting",
-    "LeaveRequest",
-    "OnboardingRecord",
-    "PayrollRecord",
-    "PerformanceReview",
-    "Position",
-    "TrainingRecord",
+    # "Employee",
+    # "EmployeeBenefit",
+    # "HRAnalytics",
+    # "JobPosting",
+    # "LeaveRequest",
+    # "OnboardingRecord",
+    # "PayrollRecord",
+    # "PerformanceReview",
+    # "Position",
+    # "TrainingRecord",
     # CC02 v31.0 Phase 2 - Project Management Models
     "ProjectDeliverable",
     "ProjectExtended",

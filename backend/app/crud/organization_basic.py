@@ -18,7 +18,6 @@ from app.schemas.organization_basic import (
 
 
 def create_organization(
-<<<<<<< HEAD
     db: Session, org_data: OrganizationCreate, created_by: int
 ) -> Organization:
     """Create a new organization with validation."""
@@ -26,28 +25,13 @@ def create_organization(
     existing_org = (
         db.query(Organization).filter(Organization.code == org_data.code).first()
     )
-=======
-    db: Session,
-    org_data: OrganizationCreate,
-    created_by: int
-) -> Organization:
-    """Create a new organization with validation."""
-    # Check if organization code exists
-    existing_org = db.query(Organization).filter(
-        Organization.code == org_data.code
-    ).first()
->>>>>>> main
 
     if existing_org:
         raise BusinessLogicError("Organization with this code already exists")
 
     # Create organization
     org_dict = org_data.dict()
-<<<<<<< HEAD
     org_dict["created_by"] = created_by
-=======
-    org_dict['created_by'] = created_by
->>>>>>> main
 
     organization = Organization(**org_dict)
 
@@ -190,18 +174,17 @@ def get_organization_hierarchy(db: Session, org_id: int) -> Optional[Dict[str, A
     hierarchy_path = organization.get_hierarchy_path()
 
     # Get direct children
-    children = db.query(Organization).filter(
-        and_(
-            Organization.parent_id == org_id,
-            Organization.deleted_at.is_(None),
-            Organization.is_active
+    children = (
+        db.query(Organization)
+        .filter(
+            and_(
+                Organization.parent_id == org_id,
+                Organization.deleted_at.is_(None),
+                Organization.is_active,
+            )
         )
-<<<<<<< HEAD
         .all()
     )
-=======
-    ).all()
->>>>>>> main
 
     return {
         "organization": organization,
@@ -218,11 +201,14 @@ def get_organization_hierarchy(db: Session, org_id: int) -> Optional[Dict[str, A
 
 def get_root_organizations(db: Session) -> List[Organization]:
     """Get all root organizations (no parent)."""
-    return db.query(Organization).filter(
-        and_(
-            Organization.parent_id.is_(None),
-            Organization.deleted_at.is_(None),
-            Organization.is_active
+    return (
+        db.query(Organization)
+        .filter(
+            and_(
+                Organization.parent_id.is_(None),
+                Organization.deleted_at.is_(None),
+                Organization.is_active,
+            )
         )
         .order_by(Organization.name)
         .all()
@@ -231,7 +217,6 @@ def get_root_organizations(db: Session) -> List[Organization]:
 
 def get_organization_statistics(db: Session) -> Dict[str, Any]:
     """Get basic organization statistics."""
-<<<<<<< HEAD
     total_orgs = (
         db.query(Organization).filter(Organization.deleted_at.is_(None)).count()
     )
@@ -257,32 +242,6 @@ def get_organization_statistics(db: Session) -> Dict[str, Any]:
         )
         .count()
     )
-=======
-    total_orgs = db.query(Organization).filter(
-        Organization.deleted_at.is_(None)
-    ).count()
-
-    active_orgs = db.query(Organization).filter(
-        and_(
-            Organization.deleted_at.is_(None),
-            Organization.is_active
-        )
-    ).count()
-
-    root_orgs = db.query(Organization).filter(
-        and_(
-            Organization.parent_id.is_(None),
-            Organization.deleted_at.is_(None)
-        )
-    ).count()
-
-    subsidiary_orgs = db.query(Organization).filter(
-        and_(
-            Organization.parent_id.isnot(None),
-            Organization.deleted_at.is_(None)
-        )
-    ).count()
->>>>>>> main
 
     return {
         "total_organizations": total_orgs,
@@ -314,9 +273,5 @@ def convert_to_response(organization: Organization) -> OrganizationResponse:
         is_subsidiary=organization.is_subsidiary,
         is_parent=organization.is_parent,
         created_at=organization.created_at,
-<<<<<<< HEAD
         updated_at=organization.updated_at,
-=======
-        updated_at=organization.updated_at
->>>>>>> main
     )

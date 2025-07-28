@@ -90,7 +90,6 @@ class Customer(SoftDeletableModel):
     )
     name: Mapped[str] = mapped_column(String(300), nullable=False)
     name_en: Mapped[str | None] = mapped_column(String(300))
-<<<<<<< HEAD
     customer_type: Mapped[str] = mapped_column(
         String(20), default=CustomerType.CORPORATE.value
     )
@@ -99,12 +98,6 @@ class Customer(SoftDeletableModel):
     organization_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("organizations.id"), nullable=False
     )
-=======
-    customer_type: Mapped[str] = mapped_column(String(20), default=CustomerType.CORPORATE.value)
-
-    # Organization
-    organization_id: Mapped[int] = mapped_column(Integer, ForeignKey("organizations.id"), nullable=False)
->>>>>>> main
 
     # Contact information
     email: Mapped[str | None] = mapped_column(String(255))
@@ -217,7 +210,6 @@ class Customer(SoftDeletableModel):
         from sqlalchemy import func
 
         # Get order statistics
-<<<<<<< HEAD
         stats = (
             db.query(
                 func.count(SalesOrder.id).label("total_orders"),
@@ -232,18 +224,6 @@ class Customer(SoftDeletableModel):
             )
             .first()
         )
-=======
-        stats = db.query(
-            func.count(SalesOrder.id).label('total_orders'),
-            func.sum(SalesOrder.total_amount).label('total_sales'),
-            func.min(SalesOrder.order_date).label('first_order'),
-            func.max(SalesOrder.order_date).label('last_order')
-        ).filter(
-            SalesOrder.customer_id == self.id,
-            SalesOrder.deleted_at.is_(None),
-            SalesOrder.status != OrderStatus.CANCELLED.value
-        ).first()
->>>>>>> main
 
         if stats:
             self.total_orders = stats.total_orders or 0
@@ -261,7 +241,6 @@ class SalesOrder(SoftDeletableModel):
     __tablename__ = "sales_orders"
 
     # Order identification
-<<<<<<< HEAD
     order_number: Mapped[str] = mapped_column(
         String(50), nullable=False, unique=True, index=True
     )
@@ -273,13 +252,6 @@ class SalesOrder(SoftDeletableModel):
     organization_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("organizations.id"), nullable=False
     )
-=======
-    order_number: Mapped[str] = mapped_column(String(50), nullable=False, unique=True, index=True)
-
-    # Customer and organization
-    customer_id: Mapped[int] = mapped_column(Integer, ForeignKey("customers.id"), nullable=False)
-    organization_id: Mapped[int] = mapped_column(Integer, ForeignKey("organizations.id"), nullable=False)
->>>>>>> main
 
     # Order details
     order_date: Mapped[date] = mapped_column(Date, default=lambda: date.today())
@@ -381,7 +353,6 @@ class SalesOrder(SoftDeletableModel):
 
         # Calculate tax (assuming tax is included in item totals)
         # This could be customized based on business rules
-<<<<<<< HEAD
         self.tax_amount = subtotal * Decimal("0.1")  # 10% tax
 
         # Calculate total
@@ -391,12 +362,6 @@ class SalesOrder(SoftDeletableModel):
             + self.shipping_amount
             - self.discount_amount
         )
-=======
-        self.tax_amount = subtotal * Decimal('0.1')  # 10% tax
-
-        # Calculate total
-        self.total_amount = self.subtotal_amount + self.tax_amount + self.shipping_amount - self.discount_amount
->>>>>>> main
 
     def set_payment_due_date(self) -> None:
         """Set payment due date based on payment terms."""
@@ -415,7 +380,6 @@ class SalesOrderItem(SoftDeletableModel):
     __tablename__ = "sales_order_items"
 
     # Order and product reference
-<<<<<<< HEAD
     sales_order_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("sales_orders.id"), nullable=False
     )
@@ -425,11 +389,6 @@ class SalesOrderItem(SoftDeletableModel):
     organization_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("organizations.id"), nullable=False
     )
-=======
-    sales_order_id: Mapped[int] = mapped_column(Integer, ForeignKey("sales_orders.id"), nullable=False)
-    product_id: Mapped[int] = mapped_column(Integer, ForeignKey("products.id"), nullable=False)
-    organization_id: Mapped[int] = mapped_column(Integer, ForeignKey("organizations.id"), nullable=False)
->>>>>>> main
 
     # Line item details
     line_number: Mapped[int] = mapped_column(Integer, default=1)

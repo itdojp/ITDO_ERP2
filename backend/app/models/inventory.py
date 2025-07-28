@@ -62,13 +62,9 @@ class Warehouse(SoftDeletableModel):
     description: Mapped[str | None] = mapped_column(Text)
 
     # Organization
-<<<<<<< HEAD
     organization_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("organizations.id"), nullable=False
     )
-=======
-    organization_id: Mapped[int] = mapped_column(Integer, ForeignKey("organizations.id"), nullable=False)
->>>>>>> main
 
     # Location details
     address: Mapped[str | None] = mapped_column(String(500))
@@ -146,7 +142,6 @@ class InventoryItem(SoftDeletableModel):
     __tablename__ = "inventory_items"
 
     # Product and location
-<<<<<<< HEAD
     product_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("products.id"), nullable=False
     )
@@ -156,11 +151,6 @@ class InventoryItem(SoftDeletableModel):
     organization_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("organizations.id"), nullable=False
     )
-=======
-    product_id: Mapped[int] = mapped_column(Integer, ForeignKey("products.id"), nullable=False)
-    warehouse_id: Mapped[int] = mapped_column(Integer, ForeignKey("warehouses.id"), nullable=False)
-    organization_id: Mapped[int] = mapped_column(Integer, ForeignKey("organizations.id"), nullable=False)
->>>>>>> main
 
     # Quantities
     quantity_on_hand: Mapped[Decimal] = mapped_column(Numeric(12, 3), default=0)
@@ -182,13 +172,9 @@ class InventoryItem(SoftDeletableModel):
     reorder_point: Mapped[Decimal | None] = mapped_column(Numeric(12, 3))
 
     # Status
-<<<<<<< HEAD
     status: Mapped[str] = mapped_column(
         String(20), default=InventoryStatus.AVAILABLE.value
     )
-=======
-    status: Mapped[str] = mapped_column(String(20), default=InventoryStatus.AVAILABLE.value)
->>>>>>> main
 
     # Dates for tracking
     last_received_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -246,7 +232,6 @@ class InventoryItem(SoftDeletableModel):
 
     def calculate_available_quantity(self) -> None:
         """Calculate available quantity (on_hand - reserved)."""
-<<<<<<< HEAD
         self.quantity_available = max(
             Decimal(0), self.quantity_on_hand - self.quantity_reserved
         )
@@ -254,11 +239,6 @@ class InventoryItem(SoftDeletableModel):
     def update_average_cost(
         self, new_unit_cost: Decimal, new_quantity: Decimal
     ) -> None:
-=======
-        self.quantity_available = max(Decimal(0), self.quantity_on_hand - self.quantity_reserved)
-
-    def update_average_cost(self, new_unit_cost: Decimal, new_quantity: Decimal) -> None:
->>>>>>> main
         """Update average cost based on weighted average."""
         if self.quantity_on_hand == 0:
             self.average_cost = new_unit_cost
@@ -296,7 +276,6 @@ class StockMovement(SoftDeletableModel):
     __tablename__ = "stock_movements"
 
     # Transaction identification
-<<<<<<< HEAD
     transaction_number: Mapped[str] = mapped_column(
         String(100), nullable=False, unique=True, index=True
     )
@@ -320,19 +299,6 @@ class StockMovement(SoftDeletableModel):
     movement_date: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )
-=======
-    transaction_number: Mapped[str] = mapped_column(String(100), nullable=False, unique=True, index=True)
-
-    # Related entities
-    inventory_item_id: Mapped[int] = mapped_column(Integer, ForeignKey("inventory_items.id"), nullable=False)
-    product_id: Mapped[int] = mapped_column(Integer, ForeignKey("products.id"), nullable=False)
-    warehouse_id: Mapped[int] = mapped_column(Integer, ForeignKey("warehouses.id"), nullable=False)
-    organization_id: Mapped[int] = mapped_column(Integer, ForeignKey("organizations.id"), nullable=False)
-
-    # Movement details
-    movement_type: Mapped[str] = mapped_column(String(20), nullable=False)
-    movement_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
->>>>>>> main
 
     # Quantities
     quantity: Mapped[Decimal] = mapped_column(Numeric(12, 3), nullable=False)
@@ -365,13 +331,9 @@ class StockMovement(SoftDeletableModel):
     # Status
     is_posted: Mapped[bool] = mapped_column(Boolean, default=True)
     is_reversed: Mapped[bool] = mapped_column(Boolean, default=False)
-<<<<<<< HEAD
     reversed_by_movement_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("stock_movements.id")
     )
-=======
-    reversed_by_movement_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("stock_movements.id"))
->>>>>>> main
 
     # Relationships
     inventory_item: Mapped["InventoryItem"] = relationship(
@@ -382,13 +344,9 @@ class StockMovement(SoftDeletableModel):
         "Warehouse", back_populates="stock_movements"
     )
     organization: Mapped["Organization"] = relationship("Organization")
-<<<<<<< HEAD
     performed_by_user: Mapped[Optional["User"]] = relationship(
         "User", foreign_keys=[performed_by]
     )
-=======
-    performed_by_user: Mapped[Optional["User"]] = relationship("User", foreign_keys=[performed_by])
->>>>>>> main
 
     # Self-referential for reversals
     reversed_by_movement: Mapped[Optional["StockMovement"]] = relationship(
