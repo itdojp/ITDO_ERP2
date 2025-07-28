@@ -62,13 +62,13 @@ class User(SoftDeletableModel):
     failed_login_attempts: Mapped[int] = mapped_column(Integer, default=0)
     locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     password_must_change: Mapped[bool] = mapped_column(Boolean, default=False)
-    
+
     # MFA fields
     mfa_required: Mapped[bool] = mapped_column(Boolean, default=False)
     mfa_secret: Mapped[str | None] = mapped_column(String(32))
     mfa_backup_codes: Mapped[str | None] = mapped_column(String(500))  # JSON array
     mfa_enabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    
+
     # Google SSO fields
     google_id: Mapped[str | None] = mapped_column(String(255), unique=True, index=True)
     google_refresh_token: Mapped[str | None] = mapped_column(String(512))
@@ -123,20 +123,23 @@ class User(SoftDeletableModel):
         back_populates="user",
         cascade="all, delete-orphan",
     )
-    
+
     # MFA relationships
     mfa_devices: Mapped[list["MFADevice"]] = relationship(
         "MFADevice", back_populates="user", cascade="all, delete-orphan"
     )
-    
+
     # Session relationships
     sessions: Mapped[list["UserSession"]] = relationship(
-        "UserSession", foreign_keys="UserSession.user_id", back_populates="user", cascade="all, delete-orphan"
+        "UserSession",
+        foreign_keys="UserSession.user_id",
+        back_populates="user",
+        cascade="all, delete-orphan",
     )
     session_config: Mapped["SessionConfiguration | None"] = relationship(
         "SessionConfiguration", back_populates="user", uselist=False
     )
-    
+
     @property
     def active_sessions(self) -> list["UserSession"]:
         """Get active sessions."""
@@ -289,7 +292,7 @@ class User(SoftDeletableModel):
         else:
             # If expiry_date is timezone-aware, compare with timezone-aware datetime
             return datetime.now(timezone.utc) > expiry_date
-    
+
     def has_password_set(self) -> bool:
         """Check if user has a password set (not just Google SSO)."""
         # Check if password is not a random token (32+ chars of random data)
@@ -371,11 +374,6 @@ class User(SoftDeletableModel):
             session.security_alert = "IP_MISMATCH"
 
         return session
-
-    @property
-    def active_sessions(self) -> list["UserSession"]:
-        """Get active sessions."""
-        return [s for s in self.sessions if s.is_valid()]
 
     def assign_to_organization(
         self, db: Session, organization: "Organization", role: "Role", assigned_by: int

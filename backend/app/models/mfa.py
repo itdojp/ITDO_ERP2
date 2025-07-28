@@ -63,7 +63,9 @@ class MFABackupCode(BaseModel):
     )
 
     # Relationships
-    device: Mapped["MFADevice"] = relationship("MFADevice", back_populates="backup_codes")
+    device: Mapped["MFADevice"] = relationship(
+        "MFADevice", back_populates="backup_codes"
+    )
 
     def __repr__(self) -> str:
         return f"<MFABackupCode(id={self.id}, device_id={self.device_id}, used={self.is_used})>"
