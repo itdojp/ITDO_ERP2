@@ -1,7 +1,7 @@
 """プロジェクト管理サービスのユニットテスト"""
-from datetime import date, datetime
+
+from datetime import date
 from decimal import Decimal
-from typing import List, Optional
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -12,7 +12,6 @@ from app.schemas.project_management import (
     ProjectCreate,
     ProjectUpdate,
     TaskCreate,
-    TaskUpdate,
 )
 from app.services.project_management import (
     ProjectService,
@@ -62,7 +61,9 @@ class TestProjectService:
         mock_db.refresh.return_value = None
 
         # 実行
-        with patch("app.services.project_management.Project", return_value=mock_project):
+        with patch(
+            "app.services.project_management.Project", return_value=mock_project
+        ):
             result = project_service.create_project(
                 project_data, user_id, organization_id
             )
@@ -230,15 +231,9 @@ class TestProjectService:
         """プロジェクト進捗計算のテスト"""
         # モックの設定
         mock_tasks = [
-            Task(
-                id=1, progress_percentage=100, estimated_hours=Decimal("40")
-            ),  # 完了
-            Task(
-                id=2, progress_percentage=50, estimated_hours=Decimal("80")
-            ),  # 進行中
-            Task(
-                id=3, progress_percentage=0, estimated_hours=Decimal("40")
-            ),  # 未着手
+            Task(id=1, progress_percentage=100, estimated_hours=Decimal("40")),  # 完了
+            Task(id=2, progress_percentage=50, estimated_hours=Decimal("80")),  # 進行中
+            Task(id=3, progress_percentage=0, estimated_hours=Decimal("40")),  # 未着手
         ]
         mock_query = MagicMock()
         mock_query.filter.return_value = mock_query
@@ -364,7 +359,7 @@ class TestTaskService:
         lag_days = 2
 
         # モックの設定
-        mock_dependency = MagicMock()
+        MagicMock()
         mock_db.add.return_value = None
         mock_db.commit.return_value = None
 
@@ -373,7 +368,7 @@ class TestTaskService:
             task_service, "_check_circular_dependency", return_value=False
         ):
             # 実行
-            result = task_service.create_dependency(
+            task_service.create_dependency(
                 predecessor_id, successor_id, dependency_type, lag_days
             )
 
@@ -384,9 +379,9 @@ class TestTaskService:
     def test_detect_circular_dependency(self, task_service, mock_db):
         """循環依存検出のテスト"""
         # テストデータ: A -> B -> C -> A の循環
-        task_a = Task(id=1, name="タスクA")
-        task_b = Task(id=2, name="タスクB")
-        task_c = Task(id=3, name="タスクC")
+        Task(id=1, name="タスクA")
+        Task(id=2, name="タスクB")
+        Task(id=3, name="タスクC")
 
         # 依存関係の設定
         dependencies = {
@@ -399,7 +394,9 @@ class TestTaskService:
         def get_successors(task_id):
             return dependencies.get(task_id, [])
 
-        with patch.object(task_service, "_get_successor_ids", side_effect=get_successors):
+        with patch.object(
+            task_service, "_get_successor_ids", side_effect=get_successors
+        ):
             # 実行
             has_circular = task_service._check_circular_dependency(1, 1)
 
@@ -513,7 +510,11 @@ class TestResourceService:
 
         # 既存の割当（40%使用中）
         existing_allocations = [
-            MagicMock(allocation_percentage=40, start_date=date(2025, 3, 1), end_date=date(2025, 3, 15))
+            MagicMock(
+                allocation_percentage=40,
+                start_date=date(2025, 3, 1),
+                end_date=date(2025, 3, 15),
+            )
         ]
 
         # モックの設定
@@ -627,9 +628,7 @@ class TestResourceService:
         mock_db.query.return_value = mock_query
 
         # 各ユーザーの稼働率チェックをモック
-        with patch.object(
-            resource_service, "check_availability", return_value=True
-        ):
+        with patch.object(resource_service, "check_availability", return_value=True):
             # 実行
             resources = resource_service.find_available_resources(
                 required_skills, start_date, end_date, min_availability
@@ -638,8 +637,7 @@ class TestResourceService:
         # 検証
         assert len(resources) == 2
         assert all(
-            all(skill in user.skills for skill in required_skills)
-            for user in resources
+            all(skill in user.skills for skill in required_skills) for user in resources
         )
 
     def test_resource_allocation_forecast(self, resource_service, mock_db):
@@ -671,9 +669,7 @@ class TestResourceService:
         mock_db.query.return_value = mock_query
 
         # 実行
-        forecast = resource_service.forecast_resource_needs(
-            project_id, forecast_months
-        )
+        forecast = resource_service.forecast_resource_needs(project_id, forecast_months)
 
         # 検証
         assert "total_hours" in forecast

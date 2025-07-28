@@ -1,4 +1,5 @@
 """プロジェクト管理モデルのユニットテスト"""
+
 from datetime import date, datetime
 from decimal import Decimal
 
@@ -552,9 +553,7 @@ class TestProjectBudgetModel:
         db_session.commit()
 
         # 実績原価の内訳確認
-        total_actual = (
-            budget.labor_cost + budget.outsourcing_cost + budget.expense_cost
-        )
+        total_actual = budget.labor_cost + budget.outsourcing_cost + budget.expense_cost
         assert total_actual == budget.actual_cost
 
 
