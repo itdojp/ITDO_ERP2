@@ -12,6 +12,7 @@ from app.models.base import SoftDeletableModel
 
 if TYPE_CHECKING:
     from app.models.department import Department
+    from app.models.mfa import MFADevice
     from app.models.organization import Organization
     from app.models.role import Role, UserRole
     from app.models.task import Task
@@ -61,6 +62,16 @@ class User(SoftDeletableModel):
     failed_login_attempts: Mapped[int] = mapped_column(Integer, default=0)
     locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     password_must_change: Mapped[bool] = mapped_column(Boolean, default=False)
+    
+    # MFA fields
+    mfa_required: Mapped[bool] = mapped_column(Boolean, default=False)
+    mfa_secret: Mapped[str | None] = mapped_column(String(32))
+    mfa_backup_codes: Mapped[str | None] = mapped_column(String(500))  # JSON array
+    mfa_enabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    
+    # Google SSO fields
+    google_id: Mapped[str | None] = mapped_column(String(255), unique=True, index=True)
+    google_refresh_token: Mapped[str | None] = mapped_column(String(512))
 
     # Relationships
     roles: Mapped[list["Role"]] = relationship(
@@ -111,6 +122,11 @@ class User(SoftDeletableModel):
         foreign_keys="UserOrganization.user_id",
         back_populates="user",
         cascade="all, delete-orphan",
+    )
+    
+    # MFA relationships
+    mfa_devices: Mapped[list["MFADevice"]] = relationship(
+        "MFADevice", back_populates="user", cascade="all, delete-orphan"
     )
 
     @classmethod
@@ -273,7 +289,8 @@ class User(SoftDeletableModel):
         """Create a new user session."""
         from app.models.user_session import UserSession
 
-        # Check concurrent session limit (5 sessions)
+        # Check concurrent session limit (3 sessions for normal users, 5 for superusers)
+        session_limit = 5 if self.is_superuser else 3
         active_sessions = (
             db.query(UserSession)
             .filter(
@@ -285,7 +302,7 @@ class User(SoftDeletableModel):
             .all()
         )
 
-        if len(active_sessions) >= 5:
+        if len(active_sessions) >= session_limit:
             # Invalidate oldest session
             active_sessions[0].invalidate()
             db.add(active_sessions[0])

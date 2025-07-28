@@ -156,6 +156,7 @@ from app.models.user_organization import (
 from app.models.user_preferences import UserPreferences
 from app.models.user_privacy import UserPrivacySettings
 from app.models.user_session import UserSession
+from app.models.mfa import MFADevice, MFABackupCode, MFAChallenge
 from app.models.workflow import (
     Workflow,
     WorkflowConnection,
@@ -192,6 +193,9 @@ __all__ = [
     "InheritanceAuditLog",
     "PasswordHistory",
     "UserSession",
+    "MFADevice",
+    "MFABackupCode",
+    "MFAChallenge",
     "UserActivityLog",
     "UserPreferences",
     "UserPrivacySettings",

@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import DateTime, Enum as SQLEnum, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import SoftDeletableModel
@@ -88,10 +88,10 @@ class Task(SoftDeletableModel):
     # Relationships
     project: Mapped["Project"] = relationship("Project", back_populates="tasks")
     assignee: Mapped[Optional["User"]] = relationship(
-        "User", foreign_keys=[assigned_to], back_populates="assigned_tasks"
+        "User", foreign_keys="Task.assigned_to", back_populates="assigned_tasks"
     )
     creator: Mapped["User"] = relationship(
-        "User", foreign_keys=[created_by], back_populates="created_tasks"
+        "User", foreign_keys="Task.created_by", back_populates="created_tasks"
     )
 
     # Task dependencies (self-referential many-to-many)
@@ -110,11 +110,6 @@ class Task(SoftDeletableModel):
     # Task history/audit
     task_history: Mapped[List["TaskHistory"]] = relationship(
         "TaskHistory", back_populates="task", cascade="all, delete-orphan"
-    )
-
-    # CRITICAL: Department relationship for hierarchical task management
-    department: Mapped[Optional["Department"]] = relationship(
-        "Department", back_populates="tasks", lazy="select"
     )
 
     # CRITICAL: Department relationship for hierarchical task management

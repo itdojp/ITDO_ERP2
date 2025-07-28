@@ -1,5 +1,6 @@
 """Security utilities for authentication and authorization."""
 
+import secrets
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -81,3 +82,8 @@ def verify_token(token: str) -> dict[str, Any]:
         raise ExpiredTokenError("Token has expired")
     except JWTError:
         raise InvalidTokenError("Invalid token")
+
+
+def generate_session_token() -> str:
+    """Generate a secure session token."""
+    return secrets.token_urlsafe(32)
