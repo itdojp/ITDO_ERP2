@@ -41,7 +41,7 @@ ITDO ERPシステムへの安全なアクセス制御を実現し、企業の機
 
 6. **その他のSSO対応**
    - SAML2.0対応（将来の企業連携用）
-   - Microsoft Entra ID（旧Azure AD）連携
+   - Microsoft Entra ID連携
 
 ## 主要なユースケース
 
