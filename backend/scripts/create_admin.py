@@ -21,7 +21,7 @@ def create_admin_user(email: str, password: str, name: str) -> None:
     """Create an admin user in the database."""
     # Create tables if they don't exist
     Base.metadata.create_all(bind=engine)
-    
+
     db = SessionLocal()
     try:
         # Check if user already exists
@@ -29,7 +29,7 @@ def create_admin_user(email: str, password: str, name: str) -> None:
         if existing_user:
             print(f"Error: User with email {email} already exists")
             return
-        
+
         # Create admin user
         admin_user = User(
             email=email,
@@ -41,12 +41,12 @@ def create_admin_user(email: str, password: str, name: str) -> None:
             is_verified=True,
             mfa_enabled=False,  # Can be enabled later through UI
         )
-        
+
         db.add(admin_user)
         db.commit()
         db.refresh(admin_user)
-        
-        print(f"Successfully created admin user:")
+
+        print("Successfully created admin user:")
         print(f"  ID: {admin_user.id}")
         print(f"  Email: {admin_user.email}")
         print(f"  Username: {admin_user.username}")
@@ -55,7 +55,7 @@ def create_admin_user(email: str, password: str, name: str) -> None:
         print()
         print("The user can now log in with the provided credentials.")
         print("For security, it's recommended to enable MFA after first login.")
-        
+
     except Exception as e:
         print(f"Error creating admin user: {e}")
         db.rollback()
@@ -66,9 +66,7 @@ def create_admin_user(email: str, password: str, name: str) -> None:
 
 def main():
     """Main entry point."""
-    parser = argparse.ArgumentParser(
-        description="Create an admin user for ITDO ERP v2"
-    )
+    parser = argparse.ArgumentParser(description="Create an admin user for ITDO ERP v2")
     parser.add_argument(
         "--email",
         type=str,
@@ -86,24 +84,24 @@ def main():
         required=True,
         help="Admin user full name",
     )
-    
+
     args = parser.parse_args()
-    
+
     # Get password if not provided
     password = args.password
     if not password:
         password = getpass.getpass("Enter admin password: ")
         confirm_password = getpass.getpass("Confirm password: ")
-        
+
         if password != confirm_password:
             print("Error: Passwords do not match")
             sys.exit(1)
-    
+
     # Validate password length
     if len(password) < 8:
         print("Error: Password must be at least 8 characters long")
         sys.exit(1)
-    
+
     # Create the admin user
     try:
         create_admin_user(args.email, password, args.name)

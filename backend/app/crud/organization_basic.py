@@ -174,7 +174,7 @@ def get_organization_hierarchy(db: Session, org_id: int) -> Optional[Dict[str, A
     hierarchy_path = organization.get_hierarchy_path()
 
     # Get direct children
-    children = (\
+    children = (
         db.query(Organization)
         .filter(
             and_(
