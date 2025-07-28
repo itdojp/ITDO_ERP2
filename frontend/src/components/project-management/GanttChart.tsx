@@ -2,8 +2,8 @@
  * ガントチャートコンポーネント
  */
 
-import React, { useMemo, useRef } from 'react';
-import { GanttTask, GanttDependency } from '../../services/projectManagement';
+import React, { useMemo, useRef } from "react";
+import { GanttTask, GanttDependency } from "../../services/projectManagement";
 
 interface GanttChartProps {
   tasks: GanttTask[];
@@ -33,7 +33,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
     const end = new Date(endDate);
     const days: Date[] = [];
     const months: { month: string; days: number; startIndex: number }[] = [];
-    
+
     const currentDate = new Date(start);
     let currentMonth = currentDate.getMonth();
     let monthDays = 0;
@@ -41,10 +41,13 @@ export const GanttChart: React.FC<GanttChartProps> = ({
 
     while (currentDate <= end) {
       days.push(new Date(currentDate));
-      
+
       if (currentDate.getMonth() !== currentMonth) {
         months.push({
-          month: new Date(currentDate.getFullYear(), currentMonth).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long' }),
+          month: new Date(
+            currentDate.getFullYear(),
+            currentMonth,
+          ).toLocaleDateString("ja-JP", { year: "numeric", month: "long" }),
           days: monthDays,
           startIndex: monthStartIndex,
         });
@@ -54,13 +57,16 @@ export const GanttChart: React.FC<GanttChartProps> = ({
       } else {
         monthDays++;
       }
-      
+
       currentDate.setDate(currentDate.getDate() + 1);
     }
-    
+
     // 最後の月を追加
     months.push({
-      month: new Date(end.getFullYear(), currentMonth).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long' }),
+      month: new Date(end.getFullYear(), currentMonth).toLocaleDateString(
+        "ja-JP",
+        { year: "numeric", month: "long" },
+      ),
       days: monthDays,
       startIndex: monthStartIndex,
     });
@@ -77,10 +83,15 @@ export const GanttChart: React.FC<GanttChartProps> = ({
     const taskStart = new Date(task.startDate);
     const taskEnd = new Date(task.endDate);
     const chartStart = new Date(startDate);
-    
-    const startOffset = Math.floor((taskStart.getTime() - chartStart.getTime()) / (1000 * 60 * 60 * 24));
-    const duration = Math.floor((taskEnd.getTime() - taskStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-    
+
+    const startOffset = Math.floor(
+      (taskStart.getTime() - chartStart.getTime()) / (1000 * 60 * 60 * 24),
+    );
+    const duration =
+      Math.floor(
+        (taskEnd.getTime() - taskStart.getTime()) / (1000 * 60 * 60 * 24),
+      ) + 1;
+
     return {
       left: startOffset * cellWidth,
       width: duration * cellWidth,
@@ -91,35 +102,35 @@ export const GanttChart: React.FC<GanttChartProps> = ({
   // タスクの色を取得
   const getTaskColor = (task: GanttTask): string => {
     if (criticalPath.includes(task.id)) {
-      return 'bg-red-500';
+      return "bg-red-500";
     }
     if (task.isMilestone) {
-      return 'bg-purple-500';
+      return "bg-purple-500";
     }
     if (task.progress === 100) {
-      return 'bg-green-500';
+      return "bg-green-500";
     }
     if (task.progress > 0) {
-      return 'bg-blue-500';
+      return "bg-blue-500";
     }
-    return 'bg-gray-400';
+    return "bg-gray-400";
   };
 
   // 依存関係の線を描画
   const renderDependencyLine = (dep: GanttDependency) => {
-    const sourceTask = tasks.find(t => t.id === dep.source);
-    const targetTask = tasks.find(t => t.id === dep.target);
-    
+    const sourceTask = tasks.find((t) => t.id === dep.source);
+    const targetTask = tasks.find((t) => t.id === dep.target);
+
     if (!sourceTask || !targetTask) return null;
-    
+
     const sourcePos = calculateTaskPosition(sourceTask);
     const targetPos = calculateTaskPosition(targetTask);
-    
+
     const x1 = sourcePos.left + sourcePos.width;
     const y1 = sourcePos.top + rowHeight / 2;
     const x2 = targetPos.left;
     const y2 = targetPos.top + rowHeight / 2;
-    
+
     return (
       <svg
         key={`dep-${dep.source}-${dep.target}`}
@@ -127,8 +138,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({
         style={{
           left: 0,
           top: headerHeight,
-          width: '100%',
-          height: '100%',
+          width: "100%",
+          height: "100%",
         }}
       >
         <path
@@ -147,13 +158,15 @@ export const GanttChart: React.FC<GanttChartProps> = ({
       <div className="p-4 border-b">
         <h3 className="text-lg font-medium text-gray-900">ガントチャート</h3>
       </div>
-      
+
       <div className="relative overflow-auto" ref={chartRef}>
         <div style={{ width: totalDays * cellWidth + 300, minHeight: 400 }}>
           {/* 月ヘッダー */}
           <div className="sticky top-0 z-20 bg-white border-b">
             <div className="flex">
-              <div className="w-[300px] border-r px-4 py-2 font-medium">タスク名</div>
+              <div className="w-[300px] border-r px-4 py-2 font-medium">
+                タスク名
+              </div>
               <div className="flex">
                 {monthHeaders.map((month, index) => (
                   <div
@@ -167,7 +180,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
               </div>
             </div>
           </div>
-          
+
           {/* 日付ヘッダー */}
           <div className="sticky top-[40px] z-20 bg-white border-b">
             <div className="flex">
@@ -185,7 +198,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
               </div>
             </div>
           </div>
-          
+
           {/* タスク一覧とチャート */}
           <div className="relative" style={{ marginTop: headerHeight }}>
             {/* グリッド背景 */}
@@ -195,8 +208,8 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                   key={index}
                   className={`absolute top-0 bottom-0 border-r ${
                     date.getDay() === 0 || date.getDay() === 6
-                      ? 'bg-gray-50'
-                      : 'bg-white'
+                      ? "bg-gray-50"
+                      : "bg-white"
                   }`}
                   style={{
                     left: 300 + index * cellWidth,
@@ -205,12 +218,12 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                 />
               ))}
             </div>
-            
+
             {/* タスク */}
             {tasks.map((task) => {
               const position = calculateTaskPosition(task);
               const taskColor = getTaskColor(task);
-              
+
               return (
                 <div
                   key={task.id}
@@ -228,7 +241,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                   >
                     {task.name}
                   </div>
-                  
+
                   {/* タスクバー */}
                   <div
                     className={`absolute h-6 rounded cursor-move ${taskColor} opacity-80 hover:opacity-100`}
@@ -246,7 +259,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                       />
                     )}
                   </div>
-                  
+
                   {/* リソース表示 */}
                   {task.resources.length > 0 && (
                     <div
@@ -256,13 +269,13 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                         top: (rowHeight - 16) / 2,
                       }}
                     >
-                      {task.resources.join(', ')}
+                      {task.resources.join(", ")}
                     </div>
                   )}
                 </div>
               );
             })}
-            
+
             {/* 依存関係の矢印 */}
             <svg className="absolute inset-0 pointer-events-none">
               <defs>
@@ -274,18 +287,15 @@ export const GanttChart: React.FC<GanttChartProps> = ({
                   refY="3.5"
                   orient="auto"
                 >
-                  <polygon
-                    points="0 0, 10 3.5, 0 7"
-                    fill="#666"
-                  />
+                  <polygon points="0 0, 10 3.5, 0 7" fill="#666" />
                 </marker>
               </defs>
             </svg>
-            {dependencies.map(dep => renderDependencyLine(dep))}
+            {dependencies.map((dep) => renderDependencyLine(dep))}
           </div>
         </div>
       </div>
-      
+
       {/* 凡例 */}
       <div className="p-4 border-t bg-gray-50">
         <div className="flex items-center space-x-6 text-sm">

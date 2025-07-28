@@ -2,8 +2,8 @@
  * ナビゲーションコンポーネント
  */
 
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React from "react";
+import { Link, useLocation } from "react-router-dom";
 import {
   HomeIcon,
   CubeIcon,
@@ -11,7 +11,7 @@ import {
   FolderIcon,
   ChartBarIcon,
   Cog6ToothIcon,
-} from '@heroicons/react/24/outline';
+} from "@heroicons/react/24/outline";
 
 interface NavItem {
   name: string;
@@ -20,20 +20,20 @@ interface NavItem {
 }
 
 const navigation: NavItem[] = [
-  { name: 'ホーム', href: '/', icon: HomeIcon },
-  { name: '商品管理', href: '/products', icon: CubeIcon },
-  { name: '在庫管理', href: '/inventory', icon: ArchiveBoxIcon },
-  { name: 'プロジェクト管理', href: '/projects', icon: FolderIcon },
-  { name: 'レポート', href: '/reports', icon: ChartBarIcon },
-  { name: '設定', href: '/settings', icon: Cog6ToothIcon },
+  { name: "ホーム", href: "/", icon: HomeIcon },
+  { name: "商品管理", href: "/products", icon: CubeIcon },
+  { name: "在庫管理", href: "/inventory", icon: ArchiveBoxIcon },
+  { name: "プロジェクト管理", href: "/projects", icon: FolderIcon },
+  { name: "レポート", href: "/reports", icon: ChartBarIcon },
+  { name: "設定", href: "/settings", icon: Cog6ToothIcon },
 ];
 
 export const Navigation: React.FC = () => {
   const location = useLocation();
 
   const isActive = (href: string): boolean => {
-    if (href === '/') {
-      return location.pathname === '/';
+    if (href === "/") {
+      return location.pathname === "/";
     }
     return location.pathname.startsWith(href);
   };
@@ -56,8 +56,8 @@ export const Navigation: React.FC = () => {
                     to={item.href}
                     className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
                       active
-                        ? 'border-indigo-500 text-gray-900'
-                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                        ? "border-indigo-500 text-gray-900"
+                        : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
                     }`}
                   >
                     <Icon className="h-5 w-5 mr-2" />
@@ -70,7 +70,12 @@ export const Navigation: React.FC = () => {
           <div className="flex items-center">
             <button className="p-2 rounded-md text-gray-400 hover:text-gray-500">
               <span className="sr-only">View notifications</span>
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -103,8 +108,8 @@ export const Navigation: React.FC = () => {
                 to={item.href}
                 className={`block pl-3 pr-4 py-2 border-l-4 text-base font-medium ${
                   active
-                    ? 'bg-indigo-50 border-indigo-500 text-indigo-700'
-                    : 'border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800'
+                    ? "bg-indigo-50 border-indigo-500 text-indigo-700"
+                    : "border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800"
                 }`}
               >
                 <div className="flex items-center">

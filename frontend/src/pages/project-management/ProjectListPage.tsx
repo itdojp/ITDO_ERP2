@@ -2,18 +2,22 @@
  * プロジェクト一覧ページ
  */
 
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Project, ListResponse, ProjectCreate } from '../../services/projectManagement';
-import { projectManagementService } from '../../services/projectManagementExtended';
-import { ProjectCard } from '../../components/project-management/ProjectCard';
-import { ProjectForm } from '../../components/project-management/ProjectForm';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Project,
+  ListResponse,
+  ProjectCreate,
+} from "../../services/projectManagement";
+import { projectManagementService } from "../../services/projectManagementExtended";
+import { ProjectCard } from "../../components/project-management/ProjectCard";
+import { ProjectForm } from "../../components/project-management/ProjectForm";
 import {
   PlusIcon,
   FunnelIcon,
   MagnifyingGlassIcon,
   ArrowPathIcon,
-} from '@heroicons/react/24/outline';
+} from "@heroicons/react/24/outline";
 
 export const ProjectListPage: React.FC = () => {
   const navigate = useNavigate();
@@ -21,8 +25,8 @@ export const ProjectListPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(12);
@@ -46,15 +50,16 @@ export const ProjectListPage: React.FC = () => {
         params.search = searchTerm;
       }
 
-      if (statusFilter !== 'all') {
+      if (statusFilter !== "all") {
         params.status = statusFilter;
       }
 
-      const response: ListResponse<Project> = await projectManagementService.projects.list(params);
+      const response: ListResponse<Project> =
+        await projectManagementService.projects.list(params);
       setProjects(response.items);
       setTotalCount(response.total);
     } catch (err) {
-      setError('プロジェクトの取得に失敗しました');
+      setError("プロジェクトの取得に失敗しました");
       // console.error('Failed to fetch projects:', err);
     } finally {
       setLoading(false);
@@ -79,7 +84,7 @@ export const ProjectListPage: React.FC = () => {
       fetchProjects();
     } catch (err) {
       // console.error('Failed to create project:', err);
-      alert('プロジェクトの作成に失敗しました');
+      alert("プロジェクトの作成に失敗しました");
     }
   };
 
@@ -104,7 +109,10 @@ export const ProjectListPage: React.FC = () => {
 
       {/* 検索・フィルター */}
       <div className="bg-white p-4 rounded-lg shadow mb-6">
-        <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-4">
+        <form
+          onSubmit={handleSearch}
+          className="flex flex-col sm:flex-row gap-4"
+        >
           <div className="flex-1">
             <div className="relative">
               <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -143,8 +151,8 @@ export const ProjectListPage: React.FC = () => {
           <button
             type="button"
             onClick={() => {
-              setSearchTerm('');
-              setStatusFilter('all');
+              setSearchTerm("");
+              setStatusFilter("all");
               setCurrentPage(1);
               fetchProjects();
             }}
@@ -185,7 +193,9 @@ export const ProjectListPage: React.FC = () => {
             <div className="flex justify-center mt-8">
               <nav className="flex space-x-2">
                 <button
-                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.max(prev - 1, 1))
+                  }
                   disabled={currentPage === 1}
                   className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -195,7 +205,12 @@ export const ProjectListPage: React.FC = () => {
                 {Array.from({ length: totalPages }, (_, i) => i + 1)
                   .filter((page) => {
                     const distance = Math.abs(page - currentPage);
-                    return distance === 0 || distance === 1 || page === 1 || page === totalPages;
+                    return (
+                      distance === 0 ||
+                      distance === 1 ||
+                      page === 1 ||
+                      page === totalPages
+                    );
                   })
                   .map((page, index, array) => {
                     if (index > 0 && array[index - 1] !== page - 1) {
@@ -206,8 +221,8 @@ export const ProjectListPage: React.FC = () => {
                             onClick={() => setCurrentPage(page)}
                             className={`px-3 py-2 text-sm font-medium rounded-md ${
                               currentPage === page
-                                ? 'bg-indigo-600 text-white'
-                                : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                                ? "bg-indigo-600 text-white"
+                                : "text-gray-700 bg-white border border-gray-300 hover:bg-gray-50"
                             }`}
                           >
                             {page}
@@ -221,8 +236,8 @@ export const ProjectListPage: React.FC = () => {
                         onClick={() => setCurrentPage(page)}
                         className={`px-3 py-2 text-sm font-medium rounded-md ${
                           currentPage === page
-                            ? 'bg-indigo-600 text-white'
-                            : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                            ? "bg-indigo-600 text-white"
+                            : "text-gray-700 bg-white border border-gray-300 hover:bg-gray-50"
                         }`}
                       >
                         {page}
@@ -231,7 +246,9 @@ export const ProjectListPage: React.FC = () => {
                   })}
 
                 <button
-                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                  }
                   disabled={currentPage === totalPages}
                   className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -248,7 +265,9 @@ export const ProjectListPage: React.FC = () => {
         <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">新規プロジェクト作成</h2>
+              <h2 className="text-lg font-medium text-gray-900 mb-4">
+                新規プロジェクト作成
+              </h2>
               <ProjectForm
                 projects={projects}
                 onSubmit={handleCreateProject}

@@ -2,8 +2,8 @@
  * プロジェクト詳細ページ
  */
 
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   Project,
   Task,
@@ -13,20 +13,20 @@ import {
   Budget,
   ProgressReport,
   GanttData,
-} from '../../services/projectManagement';
-import { projectManagementService } from '../../services/projectManagementExtended';
-import { ProjectDashboard } from '../../components/project-management/ProjectDashboard';
-import { TaskTree } from '../../components/project-management/TaskTree';
-import { TaskForm } from '../../components/project-management/TaskForm';
-import { GanttChart } from '../../components/project-management/GanttChart';
-import { ProjectMemberList } from '../../components/project-management/ProjectMemberList';
-import { BudgetManager } from '../../components/project-management/BudgetManager';
+} from "../../services/projectManagement";
+import { projectManagementService } from "../../services/projectManagementExtended";
+import { ProjectDashboard } from "../../components/project-management/ProjectDashboard";
+import { TaskTree } from "../../components/project-management/TaskTree";
+import { TaskForm } from "../../components/project-management/TaskForm";
+import { GanttChart } from "../../components/project-management/GanttChart";
+import { ProjectMemberList } from "../../components/project-management/ProjectMemberList";
+import { BudgetManager } from "../../components/project-management/BudgetManager";
 import {
   ArrowLeftIcon,
   PencilIcon,
   DocumentDuplicateIcon,
   ArrowPathIcon,
-} from '@heroicons/react/24/outline';
+} from "@heroicons/react/24/outline";
 
 interface TabItem {
   id: string;
@@ -42,21 +42,23 @@ export const ProjectDetailPage: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [members, setMembers] = useState<ProjectMember[]>([]);
   const [budget, setBudget] = useState<Budget | null>(null);
-  const [progressReport, setProgressReport] = useState<ProgressReport | null>(null);
+  const [progressReport, setProgressReport] = useState<ProgressReport | null>(
+    null,
+  );
   const [ganttData, setGanttData] = useState<GanttData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState("dashboard");
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [parentTask, setParentTask] = useState<Task | null>(null);
 
   const tabs: TabItem[] = [
-    { id: 'dashboard', name: 'ダッシュボード' },
-    { id: 'tasks', name: 'タスク', count: tasks.length },
-    { id: 'gantt', name: 'ガントチャート' },
-    { id: 'members', name: 'メンバー', count: members.length },
-    { id: 'budget', name: '予算管理' },
+    { id: "dashboard", name: "ダッシュボード" },
+    { id: "tasks", name: "タスク", count: tasks.length },
+    { id: "gantt", name: "ガントチャート" },
+    { id: "members", name: "メンバー", count: members.length },
+    { id: "budget", name: "予算管理" },
   ];
 
   const fetchProjectData = async () => {
@@ -67,16 +69,23 @@ export const ProjectDetailPage: React.FC = () => {
       setError(null);
 
       // プロジェクト詳細を取得
-      const projectData = await projectManagementService.projects.get(parseInt(projectId));
+      const projectData = await projectManagementService.projects.get(
+        parseInt(projectId),
+      );
       setProject(projectData);
 
       // 関連データを並行して取得
-      const [tasksData, membersData, budgetData, progressData] = await Promise.all([
-        projectManagementService.tasks.list({ projectId: parseInt(projectId) }),
-        projectManagementService.members.list({ projectId: parseInt(projectId) }),
-        projectManagementService.budgets.getByProject(parseInt(projectId)),
-        projectManagementService.projects.getProgress(parseInt(projectId)),
-      ]);
+      const [tasksData, membersData, budgetData, progressData] =
+        await Promise.all([
+          projectManagementService.tasks.list({
+            projectId: parseInt(projectId),
+          }),
+          projectManagementService.members.list({
+            projectId: parseInt(projectId),
+          }),
+          projectManagementService.budgets.getByProject(parseInt(projectId)),
+          projectManagementService.projects.getProgress(parseInt(projectId)),
+        ]);
 
       setTasks(tasksData.items);
       setMembers(membersData.items);
@@ -84,12 +93,14 @@ export const ProjectDetailPage: React.FC = () => {
       setProgressReport(progressData);
 
       // ガントチャートデータを取得（タスクタブまたはガントタブが選択されている場合のみ）
-      if (activeTab === 'gantt' || activeTab === 'tasks') {
-        const gantt = await projectManagementService.projects.getGanttData(parseInt(projectId));
+      if (activeTab === "gantt" || activeTab === "tasks") {
+        const gantt = await projectManagementService.projects.getGanttData(
+          parseInt(projectId),
+        );
         setGanttData(gantt);
       }
     } catch (err) {
-      setError('プロジェクトデータの取得に失敗しました');
+      setError("プロジェクトデータの取得に失敗しました");
       // console.error('Failed to fetch project data:', err);
     } finally {
       setLoading(false);
@@ -114,7 +125,7 @@ export const ProjectDetailPage: React.FC = () => {
       fetchProjectData();
     } catch (err) {
       // console.error('Failed to create task:', err);
-      alert('タスクの作成に失敗しました');
+      alert("タスクの作成に失敗しました");
     }
   };
 
@@ -128,7 +139,7 @@ export const ProjectDetailPage: React.FC = () => {
       fetchProjectData();
     } catch (err) {
       // console.error('Failed to update task:', err);
-      alert('タスクの更新に失敗しました');
+      alert("タスクの更新に失敗しました");
     }
   };
 
@@ -142,7 +153,7 @@ export const ProjectDetailPage: React.FC = () => {
       fetchProjectData();
     } catch (err) {
       // console.error('Failed to delete task:', err);
-      alert('タスクの削除に失敗しました');
+      alert("タスクの削除に失敗しました");
     }
   };
 
@@ -159,31 +170,41 @@ export const ProjectDetailPage: React.FC = () => {
   };
 
   const handleCloneProject = async () => {
-    if (!project || !window.confirm('このプロジェクトを複製してもよろしいですか？')) {
+    if (
+      !project ||
+      !window.confirm("このプロジェクトを複製してもよろしいですか？")
+    ) {
       return;
     }
 
     try {
-      const clonedProject = await projectManagementService.projects.clone(project.id);
+      const clonedProject = await projectManagementService.projects.clone(
+        project.id,
+      );
       navigate(`/projects/${clonedProject.id}`);
     } catch (err) {
       // console.error('Failed to clone project:', err);
-      alert('プロジェクトの複製に失敗しました');
+      alert("プロジェクトの複製に失敗しました");
     }
   };
 
   const handleAutoSchedule = async () => {
-    if (!projectId || !window.confirm('タスクの自動スケジューリングを実行してもよろしいですか？')) {
+    if (
+      !projectId ||
+      !window.confirm(
+        "タスクの自動スケジューリングを実行してもよろしいですか？",
+      )
+    ) {
       return;
     }
 
     try {
       await projectManagementService.projects.autoSchedule(parseInt(projectId));
       fetchProjectData();
-      alert('自動スケジューリングが完了しました');
+      alert("自動スケジューリングが完了しました");
     } catch (err) {
       // console.error('Failed to auto-schedule:', err);
-      alert('自動スケジューリングに失敗しました');
+      alert("自動スケジューリングに失敗しました");
     }
   };
 
@@ -199,7 +220,9 @@ export const ProjectDetailPage: React.FC = () => {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="bg-red-50 p-4 rounded-lg">
-          <p className="text-red-600">{error || 'プロジェクトが見つかりません'}</p>
+          <p className="text-red-600">
+            {error || "プロジェクトが見つかりません"}
+          </p>
         </div>
       </div>
     );
@@ -212,13 +235,15 @@ export const ProjectDetailPage: React.FC = () => {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-4">
             <button
-              onClick={() => navigate('/projects')}
+              onClick={() => navigate("/projects")}
               className="p-2 hover:bg-gray-100 rounded-md"
             >
               <ArrowLeftIcon className="h-5 w-5" />
             </button>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">{project.name}</h1>
+              <h1 className="text-2xl font-bold text-gray-900">
+                {project.name}
+              </h1>
               <p className="text-sm text-gray-500">{project.code}</p>
             </div>
           </div>
@@ -237,7 +262,7 @@ export const ProjectDetailPage: React.FC = () => {
             >
               <DocumentDuplicateIcon className="h-5 w-5" />
             </button>
-            {activeTab === 'tasks' && (
+            {activeTab === "tasks" && (
               <button
                 onClick={handleAutoSchedule}
                 className="p-2 hover:bg-gray-100 rounded-md"
@@ -260,8 +285,8 @@ export const ProjectDetailPage: React.FC = () => {
                   py-2 px-1 border-b-2 font-medium text-sm
                   ${
                     activeTab === tab.id
-                      ? 'border-indigo-500 text-indigo-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      ? "border-indigo-500 text-indigo-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                   }
                 `}
               >
@@ -279,7 +304,7 @@ export const ProjectDetailPage: React.FC = () => {
 
       {/* タブコンテンツ */}
       <div className="mt-6">
-        {activeTab === 'dashboard' && (
+        {activeTab === "dashboard" && (
           <ProjectDashboard
             project={project}
             progressReport={progressReport}
@@ -287,7 +312,7 @@ export const ProjectDetailPage: React.FC = () => {
           />
         )}
 
-        {activeTab === 'tasks' && (
+        {activeTab === "tasks" && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-medium text-gray-900">タスク管理</h2>
@@ -313,9 +338,11 @@ export const ProjectDetailPage: React.FC = () => {
           </div>
         )}
 
-        {activeTab === 'gantt' && ganttData && (
+        {activeTab === "gantt" && ganttData && (
           <div className="space-y-6">
-            <h2 className="text-lg font-medium text-gray-900">ガントチャート</h2>
+            <h2 className="text-lg font-medium text-gray-900">
+              ガントチャート
+            </h2>
             <GanttChart
               tasks={ganttData.tasks}
               dependencies={ganttData.dependencies}
@@ -330,9 +357,11 @@ export const ProjectDetailPage: React.FC = () => {
           </div>
         )}
 
-        {activeTab === 'members' && (
+        {activeTab === "members" && (
           <div className="space-y-6">
-            <h2 className="text-lg font-medium text-gray-900">プロジェクトメンバー</h2>
+            <h2 className="text-lg font-medium text-gray-900">
+              プロジェクトメンバー
+            </h2>
             <ProjectMemberList
               projectId={project.id}
               members={members}
@@ -341,7 +370,7 @@ export const ProjectDetailPage: React.FC = () => {
           </div>
         )}
 
-        {activeTab === 'budget' && (
+        {activeTab === "budget" && (
           <div className="space-y-6">
             <h2 className="text-lg font-medium text-gray-900">予算管理</h2>
             <BudgetManager
@@ -359,7 +388,7 @@ export const ProjectDetailPage: React.FC = () => {
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <h2 className="text-lg font-medium text-gray-900 mb-4">
-                {editingTask ? 'タスクを編集' : 'タスクを追加'}
+                {editingTask ? "タスクを編集" : "タスクを追加"}
               </h2>
               <TaskForm
                 task={editingTask || undefined}

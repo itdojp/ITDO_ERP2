@@ -30,7 +30,10 @@ function App() {
             <Route path="/inventory/adjust" element={<StockAdjustmentForm />} />
             <Route path="/inventory/movements" element={<StockMovements />} />
             <Route path="/projects" element={<ProjectListPage />} />
-            <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
+            <Route
+              path="/projects/:projectId"
+              element={<ProjectDetailPage />}
+            />
           </Routes>
         </Layout>
       </Router>

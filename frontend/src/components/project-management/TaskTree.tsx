@@ -2,9 +2,9 @@
  * タスクツリーコンポーネント（WBS表示）
  */
 
-import React, { useState } from 'react';
-import { Task } from '../../services/projectManagement';
-import { ChevronRightIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
+import React, { useState } from "react";
+import { Task } from "../../services/projectManagement";
+import { ChevronRightIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
 
 interface TaskTreeProps {
   tasks: Task[];
@@ -39,25 +39,25 @@ const TaskNode: React.FC<TaskNodeProps> = ({
 
   const getStatusColor = (status: string): string => {
     const colors = {
-      not_started: 'bg-gray-100 text-gray-800',
-      in_progress: 'bg-blue-100 text-blue-800',
-      completed: 'bg-green-100 text-green-800',
-      on_hold: 'bg-yellow-100 text-yellow-800',
+      not_started: "bg-gray-100 text-gray-800",
+      in_progress: "bg-blue-100 text-blue-800",
+      completed: "bg-green-100 text-green-800",
+      on_hold: "bg-yellow-100 text-yellow-800",
     };
-    return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+    return colors[status as keyof typeof colors] || "bg-gray-100 text-gray-800";
   };
 
   const getPriorityColor = (priority: string): string => {
     const colors = {
-      high: 'text-red-600',
-      medium: 'text-yellow-600',
-      low: 'text-gray-600',
+      high: "text-red-600",
+      medium: "text-yellow-600",
+      low: "text-gray-600",
     };
-    return colors[priority as keyof typeof colors] || 'text-gray-600';
+    return colors[priority as keyof typeof colors] || "text-gray-600";
   };
 
   const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleDateString('ja-JP');
+    return new Date(dateString).toLocaleDateString("ja-JP");
   };
 
   return (
@@ -65,8 +65,8 @@ const TaskNode: React.FC<TaskNodeProps> = ({
       <div
         className={`
           flex items-center p-3 hover:bg-gray-50 cursor-pointer
-          ${isSelected ? 'bg-blue-50' : ''}
-          ${level > 0 ? 'border-l-2 border-gray-200' : ''}
+          ${isSelected ? "bg-blue-50" : ""}
+          ${level > 0 ? "border-l-2 border-gray-200" : ""}
         `}
         style={{ paddingLeft: `${level * 24 + 12}px` }}
         onClick={() => onTaskClick?.(task)}
@@ -92,21 +92,31 @@ const TaskNode: React.FC<TaskNodeProps> = ({
           <div className="flex-1">
             <div className="flex items-center space-x-3">
               <h4 className="font-medium text-gray-900">{task.name}</h4>
-              <span className={`text-xs font-medium ${getPriorityColor(task.priority)}`}>
-                {task.priority === 'high' ? '高' : task.priority === 'medium' ? '中' : '低'}
+              <span
+                className={`text-xs font-medium ${getPriorityColor(task.priority)}`}
+              >
+                {task.priority === "high"
+                  ? "高"
+                  : task.priority === "medium"
+                    ? "中"
+                    : "低"}
               </span>
-              <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(task.status)}`}>
-                {task.status === 'not_started'
-                  ? '未着手'
-                  : task.status === 'in_progress'
-                  ? '進行中'
-                  : task.status === 'completed'
-                  ? '完了'
-                  : '保留'}
+              <span
+                className={`px-2 py-1 text-xs rounded-full ${getStatusColor(task.status)}`}
+              >
+                {task.status === "not_started"
+                  ? "未着手"
+                  : task.status === "in_progress"
+                    ? "進行中"
+                    : task.status === "completed"
+                      ? "完了"
+                      : "保留"}
               </span>
             </div>
             <div className="flex items-center space-x-4 mt-1 text-sm text-gray-500">
-              <span>{formatDate(task.startDate)} - {formatDate(task.endDate)}</span>
+              <span>
+                {formatDate(task.startDate)} - {formatDate(task.endDate)}
+              </span>
               {task.estimatedHours && <span>{task.estimatedHours}時間</span>}
               <span>{task.progressPercentage}%完了</span>
             </div>
@@ -118,10 +128,10 @@ const TaskNode: React.FC<TaskNodeProps> = ({
                 <div
                   className={`h-2 rounded-full ${
                     task.progressPercentage >= 100
-                      ? 'bg-green-500'
+                      ? "bg-green-500"
                       : task.progressPercentage >= 50
-                      ? 'bg-yellow-500'
-                      : 'bg-red-500'
+                        ? "bg-yellow-500"
+                        : "bg-red-500"
                   }`}
                   style={{ width: `${task.progressPercentage}%` }}
                 />
@@ -138,8 +148,18 @@ const TaskNode: React.FC<TaskNodeProps> = ({
                   className="p-1 text-gray-400 hover:text-gray-600"
                   title="サブタスクを追加"
                 >
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 4v16m8-8H4"
+                    />
                   </svg>
                 </button>
               )}
@@ -152,8 +172,18 @@ const TaskNode: React.FC<TaskNodeProps> = ({
                   className="p-1 text-gray-400 hover:text-gray-600"
                   title="編集"
                 >
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                    />
                   </svg>
                 </button>
               )}
@@ -166,8 +196,18 @@ const TaskNode: React.FC<TaskNodeProps> = ({
                   className="p-1 text-gray-400 hover:text-red-600"
                   title="削除"
                 >
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                    />
                   </svg>
                 </button>
               )}

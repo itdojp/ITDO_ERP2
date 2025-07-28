@@ -430,7 +430,7 @@ def get_gantt_chart(
     gantt_tasks = []
     gantt_dependencies = []
 
-    def process_task(task, level=0):
+    def process_task(task, level=0) -> dict:
         gantt_task = {
             "id": task.id,
             "name": task.name,

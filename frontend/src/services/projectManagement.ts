@@ -2,7 +2,7 @@
  * プロジェクト管理システムのAPIクライアントサービス
  */
 
-import { apiClient } from './api';
+import { apiClient } from "./api";
 
 // Types
 export interface Project {
@@ -14,8 +14,8 @@ export interface Project {
   startDate: string;
   endDate: string;
   budget: number;
-  status: 'planning' | 'active' | 'completed' | 'suspended';
-  projectType: 'standard' | 'recurring';
+  status: "planning" | "active" | "completed" | "suspended";
+  projectType: "standard" | "recurring";
   organizationId: number;
   createdBy: number;
   createdAt: string;
@@ -40,8 +40,8 @@ export interface ProjectCreate {
   startDate: string;
   endDate: string;
   budget: number;
-  status?: 'planning' | 'active' | 'completed' | 'suspended';
-  projectType?: 'standard' | 'recurring';
+  status?: "planning" | "active" | "completed" | "suspended";
+  projectType?: "standard" | "recurring";
 }
 
 export interface ProjectUpdate {
@@ -50,14 +50,20 @@ export interface ProjectUpdate {
   startDate?: string;
   endDate?: string;
   budget?: number;
-  status?: 'planning' | 'active' | 'completed' | 'suspended';
+  status?: "planning" | "active" | "completed" | "suspended";
 }
 
 export interface ProjectMember {
   id: number;
   projectId: number;
   userId: number;
-  role: 'project_leader' | 'architect' | 'dev_leader' | 'developer' | 'tester' | 'other';
+  role:
+    | "project_leader"
+    | "architect"
+    | "dev_leader"
+    | "developer"
+    | "tester"
+    | "other";
   allocationPercentage: number;
   startDate: string;
   endDate?: string;
@@ -84,8 +90,8 @@ export interface Task {
   estimatedHours?: number;
   actualHours?: number;
   progressPercentage: number;
-  status: 'not_started' | 'in_progress' | 'completed' | 'on_hold';
-  priority: 'high' | 'medium' | 'low';
+  status: "not_started" | "in_progress" | "completed" | "on_hold";
+  priority: "high" | "medium" | "low";
   createdBy: number;
   createdAt: string;
   updatedAt: string;
@@ -101,7 +107,7 @@ export interface TaskCreate {
   startDate: string;
   endDate: string;
   estimatedHours?: number;
-  priority?: 'high' | 'medium' | 'low';
+  priority?: "high" | "medium" | "low";
 }
 
 export interface TaskUpdate {
@@ -111,8 +117,8 @@ export interface TaskUpdate {
   endDate?: string;
   estimatedHours?: number;
   actualHours?: number;
-  priority?: 'high' | 'medium' | 'low';
-  status?: 'not_started' | 'in_progress' | 'completed' | 'on_hold';
+  priority?: "high" | "medium" | "low";
+  status?: "not_started" | "in_progress" | "completed" | "on_hold";
   progressPercentage?: number;
 }
 
@@ -120,7 +126,11 @@ export interface TaskDependency {
   id: number;
   predecessorId: number;
   successorId: number;
-  dependencyType: 'finish_to_start' | 'start_to_start' | 'finish_to_finish' | 'start_to_finish';
+  dependencyType:
+    | "finish_to_start"
+    | "start_to_start"
+    | "finish_to_finish"
+    | "start_to_finish";
   lagDays: number;
 }
 
@@ -143,7 +153,7 @@ export interface Milestone {
   description?: string;
   targetDate: string;
   achievedDate?: string;
-  status: 'pending' | 'achieved' | 'delayed' | 'cancelled';
+  status: "pending" | "achieved" | "delayed" | "cancelled";
   deliverable?: string;
   approverId?: number;
   approver?: UserSummary;
@@ -257,7 +267,7 @@ export interface ProgressReport {
 
 export interface RecurringProjectCreate {
   template: ProjectCreate;
-  recurrencePattern: 'daily' | 'weekly' | 'monthly' | 'yearly';
+  recurrencePattern: "daily" | "weekly" | "monthly" | "yearly";
   recurrenceCount: number;
   startDate: string;
 }
@@ -285,7 +295,7 @@ export const projectManagementService = {
       page?: number;
       pageSize?: number;
     }): Promise<ListResponse<Project>> => {
-      const response = await apiClient.get('/api/v1/projects', { params });
+      const response = await apiClient.get("/api/v1/projects", { params });
       return response.data;
     },
 
@@ -295,12 +305,18 @@ export const projectManagementService = {
     },
 
     create: async (data: ProjectCreate): Promise<Project> => {
-      const response = await apiClient.post('/api/v1/projects', data);
+      const response = await apiClient.post("/api/v1/projects", data);
       return response.data;
     },
 
-    update: async (projectId: number, data: ProjectUpdate): Promise<Project> => {
-      const response = await apiClient.put(`/api/v1/projects/${projectId}`, data);
+    update: async (
+      projectId: number,
+      data: ProjectUpdate,
+    ): Promise<Project> => {
+      const response = await apiClient.put(
+        `/api/v1/projects/${projectId}`,
+        data,
+      );
       return response.data;
     },
 
@@ -309,20 +325,28 @@ export const projectManagementService = {
     },
 
     // Recurring projects
-    createRecurring: async (data: RecurringProjectCreate): Promise<{
+    createRecurring: async (
+      data: RecurringProjectCreate,
+    ): Promise<{
       masterProject: Project;
       generatedProjects: Project[];
       totalBudget: number;
     }> => {
-      const response = await apiClient.post('/api/v1/projects/recurring', data);
+      const response = await apiClient.post("/api/v1/projects/recurring", data);
       return response.data;
     },
   },
 
   // Project Members
   members: {
-    add: async (projectId: number, data: ProjectMemberCreate): Promise<ListResponse<ProjectMember>> => {
-      const response = await apiClient.post(`/api/v1/projects/${projectId}/members`, data);
+    add: async (
+      projectId: number,
+      data: ProjectMemberCreate,
+    ): Promise<ListResponse<ProjectMember>> => {
+      const response = await apiClient.post(
+        `/api/v1/projects/${projectId}/members`,
+        data,
+      );
       return response.data;
     },
 
@@ -334,22 +358,36 @@ export const projectManagementService = {
   // Tasks
   tasks: {
     list: async (projectId: number): Promise<{ tasks: Task[] }> => {
-      const response = await apiClient.get(`/api/v1/projects/${projectId}/tasks`);
+      const response = await apiClient.get(
+        `/api/v1/projects/${projectId}/tasks`,
+      );
       return response.data;
     },
 
     get: async (projectId: number, taskId: number): Promise<Task> => {
-      const response = await apiClient.get(`/api/v1/projects/${projectId}/tasks/${taskId}`);
+      const response = await apiClient.get(
+        `/api/v1/projects/${projectId}/tasks/${taskId}`,
+      );
       return response.data;
     },
 
     create: async (projectId: number, data: TaskCreate): Promise<Task> => {
-      const response = await apiClient.post(`/api/v1/projects/${projectId}/tasks`, data);
+      const response = await apiClient.post(
+        `/api/v1/projects/${projectId}/tasks`,
+        data,
+      );
       return response.data;
     },
 
-    update: async (projectId: number, taskId: number, data: TaskUpdate): Promise<Task> => {
-      const response = await apiClient.put(`/api/v1/projects/${projectId}/tasks/${taskId}`, data);
+    update: async (
+      projectId: number,
+      taskId: number,
+      data: TaskUpdate,
+    ): Promise<Task> => {
+      const response = await apiClient.put(
+        `/api/v1/projects/${projectId}/tasks/${taskId}`,
+        data,
+      );
       return response.data;
     },
 
@@ -357,69 +395,104 @@ export const projectManagementService = {
       await apiClient.delete(`/api/v1/projects/${projectId}/tasks/${taskId}`);
     },
 
-    updateProgress: async (projectId: number, taskId: number, data: {
-      progressPercentage: number;
-      actualHours: number;
-      comment?: string;
-    }): Promise<Task> => {
+    updateProgress: async (
+      projectId: number,
+      taskId: number,
+      data: {
+        progressPercentage: number;
+        actualHours: number;
+        comment?: string;
+      },
+    ): Promise<Task> => {
       const response = await apiClient.put(
         `/api/v1/projects/${projectId}/tasks/${taskId}/progress`,
-        data
+        data,
       );
       return response.data;
     },
 
-    createDependency: async (projectId: number, taskId: number, data: {
-      predecessorId: number;
-      dependencyType?: string;
-      lagDays?: number;
-    }): Promise<void> => {
+    createDependency: async (
+      projectId: number,
+      taskId: number,
+      data: {
+        predecessorId: number;
+        dependencyType?: string;
+        lagDays?: number;
+      },
+    ): Promise<void> => {
       await apiClient.post(
         `/api/v1/projects/${projectId}/tasks/${taskId}/dependencies`,
-        data
+        data,
       );
     },
   },
 
   // Resources
   resources: {
-    listByProject: async (projectId: number): Promise<ListResponse<ResourceInfo>> => {
-      const response = await apiClient.get(`/api/v1/projects/${projectId}/resources`);
+    listByProject: async (
+      projectId: number,
+    ): Promise<ListResponse<ResourceInfo>> => {
+      const response = await apiClient.get(
+        `/api/v1/projects/${projectId}/resources`,
+      );
       return response.data;
     },
 
-    assignToTask: async (projectId: number, taskId: number, data: {
-      resourceId: number;
-      allocationPercentage: number;
-      startDate?: string;
-      endDate?: string;
-      plannedHours?: number;
-    }): Promise<void> => {
+    assignToTask: async (
+      projectId: number,
+      taskId: number,
+      data: {
+        resourceId: number;
+        allocationPercentage: number;
+        startDate?: string;
+        endDate?: string;
+        plannedHours?: number;
+      },
+    ): Promise<void> => {
       await apiClient.post(
         `/api/v1/projects/${projectId}/tasks/${taskId}/resources`,
-        data
+        data,
       );
     },
 
-    getUtilization: async (userId: number, startDate: string, endDate: string): Promise<UtilizationReport> => {
-      const response = await apiClient.get(`/api/v1/projects/resources/${userId}/utilization`, {
-        params: { startDate, endDate }
-      });
+    getUtilization: async (
+      userId: number,
+      startDate: string,
+      endDate: string,
+    ): Promise<UtilizationReport> => {
+      const response = await apiClient.get(
+        `/api/v1/projects/resources/${userId}/utilization`,
+        {
+          params: { startDate, endDate },
+        },
+      );
       return response.data;
     },
   },
 
   // Milestones
   milestones: {
-    list: async (projectId: number, status?: string): Promise<ListResponse<Milestone>> => {
-      const response = await apiClient.get(`/api/v1/projects/${projectId}/milestones`, {
-        params: { status }
-      });
+    list: async (
+      projectId: number,
+      status?: string,
+    ): Promise<ListResponse<Milestone>> => {
+      const response = await apiClient.get(
+        `/api/v1/projects/${projectId}/milestones`,
+        {
+          params: { status },
+        },
+      );
       return response.data;
     },
 
-    create: async (projectId: number, data: MilestoneCreate): Promise<Milestone> => {
-      const response = await apiClient.post(`/api/v1/projects/${projectId}/milestones`, data);
+    create: async (
+      projectId: number,
+      data: MilestoneCreate,
+    ): Promise<Milestone> => {
+      const response = await apiClient.post(
+        `/api/v1/projects/${projectId}/milestones`,
+        data,
+      );
       return response.data;
     },
   },
@@ -427,12 +500,17 @@ export const projectManagementService = {
   // Budget
   budget: {
     get: async (projectId: number): Promise<Budget> => {
-      const response = await apiClient.get(`/api/v1/projects/${projectId}/budget`);
+      const response = await apiClient.get(
+        `/api/v1/projects/${projectId}/budget`,
+      );
       return response.data;
     },
 
     update: async (projectId: number, data: BudgetUpdate): Promise<Budget> => {
-      const response = await apiClient.put(`/api/v1/projects/${projectId}/budget`, data);
+      const response = await apiClient.put(
+        `/api/v1/projects/${projectId}/budget`,
+        data,
+      );
       return response.data;
     },
   },
@@ -440,17 +518,25 @@ export const projectManagementService = {
   // Gantt Chart
   gantt: {
     get: async (projectId: number): Promise<GanttChart> => {
-      const response = await apiClient.get(`/api/v1/projects/${projectId}/gantt`);
+      const response = await apiClient.get(
+        `/api/v1/projects/${projectId}/gantt`,
+      );
       return response.data;
     },
   },
 
   // Reports
   reports: {
-    getProgress: async (projectId: number, reportDate?: string): Promise<ProgressReport> => {
-      const response = await apiClient.get(`/api/v1/projects/${projectId}/reports/progress`, {
-        params: { reportDate }
-      });
+    getProgress: async (
+      projectId: number,
+      reportDate?: string,
+    ): Promise<ProgressReport> => {
+      const response = await apiClient.get(
+        `/api/v1/projects/${projectId}/reports/progress`,
+        {
+          params: { reportDate },
+        },
+      );
       return response.data;
     },
   },

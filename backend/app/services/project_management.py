@@ -32,7 +32,7 @@ from app.schemas.project_management import (
 class ProjectService:
     """プロジェクトサービス"""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def create_project(
@@ -286,7 +286,7 @@ class ProjectService:
 class TaskService:
     """タスクサービス"""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def create_task(self, task_data: TaskCreate, user_id: int) -> Task:
@@ -615,7 +615,7 @@ class TaskService:
         visited = set()
         result = []
 
-        def visit(task_id: int):
+        def visit(task_id: int) -> dict:
             if task_id in visited:
                 return
             visited.add(task_id)
@@ -637,7 +637,7 @@ class TaskService:
 class ResourceService:
     """リソース管理サービス"""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def check_availability(
@@ -911,7 +911,7 @@ class ResourceService:
 class MilestoneService:
     """マイルストーンサービス"""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def create_milestone(
@@ -962,7 +962,7 @@ class MilestoneService:
 class BudgetService:
     """予算管理サービス"""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: Session) -> dict:
         self.db = db
 
     def update_budget(

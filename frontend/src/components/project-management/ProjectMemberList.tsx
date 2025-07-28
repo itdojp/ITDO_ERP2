@@ -2,16 +2,19 @@
  * プロジェクトメンバー一覧コンポーネント
  */
 
-import React, { useState } from 'react';
-import { ProjectMember, ProjectMemberCreate } from '../../services/projectManagement';
-import { projectManagementService } from '../../services/projectManagementExtended';
+import React, { useState } from "react";
+import {
+  ProjectMember,
+  ProjectMemberCreate,
+} from "../../services/projectManagement";
+import { projectManagementService } from "../../services/projectManagementExtended";
 import {
   UserPlusIcon,
   TrashIcon,
   PencilIcon,
   CheckIcon,
   XMarkIcon,
-} from '@heroicons/react/24/outline';
+} from "@heroicons/react/24/outline";
 
 interface ProjectMemberListProps {
   projectId: number;
@@ -29,10 +32,12 @@ export const ProjectMemberList: React.FC<ProjectMemberListProps> = ({
   const [newMember, setNewMember] = useState<ProjectMemberCreate>({
     projectId,
     userId: 0,
-    role: 'member',
+    role: "member",
     allocationPercentage: 100,
   });
-  const [editingMember, setEditingMember] = useState<Partial<ProjectMember>>({});
+  const [editingMember, setEditingMember] = useState<Partial<ProjectMember>>(
+    {},
+  );
 
   const handleAddMember = async () => {
     try {
@@ -41,13 +46,13 @@ export const ProjectMemberList: React.FC<ProjectMemberListProps> = ({
       setNewMember({
         projectId,
         userId: 0,
-        role: 'member',
+        role: "member",
         allocationPercentage: 100,
       });
       onUpdate();
     } catch (err) {
       // console.error('Failed to add member:', err);
-      alert('メンバーの追加に失敗しました');
+      alert("メンバーの追加に失敗しました");
     }
   };
 
@@ -62,12 +67,16 @@ export const ProjectMemberList: React.FC<ProjectMemberListProps> = ({
       onUpdate();
     } catch (err) {
       // console.error('Failed to update member:', err);
-      alert('メンバー情報の更新に失敗しました');
+      alert("メンバー情報の更新に失敗しました");
     }
   };
 
   const handleRemoveMember = async (memberId: number) => {
-    if (!window.confirm('このメンバーをプロジェクトから削除してもよろしいですか？')) {
+    if (
+      !window.confirm(
+        "このメンバーをプロジェクトから削除してもよろしいですか？",
+      )
+    ) {
       return;
     }
 
@@ -76,28 +85,28 @@ export const ProjectMemberList: React.FC<ProjectMemberListProps> = ({
       onUpdate();
     } catch (err) {
       // console.error('Failed to remove member:', err);
-      alert('メンバーの削除に失敗しました');
+      alert("メンバーの削除に失敗しました");
     }
   };
 
   const getRoleLabel = (role: string): string => {
     const labels: Record<string, string> = {
-      manager: 'マネージャー',
-      leader: 'リーダー',
-      member: 'メンバー',
-      observer: 'オブザーバー',
+      manager: "マネージャー",
+      leader: "リーダー",
+      member: "メンバー",
+      observer: "オブザーバー",
     };
     return labels[role] || role;
   };
 
   const getRoleColor = (role: string): string => {
     const colors: Record<string, string> = {
-      manager: 'bg-purple-100 text-purple-800',
-      leader: 'bg-blue-100 text-blue-800',
-      member: 'bg-green-100 text-green-800',
-      observer: 'bg-gray-100 text-gray-800',
+      manager: "bg-purple-100 text-purple-800",
+      leader: "bg-blue-100 text-blue-800",
+      member: "bg-green-100 text-green-800",
+      observer: "bg-gray-100 text-gray-800",
     };
-    return colors[role] || 'bg-gray-100 text-gray-800';
+    return colors[role] || "bg-gray-100 text-gray-800";
   };
 
   return (
@@ -119,20 +128,31 @@ export const ProjectMemberList: React.FC<ProjectMemberListProps> = ({
           <div className="mb-4 p-4 bg-gray-50 rounded-lg">
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
               <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-gray-700">ユーザーID</label>
+                <label className="block text-sm font-medium text-gray-700">
+                  ユーザーID
+                </label>
                 <input
                   type="number"
                   value={newMember.userId}
-                  onChange={(e) => setNewMember({ ...newMember, userId: parseInt(e.target.value) })}
+                  onChange={(e) =>
+                    setNewMember({
+                      ...newMember,
+                      userId: parseInt(e.target.value),
+                    })
+                  }
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                   placeholder="ユーザーIDを入力"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">役割</label>
+                <label className="block text-sm font-medium text-gray-700">
+                  役割
+                </label>
                 <select
                   value={newMember.role}
-                  onChange={(e) => setNewMember({ ...newMember, role: e.target.value })}
+                  onChange={(e) =>
+                    setNewMember({ ...newMember, role: e.target.value })
+                  }
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                 >
                   <option value="manager">マネージャー</option>
@@ -142,11 +162,18 @@ export const ProjectMemberList: React.FC<ProjectMemberListProps> = ({
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">稼働率 (%)</label>
+                <label className="block text-sm font-medium text-gray-700">
+                  稼働率 (%)
+                </label>
                 <input
                   type="number"
                   value={newMember.allocationPercentage}
-                  onChange={(e) => setNewMember({ ...newMember, allocationPercentage: parseInt(e.target.value) })}
+                  onChange={(e) =>
+                    setNewMember({
+                      ...newMember,
+                      allocationPercentage: parseInt(e.target.value),
+                    })
+                  }
                   min="0"
                   max="100"
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
@@ -200,7 +227,7 @@ export const ProjectMemberList: React.FC<ProjectMemberListProps> = ({
                       <div className="flex-shrink-0 h-10 w-10">
                         <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
                           <span className="text-sm font-medium text-gray-600">
-                            {member.userName?.charAt(0) || 'U'}
+                            {member.userName?.charAt(0) || "U"}
                           </span>
                         </div>
                       </div>
@@ -209,7 +236,8 @@ export const ProjectMemberList: React.FC<ProjectMemberListProps> = ({
                           {member.userName || `User ${member.userId}`}
                         </div>
                         <div className="text-sm text-gray-500">
-                          {member.userEmail || `user${member.userId}@example.com`}
+                          {member.userEmail ||
+                            `user${member.userId}@example.com`}
                         </div>
                       </div>
                     </div>
@@ -218,7 +246,12 @@ export const ProjectMemberList: React.FC<ProjectMemberListProps> = ({
                     {editingMemberId === member.id ? (
                       <select
                         value={editingMember.role || member.role}
-                        onChange={(e) => setEditingMember({ ...editingMember, role: e.target.value })}
+                        onChange={(e) =>
+                          setEditingMember({
+                            ...editingMember,
+                            role: e.target.value,
+                          })
+                        }
                         className="text-sm rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                       >
                         <option value="manager">マネージャー</option>
@@ -227,7 +260,9 @@ export const ProjectMemberList: React.FC<ProjectMemberListProps> = ({
                         <option value="observer">オブザーバー</option>
                       </select>
                     ) : (
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getRoleColor(member.role)}`}>
+                      <span
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getRoleColor(member.role)}`}
+                      >
                         {getRoleLabel(member.role)}
                       </span>
                     )}
@@ -236,8 +271,16 @@ export const ProjectMemberList: React.FC<ProjectMemberListProps> = ({
                     {editingMemberId === member.id ? (
                       <input
                         type="number"
-                        value={editingMember.allocationPercentage ?? member.allocationPercentage}
-                        onChange={(e) => setEditingMember({ ...editingMember, allocationPercentage: parseInt(e.target.value) })}
+                        value={
+                          editingMember.allocationPercentage ??
+                          member.allocationPercentage
+                        }
+                        onChange={(e) =>
+                          setEditingMember({
+                            ...editingMember,
+                            allocationPercentage: parseInt(e.target.value),
+                          })
+                        }
                         min="0"
                         max="100"
                         className="w-20 text-sm rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
@@ -247,7 +290,7 @@ export const ProjectMemberList: React.FC<ProjectMemberListProps> = ({
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(member.joinedAt).toLocaleDateString('ja-JP')}
+                    {new Date(member.joinedAt).toLocaleDateString("ja-JP")}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     {editingMemberId === member.id ? (
@@ -295,7 +338,7 @@ export const ProjectMemberList: React.FC<ProjectMemberListProps> = ({
               ))}
             </tbody>
           </table>
-          
+
           {members.length === 0 && (
             <div className="text-center py-8 text-gray-500">
               メンバーがいません

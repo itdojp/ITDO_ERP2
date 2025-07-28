@@ -2,22 +2,21 @@
  * 予算管理コンポーネント
  */
 
-import React, { useState } from 'react';
-import { Budget, BudgetUpdate } from '../../services/projectManagement';
-import { projectManagementService } from '../../services/projectManagementExtended';
+import React, { useState } from "react";
+import { Budget, BudgetUpdate } from "../../services/projectManagement";
+import { projectManagementService } from "../../services/projectManagementExtended";
 import {
   CurrencyYenIcon,
   ChartBarIcon,
   ExclamationTriangleIcon,
   CheckCircleIcon,
-} from '@heroicons/react/24/outline';
+} from "@heroicons/react/24/outline";
 
 interface BudgetManagerProps {
   projectId: number;
   budget: Budget | null;
   onUpdate: () => void;
 }
-
 
 export const BudgetManager: React.FC<BudgetManagerProps> = ({
   projectId,
@@ -36,9 +35,9 @@ export const BudgetManager: React.FC<BudgetManagerProps> = ({
   });
 
   const formatCurrency = (amount: number): string => {
-    return new Intl.NumberFormat('ja-JP', {
-      style: 'currency',
-      currency: 'JPY',
+    return new Intl.NumberFormat("ja-JP", {
+      style: "currency",
+      currency: "JPY",
     }).format(amount);
   };
 
@@ -59,11 +58,11 @@ export const BudgetManager: React.FC<BudgetManagerProps> = ({
       onUpdate();
     } catch (err) {
       // console.error('Failed to update budget:', err);
-      alert('予算情報の更新に失敗しました');
+      alert("予算情報の更新に失敗しました");
     }
   };
 
-  const calculateTotal = (type: 'planned' | 'actual'): number => {
+  const calculateTotal = (type: "planned" | "actual"): number => {
     return (
       formData.costBreakdown.labor[type] +
       formData.costBreakdown.outsourcing[type] +
@@ -71,7 +70,11 @@ export const BudgetManager: React.FC<BudgetManagerProps> = ({
     );
   };
 
-  const updateCostItem = (category: keyof typeof formData.costBreakdown, type: 'planned' | 'actual', value: number) => {
+  const updateCostItem = (
+    category: keyof typeof formData.costBreakdown,
+    type: "planned" | "actual",
+    value: number,
+  ) => {
     const newCostBreakdown = {
       ...formData.costBreakdown,
       [category]: {
@@ -79,9 +82,9 @@ export const BudgetManager: React.FC<BudgetManagerProps> = ({
         [type]: value,
       },
     };
-    
-    const newActualCost = calculateTotal('actual');
-    
+
+    const newActualCost = calculateTotal("actual");
+
     setFormData({
       ...formData,
       costBreakdown: newCostBreakdown,
@@ -89,24 +92,26 @@ export const BudgetManager: React.FC<BudgetManagerProps> = ({
     });
   };
 
-  const getVarianceStatus = (variance: number): { color: string; icon: JSX.Element; label: string } => {
+  const getVarianceStatus = (
+    variance: number,
+  ): { color: string; icon: JSX.Element; label: string } => {
     if (variance <= 0) {
       return {
-        color: 'text-green-600',
+        color: "text-green-600",
         icon: <CheckCircleIcon className="h-5 w-5" />,
-        label: '予算内',
+        label: "予算内",
       };
     } else if (variance <= 10) {
       return {
-        color: 'text-yellow-600',
+        color: "text-yellow-600",
         icon: <ExclamationTriangleIcon className="h-5 w-5" />,
-        label: '警告',
+        label: "警告",
       };
     } else {
       return {
-        color: 'text-red-600',
+        color: "text-red-600",
         icon: <ExclamationTriangleIcon className="h-5 w-5" />,
-        label: '超過',
+        label: "超過",
       };
     }
   };
@@ -116,8 +121,12 @@ export const BudgetManager: React.FC<BudgetManagerProps> = ({
       <div className="bg-white shadow rounded-lg p-6">
         <div className="text-center">
           <CurrencyYenIcon className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900">予算情報がありません</h3>
-          <p className="mt-1 text-sm text-gray-500">予算情報を設定してください</p>
+          <h3 className="mt-2 text-sm font-medium text-gray-900">
+            予算情報がありません
+          </h3>
+          <p className="mt-1 text-sm text-gray-500">
+            予算情報を設定してください
+          </p>
           <div className="mt-6">
             <button
               onClick={() => setIsEditing(true)}
@@ -140,7 +149,10 @@ export const BudgetManager: React.FC<BudgetManagerProps> = ({
     variancePercentage: 0,
     revenue: formData.revenue,
     profit: formData.revenue - formData.actualCost,
-    profitRate: formData.revenue > 0 ? ((formData.revenue - formData.actualCost) / formData.revenue) * 100 : 0,
+    profitRate:
+      formData.revenue > 0
+        ? ((formData.revenue - formData.actualCost) / formData.revenue) * 100
+        : 0,
   };
 
   const varianceStatus = getVarianceStatus(displayBudget.variancePercentage);
@@ -184,12 +196,14 @@ export const BudgetManager: React.FC<BudgetManagerProps> = ({
                 <div
                   className={`h-2 rounded-full ${
                     displayBudget.consumptionRate <= 80
-                      ? 'bg-green-500'
+                      ? "bg-green-500"
                       : displayBudget.consumptionRate <= 100
-                      ? 'bg-yellow-500'
-                      : 'bg-red-500'
+                        ? "bg-yellow-500"
+                        : "bg-red-500"
                   }`}
-                  style={{ width: `${Math.min(displayBudget.consumptionRate, 100)}%` }}
+                  style={{
+                    width: `${Math.min(displayBudget.consumptionRate, 100)}%`,
+                  }}
                 />
               </div>
             </div>
@@ -197,13 +211,18 @@ export const BudgetManager: React.FC<BudgetManagerProps> = ({
           <div>
             <p className="text-sm text-gray-500">差異</p>
             <div className="mt-1 flex items-center">
-              <span className={varianceStatus.color}>{varianceStatus.icon}</span>
-              <p className={`ml-2 text-2xl font-semibold ${varianceStatus.color}`}>
+              <span className={varianceStatus.color}>
+                {varianceStatus.icon}
+              </span>
+              <p
+                className={`ml-2 text-2xl font-semibold ${varianceStatus.color}`}
+              >
                 {formatCurrency(Math.abs(displayBudget.variance))}
               </p>
             </div>
             <p className={`text-sm ${varianceStatus.color}`}>
-              {varianceStatus.label} ({displayBudget.variancePercentage.toFixed(1)}%)
+              {varianceStatus.label} (
+              {displayBudget.variancePercentage.toFixed(1)}%)
             </p>
           </div>
         </div>
@@ -212,7 +231,7 @@ export const BudgetManager: React.FC<BudgetManagerProps> = ({
       {/* コスト内訳 */}
       <div className="bg-white shadow rounded-lg p-6">
         <h3 className="text-lg font-medium text-gray-900 mb-6">コスト内訳</h3>
-        
+
         {isEditing ? (
           <div className="space-y-4">
             <div className="overflow-x-auto">
@@ -239,7 +258,13 @@ export const BudgetManager: React.FC<BudgetManagerProps> = ({
                       <input
                         type="number"
                         value={formData.costBreakdown.labor.planned}
-                        onChange={(e) => updateCostItem('labor', 'planned', parseInt(e.target.value) || 0)}
+                        onChange={(e) =>
+                          updateCostItem(
+                            "labor",
+                            "planned",
+                            parseInt(e.target.value) || 0,
+                          )
+                        }
                         className="w-32 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                       />
                     </td>
@@ -247,7 +272,13 @@ export const BudgetManager: React.FC<BudgetManagerProps> = ({
                       <input
                         type="number"
                         value={formData.costBreakdown.labor.actual}
-                        onChange={(e) => updateCostItem('labor', 'actual', parseInt(e.target.value) || 0)}
+                        onChange={(e) =>
+                          updateCostItem(
+                            "labor",
+                            "actual",
+                            parseInt(e.target.value) || 0,
+                          )
+                        }
                         className="w-32 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                       />
                     </td>
@@ -260,7 +291,13 @@ export const BudgetManager: React.FC<BudgetManagerProps> = ({
                       <input
                         type="number"
                         value={formData.costBreakdown.outsourcing.planned}
-                        onChange={(e) => updateCostItem('outsourcing', 'planned', parseInt(e.target.value) || 0)}
+                        onChange={(e) =>
+                          updateCostItem(
+                            "outsourcing",
+                            "planned",
+                            parseInt(e.target.value) || 0,
+                          )
+                        }
                         className="w-32 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                       />
                     </td>
@@ -268,7 +305,13 @@ export const BudgetManager: React.FC<BudgetManagerProps> = ({
                       <input
                         type="number"
                         value={formData.costBreakdown.outsourcing.actual}
-                        onChange={(e) => updateCostItem('outsourcing', 'actual', parseInt(e.target.value) || 0)}
+                        onChange={(e) =>
+                          updateCostItem(
+                            "outsourcing",
+                            "actual",
+                            parseInt(e.target.value) || 0,
+                          )
+                        }
                         className="w-32 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                       />
                     </td>
@@ -281,7 +324,13 @@ export const BudgetManager: React.FC<BudgetManagerProps> = ({
                       <input
                         type="number"
                         value={formData.costBreakdown.expense.planned}
-                        onChange={(e) => updateCostItem('expense', 'planned', parseInt(e.target.value) || 0)}
+                        onChange={(e) =>
+                          updateCostItem(
+                            "expense",
+                            "planned",
+                            parseInt(e.target.value) || 0,
+                          )
+                        }
                         className="w-32 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                       />
                     </td>
@@ -289,7 +338,13 @@ export const BudgetManager: React.FC<BudgetManagerProps> = ({
                       <input
                         type="number"
                         value={formData.costBreakdown.expense.actual}
-                        onChange={(e) => updateCostItem('expense', 'actual', parseInt(e.target.value) || 0)}
+                        onChange={(e) =>
+                          updateCostItem(
+                            "expense",
+                            "actual",
+                            parseInt(e.target.value) || 0,
+                          )
+                        }
                         className="w-32 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                       />
                     </td>
@@ -299,10 +354,10 @@ export const BudgetManager: React.FC<BudgetManagerProps> = ({
                       合計
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
-                      {formatCurrency(calculateTotal('planned'))}
+                      {formatCurrency(calculateTotal("planned"))}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
-                      {formatCurrency(calculateTotal('actual'))}
+                      {formatCurrency(calculateTotal("actual"))}
                     </td>
                   </tr>
                 </tbody>
@@ -310,11 +365,18 @@ export const BudgetManager: React.FC<BudgetManagerProps> = ({
             </div>
 
             <div className="mt-6">
-              <label className="block text-sm font-medium text-gray-700">売上</label>
+              <label className="block text-sm font-medium text-gray-700">
+                売上
+              </label>
               <input
                 type="number"
                 value={formData.revenue}
-                onChange={(e) => setFormData({ ...formData, revenue: parseInt(e.target.value) || 0 })}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    revenue: parseInt(e.target.value) || 0,
+                  })
+                }
                 className="mt-1 w-48 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
               />
             </div>
@@ -354,16 +416,22 @@ export const BudgetManager: React.FC<BudgetManagerProps> = ({
                   {formatCurrency(displayBudget.costBreakdown.labor.actual)}
                 </p>
                 <p className="text-sm text-gray-500">
-                  予定: {formatCurrency(displayBudget.costBreakdown.labor.planned)}
+                  予定:{" "}
+                  {formatCurrency(displayBudget.costBreakdown.labor.planned)}
                 </p>
               </div>
               <div>
                 <h4 className="text-sm font-medium text-gray-500">外注費</h4>
                 <p className="mt-1 text-lg font-medium text-gray-900">
-                  {formatCurrency(displayBudget.costBreakdown.outsourcing.actual)}
+                  {formatCurrency(
+                    displayBudget.costBreakdown.outsourcing.actual,
+                  )}
                 </p>
                 <p className="text-sm text-gray-500">
-                  予定: {formatCurrency(displayBudget.costBreakdown.outsourcing.planned)}
+                  予定:{" "}
+                  {formatCurrency(
+                    displayBudget.costBreakdown.outsourcing.planned,
+                  )}
                 </p>
               </div>
               <div>
@@ -372,7 +440,8 @@ export const BudgetManager: React.FC<BudgetManagerProps> = ({
                   {formatCurrency(displayBudget.costBreakdown.expense.actual)}
                 </p>
                 <p className="text-sm text-gray-500">
-                  予定: {formatCurrency(displayBudget.costBreakdown.expense.planned)}
+                  予定:{" "}
+                  {formatCurrency(displayBudget.costBreakdown.expense.planned)}
                 </p>
               </div>
             </div>
@@ -380,7 +449,9 @@ export const BudgetManager: React.FC<BudgetManagerProps> = ({
             {/* グラフ表示 */}
             <div className="mt-6">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">コスト構成比</span>
+                <span className="text-sm font-medium text-gray-700">
+                  コスト構成比
+                </span>
                 <ChartBarIcon className="h-5 w-5 text-gray-400" />
               </div>
               <div className="w-full bg-gray-200 rounded-full h-8 flex overflow-hidden">
@@ -439,19 +510,25 @@ export const BudgetManager: React.FC<BudgetManagerProps> = ({
             </div>
             <div>
               <p className="text-sm text-gray-500">利益</p>
-              <p className={`mt-1 text-2xl font-semibold ${
-                displayBudget.profit >= 0 ? 'text-green-600' : 'text-red-600'
-              }`}>
+              <p
+                className={`mt-1 text-2xl font-semibold ${
+                  displayBudget.profit >= 0 ? "text-green-600" : "text-red-600"
+                }`}
+              >
                 {formatCurrency(displayBudget.profit)}
               </p>
             </div>
             <div>
               <p className="text-sm text-gray-500">利益率</p>
-              <p className={`mt-1 text-2xl font-semibold ${
-                displayBudget.profitRate >= 20 ? 'text-green-600' :
-                displayBudget.profitRate >= 10 ? 'text-yellow-600' :
-                'text-red-600'
-              }`}>
+              <p
+                className={`mt-1 text-2xl font-semibold ${
+                  displayBudget.profitRate >= 20
+                    ? "text-green-600"
+                    : displayBudget.profitRate >= 10
+                      ? "text-yellow-600"
+                      : "text-red-600"
+                }`}
+              >
                 {displayBudget.profitRate.toFixed(1)}%
               </p>
             </div>

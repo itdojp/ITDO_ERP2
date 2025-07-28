@@ -128,20 +128,6 @@ from app.models.permission_inheritance import (
 )
 from app.models.project import Project
 
-# Project Management Models (Issue #646)
-from app.models.project_management import (
-    Milestone,
-    Project as ProjectManagement,
-    ProjectBudget,
-    ProjectMember as ProjectManagementMember,
-    RecurringProjectInstance,
-    RecurringProjectTemplate,
-    Task as ProjectTask,
-    TaskDependency as ProjectTaskDependency,
-    TaskProgress,
-    TaskResource,
-)
-
 # CC02 v31.0 Phase 2 - Project Management Models
 from app.models.project_extended import (
     ProjectDeliverable,
@@ -156,6 +142,28 @@ from app.models.project_extended import (
     TaskDependencyExtended,
     TaskExtended,
     TimeEntry,
+)
+
+# Project Management Models (Issue #646)
+from app.models.project_management import (
+    Milestone,
+    ProjectBudget,
+    RecurringProjectInstance,
+    RecurringProjectTemplate,
+    TaskProgress,
+    TaskResource,
+)
+from app.models.project_management import (
+    Project as ProjectManagement,
+)
+from app.models.project_management import (
+    ProjectMember as ProjectManagementMember,
+)
+from app.models.project_management import (
+    Task as ProjectTask,
+)
+from app.models.project_management import (
+    TaskDependency as ProjectTaskDependency,
 )
 from app.models.project_member import ProjectMember
 from app.models.project_milestone import ProjectMilestone
