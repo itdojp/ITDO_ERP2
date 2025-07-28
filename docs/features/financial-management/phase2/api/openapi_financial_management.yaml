@@ -1,0 +1,2502 @@
+openapi: 3.0.3
+info:
+  title: ITDO ERP Financial Management API
+  description: |
+    財務管理システムのREST API仕様書
+    
+    ## 概要
+    本APIは、ITDO ERP v2の財務管理機能を提供します。
+    予算管理、経費管理、請求・売上管理、財務レポートの各機能をRESTfulなエンドポイントとして実装しています。
+    
+    ## 認証
+    全てのエンドポイントはBearer Token認証が必要です。
+    Keycloakから取得したアクセストークンをAuthorizationヘッダーに含めてください。
+    
+    ## エラーハンドリング
+    標準的なHTTPステータスコードを使用し、エラーの詳細はレスポンスボディに含まれます。
+    
+  version: 1.0.0
+  contact:
+    name: ITDO Support
+    email: support@itdo.jp
+  license:
+    name: Proprietary
+
+servers:
+  - url: https://api.itdo-erp.jp/v1
+    description: Production server
+  - url: https://staging-api.itdo-erp.jp/v1
+    description: Staging server
+  - url: http://localhost:8000/api/v1
+    description: Development server
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: budgets
+    description: 予算管理
+  - name: expenses
+    description: 経費管理
+  - name: invoices
+    description: 請求書管理
+  - name: revenue
+    description: 売上・入金管理
+  - name: reports
+    description: 財務レポート
+
+paths:
+  # Budget Management Endpoints
+  /budgets:
+    get:
+      tags:
+        - budgets
+      summary: 予算一覧取得
+      description: 組織の予算一覧を取得します
+      operationId: listBudgets
+      parameters:
+        - name: fiscal_year
+          in: query
+          description: 会計年度
+          schema:
+            type: integer
+            example: 2024
+        - name: department_id
+          in: query
+          description: 部門ID
+          schema:
+            type: integer
+        - name: project_id
+          in: query
+          description: プロジェクトID
+          schema:
+            type: integer
+        - name: status
+          in: query
+          description: 承認ステータス
+          schema:
+            type: string
+            enum: [draft, pending, approved, rejected]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: 予算一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BudgetSummary'
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  page_size:
+                    type: integer
+    
+    post:
+      tags:
+        - budgets
+      summary: 予算作成
+      description: 新規予算を作成します
+      operationId: createBudget
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BudgetCreate'
+      responses:
+        '201':
+          description: 作成された予算
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Budget'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /budgets/{budget_id}:
+    get:
+      tags:
+        - budgets
+      summary: 予算詳細取得
+      operationId: getBudget
+      parameters:
+        - $ref: '#/components/parameters/budgetId'
+      responses:
+        '200':
+          description: 予算詳細
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Budget'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    
+    put:
+      tags:
+        - budgets
+      summary: 予算更新
+      operationId: updateBudget
+      parameters:
+        - $ref: '#/components/parameters/budgetId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BudgetUpdate'
+      responses:
+        '200':
+          description: 更新された予算
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Budget'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    
+    delete:
+      tags:
+        - budgets
+      summary: 予算削除
+      operationId: deleteBudget
+      parameters:
+        - $ref: '#/components/parameters/budgetId'
+      responses:
+        '204':
+          description: 削除成功
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /budgets/{budget_id}/allocations:
+    post:
+      tags:
+        - budgets
+      summary: 費目配分設定
+      description: 予算の費目別配分を設定します
+      operationId: allocateBudget
+      parameters:
+        - $ref: '#/components/parameters/budgetId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BudgetAllocation'
+      responses:
+        '200':
+          description: 配分結果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AllocationResult'
+
+  /budgets/{budget_id}/consumption:
+    get:
+      tags:
+        - budgets
+      summary: 予算消化状況取得
+      operationId: getBudgetConsumption
+      parameters:
+        - $ref: '#/components/parameters/budgetId'
+        - name: as_of_date
+          in: query
+          description: 基準日
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: 予算消化状況
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BudgetConsumption'
+
+  /budgets/{budget_id}/alerts:
+    get:
+      tags:
+        - budgets
+      summary: 予算アラート取得
+      operationId: getBudgetAlerts
+      parameters:
+        - $ref: '#/components/parameters/budgetId'
+      responses:
+        '200':
+          description: アラート一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  alerts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BudgetAlert'
+
+  # Expense Management Endpoints
+  /expenses:
+    get:
+      tags:
+        - expenses
+      summary: 経費一覧取得
+      operationId: listExpenses
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, pending, approved, rejected, reimbursed]
+        - name: expense_type
+          in: query
+          schema:
+            type: string
+        - name: from_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: employee_id
+          in: query
+          schema:
+            type: integer
+        - name: department_id
+          in: query
+          schema:
+            type: integer
+        - name: project_id
+          in: query
+          schema:
+            type: integer
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+      responses:
+        '200':
+          description: 経費一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ExpenseSummary'
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  page_size:
+                    type: integer
+    
+    post:
+      tags:
+        - expenses
+      summary: 経費申請作成
+      operationId: createExpense
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExpenseCreate'
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                expense_data:
+                  $ref: '#/components/schemas/ExpenseCreate'
+                receipts:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        '201':
+          description: 作成された経費申請
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expense'
+
+  /expenses/{expense_id}:
+    get:
+      tags:
+        - expenses
+      summary: 経費詳細取得
+      operationId: getExpense
+      parameters:
+        - $ref: '#/components/parameters/expenseId'
+      responses:
+        '200':
+          description: 経費詳細
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expense'
+    
+    put:
+      tags:
+        - expenses
+      summary: 経費申請更新
+      operationId: updateExpense
+      parameters:
+        - $ref: '#/components/parameters/expenseId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExpenseUpdate'
+      responses:
+        '200':
+          description: 更新された経費申請
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expense'
+
+  /expenses/{expense_id}/approve:
+    post:
+      tags:
+        - expenses
+      summary: 経費承認
+      operationId: approveExpense
+      parameters:
+        - $ref: '#/components/parameters/expenseId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comment:
+                  type: string
+      responses:
+        '200':
+          description: 承認結果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApprovalResult'
+
+  /expenses/{expense_id}/reject:
+    post:
+      tags:
+        - expenses
+      summary: 経費却下
+      operationId: rejectExpense
+      parameters:
+        - $ref: '#/components/parameters/expenseId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: 却下結果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RejectionResult'
+
+  /expenses/ocr:
+    post:
+      tags:
+        - expenses
+      summary: 領収書OCR処理
+      operationId: ocrReceipt
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - receipt_image
+              properties:
+                receipt_image:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: OCR結果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OCRResult'
+
+  /expenses/settlements:
+    post:
+      tags:
+        - expenses
+      summary: 経費精算実行
+      description: 月次経費精算バッチを実行します
+      operationId: createSettlement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SettlementCreate'
+      responses:
+        '201':
+          description: 精算結果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Settlement'
+
+  # Invoice Management Endpoints
+  /quotes:
+    get:
+      tags:
+        - invoices
+      summary: 見積書一覧取得
+      operationId: listQuotes
+      parameters:
+        - name: customer_id
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, sent, accepted, rejected, expired]
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+      responses:
+        '200':
+          description: 見積書一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/QuoteSummary'
+                  total:
+                    type: integer
+    
+    post:
+      tags:
+        - invoices
+      summary: 見積書作成
+      operationId: createQuote
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuoteCreate'
+      responses:
+        '201':
+          description: 作成された見積書
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Quote'
+
+  /quotes/{quote_id}/convert-to-invoice:
+    post:
+      tags:
+        - invoices
+      summary: 見積書から請求書変換
+      operationId: convertQuoteToInvoice
+      parameters:
+        - $ref: '#/components/parameters/quoteId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvoiceConversionRequest'
+      responses:
+        '201':
+          description: 作成された請求書
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+
+  /invoices:
+    get:
+      tags:
+        - invoices
+      summary: 請求書一覧取得
+      operationId: listInvoices
+      parameters:
+        - name: customer_id
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, sent, paid, partial, overdue, cancelled]
+        - name: from_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+      responses:
+        '200':
+          description: 請求書一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/InvoiceSummary'
+                  total:
+                    type: integer
+    
+    post:
+      tags:
+        - invoices
+      summary: 請求書作成
+      operationId: createInvoice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvoiceCreate'
+      responses:
+        '201':
+          description: 作成された請求書
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+
+  /invoices/{invoice_id}:
+    get:
+      tags:
+        - invoices
+      summary: 請求書詳細取得
+      operationId: getInvoice
+      parameters:
+        - $ref: '#/components/parameters/invoiceId'
+      responses:
+        '200':
+          description: 請求書詳細
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+
+  /invoices/{invoice_id}/pdf:
+    get:
+      tags:
+        - invoices
+      summary: 請求書PDF取得
+      operationId: getInvoicePDF
+      parameters:
+        - $ref: '#/components/parameters/invoiceId'
+      responses:
+        '200':
+          description: 請求書PDF
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+
+  /invoices/{invoice_id}/send:
+    post:
+      tags:
+        - invoices
+      summary: 請求書送信
+      operationId: sendInvoice
+      parameters:
+        - $ref: '#/components/parameters/invoiceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvoiceSendRequest'
+      responses:
+        '200':
+          description: 送信結果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SendResult'
+
+  # Revenue Management Endpoints
+  /payments:
+    get:
+      tags:
+        - revenue
+      summary: 入金一覧取得
+      operationId: listPayments
+      parameters:
+        - name: customer_id
+          in: query
+          schema:
+            type: integer
+        - name: invoice_id
+          in: query
+          schema:
+            type: integer
+        - name: from_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, reconciled, unmatched]
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+      responses:
+        '200':
+          description: 入金一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Payment'
+                  total:
+                    type: integer
+    
+    post:
+      tags:
+        - revenue
+      summary: 入金登録
+      operationId: createPayment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentCreate'
+      responses:
+        '201':
+          description: 登録された入金
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+
+  /payments/import:
+    post:
+      tags:
+        - revenue
+      summary: 銀行入金データ取込
+      operationId: importBankTransactions
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - bank_file
+                - file_format
+              properties:
+                bank_file:
+                  type: string
+                  format: binary
+                file_format:
+                  type: string
+                  enum: [csv, ofx, mt940]
+      responses:
+        '200':
+          description: 取込結果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportResult'
+
+  /payments/reconcile:
+    post:
+      tags:
+        - revenue
+      summary: 入金消込実行
+      operationId: reconcilePayments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReconciliationRequest'
+      responses:
+        '200':
+          description: 消込結果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReconciliationResult'
+
+  /receivables:
+    get:
+      tags:
+        - revenue
+      summary: 売掛金一覧取得
+      operationId: listReceivables
+      parameters:
+        - name: customer_id
+          in: query
+          schema:
+            type: integer
+        - name: aging_days
+          in: query
+          description: 経過日数でフィルタ（0-30, 31-60, 61-90, 91+）
+          schema:
+            type: string
+        - name: as_of_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+      responses:
+        '200':
+          description: 売掛金一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Receivable'
+                  total:
+                    type: integer
+                  summary:
+                    $ref: '#/components/schemas/ReceivableSummary'
+
+  /receivables/aging:
+    get:
+      tags:
+        - revenue
+      summary: 売掛金エージング分析
+      operationId: getReceivablesAging
+      parameters:
+        - name: as_of_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: エージング分析結果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgingAnalysis'
+
+  /dunning/runs:
+    post:
+      tags:
+        - revenue
+      summary: 督促処理実行
+      operationId: createDunningRun
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DunningRunCreate'
+      responses:
+        '201':
+          description: 督促処理結果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DunningRun'
+
+  # Financial Reports Endpoints
+  /reports/trial-balance:
+    get:
+      tags:
+        - reports
+      summary: 試算表取得
+      operationId: getTrialBalance
+      parameters:
+        - name: period_start
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: period_end
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: level
+          in: query
+          description: 勘定科目の階層レベル
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 5
+      responses:
+        '200':
+          description: 試算表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrialBalance'
+
+  /reports/budget-actual:
+    get:
+      tags:
+        - reports
+      summary: 予実対比表取得
+      operationId: getBudgetActualReport
+      parameters:
+        - name: budget_id
+          in: query
+          schema:
+            type: integer
+        - name: period_start
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: period_end
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: group_by
+          in: query
+          schema:
+            type: string
+            enum: [department, project, account]
+      responses:
+        '200':
+          description: 予実対比表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BudgetActualReport'
+
+  /reports/cash-flow:
+    get:
+      tags:
+        - reports
+      summary: キャッシュフロー計算書取得
+      operationId: getCashFlowStatement
+      parameters:
+        - name: period_start
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: period_end
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: キャッシュフロー計算書
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CashFlowStatement'
+
+  /reports/financial-statements:
+    get:
+      tags:
+        - reports
+      summary: 財務諸表取得
+      operationId: getFinancialStatements
+      parameters:
+        - name: period
+          in: query
+          required: true
+          description: 対象期間（YYYY-MM or YYYY-Q1 など）
+          schema:
+            type: string
+        - name: type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [balance_sheet, income_statement, cash_flow]
+        - name: comparison
+          in: query
+          description: 比較対象期間
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 財務諸表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FinancialStatement'
+
+  /reports/dashboard:
+    get:
+      tags:
+        - reports
+      summary: 経営ダッシュボードデータ取得
+      operationId: getDashboardData
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            default: current_month
+      responses:
+        '200':
+          description: ダッシュボードデータ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardData'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    budgetId:
+      name: budget_id
+      in: path
+      required: true
+      schema:
+        type: integer
+    
+    expenseId:
+      name: expense_id
+      in: path
+      required: true
+      schema:
+        type: integer
+    
+    invoiceId:
+      name: invoice_id
+      in: path
+      required: true
+      schema:
+        type: integer
+    
+    quoteId:
+      name: quote_id
+      in: path
+      required: true
+      schema:
+        type: integer
+    
+    page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        default: 1
+        minimum: 1
+    
+    pageSize:
+      name: page_size
+      in: query
+      schema:
+        type: integer
+        default: 20
+        minimum: 1
+        maximum: 100
+
+  responses:
+    BadRequest:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    NotFound:
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    Conflict:
+      description: Conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+    # Common Schemas
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+    
+    Money:
+      type: object
+      required:
+        - amount
+        - currency
+      properties:
+        amount:
+          type: number
+          format: decimal
+        currency:
+          type: string
+          default: JPY
+    
+    # Budget Schemas
+    BudgetSummary:
+      type: object
+      required:
+        - id
+        - name
+        - fiscal_year
+        - total_amount
+        - status
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        fiscal_year:
+          type: integer
+        period_start:
+          type: string
+          format: date
+        period_end:
+          type: string
+          format: date
+        total_amount:
+          $ref: '#/components/schemas/Money'
+        consumed_amount:
+          $ref: '#/components/schemas/Money'
+        consumption_rate:
+          type: number
+          format: float
+        status:
+          type: string
+          enum: [draft, pending, approved, rejected]
+        department:
+          $ref: '#/components/schemas/DepartmentRef'
+        project:
+          $ref: '#/components/schemas/ProjectRef'
+    
+    Budget:
+      allOf:
+        - $ref: '#/components/schemas/BudgetSummary'
+        - type: object
+          properties:
+            allocations:
+              type: array
+              items:
+                $ref: '#/components/schemas/BudgetAllocationItem'
+            approval_history:
+              type: array
+              items:
+                $ref: '#/components/schemas/ApprovalHistory'
+            created_at:
+              type: string
+              format: date-time
+            updated_at:
+              type: string
+              format: date-time
+    
+    BudgetCreate:
+      type: object
+      required:
+        - name
+        - fiscal_year
+        - period_start
+        - period_end
+        - budget_type
+      properties:
+        name:
+          type: string
+        fiscal_year:
+          type: integer
+        period_start:
+          type: string
+          format: date
+        period_end:
+          type: string
+          format: date
+        budget_type:
+          type: string
+          enum: [annual, quarterly, monthly, project]
+        department_id:
+          type: integer
+        project_id:
+          type: integer
+        revenue_budget:
+          $ref: '#/components/schemas/Money'
+        cost_budget:
+          $ref: '#/components/schemas/Money'
+        expense_budget:
+          $ref: '#/components/schemas/Money'
+        parent_budget_id:
+          type: integer
+    
+    BudgetUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        revenue_budget:
+          $ref: '#/components/schemas/Money'
+        cost_budget:
+          $ref: '#/components/schemas/Money'
+        expense_budget:
+          $ref: '#/components/schemas/Money'
+    
+    BudgetAllocation:
+      type: object
+      required:
+        - allocations
+      properties:
+        allocations:
+          type: array
+          items:
+            type: object
+            required:
+              - account_code
+              - amount
+            properties:
+              account_code:
+                type: string
+              amount:
+                $ref: '#/components/schemas/Money'
+              percentage:
+                type: number
+                format: float
+        allocation_method:
+          type: string
+          enum: [fixed, percentage, historical]
+    
+    BudgetAllocationItem:
+      type: object
+      properties:
+        account:
+          $ref: '#/components/schemas/AccountRef'
+        allocated_amount:
+          $ref: '#/components/schemas/Money'
+        consumed_amount:
+          $ref: '#/components/schemas/Money'
+        remaining_amount:
+          $ref: '#/components/schemas/Money'
+        consumption_rate:
+          type: number
+          format: float
+    
+    AllocationResult:
+      type: object
+      properties:
+        total_allocated:
+          $ref: '#/components/schemas/Money'
+        allocations:
+          type: array
+          items:
+            $ref: '#/components/schemas/BudgetAllocationItem'
+    
+    BudgetConsumption:
+      type: object
+      properties:
+        budget_id:
+          type: integer
+        as_of_date:
+          type: string
+          format: date
+        total_budget:
+          $ref: '#/components/schemas/Money'
+        consumed_amount:
+          $ref: '#/components/schemas/Money'
+        remaining_amount:
+          $ref: '#/components/schemas/Money'
+        consumption_rate:
+          type: number
+          format: float
+        forecast_amount:
+          $ref: '#/components/schemas/Money'
+        monthly_trend:
+          type: array
+          items:
+            type: object
+            properties:
+              month:
+                type: string
+              amount:
+                $ref: '#/components/schemas/Money'
+    
+    BudgetAlert:
+      type: object
+      properties:
+        id:
+          type: integer
+        alert_type:
+          type: string
+          enum: [threshold_50, threshold_80, threshold_90, threshold_100, overrun]
+        account:
+          $ref: '#/components/schemas/AccountRef'
+        threshold_percentage:
+          type: number
+        current_percentage:
+          type: number
+        message:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    
+    # Expense Schemas
+    ExpenseSummary:
+      type: object
+      required:
+        - id
+        - expense_number
+        - expense_date
+        - amount
+        - status
+      properties:
+        id:
+          type: integer
+        expense_number:
+          type: string
+        expense_date:
+          type: string
+          format: date
+        expense_type:
+          type: string
+        description:
+          type: string
+        amount:
+          $ref: '#/components/schemas/Money'
+        status:
+          type: string
+          enum: [draft, pending, approved, rejected, reimbursed]
+        employee:
+          $ref: '#/components/schemas/EmployeeRef'
+        project:
+          $ref: '#/components/schemas/ProjectRef'
+    
+    Expense:
+      allOf:
+        - $ref: '#/components/schemas/ExpenseSummary'
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/ExpenseItem'
+            receipts:
+              type: array
+              items:
+                $ref: '#/components/schemas/Receipt'
+            approval_flow:
+              type: array
+              items:
+                $ref: '#/components/schemas/ApprovalStep'
+            payment_method:
+              type: string
+              enum: [cash, credit_card, bank_transfer]
+            reimbursement_status:
+              type: string
+              enum: [pending, scheduled, completed]
+            created_at:
+              type: string
+              format: date-time
+            updated_at:
+              type: string
+              format: date-time
+    
+    ExpenseCreate:
+      type: object
+      required:
+        - expense_date
+        - items
+      properties:
+        expense_date:
+          type: string
+          format: date
+        project_id:
+          type: integer
+        department_id:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExpenseItemCreate'
+        advance_payment_id:
+          type: integer
+    
+    ExpenseUpdate:
+      type: object
+      properties:
+        expense_date:
+          type: string
+          format: date
+        project_id:
+          type: integer
+        department_id:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExpenseItemCreate'
+    
+    ExpenseItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        expense_type:
+          type: string
+        description:
+          type: string
+        amount:
+          $ref: '#/components/schemas/Money'
+        tax_amount:
+          $ref: '#/components/schemas/Money'
+        account_code:
+          type: string
+        vendor:
+          type: string
+        attendees:
+          type: string
+    
+    ExpenseItemCreate:
+      type: object
+      required:
+        - expense_type
+        - amount
+      properties:
+        expense_type:
+          type: string
+        description:
+          type: string
+        amount:
+          $ref: '#/components/schemas/Money'
+        tax_rate:
+          type: number
+          format: float
+        account_code:
+          type: string
+        vendor:
+          type: string
+        attendees:
+          type: string
+    
+    Receipt:
+      type: object
+      properties:
+        id:
+          type: integer
+        file_name:
+          type: string
+        file_url:
+          type: string
+        uploaded_at:
+          type: string
+          format: date-time
+        ocr_processed:
+          type: boolean
+        ocr_data:
+          $ref: '#/components/schemas/OCRData'
+    
+    OCRResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/OCRData'
+        confidence:
+          type: number
+          format: float
+    
+    OCRData:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        vendor:
+          type: string
+        amount:
+          type: number
+        tax_amount:
+          type: number
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              description:
+                type: string
+              amount:
+                type: number
+    
+    ApprovalResult:
+      type: object
+      properties:
+        status:
+          type: string
+        approver:
+          $ref: '#/components/schemas/EmployeeRef'
+        approved_at:
+          type: string
+          format: date-time
+        comment:
+          type: string
+        next_approver:
+          $ref: '#/components/schemas/EmployeeRef'
+    
+    RejectionResult:
+      type: object
+      required:
+        - status
+        - reason
+      properties:
+        status:
+          type: string
+        rejector:
+          $ref: '#/components/schemas/EmployeeRef'
+        rejected_at:
+          type: string
+          format: date-time
+        reason:
+          type: string
+    
+    Settlement:
+      type: object
+      properties:
+        id:
+          type: integer
+        settlement_period:
+          type: string
+        settlement_date:
+          type: string
+          format: date
+        total_amount:
+          $ref: '#/components/schemas/Money'
+        employee_count:
+          type: integer
+        status:
+          type: string
+          enum: [pending, processing, completed, failed]
+        payment_file_url:
+          type: string
+        journal_entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/JournalEntry'
+    
+    SettlementCreate:
+      type: object
+      required:
+        - settlement_period
+        - settlement_date
+      properties:
+        settlement_period:
+          type: string
+        settlement_date:
+          type: string
+          format: date
+        employee_ids:
+          type: array
+          items:
+            type: integer
+    
+    # Invoice & Revenue Schemas
+    QuoteSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        quote_number:
+          type: string
+        quote_date:
+          type: string
+          format: date
+        customer:
+          $ref: '#/components/schemas/CustomerRef'
+        total_amount:
+          $ref: '#/components/schemas/Money'
+        valid_until:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [draft, sent, accepted, rejected, expired]
+    
+    Quote:
+      allOf:
+        - $ref: '#/components/schemas/QuoteSummary'
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/LineItem'
+            discount:
+              $ref: '#/components/schemas/Discount'
+            terms:
+              type: string
+            notes:
+              type: string
+            created_at:
+              type: string
+              format: date-time
+    
+    QuoteCreate:
+      type: object
+      required:
+        - customer_id
+        - quote_date
+        - valid_until
+        - items
+      properties:
+        customer_id:
+          type: integer
+        quote_date:
+          type: string
+          format: date
+        valid_until:
+          type: string
+          format: date
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/LineItemCreate'
+        discount:
+          $ref: '#/components/schemas/Discount'
+        terms:
+          type: string
+        notes:
+          type: string
+    
+    InvoiceSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        invoice_number:
+          type: string
+        invoice_date:
+          type: string
+          format: date
+        due_date:
+          type: string
+          format: date
+        customer:
+          $ref: '#/components/schemas/CustomerRef'
+        total_amount:
+          $ref: '#/components/schemas/Money'
+        paid_amount:
+          $ref: '#/components/schemas/Money'
+        status:
+          type: string
+          enum: [draft, sent, paid, partial, overdue, cancelled]
+    
+    Invoice:
+      allOf:
+        - $ref: '#/components/schemas/InvoiceSummary'
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/LineItem'
+            tax_details:
+              type: array
+              items:
+                $ref: '#/components/schemas/TaxDetail'
+            payment_terms:
+              type: string
+            bank_account:
+              $ref: '#/components/schemas/BankAccount'
+            qualified_invoice_number:
+              type: string
+            notes:
+              type: string
+            created_at:
+              type: string
+              format: date-time
+    
+    InvoiceCreate:
+      type: object
+      required:
+        - customer_id
+        - invoice_date
+        - due_date
+        - items
+      properties:
+        customer_id:
+          type: integer
+        invoice_date:
+          type: string
+          format: date
+        due_date:
+          type: string
+          format: date
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/LineItemCreate'
+        payment_terms:
+          type: string
+        split_payment:
+          $ref: '#/components/schemas/SplitPaymentConfig'
+        recurring:
+          $ref: '#/components/schemas/RecurringConfig'
+        notes:
+          type: string
+    
+    InvoiceConversionRequest:
+      type: object
+      properties:
+        invoice_date:
+          type: string
+          format: date
+        due_date:
+          type: string
+          format: date
+        adjustments:
+          type: array
+          items:
+            type: object
+            properties:
+              item_id:
+                type: integer
+              quantity:
+                type: number
+              unit_price:
+                type: number
+    
+    InvoiceSendRequest:
+      type: object
+      required:
+        - recipients
+      properties:
+        recipients:
+          type: array
+          items:
+            type: string
+            format: email
+        cc:
+          type: array
+          items:
+            type: string
+            format: email
+        subject:
+          type: string
+        message:
+          type: string
+    
+    SendResult:
+      type: object
+      properties:
+        sent_at:
+          type: string
+          format: date-time
+        recipients:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+    
+    LineItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        description:
+          type: string
+        quantity:
+          type: number
+        unit_price:
+          $ref: '#/components/schemas/Money'
+        tax_rate:
+          type: number
+          format: float
+        tax_amount:
+          $ref: '#/components/schemas/Money'
+        total_amount:
+          $ref: '#/components/schemas/Money'
+    
+    LineItemCreate:
+      type: object
+      required:
+        - description
+        - quantity
+        - unit_price
+      properties:
+        product_id:
+          type: integer
+        description:
+          type: string
+        quantity:
+          type: number
+        unit_price:
+          type: number
+        tax_rate:
+          type: number
+          format: float
+    
+    TaxDetail:
+      type: object
+      properties:
+        tax_rate:
+          type: number
+          format: float
+        taxable_amount:
+          $ref: '#/components/schemas/Money'
+        tax_amount:
+          $ref: '#/components/schemas/Money'
+    
+    Payment:
+      type: object
+      properties:
+        id:
+          type: integer
+        payment_date:
+          type: string
+          format: date
+        amount:
+          $ref: '#/components/schemas/Money'
+        customer:
+          $ref: '#/components/schemas/CustomerRef'
+        payment_method:
+          type: string
+          enum: [bank_transfer, cash, check, credit_card]
+        reference_number:
+          type: string
+        status:
+          type: string
+          enum: [pending, reconciled, unmatched]
+        reconciled_invoices:
+          type: array
+          items:
+            type: object
+            properties:
+              invoice_id:
+                type: integer
+              applied_amount:
+                $ref: '#/components/schemas/Money'
+    
+    PaymentCreate:
+      type: object
+      required:
+        - payment_date
+        - amount
+        - customer_id
+      properties:
+        payment_date:
+          type: string
+          format: date
+        amount:
+          type: number
+        customer_id:
+          type: integer
+        payment_method:
+          type: string
+          enum: [bank_transfer, cash, check, credit_card]
+        reference_number:
+          type: string
+        invoice_ids:
+          type: array
+          items:
+            type: integer
+    
+    ImportResult:
+      type: object
+      properties:
+        imported_count:
+          type: integer
+        matched_count:
+          type: integer
+        unmatched_count:
+          type: integer
+        total_amount:
+          $ref: '#/components/schemas/Money'
+        unmatched_transactions:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+              description:
+                type: string
+              amount:
+                type: number
+              suggested_matches:
+                type: array
+                items:
+                  type: object
+    
+    ReconciliationRequest:
+      type: object
+      required:
+        - reconciliations
+      properties:
+        reconciliations:
+          type: array
+          items:
+            type: object
+            required:
+              - payment_id
+              - invoice_id
+            properties:
+              payment_id:
+                type: integer
+              invoice_id:
+                type: integer
+              applied_amount:
+                type: number
+              adjustment_type:
+                type: string
+                enum: [discount, write_off, currency_diff]
+              adjustment_amount:
+                type: number
+              notes:
+                type: string
+    
+    ReconciliationResult:
+      type: object
+      properties:
+        reconciled_count:
+          type: integer
+        reconciled_amount:
+          $ref: '#/components/schemas/Money'
+        journal_entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/JournalEntry'
+    
+    Receivable:
+      type: object
+      properties:
+        invoice_id:
+          type: integer
+        invoice_number:
+          type: string
+        customer:
+          $ref: '#/components/schemas/CustomerRef'
+        invoice_date:
+          type: string
+          format: date
+        due_date:
+          type: string
+          format: date
+        days_overdue:
+          type: integer
+        original_amount:
+          $ref: '#/components/schemas/Money'
+        paid_amount:
+          $ref: '#/components/schemas/Money'
+        balance:
+          $ref: '#/components/schemas/Money'
+    
+    ReceivableSummary:
+      type: object
+      properties:
+        total_receivables:
+          $ref: '#/components/schemas/Money'
+        current:
+          $ref: '#/components/schemas/Money'
+        overdue_1_30:
+          $ref: '#/components/schemas/Money'
+        overdue_31_60:
+          $ref: '#/components/schemas/Money'
+        overdue_61_90:
+          $ref: '#/components/schemas/Money'
+        overdue_over_90:
+          $ref: '#/components/schemas/Money'
+    
+    AgingAnalysis:
+      type: object
+      properties:
+        as_of_date:
+          type: string
+          format: date
+        by_customer:
+          type: array
+          items:
+            type: object
+            properties:
+              customer:
+                $ref: '#/components/schemas/CustomerRef'
+              credit_limit:
+                $ref: '#/components/schemas/Money'
+              total_receivables:
+                $ref: '#/components/schemas/Money'
+              credit_usage:
+                type: number
+                format: float
+              aging_buckets:
+                $ref: '#/components/schemas/ReceivableSummary'
+        summary:
+          $ref: '#/components/schemas/ReceivableSummary'
+    
+    DunningRunCreate:
+      type: object
+      required:
+        - run_date
+      properties:
+        run_date:
+          type: string
+          format: date
+        customer_ids:
+          type: array
+          items:
+            type: integer
+        min_overdue_days:
+          type: integer
+          default: 30
+        min_amount:
+          type: number
+          default: 10000
+    
+    DunningRun:
+      type: object
+      properties:
+        id:
+          type: integer
+        run_date:
+          type: string
+          format: date
+        letters_generated:
+          type: integer
+        total_amount:
+          $ref: '#/components/schemas/Money'
+        status:
+          type: string
+          enum: [pending, processing, completed, failed]
+        letters:
+          type: array
+          items:
+            type: object
+            properties:
+              customer:
+                $ref: '#/components/schemas/CustomerRef'
+              letter_level:
+                type: integer
+              overdue_amount:
+                $ref: '#/components/schemas/Money'
+              oldest_overdue_days:
+                type: integer
+              pdf_url:
+                type: string
+    
+    # Report Schemas
+    TrialBalance:
+      type: object
+      properties:
+        period_start:
+          type: string
+          format: date
+        period_end:
+          type: string
+          format: date
+        accounts:
+          type: array
+          items:
+            type: object
+            properties:
+              account:
+                $ref: '#/components/schemas/AccountRef'
+              beginning_balance:
+                type: object
+                properties:
+                  debit:
+                    $ref: '#/components/schemas/Money'
+                  credit:
+                    $ref: '#/components/schemas/Money'
+              period_activity:
+                type: object
+                properties:
+                  debit:
+                    $ref: '#/components/schemas/Money'
+                  credit:
+                    $ref: '#/components/schemas/Money'
+              ending_balance:
+                type: object
+                properties:
+                  debit:
+                    $ref: '#/components/schemas/Money'
+                  credit:
+                    $ref: '#/components/schemas/Money'
+        totals:
+          type: object
+          properties:
+            debit:
+              $ref: '#/components/schemas/Money'
+            credit:
+              $ref: '#/components/schemas/Money'
+        balance_check:
+          type: boolean
+    
+    BudgetActualReport:
+      type: object
+      properties:
+        period_start:
+          type: string
+          format: date
+        period_end:
+          type: string
+          format: date
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              category:
+                type: string
+              budget:
+                $ref: '#/components/schemas/Money'
+              actual:
+                $ref: '#/components/schemas/Money'
+              variance:
+                $ref: '#/components/schemas/Money'
+              variance_percentage:
+                type: number
+                format: float
+              prior_year_actual:
+                $ref: '#/components/schemas/Money'
+              yoy_change:
+                type: number
+                format: float
+        summary:
+          type: object
+          properties:
+            total_budget:
+              $ref: '#/components/schemas/Money'
+            total_actual:
+              $ref: '#/components/schemas/Money'
+            total_variance:
+              $ref: '#/components/schemas/Money'
+            achievement_rate:
+              type: number
+              format: float
+    
+    CashFlowStatement:
+      type: object
+      properties:
+        period_start:
+          type: string
+          format: date
+        period_end:
+          type: string
+          format: date
+        operating_activities:
+          type: object
+          properties:
+            net_income:
+              $ref: '#/components/schemas/Money'
+            adjustments:
+              type: array
+              items:
+                type: object
+                properties:
+                  description:
+                    type: string
+                  amount:
+                    $ref: '#/components/schemas/Money'
+            subtotal:
+              $ref: '#/components/schemas/Money'
+        investing_activities:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                type: object
+                properties:
+                  description:
+                    type: string
+                  amount:
+                    $ref: '#/components/schemas/Money'
+            subtotal:
+              $ref: '#/components/schemas/Money'
+        financing_activities:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                type: object
+                properties:
+                  description:
+                    type: string
+                  amount:
+                    $ref: '#/components/schemas/Money'
+            subtotal:
+              $ref: '#/components/schemas/Money'
+        net_change:
+          $ref: '#/components/schemas/Money'
+        beginning_cash:
+          $ref: '#/components/schemas/Money'
+        ending_cash:
+          $ref: '#/components/schemas/Money'
+        forecast:
+          type: array
+          items:
+            type: object
+            properties:
+              month:
+                type: string
+              projected_cash:
+                $ref: '#/components/schemas/Money'
+    
+    FinancialStatement:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [balance_sheet, income_statement]
+        period:
+          type: string
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              account:
+                $ref: '#/components/schemas/AccountRef'
+              current_period:
+                $ref: '#/components/schemas/Money'
+              comparison_period:
+                $ref: '#/components/schemas/Money'
+              change:
+                $ref: '#/components/schemas/Money'
+              change_percentage:
+                type: number
+                format: float
+        subtotals:
+          type: object
+        totals:
+          type: object
+    
+    DashboardData:
+      type: object
+      properties:
+        period:
+          type: string
+        kpis:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              value:
+                type: number
+              unit:
+                type: string
+              change:
+                type: number
+                format: float
+              target:
+                type: number
+              achievement_rate:
+                type: number
+                format: float
+        revenue_trend:
+          type: array
+          items:
+            type: object
+            properties:
+              month:
+                type: string
+              revenue:
+                $ref: '#/components/schemas/Money'
+              profit:
+                $ref: '#/components/schemas/Money'
+        cash_position:
+          type: object
+          properties:
+            current_balance:
+              $ref: '#/components/schemas/Money'
+            monthly_burn_rate:
+              $ref: '#/components/schemas/Money'
+            runway_months:
+              type: number
+        alerts:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+              severity:
+                type: string
+                enum: [low, medium, high]
+              message:
+                type: string
+              created_at:
+                type: string
+                format: date-time
+    
+    # Reference Schemas
+    DepartmentRef:
+      type: object
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        name:
+          type: string
+    
+    ProjectRef:
+      type: object
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        name:
+          type: string
+    
+    EmployeeRef:
+      type: object
+      properties:
+        id:
+          type: integer
+        employee_number:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        department:
+          $ref: '#/components/schemas/DepartmentRef'
+    
+    CustomerRef:
+      type: object
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        name:
+          type: string
+        credit_limit:
+          $ref: '#/components/schemas/Money'
+    
+    AccountRef:
+      type: object
+      properties:
+        code:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+          enum: [asset, liability, equity, revenue, expense]
+    
+    BankAccount:
+      type: object
+      properties:
+        bank_name:
+          type: string
+        branch_name:
+          type: string
+        account_type:
+          type: string
+        account_number:
+          type: string
+        account_holder:
+          type: string
+    
+    ApprovalStep:
+      type: object
+      properties:
+        step_number:
+          type: integer
+        approver:
+          $ref: '#/components/schemas/EmployeeRef'
+        status:
+          type: string
+          enum: [pending, approved, rejected, skipped]
+        action_date:
+          type: string
+          format: date-time
+        comment:
+          type: string
+    
+    ApprovalHistory:
+      type: object
+      properties:
+        action:
+          type: string
+          enum: [submitted, approved, rejected, returned]
+        actor:
+          $ref: '#/components/schemas/EmployeeRef'
+        action_date:
+          type: string
+          format: date-time
+        comment:
+          type: string
+    
+    JournalEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        entry_date:
+          type: string
+          format: date
+        description:
+          type: string
+        reference_type:
+          type: string
+        reference_id:
+          type: integer
+        lines:
+          type: array
+          items:
+            type: object
+            properties:
+              account:
+                $ref: '#/components/schemas/AccountRef'
+              debit:
+                $ref: '#/components/schemas/Money'
+              credit:
+                $ref: '#/components/schemas/Money'
+              description:
+                type: string
+    
+    Discount:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [percentage, amount]
+        value:
+          type: number
+    
+    SplitPaymentConfig:
+      type: object
+      properties:
+        installments:
+          type: array
+          items:
+            type: object
+            properties:
+              due_date:
+                type: string
+                format: date
+              percentage:
+                type: number
+              description:
+                type: string
+    
+    RecurringConfig:
+      type: object
+      properties:
+        frequency:
+          type: string
+          enum: [monthly, quarterly, annually]
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        next_date:
+          type: string
+          format: date
