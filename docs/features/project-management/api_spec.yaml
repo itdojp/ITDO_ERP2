@@ -1,0 +1,1281 @@
+openapi: 3.0.3
+info:
+  title: ITDO ERP v2 - Project Management API
+  description: |
+    プロジェクト管理システムのAPI仕様書
+    
+    ## 主要機能
+    - プロジェクトの作成・管理（階層構造対応）
+    - WBS（作業分解構造）管理
+    - マイルストーン設定
+    - リソース割当と稼働率分析
+    - 進捗追跡とレポート生成
+    - 予実管理と収益性分析
+  version: 2.0.0
+  contact:
+    name: ITDO Development Team
+    email: dev@itdo.jp
+
+servers:
+  - url: https://api.itdo-erp.jp/api/v1
+    description: Production server
+  - url: http://localhost:8000/api/v1
+    description: Development server
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: projects
+    description: プロジェクト管理
+  - name: tasks
+    description: タスク・WBS管理
+  - name: milestones
+    description: マイルストーン管理
+  - name: resources
+    description: リソース管理
+  - name: progress
+    description: 進捗管理
+  - name: budget
+    description: 予実管理
+  - name: reports
+    description: レポート生成
+
+paths:
+  /projects:
+    get:
+      tags:
+        - projects
+      summary: プロジェクト一覧取得
+      operationId: listProjects
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [planning, active, completed, suspended]
+        - name: parent_id
+          in: query
+          description: 親プロジェクトID（サブプロジェクトのフィルタリング）
+          schema:
+            type: integer
+        - name: is_recurring
+          in: query
+          description: 繰り返しプロジェクトのみ取得
+          schema:
+            type: boolean
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        '200':
+          description: プロジェクト一覧
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectListResponse'
+    
+    post:
+      tags:
+        - projects
+      summary: 新規プロジェクト作成
+      operationId: createProject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectCreate'
+      responses:
+        '201':
+          description: プロジェクト作成成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /projects/{project_id}:
+    get:
+      tags:
+        - projects
+      summary: プロジェクト詳細取得
+      operationId: getProject
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      responses:
+        '200':
+          description: プロジェクト詳細
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectDetailResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    
+    put:
+      tags:
+        - projects
+      summary: プロジェクト更新
+      operationId: updateProject
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectUpdate'
+      responses:
+        '200':
+          description: プロジェクト更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectResponse'
+    
+    delete:
+      tags:
+        - projects
+      summary: プロジェクト削除
+      operationId: deleteProject
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      responses:
+        '204':
+          description: プロジェクト削除成功
+
+  /projects/{project_id}/members:
+    get:
+      tags:
+        - projects
+      summary: プロジェクトメンバー一覧取得
+      operationId: listProjectMembers
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      responses:
+        '200':
+          description: メンバー一覧
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectMemberListResponse'
+    
+    post:
+      tags:
+        - projects
+      summary: プロジェクトメンバー追加
+      operationId: addProjectMember
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectMemberCreate'
+      responses:
+        '201':
+          description: メンバー追加成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectMemberResponse'
+
+  /projects/{project_id}/tasks:
+    get:
+      tags:
+        - tasks
+      summary: プロジェクトのタスク一覧取得（WBS）
+      operationId: listProjectTasks
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - name: parent_task_id
+          in: query
+          description: 親タスクID（階層フィルタリング）
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: タスク一覧（階層構造）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskTreeResponse'
+    
+    post:
+      tags:
+        - tasks
+      summary: 新規タスク作成
+      operationId: createTask
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskCreate'
+      responses:
+        '201':
+          description: タスク作成成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+
+  /tasks/{task_id}:
+    get:
+      tags:
+        - tasks
+      summary: タスク詳細取得
+      operationId: getTask
+      parameters:
+        - $ref: '#/components/parameters/taskId'
+      responses:
+        '200':
+          description: タスク詳細
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskDetailResponse'
+    
+    put:
+      tags:
+        - tasks
+      summary: タスク更新
+      operationId: updateTask
+      parameters:
+        - $ref: '#/components/parameters/taskId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskUpdate'
+      responses:
+        '200':
+          description: タスク更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+
+  /tasks/{task_id}/dependencies:
+    post:
+      tags:
+        - tasks
+      summary: タスク依存関係の追加
+      operationId: addTaskDependency
+      parameters:
+        - $ref: '#/components/parameters/taskId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskDependencyCreate'
+      responses:
+        '201':
+          description: 依存関係追加成功
+
+  /tasks/{task_id}/resources:
+    post:
+      tags:
+        - resources
+      summary: タスクへのリソース割当
+      operationId: assignResource
+      parameters:
+        - $ref: '#/components/parameters/taskId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResourceAssignment'
+      responses:
+        '201':
+          description: リソース割当成功
+
+  /tasks/{task_id}/progress:
+    put:
+      tags:
+        - progress
+      summary: タスク進捗更新
+      operationId: updateTaskProgress
+      parameters:
+        - $ref: '#/components/parameters/taskId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProgressUpdate'
+      responses:
+        '200':
+          description: 進捗更新成功
+
+  /projects/{project_id}/milestones:
+    get:
+      tags:
+        - milestones
+      summary: プロジェクトのマイルストーン一覧取得
+      operationId: listMilestones
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      responses:
+        '200':
+          description: マイルストーン一覧
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MilestoneListResponse'
+    
+    post:
+      tags:
+        - milestones
+      summary: マイルストーン作成
+      operationId: createMilestone
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MilestoneCreate'
+      responses:
+        '201':
+          description: マイルストーン作成成功
+
+  /projects/{project_id}/gantt:
+    get:
+      tags:
+        - projects
+      summary: ガントチャートデータ取得
+      operationId: getGanttChart
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: ガントチャートデータ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GanttChartResponse'
+
+  /projects/{project_id}/budget:
+    get:
+      tags:
+        - budget
+      summary: プロジェクト予実管理情報取得
+      operationId: getProjectBudget
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      responses:
+        '200':
+          description: 予実管理情報
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BudgetResponse'
+    
+    put:
+      tags:
+        - budget
+      summary: 予実情報更新
+      operationId: updateProjectBudget
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BudgetUpdate'
+      responses:
+        '200':
+          description: 予実情報更新成功
+
+  /resources:
+    get:
+      tags:
+        - resources
+      summary: リソース一覧取得
+      operationId: listResources
+      parameters:
+        - name: skill
+          in: query
+          schema:
+            type: string
+        - name: available_from
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: リソース一覧
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceListResponse'
+
+  /resources/{resource_id}/utilization:
+    get:
+      tags:
+        - resources
+      summary: リソース稼働率取得
+      operationId: getResourceUtilization
+      parameters:
+        - $ref: '#/components/parameters/resourceId'
+        - name: start_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: 稼働率情報
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UtilizationResponse'
+
+  /projects/{project_id}/reports/progress:
+    get:
+      tags:
+        - reports
+      summary: 進捗レポート生成
+      operationId: generateProgressReport
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [json, pdf, excel]
+            default: json
+      responses:
+        '200':
+          description: 進捗レポート
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgressReportResponse'
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+
+  /projects/recurring:
+    post:
+      tags:
+        - projects
+      summary: 繰り返しプロジェクトの作成
+      operationId: createRecurringProject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecurringProjectCreate'
+      responses:
+        '201':
+          description: 繰り返しプロジェクト作成成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringProjectResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    projectId:
+      name: project_id
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: プロジェクトID
+    
+    taskId:
+      name: task_id
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: タスクID
+    
+    resourceId:
+      name: resource_id
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: リソースID
+
+  schemas:
+    ProjectCreate:
+      type: object
+      required:
+        - name
+        - code
+        - start_date
+        - end_date
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          example: 新ERP導入プロジェクト
+        code:
+          type: string
+          pattern: '^[A-Z0-9-]+$'
+          maxLength: 50
+          example: ERP-2025-001
+        description:
+          type: string
+          maxLength: 1000
+        parent_id:
+          type: integer
+          description: 親プロジェクトID（サブプロジェクトの場合）
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        budget:
+          type: number
+          minimum: 0
+          example: 50000000
+        status:
+          type: string
+          enum: [planning, active, completed, suspended]
+          default: planning
+        project_type:
+          type: string
+          enum: [standard, recurring]
+          default: standard
+
+    ProjectUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 1000
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        budget:
+          type: number
+          minimum: 0
+        status:
+          type: string
+          enum: [planning, active, completed, suspended]
+
+    ProjectResponse:
+      allOf:
+        - $ref: '#/components/schemas/ProjectCreate'
+        - type: object
+          properties:
+            id:
+              type: integer
+            parent_project:
+              $ref: '#/components/schemas/ProjectSummary'
+            sub_projects:
+              type: array
+              items:
+                $ref: '#/components/schemas/ProjectSummary'
+            progress_percentage:
+              type: number
+              minimum: 0
+              maximum: 100
+            created_at:
+              type: string
+              format: date-time
+            updated_at:
+              type: string
+              format: date-time
+
+    ProjectSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        code:
+          type: string
+        status:
+          type: string
+
+    ProjectDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/ProjectResponse'
+        - type: object
+          properties:
+            members:
+              type: array
+              items:
+                $ref: '#/components/schemas/ProjectMemberResponse'
+            task_count:
+              type: integer
+            milestone_count:
+              type: integer
+            budget_info:
+              $ref: '#/components/schemas/BudgetSummary'
+
+    ProjectListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectResponse'
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
+
+    ProjectMemberCreate:
+      type: object
+      required:
+        - user_id
+        - role
+        - allocation_percentage
+        - start_date
+      properties:
+        user_id:
+          type: integer
+        role:
+          type: string
+          enum: [project_leader, architect, dev_leader, developer, tester, other]
+        allocation_percentage:
+          type: integer
+          minimum: 0
+          maximum: 100
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+
+    ProjectMemberResponse:
+      allOf:
+        - $ref: '#/components/schemas/ProjectMemberCreate'
+        - type: object
+          properties:
+            id:
+              type: integer
+            user:
+              $ref: '#/components/schemas/UserSummary'
+
+    ProjectMemberListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectMemberResponse'
+        total:
+          type: integer
+
+    TaskCreate:
+      type: object
+      required:
+        - name
+        - start_date
+        - end_date
+      properties:
+        name:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 2000
+        parent_task_id:
+          type: integer
+          description: 親タスクID（WBS階層）
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        estimated_hours:
+          type: number
+          minimum: 0
+        priority:
+          type: string
+          enum: [high, medium, low]
+          default: medium
+
+    TaskUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 2000
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        estimated_hours:
+          type: number
+          minimum: 0
+        actual_hours:
+          type: number
+          minimum: 0
+        priority:
+          type: string
+          enum: [high, medium, low]
+        status:
+          type: string
+          enum: [not_started, in_progress, completed, on_hold]
+
+    TaskResponse:
+      allOf:
+        - $ref: '#/components/schemas/TaskCreate'
+        - type: object
+          properties:
+            id:
+              type: integer
+            project_id:
+              type: integer
+            status:
+              type: string
+              enum: [not_started, in_progress, completed, on_hold]
+              default: not_started
+            progress_percentage:
+              type: number
+              minimum: 0
+              maximum: 100
+            actual_hours:
+              type: number
+            created_at:
+              type: string
+              format: date-time
+            updated_at:
+              type: string
+              format: date-time
+
+    TaskDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/TaskResponse'
+        - type: object
+          properties:
+            sub_tasks:
+              type: array
+              items:
+                $ref: '#/components/schemas/TaskResponse'
+            dependencies:
+              type: array
+              items:
+                $ref: '#/components/schemas/TaskDependency'
+            resources:
+              type: array
+              items:
+                $ref: '#/components/schemas/ResourceAssignmentResponse'
+
+    TaskTreeResponse:
+      type: object
+      properties:
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskNode'
+
+    TaskNode:
+      allOf:
+        - $ref: '#/components/schemas/TaskResponse'
+        - type: object
+          properties:
+            children:
+              type: array
+              items:
+                $ref: '#/components/schemas/TaskNode'
+
+    TaskDependencyCreate:
+      type: object
+      required:
+        - predecessor_id
+        - dependency_type
+      properties:
+        predecessor_id:
+          type: integer
+        dependency_type:
+          type: string
+          enum: [finish_to_start, start_to_start, finish_to_finish, start_to_finish]
+          default: finish_to_start
+        lag_days:
+          type: integer
+          default: 0
+
+    TaskDependency:
+      allOf:
+        - $ref: '#/components/schemas/TaskDependencyCreate'
+        - type: object
+          properties:
+            id:
+              type: integer
+            successor_id:
+              type: integer
+
+    ResourceAssignment:
+      type: object
+      required:
+        - resource_id
+        - allocation_percentage
+      properties:
+        resource_id:
+          type: integer
+        allocation_percentage:
+          type: integer
+          minimum: 0
+          maximum: 100
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+
+    ResourceAssignmentResponse:
+      allOf:
+        - $ref: '#/components/schemas/ResourceAssignment'
+        - type: object
+          properties:
+            id:
+              type: integer
+            resource:
+              $ref: '#/components/schemas/UserSummary'
+
+    MilestoneCreate:
+      type: object
+      required:
+        - name
+        - target_date
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 500
+        target_date:
+          type: string
+          format: date
+        deliverable:
+          type: string
+          maxLength: 200
+        approver_id:
+          type: integer
+
+    MilestoneResponse:
+      allOf:
+        - $ref: '#/components/schemas/MilestoneCreate'
+        - type: object
+          properties:
+            id:
+              type: integer
+            status:
+              type: string
+              enum: [pending, achieved, delayed, cancelled]
+            achieved_date:
+              type: string
+              format: date
+            approver:
+              $ref: '#/components/schemas/UserSummary'
+
+    MilestoneListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/MilestoneResponse'
+        total:
+          type: integer
+
+    ProgressUpdate:
+      type: object
+      required:
+        - progress_percentage
+        - actual_hours
+      properties:
+        progress_percentage:
+          type: number
+          minimum: 0
+          maximum: 100
+        actual_hours:
+          type: number
+          minimum: 0
+        comment:
+          type: string
+          maxLength: 500
+
+    BudgetUpdate:
+      type: object
+      properties:
+        estimated_cost:
+          type: number
+          minimum: 0
+        actual_cost:
+          type: number
+          minimum: 0
+        labor_cost:
+          type: number
+          minimum: 0
+        outsourcing_cost:
+          type: number
+          minimum: 0
+        expense_cost:
+          type: number
+          minimum: 0
+
+    BudgetResponse:
+      type: object
+      properties:
+        budget_amount:
+          type: number
+        estimated_cost:
+          type: number
+        actual_cost:
+          type: number
+        cost_breakdown:
+          type: object
+          properties:
+            labor:
+              $ref: '#/components/schemas/CostItem'
+            outsourcing:
+              $ref: '#/components/schemas/CostItem'
+            expenses:
+              $ref: '#/components/schemas/CostItem'
+        consumption_rate:
+          type: number
+        forecast_at_completion:
+          type: number
+        variance:
+          type: number
+        revenue:
+          type: number
+        profit:
+          type: number
+        profit_rate:
+          type: number
+
+    BudgetSummary:
+      type: object
+      properties:
+        budget:
+          type: number
+        actual_cost:
+          type: number
+        consumption_rate:
+          type: number
+
+    CostItem:
+      type: object
+      properties:
+        planned:
+          type: number
+        actual:
+          type: number
+        variance:
+          type: number
+
+    GanttChartResponse:
+      type: object
+      properties:
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/GanttTask'
+        dependencies:
+          type: array
+          items:
+            $ref: '#/components/schemas/GanttDependency'
+        critical_path:
+          type: array
+          items:
+            type: integer
+
+    GanttTask:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        progress:
+          type: number
+        level:
+          type: integer
+        is_milestone:
+          type: boolean
+        resources:
+          type: array
+          items:
+            type: string
+
+    GanttDependency:
+      type: object
+      properties:
+        source:
+          type: integer
+        target:
+          type: integer
+        type:
+          type: string
+
+    ResourceListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResourceInfo'
+        total:
+          type: integer
+
+    ResourceInfo:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        skills:
+          type: array
+          items:
+            type: string
+        max_allocation:
+          type: integer
+        current_allocation:
+          type: integer
+
+    UtilizationResponse:
+      type: object
+      properties:
+        resource_id:
+          type: integer
+        period:
+          type: object
+          properties:
+            start_date:
+              type: string
+              format: date
+            end_date:
+              type: string
+              format: date
+        daily_utilization:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+              utilization_percentage:
+                type: number
+              allocated_hours:
+                type: number
+        average_utilization:
+          type: number
+        peak_utilization:
+          type: number
+        overallocated_days:
+          type: integer
+
+    ProgressReportResponse:
+      type: object
+      properties:
+        project:
+          $ref: '#/components/schemas/ProjectSummary'
+        report_date:
+          type: string
+          format: date
+        overall_progress:
+          type: number
+        milestone_status:
+          type: object
+          properties:
+            total:
+              type: integer
+            achieved:
+              type: integer
+            delayed:
+              type: integer
+        task_status:
+          type: object
+          properties:
+            total:
+              type: integer
+            completed:
+              type: integer
+            in_progress:
+              type: integer
+            not_started:
+              type: integer
+        budget_status:
+          $ref: '#/components/schemas/BudgetSummary'
+        risks:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+              description:
+                type: string
+              impact:
+                type: string
+                enum: [high, medium, low]
+
+    RecurringProjectCreate:
+      type: object
+      required:
+        - template
+        - recurrence_pattern
+        - recurrence_count
+        - start_date
+      properties:
+        template:
+          $ref: '#/components/schemas/ProjectCreate'
+        recurrence_pattern:
+          type: string
+          enum: [daily, weekly, monthly, yearly]
+        recurrence_count:
+          type: integer
+          minimum: 1
+          maximum: 60
+        start_date:
+          type: string
+          format: date
+
+    RecurringProjectResponse:
+      type: object
+      properties:
+        master_project:
+          $ref: '#/components/schemas/ProjectResponse'
+        generated_projects:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectResponse'
+        total_budget:
+          type: number
+
+    UserSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+
+  responses:
+    BadRequest:
+      description: 不正なリクエスト
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    NotFound:
+      description: リソースが見つかりません
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    Conflict:
+      description: リソースの競合
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    Unauthorized:
+      description: 認証が必要です
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    Forbidden:
+      description: アクセス権限がありません
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
