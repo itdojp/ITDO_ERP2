@@ -143,6 +143,28 @@ from app.models.project_extended import (
     TaskExtended,
     TimeEntry,
 )
+
+# Project Management Models (Issue #646)
+from app.models.project_management import (
+    Milestone,
+    ProjectBudget,
+    RecurringProjectInstance,
+    RecurringProjectTemplate,
+    TaskProgress,
+    TaskResource,
+)
+from app.models.project_management import (
+    Project as ProjectManagement,
+)
+from app.models.project_management import (
+    ProjectMember as ProjectManagementMember,
+)
+from app.models.project_management import (
+    Task as ProjectTask,
+)
+from app.models.project_management import (
+    TaskDependency as ProjectTaskDependency,
+)
 from app.models.project_member import ProjectMember
 from app.models.project_milestone import ProjectMilestone
 from app.models.role import Role, RolePermission, UserRole
@@ -352,4 +374,15 @@ __all__ = [
     "PaymentMethod",
     "PaymentProvider",
     "RefundReason",
+    # Project Management Models (Issue #646)
+    "ProjectManagement",
+    "ProjectManagementMember",
+    "ProjectTask",
+    "ProjectTaskDependency",
+    "TaskProgress",
+    "TaskResource",
+    "Milestone",
+    "ProjectBudget",
+    "RecurringProjectTemplate",
+    "RecurringProjectInstance",
 ]

@@ -9,6 +9,7 @@ import { InventoryOverview } from "@/pages/inventory/InventoryOverview";
 import { InventoryList } from "@/pages/inventory/InventoryList";
 import { StockAdjustmentForm } from "@/pages/inventory/StockAdjustmentForm";
 import { StockMovements } from "@/pages/inventory/StockMovements";
+import { ProjectListPage, ProjectDetailPage } from "@/pages/project-management";
 import "./App.css";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,11 @@ function App() {
             <Route path="/inventory/list" element={<InventoryList />} />
             <Route path="/inventory/adjust" element={<StockAdjustmentForm />} />
             <Route path="/inventory/movements" element={<StockMovements />} />
+            <Route path="/projects" element={<ProjectListPage />} />
+            <Route
+              path="/projects/:projectId"
+              element={<ProjectDetailPage />}
+            />
           </Routes>
         </Layout>
       </Router>

@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from app.models.department import Department
     from app.models.mfa import MFADevice
     from app.models.organization import Organization
+    from app.models.project_management import ProjectMember, TaskResource
     from app.models.role import Role, UserRole
     from app.models.session import UserSession
     from app.models.task import Task
@@ -138,6 +139,14 @@ class User(SoftDeletableModel):
     )
     session_config: Mapped["SessionConfiguration | None"] = relationship(
         "SessionConfiguration", back_populates="user", uselist=False
+    )
+
+    # Project management relationships
+    project_memberships: Mapped[list["ProjectMember"]] = relationship(
+        "ProjectMember", back_populates="user", cascade="all, delete-orphan"
+    )
+    task_assignments: Mapped[list["TaskResource"]] = relationship(
+        "TaskResource", back_populates="user", cascade="all, delete-orphan"
     )
 
     @property
