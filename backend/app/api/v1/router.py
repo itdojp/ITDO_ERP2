@@ -8,18 +8,28 @@ from app.api.v1 import (
     cross_tenant_permissions,
     departments,
     health,
+    inventory_basic,
+    mfa,
     multi_tenant,
     organizations,
+    organizations_basic,
+    organizations_simple,
+    password_reset,
     payment_processing,
     permission_inheritance,
     pm_automation,
+    products_basic,
+    products_simple,
     role_permission_ui,
     roles,
+    security,
+    sessions,
     tasks,
     user_preferences,
     user_privacy,
     user_profile,
     users,
+    users_basic,
     users_extended,
 )
 
@@ -32,6 +42,12 @@ api_router = APIRouter()
 api_router.include_router(health.router)
 api_router.include_router(auth.router)
 api_router.include_router(audit.router, prefix="/audit", tags=["audit"])
+api_router.include_router(sessions.router, prefix="/sessions", tags=["sessions"])
+api_router.include_router(mfa.router, prefix="/mfa", tags=["mfa"])
+api_router.include_router(security.router, prefix="/security", tags=["security"])
+api_router.include_router(
+    password_reset.router, prefix="/password-reset", tags=["password-reset"]
+)
 api_router.include_router(users.router)
 api_router.include_router(users_basic.router)  # ERP v17.0 basic user API
 api_router.include_router(users_extended.router)

@@ -7,6 +7,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from app.core.database import SessionLocal
+from app.models.session import UserSession
 from app.models.user import User
 from app.services.auth import AuthService
 
@@ -73,3 +74,34 @@ def get_current_superuser(
             detail=error_detail,
         )
     return current_user
+
+
+def get_current_session(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db),
+) -> UserSession:
+    """Get current session from token."""
+    token = credentials.credentials
+
+    # Get session from token
+    from app.services.session_service import SessionService
+
+    session_service = SessionService(db)
+    session = session_service.get_session_by_token(token)
+
+    if not session or not session.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired session",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Validate session
+    if not session_service.validate_session(session):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Session expired",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    return session

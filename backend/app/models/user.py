@@ -12,14 +12,15 @@ from app.models.base import SoftDeletableModel
 
 if TYPE_CHECKING:
     from app.models.department import Department
+    from app.models.mfa import MFADevice
     from app.models.organization import Organization
     from app.models.role import Role, UserRole
+    from app.models.session import UserSession
     from app.models.task import Task
     from app.models.user_activity_log import UserActivityLog
     from app.models.user_organization import UserOrganization
     from app.models.user_preferences import UserPreferences
     from app.models.user_privacy import UserPrivacySettings
-    from app.models.user_session import UserSession
 
 # Re-export for backwards compatibility
 from app.models.password_history import PasswordHistory
@@ -61,6 +62,16 @@ class User(SoftDeletableModel):
     failed_login_attempts: Mapped[int] = mapped_column(Integer, default=0)
     locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     password_must_change: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    # MFA fields
+    mfa_required: Mapped[bool] = mapped_column(Boolean, default=False)
+    mfa_secret: Mapped[str | None] = mapped_column(String(32))
+    mfa_backup_codes: Mapped[str | None] = mapped_column(String(500))  # JSON array
+    mfa_enabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    # Google SSO fields
+    google_id: Mapped[str | None] = mapped_column(String(255), unique=True, index=True)
+    google_refresh_token: Mapped[str | None] = mapped_column(String(512))
 
     # Relationships
     roles: Mapped[list["Role"]] = relationship(
@@ -112,6 +123,27 @@ class User(SoftDeletableModel):
         back_populates="user",
         cascade="all, delete-orphan",
     )
+
+    # MFA relationships
+    mfa_devices: Mapped[list["MFADevice"]] = relationship(
+        "MFADevice", back_populates="user", cascade="all, delete-orphan"
+    )
+
+    # Session relationships
+    sessions: Mapped[list["UserSession"]] = relationship(
+        "UserSession",
+        foreign_keys="UserSession.user_id",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+    session_config: Mapped["SessionConfiguration | None"] = relationship(
+        "SessionConfiguration", back_populates="user", uselist=False
+    )
+
+    @property
+    def active_sessions(self) -> list["UserSession"]:
+        """Get active sessions."""
+        return [s for s in self.sessions if s.is_active]
 
     @classmethod
     def create(
@@ -261,6 +293,11 @@ class User(SoftDeletableModel):
             # If expiry_date is timezone-aware, compare with timezone-aware datetime
             return datetime.now(timezone.utc) > expiry_date
 
+    def has_password_set(self) -> bool:
+        """Check if user has a password set (not just Google SSO)."""
+        # Check if password is not a random token (32+ chars of random data)
+        return bool(self.hashed_password) and len(self.hashed_password) < 100
+
     def create_session(
         self,
         db: Session,
@@ -271,9 +308,10 @@ class User(SoftDeletableModel):
         expires_at: datetime | None = None,
     ) -> "UserSession":
         """Create a new user session."""
-        from app.models.user_session import UserSession
+        from app.models.session import UserSession
 
-        # Check concurrent session limit (5 sessions)
+        # Check concurrent session limit (3 sessions for normal users, 5 for superusers)
+        session_limit = 5 if self.is_superuser else 3
         active_sessions = (
             db.query(UserSession)
             .filter(
@@ -285,7 +323,7 @@ class User(SoftDeletableModel):
             .all()
         )
 
-        if len(active_sessions) >= 5:
+        if len(active_sessions) >= session_limit:
             # Invalidate oldest session
             active_sessions[0].invalidate()
             db.add(active_sessions[0])
@@ -316,7 +354,7 @@ class User(SoftDeletableModel):
         user_agent: str | None = None,
     ) -> "UserSession":
         """Validate session with security checks."""
-        from app.models.user_session import UserSession
+        from app.models.session import UserSession
 
         session = (
             db.query(UserSession)
@@ -336,11 +374,6 @@ class User(SoftDeletableModel):
             session.security_alert = "IP_MISMATCH"
 
         return session
-
-    @property
-    def active_sessions(self) -> list["UserSession"]:
-        """Get active sessions."""
-        return [s for s in self.sessions if s.is_valid()]
 
     def assign_to_organization(
         self, db: Session, organization: "Organization", role: "Role", assigned_by: int
@@ -608,3 +641,7 @@ class User(SoftDeletableModel):
 
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email={self.email})>"
+
+
+# Import forward references
+from app.models.session import SessionConfiguration, UserSession

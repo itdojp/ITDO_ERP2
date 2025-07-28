@@ -49,3 +49,9 @@ class NotFoundError(Exception):
     """Raised when a requested resource is not found."""
 
     pass
+
+
+class SecurityError(Exception):
+    """Raised when a security-related error occurs."""
+
+    pass

@@ -88,6 +88,7 @@ from app.models.integration_extended import (
     WebhookEndpoint,
     WebhookRequest,
 )
+from app.models.mfa import MFABackupCode, MFAChallenge, MFADevice
 
 # CC02 v31.0 Phase 2 - Notification System Models
 from app.models.notification_extended import (
@@ -145,6 +146,7 @@ from app.models.project_extended import (
 from app.models.project_member import ProjectMember
 from app.models.project_milestone import ProjectMilestone
 from app.models.role import Role, RolePermission, UserRole
+from app.models.session import SessionActivity, SessionConfiguration, UserSession
 from app.models.task import Task, TaskDependency, TaskHistory
 from app.models.user import User
 from app.models.user_activity_log import UserActivityLog
@@ -155,7 +157,6 @@ from app.models.user_organization import (
 )
 from app.models.user_preferences import UserPreferences
 from app.models.user_privacy import UserPrivacySettings
-from app.models.user_session import UserSession
 from app.models.workflow import (
     Workflow,
     WorkflowConnection,
@@ -192,6 +193,9 @@ __all__ = [
     "InheritanceAuditLog",
     "PasswordHistory",
     "UserSession",
+    "MFADevice",
+    "MFABackupCode",
+    "MFAChallenge",
     "UserActivityLog",
     "UserPreferences",
     "UserPrivacySettings",
