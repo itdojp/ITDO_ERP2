@@ -55,6 +55,7 @@ from tests.factories import (
     RoleFactory,
     UserFactory,
 )
+from datetime import timedelta
 
 # Determine database URL based on environment
 # CI environment always uses SQLite regardless of DATABASE_URL
@@ -408,3 +409,73 @@ def setup_test_environment() -> None:
 def create_auth_headers(token: str) -> dict[str, str]:
     """Create authorization headers with bearer token."""
     return {"Authorization": f"Bearer {token}"}
+
+
+# Authentication test fixtures
+@pytest.fixture
+def test_user_with_mfa(db_session: Session) -> User:
+    """Create a test user with MFA enabled."""
+    unique_id = str(uuid.uuid4())[:8]
+    user = UserFactory.create_with_password(
+        db_session,
+        password="SecurePass123!",
+        email=f"mfa_{unique_id}@example.com",
+        full_name=f"MFA User {unique_id}",
+    )
+    user.mfa_required = True
+    db_session.commit()
+    return user
+
+
+@pytest.fixture
+def auth_headers(test_user: User) -> dict:
+    """Create auth headers for test user."""
+    token = create_access_token(
+        data={"sub": str(test_user.id), "email": test_user.email}
+    )
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture
+def admin_headers(test_admin: User) -> dict:
+    """Create auth headers for admin user."""
+    token = create_access_token(
+        data={"sub": str(test_admin.id), "email": test_admin.email, "is_superuser": True}
+    )
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture
+def valid_refresh_token(test_user: User) -> str:
+    """Create a valid refresh token."""
+    return create_access_token(
+        data={"sub": str(test_user.id), "type": "refresh"},
+        expires_delta=timedelta(days=7)
+    )
+
+
+@pytest.fixture
+def expired_refresh_token(test_user: User) -> str:
+    """Create an expired refresh token."""
+    return create_access_token(
+        data={"sub": str(test_user.id), "type": "refresh"},
+        expires_delta=timedelta(days=-1)
+    )
+
+
+@pytest.fixture
+def mfa_token(test_user_with_mfa: User) -> str:
+    """Create a temporary MFA token."""
+    return create_access_token(
+        data={"sub": str(test_user_with_mfa.id), "type": "mfa_pending"},
+        expires_delta=timedelta(minutes=5)
+    )
+
+
+@pytest.fixture
+def password_reset_token(test_user: User) -> str:
+    """Create a password reset token."""
+    return create_access_token(
+        data={"sub": str(test_user.id), "type": "password_reset"},
+        expires_delta=timedelta(hours=1)
+    )
