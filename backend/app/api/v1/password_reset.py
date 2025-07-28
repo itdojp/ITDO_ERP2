@@ -5,7 +5,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
-from app.api.v1.deps import get_db
+from app.core.database import get_db
 from app.core.exceptions import BusinessLogicError
 from app.schemas.base import MessageResponse
 from app.schemas.password_reset import (

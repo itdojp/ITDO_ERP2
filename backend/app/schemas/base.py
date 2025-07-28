@@ -26,3 +26,9 @@ class BaseResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class MessageResponse(BaseModel):
+    """Simple message response schema."""
+
+    message: str = Field(..., description="Response message")

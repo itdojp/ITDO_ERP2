@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from app.models.user_organization import UserOrganization
     from app.models.user_preferences import UserPreferences
     from app.models.user_privacy import UserPrivacySettings
-    from app.models.user_session import UserSession
+    from app.models.session import UserSession
 
 # Re-export for backwards compatibility
 from app.models.password_history import PasswordHistory
@@ -308,7 +308,7 @@ class User(SoftDeletableModel):
         expires_at: datetime | None = None,
     ) -> "UserSession":
         """Create a new user session."""
-        from app.models.user_session import UserSession
+        from app.models.session import UserSession
 
         # Check concurrent session limit (3 sessions for normal users, 5 for superusers)
         session_limit = 5 if self.is_superuser else 3
@@ -354,7 +354,7 @@ class User(SoftDeletableModel):
         user_agent: str | None = None,
     ) -> "UserSession":
         """Validate session with security checks."""
-        from app.models.user_session import UserSession
+        from app.models.session import UserSession
 
         session = (
             db.query(UserSession)
