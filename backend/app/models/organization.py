@@ -10,6 +10,7 @@ from app.types import OrganizationId
 
 if TYPE_CHECKING:
     from app.models.department import Department
+    from app.models.project_management import Project
     from app.models.role import Role
     from app.models.user import User
     from app.models.user_organization import (
@@ -165,6 +166,11 @@ class Organization(SoftDeletableModel):
     )
     updater: Mapped[Optional["User"]] = relationship(
         "User", foreign_keys="Organization.updated_by", lazy="joined"
+    )
+
+    # Project management relationships
+    projects: Mapped[list["Project"]] = relationship(
+        "Project", back_populates="organization", cascade="all, delete-orphan"
     )
 
     # Multi-tenant user relationships

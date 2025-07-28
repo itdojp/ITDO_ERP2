@@ -128,6 +128,20 @@ from app.models.permission_inheritance import (
 )
 from app.models.project import Project
 
+# Project Management Models (Issue #646)
+from app.models.project_management import (
+    Milestone,
+    Project as ProjectManagement,
+    ProjectBudget,
+    ProjectMember as ProjectManagementMember,
+    RecurringProjectInstance,
+    RecurringProjectTemplate,
+    Task as ProjectTask,
+    TaskDependency as ProjectTaskDependency,
+    TaskProgress,
+    TaskResource,
+)
+
 # CC02 v31.0 Phase 2 - Project Management Models
 from app.models.project_extended import (
     ProjectDeliverable,
@@ -352,4 +366,15 @@ __all__ = [
     "PaymentMethod",
     "PaymentProvider",
     "RefundReason",
+    # Project Management Models (Issue #646)
+    "ProjectManagement",
+    "ProjectManagementMember",
+    "ProjectTask",
+    "ProjectTaskDependency",
+    "TaskProgress",
+    "TaskResource",
+    "Milestone",
+    "ProjectBudget",
+    "RecurringProjectTemplate",
+    "RecurringProjectInstance",
 ]
