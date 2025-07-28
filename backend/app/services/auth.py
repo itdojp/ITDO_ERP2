@@ -14,9 +14,10 @@ from app.core.security import (
     verify_password,
     verify_token,
 )
+from app.models.session import UserSession
 from app.models.user import User
-from app.models.user_session import UserSession
 from app.schemas.auth import TokenResponse
+from app.services.session_service import SessionService
 
 
 class AuthService:
@@ -131,6 +132,8 @@ class AuthService:
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None,
         remember_me: bool = False,
+        device_id: Optional[str] = None,
+        device_name: Optional[str] = None,
     ) -> UserSession:
         """
         Create a new user session.
@@ -140,74 +143,57 @@ class AuthService:
             ip_address: Client IP address
             user_agent: Client user agent
             remember_me: Whether to extend session duration
+            device_id: Optional device identifier
+            device_name: Optional device name
             
         Returns:
             Created user session
         """
-        # Generate session token
-        session_token = generate_session_token()
+        # Use SessionService to create session
+        session_service = SessionService(self.db)
         
-        # Set expiration based on remember_me
-        if remember_me:
-            expires_at = datetime.now() + timedelta(days=30)
-        else:
-            expires_at = datetime.now() + timedelta(hours=8)  # Default 8 hours
-        
-        # Create session
-        session = user.create_session(
-            db=self.db,
-            session_token=session_token,
-            ip_address=ip_address,
-            user_agent=user_agent,
-            expires_at=expires_at,
+        # Create session with device info
+        session = session_service.create_session(
+            user=user,
+            ip_address=ip_address or "unknown",
+            user_agent=user_agent or "unknown",
+            device_id=device_id,
+            device_name=device_name,
         )
         
-        self.db.commit()
+        # If remember_me, update session timeout
+        if remember_me:
+            config = session_service.get_or_create_session_config(user)
+            session.extend_session(self.db, hours=config.max_session_timeout_hours)
         
         return session
 
     def create_tokens(
         self,
         user: User,
-        session_id: int,
-        remember_me: bool = False,
+        session: UserSession,
     ) -> TokenResponse:
         """
-        Create access and refresh tokens.
+        Create access and refresh tokens from session.
         
         Args:
             user: User to create tokens for
-            session_id: Session ID
-            remember_me: Whether to create refresh token
+            session: User session
             
         Returns:
             Token response
         """
-        # Create access token
-        access_token = create_access_token(
-            data={
-                "sub": str(user.id),
-                "email": user.email,
-                "session_id": session_id,
-            }
-        )
+        # Use session token as access token
+        access_token = session.session_token
         
-        # Create refresh token if remember_me
-        refresh_token = None
-        if remember_me:
-            refresh_token = create_refresh_token(
-                data={
-                    "sub": str(user.id),
-                    "session_id": session_id,
-                    "type": "refresh",
-                }
-            )
+        # Calculate expiry
+        expires_in = int((session.expires_at - datetime.now()).total_seconds())
         
         return TokenResponse(
             access_token=access_token,
-            refresh_token=refresh_token,
+            refresh_token=session.refresh_token,
             token_type="bearer",
-            expires_in=86400,  # 24 hours
+            expires_in=expires_in,
             requires_mfa=False,
         )
 

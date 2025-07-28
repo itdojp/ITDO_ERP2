@@ -33,16 +33,13 @@ class SessionResponse(BaseModel):
     """Session response."""
 
     id: int
-    user_id: int
-    session_token: str
-    ip_address: Optional[str]
-    user_agent: Optional[str]
-    is_active: bool
+    ip_address: str
+    user_agent: str
+    device_name: str | None = None
     created_at: datetime
-    last_activity: datetime
+    last_activity_at: datetime
     expires_at: datetime
-    requires_verification: bool = False
-    security_alert: Optional[str] = None
+    is_current: bool = False
 
     class Config:
         """Pydantic config."""
@@ -50,8 +47,46 @@ class SessionResponse(BaseModel):
         orm_mode = True
 
 
+class SessionListResponse(BaseModel):
+    """Session list response."""
+
+    sessions: list[SessionResponse]
+    total: int
+
+
+class SessionConfigurationResponse(BaseModel):
+    """Session configuration response."""
+
+    session_timeout_hours: int = Field(..., description="Default session timeout in hours")
+    max_session_timeout_hours: int = Field(..., description="Maximum allowed session timeout")
+    refresh_token_days: int = Field(..., description="Refresh token validity in days")
+    allow_multiple_sessions: bool = Field(..., description="Whether multiple sessions are allowed")
+    max_concurrent_sessions: int = Field(..., description="Maximum number of concurrent sessions")
+    require_mfa_for_new_device: bool = Field(..., description="Require MFA for new devices")
+    notify_new_device_login: bool = Field(..., description="Send notification for new device login")
+    notify_suspicious_activity: bool = Field(..., description="Send notification for suspicious activity")
+
+
+class SessionConfigUpdate(BaseModel):
+    """Session configuration update schema."""
+
+    session_timeout_hours: int | None = Field(None, ge=1, le=24)
+    allow_multiple_sessions: bool | None = None
+    max_concurrent_sessions: int | None = Field(None, ge=1, le=10)
+    require_mfa_for_new_device: bool | None = None
+    notify_new_device_login: bool | None = None
+    notify_suspicious_activity: bool | None = None
+
+
+class TrustedDeviceRequest(BaseModel):
+    """Trusted device request schema."""
+
+    device_id: str | None = Field(None, max_length=100)
+    device_name: str | None = Field(None, max_length=100)
+
+
 class ActiveSessionsResponse(BaseModel):
-    """Active sessions response."""
+    """Active sessions response (legacy)."""
 
     sessions: list[SessionResponse]
     total: int

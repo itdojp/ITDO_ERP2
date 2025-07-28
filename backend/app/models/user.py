@@ -128,6 +128,19 @@ class User(SoftDeletableModel):
     mfa_devices: Mapped[list["MFADevice"]] = relationship(
         "MFADevice", back_populates="user", cascade="all, delete-orphan"
     )
+    
+    # Session relationships
+    sessions: Mapped[list["UserSession"]] = relationship(
+        "UserSession", foreign_keys="UserSession.user_id", back_populates="user", cascade="all, delete-orphan"
+    )
+    session_config: Mapped["SessionConfiguration | None"] = relationship(
+        "SessionConfiguration", back_populates="user", uselist=False
+    )
+    
+    @property
+    def active_sessions(self) -> list["UserSession"]:
+        """Get active sessions."""
+        return [s for s in self.sessions if s.is_active]
 
     @classmethod
     def create(
@@ -625,3 +638,7 @@ class User(SoftDeletableModel):
 
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email={self.email})>"
+
+
+# Import forward references
+from app.models.session import SessionConfiguration, UserSession
