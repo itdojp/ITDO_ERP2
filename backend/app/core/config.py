@@ -109,6 +109,14 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     BCRYPT_ROUNDS: int = 12
     PASSWORD_MIN_LENGTH: int = 8
+    
+    # Google OAuth2設定
+    GOOGLE_CLIENT_ID: str = Field(default="", description="Google OAuth2 client ID")
+    GOOGLE_CLIENT_SECRET: str = Field(default="", description="Google OAuth2 client secret")
+    GOOGLE_REDIRECT_URI: str = Field(
+        default="http://localhost:3000/auth/google/callback",
+        description="Google OAuth2 redirect URI"
+    )
 
     # 開発環境フラグ
     DEBUG: bool = False

@@ -13,10 +13,9 @@ class MFADeviceResponse(BaseModel):
     device_name: str
     device_type: str
     is_primary: bool
-    is_active: bool
-    last_used_at: Optional[datetime]
+    is_active: bool = True
     created_at: datetime
-    verified_at: Optional[datetime]
+    last_used_at: datetime | None = None
 
     class Config:
         """Pydantic config."""
@@ -24,6 +23,67 @@ class MFADeviceResponse(BaseModel):
         orm_mode = True
 
 
+class MFAStatusResponse(BaseModel):
+    """MFA status response."""
+
+    mfa_enabled: bool
+    mfa_setup_at: datetime | None = None
+    devices: list[MFADeviceResponse]
+    backup_codes_count: int
+
+
+class MFASetupResponse(BaseModel):
+    """MFA setup response with TOTP details."""
+
+    secret: str = Field(..., description="TOTP secret key")
+    qr_code_uri: str = Field(..., description="QR code provisioning URI")
+    manual_entry_key: str = Field(..., description="Manual entry key")
+    manual_entry_setup: dict = Field(..., description="Manual setup parameters")
+
+
+class MFAVerifySetupRequest(BaseModel):
+    """MFA setup verification request."""
+
+    code: str = Field(..., min_length=6, max_length=6, description="TOTP code")
+    device_name: str = Field(..., min_length=1, max_length=100, description="Device name")
+
+
+class MFAEnableRequest(BaseModel):
+    """MFA enable request."""
+
+    device_name: str = Field(..., min_length=1, max_length=100)
+    device_type: str = Field(default="totp", pattern="^(totp|sms|email)$")
+
+
+class MFADisableRequest(BaseModel):
+    """MFA disable request."""
+
+    password: str = Field(..., description="User password for confirmation")
+    reason: str | None = Field(None, description="Reason for disabling MFA")
+
+
+class MFAVerifyRequest(BaseModel):
+    """MFA verification request."""
+
+    code: str = Field(..., min_length=6, max_length=6, description="TOTP or backup code")
+    trust_device: bool = Field(default=False, description="Trust this device")
+
+
+class BackupCodesResponse(BaseModel):
+    """Backup codes response."""
+
+    backup_codes: list[str]
+    warning: str = Field(..., description="Warning message about backup codes")
+
+
+class MFARecoveryRequest(BaseModel):
+    """MFA recovery request using backup code."""
+
+    backup_code: str = Field(..., description="Backup code")
+    new_device_name: str | None = Field(None, description="Name for new device after recovery")
+
+
+# Legacy schemas for compatibility
 class MFADeviceListResponse(BaseModel):
     """MFA device list response."""
 
@@ -55,12 +115,3 @@ class MFAChallengeVerifyRequest(BaseModel):
 
     challenge_token: str
     code: str = Field(..., pattern=r"^\d{6}$")
-
-
-class MFAStatusResponse(BaseModel):
-    """MFA status response."""
-
-    enabled: bool
-    devices_count: int
-    has_backup_codes: bool
-    last_verified_at: Optional[datetime]

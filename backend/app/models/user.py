@@ -289,6 +289,11 @@ class User(SoftDeletableModel):
         else:
             # If expiry_date is timezone-aware, compare with timezone-aware datetime
             return datetime.now(timezone.utc) > expiry_date
+    
+    def has_password_set(self) -> bool:
+        """Check if user has a password set (not just Google SSO)."""
+        # Check if password is not a random token (32+ chars of random data)
+        return bool(self.hashed_password) and len(self.hashed_password) < 100
 
     def create_session(
         self,

@@ -267,3 +267,185 @@ class MFAService:
             List of MFA devices
         """
         return [d for d in user.mfa_devices if d.is_active]
+    
+    def enable_mfa(
+        self,
+        user: User,
+        device_name: str,
+        device_type: str = "totp",
+    ) -> list[str]:
+        """
+        Enable MFA for user.
+        
+        Args:
+            user: User to enable MFA for
+            device_name: Name of the device
+            device_type: Type of MFA device
+            
+        Returns:
+            List of backup codes
+        """
+        # Enable MFA
+        user.mfa_required = True
+        user.mfa_enabled_at = datetime.now()
+        
+        # Create MFA device
+        device = MFADevice(
+            user_id=user.id,
+            device_name=device_name,
+            device_type=device_type,
+            is_primary=True,  # First device is primary
+            is_active=True,
+        )
+        self.db.add(device)
+        
+        # Generate backup codes
+        backup_codes = self.generate_backup_codes(user)
+        
+        self.db.commit()
+        
+        return backup_codes
+    
+    def generate_backup_codes(self, user: User, count: int = 10) -> list[str]:
+        """Generate backup codes for user."""
+        # Invalidate existing codes
+        self.db.query(MFABackupCode).filter(
+            MFABackupCode.user_id == user.id,
+            MFABackupCode.used_at.is_(None),
+        ).update({"used_at": datetime.now()})
+        
+        codes = []
+        for _ in range(count):
+            # Generate 8-character alphanumeric code
+            code = secrets.token_hex(4).upper()
+            
+            # Store hashed version
+            backup_code = MFABackupCode(
+                user_id=user.id,
+                code_hash=hash_password(code),
+            )
+            self.db.add(backup_code)
+            codes.append(code)
+        
+        self.db.commit()
+        return codes
+    
+    def regenerate_backup_codes(self, user: User) -> list[str]:
+        """Regenerate backup codes for user."""
+        return self.generate_backup_codes(user)
+    
+    def verify_totp(self, user: User, code: str) -> bool:
+        """Public method to verify TOTP code."""
+        return self._verify_totp(user, code)
+    
+    def verify_backup_code(
+        self,
+        user: User,
+        code: str,
+        use_code: bool = True,
+    ) -> bool:
+        """
+        Verify backup code.
+        
+        Args:
+            user: User
+            code: Backup code
+            use_code: Whether to mark code as used
+            
+        Returns:
+            True if valid
+        """
+        # Get active backup codes
+        backup_codes = (
+            self.db.query(MFABackupCode)
+            .filter(
+                MFABackupCode.user_id == user.id,
+                MFABackupCode.used_at.is_(None),
+            )
+            .all()
+        )
+        
+        for backup in backup_codes:
+            if verify_password(code.upper(), backup.code_hash):
+                if use_code:
+                    backup.used_at = datetime.now()
+                    self.db.commit()
+                return True
+        
+        return False
+    
+    def count_active_backup_codes(self, user: User) -> int:
+        """Count active backup codes for user."""
+        return (
+            self.db.query(MFABackupCode)
+            .filter(
+                MFABackupCode.user_id == user.id,
+                MFABackupCode.used_at.is_(None),
+            )
+            .count()
+        )
+    
+    def get_user_devices(self, user: User) -> list[MFADevice]:
+        """Get all MFA devices for user."""
+        return (
+            self.db.query(MFADevice)
+            .filter(MFADevice.user_id == user.id)
+            .order_by(MFADevice.created_at.desc())
+            .all()
+        )
+    
+    def remove_device(self, user: User, device_id: int) -> None:
+        """Remove MFA device."""
+        device = (
+            self.db.query(MFADevice)
+            .filter(
+                MFADevice.id == device_id,
+                MFADevice.user_id == user.id,
+            )
+            .first()
+        )
+        
+        if not device:
+            raise BusinessLogicError("デバイスが見つかりません")
+        
+        # Check if it's the last active device
+        active_count = (
+            self.db.query(MFADevice)
+            .filter(
+                MFADevice.user_id == user.id,
+                MFADevice.is_active == True,
+                MFADevice.id != device_id,
+            )
+            .count()
+        )
+        
+        if active_count == 0:
+            raise BusinessLogicError("最後のアクティブデバイスは削除できません")
+        
+        device.is_active = False
+        self.db.commit()
+    
+    def set_primary_device(self, user: User, device_id: int) -> None:
+        """Set device as primary."""
+        # Get device
+        device = (
+            self.db.query(MFADevice)
+            .filter(
+                MFADevice.id == device_id,
+                MFADevice.user_id == user.id,
+                MFADevice.is_active == True,
+            )
+            .first()
+        )
+        
+        if not device:
+            raise BusinessLogicError("アクティブなデバイスが見つかりません")
+        
+        # Remove primary from all devices
+        self.db.query(MFADevice).filter(
+            MFADevice.user_id == user.id
+        ).update({"is_primary": False})
+        
+        # Set as primary
+        device.is_primary = True
+        self.db.commit()
