@@ -1,5 +1,7 @@
 # ITDO ERP System v2
 
+<!-- Workflow Test: 2025-01-30 - Testing consolidated deployment workflows -->
+
 ## Overview
 
 現代的な技術スタックを使用した新世代ERPシステムです。
