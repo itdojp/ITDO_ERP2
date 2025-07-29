@@ -330,7 +330,7 @@ jobs:
         with:
           status: 'warning'
           channel: '#deployments'
-          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
           message: |
             🔄 Deployment rollback executed
             Environment: ${{ env.ROLLBACK_ENV }}
@@ -414,7 +414,7 @@ jobs:
         with:
           status: failure
           channel: '#deployments'
-          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
           message: |
             ❌ Deployment failed!
             See details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
