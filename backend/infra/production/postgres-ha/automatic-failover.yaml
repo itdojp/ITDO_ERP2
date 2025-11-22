@@ -1,0 +1,516 @@
+---
+# PostgreSQL Automatic Failover with Patroni
+# CC03 v68.0 Day 1: Enterprise-grade Automatic Failover System
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: patroni-config
+  namespace: itdo-erp-production
+  labels:
+    app: patroni
+    component: cluster-manager
+data:
+  patroni.yml: |
+    scope: postgres-cluster
+    namespace: /postgresql-cluster/
+    name: patroni-node
+    
+    restapi:
+      listen: 0.0.0.0:8008
+      connect_address: patroni-node:8008
+    
+    etcd3:
+      hosts: etcd-cluster:2379
+      protocol: http
+    
+    bootstrap:
+      dcs:
+        ttl: 30
+        loop_wait: 10
+        retry_timeout: 30
+        maximum_lag_on_failover: 1048576
+        master_start_timeout: 300
+        synchronous_mode: true
+        synchronous_mode_strict: false
+        synchronous_node_count: 1
+        postgresql:
+          use_pg_rewind: true
+          use_slots: true
+          parameters:
+            max_connections: 200
+            shared_buffers: 1GB
+            effective_cache_size: 3GB
+            wal_level: replica
+            max_wal_senders: 10
+            max_replication_slots: 10
+            wal_keep_size: 1GB
+            hot_standby: on
+            hot_standby_feedback: on
+            archive_mode: on
+            archive_command: 'cp %p /var/lib/postgresql/archive/%f'
+            log_statement: 'mod'
+            log_min_duration_statement: 1000
+            track_io_timing: on
+            autovacuum: on
+            checkpoint_completion_target: 0.9
+            
+      initdb:
+        - encoding: UTF8
+        - data-checksums
+        
+      pg_hba:
+        - host replication replicator 0.0.0.0/0 md5
+        - host all all 0.0.0.0/0 md5
+        - local all all trust
+        
+      users:
+        admin:
+          password: admin
+          options:
+            - createrole
+            - createdb
+        replicator:
+          password: replicator
+          options:
+            - replication
+    
+    postgresql:
+      listen: 0.0.0.0:5432
+      connect_address: patroni-node:5432
+      data_dir: /var/lib/postgresql/data
+      bin_dir: /usr/lib/postgresql/15/bin
+      pgpass: /tmp/pgpass0
+      authentication:
+        replication:
+          username: replicator
+          password: replicator
+        superuser:
+          username: postgres
+          password: postgres
+      parameters:
+        unix_socket_directories: '/var/run/postgresql'
+        
+    tags:
+      nofailover: false
+      noloadbalance: false
+      clonefrom: false
+      nosync: false
+
+---
+# Patroni StatefulSet for High Availability
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: patroni-cluster
+  namespace: itdo-erp-production
+  labels:
+    app: patroni
+    component: cluster
+spec:
+  serviceName: patroni-cluster-service
+  replicas: 3
+  selector:
+    matchLabels:
+      app: patroni
+  template:
+    metadata:
+      labels:
+        app: patroni
+        component: postgres
+    spec:
+      serviceAccountName: patroni-service-account
+      securityContext:
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+      containers:
+      - name: patroni
+        image: patroni/patroni:3.1.0
+        env:
+        - name: PATRONI_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: PATRONI_KUBERNETES_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: PATRONI_KUBERNETES_LABELS
+          value: '{app: patroni}'
+        - name: PATRONI_SUPERUSER_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: postgresql-secrets
+              key: username
+        - name: PATRONI_SUPERUSER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgresql-secrets
+              key: password
+        - name: PATRONI_REPLICATION_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: postgresql-secrets
+              key: replication_user
+        - name: PATRONI_REPLICATION_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgresql-secrets
+              key: replication_password
+        - name: PATRONI_admin_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgresql-secrets
+              key: password
+        - name: PATRONI_admin_OPTIONS
+          value: 'createdb,createrole'
+        ports:
+        - name: postgres
+          containerPort: 5432
+        - name: patroni-api
+          containerPort: 8008
+        volumeMounts:
+        - name: postgresql-data
+          mountPath: /var/lib/postgresql/data
+        - name: patroni-config-volume
+          mountPath: /etc/patroni
+        - name: postgresql-archive
+          mountPath: /var/lib/postgresql/archive
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+        livenessProbe:
+          httpGet:
+            path: /liveness
+            port: 8008
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /readiness
+            port: 8008
+          initialDelaySeconds: 15
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+      volumes:
+      - name: patroni-config-volume
+        configMap:
+          name: patroni-config
+      - name: postgresql-archive
+        persistentVolumeClaim:
+          claimName: postgresql-archive-pvc
+  volumeClaimTemplates:
+  - metadata:
+      name: postgresql-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: fast-ssd
+      resources:
+        requests:
+          storage: 100Gi
+
+---
+# Service Account for Patroni
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: patroni-service-account
+  namespace: itdo-erp-production
+
+---
+# ClusterRole for Patroni
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: patroni-cluster-role
+rules:
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["create", "get", "list", "patch", "update", "watch", "delete"]
+- apiGroups: [""]
+  resources: ["endpoints"]
+  verbs: ["get", "patch", "update", "create", "list", "watch", "delete"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "patch", "update", "watch"]
+
+---
+# ClusterRoleBinding for Patroni
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: patroni-cluster-role-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: patroni-cluster-role
+subjects:
+- kind: ServiceAccount
+  name: patroni-service-account
+  namespace: itdo-erp-production
+
+---
+# Patroni Cluster Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: patroni-cluster-service
+  namespace: itdo-erp-production
+  labels:
+    app: patroni
+    component: cluster
+spec:
+  type: ClusterIP
+  ports:
+  - name: postgres
+    port: 5432
+    targetPort: 5432
+  - name: patroni-api
+    port: 8008
+    targetPort: 8008
+  selector:
+    app: patroni
+
+---
+# Headless Service for Patroni StatefulSet
+apiVersion: v1
+kind: Service
+metadata:
+  name: patroni-cluster-headless
+  namespace: itdo-erp-production
+  labels:
+    app: patroni
+    component: headless
+spec:
+  clusterIP: None
+  ports:
+  - name: postgres
+    port: 5432
+    targetPort: 5432
+  - name: patroni-api
+    port: 8008
+    targetPort: 8008
+  selector:
+    app: patroni
+
+---
+# Patroni Read-Only Service (for read replicas)
+apiVersion: v1
+kind: Service
+metadata:
+  name: patroni-readonly-service
+  namespace: itdo-erp-production
+  labels:
+    app: patroni
+    component: readonly
+  annotations:
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+spec:
+  type: ClusterIP
+  ports:
+  - name: postgres
+    port: 5432
+    targetPort: 5432
+  selector:
+    app: patroni
+    role: replica
+
+---
+# etcd for Patroni Cluster Coordination
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: etcd-cluster
+  namespace: itdo-erp-production
+  labels:
+    app: etcd
+    component: cluster-coordination
+spec:
+  serviceName: etcd-cluster-service
+  replicas: 3
+  selector:
+    matchLabels:
+      app: etcd
+  template:
+    metadata:
+      labels:
+        app: etcd
+    spec:
+      containers:
+      - name: etcd
+        image: quay.io/coreos/etcd:v3.5.9
+        env:
+        - name: ETCD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: ETCD_INITIAL_CLUSTER
+          value: "etcd-cluster-0=http://etcd-cluster-0.etcd-cluster-service:2380,etcd-cluster-1=http://etcd-cluster-1.etcd-cluster-service:2380,etcd-cluster-2=http://etcd-cluster-2.etcd-cluster-service:2380"
+        - name: ETCD_INITIAL_CLUSTER_STATE
+          value: "new"
+        - name: ETCD_INITIAL_CLUSTER_TOKEN
+          value: "patroni-etcd-cluster"
+        - name: ETCD_LISTEN_CLIENT_URLS
+          value: "http://0.0.0.0:2379"
+        - name: ETCD_LISTEN_PEER_URLS
+          value: "http://0.0.0.0:2380"
+        - name: ETCD_ADVERTISE_CLIENT_URLS
+          value: "http://$(ETCD_NAME).etcd-cluster-service:2379"
+        - name: ETCD_INITIAL_ADVERTISE_PEER_URLS
+          value: "http://$(ETCD_NAME).etcd-cluster-service:2380"
+        - name: ETCD_DATA_DIR
+          value: "/var/lib/etcd"
+        - name: ETCD_AUTO_COMPACTION_RETENTION
+          value: "1h"
+        - name: ETCD_QUOTA_BACKEND_BYTES
+          value: "4294967296"  # 4GB
+        ports:
+        - name: client
+          containerPort: 2379
+        - name: peer
+          containerPort: 2380
+        volumeMounts:
+        - name: etcd-data
+          mountPath: /var/lib/etcd
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 2379
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 2379
+          initialDelaySeconds: 15
+          periodSeconds: 5
+  volumeClaimTemplates:
+  - metadata:
+      name: etcd-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: fast-ssd
+      resources:
+        requests:
+          storage: 20Gi
+
+---
+# etcd Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: etcd-cluster-service
+  namespace: itdo-erp-production
+  labels:
+    app: etcd
+spec:
+  clusterIP: None
+  ports:
+  - name: client
+    port: 2379
+    targetPort: 2379
+  - name: peer
+    port: 2380
+    targetPort: 2380
+  selector:
+    app: etcd
+
+---
+# etcd Client Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: etcd-cluster
+  namespace: itdo-erp-production
+  labels:
+    app: etcd
+    component: client
+spec:
+  type: ClusterIP
+  ports:
+  - name: client
+    port: 2379
+    targetPort: 2379
+  selector:
+    app: etcd
+
+---
+# Archive Storage PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgresql-archive-pvc
+  namespace: itdo-erp-production
+  labels:
+    app: postgresql
+    component: archive
+spec:
+  accessModes:
+  - ReadWriteMany
+  storageClassName: nfs-storage
+  resources:
+    requests:
+      storage: 500Gi
+
+---
+# Failover Monitoring CronJob
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: patroni-failover-monitor
+  namespace: itdo-erp-production
+  labels:
+    app: patroni
+    component: monitoring
+spec:
+  schedule: "*/1 * * * *"  # Every minute
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: failover-monitor
+            image: curlimages/curl:8.2.1
+            command:
+            - /bin/sh
+            - -c
+            - |
+              echo "$(date): Checking Patroni cluster health..."
+              
+              # Check cluster status
+              for pod in patroni-cluster-0 patroni-cluster-1 patroni-cluster-2; do
+                echo "Checking $pod..."
+                if curl -f -s http://$pod.patroni-cluster-headless:8008/cluster; then
+                  echo "$pod: HEALTHY"
+                else
+                  echo "$pod: UNHEALTHY"
+                  # Send alert (integrate with monitoring system)
+                fi
+              done
+              
+              # Check leader election
+              leader=$(curl -s http://patroni-cluster-service:8008/cluster | grep -o '"leader":"[^"]*' | cut -d'"' -f4)
+              echo "Current leader: $leader"
+              
+              # Verify replication lag
+              if [ -n "$leader" ]; then
+                curl -s http://$leader.patroni-cluster-headless:8008/patroni | grep lag || echo "Could not check replication lag"
+              fi
+              
+              echo "$(date): Failover monitoring completed"

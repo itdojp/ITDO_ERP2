@@ -1,0 +1,712 @@
+---
+# NGINX Plus Automatic Failover and Health Management
+# CC03 v68.0 Day 3: Intelligent Load Balancer Failover
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-failover-scripts
+  namespace: itdo-erp-production
+  labels:
+    app: nginx-plus
+    component: failover
+data:
+  health-check.sh: |
+    #!/bin/bash
+    # NGINX Plus Health Check and Failover Script
+    
+    set -euo pipefail
+    
+    # Configuration
+    PRIMARY_SERVICE="nginx-plus-primary-service"
+    SECONDARY_SERVICE="nginx-plus-secondary-service"
+    HEALTH_ENDPOINT="/nginx_status"
+    TIMEOUT=10
+    MAX_RETRIES=3
+    FAILOVER_THRESHOLD=3
+    LOG_FILE="/var/log/nginx-failover.log"
+    
+    # Logging function
+    log() {
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" | tee -a "$LOG_FILE"
+    }
+    
+    # Health check function
+    check_nginx_health() {
+        local service_name="$1"
+        local port="$2"
+        local retries=0
+        
+        while [[ $retries -lt $MAX_RETRIES ]]; do
+            if curl -f -s --max-time "$TIMEOUT" "http://${service_name}:${port}${HEALTH_ENDPOINT}" > /dev/null 2>&1; then
+                return 0
+            fi
+            
+            retries=$((retries + 1))
+            sleep 1
+        done
+        
+        return 1
+    }
+    
+    # Get current active load balancer
+    get_active_lb() {
+        # Check which load balancer is currently receiving traffic
+        if kubectl get service nginx-plus-lb-active -n itdo-erp-production > /dev/null 2>&1; then
+            kubectl get service nginx-plus-lb-active -n itdo-erp-production -o jsonpath='{.spec.selector.role}'
+        else
+            echo "primary"  # Default to primary
+        fi
+    }
+    
+    # Switch load balancer
+    switch_load_balancer() {
+        local new_active="$1"
+        local old_active="$2"
+        
+        log "Initiating failover from $old_active to $new_active"
+        
+        # Update active service selector
+        kubectl patch service nginx-plus-lb-active -n itdo-erp-production -p \
+            "{\"spec\":{\"selector\":{\"role\":\"$new_active\"}}}"
+        
+        # Update DNS records (if using external DNS)
+        if command -v external-dns-update &> /dev/null; then
+            external-dns-update --service=nginx-plus-lb-active --namespace=itdo-erp-production
+        fi
+        
+        # Send failover notification
+        send_notification "NGINX Load Balancer Failover" \
+            "Switched from $old_active to $new_active at $(date)"
+        
+        log "Failover completed successfully to $new_active"
+    }
+    
+    # Send notification
+    send_notification() {
+        local subject="$1"
+        local message="$2"
+        
+        # Send to monitoring system
+        curl -X POST \
+            -H "Content-Type: application/json" \
+            -d "{\"title\":\"$subject\",\"message\":\"$message\",\"severity\":\"warning\"}" \
+            "${ALERT_WEBHOOK_URL:-http://alertmanager:9093/api/v1/alerts}" \
+            > /dev/null 2>&1 || true
+        
+        # Send to Slack (if configured)
+        if [[ -n "${SLACK_WEBHOOK_URL:-}" ]]; then
+            curl -X POST \
+                -H "Content-Type: application/json" \
+                -d "{\"text\":\"🚨 $subject: $message\"}" \
+                "$SLACK_WEBHOOK_URL" \
+                > /dev/null 2>&1 || true
+        fi
+    }
+    
+    # Main health check loop
+    main() {
+        log "Starting NGINX Plus health check and failover monitoring"
+        
+        local failure_count=0
+        local current_active
+        
+        while true; do
+            current_active=$(get_active_lb)
+            
+            case "$current_active" in
+                "primary")
+                    if check_nginx_health "$PRIMARY_SERVICE" "8080"; then
+                        if [[ $failure_count -gt 0 ]]; then
+                            log "Primary service recovered, resetting failure count"
+                            failure_count=0
+                        fi
+                    else
+                        failure_count=$((failure_count + 1))
+                        log "Primary service health check failed (attempt $failure_count/$FAILOVER_THRESHOLD)"
+                        
+                        if [[ $failure_count -ge $FAILOVER_THRESHOLD ]]; then
+                            log "Primary service failed $FAILOVER_THRESHOLD times, initiating failover"
+                            
+                            if check_nginx_health "$SECONDARY_SERVICE" "8080"; then
+                                switch_load_balancer "secondary" "primary"
+                                failure_count=0
+                            else
+                                log "ERROR: Secondary service also unhealthy! Manual intervention required."
+                                send_notification "CRITICAL: All NGINX Load Balancers Down" \
+                                    "Both primary and secondary NGINX instances are unhealthy!"
+                            fi
+                        fi
+                    fi
+                    ;;
+                    
+                "secondary")
+                    if check_nginx_health "$SECONDARY_SERVICE" "8080"; then
+                        if [[ $failure_count -gt 0 ]]; then
+                            log "Secondary service recovered, resetting failure count"
+                            failure_count=0
+                        fi
+                        
+                        # Check if primary is back online for failback
+                        if check_nginx_health "$PRIMARY_SERVICE" "8080"; then
+                            log "Primary service is healthy, initiating failback"
+                            switch_load_balancer "primary" "secondary"
+                        fi
+                    else
+                        failure_count=$((failure_count + 1))
+                        log "Secondary service health check failed (attempt $failure_count/$FAILOVER_THRESHOLD)"
+                        
+                        if [[ $failure_count -ge $FAILOVER_THRESHOLD ]]; then
+                            log "Secondary service failed $FAILOVER_THRESHOLD times, checking primary"
+                            
+                            if check_nginx_health "$PRIMARY_SERVICE" "8080"; then
+                                switch_load_balancer "primary" "secondary"
+                                failure_count=0
+                            else
+                                log "ERROR: Primary service also unhealthy! Manual intervention required."
+                                send_notification "CRITICAL: All NGINX Load Balancers Down" \
+                                    "Both primary and secondary NGINX instances are unhealthy!"
+                            fi
+                        fi
+                    fi
+                    ;;
+            esac
+            
+            sleep 30  # Check every 30 seconds
+        done
+    }
+    
+    # Signal handlers
+    cleanup() {
+        log "Received termination signal, shutting down gracefully"
+        exit 0
+    }
+    
+    trap cleanup SIGTERM SIGINT
+    
+    # Start monitoring
+    main
+  
+  upstream-health-check.sh: |
+    #!/bin/bash
+    # Upstream Backend Health Check Script
+    
+    set -euo pipefail
+    
+    # Configuration
+    BACKEND_ENDPOINTS=(
+        "itdo-erp-backend-service-1:8000"
+        "itdo-erp-backend-service-2:8000"
+    )
+    HEALTH_PATH="/health"
+    TIMEOUT=5
+    CHECK_INTERVAL=15
+    UNHEALTHY_THRESHOLD=3
+    HEALTHY_THRESHOLD=2
+    
+    # State tracking
+    declare -A backend_states
+    declare -A failure_counts
+    declare -A success_counts
+    
+    # Initialize backend states
+    for endpoint in "${BACKEND_ENDPOINTS[@]}"; do
+        backend_states["$endpoint"]="unknown"
+        failure_counts["$endpoint"]=0
+        success_counts["$endpoint"]=0
+    done
+    
+    log() {
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - $1"
+    }
+    
+    # Check individual backend health
+    check_backend_health() {
+        local endpoint="$1"
+        local host port
+        
+        IFS=':' read -r host port <<< "$endpoint"
+        
+        if curl -f -s --max-time "$TIMEOUT" "http://${endpoint}${HEALTH_PATH}" > /dev/null 2>&1; then
+            return 0
+        else
+            return 1
+        fi
+    }
+    
+    # Update NGINX upstream configuration
+    update_nginx_upstream() {
+        local endpoint="$1"
+        local action="$2"  # "enable" or "disable"
+        
+        local host port
+        IFS=':' read -r host port <<< "$endpoint"
+        
+        # Use NGINX Plus API to update upstream
+        local nginx_api_url="http://nginx-plus-primary-service:8080/api/3/http/upstreams/itdo_erp_backend/servers"
+        
+        case "$action" in
+            "disable")
+                log "Disabling backend $endpoint in NGINX upstream"
+                curl -X PATCH \
+                    -H "Content-Type: application/json" \
+                    -d '{"down": true}' \
+                    "${nginx_api_url}/${host}:${port}" \
+                    > /dev/null 2>&1 || true
+                ;;
+            "enable")
+                log "Enabling backend $endpoint in NGINX upstream"
+                curl -X PATCH \
+                    -H "Content-Type: application/json" \
+                    -d '{"down": false}' \
+                    "${nginx_api_url}/${host}:${port}" \
+                    > /dev/null 2>&1 || true
+                ;;
+        esac
+    }
+    
+    # Main monitoring loop
+    main() {
+        log "Starting upstream backend health monitoring"
+        
+        while true; do
+            for endpoint in "${BACKEND_ENDPOINTS[@]}"; do
+                if check_backend_health "$endpoint"; then
+                    # Backend is healthy
+                    success_counts["$endpoint"]=$((success_counts["$endpoint"] + 1))
+                    failure_counts["$endpoint"]=0
+                    
+                    # Re-enable if it was disabled and has enough successful checks
+                    if [[ "${backend_states[$endpoint]}" == "disabled" ]] && \
+                       [[ ${success_counts["$endpoint"]} -ge $HEALTHY_THRESHOLD ]]; then
+                        backend_states["$endpoint"]="enabled"
+                        success_counts["$endpoint"]=0
+                        update_nginx_upstream "$endpoint" "enable"
+                        log "Backend $endpoint re-enabled after recovery"
+                    elif [[ "${backend_states[$endpoint]}" == "unknown" ]]; then
+                        backend_states["$endpoint"]="enabled"
+                        log "Backend $endpoint is healthy and enabled"
+                    fi
+                else
+                    # Backend is unhealthy
+                    failure_counts["$endpoint"]=$((failure_counts["$endpoint"] + 1))
+                    success_counts["$endpoint"]=0
+                    
+                    log "Health check failed for $endpoint (${failure_counts[$endpoint]}/$UNHEALTHY_THRESHOLD)"
+                    
+                    # Disable if failure threshold reached
+                    if [[ ${failure_counts["$endpoint"]} -ge $UNHEALTHY_THRESHOLD ]] && \
+                       [[ "${backend_states[$endpoint]}" == "enabled" ]]; then
+                        backend_states["$endpoint"]="disabled"
+                        update_nginx_upstream "$endpoint" "disable"
+                        log "Backend $endpoint disabled due to health check failures"
+                        
+                        # Send alert
+                        send_notification "Backend Health Alert" \
+                            "Backend $endpoint has been disabled due to health check failures"
+                    fi
+                fi
+            done
+            
+            sleep "$CHECK_INTERVAL"
+        done
+    }
+    
+    send_notification() {
+        local subject="$1"
+        local message="$2"
+        
+        # Send to monitoring system
+        curl -X POST \
+            -H "Content-Type: application/json" \
+            -d "{\"title\":\"$subject\",\"message\":\"$message\",\"severity\":\"warning\"}" \
+            "${ALERT_WEBHOOK_URL:-http://alertmanager:9093/api/v1/alerts}" \
+            > /dev/null 2>&1 || true
+    }
+    
+    # Signal handlers
+    cleanup() {
+        log "Received termination signal, shutting down gracefully"
+        exit 0
+    }
+    
+    trap cleanup SIGTERM SIGINT
+    
+    main
+  
+  ssl-cert-monitor.sh: |
+    #!/bin/bash
+    # SSL Certificate Expiry Monitoring Script
+    
+    set -euo pipefail
+    
+    # Configuration
+    CERT_PATH="/etc/nginx/ssl/tls.crt"
+    WARNING_DAYS=30
+    CRITICAL_DAYS=7
+    CHECK_INTERVAL=3600  # Check every hour
+    
+    log() {
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - $1"
+    }
+    
+    check_cert_expiry() {
+        local cert_file="$1"
+        
+        if [[ ! -f "$cert_file" ]]; then
+            log "Certificate file not found: $cert_file"
+            return 1
+        fi
+        
+        # Get certificate expiry date
+        local expiry_date
+        expiry_date=$(openssl x509 -enddate -noout -in "$cert_file" | cut -d= -f2)
+        
+        # Convert to timestamp
+        local expiry_timestamp
+        expiry_timestamp=$(date -d "$expiry_date" +%s)
+        
+        local current_timestamp
+        current_timestamp=$(date +%s)
+        
+        # Calculate days until expiry
+        local days_until_expiry
+        days_until_expiry=$(( (expiry_timestamp - current_timestamp) / 86400 ))
+        
+        log "SSL certificate expires in $days_until_expiry days ($expiry_date)"
+        
+        if [[ $days_until_expiry -le $CRITICAL_DAYS ]]; then
+            send_notification "CRITICAL: SSL Certificate Expiring Soon" \
+                "SSL certificate expires in $days_until_expiry days!" \
+                "critical"
+        elif [[ $days_until_expiry -le $WARNING_DAYS ]]; then
+            send_notification "WARNING: SSL Certificate Expiring Soon" \
+                "SSL certificate expires in $days_until_expiry days" \
+                "warning"
+        fi
+        
+        return 0
+    }
+    
+    send_notification() {
+        local subject="$1"
+        local message="$2"
+        local severity="${3:-warning}"
+        
+        # Send to monitoring system
+        curl -X POST \
+            -H "Content-Type: application/json" \
+            -d "{\"title\":\"$subject\",\"message\":\"$message\",\"severity\":\"$severity\"}" \
+            "${ALERT_WEBHOOK_URL:-http://alertmanager:9093/api/v1/alerts}" \
+            > /dev/null 2>&1 || true
+        
+        # Send to Slack for critical alerts
+        if [[ "$severity" == "critical" ]] && [[ -n "${SLACK_WEBHOOK_URL:-}" ]]; then
+            curl -X POST \
+                -H "Content-Type: application/json" \
+                -d "{\"text\":\"🚨 $subject: $message\"}" \
+                "$SLACK_WEBHOOK_URL" \
+                > /dev/null 2>&1 || true
+        fi
+    }
+    
+    main() {
+        log "Starting SSL certificate monitoring"
+        
+        while true; do
+            check_cert_expiry "$CERT_PATH"
+            sleep "$CHECK_INTERVAL"
+        done
+    }
+    
+    # Signal handlers
+    cleanup() {
+        log "Received termination signal, shutting down gracefully"
+        exit 0
+    }
+    
+    trap cleanup SIGTERM SIGINT
+    
+    main
+
+---
+# NGINX Failover Controller Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-failover-controller
+  namespace: itdo-erp-production
+  labels:
+    app: nginx-failover-controller
+    component: automation
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-failover-controller
+  template:
+    metadata:
+      labels:
+        app: nginx-failover-controller
+        component: automation
+    spec:
+      serviceAccountName: nginx-failover-sa
+      containers:
+      - name: health-monitor
+        image: curlimages/curl:8.4.0
+        command:
+        - /bin/sh
+        - /scripts/health-check.sh
+        env:
+        - name: ALERT_WEBHOOK_URL
+          value: "http://alertmanager:9093/api/v1/alerts"
+        - name: SLACK_WEBHOOK_URL
+          valueFrom:
+            secretKeyRef:
+              name: notification-secrets
+              key: slack_webhook_url
+              optional: true
+        volumeMounts:
+        - name: failover-scripts
+          mountPath: /scripts
+        - name: failover-logs
+          mountPath: /var/log
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "pgrep -f health-check.sh > /dev/null"
+          initialDelaySeconds: 30
+          periodSeconds: 60
+      
+      - name: upstream-monitor
+        image: curlimages/curl:8.4.0
+        command:
+        - /bin/sh
+        - /scripts/upstream-health-check.sh
+        env:
+        - name: ALERT_WEBHOOK_URL
+          value: "http://alertmanager:9093/api/v1/alerts"
+        volumeMounts:
+        - name: failover-scripts
+          mountPath: /scripts
+        - name: failover-logs
+          mountPath: /var/log
+        resources:
+          requests:
+            memory: "32Mi"
+            cpu: "25m"
+          limits:
+            memory: "64Mi"
+            cpu: "50m"
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "pgrep -f upstream-health-check.sh > /dev/null"
+          initialDelaySeconds: 30
+          periodSeconds: 60
+      
+      - name: ssl-monitor
+        image: alpine:3.18
+        command:
+        - /bin/sh
+        - /scripts/ssl-cert-monitor.sh
+        env:
+        - name: ALERT_WEBHOOK_URL
+          value: "http://alertmanager:9093/api/v1/alerts"
+        - name: SLACK_WEBHOOK_URL
+          valueFrom:
+            secretKeyRef:
+              name: notification-secrets
+              key: slack_webhook_url
+              optional: true
+        volumeMounts:
+        - name: failover-scripts
+          mountPath: /scripts
+        - name: nginx-ssl-certs
+          mountPath: /etc/nginx/ssl
+        - name: failover-logs
+          mountPath: /var/log
+        resources:
+          requests:
+            memory: "32Mi"
+            cpu: "25m"
+          limits:
+            memory: "64Mi"
+            cpu: "50m"
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "pgrep -f ssl-cert-monitor.sh > /dev/null"
+          initialDelaySeconds: 30
+          periodSeconds: 300
+      
+      volumes:
+      - name: failover-scripts
+        configMap:
+          name: nginx-failover-scripts
+          defaultMode: 0755
+      - name: nginx-ssl-certs
+        secret:
+          secretName: nginx-ssl-certificates
+      - name: failover-logs
+        emptyDir: {}
+
+---
+# Active Load Balancer Service (for failover switching)
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-plus-lb-active
+  namespace: itdo-erp-production
+  labels:
+    app: nginx-plus
+    component: active-lb
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: itdo-erp.com
+    external-dns.alpha.kubernetes.io/ttl: "60"
+spec:
+  type: LoadBalancer
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+    protocol: TCP
+  - name: https
+    port: 443
+    targetPort: 443
+    protocol: TCP
+  selector:
+    app: nginx-plus
+    role: primary  # Default to primary
+
+---
+# ServiceAccount for NGINX Failover Controller
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nginx-failover-sa
+  namespace: itdo-erp-production
+
+---
+# ClusterRole for NGINX Failover Controller
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nginx-failover-role
+rules:
+- apiGroups: [""]
+  resources: ["services", "endpoints", "pods"]
+  verbs: ["get", "list", "watch", "patch", "update"]
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "statefulsets"]
+  verbs: ["get", "list", "watch"]
+
+---
+# ClusterRoleBinding for NGINX Failover Controller
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nginx-failover-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: nginx-failover-role
+subjects:
+- kind: ServiceAccount
+  name: nginx-failover-sa
+  namespace: itdo-erp-production
+
+---
+# Notification Secrets (placeholder)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: notification-secrets
+  namespace: itdo-erp-production
+type: Opaque
+stringData:
+  slack_webhook_url: "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+  email_smtp_password: "your-smtp-password"
+  pagerduty_integration_key: "your-pagerduty-key"
+
+---
+# NGINX Failover Testing Job
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: nginx-failover-test
+  namespace: itdo-erp-production
+  labels:
+    app: nginx-plus
+    component: testing
+  annotations:
+    "helm.sh/hook": test
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: failover-test
+        image: curlimages/curl:8.4.0
+        command:
+        - /bin/sh
+        - -c
+        - |
+          echo "Starting NGINX failover test..."
+          
+          # Test primary service health
+          echo "Testing primary service health..."
+          curl -f "http://nginx-plus-primary-service:8080/nginx_status" || {
+            echo "❌ Primary service health check failed"
+            exit 1
+          }
+          echo "✅ Primary service is healthy"
+          
+          # Test secondary service health
+          echo "Testing secondary service health..."
+          curl -f "http://nginx-plus-secondary-service:8080/nginx_status" || {
+            echo "❌ Secondary service health check failed"
+            exit 1
+          }
+          echo "✅ Secondary service is healthy"
+          
+          # Test active load balancer
+          echo "Testing active load balancer..."
+          curl -f "http://nginx-plus-lb-active" || {
+            echo "❌ Active load balancer not responding"
+            exit 1
+          }
+          echo "✅ Active load balancer is responding"
+          
+          # Test SSL termination
+          echo "Testing SSL termination..."
+          curl -k -f "https://nginx-plus-lb-active" || {
+            echo "❌ SSL termination failed"
+            exit 1
+          }
+          echo "✅ SSL termination working"
+          
+          echo "✅ All NGINX failover tests passed!"
+        resources:
+          requests:
+            memory: "32Mi"
+            cpu: "25m"
+          limits:
+            memory: "64Mi"
+            cpu: "50m"

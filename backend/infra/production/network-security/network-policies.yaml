@@ -1,0 +1,906 @@
+---
+# Comprehensive Network Security Policies
+# CC03 v68.0 Day 5: Enterprise Network Security and Micro-segmentation
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: network-security
+  labels:
+    name: network-security
+
+---
+# Default Deny All Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: itdo-erp-production
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+
+---
+# Frontend Tier Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: frontend-tier-policy
+  namespace: itdo-erp-production
+  labels:
+    tier: frontend
+spec:
+  podSelector:
+    matchLabels:
+      tier: frontend
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow traffic from load balancer
+  - from:
+    - podSelector:
+        matchLabels:
+          app: nginx-plus
+    ports:
+    - protocol: TCP
+      port: 3000
+  # Allow health checks from monitoring
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 3000
+  egress:
+  # Allow access to backend API
+  - to:
+    - podSelector:
+        matchLabels:
+          tier: backend
+    ports:
+    - protocol: TCP
+      port: 8000
+  # Allow DNS resolution
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+  # Allow HTTPS for external API calls
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+
+---
+# Backend Tier Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backend-tier-policy
+  namespace: itdo-erp-production
+  labels:
+    tier: backend
+spec:
+  podSelector:
+    matchLabels:
+      tier: backend
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow traffic from frontend
+  - from:
+    - podSelector:
+        matchLabels:
+          tier: frontend
+    ports:
+    - protocol: TCP
+      port: 8000
+  # Allow traffic from load balancer
+  - from:
+    - podSelector:
+        matchLabels:
+          app: nginx-plus
+    ports:
+    - protocol: TCP
+      port: 8000
+  # Allow monitoring traffic
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 8000
+    - protocol: TCP
+      port: 8080
+  egress:
+  # Allow access to database
+  - to:
+    - podSelector:
+        matchLabels:
+          tier: database
+    ports:
+    - protocol: TCP
+      port: 5432
+  # Allow access to cache
+  - to:
+    - podSelector:
+        matchLabels:
+          tier: cache
+    ports:
+    - protocol: TCP
+      port: 6379
+  # Allow DNS resolution
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+  # Allow HTTPS for external services
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+  # Allow SMTP for email
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 587
+
+---
+# Database Tier Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: database-tier-policy
+  namespace: itdo-erp-production
+  labels:
+    tier: database
+spec:
+  podSelector:
+    matchLabels:
+      tier: database
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow access from backend tier
+  - from:
+    - podSelector:
+        matchLabels:
+          tier: backend
+    ports:
+    - protocol: TCP
+      port: 5432
+  # Allow access from backup system
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: backup-system
+    ports:
+    - protocol: TCP
+      port: 5432
+  # Allow monitoring
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 5432
+    - protocol: TCP
+      port: 9187
+  # Allow inter-database communication (replication)
+  - from:
+    - podSelector:
+        matchLabels:
+          app: postgresql
+    ports:
+    - protocol: TCP
+      port: 5432
+  - from:
+    - podSelector:
+        matchLabels:
+          app: patroni
+    ports:
+    - protocol: TCP
+      port: 8008
+    - protocol: TCP
+      port: 2379
+  egress:
+  # Allow inter-database communication
+  - to:
+    - podSelector:
+        matchLabels:
+          app: postgresql
+    ports:
+    - protocol: TCP
+      port: 5432
+  - to:
+    - podSelector:
+        matchLabels:
+          app: patroni
+    ports:
+    - protocol: TCP
+      port: 8008
+  - to:
+    - podSelector:
+        matchLabels:
+          app: etcd
+    ports:
+    - protocol: TCP
+      port: 2379
+    - protocol: TCP
+      port: 2380
+  # Allow DNS resolution
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+
+---
+# Cache Tier Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: cache-tier-policy
+  namespace: itdo-erp-production
+  labels:
+    tier: cache
+spec:
+  podSelector:
+    matchLabels:
+      tier: cache
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow access from backend tier
+  - from:
+    - podSelector:
+        matchLabels:
+          tier: backend
+    ports:
+    - protocol: TCP
+      port: 6379
+  # Allow monitoring
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 6379
+    - protocol: TCP
+      port: 9121
+  # Allow inter-redis communication
+  - from:
+    - podSelector:
+        matchLabels:
+          app: redis
+    ports:
+    - protocol: TCP
+      port: 6379
+  # Allow Sentinel communication
+  - from:
+    - podSelector:
+        matchLabels:
+          app: redis-sentinel
+    ports:
+    - protocol: TCP
+      port: 6379
+    - protocol: TCP
+      port: 26379
+  egress:
+  # Allow inter-redis communication
+  - to:
+    - podSelector:
+        matchLabels:
+          app: redis
+    ports:
+    - protocol: TCP
+      port: 6379
+  # Allow Sentinel communication
+  - to:
+    - podSelector:
+        matchLabels:
+          app: redis-sentinel
+    ports:
+    - protocol: TCP
+      port: 26379
+  # Allow DNS resolution
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+
+---
+# Load Balancer Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: load-balancer-policy
+  namespace: itdo-erp-production
+  labels:
+    tier: edge
+spec:
+  podSelector:
+    matchLabels:
+      app: nginx-plus
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow all external traffic (public load balancer)
+  - from: []
+    ports:
+    - protocol: TCP
+      port: 80
+    - protocol: TCP
+      port: 443
+  # Allow monitoring traffic
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 9113
+  egress:
+  # Allow access to frontend
+  - to:
+    - podSelector:
+        matchLabels:
+          tier: frontend
+    ports:
+    - protocol: TCP
+      port: 3000
+  # Allow access to backend
+  - to:
+    - podSelector:
+        matchLabels:
+          tier: backend
+    ports:
+    - protocol: TCP
+      port: 8000
+  # Allow DNS resolution
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+  # Allow HTTPS for certificate validation
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+
+---
+# Monitoring Namespace Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: monitoring-access-policy
+  namespace: monitoring
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow access to monitoring dashboards
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: itdo-erp-production
+    ports:
+    - protocol: TCP
+      port: 3000  # Grafana
+    - protocol: TCP
+      port: 9090  # Prometheus
+    - protocol: TCP
+      port: 9093  # Alertmanager
+  egress:
+  # Allow monitoring to scrape all namespaces
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: itdo-erp-production
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 9113
+    - protocol: TCP
+      port: 9121
+    - protocol: TCP
+      port: 9187
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: backup-system
+    ports:
+    - protocol: TCP
+      port: 8080
+  # Allow DNS resolution
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+  # Allow HTTPS for external integrations
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+
+---
+# Backup System Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backup-system-policy
+  namespace: backup-system
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  egress:
+  # Allow access to production databases
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: itdo-erp-production
+    - podSelector:
+        matchLabels:
+          tier: database
+    ports:
+    - protocol: TCP
+      port: 5432
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: itdo-erp-production
+    - podSelector:
+        matchLabels:
+          tier: cache
+    ports:
+    - protocol: TCP
+      port: 6379
+  # Allow DNS resolution
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+  # Allow HTTPS for cloud storage
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+
+---
+# Network Security Scanning Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: security-scanning-policy
+  namespace: network-security
+spec:
+  podSelector:
+    matchLabels:
+      app: security-scanner
+  policyTypes:
+  - Ingress
+  - Egress
+  egress:
+  # Allow scanning of all production services
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: itdo-erp-production
+  # Allow DNS resolution
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+  # Allow HTTPS for updates and reports
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+
+---
+# Inter-Namespace Communication Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: inter-namespace-communication
+  namespace: itdo-erp-production
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow monitoring namespace
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+  # Allow backup namespace
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: backup-system
+  # Allow cert-manager namespace
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: cert-manager
+  # Allow network security namespace
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: network-security
+
+---
+# Egress Control for External Services
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: external-egress-control
+  namespace: itdo-erp-production
+spec:
+  podSelector:
+    matchLabels:
+      external-access: "restricted"
+  policyTypes:
+  - Egress
+  egress:
+  # Allow DNS resolution
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+  # Allow specific external services only
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+  # Block all other external traffic
+
+---
+# Emergency Access Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: emergency-access-policy
+  namespace: itdo-erp-production
+  annotations:
+    emergency.access/enabled: "false"
+    emergency.access/last-activated: ""
+    emergency.access/approved-by: ""
+spec:
+  podSelector:
+    matchLabels:
+      emergency-access: "true"
+  policyTypes:
+  - Ingress
+  - Egress
+  # This policy will be activated only during emergencies
+  # and should be manually enabled with proper authorization
+
+---
+# Network Policy Monitoring
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: network-policy-monitoring
+  namespace: network-security
+  labels:
+    app: network-policy-monitor
+data:
+  monitor.sh: |
+    #!/bin/bash
+    # Network Policy Monitoring Script
+    
+    set -euo pipefail
+    
+    log() {
+        echo "$(date '+%Y-%m-%d %H:%M:%S') [NETPOL] - $1"
+    }
+    
+    check_network_policies() {
+        log "Checking network policy compliance..."
+        
+        # Check if default deny policy exists
+        if kubectl get networkpolicy default-deny-all -n itdo-erp-production > /dev/null 2>&1; then
+            log "✅ Default deny policy exists"
+        else
+            log "❌ Default deny policy missing"
+            send_alert "Network Security Alert" "Default deny network policy is missing" "critical"
+        fi
+        
+        # Check tier-specific policies
+        local tiers=("frontend" "backend" "database" "cache")
+        for tier in "${tiers[@]}"; do
+            if kubectl get networkpolicy "${tier}-tier-policy" -n itdo-erp-production > /dev/null 2>&1; then
+                log "✅ ${tier} tier policy exists"
+            else
+                log "❌ ${tier} tier policy missing"
+                send_alert "Network Security Alert" "${tier} tier network policy is missing" "warning"
+            fi
+        done
+        
+        # Check for pods without network policies
+        log "Checking for unprotected pods..."
+        kubectl get pods -n itdo-erp-production -o json | \
+        jq -r '.items[] | select(.metadata.labels.tier == null) | .metadata.name' | \
+        while read -r pod; do
+            if [ -n "$pod" ]; then
+                log "⚠️ Pod without tier label: $pod"
+                send_alert "Network Security Warning" "Pod $pod has no tier label and may not be protected by network policies" "warning"
+            fi
+        done
+    }
+    
+    send_alert() {
+        local title="$1"
+        local message="$2"
+        local severity="${3:-warning}"
+        
+        curl -X POST \
+            -H "Content-Type: application/json" \
+            -d "{\"title\":\"$title\",\"message\":\"$message\",\"severity\":\"$severity\"}" \
+            "${ALERT_WEBHOOK_URL:-http://alertmanager:9093/api/v1/alerts}" \
+            > /dev/null 2>&1 || true
+    }
+    
+    # Main monitoring loop
+    main() {
+        log "Starting network policy monitoring..."
+        
+        while true; do
+            check_network_policies
+            sleep 300  # Check every 5 minutes
+        done
+    }
+    
+    main "$@"
+
+---
+# Network Policy Monitor Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: network-policy-monitor
+  namespace: network-security
+  labels:
+    app: network-policy-monitor
+    component: security
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: network-policy-monitor
+  template:
+    metadata:
+      labels:
+        app: network-policy-monitor
+        component: security
+    spec:
+      serviceAccountName: network-security-sa
+      containers:
+      - name: policy-monitor
+        image: alpine:3.18
+        command:
+        - /bin/sh
+        - /scripts/monitor.sh
+        env:
+        - name: ALERT_WEBHOOK_URL
+          value: "http://alertmanager:9093/api/v1/alerts"
+        volumeMounts:
+        - name: monitor-scripts
+          mountPath: /scripts
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "pgrep -f monitor.sh > /dev/null"
+          initialDelaySeconds: 30
+          periodSeconds: 60
+      volumes:
+      - name: monitor-scripts
+        configMap:
+          name: network-policy-monitoring
+          defaultMode: 0755
+
+---
+# ServiceAccount for Network Security
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: network-security-sa
+  namespace: network-security
+
+---
+# ClusterRole for Network Security Monitoring
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: network-security-role
+rules:
+- apiGroups: ["networking.k8s.io"]
+  resources: ["networkpolicies"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: [""]
+  resources: ["pods", "services", "namespaces"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+
+---
+# ClusterRoleBinding for Network Security
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: network-security-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: network-security-role
+subjects:
+- kind: ServiceAccount
+  name: network-security-sa
+  namespace: network-security
+
+---
+# Network Security Alerts
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: network-security-alerts
+  namespace: network-security
+  labels:
+    app: network-security
+    component: alerting
+spec:
+  groups:
+  - name: network-security.rules
+    interval: 60s
+    rules:
+    # Network policy compliance alerts
+    - alert: NetworkPolicyMissing
+      expr: increase(network_policy_violations_total[5m]) > 0
+      for: 1m
+      labels:
+        severity: warning
+        service: network-security
+      annotations:
+        summary: "Network policy violations detected"
+        description: "Network policy violations have been detected in the cluster."
+    
+    # Unusual network traffic alerts
+    - alert: SuspiciousNetworkTraffic
+      expr: rate(container_network_receive_bytes_total[5m]) > 100000000  # 100MB/s
+      for: 2m
+      labels:
+        severity: warning
+        service: network-security
+      annotations:
+        summary: "High network traffic detected"
+        description: "Unusually high network traffic detected from {{ $labels.pod }}."
+    
+    # Network connectivity alerts
+    - alert: NetworkConnectivityIssue
+      expr: rate(container_network_receive_errors_total[5m]) > 10
+      for: 1m
+      labels:
+        severity: critical
+        service: network-security
+      annotations:
+        summary: "Network connectivity issues detected"
+        description: "High rate of network errors detected on {{ $labels.pod }}."
+
+---
+# Network Security Dashboard
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: network-security-dashboard
+  namespace: network-security
+  labels:
+    app: grafana
+    component: dashboard
+data:
+  network-security-dashboard.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Network Security Monitoring",
+        "tags": ["network", "security", "policies"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Network Policy Compliance",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "count(up{job=\"kubernetes-pods\"}) - count(up{job=\"kubernetes-pods\", pod=~\".*unprotected.*\"})",
+                "legendFormat": "Protected Pods"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "yellow", "value": 80},
+                    {"color": "green", "value": 95}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 2,
+            "title": "Network Traffic by Tier",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(container_network_receive_bytes_total[5m])",
+                "legendFormat": "{{ tier }} - Ingress"
+              },
+              {
+                "expr": "rate(container_network_transmit_bytes_total[5m])",
+                "legendFormat": "{{ tier }} - Egress"
+              }
+            ],
+            "yAxes": [
+              {
+                "unit": "Bps",
+                "min": 0
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "title": "Network Errors",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(container_network_receive_errors_total[5m])",
+                "legendFormat": "Receive Errors - {{ pod }}"
+              },
+              {
+                "expr": "rate(container_network_transmit_errors_total[5m])",
+                "legendFormat": "Transmit Errors - {{ pod }}"
+              }
+            ]
+          }
+        ],
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "refresh": "30s"
+      }
+    }

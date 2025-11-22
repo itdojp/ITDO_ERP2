@@ -1,0 +1,699 @@
+---
+# PostgreSQL Monitoring and Alerting System
+# CC03 v68.0 Day 1: Comprehensive Database Monitoring
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-exporter-config
+  namespace: itdo-erp-production
+  labels:
+    app: postgres-exporter
+    component: monitoring
+data:
+  postgres_exporter.yml: |
+    # PostgreSQL Exporter Configuration for Prometheus
+    auth_modules:
+      primary:
+        type: userpass
+        userpass:
+          username: postgres
+          password_file: /etc/postgres-exporter/password
+      replica:
+        type: userpass
+        userpass:
+          username: postgres
+          password_file: /etc/postgres-exporter/password
+    
+    # Default queries for comprehensive monitoring
+    queries:
+      pg_replication:
+        query: |
+          SELECT 
+            client_addr,
+            client_hostname,
+            client_port,
+            state,
+            sent_lsn,
+            write_lsn,
+            flush_lsn,
+            replay_lsn,
+            write_lag,
+            flush_lag,
+            replay_lag,
+            sync_priority,
+            sync_state,
+            reply_time
+          FROM pg_stat_replication
+        master: true
+        metrics:
+          - client_addr:
+              usage: "LABEL"
+              description: "IP address of the standby server"
+          - client_hostname:
+              usage: "LABEL"
+              description: "Host name of the standby server"
+          - state:
+              usage: "LABEL"
+              description: "Current WAL sender state"
+          - write_lag:
+              usage: "GAUGE"
+              description: "Time elapsed between flushing recent WAL locally and receiving notification that this standby server has written it"
+          - flush_lag:
+              usage: "GAUGE"
+              description: "Time elapsed between flushing recent WAL locally and receiving notification that this standby server has written and flushed it"
+          - replay_lag:
+              usage: "GAUGE"
+              description: "Time elapsed between flushing recent WAL locally and receiving notification that this standby server has written, flushed and applied it"
+      
+      pg_database:
+        query: |
+          SELECT 
+            datname,
+            numbackends,
+            xact_commit,
+            xact_rollback,
+            blks_read,
+            blks_hit,
+            tup_returned,
+            tup_fetched,
+            tup_inserted,
+            tup_updated,
+            tup_deleted,
+            conflicts,
+            temp_files,
+            temp_bytes,
+            deadlocks,
+            blk_read_time,
+            blk_write_time
+          FROM pg_stat_database 
+          WHERE datname NOT IN ('template0', 'template1', 'postgres')
+        metrics:
+          - datname:
+              usage: "LABEL"
+              description: "Database name"
+          - numbackends:
+              usage: "GAUGE"
+              description: "Number of backends currently connected to this database"
+          - xact_commit:
+              usage: "COUNTER"
+              description: "Number of transactions in this database that have been committed"
+          - xact_rollback:
+              usage: "COUNTER"
+              description: "Number of transactions in this database that have been rolled back"
+          - blks_read:
+              usage: "COUNTER"
+              description: "Number of disk blocks read in this database"
+          - blks_hit:
+              usage: "COUNTER"
+              description: "Number of times disk blocks were found already in the buffer cache"
+          - deadlocks:
+              usage: "COUNTER"
+              description: "Number of deadlocks detected in this database"
+      
+      pg_connections:
+        query: |
+          SELECT 
+            state,
+            COUNT(*) as count
+          FROM pg_stat_activity 
+          WHERE state IS NOT NULL
+          GROUP BY state
+        metrics:
+          - state:
+              usage: "LABEL"
+              description: "Connection state"
+          - count:
+              usage: "GAUGE"
+              description: "Number of connections in this state"
+      
+      pg_locks:
+        query: |
+          SELECT 
+            mode,
+            COUNT(*) as count
+          FROM pg_locks 
+          GROUP BY mode
+        metrics:
+          - mode:
+              usage: "LABEL"
+              description: "Lock mode"
+          - count:
+              usage: "GAUGE"
+              description: "Number of locks in this mode"
+      
+      pg_bgwriter:
+        query: |
+          SELECT 
+            checkpoints_timed,
+            checkpoints_req,
+            checkpoint_write_time,
+            checkpoint_sync_time,
+            buffers_checkpoint,
+            buffers_clean,
+            maxwritten_clean,
+            buffers_backend,
+            buffers_backend_fsync,
+            buffers_alloc
+          FROM pg_stat_bgwriter
+        metrics:
+          - checkpoints_timed:
+              usage: "COUNTER"
+              description: "Number of scheduled checkpoints that have been performed"
+          - checkpoints_req:
+              usage: "COUNTER"
+              description: "Number of requested checkpoints that have been performed"
+          - checkpoint_write_time:
+              usage: "COUNTER"
+              description: "Total amount of time that has been spent in the portion of checkpoint processing where files are written to disk"
+          - checkpoint_sync_time:
+              usage: "COUNTER"
+              description: "Total amount of time that has been spent in the portion of checkpoint processing where files are synchronized to disk"
+          - buffers_checkpoint:
+              usage: "COUNTER"
+              description: "Number of buffers written during checkpoints"
+          - buffers_clean:
+              usage: "COUNTER"
+              description: "Number of buffers written by the background writer"
+          - buffers_backend:
+              usage: "COUNTER"
+              description: "Number of buffers written directly by a backend"
+
+---
+# PostgreSQL Exporter Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-exporter
+  namespace: itdo-erp-production
+  labels:
+    app: postgres-exporter
+    component: monitoring
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: postgres-exporter
+  template:
+    metadata:
+      labels:
+        app: postgres-exporter
+        component: monitoring
+    spec:
+      containers:
+      - name: postgres-exporter
+        image: prometheuscommunity/postgres-exporter:v0.13.2
+        env:
+        - name: DATA_SOURCE_NAME
+          value: "postgresql://postgres:$(POSTGRES_PASSWORD)@patroni-cluster-service:5432/itdo_erp_production?sslmode=require"
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgresql-secrets
+              key: password
+        - name: PG_EXPORTER_EXTEND_QUERY_PATH
+          value: "/etc/postgres-exporter/postgres_exporter.yml"
+        ports:
+        - name: metrics
+          containerPort: 9187
+          protocol: TCP
+        volumeMounts:
+        - name: postgres-exporter-config
+          mountPath: /etc/postgres-exporter
+        - name: postgres-password
+          mountPath: /etc/postgres-exporter/password
+          subPath: password
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /metrics
+            port: 9187
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /metrics
+            port: 9187
+          initialDelaySeconds: 15
+          periodSeconds: 15
+      volumes:
+      - name: postgres-exporter-config
+        configMap:
+          name: postgres-exporter-config
+      - name: postgres-password
+        secret:
+          secretName: postgresql-secrets
+
+---
+# PostgreSQL Exporter Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-exporter-service
+  namespace: itdo-erp-production
+  labels:
+    app: postgres-exporter
+    component: monitoring
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9187"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  ports:
+  - name: metrics
+    port: 9187
+    targetPort: 9187
+    protocol: TCP
+  selector:
+    app: postgres-exporter
+
+---
+# ServiceMonitor for Prometheus
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: postgres-exporter-servicemonitor
+  namespace: itdo-erp-production
+  labels:
+    app: postgres-exporter
+    component: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: postgres-exporter
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+
+---
+# PostgreSQL Alerting Rules
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: postgresql-alerts
+  namespace: itdo-erp-production
+  labels:
+    app: postgresql
+    component: alerting
+spec:
+  groups:
+  - name: postgresql.rules
+    interval: 30s
+    rules:
+    # High-level availability alerts
+    - alert: PostgreSQLDown
+      expr: pg_up == 0
+      for: 1m
+      labels:
+        severity: critical
+        service: postgresql
+      annotations:
+        summary: "PostgreSQL instance is down"
+        description: "PostgreSQL instance {{ $labels.instance }} has been down for more than 1 minute."
+        runbook_url: "https://runbook.example.com/postgresql-down"
+    
+    - alert: PostgreSQLTooManyConnections
+      expr: (pg_stat_database_numbackends / pg_settings_max_connections) > 0.8
+      for: 5m
+      labels:
+        severity: warning
+        service: postgresql
+      annotations:
+        summary: "PostgreSQL connection usage is high"
+        description: "PostgreSQL instance {{ $labels.instance }} is using {{ $value | humanizePercentage }} of max connections."
+    
+    - alert: PostgreSQLMaxConnectionsReached
+      expr: (pg_stat_database_numbackends / pg_settings_max_connections) > 0.95
+      for: 1m
+      labels:
+        severity: critical
+        service: postgresql
+      annotations:
+        summary: "PostgreSQL max connections nearly reached"
+        description: "PostgreSQL instance {{ $labels.instance }} is using {{ $value | humanizePercentage }} of max connections."
+    
+    # Replication alerts
+    - alert: PostgreSQLReplicationLag
+      expr: pg_replication_lag > 300
+      for: 2m
+      labels:
+        severity: warning
+        service: postgresql
+      annotations:
+        summary: "PostgreSQL replication lag is high"
+        description: "PostgreSQL replication lag on {{ $labels.instance }} is {{ $value }} seconds."
+    
+    - alert: PostgreSQLReplicationLagCritical
+      expr: pg_replication_lag > 900
+      for: 1m
+      labels:
+        severity: critical
+        service: postgresql
+      annotations:
+        summary: "PostgreSQL replication lag is critical"
+        description: "PostgreSQL replication lag on {{ $labels.instance }} is {{ $value }} seconds (> 15 minutes)."
+    
+    - alert: PostgreSQLReplicaDown
+      expr: pg_replication_lag == -1
+      for: 2m
+      labels:
+        severity: critical
+        service: postgresql
+      annotations:
+        summary: "PostgreSQL replica is down"
+        description: "PostgreSQL replica {{ $labels.instance }} is not receiving updates from master."
+    
+    # Performance alerts
+    - alert: PostgreSQLDeadlocks
+      expr: rate(pg_stat_database_deadlocks[5m]) > 0.1
+      for: 2m
+      labels:
+        severity: warning
+        service: postgresql
+      annotations:
+        summary: "PostgreSQL deadlocks detected"
+        description: "PostgreSQL database {{ $labels.datname }} on {{ $labels.instance }} has {{ $value }} deadlocks per second."
+    
+    - alert: PostgreSQLSlowQueries
+      expr: pg_stat_activity_max_tx_duration > 300
+      for: 2m
+      labels:
+        severity: warning
+        service: postgresql
+      annotations:
+        summary: "PostgreSQL slow queries detected"
+        description: "PostgreSQL on {{ $labels.instance }} has queries running for more than 5 minutes."
+    
+    - alert: PostgreSQLCheckpointTooFrequent
+      expr: rate(pg_stat_bgwriter_checkpoints_req[5m]) > rate(pg_stat_bgwriter_checkpoints_timed[5m])
+      for: 5m
+      labels:
+        severity: warning
+        service: postgresql
+      annotations:
+        summary: "PostgreSQL checkpoint frequency is high"
+        description: "PostgreSQL on {{ $labels.instance }} has more requested checkpoints than timed checkpoints."
+    
+    # Storage alerts
+    - alert: PostgreSQLTablespaceUsage
+      expr: (pg_database_size_bytes / pg_tablespace_size_bytes) > 0.85
+      for: 5m
+      labels:
+        severity: warning
+        service: postgresql
+      annotations:
+        summary: "PostgreSQL tablespace usage is high"
+        description: "PostgreSQL tablespace on {{ $labels.instance }} is {{ $value | humanizePercentage }} full."
+    
+    - alert: PostgreSQLTablespaceUsageCritical
+      expr: (pg_database_size_bytes / pg_tablespace_size_bytes) > 0.95
+      for: 1m
+      labels:
+        severity: critical
+        service: postgresql
+      annotations:
+        summary: "PostgreSQL tablespace usage is critical"
+        description: "PostgreSQL tablespace on {{ $labels.instance }} is {{ $value | humanizePercentage }} full."
+    
+    # WAL and Archive alerts
+    - alert: PostgreSQLWALArchiveFailure
+      expr: rate(pg_stat_archiver_failed_count[5m]) > 0
+      for: 2m
+      labels:
+        severity: critical
+        service: postgresql
+      annotations:
+        summary: "PostgreSQL WAL archive failures detected"
+        description: "PostgreSQL on {{ $labels.instance }} has WAL archive failures."
+    
+    - alert: PostgreSQLOldWALFiles
+      expr: pg_stat_archiver_last_archived_time < (time() - 3600)
+      for: 5m
+      labels:
+        severity: warning
+        service: postgresql
+      annotations:
+        summary: "PostgreSQL WAL archiving is behind"
+        description: "PostgreSQL on {{ $labels.instance }} last archived WAL file more than 1 hour ago."
+
+---
+# PostgreSQL Monitoring Dashboard ConfigMap for Grafana
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgresql-dashboard-config
+  namespace: itdo-erp-production
+  labels:
+    app: grafana
+    component: dashboard
+data:
+  postgresql-dashboard.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "PostgreSQL Database Monitoring",
+        "tags": ["postgresql", "database", "monitoring"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Database Status",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "pg_up",
+                "legendFormat": "{{ instance }}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "green", "value": 1}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 2,
+            "title": "Active Connections",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "sum(pg_stat_database_numbackends) by (instance)",
+                "legendFormat": "Active Connections - {{ instance }}"
+              },
+              {
+                "expr": "pg_settings_max_connections",
+                "legendFormat": "Max Connections - {{ instance }}"
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "title": "Replication Lag",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "pg_replication_lag",
+                "legendFormat": "Replication Lag - {{ client_addr }}"
+              }
+            ],
+            "yAxes": [
+              {
+                "unit": "s",
+                "min": 0
+              }
+            ]
+          },
+          {
+            "id": 4,
+            "title": "Database Size",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "pg_database_size_bytes",
+                "legendFormat": "{{ datname }} - {{ instance }}"
+              }
+            ],
+            "yAxes": [
+              {
+                "unit": "bytes",
+                "min": 0
+              }
+            ]
+          },
+          {
+            "id": 5,
+            "title": "Query Performance",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(pg_stat_database_xact_commit[5m])",
+                "legendFormat": "Commits/sec - {{ datname }}"
+              },
+              {
+                "expr": "rate(pg_stat_database_xact_rollback[5m])",
+                "legendFormat": "Rollbacks/sec - {{ datname }}"
+              }
+            ]
+          },
+          {
+            "id": 6,
+            "title": "Buffer Cache Hit Rate",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "rate(pg_stat_database_blks_hit[5m]) / (rate(pg_stat_database_blks_hit[5m]) + rate(pg_stat_database_blks_read[5m])) * 100",
+                "legendFormat": "Cache Hit Rate - {{ datname }}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percent",
+                "min": 0,
+                "max": 100,
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "yellow", "value": 90},
+                    {"color": "green", "value": 95}
+                  ]
+                }
+              }
+            }
+          }
+        ],
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "refresh": "30s"
+      }
+    }
+
+---
+# PostgreSQL Log Aggregation with Fluent Bit
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fluent-bit-postgresql
+  namespace: itdo-erp-production
+  labels:
+    app: fluent-bit
+    component: postgresql-logs
+spec:
+  selector:
+    matchLabels:
+      app: fluent-bit
+      component: postgresql-logs
+  template:
+    metadata:
+      labels:
+        app: fluent-bit
+        component: postgresql-logs
+    spec:
+      serviceAccountName: fluent-bit
+      containers:
+      - name: fluent-bit
+        image: fluent/fluent-bit:2.1.8
+        env:
+        - name: FLUENT_ELASTICSEARCH_HOST
+          value: "elasticsearch-service"
+        - name: FLUENT_ELASTICSEARCH_PORT
+          value: "9200"
+        volumeMounts:
+        - name: varlog
+          mountPath: /var/log
+        - name: fluent-bit-config
+          mountPath: /fluent-bit/etc/
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+      volumes:
+      - name: varlog
+        hostPath:
+          path: /var/log
+      - name: fluent-bit-config
+        configMap:
+          name: fluent-bit-postgresql-config
+
+---
+# Fluent Bit Configuration for PostgreSQL Logs
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluent-bit-postgresql-config
+  namespace: itdo-erp-production
+  labels:
+    app: fluent-bit
+    component: postgresql-logs
+data:
+  fluent-bit.conf: |
+    [SERVICE]
+        Flush         1
+        Log_Level     info
+        Daemon        off
+        Parsers_File  parsers.conf
+        HTTP_Server   On
+        HTTP_Listen   0.0.0.0
+        HTTP_Port     2020
+    
+    [INPUT]
+        Name              tail
+        Path              /var/log/containers/*postgresql*.log
+        Parser            docker
+        Tag               postgresql.*
+        Refresh_Interval  5
+        Mem_Buf_Limit     5MB
+        Skip_Long_Lines   On
+    
+    [FILTER]
+        Name          parser
+        Match         postgresql.*
+        Key_Name      log
+        Parser        postgresql_log
+        Reserve_Data  On
+    
+    [OUTPUT]
+        Name          es
+        Match         postgresql.*
+        Host          ${FLUENT_ELASTICSEARCH_HOST}
+        Port          ${FLUENT_ELASTICSEARCH_PORT}
+        Index         postgresql-logs
+        Type          _doc
+        Logstash_Format On
+        Logstash_Prefix postgresql
+        Retry_Limit   False
+  
+  parsers.conf: |
+    [PARSER]
+        Name        docker
+        Format      json
+        Time_Key    time
+        Time_Format %Y-%m-%dT%H:%M:%S.%L
+        Time_Keep   On
+    
+    [PARSER]
+        Name        postgresql_log
+        Format      regex
+        Regex       ^(?<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}.\d{3}) (?<timezone>\w+) \[(?<pid>\d+)-(?<line>\d+)\] (?<user>\w*)@(?<database>\w*) (?<level>\w+):\s+(?<message>.*)$
+        Time_Key    timestamp
+        Time_Format %Y-%m-%d %H:%M:%S.%L

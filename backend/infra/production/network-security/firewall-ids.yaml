@@ -1,0 +1,914 @@
+---
+# Intrusion Detection System and Firewall Configuration
+# CC03 v68.0 Day 5: Advanced Security Monitoring and Threat Detection
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: firewall-config
+  namespace: network-security
+  labels:
+    app: firewall-ids
+    component: configuration
+data:
+  suricata.yaml: |
+    # Suricata IDS Configuration
+    
+    # Network interfaces
+    af-packet:
+      - interface: eth0
+        cluster-id: 99
+        cluster-type: cluster_flow
+        defrag: yes
+        use-mmap: yes
+        mmap-locked: yes
+        tpacket-v3: yes
+        ring-size: 2048
+        block-size: 32768
+    
+    # Detection settings
+    detect:
+      profile: high
+      custom-values:
+        toclient-groups: 3
+        toserver-groups: 25
+    
+    # Output configuration
+    outputs:
+      - eve-log:
+          enabled: yes
+          filetype: regular
+          filename: /var/log/suricata/eve.json
+          types:
+            - alert:
+                payload: yes
+                packet: yes
+                metadata: yes
+            - http:
+                extended: yes
+                custom: [Accept-Encoding, Accept-Language, Authorization]
+            - dns:
+                query: yes
+                answer: yes
+            - tls:
+                extended: yes
+            - files:
+                force-magic: no
+                force-hash: [md5]
+            - smtp:
+                extended: yes
+            - flow
+            - netflow
+    
+    # Application layer parsers
+    app-layer:
+      protocols:
+        tls:
+          enabled: yes
+          detection-ports:
+            dp: 443
+        http:
+          enabled: yes
+          libhtp:
+            default-config:
+              personality: IDS
+              request-body-limit: 100kb
+              response-body-limit: 100kb
+        smtp:
+          enabled: yes
+        dns:
+          tcp:
+            enabled: yes
+            detection-ports:
+              dp: 53
+          udp:
+            enabled: yes
+            detection-ports:
+              dp: 53
+    
+    # Rule sets
+    default-rule-path: /var/lib/suricata/rules
+    rule-files:
+      - suricata.rules
+      - emerging-threats.rules
+      - custom-itdo-erp.rules
+    
+    # Classification and reference
+    classification-file: /etc/suricata/classification.config
+    reference-config-file: /etc/suricata/reference.config
+    
+    # Logging
+    logging:
+      default-log-level: notice
+      outputs:
+        - console:
+            enabled: yes
+        - file:
+            enabled: yes
+            level: info
+            filename: /var/log/suricata/suricata.log
+  
+  custom-itdo-erp.rules: |
+    # Custom IDS Rules for ITDO ERP System
+    
+    # Detect SQL injection attempts
+    alert http any any -> any any (msg:"SQL Injection Attempt"; content:"UNION"; content:"SELECT"; sid:1000001; rev:1;)
+    alert http any any -> any any (msg:"SQL Injection - OR 1=1"; content:"OR 1=1"; nocase; sid:1000002; rev:1;)
+    alert http any any -> any any (msg:"SQL Injection - DROP TABLE"; content:"DROP TABLE"; nocase; sid:1000003; rev:1;)
+    
+    # Detect XSS attempts
+    alert http any any -> any any (msg:"XSS Attempt - Script Tag"; content:"<script"; nocase; sid:1000004; rev:1;)
+    alert http any any -> any any (msg:"XSS Attempt - JavaScript"; content:"javascript:"; nocase; sid:1000005; rev:1;)
+    
+    # Detect authentication attacks
+    alert http any any -> any any (msg:"Brute Force Login Attempt"; content:"/api/auth/login"; http_uri; threshold:type both, track by_src, count 10, seconds 60; sid:1000006; rev:1;)
+    alert http any any -> any any (msg:"Failed Login Response"; content:"401"; http_stat_code; content:"/api/auth/login"; http_uri; sid:1000007; rev:1;)
+    
+    # Detect admin panel access attempts
+    alert http any any -> any any (msg:"Admin Panel Access Attempt"; content:"/admin"; http_uri; threshold:type threshold, track by_src, count 5, seconds 300; sid:1000008; rev:1;)
+    
+    # Detect file upload attacks
+    alert http any any -> any any (msg:"Suspicious File Upload"; content:"Content-Type: multipart/form-data"; content:".php"; distance:0; sid:1000009; rev:1;)
+    alert http any any -> any any (msg:"Executable File Upload"; content:"Content-Type: multipart/form-data"; content:".exe"; distance:0; sid:1000010; rev:1;)
+    
+    # Detect API abuse
+    alert http any any -> any any (msg:"High API Request Rate"; content:"/api/"; http_uri; threshold:type both, track by_src, count 100, seconds 60; sid:1000011; rev:1;)
+    
+    # Detect data exfiltration attempts
+    alert http any any -> any any (msg:"Large Data Export"; content:"Content-Length:"; http_header; byte_test:1,>,500000,0,string,dec; sid:1000012; rev:1;)
+    
+    # Detect reconnaissance attempts
+    alert http any any -> any any (msg:"Directory Traversal Attempt"; content:"../"; http_uri; sid:1000013; rev:1;)
+    alert http any any -> any any (msg:"Configuration File Access"; content:".env"; http_uri; sid:1000014; rev:1;)
+    alert http any any -> any any (msg:"Database Backup Access"; content:".sql"; http_uri; sid:1000015; rev:1;)
+    
+    # Detect malware communication
+    alert tcp any any -> any any (msg:"Suspicious Outbound Connection"; flow:to_server; threshold:type threshold, track by_src, count 10, seconds 60; sid:1000016; rev:1;)
+    
+    # Detect DDoS attempts
+    alert tcp any any -> any 80 (msg:"HTTP Flood Attack"; flow:to_server; threshold:type both, track by_src, count 50, seconds 10; sid:1000017; rev:1;)
+    alert tcp any any -> any 443 (msg:"HTTPS Flood Attack"; flow:to_server; threshold:type both, track by_src, count 50, seconds 10; sid:1000018; rev:1;)
+
+---
+# Suricata IDS Deployment
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: suricata-ids
+  namespace: network-security
+  labels:
+    app: suricata-ids
+    component: intrusion-detection
+spec:
+  selector:
+    matchLabels:
+      app: suricata-ids
+  template:
+    metadata:
+      labels:
+        app: suricata-ids
+        component: intrusion-detection
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      serviceAccountName: network-security-sa
+      tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      containers:
+      - name: suricata
+        image: jasonish/suricata:7.0.2
+        imagePullPolicy: Always
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
+            - NET_RAW
+            - SYS_NICE
+          privileged: true
+        command:
+        - /usr/bin/suricata
+        - -c
+        - /etc/suricata/suricata.yaml
+        - -i
+        - eth0
+        - --init-errors-fatal
+        env:
+        - name: SURICATA_OPTIONS
+          value: "-v --set sensor-name=itdo-erp-$(hostname)"
+        volumeMounts:
+        - name: suricata-config
+          mountPath: /etc/suricata/suricata.yaml
+          subPath: suricata.yaml
+        - name: suricata-rules
+          mountPath: /var/lib/suricata/rules/custom-itdo-erp.rules
+          subPath: custom-itdo-erp.rules
+        - name: suricata-logs
+          mountPath: /var/log/suricata
+        - name: proc
+          mountPath: /host/proc
+          readOnly: true
+        - name: sys
+          mountPath: /host/sys
+          readOnly: true
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "pgrep suricata > /dev/null"
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "test -f /var/log/suricata/suricata.log"
+          initialDelaySeconds: 30
+          periodSeconds: 10
+      
+      - name: log-shipper
+        image: fluent/fluent-bit:2.1.8
+        env:
+        - name: FLUENT_ELASTICSEARCH_HOST
+          value: "elasticsearch-service"
+        - name: FLUENT_ELASTICSEARCH_PORT
+          value: "9200"
+        volumeMounts:
+        - name: suricata-logs
+          mountPath: /var/log/suricata
+          readOnly: true
+        - name: fluent-bit-config
+          mountPath: /fluent-bit/etc/
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+      
+      volumes:
+      - name: suricata-config
+        configMap:
+          name: firewall-config
+      - name: suricata-rules
+        configMap:
+          name: firewall-config
+      - name: suricata-logs
+        hostPath:
+          path: /var/log/suricata
+          type: DirectoryOrCreate
+      - name: proc
+        hostPath:
+          path: /proc
+      - name: sys
+        hostPath:
+          path: /sys
+      - name: fluent-bit-config
+        configMap:
+          name: ids-log-config
+
+---
+# IDS Log Configuration for Fluent Bit
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ids-log-config
+  namespace: network-security
+  labels:
+    app: fluent-bit
+    component: ids-logging
+data:
+  fluent-bit.conf: |
+    [SERVICE]
+        Flush         5
+        Log_Level     info
+        Daemon        off
+        Parsers_File  parsers.conf
+        HTTP_Server   On
+        HTTP_Listen   0.0.0.0
+        HTTP_Port     2020
+    
+    [INPUT]
+        Name              tail
+        Path              /var/log/suricata/eve.json
+        Parser            suricata_json
+        Tag               suricata.*
+        Refresh_Interval  5
+        Mem_Buf_Limit     5MB
+        Skip_Long_Lines   On
+        DB                /var/log/fluent-bit-suricata.db
+    
+    [FILTER]
+        Name          record_modifier
+        Match         suricata.*
+        Record        service suricata-ids
+        Record        environment production
+        Record        namespace network-security
+    
+    [FILTER]
+        Name          lua
+        Match         suricata.*
+        Script        /fluent-bit/scripts/suricata_processor.lua
+        Call          process_suricata_alert
+    
+    [OUTPUT]
+        Name          es
+        Match         suricata.*
+        Host          ${FLUENT_ELASTICSEARCH_HOST}
+        Port          ${FLUENT_ELASTICSEARCH_PORT}
+        Index         security-alerts
+        Type          _doc
+        Logstash_Format On
+        Logstash_Prefix suricata
+        Retry_Limit   False
+    
+    [OUTPUT]
+        Name          prometheus_exporter
+        Match         suricata.*
+        Host          0.0.0.0
+        Port          9115
+        Metrics_Path  /metrics
+  
+  parsers.conf: |
+    [PARSER]
+        Name        suricata_json
+        Format      json
+        Time_Key    timestamp
+        Time_Format %Y-%m-%dT%H:%M:%S.%L%z
+        Time_Keep   On
+  
+  suricata_processor.lua: |
+    function process_suricata_alert(tag, timestamp, record)
+        -- Extract alert severity
+        if record["alert"] and record["alert"]["severity"] then
+            local severity = record["alert"]["severity"]
+            if severity <= 2 then
+                record["priority"] = "high"
+            elseif severity <= 3 then
+                record["priority"] = "medium"
+            else
+                record["priority"] = "low"
+            end
+        end
+        
+        -- Categorize alert types
+        if record["alert"] and record["alert"]["signature"] then
+            local signature = string.lower(record["alert"]["signature"])
+            if string.find(signature, "sql") then
+                record["attack_type"] = "sql_injection"
+            elseif string.find(signature, "xss") then
+                record["attack_type"] = "cross_site_scripting"
+            elseif string.find(signature, "brute") then
+                record["attack_type"] = "brute_force"
+            elseif string.find(signature, "flood") or string.find(signature, "ddos") then
+                record["attack_type"] = "denial_of_service"
+            else
+                record["attack_type"] = "other"
+            end
+        end
+        
+        -- Extract network information
+        if record["src_ip"] then
+            record["source_ip"] = record["src_ip"]
+        end
+        if record["dest_ip"] then
+            record["destination_ip"] = record["dest_ip"]
+        end
+        
+        return 1, timestamp, record
+    end
+
+---
+# Fail2Ban Configuration for Additional Protection
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fail2ban-config
+  namespace: network-security
+  labels:
+    app: fail2ban
+    component: configuration
+data:
+  jail.local: |
+    [DEFAULT]
+    bantime  = 3600
+    findtime = 600
+    maxretry = 5
+    backend = auto
+    
+    [nginx-http-auth]
+    enabled = true
+    port = http,https
+    logpath = /var/log/nginx/error.log
+    maxretry = 3
+    
+    [nginx-limit-req]
+    enabled = true
+    port = http,https
+    logpath = /var/log/nginx/error.log
+    maxretry = 10
+    
+    [nginx-bad-request]
+    enabled = true
+    port = http,https
+    logpath = /var/log/nginx/access.log
+    maxretry = 2
+    
+    [itdo-erp-api-abuse]
+    enabled = true
+    port = http,https
+    logpath = /var/log/nginx/access.log
+    filter = itdo-erp-api-abuse
+    maxretry = 50
+    findtime = 300
+    bantime = 1800
+  
+  filter.d/itdo-erp-api-abuse.conf: |
+    [Definition]
+    failregex = ^<HOST>.*"(GET|POST|PUT|DELETE) /api/.*" (4\d\d|5\d\d)
+    ignoreregex =
+
+---
+# Fail2Ban Deployment
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fail2ban
+  namespace: network-security
+  labels:
+    app: fail2ban
+    component: intrusion-prevention
+spec:
+  selector:
+    matchLabels:
+      app: fail2ban
+  template:
+    metadata:
+      labels:
+        app: fail2ban
+        component: intrusion-prevention
+    spec:
+      hostNetwork: true
+      serviceAccountName: network-security-sa
+      tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      containers:
+      - name: fail2ban
+        image: crazymax/fail2ban:1.0.2
+        imagePullPolicy: Always
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
+            - NET_RAW
+          privileged: true
+        env:
+        - name: F2B_LOG_LEVEL
+          value: "INFO"
+        - name: F2B_LOG_TARGET
+          value: "/data/fail2ban.log"
+        - name: F2B_DB_PURGE_AGE
+          value: "1d"
+        volumeMounts:
+        - name: fail2ban-config
+          mountPath: /data/jail.d/jail.local
+          subPath: jail.local
+        - name: fail2ban-filters
+          mountPath: /data/filter.d/itdo-erp-api-abuse.conf
+          subPath: filter.d/itdo-erp-api-abuse.conf
+        - name: nginx-logs
+          mountPath: /var/log/nginx
+          readOnly: true
+        - name: fail2ban-data
+          mountPath: /data
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "fail2ban-client status > /dev/null"
+          initialDelaySeconds: 30
+          periodSeconds: 60
+      volumes:
+      - name: fail2ban-config
+        configMap:
+          name: fail2ban-config
+      - name: fail2ban-filters
+        configMap:
+          name: fail2ban-config
+      - name: nginx-logs
+        hostPath:
+          path: /var/log/containers
+          type: Directory
+      - name: fail2ban-data
+        hostPath:
+          path: /var/lib/fail2ban
+          type: DirectoryOrCreate
+
+---
+# Security Event Processor
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: security-event-processor
+  namespace: network-security
+  labels:
+    app: security-event-processor
+    component: analysis
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: security-event-processor
+  template:
+    metadata:
+      labels:
+        app: security-event-processor
+        component: analysis
+    spec:
+      containers:
+      - name: event-processor
+        image: python:3.11-alpine
+        command:
+        - python
+        - /app/processor.py
+        env:
+        - name: ELASTICSEARCH_URL
+          value: "http://elasticsearch-service:9200"
+        - name: ALERT_WEBHOOK_URL
+          value: "http://alertmanager:9093/api/v1/alerts"
+        - name: SLACK_WEBHOOK_URL
+          valueFrom:
+            secretKeyRef:
+              name: notification-secrets
+              key: slack_webhook_url
+              optional: true
+        volumeMounts:
+        - name: processor-code
+          mountPath: /app
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 15
+      volumes:
+      - name: processor-code
+        configMap:
+          name: security-processor-code
+
+---
+# Security Event Processor Code
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: security-processor-code
+  namespace: network-security
+  labels:
+    app: security-event-processor
+    component: code
+data:
+  processor.py: |
+    #!/usr/bin/env python3
+    import json
+    import time
+    import logging
+    import requests
+    from datetime import datetime, timedelta
+    from elasticsearch import Elasticsearch
+    from collections import defaultdict
+    import threading
+    from http.server import HTTPServer, BaseHTTPRequestHandler
+    import os
+    
+    # Configure logging
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    logger = logging.getLogger(__name__)
+    
+    class SecurityEventProcessor:
+        def __init__(self):
+            self.es_url = os.getenv('ELASTICSEARCH_URL', 'http://elasticsearch-service:9200')
+            self.alert_webhook = os.getenv('ALERT_WEBHOOK_URL', 'http://alertmanager:9093/api/v1/alerts')
+            self.slack_webhook = os.getenv('SLACK_WEBHOOK_URL')
+            
+            self.es = Elasticsearch([self.es_url])
+            self.attack_counters = defaultdict(int)
+            self.blocked_ips = set()
+            
+            # Threat intelligence indicators
+            self.iocs = {
+                'malicious_ips': set(),
+                'suspicious_domains': set(),
+                'attack_signatures': [
+                    'union select',
+                    'drop table',
+                    '<script>',
+                    'javascript:',
+                    '../etc/passwd',
+                    'cmd.exe',
+                    'powershell'
+                ]
+            }
+        
+        def process_security_events(self):
+            """Main processing loop for security events"""
+            logger.info("Starting security event processing...")
+            
+            while True:
+                try:
+                    # Query recent security alerts
+                    query = {
+                        "query": {
+                            "bool": {
+                                "must": [
+                                    {"range": {"@timestamp": {"gte": "now-5m"}}},
+                                    {"term": {"event_type": "alert"}}
+                                ]
+                            }
+                        },
+                        "sort": [{"@timestamp": {"order": "desc"}}],
+                        "size": 100
+                    }
+                    
+                    response = self.es.search(index="security-alerts-*", body=query)
+                    
+                    for hit in response['hits']['hits']:
+                        event = hit['_source']
+                        self.analyze_event(event)
+                    
+                    # Perform threat hunting
+                    self.threat_hunting()
+                    
+                    # Generate security reports
+                    self.generate_security_report()
+                    
+                except Exception as e:
+                    logger.error(f"Error processing security events: {e}")
+                
+                time.sleep(30)  # Process every 30 seconds
+        
+        def analyze_event(self, event):
+            """Analyze individual security event"""
+            try:
+                src_ip = event.get('src_ip', 'unknown')
+                alert_signature = event.get('alert', {}).get('signature', '')
+                attack_type = event.get('attack_type', 'unknown')
+                
+                # Count attacks by IP
+                self.attack_counters[src_ip] += 1
+                
+                # Check for repeated attacks from same IP
+                if self.attack_counters[src_ip] >= 10:
+                    self.escalate_threat(src_ip, f"High attack volume: {self.attack_counters[src_ip]} attacks")
+                    self.block_ip(src_ip)
+                
+                # Check against threat intelligence
+                if src_ip in self.iocs['malicious_ips']:
+                    self.escalate_threat(src_ip, "Known malicious IP detected")
+                
+                # Check for sophisticated attacks
+                if any(sig in alert_signature.lower() for sig in self.iocs['attack_signatures']):
+                    self.escalate_threat(src_ip, f"Sophisticated attack detected: {alert_signature}")
+                
+                # Check for privilege escalation attempts
+                if 'admin' in alert_signature.lower() or 'sudo' in alert_signature.lower():
+                    self.escalate_threat(src_ip, "Privilege escalation attempt detected")
+                
+                logger.info(f"Processed event: {attack_type} from {src_ip}")
+                
+            except Exception as e:
+                logger.error(f"Error analyzing event: {e}")
+        
+        def escalate_threat(self, src_ip, reason):
+            """Escalate high-priority threats"""
+            alert_data = {
+                "title": "High Priority Security Threat",
+                "message": f"Source IP: {src_ip}, Reason: {reason}",
+                "severity": "critical",
+                "source": "security-event-processor"
+            }
+            
+            # Send to Alertmanager
+            try:
+                requests.post(self.alert_webhook, json=alert_data, timeout=10)
+                logger.warning(f"Escalated threat: {src_ip} - {reason}")
+            except Exception as e:
+                logger.error(f"Failed to send alert: {e}")
+            
+            # Send to Slack if configured
+            if self.slack_webhook:
+                slack_data = {
+                    "text": f"🚨 *High Priority Security Threat*\n*IP:* {src_ip}\n*Reason:* {reason}\n*Time:* {datetime.now().isoformat()}"
+                }
+                try:
+                    requests.post(self.slack_webhook, json=slack_data, timeout=10)
+                except Exception as e:
+                    logger.error(f"Failed to send Slack alert: {e}")
+        
+        def block_ip(self, ip):
+            """Add IP to block list"""
+            if ip not in self.blocked_ips:
+                self.blocked_ips.add(ip)
+                logger.warning(f"Added {ip} to block list")
+                
+                # In a real implementation, this would interface with 
+                # firewall rules or network policies to actually block the IP
+        
+        def threat_hunting(self):
+            """Proactive threat hunting queries"""
+            try:
+                # Hunt for command injection attempts
+                query = {
+                    "query": {
+                        "bool": {
+                            "must": [
+                                {"range": {"@timestamp": {"gte": "now-1h"}}},
+                                {"query_string": {"query": "cmd.exe OR powershell OR /bin/sh OR wget OR curl"}}
+                            ]
+                        }
+                    }
+                }
+                
+                response = self.es.search(index="security-alerts-*", body=query)
+                if response['hits']['total']['value'] > 0:
+                    self.escalate_threat("multiple", f"Command injection attempts detected: {response['hits']['total']['value']} events")
+                
+                # Hunt for data exfiltration
+                query = {
+                    "query": {
+                        "bool": {
+                            "must": [
+                                {"range": {"@timestamp": {"gte": "now-1h"}}},
+                                {"range": {"bytes_out": {"gte": 10000000}}}  # 10MB
+                            ]
+                        }
+                    }
+                }
+                
+                response = self.es.search(index="nginx-logs-*", body=query)
+                if response['hits']['total']['value'] > 0:
+                    self.escalate_threat("multiple", f"Potential data exfiltration detected: {response['hits']['total']['value']} large transfers")
+                
+            except Exception as e:
+                logger.error(f"Error in threat hunting: {e}")
+        
+        def generate_security_report(self):
+            """Generate periodic security reports"""
+            try:
+                # Generate hourly security summary
+                now = datetime.now()
+                if now.minute == 0:  # Top of the hour
+                    query = {
+                        "query": {
+                            "range": {"@timestamp": {"gte": "now-1h"}}
+                        },
+                        "aggs": {
+                            "attack_types": {
+                                "terms": {"field": "attack_type.keyword"}
+                            },
+                            "top_sources": {
+                                "terms": {"field": "src_ip.keyword"}
+                            }
+                        }
+                    }
+                    
+                    response = self.es.search(index="security-alerts-*", body=query)
+                    
+                    total_events = response['hits']['total']['value']
+                    attack_types = response['aggregations']['attack_types']['buckets']
+                    top_sources = response['aggregations']['top_sources']['buckets']
+                    
+                    report = f"Hourly Security Report ({now.strftime('%Y-%m-%d %H:00')})\n"
+                    report += f"Total Events: {total_events}\n"
+                    report += f"Top Attack Types: {', '.join([f'{a[\"key\"]}({a[\"doc_count\"]})' for a in attack_types[:5]])}\n"
+                    report += f"Top Source IPs: {', '.join([f'{s[\"key\"]}({s[\"doc_count\"]})' for s in top_sources[:5]])}\n"
+                    
+                    logger.info(f"Security Report: {report}")
+                    
+            except Exception as e:
+                logger.error(f"Error generating security report: {e}")
+    
+    class HealthHandler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            if self.path == '/health':
+                self.send_response(200)
+                self.send_header('Content-type', 'text/plain')
+                self.end_headers()
+                self.wfile.write(b'OK')
+            elif self.path == '/ready':
+                self.send_response(200)
+                self.send_header('Content-type', 'text/plain')
+                self.end_headers()
+                self.wfile.write(b'Ready')
+            else:
+                self.send_response(404)
+                self.end_headers()
+    
+    def start_health_server():
+        server = HTTPServer(('0.0.0.0', 8080), HealthHandler)
+        server.serve_forever()
+    
+    if __name__ == "__main__":
+        # Start health check server in background
+        health_thread = threading.Thread(target=start_health_server, daemon=True)
+        health_thread.start()
+        
+        # Start main processor
+        processor = SecurityEventProcessor()
+        processor.process_security_events()
+  
+  requirements.txt: |
+    elasticsearch==8.11.0
+    requests==2.31.0
+
+---
+# Firewall and IDS Monitoring
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: firewall-ids-alerts
+  namespace: network-security
+  labels:
+    app: firewall-ids
+    component: alerting
+spec:
+  groups:
+  - name: firewall-ids.rules
+    interval: 30s
+    rules:
+    # IDS system health alerts
+    - alert: SuricataDown
+      expr: up{job="suricata-ids"} == 0
+      for: 1m
+      labels:
+        severity: critical
+        service: intrusion-detection
+      annotations:
+        summary: "Suricata IDS is down"
+        description: "Suricata IDS instance {{ $labels.instance }} has been down for more than 1 minute."
+    
+    # High volume attack alerts
+    - alert: HighVolumeAttacks
+      expr: rate(suricata_alerts_total[5m]) > 10
+      for: 2m
+      labels:
+        severity: warning
+        service: intrusion-detection
+      annotations:
+        summary: "High volume of security alerts"
+        description: "Suricata is detecting {{ $value }} alerts per second."
+    
+    # Critical severity attacks
+    - alert: CriticalSecurityAlert
+      expr: increase(suricata_alerts_total{severity="1"}[1m]) > 0
+      for: 0m
+      labels:
+        severity: critical
+        service: intrusion-detection
+      annotations:
+        summary: "Critical security alert detected"
+        description: "Critical severity security alert detected by Suricata IDS."
+    
+    # Fail2ban alerts
+    - alert: Fail2BanDown
+      expr: up{job="fail2ban"} == 0
+      for: 2m
+      labels:
+        severity: warning
+        service: intrusion-prevention
+      annotations:
+        summary: "Fail2Ban is down"
+        description: "Fail2Ban service is not running on {{ $labels.instance }}."

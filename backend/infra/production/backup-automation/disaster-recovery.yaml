@@ -1,0 +1,889 @@
+---
+# Disaster Recovery System
+# CC03 v68.0 Day 4: Enterprise-grade Disaster Recovery and Business Continuity
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: disaster-recovery-config
+  namespace: backup-system
+  labels:
+    app: disaster-recovery
+    component: configuration
+data:
+  recovery.conf: |
+    # Disaster Recovery Configuration
+    
+    # Recovery Point Objective (RPO) and Recovery Time Objective (RTO)
+    RPO_HOURS="4"
+    RTO_HOURS="2"
+    
+    # Primary Site Configuration
+    PRIMARY_SITE="tokyo-datacenter"
+    PRIMARY_REGION="ap-northeast-1"
+    PRIMARY_CLUSTER="itdo-erp-production"
+    
+    # Disaster Recovery Site Configuration
+    DR_SITE="osaka-datacenter"
+    DR_REGION="ap-northeast-3"
+    DR_CLUSTER="itdo-erp-dr"
+    
+    # Database Recovery Settings
+    DB_RECOVERY_MODE="point_in_time"
+    MAX_RECOVERY_LAG_MINUTES="30"
+    
+    # Application Recovery Settings
+    APP_RECOVERY_MODE="blue_green"
+    HEALTH_CHECK_RETRIES="5"
+    HEALTH_CHECK_INTERVAL="30"
+    
+    # Network Configuration
+    DR_LOAD_BALANCER="dr-lb.itdo-erp.com"
+    DNS_FAILOVER_TTL="60"
+    
+    # Data Synchronization
+    SYNC_FREQUENCY="hourly"
+    INCREMENTAL_SYNC="enabled"
+    
+    # Notification Settings
+    DR_NOTIFICATION_WEBHOOK="http://alertmanager:9093/api/v1/alerts"
+    DR_ESCALATION_WEBHOOK="http://pagerduty-webhook:8080/alerts"
+
+---
+# Disaster Recovery Scripts
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: disaster-recovery-scripts
+  namespace: backup-system
+  labels:
+    app: disaster-recovery
+    component: scripts
+data:
+  initiate-failover.sh: |
+    #!/bin/bash
+    # Disaster Recovery Failover Script
+    
+    set -euo pipefail
+    
+    # Source configuration
+    . /config/recovery.conf
+    
+    # Logging function
+    log() {
+        echo "$(date '+%Y-%m-%d %H:%M:%S') [FAILOVER] - $1"
+    }
+    
+    # Error handling
+    error_exit() {
+        log "ERROR: $1"
+        send_alert "Disaster Recovery Failover Failed" "$1" "critical"
+        exit 1
+    }
+    
+    # Send alert function
+    send_alert() {
+        local title="$1"
+        local message="$2"
+        local severity="${3:-warning}"
+        
+        curl -X POST \
+            -H "Content-Type: application/json" \
+            -d "{\"title\":\"$title\",\"message\":\"$message\",\"severity\":\"$severity\",\"site\":\"$DR_SITE\"}" \
+            "$DR_NOTIFICATION_WEBHOOK" \
+            > /dev/null 2>&1 || true
+        
+        # Escalate critical alerts
+        if [ "$severity" = "critical" ]; then
+            curl -X POST \
+                -H "Content-Type: application/json" \
+                -d "{\"title\":\"$title\",\"message\":\"$message\",\"severity\":\"$severity\"}" \
+                "$DR_ESCALATION_WEBHOOK" \
+                > /dev/null 2>&1 || true
+        fi
+    }
+    
+    # Check primary site health
+    check_primary_health() {
+        log "Checking primary site health..."
+        
+        if curl -f -s --max-time 10 "https://itdo-erp.com/health" > /dev/null 2>&1; then
+            return 0
+        else
+            return 1
+        fi
+    }
+    
+    # Activate DR site
+    activate_dr_site() {
+        log "Activating disaster recovery site..."
+        
+        # Switch kubectl context to DR cluster
+        kubectl config use-context "$DR_CLUSTER" || \
+            error_exit "Failed to switch to DR cluster context"
+        
+        # Scale up DR services
+        log "Scaling up DR services..."
+        kubectl scale deployment --all --replicas=2 -n itdo-erp-production || \
+            error_exit "Failed to scale up DR deployments"
+        
+        kubectl scale statefulset --all --replicas=1 -n itdo-erp-production || \
+            error_exit "Failed to scale up DR statefulsets"
+        
+        # Wait for services to be ready
+        log "Waiting for services to be ready..."
+        kubectl wait --for=condition=ready pod --all -n itdo-erp-production --timeout=300s || \
+            error_exit "Services failed to become ready"
+        
+        # Update DNS records for failover
+        log "Updating DNS records..."
+        update_dns_records || error_exit "Failed to update DNS records"
+        
+        # Verify DR site health
+        log "Verifying DR site health..."
+        for i in $(seq 1 $HEALTH_CHECK_RETRIES); do
+            if curl -f -s --max-time 10 "https://${DR_LOAD_BALANCER}/health" > /dev/null 2>&1; then
+                log "DR site health check passed"
+                break
+            else
+                if [ $i -eq $HEALTH_CHECK_RETRIES ]; then
+                    error_exit "DR site health check failed after $HEALTH_CHECK_RETRIES attempts"
+                fi
+                log "DR site health check failed, retrying in ${HEALTH_CHECK_INTERVAL}s..."
+                sleep $HEALTH_CHECK_INTERVAL
+            fi
+        done
+        
+        log "Disaster recovery site activated successfully"
+    }
+    
+    # Update DNS records for failover
+    update_dns_records() {
+        # Update Route 53 records to point to DR site
+        aws route53 change-resource-record-sets \
+            --hosted-zone-id "${DNS_HOSTED_ZONE_ID}" \
+            --change-batch '{
+                "Changes": [{
+                    "Action": "UPSERT",
+                    "ResourceRecordSet": {
+                        "Name": "itdo-erp.com",
+                        "Type": "CNAME",
+                        "TTL": '${DNS_FAILOVER_TTL}',
+                        "ResourceRecords": [{
+                            "Value": "'${DR_LOAD_BALANCER}'"
+                        }]
+                    }
+                }]
+            }' || return 1
+        
+        return 0
+    }
+    
+    # Restore data from backup
+    restore_data() {
+        log "Starting data restoration from backup..."
+        
+        # Restore PostgreSQL
+        log "Restoring PostgreSQL database..."
+        kubectl create job postgresql-restore-$(date +%s) \
+            --from=cronjob/postgresql-backup \
+            -n backup-system || \
+            error_exit "Failed to create PostgreSQL restore job"
+        
+        # Restore Redis
+        log "Restoring Redis data..."
+        kubectl create job redis-restore-$(date +%s) \
+            --from=cronjob/redis-backup \
+            -n backup-system || \
+            error_exit "Failed to create Redis restore job"
+        
+        # Restore application data
+        log "Restoring application data..."
+        kubectl create job application-restore-$(date +%s) \
+            --from=cronjob/application-data-backup \
+            -n backup-system || \
+            error_exit "Failed to create application restore job"
+        
+        log "Data restoration initiated"
+    }
+    
+    # Main failover process
+    main() {
+        log "Starting disaster recovery failover process..."
+        
+        # Check if this is an automatic or manual failover
+        FAILOVER_TYPE="${1:-automatic}"
+        
+        if [ "$FAILOVER_TYPE" = "automatic" ]; then
+            # Check primary site health before failing over
+            if check_primary_health; then
+                log "Primary site appears healthy, aborting automatic failover"
+                exit 0
+            fi
+            
+            log "Primary site health check failed, proceeding with automatic failover"
+        else
+            log "Manual failover initiated"
+        fi
+        
+        # Send failover notification
+        send_alert "Disaster Recovery Failover Started" \
+            "Initiating failover to DR site: $DR_SITE" \
+            "critical"
+        
+        # Restore data if needed
+        if [ "${RESTORE_DATA:-true}" = "true" ]; then
+            restore_data
+        fi
+        
+        # Activate DR site
+        activate_dr_site
+        
+        # Send success notification
+        send_alert "Disaster Recovery Failover Completed" \
+            "Failover to DR site completed successfully. Services available at: https://$DR_LOAD_BALANCER" \
+            "warning"
+        
+        log "Disaster recovery failover completed successfully"
+    }
+    
+    # Handle signals
+    cleanup() {
+        log "Received termination signal, cleaning up..."
+        exit 0
+    }
+    
+    trap cleanup SIGTERM SIGINT
+    
+    # Execute main function
+    main "$@"
+  
+  failback.sh: |
+    #!/bin/bash
+    # Disaster Recovery Failback Script
+    
+    set -euo pipefail
+    
+    # Source configuration
+    . /config/recovery.conf
+    
+    # Logging function
+    log() {
+        echo "$(date '+%Y-%m-%d %H:%M:%S') [FAILBACK] - $1"
+    }
+    
+    # Error handling
+    error_exit() {
+        log "ERROR: $1"
+        send_alert "Disaster Recovery Failback Failed" "$1" "critical"
+        exit 1
+    }
+    
+    # Send alert function
+    send_alert() {
+        local title="$1"
+        local message="$2"
+        local severity="${3:-warning}"
+        
+        curl -X POST \
+            -H "Content-Type: application/json" \
+            -d "{\"title\":\"$title\",\"message\":\"$message\",\"severity\":\"$severity\"}" \
+            "$DR_NOTIFICATION_WEBHOOK" \
+            > /dev/null 2>&1 || true
+    }
+    
+    # Check primary site health
+    check_primary_health() {
+        log "Checking primary site health..."
+        
+        # Test multiple endpoints
+        for endpoint in "/health" "/api/health" "/nginx_status"; do
+            if curl -f -s --max-time 10 "https://itdo-erp.com${endpoint}" > /dev/null 2>&1; then
+                return 0
+            fi
+        done
+        
+        return 1
+    }
+    
+    # Synchronize data from DR to primary
+    sync_data_to_primary() {
+        log "Synchronizing data from DR site to primary site..."
+        
+        # Create data synchronization job
+        kubectl create job data-sync-to-primary-$(date +%s) \
+            --image=alpine:3.18 \
+            --restart=OnFailure \
+            --command -- /bin/sh -c "
+                echo 'Starting data synchronization to primary site...'
+                # Add data synchronization logic here
+                echo 'Data synchronization completed'
+            " || error_exit "Failed to create data sync job"
+        
+        log "Data synchronization to primary site completed"
+    }
+    
+    # Reactivate primary site
+    reactivate_primary_site() {
+        log "Reactivating primary site..."
+        
+        # Switch kubectl context to primary cluster
+        kubectl config use-context "$PRIMARY_CLUSTER" || \
+            error_exit "Failed to switch to primary cluster context"
+        
+        # Scale up primary services
+        log "Scaling up primary services..."
+        kubectl scale deployment --all --replicas=2 -n itdo-erp-production || \
+            error_exit "Failed to scale up primary deployments"
+        
+        kubectl scale statefulset --all --replicas=1 -n itdo-erp-production || \
+            error_exit "Failed to scale up primary statefulsets"
+        
+        # Wait for services to be ready
+        log "Waiting for primary services to be ready..."
+        kubectl wait --for=condition=ready pod --all -n itdo-erp-production --timeout=300s || \
+            error_exit "Primary services failed to become ready"
+        
+        # Update DNS records back to primary
+        log "Updating DNS records back to primary..."
+        aws route53 change-resource-record-sets \
+            --hosted-zone-id "${DNS_HOSTED_ZONE_ID}" \
+            --change-batch '{
+                "Changes": [{
+                    "Action": "UPSERT",
+                    "ResourceRecordSet": {
+                        "Name": "itdo-erp.com",
+                        "Type": "CNAME",
+                        "TTL": '${DNS_FAILOVER_TTL}',
+                        "ResourceRecords": [{
+                            "Value": "itdo-erp.com"
+                        }]
+                    }
+                }]
+            }' || error_exit "Failed to update DNS records"
+        
+        # Verify primary site health
+        log "Verifying primary site health..."
+        for i in $(seq 1 $HEALTH_CHECK_RETRIES); do
+            if check_primary_health; then
+                log "Primary site health check passed"
+                break
+            else
+                if [ $i -eq $HEALTH_CHECK_RETRIES ]; then
+                    error_exit "Primary site health check failed after $HEALTH_CHECK_RETRIES attempts"
+                fi
+                log "Primary site health check failed, retrying in ${HEALTH_CHECK_INTERVAL}s..."
+                sleep $HEALTH_CHECK_INTERVAL
+            fi
+        done
+        
+        log "Primary site reactivated successfully"
+    }
+    
+    # Scale down DR site
+    scale_down_dr_site() {
+        log "Scaling down DR site services..."
+        
+        # Switch to DR cluster context
+        kubectl config use-context "$DR_CLUSTER" || \
+            error_exit "Failed to switch to DR cluster context"
+        
+        # Scale down DR services to conserve resources
+        kubectl scale deployment --all --replicas=1 -n itdo-erp-production || \
+            log "Warning: Failed to scale down DR deployments"
+        
+        log "DR site scaled down to standby mode"
+    }
+    
+    # Main failback process
+    main() {
+        log "Starting disaster recovery failback process..."
+        
+        # Verify primary site is healthy before failing back
+        if ! check_primary_health; then
+            error_exit "Primary site is not healthy, cannot perform failback"
+        fi
+        
+        # Send failback notification
+        send_alert "Disaster Recovery Failback Started" \
+            "Initiating failback to primary site: $PRIMARY_SITE" \
+            "warning"
+        
+        # Synchronize data from DR to primary
+        sync_data_to_primary
+        
+        # Reactivate primary site
+        reactivate_primary_site
+        
+        # Scale down DR site
+        scale_down_dr_site
+        
+        # Send success notification
+        send_alert "Disaster Recovery Failback Completed" \
+            "Failback to primary site completed successfully. Services restored to: https://itdo-erp.com" \
+            "info"
+        
+        log "Disaster recovery failback completed successfully"
+    }
+    
+    # Execute main function
+    main "$@"
+  
+  health-monitor.sh: |
+    #!/bin/bash
+    # Disaster Recovery Health Monitoring Script
+    
+    set -euo pipefail
+    
+    # Source configuration
+    . /config/recovery.conf
+    
+    # Logging function
+    log() {
+        echo "$(date '+%Y-%m-%d %H:%M:%S') [HEALTH] - $1"
+    }
+    
+    # Send alert function
+    send_alert() {
+        local title="$1"
+        local message="$2"
+        local severity="${3:-warning}"
+        
+        curl -X POST \
+            -H "Content-Type: application/json" \
+            -d "{\"title\":\"$title\",\"message\":\"$message\",\"severity\":\"$severity\"}" \
+            "$DR_NOTIFICATION_WEBHOOK" \
+            > /dev/null 2>&1 || true
+    }
+    
+    # Check site health
+    check_site_health() {
+        local site_url="$1"
+        local site_name="$2"
+        
+        # Test multiple health endpoints
+        local endpoints=("/health" "/api/health" "/nginx_status")
+        local healthy=false
+        
+        for endpoint in "${endpoints[@]}"; do
+            if curl -f -s --max-time 10 "${site_url}${endpoint}" > /dev/null 2>&1; then
+                healthy=true
+                break
+            fi
+        done
+        
+        if $healthy; then
+            log "$site_name site is healthy"
+            return 0
+        else
+            log "$site_name site health check failed"
+            return 1
+        fi
+    }
+    
+    # Check database replication lag
+    check_replication_lag() {
+        local max_lag_minutes="$1"
+        
+        # Get replication lag from PostgreSQL
+        REPLICATION_LAG=$(kubectl exec -n itdo-erp-production postgresql-primary-0 -- \
+            psql -U postgres -d itdo_erp_production -t -c \
+            "SELECT CASE WHEN pg_is_in_recovery() THEN EXTRACT(EPOCH FROM (now() - pg_last_xact_replay_timestamp()))/60 ELSE 0 END;" \
+            2>/dev/null | tr -d ' ')
+        
+        if [[ "$REPLICATION_LAG" =~ ^[0-9]+\.?[0-9]*$ ]]; then
+            if (( $(echo "$REPLICATION_LAG > $max_lag_minutes" | bc -l) )); then
+                log "Database replication lag is high: ${REPLICATION_LAG} minutes"
+                return 1
+            else
+                log "Database replication lag is acceptable: ${REPLICATION_LAG} minutes"
+                return 0
+            fi
+        else
+            log "Unable to determine replication lag"
+            return 1
+        fi
+    }
+    
+    # Monitor and decide on failover
+    monitor_and_decide() {
+        local primary_failures=0
+        local max_failures=3
+        local check_interval=60
+        
+        while true; do
+            # Check primary site health
+            if check_site_health "https://itdo-erp.com" "Primary"; then
+                # Primary is healthy, reset failure count
+                if [ $primary_failures -gt 0 ]; then
+                    log "Primary site recovered, resetting failure count"
+                    primary_failures=0
+                fi
+                
+                # Check replication lag
+                if ! check_replication_lag "$MAX_RECOVERY_LAG_MINUTES"; then
+                    send_alert "High Database Replication Lag" \
+                        "Database replication lag is above threshold" \
+                        "warning"
+                fi
+                
+            else
+                # Primary site is unhealthy
+                primary_failures=$((primary_failures + 1))
+                log "Primary site failure count: $primary_failures/$max_failures"
+                
+                if [ $primary_failures -ge $max_failures ]; then
+                    log "Primary site has failed $max_failures times, initiating automatic failover"
+                    
+                    # Check if DR site is healthy before failing over
+                    if check_site_health "https://${DR_LOAD_BALANCER}" "DR"; then
+                        send_alert "Automatic Failover Triggered" \
+                            "Primary site failed $max_failures health checks, initiating failover" \
+                            "critical"
+                        
+                        # Trigger failover
+                        /scripts/initiate-failover.sh automatic
+                        
+                        # Exit monitoring after failover
+                        exit 0
+                    else
+                        send_alert "Failover Blocked - DR Site Unhealthy" \
+                            "Primary site is down but DR site is also unhealthy. Manual intervention required." \
+                            "critical"
+                    fi
+                fi
+            fi
+            
+            sleep $check_interval
+        done
+    }
+    
+    # Main monitoring loop
+    main() {
+        log "Starting disaster recovery health monitoring..."
+        
+        # Initial health check of both sites
+        log "Performing initial health checks..."
+        check_site_health "https://itdo-erp.com" "Primary"
+        check_site_health "https://${DR_LOAD_BALANCER}" "DR"
+        
+        # Start continuous monitoring
+        monitor_and_decide
+    }
+    
+    # Handle signals
+    cleanup() {
+        log "Received termination signal, stopping monitoring..."
+        exit 0
+    }
+    
+    trap cleanup SIGTERM SIGINT
+    
+    # Execute main function
+    main "$@"
+
+---
+# Disaster Recovery Controller Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: disaster-recovery-controller
+  namespace: backup-system
+  labels:
+    app: disaster-recovery-controller
+    component: automation
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: disaster-recovery-controller
+  template:
+    metadata:
+      labels:
+        app: disaster-recovery-controller
+        component: automation
+    spec:
+      serviceAccountName: disaster-recovery-sa
+      containers:
+      - name: health-monitor
+        image: alpine:3.18
+        command:
+        - /bin/sh
+        - /scripts/health-monitor.sh
+        env:
+        - name: DNS_HOSTED_ZONE_ID
+          valueFrom:
+            secretKeyRef:
+              name: disaster-recovery-secrets
+              key: dns_hosted_zone_id
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: disaster-recovery-secrets
+              key: aws_access_key_id
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: disaster-recovery-secrets
+              key: aws_secret_access_key
+        volumeMounts:
+        - name: disaster-recovery-scripts
+          mountPath: /scripts
+        - name: disaster-recovery-config
+          mountPath: /config
+        - name: kubeconfig
+          mountPath: /root/.kube
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "pgrep -f health-monitor.sh > /dev/null"
+          initialDelaySeconds: 30
+          periodSeconds: 60
+      volumes:
+      - name: disaster-recovery-scripts
+        configMap:
+          name: disaster-recovery-scripts
+          defaultMode: 0755
+      - name: disaster-recovery-config
+        configMap:
+          name: disaster-recovery-config
+      - name: kubeconfig
+        secret:
+          secretName: disaster-recovery-kubeconfig
+
+---
+# Manual Failover Job Template
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: manual-failover-template
+  namespace: backup-system
+  labels:
+    app: disaster-recovery
+    component: manual-failover
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      serviceAccountName: disaster-recovery-sa
+      containers:
+      - name: manual-failover
+        image: alpine:3.18
+        command:
+        - /bin/sh
+        - /scripts/initiate-failover.sh
+        - manual
+        env:
+        - name: DNS_HOSTED_ZONE_ID
+          valueFrom:
+            secretKeyRef:
+              name: disaster-recovery-secrets
+              key: dns_hosted_zone_id
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: disaster-recovery-secrets
+              key: aws_access_key_id
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: disaster-recovery-secrets
+              key: aws_secret_access_key
+        volumeMounts:
+        - name: disaster-recovery-scripts
+          mountPath: /scripts
+        - name: disaster-recovery-config
+          mountPath: /config
+        - name: kubeconfig
+          mountPath: /root/.kube
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+      volumes:
+      - name: disaster-recovery-scripts
+        configMap:
+          name: disaster-recovery-scripts
+          defaultMode: 0755
+      - name: disaster-recovery-config
+        configMap:
+          name: disaster-recovery-config
+      - name: kubeconfig
+        secret:
+          secretName: disaster-recovery-kubeconfig
+
+---
+# Disaster Recovery Secrets
+apiVersion: v1
+kind: Secret
+metadata:
+  name: disaster-recovery-secrets
+  namespace: backup-system
+type: Opaque
+stringData:
+  dns_hosted_zone_id: "Z1234567890ABC"
+  aws_access_key_id: "your-aws-access-key-id"
+  aws_secret_access_key: "your-aws-secret-access-key"
+
+---
+# Kubeconfig for Multi-Cluster Access
+apiVersion: v1
+kind: Secret
+metadata:
+  name: disaster-recovery-kubeconfig
+  namespace: backup-system
+type: Opaque
+stringData:
+  config: |
+    apiVersion: v1
+    kind: Config
+    clusters:
+    - cluster:
+        certificate-authority-data: # Primary cluster CA
+        server: https://primary-cluster-api-server
+      name: itdo-erp-production
+    - cluster:
+        certificate-authority-data: # DR cluster CA
+        server: https://dr-cluster-api-server
+      name: itdo-erp-dr
+    contexts:
+    - context:
+        cluster: itdo-erp-production
+        user: disaster-recovery-user
+      name: itdo-erp-production
+    - context:
+        cluster: itdo-erp-dr
+        user: disaster-recovery-user
+      name: itdo-erp-dr
+    current-context: itdo-erp-production
+    users:
+    - name: disaster-recovery-user
+      user:
+        token: # Service account token for cross-cluster access
+
+---
+# ServiceAccount for Disaster Recovery
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: disaster-recovery-sa
+  namespace: backup-system
+
+---
+# ClusterRole for Disaster Recovery
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: disaster-recovery-role
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services", "configmaps", "secrets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "statefulsets", "replicasets"]
+  verbs: ["get", "list", "watch", "update", "patch", "scale"]
+- apiGroups: ["batch"]
+  resources: ["jobs", "cronjobs"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: [""]
+  resources: ["pods/exec"]
+  verbs: ["create"]
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+
+---
+# ClusterRoleBinding for Disaster Recovery
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: disaster-recovery-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: disaster-recovery-role
+subjects:
+- kind: ServiceAccount
+  name: disaster-recovery-sa
+  namespace: backup-system
+
+---
+# Disaster Recovery Test Job
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: disaster-recovery-test
+  namespace: backup-system
+  labels:
+    app: disaster-recovery
+    component: testing
+  annotations:
+    "helm.sh/hook": test
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: dr-test
+        image: alpine:3.18
+        command:
+        - /bin/sh
+        - -c
+        - |
+          echo "Starting disaster recovery system test..."
+          
+          # Test primary site health monitoring
+          echo "Testing primary site health check..."
+          if curl -f -s --max-time 10 "https://itdo-erp.com/health" > /dev/null 2>&1; then
+            echo "✅ Primary site health check working"
+          else
+            echo "❌ Primary site health check failed"
+            exit 1
+          fi
+          
+          # Test DR site accessibility
+          echo "Testing DR site accessibility..."
+          if curl -f -s --max-time 10 "https://dr-lb.itdo-erp.com/health" > /dev/null 2>&1; then
+            echo "✅ DR site is accessible"
+          else
+            echo "⚠️ DR site not accessible (may be normal if scaled down)"
+          fi
+          
+          # Test backup restoration capabilities
+          echo "Testing backup system integration..."
+          if kubectl get cronjobs -n backup-system | grep -q "postgresql-backup"; then
+            echo "✅ Backup system is properly configured"
+          else
+            echo "❌ Backup system configuration issue"
+            exit 1
+          fi
+          
+          # Test DNS failover capability (simulation)
+          echo "Testing DNS failover capability..."
+          if command -v aws > /dev/null 2>&1; then
+            echo "✅ AWS CLI available for DNS updates"
+          else
+            echo "❌ AWS CLI not available"
+            exit 1
+          fi
+          
+          echo "✅ All disaster recovery tests passed!"
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"

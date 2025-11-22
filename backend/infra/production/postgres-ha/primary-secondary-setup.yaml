@@ -1,0 +1,340 @@
+---
+# PostgreSQL High Availability Setup - Primary-Secondary Configuration
+# CC03 v68.0 Day 1: 99.9% Availability Production Infrastructure
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgresql-primary
+  namespace: itdo-erp-production
+  labels:
+    app: postgresql
+    role: primary
+    tier: database
+    version: "15.4"
+spec:
+  serviceName: postgresql-primary-service
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgresql
+      role: primary
+  template:
+    metadata:
+      labels:
+        app: postgresql
+        role: primary
+        tier: database
+    spec:
+      securityContext:
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+      containers:
+      - name: postgresql-primary
+        image: postgres:15.4-alpine
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+        env:
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: postgresql-secrets
+              key: database_name
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgresql-secrets
+              key: username
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgresql-secrets
+              key: password
+        - name: POSTGRES_REPLICATION_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgresql-secrets
+              key: replication_user
+        - name: POSTGRES_REPLICATION_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgresql-secrets
+              key: replication_password
+        ports:
+        - name: postgres
+          containerPort: 5432
+          protocol: TCP
+        volumeMounts:
+        - name: postgresql-data
+          mountPath: /var/lib/postgresql/data
+        - name: postgresql-config
+          mountPath: /etc/postgresql/postgresql.conf
+          subPath: postgresql.conf
+        - name: postgresql-config
+          mountPath: /etc/postgresql/pg_hba.conf
+          subPath: pg_hba.conf
+        - name: postgresql-scripts
+          mountPath: /docker-entrypoint-initdb.d
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U $POSTGRES_USER -d $POSTGRES_DB -h localhost
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U $POSTGRES_USER -d $POSTGRES_DB -h localhost
+          initialDelaySeconds: 15
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+      volumes:
+      - name: postgresql-config
+        configMap:
+          name: postgresql-primary-config
+      - name: postgresql-scripts
+        configMap:
+          name: postgresql-init-scripts
+  volumeClaimTemplates:
+  - metadata:
+      name: postgresql-data
+      labels:
+        app: postgresql
+        role: primary
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: fast-ssd
+      resources:
+        requests:
+          storage: 100Gi
+
+---
+# PostgreSQL Secondary (Replica) Configuration
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgresql-secondary
+  namespace: itdo-erp-production
+  labels:
+    app: postgresql
+    role: secondary
+    tier: database
+    version: "15.4"
+spec:
+  serviceName: postgresql-secondary-service
+  replicas: 2  # Multiple read replicas for load distribution
+  selector:
+    matchLabels:
+      app: postgresql
+      role: secondary
+  template:
+    metadata:
+      labels:
+        app: postgresql
+        role: secondary
+        tier: database
+    spec:
+      securityContext:
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+      containers:
+      - name: postgresql-secondary
+        image: postgres:15.4-alpine
+        resources:
+          requests:
+            memory: "1.5Gi"
+            cpu: "750m"
+          limits:
+            memory: "3Gi"
+            cpu: "1500m"
+        env:
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: postgresql-secrets
+              key: database_name
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgresql-secrets
+              key: username
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgresql-secrets
+              key: password
+        - name: POSTGRES_REPLICATION_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgresql-secrets
+              key: replication_user
+        - name: POSTGRES_REPLICATION_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgresql-secrets
+              key: replication_password
+        - name: POSTGRES_PRIMARY_HOST
+          value: "postgresql-primary-service"
+        - name: POSTGRES_PRIMARY_PORT
+          value: "5432"
+        - name: PGUSER
+          valueFrom:
+            secretKeyRef:
+              name: postgresql-secrets
+              key: replication_user
+        ports:
+        - name: postgres
+          containerPort: 5432
+          protocol: TCP
+        volumeMounts:
+        - name: postgresql-data
+          mountPath: /var/lib/postgresql/data
+        - name: postgresql-config
+          mountPath: /etc/postgresql/postgresql.conf
+          subPath: postgresql-replica.conf
+        - name: postgresql-config
+          mountPath: /etc/postgresql/pg_hba.conf
+          subPath: pg_hba.conf
+        - name: postgresql-scripts
+          mountPath: /docker-entrypoint-initdb.d
+        command:
+        - /bin/bash
+        - -c
+        - |
+          # Initialize replica from primary
+          if [ ! -f /var/lib/postgresql/data/PG_VERSION ]; then
+            echo "Initializing replica from primary..."
+            pg_basebackup -h $POSTGRES_PRIMARY_HOST -D /var/lib/postgresql/data -U $POSTGRES_REPLICATION_USER -v -P -R -X stream
+            echo "host replication $POSTGRES_REPLICATION_USER 0.0.0.0/0 md5" >> /var/lib/postgresql/data/pg_hba.conf
+          fi
+          
+          # Start PostgreSQL in replica mode
+          exec docker-entrypoint.sh postgres -c config_file=/etc/postgresql/postgresql.conf
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U $POSTGRES_USER -d $POSTGRES_DB -h localhost
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - pg_isready -U $POSTGRES_USER -d $POSTGRES_DB -h localhost
+          initialDelaySeconds: 30
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+      volumes:
+      - name: postgresql-config
+        configMap:
+          name: postgresql-secondary-config
+      - name: postgresql-scripts
+        configMap:
+          name: postgresql-init-scripts
+  volumeClaimTemplates:
+  - metadata:
+      name: postgresql-data
+      labels:
+        app: postgresql
+        role: secondary
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: fast-ssd
+      resources:
+        requests:
+          storage: 100Gi
+
+---
+# Primary Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgresql-primary-service
+  namespace: itdo-erp-production
+  labels:
+    app: postgresql
+    role: primary
+spec:
+  type: ClusterIP
+  ports:
+  - name: postgres
+    port: 5432
+    targetPort: 5432
+    protocol: TCP
+  selector:
+    app: postgresql
+    role: primary
+
+---
+# Secondary (Read-Only) Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgresql-secondary-service
+  namespace: itdo-erp-production
+  labels:
+    app: postgresql
+    role: secondary
+spec:
+  type: ClusterIP
+  ports:
+  - name: postgres
+    port: 5432
+    targetPort: 5432
+    protocol: TCP
+  selector:
+    app: postgresql
+    role: secondary
+
+---
+# PostgreSQL Secrets
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgresql-secrets
+  namespace: itdo-erp-production
+type: Opaque
+stringData:
+  database_name: "itdo_erp_production"
+  username: "erp_user"
+  password: "$(openssl rand -base64 32)"
+  replication_user: "replicator"
+  replication_password: "$(openssl rand -base64 32)"
+  
+---
+# Storage Class for High Performance
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: fast-ssd
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+provisioner: kubernetes.io/aws-ebs  # Adjust for your cloud provider
+parameters:
+  type: gp3
+  iops: "16000"
+  throughput: "1000"
+  encrypted: "true"
+allowVolumeExpansion: true
+reclaimPolicy: Retain
+volumeBindingMode: WaitForFirstConsumer
